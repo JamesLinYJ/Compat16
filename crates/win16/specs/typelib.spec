@@ -1,0 +1,13 @@
+# module=TYPELIB source_module=typelib.DLL
+2 pascal CreateTypeLib(word str ptr)
+3 pascal LoadTypeLib(ptr ptr)
+4 pascal LHashValOfNameSys(word long str)
+5 variable _IID_ICreateTypeInfo (0x00020405, 0x00000000, 0x000000C0, 0x46000000)
+6 variable _IID_ICreateTypeLib (0x00020406, 0x00000000, 0x000000C0, 0x46000000)
+7 variable _IID_ITypeComp (0x00020403, 0x00000000, 0x000000C0, 0x46000000)
+8 variable _IID_ITypeInfo (0x00020401, 0x00000000, 0x000000C0, 0x46000000)
+9 variable _IID_ITypeLib (0x00020402, 0x00000000, 0x000000C0, 0x46000000)
+10 pascal RegisterTypeLib(segptr str str)
+11 pascal LoadRegTypeLib(ptr word word long ptr)
+14 pascal QueryPathOfRegTypeLib(ptr word word long ptr)
+15 pascal OaBuildVersion()

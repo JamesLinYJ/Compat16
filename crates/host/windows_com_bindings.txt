@@ -1,0 +1,23 @@
+# Callable native interfaces and checked callback implementations.
+Windows.Win32.IOleObject
+Windows.Win32.IPersistStorage
+Windows.Win32.IPersistFile
+Windows.Win32.IDataObject
+Windows.Win32.IEnumFORMATETC
+Windows.Win32.IOleClientSite
+Windows.Win32.IAdviseSink
+Windows.Win32.IMoniker
+Windows.Win32.IStorage
+Windows.Win32.IStream
+Windows.Win32.STGMEDIUM
+Windows.Win32.FORMATETC
+Windows.Win32.DVTARGETDEVICE
+Windows.Win32.SIZE
+Windows.Win32.RECT
+Windows.Win32.HWND
+Windows.Win32.ReleaseStgMedium
+Windows.Win32.CoTaskMemFree
+Windows.Win32.GlobalLock
+Windows.Win32.GlobalSize
+Windows.Win32.GlobalUnlock
+Windows.Win32.DEVMODEW

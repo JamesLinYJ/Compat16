@@ -1,0 +1,815 @@
+use crate::{DosAction, DosDirectoryEntry, DosDiskSpace, DosError, DosErrorCode, DosFileAccess, DosFileSharing, DosHost, DosHostError, DosHostFile, DosHostSearch, DosIoctlObjectInfo, DosIoctlStream, DosKernel, DosSeekOrigin};
+use super::directory::{dos_path_drive, parse_search_spec, search_attribute_matches};
+use super::state::Handle;
+use super::directory::{dos_field_matches, short_name_fields};
+use std::collections::{BTreeMap, VecDeque};
+use guest_core::{GuestMemory, MemoryError, PhysAddr, Registers};
+
+pub(super) struct TestMemory(Vec<u8>);
+
+impl TestMemory {
+    pub(super) fn new() -> Self { Self(vec![0; 0x20_000]) }
+    pub(super) fn put(&mut self, address: u32, bytes: &[u8]) {
+        self.0[address as usize..address as usize + bytes.len()].copy_from_slice(bytes);
+    }
+}
+
+impl GuestMemory for TestMemory {
+    fn len(&self) -> u32 { self.0.len() as u32 }
+    fn read(&self, address: PhysAddr, bytes: &mut [u8]) -> Result<(), MemoryError> {
+        self.validate_read(address, bytes.len())?;
+        let start = address.0 as usize;
+        bytes.copy_from_slice(&self.0[start..start + bytes.len()]);
+        Ok(())
+    }
+    fn write(&mut self, address: PhysAddr, bytes: &[u8]) -> Result<(), MemoryError> {
+        self.validate_write(address, bytes.len())?;
+        let start = address.0 as usize;
+        self.0[start..start + bytes.len()].copy_from_slice(bytes);
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+struct FileState { bytes: Vec<u8>, cursor: u32, written: bool }
+
+#[derive(Default)]
+struct TestDirectorySearch { entries: Vec<DosDirectoryEntry>, next: usize }
+
+#[derive(Default)]
+pub(super) struct TestHost {
+    input: VecDeque<u8>,
+    stdout: Vec<u8>,
+    stderr: Vec<u8>,
+    paths: BTreeMap<Vec<u8>, u64>,
+    attributes: BTreeMap<Vec<u8>, u8>,
+    directories: BTreeMap<Vec<u8>, ()>,
+    current_directories: BTreeMap<u8, Vec<u8>>,
+    files: BTreeMap<u64, FileState>,
+    handles: BTreeMap<DosHostFile, u64>,
+    searches: BTreeMap<DosHostSearch, TestDirectorySearch>,
+    next_id: u64,
+    next_search_id: u64,
+    drive: u8,
+    disk_space: Option<DosDiskSpace>,
+    duplicate_calls: usize,
+    fail_duplicate_at: Option<usize>,
+    code_page: Option<text_codec::CodePage>,
+    redirected_standard_streams: bool,
+    input_eof: bool,
+}
+
+impl TestHost {
+    pub(super) fn set_current_drive(&mut self, drive: u8) { self.drive = drive; }
+
+    pub(super) fn set_disk_space(&mut self, space: DosDiskSpace) { self.disk_space = Some(space); }
+
+    pub(super) fn redirect_standard_streams(&mut self) {
+        self.redirected_standard_streams = true;
+    }
+
+    pub(super) fn set_standard_input_eof(&mut self, input_eof: bool) {
+        self.input_eof = input_eof;
+    }
+
+    fn open_new(&mut self, path: &[u8], truncate: bool) -> DosHostFile {
+        let file_id = if let Some(id) = self.paths.get(path).copied() {
+            if truncate { self.files.insert(id, FileState::default()); }
+            id
+        } else {
+            self.next_id += 1;
+            let id = self.next_id;
+            self.paths.insert(path.to_vec(), id);
+            self.files.insert(id, FileState::default());
+            id
+        };
+        self.next_id += 1;
+        let token = DosHostFile(self.next_id);
+        self.handles.insert(token, file_id);
+        token
+    }
+
+    fn file_for(&mut self, token: DosHostFile) -> Result<&mut FileState, DosHostError> {
+        let id = self.handles.get(&token).copied().ok_or(DosHostError::new(DosErrorCode::InvalidHandle))?;
+        self.files.get_mut(&id).ok_or(DosHostError::new(DosErrorCode::InvalidHandle))
+    }
+}
+
+impl DosHost for TestHost {
+    fn read_stdin(&mut self, output: &mut [u8]) -> Result<usize, DosHostError> {
+        let mut count = 0;
+        while count < output.len() {
+            let Some(byte) = self.input.pop_front() else { break; };
+            output[count] = byte;
+            count += 1;
+        }
+        Ok(count)
+    }
+    fn try_read_stdin(&mut self) -> Result<Option<u8>, DosHostError> { Ok(self.input.pop_front()) }
+    fn write_stdout(&mut self, input: &[u8]) -> Result<usize, DosHostError> { self.stdout.extend_from_slice(input); Ok(input.len()) }
+    fn write_stderr(&mut self, input: &[u8]) -> Result<usize, DosHostError> { self.stderr.extend_from_slice(input); Ok(input.len()) }
+    fn flush_stdin(&mut self) -> Result<(), DosHostError> { self.input.clear(); Ok(()) }
+
+    fn file_create(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
+        self.attributes.insert(path.to_vec(), attributes);
+        Ok(self.open_new(path, true))
+    }
+    fn file_open(&mut self, path: &[u8], _access: DosFileAccess) -> Result<DosHostFile, DosHostError> {
+        if !self.paths.contains_key(path) { return Err(DosHostError::new(DosErrorCode::FileNotFound)); }
+        Ok(self.open_new(path, false))
+    }
+    fn file_open_with_sharing(&mut self, path: &[u8], access: DosFileAccess, _sharing: DosFileSharing) -> Result<DosHostFile, DosHostError> {
+        self.file_open(path, access)
+    }
+    fn file_duplicate(&mut self, file: DosHostFile) -> Result<DosHostFile, DosHostError> {
+        let id = self.handles.get(&file).copied().ok_or(DosHostError::new(DosErrorCode::InvalidHandle))?;
+        self.duplicate_calls += 1;
+        if self.fail_duplicate_at == Some(self.duplicate_calls) {
+            return Err(DosHostError::new(DosErrorCode::AccessDenied));
+        }
+        self.next_id += 1;
+        let copy = DosHostFile(self.next_id);
+        self.handles.insert(copy, id);
+        Ok(copy)
+    }
+    fn file_close(&mut self, file: DosHostFile) -> Result<(), DosHostError> {
+        self.handles.remove(&file).map(|_| ()).ok_or(DosHostError::new(DosErrorCode::InvalidHandle))
+    }
+    fn file_read(&mut self, file: DosHostFile, output: &mut [u8]) -> Result<usize, DosHostError> {
+        let state = self.file_for(file)?;
+        let start = state.cursor as usize;
+        if start >= state.bytes.len() { return Ok(0); }
+        let count = output.len().min(state.bytes.len().saturating_sub(start));
+        output[..count].copy_from_slice(&state.bytes[start..start + count]);
+        state.cursor += count as u32;
+        Ok(count)
+    }
+    fn file_write(&mut self, file: DosHostFile, input: &[u8]) -> Result<usize, DosHostError> {
+        let state = self.file_for(file)?;
+        state.written = true;
+        let start = state.cursor as usize;
+        let end = start.checked_add(input.len()).ok_or(DosHostError::new(DosErrorCode::DiskFull))?;
+        if state.bytes.len() < end { state.bytes.resize(end, 0); }
+        state.bytes[start..end].copy_from_slice(input);
+        state.cursor = end as u32;
+        Ok(input.len())
+    }
+    fn file_seek(&mut self, file: DosHostFile, offset: i32, origin: DosSeekOrigin) -> Result<u32, DosHostError> {
+        let state = self.file_for(file)?;
+        let base = match origin { DosSeekOrigin::Start => 0i64, DosSeekOrigin::Current => i64::from(state.cursor), DosSeekOrigin::End => state.bytes.len() as i64 };
+        let position = base + i64::from(offset);
+        if !(0..=i64::from(u32::MAX)).contains(&position) { return Err(DosHostError::new(DosErrorCode::InvalidData)); }
+        state.cursor = position as u32;
+        Ok(state.cursor)
+    }
+    fn file_set_len(&mut self, file: DosHostFile, length: u32) -> Result<(), DosHostError> {
+        let state = self.file_for(file)?;
+        state.written = true;
+        state.bytes.resize(length as usize, 0);
+        Ok(())
+    }
+
+    fn file_ioctl_info(&self, file: DosHostFile) -> Result<DosIoctlObjectInfo, DosHostError> {
+        let file_id = self.handles.get(&file).copied()
+            .ok_or(DosHostError::new(DosErrorCode::InvalidHandle))?;
+        let state = self.files.get(&file_id)
+            .ok_or(DosHostError::new(DosErrorCode::InvalidHandle))?;
+        Ok(DosIoctlObjectInfo::File { drive: 2, written: state.written })
+    }
+
+    fn standard_ioctl_info(&self, stream: DosIoctlStream) -> Result<DosIoctlObjectInfo, DosHostError> {
+        if self.redirected_standard_streams {
+            return Err(DosHostError::new(DosErrorCode::InvalidFunction));
+        }
+        let (standard_input, standard_output) = match stream {
+            DosIoctlStream::Input => (true, false),
+            DosIoctlStream::Output | DosIoctlStream::Error => (false, true),
+        };
+        Ok(DosIoctlObjectInfo::CharacterDevice {
+            input_eof: self.input_eof,
+            raw_mode: true,
+            standard_input,
+            standard_output,
+        })
+    }
+    fn file_delete(&mut self, path: &[u8]) -> Result<(), DosHostError> {
+        let id = self.paths.remove(path).ok_or(DosHostError::new(DosErrorCode::FileNotFound))?;
+        self.attributes.remove(path);
+        self.files.remove(&id);
+        self.handles.retain(|_, file_id| *file_id != id);
+        Ok(())
+    }
+
+    fn directory_create(&mut self, path: &[u8]) -> Result<(), DosHostError> {
+        if path.is_empty() || self.paths.contains_key(path) || self.directories.contains_key(path) {
+            return Err(DosHostError::new(DosErrorCode::AccessDenied));
+        }
+        let parent = test_parent(path);
+        if !test_is_root(path) && !parent.is_empty() && !self.directories.contains_key(parent) && !test_is_root(parent) {
+            return Err(DosHostError::new(DosErrorCode::PathNotFound));
+        }
+        self.directories.insert(path.to_vec(), ());
+        Ok(())
+    }
+
+    fn directory_remove(&mut self, path: &[u8]) -> Result<(), DosHostError> {
+        if !self.directories.contains_key(path) { return Err(DosHostError::new(DosErrorCode::PathNotFound)); }
+        if self.current_directories.values().any(|current| test_strip_separator(current) == test_strip_separator(path)) {
+            return Err(DosHostError::new(DosErrorCode::CannotRemoveCurrentDirectory));
+        }
+        if self.directories.keys().any(|child| test_strip_separator(test_parent(child)) == test_strip_separator(path))
+            || self.paths.keys().any(|child| test_strip_separator(test_parent(child)) == test_strip_separator(path))
+        {
+            return Err(DosHostError::new(DosErrorCode::AccessDenied));
+        }
+        self.directories.remove(path);
+        Ok(())
+    }
+
+    fn directory_set_current(&mut self, path: &[u8]) -> Result<(), DosHostError> {
+        if !test_is_root(path) && !self.directories.contains_key(path) {
+            return Err(DosHostError::new(DosErrorCode::PathNotFound));
+        }
+        let drive = dos_path_drive(path, self.guest_code_page()).ok().flatten().unwrap_or(self.drive);
+        self.current_directories.insert(drive, path.to_vec());
+        Ok(())
+    }
+
+    fn directory_get_current(&mut self, drive: u8, output: &mut [u8]) -> Result<usize, DosHostError> {
+        if drive > 2 { return Err(DosHostError::new(DosErrorCode::UnknownUnit)); }
+        let path = self.current_directories.get(&drive).map(Vec::as_slice).unwrap_or_default();
+        let relative = path.iter().position(|byte| *byte == b'\\' || *byte == b'/')
+            .map(|index| &path[index + 1..]).unwrap_or(path);
+        if relative.len() > output.len() { return Err(DosHostError::new(DosErrorCode::GeneralFailure)); }
+        output[..relative.len()].copy_from_slice(relative);
+        Ok(relative.len())
+    }
+
+    fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError> {
+        if self.paths.contains_key(new_path) || self.directories.contains_key(new_path) {
+            return Err(DosHostError::new(DosErrorCode::AccessDenied));
+        }
+        let id = self.paths.remove(old_path).ok_or(DosHostError::new(DosErrorCode::FileNotFound))?;
+        self.paths.insert(new_path.to_vec(), id);
+        if let Some(attributes) = self.attributes.remove(old_path) {
+            self.attributes.insert(new_path.to_vec(), attributes);
+        }
+        Ok(())
+    }
+
+    fn file_get_attributes(&mut self, path: &[u8]) -> Result<u8, DosHostError> {
+        if self.directories.contains_key(path) { return Ok(0x10); }
+        if !self.paths.contains_key(path) { return Err(DosHostError::new(DosErrorCode::FileNotFound)); }
+        Ok(*self.attributes.get(path).unwrap_or(&0))
+    }
+
+    fn file_set_attributes(&mut self, path: &[u8], attributes: u8) -> Result<(), DosHostError> {
+        if self.directories.contains_key(path) { return Err(DosHostError::new(DosErrorCode::AccessDenied)); }
+        if !self.paths.contains_key(path) { return Err(DosHostError::new(DosErrorCode::FileNotFound)); }
+        self.attributes.insert(path.to_vec(), attributes);
+        Ok(())
+    }
+
+    fn directory_search_open(&mut self, directory: &[u8]) -> Result<DosHostSearch, DosHostError> {
+        let normalized = test_strip_separator(directory);
+        if !normalized.is_empty() && !test_is_root(normalized) && !self.directories.contains_key(normalized) {
+            return Err(DosHostError::new(DosErrorCode::PathNotFound));
+        }
+        let mut entries = Vec::new();
+        for path in self.paths.keys().filter(|path| test_strip_separator(test_parent(path)) == normalized) {
+            let short_name = test_leaf(path).to_vec();
+            let size = self.paths.get(path).and_then(|id| self.files.get(id)).map(|file| file.bytes.len() as u32).unwrap_or(0);
+            entries.push(DosDirectoryEntry {
+                short_name,
+                attributes: *self.attributes.get(path).unwrap_or(&0),
+                write_time: 0,
+                write_date: 0,
+                size,
+            });
+        }
+        for path in self.directories.keys().filter(|path| test_strip_separator(test_parent(path)) == normalized) {
+            entries.push(DosDirectoryEntry {
+                short_name: test_leaf(path).to_vec(),
+                attributes: 0x10,
+                write_time: 0,
+                write_date: 0,
+                size: 0,
+            });
+        }
+        self.next_search_id += 1;
+        let token = DosHostSearch(self.next_search_id);
+        self.searches.insert(token, TestDirectorySearch { entries, next: 0 });
+        Ok(token)
+    }
+
+    fn directory_search_next(&mut self, search: DosHostSearch) -> Result<Option<DosDirectoryEntry>, DosHostError> {
+        let state = self.searches.get_mut(&search).ok_or(DosHostError::new(DosErrorCode::InvalidHandle))?;
+        let entry = state.entries.get(state.next).cloned();
+        if entry.is_some() { state.next += 1; }
+        Ok(entry)
+    }
+
+    fn directory_search_close(&mut self, search: DosHostSearch) -> Result<(), DosHostError> {
+        self.searches.remove(&search).map(|_| ()).ok_or(DosHostError::new(DosErrorCode::InvalidHandle))
+    }
+
+    fn guest_code_page(&self) -> text_codec::CodePage {
+        self.code_page.unwrap_or(text_codec::CodePage::Cp437)
+    }
+
+    fn current_drive(&self) -> u8 { self.drive }
+    fn select_drive(&mut self, drive: u8) -> Result<(), DosHostError> {
+        if drive >= 26 { return Err(DosHostError::new(DosErrorCode::UnknownUnit)); }
+        self.drive = drive;
+        Ok(())
+    }
+    fn logical_drive_count(&self) -> u8 { 3 }
+    fn disk_space(&self, drive: u8) -> Result<DosDiskSpace, DosHostError> {
+        if drive != 2 {
+            return Err(DosHostError::new(DosErrorCode::UnknownUnit));
+        }
+        self.disk_space.ok_or_else(|| DosHostError::new(DosErrorCode::UnknownUnit))
+    }
+}
+
+fn test_parent(path: &[u8]) -> &[u8] {
+    path.iter().rposition(|byte| *byte == b'\\' || *byte == b'/')
+        .map(|index| &path[..=index]).unwrap_or_default()
+}
+
+fn test_leaf(path: &[u8]) -> &[u8] {
+    path.iter().rposition(|byte| *byte == b'\\' || *byte == b'/')
+        .map(|index| &path[index + 1..]).unwrap_or(path)
+}
+
+fn test_is_root(path: &[u8]) -> bool {
+    path.len() == 1 && matches!(path[0], b'\\' | b'/')
+        || path.len() == 3 && path[0].is_ascii_alphabetic() && path[1] == b':' && matches!(path[2], b'\\' | b'/')
+}
+
+fn test_strip_separator(path: &[u8]) -> &[u8] {
+    if test_is_root(path) { return path; }
+    path.strip_suffix(b"\\").or_else(|| path.strip_suffix(b"/")).unwrap_or(path)
+}
+
+fn set_ah(regs: &mut Registers, function: u8) { regs.set_ah(function); }
+
+#[test]
+fn console_calls_echo_poll_and_preserve_polled_input() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+    host.input.extend([b'Z', b'Q']);
+    set_ah(&mut regs, 0x01);
+    assert_eq!(dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap(), DosAction::Continue);
+    assert_eq!(regs.al(), b'Z');
+    assert_eq!(host.stdout, b"Z");
+
+    set_ah(&mut regs, 0x0b);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(regs.al(), 0xff);
+    set_ah(&mut regs, 0x07);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(regs.al(), b'Q');
+    assert_eq!(host.stdout, b"Z");
+}
+
+#[test]
+fn dollar_string_is_bounded_and_keeps_embedded_nul() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    memory.put(0x10100, b"a\0b$");
+    let mut regs = Registers::default();
+    regs.ds = 0x1000;
+    regs.set_dx(0x0100);
+    set_ah(&mut regs, 0x09);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(host.stdout, b"a\0b");
+    assert_eq!(regs.al(), b'$');
+}
+
+#[test]
+fn create_write_seek_read_close_and_delete_use_host_files() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    memory.put(0x10100, b"C:\\TEST.DAT\0");
+    memory.put(0x10300, b"abc");
+    let mut regs = Registers::default();
+    regs.ds = 0x1000;
+    regs.set_dx(0x0100);
+    regs.set_cx(0);
+    set_ah(&mut regs, 0x3c);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    let handle = regs.ax();
+    assert_eq!(handle, 3); // Only stdin/stdout/stderr are initially installed.
+    assert!(!regs.carry());
+
+    regs.set_bx(handle);
+    regs.set_cx(3);
+    regs.set_dx(0x0300);
+    set_ah(&mut regs, 0x40);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(regs.ax(), 3);
+
+    regs.set_bx(handle);
+    regs.set_ax(0x4200);
+    regs.set_cx(0);
+    regs.set_dx(0);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(regs.dx(), 0);
+    assert_eq!(regs.ax(), 0);
+
+    regs.set_bx(handle);
+    regs.ds = 0x1000;
+    regs.set_dx(0x0400);
+    regs.set_cx(3);
+    set_ah(&mut regs, 0x3f);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    let mut got = [0; 3];
+    memory.read(PhysAddr(0x10400), &mut got).unwrap();
+    assert_eq!(got, *b"abc");
+
+    regs.set_bx(handle);
+    set_ah(&mut regs, 0x3e);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    regs.ds = 0x1000;
+    regs.set_dx(0x0100);
+    set_ah(&mut regs, 0x41);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    assert!(host.paths.is_empty());
+}
+
+#[test]
+fn invalid_read_buffer_does_not_advance_host_file() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    memory.put(0x10100, b"x.bin\0");
+    let file = host.file_create(b"x.bin", 0).unwrap();
+    let mut regs = Registers::default();
+    regs.ds = 0x1000;
+    regs.set_dx(0x0100);
+    set_ah(&mut regs, 0x3d);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    let handle = regs.ax();
+    let host_file = host.handles[&file];
+    host.files.get_mut(&host_file).unwrap().bytes = b"abc".to_vec();
+    regs.set_bx(handle);
+    regs.ds = 0xffff;
+    regs.set_dx(0xffff);
+    regs.set_cx(3);
+    set_ah(&mut regs, 0x3f);
+    assert!(matches!(dos.interrupt(0x21, &mut regs, &mut memory, &mut host), Err(DosError::Memory(_))));
+    assert_eq!(host.files[&host_file].cursor, 0);
+}
+
+#[test]
+fn buffered_input_checks_full_guest_output_before_consuming_console_input() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    host.input.extend([b'x', b'\r']);
+    let mut memory = TestMemory::new();
+    memory.put(0x1_fffe, &[1]);
+    let mut regs = Registers::default();
+    regs.ds = 0x1fff;
+    regs.set_dx(0x000e);
+    set_ah(&mut regs, 0x0a);
+    assert!(matches!(
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host),
+        Err(DosError::Memory(_))
+    ));
+    assert_eq!(host.input.len(), 2);
+}
+
+#[test]
+fn handle_inheritance_rolls_back_partial_host_duplicates() {
+    let mut parent = DosKernel::new(0x1000);
+    let mut child = DosKernel::new(0x2000);
+    let mut host = TestHost::default();
+    let file_a = host.file_create(b"a", 0).unwrap();
+    let file_b = host.file_create(b"b", 0).unwrap();
+    parent.handles.insert(5, Handle::File(file_a));
+    parent.handles.insert(6, Handle::File(file_b));
+    host.fail_duplicate_at = Some(2);
+
+    assert!(matches!(
+        child.inherit_handles_from(&parent, &mut host),
+        Err(DosError::HostOperation(error)) if error.code == DosErrorCode::AccessDenied
+    ));
+    assert_eq!(host.handles.len(), 2);
+    assert_eq!(child.handles.len(), 3);
+}
+
+#[test]
+fn psp_dta_drive_exit_and_unsupported_calls_are_explicit() {
+    let mut dos = DosKernel::new(0x1234);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+    regs.ds = 0x2222;
+    regs.set_dx(0x3333);
+    set_ah(&mut regs, 0x1a);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    set_ah(&mut regs, 0x2f);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!((regs.es, regs.bx()), (0x2222, 0x3333));
+    set_ah(&mut regs, 0x51);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(regs.bx(), 0x1234);
+
+    set_ah(&mut regs, 0x0e);
+    regs.set_dl(4);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(host.current_drive(), 4);
+    assert_eq!(regs.al(), 3);
+
+    set_ah(&mut regs, 0x60);
+    assert_eq!(dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap(), DosAction::Continue);
+    assert_eq!(regs.ax(), DosErrorCode::InvalidFunction as u16);
+    assert!(regs.carry());
+
+    set_ah(&mut regs, 0x51);
+    assert_eq!(dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap(), DosAction::Continue);
+    assert_eq!(regs.bx(), 0x1234);
+
+    assert_eq!(dos.interrupt(0x10, &mut regs, &mut memory, &mut host).unwrap(), DosAction::Unhandled);
+    assert_eq!(dos.interrupt(0x20, &mut regs, &mut memory, &mut host).unwrap(), DosAction::Exit(0));
+}
+
+#[test]
+fn interrupt_vector_services_use_ivt_and_preserve_unmentioned_state() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+    regs.eax = 0x1234_00ff;
+    regs.ebx = 0x5678_9abc;
+    regs.ecx = 0x1357_2468;
+    regs.edx = 0x9abc_def0;
+    regs.esi = 0x1122_3344;
+    regs.edi = 0x5566_7788;
+    regs.ebp = 0x99aa_bbcc;
+    regs.esp = 0xddee_ff00;
+    regs.eip = 0x3141_5926;
+    regs.eflags = 0x0000_0ad7;
+    regs.cs = 0x1111;
+    regs.ds = 0x2222;
+    regs.es = 0x3333;
+    regs.ss = 0x4444;
+    regs.fs = 0x5555;
+    regs.gs = 0x6666;
+
+    set_ah(&mut regs, 0x25);
+    let before_set = regs.clone();
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(&memory.0[0x3fc..0x400], &[0xf0, 0xde, 0x22, 0x22]);
+    assert_eq!(regs, before_set);
+
+    memory.put(0x3fc, &[0x34, 0x12, 0x78, 0x56]);
+    set_ah(&mut regs, 0x35);
+    let before_get = regs.clone();
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    let mut expected = before_get;
+    expected.es = 0x5678;
+    expected.set_bx(0x1234);
+    assert_eq!(regs, expected);
+}
+
+#[test]
+fn interrupt_vector_services_reject_short_ivt_memory_before_mutation() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory(vec![0xa5; 0x3ff]);
+    let mut regs = Registers::default();
+    regs.eax = 0x4321_00ff;
+    regs.ebx = 0x8765_4321;
+    regs.edx = 0x1234_5678;
+    regs.eflags = 0x0000_0ad7;
+    regs.ds = 0x1111;
+    regs.es = 0x2222;
+
+    set_ah(&mut regs, 0x25);
+    let before_set = regs.clone();
+    let before_memory = memory.0.clone();
+    assert!(matches!(
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host),
+        Err(DosError::Memory(_))
+    ));
+    assert_eq!(regs, before_set);
+    assert_eq!(memory.0, before_memory);
+
+    set_ah(&mut regs, 0x35);
+    let before_get = regs.clone();
+    assert!(matches!(
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host),
+        Err(DosError::Memory(_))
+    ));
+    assert_eq!(regs, before_get);
+}
+
+#[test]
+fn directory_attributes_rename_and_current_directory_use_host_operations() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+    regs.ds = 0x1000;
+
+    memory.put(0x10100, b"C:\\WORK\0");
+    regs.set_dx(0x0100);
+    set_ah(&mut regs, 0x39);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    assert!(host.directories.contains_key(b"C:\\WORK".as_slice()));
+
+    host.drive = 2;
+    set_ah(&mut regs, 0x3b);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    regs.set_si(0x0200);
+    regs.set_dl(0);
+    set_ah(&mut regs, 0x47);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    let mut cwd = [0; 5];
+    memory.read(PhysAddr(0x10200), &mut cwd).unwrap();
+    assert_eq!(&cwd, b"WORK\0");
+
+    let file = host.file_create(b"C:\\WORK\\A.TXT", 0).unwrap();
+    host.file_close(file).unwrap();
+    memory.put(0x10300, b"C:\\WORK\\A.TXT\0");
+    regs.set_dx(0x0300);
+    regs.set_cx(0x0027);
+    regs.set_al(1);
+    set_ah(&mut regs, 0x43);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+
+    regs.set_al(0);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(regs.cx(), 0x0027);
+
+    memory.put(0x10400, b"C:\\WORK\\B.TXT\0");
+    regs.ds = 0x1000;
+    regs.set_dx(0x0300);
+    regs.es = 0x1000;
+    regs.set_di(0x0400);
+    set_ah(&mut regs, 0x56);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    assert!(!host.paths.contains_key(b"C:\\WORK\\A.TXT".as_slice()));
+    assert!(host.paths.contains_key(b"C:\\WORK\\B.TXT".as_slice()));
+    assert_eq!(host.file_get_attributes(b"C:\\WORK\\B.TXT").unwrap(), 0x27);
+
+    memory.put(0x10500, b"D:\\WORK\\C.TXT\0");
+    regs.set_di(0x0500);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(regs.carry());
+    assert_eq!(regs.ax(), DosErrorCode::NotSameDevice as u16);
+
+    host.file_delete(b"C:\\WORK\\B.TXT").unwrap();
+    regs.set_dx(0x0100);
+    set_ah(&mut regs, 0x3a);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(regs.carry());
+    assert_eq!(regs.ax(), DosErrorCode::CannotRemoveCurrentDirectory as u16);
+
+    memory.put(0x10600, b"C:\\\0");
+    regs.set_dx(0x0600);
+    set_ah(&mut regs, 0x3b);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    regs.set_dx(0x0100);
+    set_ah(&mut regs, 0x3a);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    assert!(!host.directories.contains_key(b"C:\\WORK".as_slice()));
+}
+
+#[test]
+fn find_first_next_serialize_dta_and_bind_state_to_psp_and_dta() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+    host.directory_create(b"C:\\LIST").unwrap();
+    add_test_file(&mut host, b"C:\\LIST\\A.TXT", 0, b"one");
+    add_test_file(&mut host, b"C:\\LIST\\AB.TXT", 0x02, b"hidden");
+    add_test_file(&mut host, b"C:\\LIST\\NOTE.BIN", 0, b"other");
+    memory.put(0x10100, b"C:\\LIST\\A*.*\0");
+
+    regs.ds = 0x1000;
+    regs.set_dx(0x0100);
+    regs.set_cx(0x0002); // include normal and hidden entries
+    set_ah(&mut regs, 0x4e);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    let mut dta = [0; 43];
+    memory.read(PhysAddr(0x10080), &mut dta).unwrap();
+    assert_eq!(dta[0x15], 0);
+    assert_eq!(u32::from_le_bytes(dta[0x1a..0x1e].try_into().unwrap()), 3);
+    assert_eq!(&dta[0x1e..0x24], b"A.TXT\0");
+
+    memory.0.truncate(0x10088); // marker is readable, complete 43-byte DTA is not writable
+    set_ah(&mut regs, 0x4f);
+    assert!(matches!(dos.interrupt(0x21, &mut regs, &mut memory, &mut host), Err(DosError::Memory(_))));
+    assert_eq!(host.searches.len(), 1);
+
+    memory.0.resize(0x20_000, 0);
+    regs.set_bx(0x2000);
+    set_ah(&mut regs, 0x50);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    set_ah(&mut regs, 0x4f);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(regs.carry());
+    assert_eq!(regs.ax(), DosErrorCode::NoMoreFiles as u16);
+    assert_eq!(host.searches.len(), 1);
+
+    regs.set_bx(0x1000);
+    set_ah(&mut regs, 0x50);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    set_ah(&mut regs, 0x4f);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    memory.read(PhysAddr(0x10080), &mut dta).unwrap();
+    assert_eq!(dta[0x15], 0x02);
+    assert_eq!(&dta[0x1e..0x25], b"AB.TXT\0");
+
+    set_ah(&mut regs, 0x4f);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(regs.carry());
+    assert_eq!(regs.ax(), DosErrorCode::NoMoreFiles as u16);
+    assert!(host.searches.is_empty());
+}
+
+#[test]
+fn dos_wildcards_expand_to_fixed_83_fields_and_attributes_follow_dos_rules() {
+    let host = TestHost::default();
+    let (_, foo_star) = parse_search_spec(b"foo*.*", &host).unwrap();
+    assert_eq!(&foo_star.name[..3], b"FOO");
+    assert!(foo_star.name[3..].iter().all(|byte| *byte == b'?'));
+    assert!(foo_star.extension.iter().all(|byte| *byte == b'?'));
+    let (_, all) = parse_search_spec(b"*.*", &host).unwrap();
+    let (name, extension) = short_name_fields(b"README", text_codec::CodePage::Cp437).unwrap();
+    assert!(dos_field_matches(&all.name, &name));
+    assert!(dos_field_matches(&all.extension, &extension));
+    assert!(search_attribute_matches(0, 0x20)); // read-only/archive don't hide normal files
+    assert!(!search_attribute_matches(0, 0x02));
+    assert!(search_attribute_matches(0x02, 0x02));
+    assert!(search_attribute_matches(0x10, 0x10));
+    assert!(!search_attribute_matches(0x08, 0));
+    assert!(search_attribute_matches(0x08, 0x08));
+}
+
+#[test]
+fn cp936_trail_backslash_does_not_split_a_dos_search_path() {
+    let host = TestHost { code_page: Some(text_codec::CodePage::Cp936), ..TestHost::default() };
+    let path = [b'C', b':', b'\\', 0x81, b'\\', b'.', b'T', b'X', b'T'];
+    let (directory, pattern) = parse_search_spec(&path, &host).unwrap();
+    assert_eq!(directory, b"C:\\");
+    let folded = text_codec::uppercase_oem_name(&[0x81, b'\\'], text_codec::CodePage::Cp936).unwrap();
+    assert_eq!(&pattern.name[..2], folded);
+    assert_eq!(&pattern.name[2..], b"      ");
+    assert_eq!(&pattern.extension, b"TXT");
+}
+
+#[test]
+fn mcb_resize_allocate_and_free_keep_a_valid_chain() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+
+    set_ah(&mut regs, 0x4a);
+    regs.es = 0x1000;
+    regs.set_bx(0x0800);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+
+    set_ah(&mut regs, 0x48);
+    regs.set_bx(0x0020);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    let allocated_segment = regs.ax();
+    assert_eq!(allocated_segment, 0x1801);
+    assert!(!regs.carry());
+
+    set_ah(&mut regs, 0x49);
+    regs.es = allocated_segment;
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+
+    let chain = dos.mcb_chain(&mut memory).unwrap();
+    assert_eq!(chain.len(), 2);
+    assert_eq!(chain[0].owner(), 0x1000);
+    assert_eq!(chain[1].owner(), 0);
+    assert_eq!(chain[1].kind(), b'Z');
+}
+
+fn add_test_file(host: &mut TestHost, path: &[u8], attributes: u8, bytes: &[u8]) {
+    let token = host.file_create(path, attributes).unwrap();
+    host.file_for(token).unwrap().bytes = bytes.to_vec();
+    host.file_close(token).unwrap();
+}

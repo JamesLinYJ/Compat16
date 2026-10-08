@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Compat16</title>
+  <desc id="desc">A luminous blue window with a terminal prompt and the number 16.</desc>
+  <defs>
+    <linearGradient id="base" x1="30" y1="20" x2="222" y2="242" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#172C54"/>
+      <stop offset="1" stop-color="#080F21"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="40" y1="48" x2="214" y2="212" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#79DDFF"/>
+      <stop offset=".48" stop-color="#5192FF"/>
+      <stop offset="1" stop-color="#7066F5"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="48" y1="91" x2="208" y2="191" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#132B4E"/>
+      <stop offset="1" stop-color="#101B36"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="67" y1="118" x2="190" y2="168" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BCFFEF"/>
+      <stop offset="1" stop-color="#E8F3FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#base)"/>
+  <rect x="8.75" y="8.75" width="238.5" height="238.5" rx="55.25" stroke="#D5EDFF" stroke-opacity=".12" stroke-width="1.5"/>
+  <path d="M65 40h126a23 23 0 0 1 23 23v105" stroke="#81AAFF" stroke-opacity=".28" stroke-width="8" stroke-linecap="round"/>
+  <rect x="36" y="54" width="184" height="156" rx="23" fill="#020816" fill-opacity=".45"/>
+  <rect x="36" y="48" width="184" height="156" rx="23" fill="url(#frame)"/>
+  <path d="M44 90h168v90a16 16 0 0 1-16 16H60a16 16 0 0 1-16-16V90Z" fill="url(#screen)"/>
+  <path d="M44 89.5h168" stroke="#E2F5FF" stroke-opacity=".24"/>
+  <path d="m55 64 5 5-5 5m10 0h6" stroke="#15335C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g stroke="#173A69" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M148 73h9"/>
+    <rect x="169" y="65" width="9" height="9" rx=".6"/>
+    <path d="m190 65 9 9m0-9-9 9"/>
+  </g>
+  <path d="m64 120 18 18-18 18" stroke="url(#ink)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m110 120 13-10v57" stroke="url(#ink)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M185 115c-4-4-8-6-14-6-14 0-21 14-21 32v9c0 11 8 18 18 18s18-7 18-18-8-18-18-18c-8 0-14 4-18 10" stroke="url(#ink)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

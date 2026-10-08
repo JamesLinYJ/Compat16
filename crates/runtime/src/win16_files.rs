@@ -1,0 +1,166 @@
+//! Win16 task HFILE ownership and storage-query result conversion.
+
+use super::{FIRST_GUEST_HFILE, Win16State};
+use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostDriveKind, Win16HostFile,
+    Win16HostFileClose};
+
+// Win3.1 SDK WINDOWS.H GetDriveType values. Microsoft KB Q105922
+// classifies RAM disks as fixed media and MSCDEX CD-ROMs as remote drives.
+const DRIVE_UNKNOWN: u16 = 0;
+const DRIVE_REMOVABLE: u16 = 2;
+const DRIVE_FIXED: u16 = 3;
+const DRIVE_REMOTE: u16 = 4;
+
+// LZEXPAND shares this HFILE table and uses negative INT16 values for errors.
+// Allocate only handles representable by both KERNEL and LZEXPAND callers.
+const LAST_GUEST_HFILE: u16 = i16::MAX as u16;
+
+impl Win16State {
+    pub(super) fn open_legacy_file(
+        &mut self, path: &[u8], mode: u16, created: bool, host: &mut impl RuntimeHost,
+    ) -> Result<u16, RuntimeError> {
+        let opened = if created {
+            host.win16_file_create(path, mode)
+        } else {
+            host.win16_file_open(path, mode)
+        };
+        let result = match opened {
+            Ok(Some(file)) => match self.allocate_file_number(file) {
+                Some(number) => Ok(number),
+                None => host.win16_file_close(file).map(|_| super::INVALID_GUEST_HFILE),
+            },
+            Ok(None) => Ok(super::INVALID_GUEST_HFILE),
+            Err(error) => Err(error),
+        };
+        host.observe_win16_io(&crate::Win16IoEvent::Open {
+            path, mode, created, result: result.as_ref().ok().copied(),
+        });
+        result
+    }
+
+    pub(super) fn close_legacy_file(
+        &mut self, file: u16, host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        let network_result = self.tasks.current().and_then(|owner|
+            self.network_print_hfile_is_owned(owner, file).then_some(owner));
+        let result = if let Some(owner) = network_result {
+            self.close_network_print_hfile(owner, file, host)
+                .map(|result| result.unwrap_or(u32::from(super::INVALID_GUEST_HFILE)))
+        } else { match self.files.get(&file).copied() {
+            Some(native) => host.win16_file_close(native).map(|closed| {
+                if self.invalidate_file_close(native, closed) { 0 }
+                else { u32::from(super::INVALID_GUEST_HFILE) }
+            }),
+            None => Ok(u32::from(super::INVALID_GUEST_HFILE)),
+        }};
+        host.observe_win16_io(&crate::Win16IoEvent::Close {
+            file, result: result.as_ref().ok().copied(),
+        });
+        result
+    }
+
+    pub(super) fn drive_type(
+        &self, drive: u16, host: &mut impl RuntimeHost,
+    ) -> Result<u16, RuntimeError> {
+        Ok(match host.win16_drive_kind(drive)? {
+            Win16HostDriveKind::Unknown | Win16HostDriveKind::MissingRoot => DRIVE_UNKNOWN,
+            Win16HostDriveKind::Removable => DRIVE_REMOVABLE,
+            Win16HostDriveKind::Fixed | Win16HostDriveKind::RamDisk => DRIVE_FIXED,
+            Win16HostDriveKind::Remote | Win16HostDriveKind::CdRom => DRIVE_REMOTE,
+        })
+    }
+
+    pub(super) fn allocate_file_number(&mut self, file: Win16HostFile) -> Option<u16> {
+        let number = self.next_free_file_number()?;
+        self.files.insert(number, file);
+        Some(number)
+    }
+
+    /// Find and reserve the next slot in the allocation order without
+    /// inserting a host token. Callers use this before creating host resources
+    /// whose cleanup can consume an existing guest HFILE.
+    pub(super) fn next_free_file_number(&mut self) -> Option<u16> {
+        let span = u32::from(LAST_GUEST_HFILE - FIRST_GUEST_HFILE) + 1;
+        for _ in 0..span {
+            let number = self.next_file;
+            self.next_file = if number >= LAST_GUEST_HFILE {
+                FIRST_GUEST_HFILE
+            } else {
+                number + 1
+            };
+            let print_owned = self.network_print_jobs.values()
+                .any(|jobs| jobs.owns_hfile(number));
+            if !self.files.contains_key(&number) && !print_owned {
+                return Some(number);
+            }
+        }
+        None
+    }
+
+    /// Remove every guest alias for an opaque host token. This deliberately
+    /// compares runtime-owned tokens instead of numeric native HANDLE values.
+    pub(super) fn invalidate_host_file(&mut self, file: Win16HostFile) {
+        self.files.retain(|_, mapped| *mapped != file);
+    }
+
+    /// Apply the host's unified close result to guest mappings.
+    pub(super) fn invalidate_file_close(
+        &mut self,
+        file: Win16HostFile,
+        result: Win16HostFileClose,
+    ) -> bool {
+        if result.closed {
+            self.invalidate_host_file(file);
+            if let Some(consumed_source) = result.consumed_source {
+                self.invalidate_host_file(consumed_source);
+            }
+        }
+        result.closed
+    }
+
+    pub(super) fn close_files(&mut self, host: &mut impl RuntimeHost) -> Result<(), RuntimeError> {
+        // The host retains RAII ownership if native cleanup reports a failure.
+        // Retire guest aliases and attempt every remaining key before files.
+        for key in self.compat.take_registry_keys() {
+            match host.win16_registry(crate::Win16HostRegistryOperation::CloseKey {
+                key: crate::Win16RegistryKeyRef::Opened(key),
+            }) {
+                Ok(crate::Win16HostRegistryResult::CloseKey { status: 0 }) => {}
+                Ok(crate::Win16HostRegistryResult::CloseKey { status }) => {
+                    host.report_diagnostic(&crate::Diagnostic::warning(
+                        Kind::HostFailure,
+                        format!("Win16 registry cleanup returned system status {status}; native ownership remains with the host"),
+                    ));
+                }
+                Ok(_) => return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "Win16 registry cleanup received a different operation result")),
+                Err(error) => host.report_diagnostic(
+                    error.with_context("Win16 registry cleanup").diagnostic()),
+            }
+        }
+        let mut pending: std::collections::BTreeSet<Win16HostFile> =
+            self.files.values().copied().collect();
+        let mut first_error = None;
+        while let Some(file) = pending.iter().next().copied() {
+            pending.remove(&file);
+            match host.win16_file_close(file) {
+                Ok(result) if result.closed => {
+                    self.invalidate_file_close(file, result);
+                    if let Some(consumed_source) = result.consumed_source {
+                        pending.remove(&consumed_source);
+                    }
+                }
+                Ok(_) => {
+                    first_error.get_or_insert_with(|| RuntimeError::new(
+                        Kind::HostFailure, "native Win16 file could not be closed"));
+                }
+                Err(error) => {
+                    first_error.get_or_insert(error);
+                }
+            }
+        }
+        // Failed host tokens and every guest alias remain available for a
+        // later close attempt. An empty pending set alone does not prove close.
+        first_error.map_or(Ok(()), Err)
+    }
+}

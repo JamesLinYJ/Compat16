@@ -1,0 +1,322 @@
+use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::os::windows::io::AsRawHandle;
+use std::sync::{Arc, Mutex};
+
+use cap_std::fs::{MetadataExt, OpenOptions, OpenOptionsExt};
+use dos_kernel::{
+    DosErrorCode, DosFileAccess, DosFileSharing, DosFileStatus, DosHostError, DosHostFile,
+    DosIoctlObjectInfo, DosSeekOrigin,
+};
+use windows_sys::Win32::Foundation::HANDLE;
+use windows_sys::Win32::Storage::FileSystem::{
+    FILE_ATTRIBUTE_ARCHIVE, FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_READONLY,
+    FILE_ATTRIBUTE_SYSTEM, FILE_BASIC_INFO, FILE_FLAG_BACKUP_SEMANTICS, FILE_SHARE_READ,
+    FILE_SHARE_WRITE, FILE_WRITE_ATTRIBUTES, FileBasicInfo, SetFileInformationByHandle,
+};
+
+use crate::windows::{encode, invalid, os_error};
+
+use super::metadata;
+use super::{Filesystem, OpenFile, SharedFile};
+
+/// DOS SFT size and position fields expose only the low DWORD.
+pub(super) const fn dos_dword(value: u64) -> u32 {
+    value as u32
+}
+
+impl Filesystem {
+    fn file_short_name(&mut self, path: &std::path::Path) -> Result<[u8; 11], DosHostError> {
+        let parent = path.parent().unwrap_or_else(|| std::path::Path::new(""));
+        let name = path
+            .file_name()
+            .ok_or_else(|| invalid(DosErrorCode::InvalidData))?;
+        let alias = self
+            .aliases_for(parent)?
+            .by_real_name
+            .get(name)
+            .cloned()
+            .ok_or_else(|| invalid(DosErrorCode::FileNotFound))?;
+        let encoded = encode(&alias, self.code_page)?;
+        let mut parts = encoded.split(|&byte| byte == b'.');
+        let stem = parts.next().unwrap_or_default();
+        let extension = parts.next().unwrap_or_default();
+        if stem.is_empty() || stem.len() > 8 || extension.len() > 3 || parts.next().is_some() {
+            return Err(invalid(DosErrorCode::InvalidData));
+        }
+        let mut result = [b' '; 11];
+        result[..stem.len()].copy_from_slice(stem);
+        result[8..8 + extension.len()].copy_from_slice(extension);
+        Ok(result)
+    }
+
+    fn insert_file(&mut self, file: SharedFile) -> Result<DosHostFile, DosHostError> {
+        let id = DosHostFile(self.next_file);
+        self.next_file = self
+            .next_file
+            .checked_add(1)
+            .ok_or_else(|| invalid(DosErrorCode::TooManyOpenFiles))?;
+        self.files.insert(id, file);
+        Ok(id)
+    }
+
+    fn file(&self, id: DosHostFile) -> Result<SharedFile, DosHostError> {
+        self.files
+            .get(&id)
+            .cloned()
+            .ok_or_else(|| invalid(DosErrorCode::InvalidHandle))
+    }
+
+    fn lock_file(file: &SharedFile) -> Result<std::sync::MutexGuard<'_, OpenFile>, DosHostError> {
+        file.lock()
+            .map_err(|_| invalid(DosErrorCode::GeneralFailure))
+    }
+
+    fn set_attributes(&self, path: &std::path::Path, attributes: u8) -> Result<(), DosHostError> {
+        metadata::validate_attributes(attributes)?;
+        let path = self.confined_path(path, true, false)?;
+        let metadata = self.root.metadata(&path).map_err(os_error)?;
+        const MUTABLE_DOS_ATTRIBUTES: u32 = FILE_ATTRIBUTE_READONLY
+            | FILE_ATTRIBUTE_HIDDEN
+            | FILE_ATTRIBUTE_SYSTEM
+            | FILE_ATTRIBUTE_ARCHIVE;
+        let requested = u32::from(attributes & 0x27);
+        // Preserve native flags which have no DOS representation.
+        let mut native = (metadata.file_attributes() & !MUTABLE_DOS_ATTRIBUTES) | requested;
+        native &= !FILE_ATTRIBUTE_NORMAL;
+        if native == 0 {
+            native = FILE_ATTRIBUTE_NORMAL;
+        }
+
+        // Request only FILE_WRITE_ATTRIBUTES. Opening with write-data would
+        // prevent clearing READONLY on a read-only file.
+        let file = self
+            .root
+            .open_with(
+                &path,
+                OpenOptions::new()
+                    .access_mode(FILE_WRITE_ATTRIBUTES)
+                    .custom_flags(if metadata.is_dir() {
+                        FILE_FLAG_BACKUP_SEMANTICS
+                    } else {
+                        0
+                    }),
+            )
+            .map_err(os_error)?;
+        let basic = FILE_BASIC_INFO {
+            CreationTime: 0,
+            LastAccessTime: 0,
+            LastWriteTime: 0,
+            ChangeTime: 0,
+            FileAttributes: native,
+        };
+        let length = u32::try_from(std::mem::size_of::<FILE_BASIC_INFO>())
+            .map_err(|_| invalid(DosErrorCode::InvalidData))?;
+        // SAFETY: The handle came from cap-std for this confined file and the
+        // buffer has the documented FILE_BASIC_INFO layout and exact size.
+        if unsafe {
+            SetFileInformationByHandle(
+                file.as_raw_handle() as HANDLE,
+                FileBasicInfo,
+                (&basic as *const FILE_BASIC_INFO).cast(),
+                length,
+            )
+        } == 0
+        {
+            return Err(os_error(io::Error::last_os_error()));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn file_create(
+        &mut self,
+        path: &[u8],
+        attributes: u8,
+    ) -> Result<DosHostFile, DosHostError> {
+        metadata::validate_attributes(attributes)?;
+        let path = self.resolve_path(path, false)?;
+        let path = self.confined_path(&path, true, true)?;
+        let native = if attributes == 0 {
+            FILE_ATTRIBUTE_NORMAL
+        } else {
+            u32::from(attributes)
+        };
+        let file = self
+            .root
+            .open_with(
+                &path,
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .attributes(native),
+            )
+            .map_err(os_error)?;
+        let short_name = self.file_short_name(&path)?;
+        self.insert_file(Arc::new(Mutex::new(OpenFile::new(file, short_name))))
+    }
+
+    pub(crate) fn file_open(
+        &mut self,
+        path: &[u8],
+        access: DosFileAccess,
+        sharing: DosFileSharing,
+    ) -> Result<DosHostFile, DosHostError> {
+        let path = self.resolve_path(path, false)?;
+        let path = self.confined_path(&path, true, false)?;
+        let share_mode = match sharing {
+            // DOS compatibility mode permits repeated opens by local
+            // processes. Win32 has no compatibility-mode flag; read/write
+            // sharing is the permissive local mapping. Exact DOS
+            // process-aware conflict rules would need DOS-level open tracking.
+            DosFileSharing::Compatibility | DosFileSharing::DenyNone => {
+                FILE_SHARE_READ | FILE_SHARE_WRITE
+            }
+            DosFileSharing::DenyAll => 0,
+            DosFileSharing::DenyWrite => FILE_SHARE_READ,
+            DosFileSharing::DenyRead => FILE_SHARE_WRITE,
+        };
+        let file = self
+            .root
+            .open_with(
+                &path,
+                OpenOptions::new()
+                    .read(access != DosFileAccess::WriteOnly)
+                    .write(access != DosFileAccess::ReadOnly)
+                    .share_mode(share_mode),
+            )
+            .map_err(os_error)?;
+        let short_name = self.file_short_name(&path)?;
+        self.insert_file(Arc::new(Mutex::new(OpenFile::new(file, short_name))))
+    }
+
+    pub(crate) fn file_duplicate(
+        &mut self,
+        file: DosHostFile,
+    ) -> Result<DosHostFile, DosHostError> {
+        // Sharing the same File object guarantees shared cursor semantics for
+        // duplicates rather than relying on platform-specific clone behavior.
+        let shared = self.file(file)?;
+        self.insert_file(shared)
+    }
+
+    pub(crate) fn file_close(&mut self, file: DosHostFile) -> Result<(), DosHostError> {
+        self.files
+            .remove(&file)
+            .map(drop)
+            .ok_or_else(|| invalid(DosErrorCode::InvalidHandle))
+    }
+
+    pub(crate) fn file_read(
+        &mut self,
+        file: DosHostFile,
+        output: &mut [u8],
+    ) -> Result<usize, DosHostError> {
+        let shared = self.file(file)?;
+        let mut handle = Self::lock_file(&shared)?;
+        handle.file.read(output).map_err(os_error)
+    }
+
+    pub(crate) fn file_write(
+        &mut self,
+        file: DosHostFile,
+        input: &[u8],
+    ) -> Result<usize, DosHostError> {
+        let shared = self.file(file)?;
+        let mut handle = Self::lock_file(&shared)?;
+        let written = handle.file.write(input).map_err(os_error)?;
+        if written != 0 {
+            handle.written = true;
+        }
+        Ok(written)
+    }
+
+    pub(crate) fn file_seek(
+        &mut self,
+        file: DosHostFile,
+        offset: i32,
+        origin: DosSeekOrigin,
+    ) -> Result<u32, DosHostError> {
+        let shared = self.file(file)?;
+        let mut handle = Self::lock_file(&shared)?;
+        let base = match origin {
+            DosSeekOrigin::Start => 0i128,
+            DosSeekOrigin::Current => i128::from(handle.file.stream_position().map_err(os_error)?),
+            DosSeekOrigin::End => i128::from(handle.file.metadata().map_err(os_error)?.len()),
+        };
+        let target = base + i128::from(offset);
+        if !(0..=i128::from(u32::MAX)).contains(&target) {
+            return Err(invalid(DosErrorCode::InvalidData));
+        }
+        let position = handle
+            .file
+            .seek(SeekFrom::Start(target as u64))
+            .map_err(os_error)?;
+        u32::try_from(position).map_err(|_| invalid(DosErrorCode::InvalidData))
+    }
+
+    pub(crate) fn file_set_len(
+        &mut self,
+        file: DosHostFile,
+        length: u32,
+    ) -> Result<(), DosHostError> {
+        let shared = self.file(file)?;
+        let mut handle = Self::lock_file(&shared)?;
+        handle.file.set_len(u64::from(length)).map_err(os_error)?;
+        handle.written = true;
+        Ok(())
+    }
+
+    pub(crate) fn file_ioctl_info(
+        &self,
+        file: DosHostFile,
+    ) -> Result<DosIoctlObjectInfo, DosHostError> {
+        let shared = self.file(file)?;
+        let handle = Self::lock_file(&shared)?;
+        // File handles retain the actual drive backing this mounted volume.
+        Ok(DosIoctlObjectInfo::File {
+            drive: self.drive,
+            written: handle.written,
+        })
+    }
+
+    pub(crate) fn file_status(&mut self, file: DosHostFile) -> Result<DosFileStatus, DosHostError> {
+        let shared = self.file(file)?;
+        let mut handle = Self::lock_file(&shared)?;
+        let facts = handle.file.metadata().map_err(os_error)?;
+        let position = handle.file.stream_position().map_err(os_error)?;
+        let (write_time, write_date) = metadata::dos_write_time(&facts)?;
+        Ok(DosFileStatus {
+            short_name: handle.short_name,
+            // DOS SFT fields are DWORDs. Keep the low 32 bits, matching the
+            // classic DOS-visible size/cursor width (and Win32 DTA nFileSizeLow).
+            size: dos_dword(facts.len()),
+            position: dos_dword(position),
+            attributes: metadata::dos_attributes(&facts),
+            write_time,
+            write_date,
+        })
+    }
+
+    pub(crate) fn file_delete(&mut self, path: &[u8]) -> Result<(), DosHostError> {
+        let path = self.resolve_path(path, false)?;
+        let path = self.confined_path(&path, false, false)?;
+        self.root.remove_file(&path).map_err(os_error)
+    }
+
+    pub(crate) fn file_get_attributes(&mut self, path: &[u8]) -> Result<u8, DosHostError> {
+        let path = self.resolve_path(path, false)?;
+        let path = self.confined_path(&path, true, false)?;
+        let metadata = self.root.metadata(&path).map_err(os_error)?;
+        Ok(metadata::dos_attributes(&metadata))
+    }
+
+    pub(crate) fn file_set_attributes(
+        &mut self,
+        path: &[u8],
+        attributes: u8,
+    ) -> Result<(), DosHostError> {
+        let path = self.resolve_path(path, false)?;
+        self.set_attributes(&path, attributes)
+    }
+}

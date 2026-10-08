@@ -1,0 +1,21 @@
+//! Semantic parameter roles for USER window data accessors.
+
+use super::{ArgumentKind, Win16Parameter, Win16ParameterType};
+
+const WINDOW: Win16Parameter = Win16Parameter {
+    name: "window", kind: ArgumentKind::Word, parameter_type: Win16ParameterType::Scalar,
+};
+const INDEX: Win16Parameter = Win16Parameter {
+    name: "index", kind: ArgumentKind::Word, parameter_type: Win16ParameterType::SignedScalar,
+};
+pub(super) const GET: &[Win16Parameter] = &[WINDOW, INDEX];
+pub(super) const SET_WORD: &[Win16Parameter] = &[
+    WINDOW, INDEX, Win16Parameter {
+        name: "value", kind: ArgumentKind::Word, parameter_type: Win16ParameterType::Scalar,
+    },
+];
+pub(super) const SET_LONG: &[Win16Parameter] = &[
+    WINDOW, INDEX, Win16Parameter {
+        name: "value", kind: ArgumentKind::Dword, parameter_type: Win16ParameterType::SignedScalar,
+    },
+];

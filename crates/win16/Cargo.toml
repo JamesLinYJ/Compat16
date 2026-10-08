@@ -1,0 +1,18 @@
+[package]
+name = "win16-abi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+abi-schema = { path = "../abi-schema" }
+zerocopy.workspace = true
+guest-core = { path = "../guest" }
+
+[build-dependencies]
+abi-codegen = { path = "../abi-codegen" }
+
+[lints]
+workspace = true

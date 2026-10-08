@@ -1,0 +1,12 @@
+[package]
+name = "x86-cpu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+guest-core = { path = "../guest" }
+x86_decoder = { package = "iced-x86", version = "=1.21.0", default-features = false, features = ["std", "decoder", "instr_info"] }
+rustc_apfloat = "=0.2.3"
+zerocopy.workspace = true

@@ -1,0 +1,22 @@
+[package]
+name = "engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+name = "engine"
+crate-type = ["cdylib"]
+
+[dependencies]
+formats = { path = "../formats" }
+runtime = { path = "../runtime" }
+host-services = { path = "../host" }
+text-codec = { path = "../text" }
+compat-services = { path = "../compat" }
+zerocopy.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,12 @@
+[package]
+name = "devices"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+guest-core = { path = "../guest" }
+
+[lints]
+workspace = true

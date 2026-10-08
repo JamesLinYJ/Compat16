@@ -1,0 +1,21 @@
+[package]
+name = "build-tools"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+abi-schema = { path = "../abi-schema" }
+win16-abi = { path = "../win16" }
+
+[lib]
+name = "build_tools"
+path = "src/lib.rs"
+
+[[bin]]
+name = "build-tools"
+path = "src/main.rs"
+
+[lints]
+workspace = true

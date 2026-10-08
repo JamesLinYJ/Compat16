@@ -1,0 +1,25 @@
+[package]
+# Console and GUI launchers share the native core loader.
+name = "launcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+name = "launcher"
+
+[[bin]]
+name = "compat16"
+path = "src/main.rs"
+
+[[bin]]
+name = "compat16w"
+path = "src/windowed.rs"
+
+[dependencies]
+native-loader = { path = "../native-loader" }
+
+[lints]
+workspace = true

@@ -1,0 +1,72 @@
+//! Known-signature Win16 `COMMCTRL.DLL` requests.
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Win16CommctrlRequest {
+    MenuHelp {
+        message: u16,
+        w_param: u16,
+        l_param: u32,
+        menu: u16,
+        instance: u16,
+        status_bar: u16,
+        help_id_table: u32,
+    },
+    GetEffectiveClientRect { window: u16, rect: u32, control_ids: u32 },
+    CreateStatusWindow { style: u32, text: Vec<u8>, parent: u16, control_id: u16 },
+    CreateToolbar {
+        parent: u16,
+        style: u32,
+        control_id: u16,
+        bitmap_count: u16,
+        bitmap_instance: u16,
+        bitmap_resource: u16,
+        buttons: u32,
+        button_count: u16,
+        button_width: Option<u16>,
+        button_height: Option<u16>,
+        bitmap_width: Option<u16>,
+        bitmap_height: Option<u16>,
+        button_struct_size: Option<u16>,
+    },
+    CreateHeaderWindow { style: u32, text: Vec<u8>, parent: u16, control_id: u16 },
+    CreateMappedBitmap {
+        instance: u16,
+        bitmap_resource: u16,
+        flags: u16,
+        color_map: u32,
+        color_map_count: u16,
+    },
+    WritePrivateProfileStruct {
+        section: Option<Vec<u8>>,
+        key: Option<Vec<u8>>,
+        data: u32,
+        data_size: u16,
+        file_name: Option<Vec<u8>>,
+    },
+    GetPrivateProfileStruct {
+        section: Vec<u8>,
+        key: Vec<u8>,
+        output: u32,
+        capacity: u16,
+        file_name: Vec<u8>,
+    },
+    MakeDragList { list_box: u16 },
+    InitCommonControls,
+    /// CreateToolbarEx uses the same scalar/pointer roles as CreateToolbar;
+    /// the final seven WORD values are the extended image/button dimensions.
+    CreateToolbarEx {
+        parent: u16,
+        style: u32,
+        control_id: u16,
+        bitmap_count: u16,
+        bitmap_instance: u16,
+        bitmap_resource: u16,
+        buttons: u32,
+        button_count: u16,
+        button_width: u16,
+        button_height: u16,
+        bitmap_width: u16,
+        bitmap_height: u16,
+        button_struct_size: u16,
+    },
+}

@@ -1,0 +1,23 @@
+# Native legacy file and LZ services used at the Windows host boundary.
+_lclose
+_llseek
+_lread
+_lwrite
+LZStart
+LZDone
+LZInit
+LZOpenFileW
+LZClose
+LZRead
+LZSeek
+LZCopy
+GetExpandedNameW
+OFSTRUCT
+OF_CREATE
+OF_DELETE
+OF_EXIST
+OF_PARSE
+OF_READ
+OF_READWRITE
+OF_REOPEN
+OF_WRITE

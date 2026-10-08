@@ -1,0 +1,11 @@
+# module=LZEXPAND source_module=lzexpand.DLL
+1 pascal LZCopy(word word)
+2 pascal -ret16 LZOpenFile(str ptr word)
+3 pascal -ret16 LZInit(word)
+4 pascal LZSeek(word long word)
+5 pascal -ret16 LZRead(word ptr word)
+6 pascal -ret16 LZClose(word)
+7 pascal -ret16 LZStart()
+8 pascal CopyLZFile(word word)
+9 pascal -ret16 LZDone()
+10 pascal -ret16 GetExpandedName(str ptr)

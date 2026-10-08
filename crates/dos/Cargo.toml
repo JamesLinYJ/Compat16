@@ -1,0 +1,13 @@
+[package]
+name = "dos-kernel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+guest-core = { path = "../guest" }
+text-codec = { path = "../text" }
+
+[lints]
+workspace = true

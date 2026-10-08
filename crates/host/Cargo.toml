@@ -1,0 +1,36 @@
+[package]
+name = "host-services"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "compat16host"
+path = "src/bin/native_worker.rs"
+
+[dependencies]
+guest-core = { path = "../guest" }
+compat-services = { path = "../compat" }
+dos-kernel = { path = "../dos" }
+devices = { path = "../devices" }
+runtime = { path = "../runtime" }
+text-codec = { path = "../text" }
+graphics = { path = "../graphics" }
+formats = { path = "../formats" }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_System_Environment", "Win32_System_Threading"] }
+windows-link.workspace = true
+windows-core.workspace = true
+cap-std.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+zerocopy.workspace = true
+
+[build-dependencies]
+windows-bindgen.workspace = true
+
+[lints]
+workspace = true

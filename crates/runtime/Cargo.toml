@@ -1,0 +1,23 @@
+[package]
+name = "runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+compat-services = { path = "../compat" }
+guest-core = { path = "../guest" }
+x86-cpu = { path = "../cpu" }
+dos-kernel = { path = "../dos" }
+devices = { path = "../devices" }
+formats = { path = "../formats" }
+graphics = { path = "../graphics" }
+xms = { path = "../xms" }
+text-codec = { path = "../text" }
+win16-abi = { path = "../win16" }
+zerocopy.workspace = true
+
+[lints]
+workspace = true
