@@ -71,7 +71,7 @@ fn mode_13_uses_the_complete_default_dac_palette() {
 
     assert_eq!(state.palette[0x06], [42, 21, 0]);
     assert_eq!(state.palette[0x10], [0, 0, 0]);
-    assert_eq!(state.palette[0x11], [4, 4, 4]);
+    assert_eq!(state.palette[0x11], [5, 5, 5]);
     assert_eq!(state.palette[0x20], [0, 0, 63]);
     assert_eq!(state.palette[0xf7], [11, 12, 16]);
     assert_eq!(&state.palette[0xf8..], &[[0; 3]; 8]);

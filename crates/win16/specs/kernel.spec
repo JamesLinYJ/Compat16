@@ -460,17 +460,3 @@
 702 stub SSCall
 703 stub CallProc32WFix
 704 pascal -register SSConfirmSmallStack()
-901 pascal -register __wine_vxd_vmm()
-905 pascal -register __wine_vxd_timer()
-909 pascal -register __wine_vxd_reboot()
-910 pascal -register __wine_vxd_vdd()
-912 pascal -register __wine_vxd_vmd()
-914 pascal -register __wine_vxd_comm()
-923 pascal -register __wine_vxd_shell()
-933 pascal -register __wine_vxd_pagefile()
-938 pascal -register __wine_vxd_apm()
-939 pascal -register __wine_vxd_vxdloader()
-945 pascal -register __wine_vxd_win32s()
-951 pascal -register __wine_vxd_configmg()
-955 pascal -register __wine_vxd_enable()
-1990 pascal -register __wine_vxd_timerapi()

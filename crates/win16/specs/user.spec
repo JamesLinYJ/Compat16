@@ -554,4 +554,3 @@
 930 pascal -ret16 MessageBoxEx(word str str word word)
 1000 pascal -ret16 SetProcessDefaultLayout(long)
 1001 pascal -ret16 GetProcessDefaultLayout(ptr)
-1010 pascal __wine_call_wndproc(word word word long long)

@@ -164,4 +164,3 @@
 1224 pascal mmioAscend(word ptr word)
 1225 pascal mmioCreateChunk(word ptr word)
 1226 pascal mmioRename(ptr ptr ptr long)
-2047 pascal __wine_mmThreadEntryPoint(long)
