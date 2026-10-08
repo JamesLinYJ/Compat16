@@ -1,20 +1,19 @@
 //! VGA BIOS DAC reset colors, kept in the hardware's six-bit component range.
 //!
 //! The 256-color layout is 16 RGBI colors, 16 grays, nine 24-color hue cycles,
-//! and eight black entries. Intensity levels follow VGAPAL revision
-//! 4ef73d0075f738ed04618f921df85be77584bc33, available at
-//! <https://github.com/canidlogic/vgapal> (MIT; see LICENSES/VGA-MIT.txt).
+//! and eight black entries. This is the VGA BIOS mode 13h layout described in
+//! the IBM Personal System/2 Hardware Interface Technical Reference, VGA
+//! Function, "256-Color Graphics Mode (Mode Hex 13)".
 //!
 //! This small const generator is necessary because general color libraries do
-//! not provide BIOS palette index order or six-bit quantization. The existing
-//! bare-metal VGA crate also brings hardware access and x86-only dependencies.
-//! Generate the device values directly, without host color-space conversion.
+//! not provide BIOS palette index order or six-bit quantization. Generate the
+//! device values directly, without host color-space conversion or hardware I/O.
 
 const GRAY_LEVELS: [u8; 16] = [0, 5, 8, 11, 14, 17, 20, 24, 28, 32, 36, 40, 45, 50, 56, 63];
 
 // Each brightness group contains three saturation levels. Five channel levels
-// describe a quarter-edge ramp, including both endpoints; the next edge owns
-// its starting endpoint, so each hue cycle has 6 * 4 colors.
+// describe four steps along a cube edge; the next edge owns the shared
+// endpoint, so each hue cycle has 6 * 4 colors.
 const HUE_LEVELS: [[u8; 5]; 9] = [
     [0, 16, 31, 47, 63],
     [31, 39, 47, 55, 63],

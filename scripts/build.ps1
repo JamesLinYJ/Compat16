@@ -113,8 +113,7 @@ try {
         'LICENSE',
         'LICENSES\NOTICE.txt',
         'LICENSES\DEPENDENCIES.txt',
-        'LICENSES\Microsoft-MS-DOS-MIT.txt',
-        'LICENSES\VGA-MIT.txt'
+        'LICENSES\Microsoft-MS-DOS-MIT.txt'
     )
     $architectureSummary = ($architectures | ForEach-Object { Get-ArchitectureLabel $_ }) -join ', '
     Write-Status INFO ("Targets: {0}" -f $architectureSummary)
@@ -361,7 +360,6 @@ try {
             'LICENSES/NOTICE.txt',
             'LICENSES/DEPENDENCIES.txt',
             'LICENSES/Microsoft-MS-DOS-MIT.txt',
-            'LICENSES/VGA-MIT.txt',
             'manifest.json'
         ))
         Write-Host ("  dist/{0} ({1})" -f $releaseBuild.architecture, $releaseBuild.target) -ForegroundColor White
