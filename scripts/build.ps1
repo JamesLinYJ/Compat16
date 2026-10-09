@@ -275,7 +275,13 @@ try {
         $pgoBuild = $null
         if ($Pgo -ne 'none') {
             $pgoTools = Get-PgoTools $rustcExe $sysroot $target
-            $pgoIdentity = Get-PgoBuildIdentity $projectRoot $target $pgoTools $cargoExe $baseEncodedFlags $remapPairs $vsDevCmd $effectiveCargoHome
+            # Keep the profiler's COFF name contributions byte-aligned. MSVC
+            # link.exe can pad after the one-byte names sentinel, yielding an
+            # invalid initial name blob. Use the matching LLVM linker in both
+            # PGO phases; do not repair or accept malformed raw profiles.
+            $pgoFlags = $baseEncodedFlags + [char]0x1f + ('-Clinker=' + $pgoTools.linker) + [char]0x1f + '-Clinker-flavor=lld-link'
+            $env:CARGO_ENCODED_RUSTFLAGS = $pgoFlags
+            $pgoIdentity = Get-PgoBuildIdentity $projectRoot $target $pgoTools $cargoExe $pgoFlags $remapPairs $vsDevCmd $effectiveCargoHome
             if ($Pgo -eq 'generate') {
                 $sessionId = [Guid]::NewGuid().ToString('N')
                 $sessionDirectory = Join-Path $projectRoot ('target\pgo\' + $architecture + '\sessions\' + $sessionId)

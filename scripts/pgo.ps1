@@ -64,16 +64,21 @@ function Get-PgoTools {
     $version = Invoke-PgoTool $Rustc @('-vV')
     if ($version -notmatch '(?m)^release: 1\.99\.0\r?$') { throw 'PGO requires the pinned Rust 1.99.0 release.' }
     if ($version -notmatch '(?m)^host: (\S+)') { throw 'Could not determine the PGO compiler host.' }
-    $profdata = Join-Path $Sysroot ('lib\rustlib\' + $Matches[1] + '\bin\llvm-profdata.exe')
+    $toolDirectory = Join-Path $Sysroot ('lib\rustlib\' + $Matches[1] + '\bin')
+    $profdata = Join-Path $toolDirectory 'llvm-profdata.exe'
     if (-not (Test-Path -LiteralPath $profdata -PathType Leaf)) {
         throw 'PGO requires llvm-tools-preview in the selected Rust 1.99.0 installation; see the README PGO instructions.'
+    }
+    $linker = Join-Path $toolDirectory 'rust-lld.exe'
+    if (-not (Test-Path -LiteralPath $linker -PathType Leaf)) {
+        throw 'PGO requires the COFF linker bundled with the selected Rust toolchain.'
     }
     $libraries = Join-Path $Sysroot ('lib\rustlib\' + $Target + '\lib')
     if (@(Get-ChildItem -LiteralPath $libraries -Filter 'libprofiler_builtins-*.rlib' -ErrorAction SilentlyContinue).Count -eq 0) {
         throw "The selected Rust distribution has no profiler runtime for $Target. A regular release build remains available."
     }
     $toolVersion = Invoke-PgoTool $profdata @('--version')
-    return [pscustomobject]@{ rustc = $version; llvmProfdata = $profdata; toolSha256 = (Get-FileHash -LiteralPath $profdata -Algorithm SHA256).Hash; toolVersion = $toolVersion }
+    return [pscustomobject]@{ rustc = $version; llvmProfdata = $profdata; toolSha256 = (Get-FileHash -LiteralPath $profdata -Algorithm SHA256).Hash; toolVersion = $toolVersion; linker = $linker; linkerSha256 = (Get-FileHash -LiteralPath $linker -Algorithm SHA256).Hash }
 }
 
 function Get-PgoBuildIdentity {
@@ -105,13 +110,14 @@ function Get-PgoBuildIdentity {
         rustcSha256 = Get-PgoHash $Tools.rustc
         cargoSha256 = Get-PgoHash (Invoke-PgoTool $Cargo @('--version'))
         llvmProfdataSha256 = $Tools.toolSha256
+        llvmLinkerSha256 = $Tools.linkerSha256
         buildSettingsSha256 = Get-PgoHash ($buildSettings -join "`n")
     }
 }
 
 function Assert-PgoIdentity {
     param($Recorded, $Current)
-    foreach ($key in @('target', 'sourceSha256', 'rustcSha256', 'cargoSha256', 'llvmProfdataSha256', 'buildSettingsSha256')) {
+    foreach ($key in @('target', 'sourceSha256', 'rustcSha256', 'cargoSha256', 'llvmProfdataSha256', 'llvmLinkerSha256', 'buildSettingsSha256')) {
         if (-not $Recorded.$key -or $Recorded.$key -cne $Current.$key) { throw "PGO profile is stale or incompatible ($key changed). Generate and collect a new session." }
     }
 }

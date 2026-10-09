@@ -55,7 +55,7 @@ Supply the legacy application and its companion files yourself. Use the console 
 
 ### Optional profile guided optimization
 
-PGO requires the pinned Rust 1.99.0 profiler runtime for the selected Windows target and its `llvm-tools-preview` component. Install that optional component into the same Rust installation used by the build script. For the project-local toolchain:
+PGO uses the pinned Rust 1.99.0 profiler runtime, its bundled COFF linker, and the `llvm-tools-preview` component. Install that optional component into the same Rust installation used by the build script. For the project-local toolchain:
 
 ```powershell
 $previousRustupHome = $env:RUSTUP_HOME
