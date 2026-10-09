@@ -165,6 +165,13 @@ pub fn encode(text: &str, code_page: u32) -> Result<Vec<u8>, DosHostError> {
         .map_err(|error| DosHostError::with_source(DosErrorCode::InvalidData, error))
 }
 
+/// Whether host initialization may create a console for guest DOS input.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ConsolePolicy {
+    Inherit,
+    AllocateIfMissing,
+}
+
 pub struct WindowsHost {
     win16_format_work: parallel_work::SharedExecutor,
     win16_work_generation: Arc<AtomicU64>,
@@ -250,6 +257,14 @@ impl WindowsHost {
         Self::new_with_ansi_code_page(root, code_page, if code_page == 936 { 936 } else { 1252 })
     }
     pub fn new_with_ansi_code_page(root: &Path, code_page: u32, ansi_code_page: u32) -> Result<Self, DosHostError> {
+        Self::new_with_console_policy(root, code_page, ansi_code_page, ConsolePolicy::AllocateIfMissing)
+    }
+    pub fn new_with_console_policy(
+        root: &Path,
+        code_page: u32,
+        ansi_code_page: u32,
+        console_policy: ConsolePolicy,
+    ) -> Result<Self, DosHostError> {
         let codec = guest_text::GuestTextCodec::new(ansi_code_page)
             .map_err(|error| DosHostError::with_source(DosErrorCode::InvalidData, error))?;
         let page = CodePage::try_from(code_page)
@@ -266,7 +281,11 @@ impl WindowsHost {
                 .map_err(|error| DosHostError::with_source(DosErrorCode::InvalidData, error))?;
         // SAFETY: GetStdHandle has no memory preconditions and returns an OS-owned handle.
         let mut input = unsafe { GetStdHandle((-10i32) as u32) };
-        if input.is_null() || input as isize == -1 {
+        // Windowed guests preserve redirected/inherited streams without
+        // creating a visible console merely to initialize unused DOS input.
+        if (input.is_null() || input as isize == -1)
+            && console_policy == ConsolePolicy::AllocateIfMissing
+        {
             // SAFETY: AllocConsole attaches a console to this process only.
             if unsafe { AllocConsole() } == 0 {
                 return Err(last_error());

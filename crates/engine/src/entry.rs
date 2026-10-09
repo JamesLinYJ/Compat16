@@ -24,7 +24,7 @@ fn run() -> Result<u8, RuntimeError> {
 fn run() -> Result<u8, RuntimeError> {
     use std::path::PathBuf;
     use formats::parse_ne;
-    use host_services::windows::{encode, WindowsHost};
+    use host_services::windows::{encode, ConsolePolicy, WindowsHost};
     use runtime::{Diagnostic, Runtime, RuntimeHost};
 
     let command_name = std::env::current_exe().ok()
@@ -134,6 +134,7 @@ fn run() -> Result<u8, RuntimeError> {
         }
     };
     let bytes = std::fs::read(&program).map_err(|e| RuntimeError::with_source(Kind::HostFailure, "read program image", e))?;
+    let is_win16 = parse_ne(&bytes).is_ok();
     // Preserve the caller's output paths before host initialization establishes
     // the guest program's working directory for native relative file APIs.
     for path in [&mut trace_file, &mut guest_memory_dump, &mut dos_service_trace, &mut win16_io_trace] {
@@ -146,10 +147,12 @@ fn run() -> Result<u8, RuntimeError> {
     let text_profile = crate::program_encoding::resolve(&bytes, ansi_code_page);
     // Declared first so every runtime/host owner retires before the executor.
     let work = std::sync::Arc::new(parallel_work::BoundedExecutor::new());
-    let mut host = match &text_profile {
-        Some(profile) => WindowsHost::new_with_ansi_code_page(directory, code_page, profile.selection.code_page),
-        None => WindowsHost::new(directory, code_page),
-    }.map_err(|e| RuntimeError::with_source(Kind::HostFailure, "host initialization", e))?;
+    let ansi_code_page = text_profile.as_ref().map(|profile| profile.selection.code_page)
+        .unwrap_or(if code_page == 936 { 936 } else { 1252 });
+    let console_policy = if is_win16 { ConsolePolicy::Inherit } else { ConsolePolicy::AllocateIfMissing };
+    let mut host = WindowsHost::new_with_console_policy(
+        directory, code_page, ansi_code_page, console_policy,
+    ).map_err(|e| RuntimeError::with_source(Kind::HostFailure, "host initialization", e))?;
     host.set_work_executor(std::sync::Arc::clone(&work));
     if let Some(profile) = &text_profile {
         crate::program_encoding::report(&mut host, profile);
@@ -168,7 +171,7 @@ fn run() -> Result<u8, RuntimeError> {
             "{replacement_count} inherited environment entries contain characters unavailable in code page {code_page}; Windows substituted default characters",
         )));
     }
-    let mut runtime = if parse_ne(&bytes).is_ok() {
+    let mut runtime = if is_win16 {
         let win16_path = host.win16_main_module_path(&program)?;
         // Guest instructions and native API calls have separate execution
         // boundaries. Host bitness alone does not establish a usable generic

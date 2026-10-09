@@ -84,7 +84,8 @@ function Copy-VerifiedFile([string]$Source, [string]$Relative, [string]$Hash, [s
     $directory = Split-Path -Parent $destination
     if (-not (Test-Path -LiteralPath $directory -PathType Container)) { New-Item -ItemType Directory -Path $directory -Force | Out-Null }
     Assert-NoInstallReparsePoint $Root $destination
-    Copy-Item -LiteralPath $Source -Destination $destination -NoClobber | Out-Null
+    # File.Copy rejects an existing destination when overwrite is false.
+    [IO.File]::Copy($Source, $destination, $false)
     Assert-NoInstallReparsePoint $Root $destination
     if ((Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash -ine $Hash) { throw "Copied file hash mismatch: $Relative" }
 }
