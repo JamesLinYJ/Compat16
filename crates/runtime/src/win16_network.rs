@@ -167,6 +167,20 @@ impl Win16NetworkState {
         Self { next_socket: 1, next_async_task: 1, next_async_generation: 1, ..Self::default() }
     }
 
+    pub(crate) fn needs_scheduler_progress(&self) -> bool {
+        !self.sockets.is_empty()
+            || !self.async_tasks.is_empty()
+            || !self.async_selects.is_empty()
+            || !self.retired_async_selects.is_empty()
+            || !self.orphan_sockets.is_empty()
+            || self.pending_event.is_some()
+            || self.event_poll_failure.is_some()
+            || (self.producer_quiescing && !self.producers_quiesced)
+            || self.result_blocks_by_task.values().any(|blocks| {
+                blocks.iter().any(|block| block.retirement_cause.is_some())
+            })
+    }
+
     pub(crate) fn native_sources_quiescent(&self) -> bool {
         self.sockets.is_empty() && self.async_tasks.is_empty()
             && self.async_selects.is_empty() && self.retired_async_selects.is_empty()

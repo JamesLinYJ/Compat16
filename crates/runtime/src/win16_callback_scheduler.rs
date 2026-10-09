@@ -209,6 +209,14 @@ impl CallbackBuffer {
 }
 
 impl Win16CallbackScheduler {
+    pub(super) fn needs_scheduler_progress(&self) -> bool {
+        !self.active.is_empty()
+            || !self.pending_cleanup.is_empty()
+            || !self.pending_source_retirements.is_empty()
+            || !self.retained_buffers.is_empty()
+            || !self.quiescent_unregister_waiters.is_empty()
+    }
+
     pub(in crate::win16_runtime) fn unregister_guest_callback(
         &mut self,
         token: Win16GuestCallbackToken,

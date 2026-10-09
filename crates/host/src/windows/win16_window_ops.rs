@@ -119,8 +119,8 @@ pub(super) fn execute(
                     let Some(class) = state.borrow().classes.get(&class).cloned() else {
                         return Ok(ResultValue::Window(None));
                     };
-                    Some(state.borrow().text_codec.to_wide_z(
-                        &class.name[..class.name.len().saturating_sub(1)],
+                    Some(super::win16_window_text_context::wide_z_from_guest(
+                        state, &class.name[..class.name.len().saturating_sub(1)],
                     )?)
                 }
                 None => None,

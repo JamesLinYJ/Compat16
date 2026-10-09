@@ -69,6 +69,10 @@ pub(super) struct ClassicDdeAtomLeases {
 }
 
 impl ClassicDdeAtomLeases {
+    pub(super) fn needs_scheduler_progress(&self) -> bool {
+        !self.events.is_empty() || !self.references.is_empty()
+    }
+
     pub(super) fn owner_has_leases(&self, owner: OwnerId) -> bool {
         self.events.iter().any(|event| event.key.owner == owner)
             || self.references.iter().any(|reference| match reference.scope {

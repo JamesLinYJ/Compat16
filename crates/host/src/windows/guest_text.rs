@@ -1,5 +1,9 @@
 //! Checked conversion between an explicit guest code page and host UTF-16.
 
+#[path = "guest_text_buffer.rs"]
+mod buffer;
+pub(in crate::windows) use buffer::GuestTextBuffer;
+
 use std::error::Error;
 use std::fmt;
 use std::ops::Range;
@@ -96,8 +100,31 @@ impl GuestTextCodec {
     /// or appended. Empty input is handled without passing a zero length to
     /// the Windows API.
     pub(in crate::windows) fn to_wide(&self, source: &[u8]) -> Result<Vec<u16>, RuntimeError> {
+        let mut wide = Vec::new();
+        self.to_wide_into(source, &mut wide)?;
+        Ok(wide)
+    }
+
+    /// Replace an owned scratch buffer with the exact conversion. A failed
+    /// conversion leaves it empty, and its capacity remains reusable.
+    pub(in crate::windows) fn to_wide_into(
+        &self, source: &[u8], wide: &mut Vec<u16>,
+    ) -> Result<(), RuntimeError> {
+        self.to_wide_buffer(source, wide, false)
+    }
+
+    fn to_wide_buffer(
+        &self, source: &[u8], wide: &mut Vec<u16>, terminated: bool,
+    ) -> Result<(), RuntimeError> {
+        wide.clear();
         if source.is_empty() {
-            return Ok(Vec::new());
+            if terminated {
+                wide.try_reserve_exact(1).map_err(|error| RuntimeError::with_source(
+                    Kind::ResourceExhausted, "terminate guest text", error,
+                ))?;
+                wide.push(0);
+            }
+            return Ok(());
         }
 
         let source_length = checked_i32(source.len(), "size guest text input")?;
@@ -122,12 +149,15 @@ impl GuestTextCodec {
             ));
         }
 
-        let mut wide = zeroed_wide(
-            checked_usize(required, "size guest UTF-16 output")?,
-            "allocate guest UTF-16 output",
-        )?;
+        let length = checked_usize(required, "size guest UTF-16 output")?
+            .checked_add(usize::from(terminated))
+            .ok_or_else(|| resource_limit("size terminated guest UTF-16 output"))?;
+        wide.try_reserve_exact(length).map_err(|error| RuntimeError::with_source(
+            Kind::ResourceExhausted, "allocate guest UTF-16 output", error,
+        ))?;
+        wide.resize(length, 0);
         // SAFETY: both slices remain alive for the synchronous call. The
-        // destination has exactly the capacity returned by the sizing call.
+        // destination covers the sizing result plus any separate terminator.
         let written = unsafe {
             MultiByteToWideChar(
                 self.code_page,
@@ -139,16 +169,19 @@ impl GuestTextCodec {
             )
         };
         if written <= 0 {
+            let last_error = unsafe { GetLastError() };
+            wide.clear();
             return Err(windows_failure(
                 "convert guest text to UTF-16",
                 self.code_page,
-                unsafe { GetLastError() },
+                last_error,
             ));
         }
         if written != required {
+            wide.clear();
             return Err(conversion_invariant("guest text conversion size changed"));
         }
-        Ok(wide)
+        Ok(())
     }
 
     /// Decode guest bytes once and report exact source-byte / UTF-16 ranges.
@@ -160,18 +193,24 @@ impl GuestTextCodec {
         &self,
         source: &[u8],
     ) -> Result<(Vec<u16>, Vec<GuestTextSpan>), RuntimeError> {
-        let wide = self.to_wide(source)?;
+        let mut wide = Vec::new();
+        let spans = self.to_wide_with_ranges_into(source, &mut wide)?;
+        Ok((wide, spans))
+    }
+
+    pub(in crate::windows) fn to_wide_with_ranges_into(
+        &self, source: &[u8], wide: &mut Vec<u16>,
+    ) -> Result<Vec<GuestTextSpan>, RuntimeError> {
+        self.to_wide_into(source, wide)?;
         if source.is_empty() {
-            return Ok((wide, Vec::new()));
+            return Ok(Vec::new());
         }
         if self.code_page == CP_UTF8 {
-            let spans = utf8_spans(source, &wide)?;
-            return Ok((wide, spans));
+            return utf8_spans(source, wide);
         }
 
         self.require_single_or_double_byte_ranges()?;
-        let spans = sbcs_dbcs_spans(self, source, &wide)?;
-        Ok((wide, spans))
+        sbcs_dbcs_spans(self, source, wide)
     }
 
     fn require_single_or_double_byte_ranges(&self) -> Result<(), RuntimeError> {
@@ -205,12 +244,15 @@ impl GuestTextCodec {
     /// `None` through the caller's `Option::map` to keep absent distinct from
     /// `Some(&[])`, which becomes a one-unit empty C string.
     pub(in crate::windows) fn to_wide_z(&self, source: &[u8]) -> Result<Vec<u16>, RuntimeError> {
-        let mut wide = self.to_wide(source)?;
-        wide.try_reserve(1).map_err(|error| {
-            RuntimeError::with_source(Kind::ResourceExhausted, "terminate guest text", error)
-        })?;
-        wide.push(0);
+        let mut wide = Vec::new();
+        self.to_wide_z_into(source, &mut wide)?;
         Ok(wide)
+    }
+
+    pub(in crate::windows) fn to_wide_z_into(
+        &self, source: &[u8], wide: &mut Vec<u16>,
+    ) -> Result<(), RuntimeError> {
+        self.to_wide_buffer(source, wide, true)
     }
 
     /// Convert the exact UTF-16 input to guest bytes without adding a NUL.
@@ -222,8 +264,16 @@ impl GuestTextCodec {
         &self,
         source: &[u16],
     ) -> Result<GuestTextEncoding, RuntimeError> {
+        self.from_wide_in_buffer(source, Vec::new())
+    }
+
+    /// Reuse an owned guest output allocation while preserving its exact byte
+    /// count and the converter's default-character indication.
+    pub(in crate::windows) fn from_wide_in_buffer(
+        &self, source: &[u16], bytes: Vec<u8>,
+    ) -> Result<GuestTextEncoding, RuntimeError> {
         let required = self.wide_length(source)?;
-        self.encode_wide(source, required)
+        self.encode_wide_in_buffer(source, required, bytes)
     }
 
     /// Convert as much UTF-16 as fits in a guest byte capacity, ending only at
@@ -235,9 +285,15 @@ impl GuestTextCodec {
         source: &[u16],
         byte_capacity: usize,
     ) -> Result<BoundedGuestTextEncoding, RuntimeError> {
+        self.from_wide_bounded_in_buffer(source, byte_capacity, Vec::new())
+    }
+
+    pub(in crate::windows) fn from_wide_bounded_in_buffer(
+        &self, source: &[u16], byte_capacity: usize, bytes: Vec<u8>,
+    ) -> Result<BoundedGuestTextEncoding, RuntimeError> {
         let full_length = self.wide_length(source)?;
         if full_length <= byte_capacity {
-            let encoded = self.encode_wide(source, full_length)?;
+            let encoded = self.encode_wide_in_buffer(source, full_length, bytes)?;
             return Ok(BoundedGuestTextEncoding {
                 bytes: encoded.bytes,
                 source_utf16_units: source.len(),
@@ -265,7 +321,7 @@ impl GuestTextCodec {
         let source_utf16_units = boundaries[fitting];
         let prefix = &source[..source_utf16_units];
         let prefix_length = self.wide_length(prefix)?;
-        let encoded = self.encode_wide(prefix, prefix_length)?;
+        let encoded = self.encode_wide_in_buffer(prefix, prefix_length, bytes)?;
         Ok(BoundedGuestTextEncoding {
             bytes: encoded.bytes,
             source_utf16_units,
@@ -304,11 +360,13 @@ impl GuestTextCodec {
         checked_usize(required, "size guest text output")
     }
 
-    fn encode_wide(
+    fn encode_wide_in_buffer(
         &self,
         source: &[u16],
         required: usize,
+        mut bytes: Vec<u8>,
     ) -> Result<GuestTextEncoding, RuntimeError> {
+        bytes.clear();
         let used_default_char = if has_default_char_indicator(self.code_page) {
             Some(false)
         } else {
@@ -316,7 +374,7 @@ impl GuestTextCodec {
         };
         if source.is_empty() {
             return Ok(GuestTextEncoding {
-                bytes: Vec::new(),
+                bytes,
                 used_default_char,
             });
         }
@@ -328,7 +386,10 @@ impl GuestTextCodec {
 
         let source_length = checked_i32(source.len(), "size host UTF-16 text")?;
         let capacity = checked_i32(required, "size guest text output")?;
-        let mut bytes = zeroed_bytes(required, "allocate guest text output")?;
+        bytes.try_reserve_exact(required).map_err(|error| RuntimeError::with_source(
+            Kind::ResourceExhausted, "allocate guest text output", error,
+        ))?;
+        bytes.resize(required, 0);
         let flags = wide_flags(self.code_page);
         let mut used_default = 0;
         let used_default_ptr = if has_default_char_indicator(self.code_page) {
@@ -480,6 +541,7 @@ fn sbcs_dbcs_spans(
         })?;
     let mut guest_start = 0_usize;
     let mut wide_cursor = 0_usize;
+    let mut span_wide = GuestTextBuffer::acquire();
     while guest_start < source.len() {
         if source[guest_start] == 0 {
             let guest_end = guest_start + 1;
@@ -491,6 +553,7 @@ fn sbcs_dbcs_spans(
                 wide,
                 &mut wide_cursor,
                 &mut spans,
+                &mut span_wide,
             )?;
             guest_start = guest_end;
             continue;
@@ -518,6 +581,7 @@ fn sbcs_dbcs_spans(
                 wide,
                 &mut wide_cursor,
                 &mut spans,
+                &mut span_wide,
             )?;
             guest_start = next_offset;
         }
@@ -539,8 +603,9 @@ fn append_verified_span(
     wide: &[u16],
     wide_cursor: &mut usize,
     spans: &mut Vec<GuestTextSpan>,
+    span_wide: &mut Vec<u16>,
 ) -> Result<(), RuntimeError> {
-    let span_wide = codec.to_wide(&source[guest_start..guest_end])?;
+    codec.to_wide_into(&source[guest_start..guest_end], span_wide)?;
     if span_wide.is_empty() {
         return Err(mapping_gap(
             codec.code_page,
@@ -589,24 +654,6 @@ fn checked_usize(length: i32, operation: &'static str) -> Result<usize, RuntimeE
             format!("{operation}: Windows returned an invalid size"),
         )
     })
-}
-
-fn zeroed_bytes(length: usize, operation: &'static str) -> Result<Vec<u8>, RuntimeError> {
-    let mut output = Vec::new();
-    output
-        .try_reserve_exact(length)
-        .map_err(|error| RuntimeError::with_source(Kind::ResourceExhausted, operation, error))?;
-    output.resize(length, 0);
-    Ok(output)
-}
-
-fn zeroed_wide(length: usize, operation: &'static str) -> Result<Vec<u16>, RuntimeError> {
-    let mut output = Vec::new();
-    output
-        .try_reserve_exact(length)
-        .map_err(|error| RuntimeError::with_source(Kind::ResourceExhausted, operation, error))?;
-    output.resize(length, 0);
-    Ok(output)
 }
 
 fn windows_failure(operation: &'static str, code_page: u32, last_error: u32) -> RuntimeError {

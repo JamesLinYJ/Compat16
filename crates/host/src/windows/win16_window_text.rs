@@ -9,6 +9,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 use super::win16_window_worker::WorkerState;
+use super::guest_text::GuestTextBuffer;
 
 /// Non-NUL marker for owned text output buffers. Its value is not an encoding rule.
 pub(super) const WIN16_TEXT_OUTPUT_FILL: u8 = u8::MAX;
@@ -71,7 +72,7 @@ pub(super) fn get_text(
     super::win16_window_default::check_text_output_contract(state, hwnd)?;
 
     let native_allocation = buffer.len().max(1);
-    let mut native_text = Vec::new();
+    let mut native_text = GuestTextBuffer::acquire();
     native_text
         .try_reserve_exact(native_allocation)
         .map_err(|error| {
@@ -117,7 +118,9 @@ pub(super) fn get_text(
     if count == 0 {
         if native_text.first() == Some(&0) {
             let (guest_text, guest_count) =
-                super::win16_window_text_context::native_prefix_to_guest(state, &[], 0)?;
+                super::win16_window_text_context::native_prefix_to_guest_in_buffer(
+                    state, &[], 0, buffer,
+                )?;
             buffer = guest_text;
             return Ok(Win16WindowResult::WindowText {
                 value: guest_count as i32,
@@ -133,10 +136,12 @@ pub(super) fn get_text(
             "GetWindowTextW output does not match its returned terminated prefix",
         ));
     }
-    let (guest_text, guest_count) = super::win16_window_text_context::native_prefix_to_guest(
+    let output_capacity = buffer.len().saturating_sub(1);
+    let (guest_text, guest_count) = super::win16_window_text_context::native_prefix_to_guest_in_buffer(
         state,
         &native_text[..count],
-        buffer.len().saturating_sub(1),
+        output_capacity,
+        buffer,
     )?;
     buffer = guest_text;
     Ok(Win16WindowResult::WindowText {

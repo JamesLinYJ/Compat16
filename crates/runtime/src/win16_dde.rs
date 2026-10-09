@@ -200,6 +200,14 @@ impl Win16DdeState {
         }
     }
 
+    pub(crate) fn needs_scheduler_progress(&self) -> bool {
+        self.has_callback_owners()
+            || !self.retired_callback_tokens.is_empty()
+            || !self.data_transfer_guards.is_empty()
+            || self.callback_data.values().any(|snapshots| !snapshots.is_empty())
+            || !self.callback_string_references.is_empty()
+    }
+
     /// Routes and instances are callback-producing owners until the host
     /// supplies an exact abort/quiescence receipt. A unit abort result cannot
     /// prove that no native callback is still in flight.

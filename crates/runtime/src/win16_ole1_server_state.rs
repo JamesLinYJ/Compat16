@@ -514,6 +514,18 @@ impl Default for Ole1ServerState {
 }
 
 impl Ole1ServerState {
+    pub(crate) fn needs_scheduler_progress(&self) -> bool {
+        !self.servers.is_empty()
+            || !self.documents.is_empty()
+            || !self.retired_documents.is_empty()
+            || !self.close_callback_documents.is_empty()
+            || !self.completion_journal.is_empty()
+            || !self.release_completion_journal.is_empty()
+            || !self.release_pending_events.is_empty()
+            || !self.unpublished_cleanups.is_empty()
+            || !self.dde_release_chains.is_empty()
+    }
+
     pub(crate) fn new() -> Self {
         Self {
             next_handle: Some(1),

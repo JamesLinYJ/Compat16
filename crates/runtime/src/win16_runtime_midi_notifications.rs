@@ -421,6 +421,7 @@ impl Win16State {
             None
         };
         host.win16_midi_ack_notification(identity.device, identity.sequence, disposition)?;
+        self.midi.notification_progress = self.midi.notification_progress.wrapping_add(1);
         self.midi.dispatching = None;
         if let Some((index, completion)) = completion_header {
             if self.midi.headers[index].completed_pending == Some(completion) {

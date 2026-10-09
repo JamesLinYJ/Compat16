@@ -38,6 +38,7 @@ pub(super) struct ActiveSoundPlayback {
 }
 
 pub(super) struct Win16SoundState {
+    pub(super) work: parallel_work::SharedExecutor,
     pub(super) session: Option<Win16SoundSession>,
     pub(super) voices: Vec<VoiceQueue>,
     pub(super) active: Option<ActiveSoundPlayback>,
@@ -50,12 +51,19 @@ pub(super) struct Win16SoundState {
 
 impl Default for Win16SoundState {
     fn default() -> Self {
-        Self { session: None, voices: Vec::new(), active: None,
+        Self { work: Arc::new(parallel_work::BoundedExecutor::new()), session: None, voices: Vec::new(), active: None,
             play_wave_leases: Vec::new(), threshold_word: None }
     }
 }
 
 impl Win16SoundState {
+    pub(super) fn needs_scheduler_progress(&self) -> bool {
+        self.session.is_some()
+            || self.active.is_some()
+            || !self.play_wave_leases.is_empty()
+            || self.threshold_word.as_ref().is_some_and(|word| word.retirement_cause.is_some())
+    }
+
     pub(super) fn is_playing(&self) -> bool { self.active.is_some() }
 
     pub(super) fn native_sources_quiescent(&self) -> bool {

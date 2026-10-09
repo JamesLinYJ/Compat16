@@ -207,6 +207,14 @@ pub enum Win16SelectObjectResult {
     RegionComplexity(u16),
 }
 
+/// Advisory readiness, never a source-payload acknowledgement. Generation
+/// changes prompt polling; callback_pending retains queued mailbox demand.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Win16SchedulerReadiness {
+    pub generation: u64,
+    pub callback_pending: bool,
+}
+
 pub trait RuntimeHost:
     DosHost + RuntimeDdeHost + RuntimeMciHost + RuntimeMidiHost + RuntimeNetbiosHost
 {
@@ -574,6 +582,8 @@ pub trait RuntimeHost:
     ) -> Result<Option<crate::Win16GuestCallbackEvent>, RuntimeError> {
         Ok(None)
     }
+    /// Hosts without a readiness source retain deadline-driven polling.
+    fn win16_scheduler_readiness(&self) -> Option<Win16SchedulerReadiness> { None }
     /// Native producers receive an opaque channel endpoint, never a guest FAR.
     fn win16_guest_callback_sender(&self) -> Option<crate::Win16GuestCallbackSender> {
         None

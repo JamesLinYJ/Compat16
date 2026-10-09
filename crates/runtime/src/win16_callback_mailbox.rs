@@ -6,6 +6,7 @@
 //! boundary. Family modules remain responsible for allocating any byte payload
 //! in guest memory and retiring it after the callback returns.
 
+use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError, TrySendError};
 
 use win16_abi::Access;
@@ -58,11 +59,17 @@ impl Win16GuestCallbackEvent {
 
 /// A bounded nonblocking event sender for native callback producers.
 #[derive(Clone, Debug)]
-pub struct Win16GuestCallbackSender(SyncSender<Win16GuestCallbackEvent>);
+pub struct Win16GuestCallbackSender {
+    channel: SyncSender<Win16GuestCallbackEvent>,
+    pending: Arc<AtomicUsize>,
+}
 
 /// Runtime-thread receiver. It is polled only between guest instructions or
 /// after a completed synchronous host operation.
-pub struct Win16GuestCallbackReceiver(Receiver<Win16GuestCallbackEvent>);
+pub struct Win16GuestCallbackReceiver {
+    channel: Receiver<Win16GuestCallbackEvent>,
+    pending: Arc<AtomicUsize>,
+}
 
 #[derive(Debug)]
 pub enum Win16GuestCallbackSendError {
@@ -87,7 +94,9 @@ pub fn win16_guest_callback_channel(
             "Win16 callback event capacity must be nonzero"));
     }
     let (sender, receiver) = mpsc::sync_channel(capacity);
-    Ok((Win16GuestCallbackSender(sender), Win16GuestCallbackReceiver(receiver)))
+    let pending = Arc::new(AtomicUsize::new(0));
+    Ok((Win16GuestCallbackSender { channel: sender, pending: Arc::clone(&pending) },
+        Win16GuestCallbackReceiver { channel: receiver, pending }))
 }
 
 impl Win16GuestCallbackSender {
@@ -98,20 +107,40 @@ impl Win16GuestCallbackSender {
         if !event.fits_mailbox_budget() {
             return Err(Win16GuestCallbackSendError::TooLarge(event));
         }
-        self.0.try_send(event).map_err(|error| match error {
-            TrySendError::Full(event) => Win16GuestCallbackSendError::Full(event),
-            TrySendError::Disconnected(event) => Win16GuestCallbackSendError::Closed(event),
-        })
+        // Reserve before publication so a concurrent receive cannot subtract
+        // from zero. An in-flight reservation is only an advisory wake hint.
+        if self.pending.try_update(Ordering::AcqRel, Ordering::Acquire,
+            |count| count.checked_add(1)).is_err()
+        {
+            return Err(Win16GuestCallbackSendError::Full(event));
+        }
+        match self.channel.try_send(event) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                self.pending.fetch_sub(1, Ordering::AcqRel);
+                Err(match error {
+                    TrySendError::Full(event) => Win16GuestCallbackSendError::Full(event),
+                    TrySendError::Disconnected(event) => Win16GuestCallbackSendError::Closed(event),
+                })
+            }
+        }
     }
 }
 
 impl Win16GuestCallbackReceiver {
+    /// Reading demand does not consume or acknowledge a callback event.
+    pub fn has_pending(&self) -> bool { self.pending.load(Ordering::Acquire) != 0 }
+
     pub fn try_recv(
         &self,
     ) -> Result<Win16GuestCallbackEvent, Win16GuestCallbackPoll> {
-        self.0.try_recv().map_err(|error| match error {
-            TryRecvError::Empty => Win16GuestCallbackPoll::Empty,
-            TryRecvError::Disconnected => Win16GuestCallbackPoll::Closed,
-        })
+        match self.channel.try_recv() {
+            Ok(event) => {
+                self.pending.fetch_sub(1, Ordering::AcqRel);
+                Ok(event)
+            }
+            Err(TryRecvError::Empty) => Err(Win16GuestCallbackPoll::Empty),
+            Err(TryRecvError::Disconnected) => Err(Win16GuestCallbackPoll::Closed),
+        }
     }
 }

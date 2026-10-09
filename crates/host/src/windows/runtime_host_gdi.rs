@@ -107,11 +107,12 @@ pub(super) fn execute_bitmap_transfer(
     operation: runtime::Win16GdiBitmapOperation,
 ) -> Result<runtime::Win16GdiBitmapResult, RuntimeError> {
     let dcs = &host.win16_dcs;
+    let work = &host.win16_format_work;
     win16_wing_dib_use::with_bitmap_transfer(
         dcs,
         &mut host.win16_objects,
         operation,
-        |objects, operation| win16_gdi_bitmap_transfer::execute(dcs, objects, operation),
+        |objects, operation| win16_gdi_bitmap_transfer::execute(dcs, objects, operation, work),
     )
 }
 

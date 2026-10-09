@@ -42,6 +42,8 @@ mod netbios_async;
 mod netbios_validation;
 #[path = "win16_execute.rs"]
 mod execute;
+#[path = "win16_scheduler_activity.rs"]
+mod scheduler_activity;
 #[path = "win16_com_operations.rs"]
 mod com_operations;
 #[path = "win16_dos_interrupts.rs"]
@@ -804,6 +806,10 @@ struct QueuedDropFileGlobal {
 enum WindowTeardownState { Live, AbortPending, NativeQuiescent, Closed }
 
 impl Win16State {
+    pub(crate) fn set_work_executor(&mut self, work: parallel_work::SharedExecutor) {
+        self.sound.work = work;
+    }
+
     pub(crate) fn is_service_gate(&self, selector: u16) -> bool {
         selector == self.gate_selector.0
     }

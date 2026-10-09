@@ -41,6 +41,12 @@ impl MultimediaWakeSender {
         }
     }
 
+    /// Readiness is an independent observer. It never resets USER's event or
+    /// acknowledges the typed source payload represented by this generation.
+    pub(crate) fn generation_observer(&self) -> Arc<AtomicU64> {
+        Arc::clone(&self.generation)
+    }
+
     /// Report the irreversible USER-lane state so a producer can request its
     /// own exact cleanup handoff after normal publication becomes impossible.
     pub(crate) fn terminal_requested(&self) -> bool {

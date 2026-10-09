@@ -14,7 +14,7 @@ use super::{
 };
 #[path = "frame_parallel.rs"]
 mod frame_parallel;
-use frame_parallel::ScanoutPool;
+use parallel_work::{BoundedExecutor, SharedExecutor};
 
 const SVGA_PARALLEL_MIN_PIXELS: usize = 256 * 1024;
 
@@ -29,56 +29,36 @@ pub struct VgaFrame {
     pub generation: u64,
 }
 
-/// Runtime-owned scanout state. Its frame storage is reusable, and its lazy
-/// Rayon pool has an explicit shutdown path that joins every worker.
+/// Runtime-owned scanout storage using the engine's shared work executor.
 pub struct VgaFrameDecoder {
     pixels: Vec<u32>,
-    parallel_pool: Option<ScanoutPool>,
-    pool_initialization_attempted: bool,
+    work: SharedExecutor,
 }
 
 impl VgaFrameDecoder {
     pub fn new() -> Self {
-        Self {
-            pixels: Vec::new(),
-            parallel_pool: None,
-            pool_initialization_attempted: false,
-        }
+        Self::with_executor(std::sync::Arc::new(BoundedExecutor::new()))
+    }
+
+    pub fn with_executor(work: SharedExecutor) -> Self {
+        Self { pixels: Vec::new(), work }
+    }
+
+    /// Share the engine's executor before guest execution begins.
+    pub fn set_executor(&mut self, work: SharedExecutor) {
+        self.work = work;
     }
 
     /// Decode a frame using this decoder's reusable storage and, for larger
-    /// VBE modes, its lazily initialized bounded worker pool.
+    /// VBE modes, the shared bounded worker pool.
     /// Return the snapshot with `recycle` after rendering to retain its storage.
     pub fn decode(&mut self, device: &VgaDevice) -> Option<VgaFrame> {
         let state_guard = device.borrow();
         // Only this immutable state reference reaches the worker tasks. The
         // Rc/RefCell handle and its borrow guard stay on the calling thread.
         let state: &VgaState = &state_guard;
-        let VgaFrameDecoder {
-            pixels,
-            parallel_pool,
-            pool_initialization_attempted,
-        } = self;
-
-        let needs_parallel_pool = state.svga.as_ref().is_some_and(|svga_state| {
-            if !svga_state.is_valid() {
-                return false;
-            }
-            let Some(mode) = svga::mode_info(svga_state.mode) else {
-                return false;
-            };
-            usize::from(mode.width)
-                .checked_mul(usize::from(mode.height))
-                .is_some_and(|count| count >= SVGA_PARALLEL_MIN_PIXELS)
-        });
-        if needs_parallel_pool && !*pool_initialization_attempted {
-            *parallel_pool = ScanoutPool::new();
-            *pool_initialization_attempted = true;
-        }
-        let pool = needs_parallel_pool
-            .then(|| parallel_pool.as_ref().map(ScanoutPool::thread_pool))
-            .flatten();
-        let (width, height) = render_state_into(state, pixels, pool)?;
+        let Self { pixels, work } = self;
+        let (width, height) = render_state_into(state, pixels, Some(work))?;
         Some(VgaFrame {
             width,
             height,
@@ -131,10 +111,10 @@ impl VgaDevice {
 fn render_state_into(
     state: &VgaState,
     pixels: &mut Vec<u32>,
-    pool: Option<&rayon::ThreadPool>,
+    work: Option<&BoundedExecutor>,
 ) -> Option<(u16, u16)> {
     if let Some(svga_state) = state.svga.as_ref() {
-        render_svga_into(state, svga_state, pixels, pool)
+        render_svga_into(state, svga_state, pixels, work)
     } else {
         let mode = mode_info(state.bios_mode)?;
         render_with_mode_into(state, mode, pixels)
@@ -145,7 +125,7 @@ fn render_svga_into(
     state: &VgaState,
     svga_state: &SvgaState,
     pixels: &mut Vec<u32>,
-    pool: Option<&rayon::ThreadPool>,
+    work: Option<&BoundedExecutor>,
 ) -> Option<(u16, u16)> {
     if !svga_state.is_valid() {
         return None;
@@ -170,37 +150,10 @@ fn render_svga_into(
 
     resize_pixels(pixels, pixel_count)?;
     let palette = (mode.bytes_per_pixel == 1).then(|| dac_palette(state));
-    if pixel_count >= SVGA_PARALLEL_MIN_PIXELS {
-        if let Some(pool) = pool {
-            use rayon::prelude::*;
-            // All row work completes before install returns and the adapter
-            // borrow is released; no job retains data between frames.
-            pool.install(|| {
-                pixels
-                    .par_chunks_mut(width)
-                    .enumerate()
-                    .for_each(|(y, row)| {
-                        render_svga_row(
-                            state,
-                            mode,
-                            display_start,
-                            bytes_per_scanline,
-                            palette.as_ref(),
-                            y,
-                            row,
-                        );
-                    });
-            });
-        } else {
-            render_svga_rows(
-                state,
-                mode,
-                display_start,
-                bytes_per_scanline,
-                palette.as_ref(),
-                pixels,
-            );
-        }
+    if let Some(work) = work {
+        frame_parallel::render_svga_chunks(
+            work, state, mode, display_start, bytes_per_scanline, palette.as_ref(), pixels,
+        );
     } else {
         render_svga_rows(
             state,

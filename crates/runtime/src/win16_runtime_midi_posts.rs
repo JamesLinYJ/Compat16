@@ -13,6 +13,19 @@ use super::super::window_post::{
 use crate::Win16HostMidiCancellationReason as CancellationReason;
 
 impl Win16State {
+    /// Distinguish exact source ACK progress from an idle/blocked POST, while
+    /// keeping the existing message-loop callback-entry contract unchanged.
+    pub(in crate::win16_runtime) fn dispatch_midi_notification_with_progress(
+        &mut self, cpu: &mut x86_cpu::Cpu, memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<super::MidiDispatch, RuntimeError> {
+        let before = self.midi.notification_progress;
+        let no_callback = self.dispatch_pending_midi_notification(cpu, memory, host)?;
+        Ok(if !no_callback { super::MidiDispatch::CallbackEntered }
+            else if self.midi.notification_progress != before { super::MidiDispatch::Progress }
+            else { super::MidiDispatch::Idle })
+    }
+
     /// Route one exact MIDI notification. USER results are first retained on
     /// the existing dispatch owner; source ACK follows proof consumption.
     pub(in crate::win16_runtime) fn dispatch_pending_midi_notification(

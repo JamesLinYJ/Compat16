@@ -13,6 +13,9 @@ use crate::{
     Win16ServiceBoundaryStage,
 };
 
+#[path = "win16_execute_schedule.rs"]
+mod schedule;
+
 #[path = "win16_execute_teardown.rs"]
 mod teardown;
 #[path = "win16_execute_toolhelp.rs"]
@@ -128,6 +131,7 @@ impl Runtime {
                 }
             }
         }
+        let mut scheduler = schedule::ExecutionSchedule::new(self.instructions);
         loop {
             self.check_memory_storage()?;
             if self.instructions >= instruction_limit {
@@ -656,39 +660,50 @@ impl Runtime {
             )? {
                 return Ok(status);
             }
-            if self.instructions % 4096 == 0 {
+            let (turn, guest_dispatch_allowed, callback_dispatch_allowed, source_dispatch_allowed) =
+                if scheduler.checkpoint(self.instructions) {
+                    let running_dos_child = self.process_frames.last()
+                        .is_some_and(crate::process::ProcessFrame::is_win16_dos_child);
+                    let guest_dispatch_allowed =
+                        !running_dos_child && !state.pe32_dispatch.has_active_call();
+                    let callback_dispatch_allowed = guest_dispatch_allowed
+                        && self.cpu.allows_real_mode_service_intercepts()
+                        && state.callback_kinds.is_empty()
+                        && !self.cpu.interrupt_shadow_active()
+                        && !state.is_service_gate(self.cpu.regs.cs)
+                        && !state.is_native_procedure_gate(self.cpu.regs.cs)
+                        && !state.is_callback_gate(self.cpu.regs.cs);
+                    let source_dispatch_allowed = callback_dispatch_allowed
+                        || toolhelp::protected_toolhelp_dispatch_allowed(
+                            state, &self.cpu, guest_dispatch_allowed);
+                    let turn = scheduler.turn(self.instructions, host.win16_scheduler_readiness(),
+                        || state.has_scheduler_work(), source_dispatch_allowed);
+                    (turn, guest_dispatch_allowed, callback_dispatch_allowed, source_dispatch_allowed)
+                } else { (schedule::ScheduleTurn::default(), false, false, false) };
+            if turn.pump_host {
                 host.pump_events()?;
                 // Native modal callbacks can consume WM_DROPFILES without
                 // reaching the queued-message projection. Poll the separate
                 // lease-retirement transport at this guest safe point.
                 let _ = state.poll_native_drop_retirement(host)?;
-                let running_dos_child = self
-                    .process_frames
-                    .last()
-                    .is_some_and(crate::process::ProcessFrame::is_win16_dos_child);
-                let guest_dispatch_allowed =
-                    !running_dos_child && !state.pe32_dispatch.has_active_call();
+            }
+            if turn.poll_sources {
+                let mut source_progress = false;
+                let callback_was_active = !state.callback_kinds.is_empty();
                 let mut classic_dde_owned = false;
                 // WAVE completion updates checked guest WAVEHDR state and
                 // queues notifications only while the owning Win16 process
                 // view is active. DOS children and PE calls keep their own
                 // CPU and address-space views until they return.
                 if guest_dispatch_allowed {
-                    state.poll_wave_events(&mut self.memory, host, true)?;
+                    source_progress |= state.poll_wave_events(&mut self.memory, host, true)?;
                     state.poll_sound(&mut self.memory, host)?;
                 }
                 // A mailbox callback starts only after an instruction and
                 // outside any active synchronous call or callback gate.
-                if guest_dispatch_allowed
-                    && self.cpu.allows_real_mode_service_intercepts()
-                    && state.callback_kinds.is_empty()
-                    && !self.cpu.interrupt_shadow_active()
-                    && !state.is_service_gate(self.cpu.regs.cs)
-                    && !state.is_native_procedure_gate(self.cpu.regs.cs)
-                    && !state.is_callback_gate(self.cpu.regs.cs)
-                {
-                    state.poll_network_events(&mut self.memory, host)?;
-                    state.dispatch_pending_network_print_notification(host)?;
+                if callback_dispatch_allowed {
+                    source_progress |= state.poll_network_events(&mut self.memory, host)?;
+                    source_progress |= state.dispatch_pending_network_print_notification(host)?;
                     classic_dde_owned = state.service_classic_dde_safe_point(
                         &mut self.cpu,
                         &mut self.dos,
@@ -704,6 +719,7 @@ impl Runtime {
                             host,
                         )?
                     };
+                    source_progress |= !matches!(netbios_dispatch, super::netbios_async::NetbiosDispatch::Idle);
                     let netbios_callback_entered = matches!(
                         netbios_dispatch,
                         super::netbios_async::NetbiosDispatch::CallbackEntered
@@ -723,11 +739,11 @@ impl Runtime {
                     {
                         false
                     } else {
-                        !state.dispatch_pending_midi_notification(
-                            &mut self.cpu,
-                            &mut self.memory,
-                            host,
-                        )?
+                        let midi = state.dispatch_midi_notification_with_progress(
+                            &mut self.cpu, &mut self.memory, host,
+                        )?;
+                        source_progress |= !matches!(midi, super::midi::MidiDispatch::Idle);
+                        matches!(midi, super::midi::MidiDispatch::CallbackEntered)
                     };
                     let toolhelp_callback_entered = if classic_dde_owned
                         || netbios_callback_entered
@@ -742,6 +758,7 @@ impl Runtime {
                             &mut self.memory,
                         )?
                     };
+                    source_progress |= wave_callback_entered || toolhelp_callback_entered;
                     if !classic_dde_owned
                         && !netbios_callback_entered
                         && !wave_callback_entered
@@ -749,6 +766,7 @@ impl Runtime {
                         && !toolhelp_callback_entered
                     {
                         if let Some(event) = host.win16_take_guest_callback()? {
+                            source_progress = true;
                             state.begin_asynchronous_guest_callback(
                                 &mut self.cpu,
                                 &mut self.memory,
@@ -762,6 +780,7 @@ impl Runtime {
                     // until that exact frame is acknowledged.
                     if !classic_dde_owned && state.callback_kinds.is_empty() {
                         if let Some(step) = host.win16_dde_poll_callback()? {
+                            source_progress = true;
                             let frame = step.frame;
                             state.capture_dde_guest_context(
                                 &self.cpu,
@@ -799,6 +818,9 @@ impl Runtime {
                         guest_dispatch_allowed,
                     )?;
                 }
+                source_progress |= !callback_was_active && !state.callback_kinds.is_empty();
+                scheduler.finish_sources(source_dispatch_allowed
+                    && !classic_dde_owned && state.callback_kinds.is_empty(), source_progress);
             }
             crate::machine::check_memory_storage(&self.memory)?;
             // A safe-point callback may have taken the documented empty
@@ -810,7 +832,7 @@ impl Runtime {
                 return Ok(status);
             }
             if !self.cpu.interrupt_shadow_active()
-                && (returned_from_guest || self.instructions % 4096 == 0)
+                && (returned_from_guest || turn.pump_host || turn.poll_sources)
             {
                 state.reap_modules(&mut self.cpu, &mut self.memory, host)?;
             }

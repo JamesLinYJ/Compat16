@@ -131,6 +131,14 @@ impl Default for Win16ToolhelpNotifyRegistry {
 }
 
 impl Win16ToolhelpNotifyRegistry {
+    /// Registrations alone are passive sinks; only produced events and their
+    /// outstanding retirement receipts need a scheduler turn.
+    pub(super) fn needs_scheduler_progress(&self) -> bool {
+        !self.pending.is_empty()
+            || self.module_entry_pending.values().any(|events| !events.is_empty())
+            || self.module_retirements.values().any(|retirement| retirement.pending != 0)
+    }
+
     pub(super) fn register(
         &mut self,
         task: u16,

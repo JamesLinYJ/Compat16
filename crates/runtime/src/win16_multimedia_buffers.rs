@@ -230,6 +230,13 @@ impl Default for Win16WaveState {
 }
 
 impl Win16WaveState {
+    pub(super) fn needs_scheduler_progress(&self) -> bool {
+        !self.devices.is_empty()
+            || !self.headers.is_empty()
+            || !self.pending_callbacks.is_empty()
+            || !self.pending_host_events.is_empty()
+    }
+
     pub(super) fn native_sources_quiescent(&self) -> bool {
         self.devices.iter().all(|device| {
             device.closing && device.producer_quiescence_sequence.is_some()

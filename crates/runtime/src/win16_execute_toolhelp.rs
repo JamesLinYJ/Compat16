@@ -43,18 +43,24 @@ pub(super) fn dispatch_protected_toolhelp_notifications(
     memory: &mut guest_core::memory::Memory,
     guest_dispatch_allowed: bool,
 ) -> Result<(), RuntimeError> {
-    if !guest_dispatch_allowed
-        || cpu.architectural_execution_mode() != Some(x86_cpu::CpuExecutionMode::Protected)
-    {
-        return Ok(());
+    if protected_toolhelp_dispatch_allowed(state, cpu, guest_dispatch_allowed) {
+        state.dispatch_pending_toolhelp_notify(cpu, dos, memory)?;
     }
-    if state.callback_kinds.is_empty()
+    Ok(())
+}
+
+/// Share the protected callback predicate with readiness scheduling so a
+/// produced ToolHelp backlog gets the same immediate drain opportunity.
+pub(super) fn protected_toolhelp_dispatch_allowed(
+    state: &crate::win16_runtime::Win16State,
+    cpu: &x86_cpu::Cpu,
+    guest_dispatch_allowed: bool,
+) -> bool {
+    guest_dispatch_allowed
+        && cpu.architectural_execution_mode() == Some(x86_cpu::CpuExecutionMode::Protected)
+        && state.callback_kinds.is_empty()
         && !cpu.interrupt_shadow_active()
         && !state.is_service_gate(cpu.regs.cs)
         && !state.is_native_procedure_gate(cpu.regs.cs)
         && !state.is_callback_gate(cpu.regs.cs)
-    {
-        state.dispatch_pending_toolhelp_notify(cpu, dos, memory)?;
-    }
-    Ok(())
 }

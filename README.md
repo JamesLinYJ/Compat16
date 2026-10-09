@@ -53,6 +53,34 @@ The output is placed in `dist/arm64` or `dist/x64`. Keep the four runtime files 
 
 Supply the legacy application and its companion files yourself. Use the console launcher's `--help` option for available settings.
 
+### Optional profile guided optimization
+
+PGO requires the pinned Rust 1.99.0 profiler runtime for the selected Windows target and its `llvm-tools-preview` component. Install that optional component into the same Rust installation used by the build script. For the project-local toolchain:
+
+```powershell
+$previousRustupHome = $env:RUSTUP_HOME
+try {
+    $env:RUSTUP_HOME = Join-Path $PWD '.dev\rustup'
+    .\.dev\cargo\bin\rustup.exe component add llvm-tools-preview --toolchain 1.99.0
+} finally { $env:RUSTUP_HOME = $previousRustupHome }
+```
+
+Generate, collect real workloads, merge, and rebuild with the profile:
+
+```powershell
+.\scripts\build.ps1 -Architecture amd64 -Pgo generate -NonInteractive
+.\scripts\pgo.ps1 -Action Collect -Architecture amd64 -Workload app-console -GuestPath 'D:\LegacyApps\APP.EXE'
+.\scripts\pgo.ps1 -Action Collect -Architecture amd64 -Launcher windowed -Workload app-gui -GuestPath 'D:\LegacyApps\GUI.EXE'
+.\scripts\pgo.ps1 -Action Merge -Architecture amd64
+.\scripts\build.ps1 -Architecture amd64 -Pgo use -NonInteractive
+```
+
+Use `arm64` for ARM64; collect each architecture separately on Windows that can run it. `Collect` accepts `-GuestArguments`, `-RuntimeArguments`, and `-ExpectedExitCode` and waits for normal application exit. Descendant helpers inherit profiling settings. All four files are instrumented together; collection requires executed functions in the selected launcher and engine DLL, while merging reports unexercised launchers or helper code. Use representative DOS and Win16 operations, including native helper workflows, before comparing performance. Forced termination may lose data. The [LLVM Windows profile writer](https://github.com/llvm/llvm-project/blob/main/compiler-rt/lib/profile/InstrProfilingUtil.c) uses ANSI file paths, so collection requires a checkout path representable in the system code page.
+
+Instrumented builds and profiles stay under `target/pgo`; `dist` receives only regular or profile-optimized releases. New generation preserves earlier sessions and selects a fresh one. Profiles from changed source, Rust/LLVM tools, build settings, architecture, or modified profile files are rejected. Missing function warnings remain visible during the profile-use build. PGO availability and speedup require native collection and measurement; flags alone do not establish either. See the [Rust PGO guide](https://doc.rust-lang.org/rustc/profile-guided-optimization.html) and [LLVM profile tool](https://llvm.org/docs/CommandGuide/llvm-profdata.html).
+
+The profiler and LLVM tools are development requirements. Profile-use releases contain no collection instrumentation and keep the regular build's Windows target and CPU baseline; no `target-cpu=native` tuning is added. The runtime compatibility baseline is Windows 10 22H2; actual acceptance on that system is checked separately from compilation.
+
 ### Install and uninstall
 
 After building, run from an **administrator PowerShell**:
@@ -113,6 +141,14 @@ Compat16 在进程内执行旧程序的 x86 指令，并把 DOS / Win16 接口�
 ```
 
 旧程序及其配套文件由使用者自行提供。控制台入口支持 `--help`。
+
+### 可选的 PGO 优化
+
+PGO 使用固定的 Rust 1.99.0，需要对应 Windows 架构的分析运行库及同一工具链中的 `llvm-tools-preview`；项目本地工具链的安装命令和完整流程见上方 [PGO 说明](#optional-profile-guided-optimization)。使用 `build.ps1 -Pgo generate` 生成四个插桩文件，再通过 `pgo.ps1 -Action Collect` 运行实际 DOS / Win16 工作负载，正常退出后执行 `-Action Merge`，最后使用 `build.ps1 -Pgo use` 构建。
+
+ARM64 与 AMD64 的数据分别收集。脚本检查源码、编译设置、工具链、架构及文件校验值，拒绝过期或不兼容的数据；辅助进程继承收集设置，未实际执行的入口会明确提示。插桩文件和数据位于 `target/pgo`，普通或优化发行包位于 `dist`。原生收集是否成功、程序是否正常运行及性能是否改善仍需实际测量。
+
+分析工具只用于开发阶段。最终优化包保留普通构建的 Windows 目标和 CPU 基线，运行时兼容基线为 Windows 10 22H2；目标系统上的运行确认与编译检查分别进行。LLVM 的 Windows 分析写入器使用 ANSI 路径，收集所用的仓库路径需能由系统代码页表示。
 
 ### 安装与还原
 

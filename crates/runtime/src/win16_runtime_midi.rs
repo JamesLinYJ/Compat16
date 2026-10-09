@@ -56,8 +56,12 @@ pub(crate) const MHDR_DONE: u32 = 1;
 pub(crate) const MHDR_PREPARED: u32 = 2;
 pub(crate) const MHDR_INQUEUE: u32 = 4;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum MidiDispatch { Idle, Progress, CallbackEntered }
+
 #[derive(Debug)]
 pub(super) struct Win16MidiState {
+    notification_progress: u64,
     next_guest_device: u32,
     devices: Vec<MidiDeviceRecord>,
     headers: Vec<MidiHeaderRecord>,
@@ -167,6 +171,7 @@ pub(super) struct MidiHeaderRecord {
 impl Default for Win16MidiState {
     fn default() -> Self {
         Self {
+            notification_progress: 0,
             next_guest_device: 1,
             devices: Vec::new(),
             headers: Vec::new(),
@@ -181,6 +186,14 @@ impl Default for Win16MidiState {
 }
 
 impl Win16MidiState {
+    pub(super) fn needs_scheduler_progress(&self) -> bool {
+        !self.devices.is_empty()
+            || !self.headers.is_empty()
+            || self.dispatching.is_some()
+            || self.pending_callback_cleanup.is_some()
+            || !self.pending_cleanup.is_empty()
+    }
+
     pub(super) fn device(&self, guest: u16, direction: Win16HostMidiDirection)
         -> Option<&MidiDeviceRecord>
     {

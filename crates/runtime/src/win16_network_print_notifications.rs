@@ -27,17 +27,18 @@ use crate::{
 impl Win16State {
     /// Queue-change delivery is called from the runtime's existing guest
     /// safe-point. Every USER post is asynchronous and source ACK follows the
-    /// exact PostGuestNotification proof readback and consumption.
+    /// exact PostGuestNotification proof readback and consumption. The result
+    /// reports source progress; empty queues and rejected POST retries are false.
     pub(in crate::win16_runtime) fn dispatch_pending_network_print_notification(
         &mut self,
         host: &mut impl RuntimeHost,
     ) -> Result<bool, RuntimeError> {
         self.sweep_retired_network_print_windows(host)?;
         self.poll_network_print_queue_changes(host)?;
-        let Some(owner) = self.tasks.current() else { return Ok(true); };
+        let Some(owner) = self.tasks.current() else { return Ok(false); };
         let event = self.network_print_jobs.get(&owner)
             .and_then(Win16NetworkPrintJobs::peek_queue_event);
-        let Some(event) = event else { return Ok(true); };
+        let Some(event) = event else { return Ok(false); };
         if let Some(failure) = &event.started_failure {
             return Err(started_failure_error(failure, "WNet queue notification POST remains owned by USER"));
         }
@@ -564,7 +565,7 @@ impl Win16State {
                 .ok_or_else(|| print_invariant("WNet rejected queue event owner disappeared"))?
                 .retry_queue_event_after_rejection(watch, sequence)?;
         }
-        Ok(true)
+        Ok(posted)
     }
 
     fn consume_pending_network_print_post(

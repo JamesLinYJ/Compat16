@@ -122,7 +122,7 @@ impl Win16State {
         match ticket {
             Ok(ticket) => {
                 self.legacy_cpu_frames.push(Win16LegacyCpuFrame {
-                    id, saved_registers: registers.clone(), saved_context: saved_context.clone(), owner,
+                    id, saved_registers: registers, saved_context, owner,
                     continuation: Win16LegacyCpuContinuation::Call(Some(ticket)),
                     restored: false,
                     terminal_restored: false,
@@ -160,7 +160,7 @@ impl Win16State {
         match ticket {
             Ok(ticket) => {
                 self.legacy_cpu_frames.push(Win16LegacyCpuFrame {
-                    id, saved_registers: registers.clone(), saved_context: saved_context.clone(), owner,
+                    id, saved_registers: registers.clone(), saved_context, owner,
                     continuation: Win16LegacyCpuContinuation::Parked(Some(ticket), registers),
                     restored: false,
                     terminal_restored: false,
@@ -340,7 +340,7 @@ impl Win16State {
                     let result = cpu.commit_legacy_parked_resume(prepared, &binding);
                     if result.is_ok() {
                         frame.restored = true;
-                        frame.continuation = Win16LegacyCpuContinuation::Parked(None, target.clone());
+                        frame.continuation = Win16LegacyCpuContinuation::Parked(None, target);
                     }
                     result
                 }

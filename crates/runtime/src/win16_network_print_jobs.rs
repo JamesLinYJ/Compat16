@@ -98,6 +98,10 @@ pub(crate) struct Win16NetworkPrintJobs {
 }
 
 impl Win16NetworkPrintJobs {
+    pub(crate) fn needs_scheduler_progress(&self) -> bool {
+        !self.is_empty()
+    }
+
     /// Retain a host token under a HFILE already reserved by the task's
     /// shared HFILE allocator. Network jobs must share that namespace with
     /// ordinary Win16 files rather than inventing a parallel handle range.

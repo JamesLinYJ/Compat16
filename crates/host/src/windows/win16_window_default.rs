@@ -780,7 +780,7 @@ fn message_with_invocation(
                 (0, false) => 1,
                 _ => usize::from(capacity),
             };
-            let mut output = Vec::new();
+            let mut output = super::guest_text::GuestTextBuffer::acquire();
             output.try_reserve_exact(output_size).map_err(|error| {
                 RuntimeError::with_source(
                     Kind::ResourceExhausted,

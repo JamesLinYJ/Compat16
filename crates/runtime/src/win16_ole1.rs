@@ -391,6 +391,24 @@ impl Default for Win16Ole1ClientDocuments {
 }
 
 impl Win16Ole1ClientDocuments {
+    pub(crate) fn needs_scheduler_progress(&self) -> bool {
+        !self.documents.is_empty()
+            || !self.release_deliveries.is_empty()
+            || !self.client_proxies.is_empty()
+            || !self.pending_proxy_retirements.is_empty()
+            || !self.native_object_proxies.is_empty()
+            || !self.pending_native_object_proxy_retirements.is_empty()
+            || !self.sealed_com_callback_receipts.is_empty()
+            || !self.pending_creations.is_empty()
+            || !self.pending_dde_creations.is_empty()
+            || !self.pending_dde_methods.is_empty()
+            || !self.dde_object_proxies.is_empty()
+            || !self.pending_dde_object_proxy_retirements.is_empty()
+            || !self.pending_dde_client_proxy_retirements.is_empty()
+            || !self.pending_object_methods.is_empty()
+            || self.client_dde.needs_scheduler_progress()
+    }
+
     pub(crate) fn new() -> Self {
         Self {
             next_handle: Some(1),

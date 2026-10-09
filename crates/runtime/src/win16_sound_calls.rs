@@ -298,7 +298,7 @@ impl Win16State {
         }
         if let Err(status) = align_voice_syncs(&mut snapshots) { return Ok(status); }
         if let Err(status) = validate_snapshot_budget(&snapshots) { return Ok(status); }
-        let samples = mix_snapshots(&snapshots)?;
+        let samples = mix_snapshots(&snapshots, &self.sound.work)?;
         if samples.is_empty() {
             for voice in &mut self.sound.voices { voice.begin_rendered_replay(); }
             for (voice, rendered) in self.sound.voices.iter_mut().zip(snapshots.iter_mut()) {
@@ -510,7 +510,7 @@ impl Win16State {
                 super::sound_queue::QueueSnapshotError::InvalidSnapshot))?;
             suffix_tracks.push(tail);
         }
-        let samples = mix_tracks(&suffix_tracks)?;
+        let samples = mix_tracks(&suffix_tracks, &self.sound.work)?;
         let appended_frames = samples.len() as u64;
         let next_submitted_frames = submitted_frames.checked_add(appended_frames)
             .ok_or_else(|| RuntimeError::new(Kind::ResourceExhausted,

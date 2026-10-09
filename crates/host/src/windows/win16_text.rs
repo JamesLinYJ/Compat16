@@ -1,6 +1,6 @@
 //! Win16 byte-string operations bridged through the runtime's fixed guest codec.
 
-use super::guest_text::GuestTextCodec;
+use super::guest_text::{GuestTextBuffer, GuestTextCodec};
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::Globalization::{lstrcmpW, lstrcmpiW};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -19,7 +19,8 @@ pub(super) fn ansi_upper_char(codec: GuestTextCodec, value: u16) -> Result<u16, 
 fn ansi_case_char(codec: GuestTextCodec, value: u16, upper: bool) -> Result<u16, RuntimeError> {
     // Win16 character form consumes the low byte. Decode it with the selected
     // guest codec, then call the W pointer-as-character form.
-    let wide = codec.to_wide(&[value as u8])?;
+    let mut wide = GuestTextBuffer::acquire();
+    codec.to_wide_into(&[value as u8], &mut wide)?;
     let character = *wide.first().ok_or_else(|| RuntimeError::new(
         Kind::InternalInvariant, "guest character decoded to no UTF-16 units"))?;
     if wide.len() != 1 {
@@ -60,7 +61,8 @@ fn ansi_case_string(
     source: &[u8],
     upper: bool,
 ) -> Result<Vec<u8>, RuntimeError> {
-    let mut buffer = codec.to_wide_z(source)?;
+    let mut buffer = GuestTextBuffer::acquire();
+    codec.to_wide_z_into(source, &mut buffer)?;
     let base = buffer.as_mut_ptr();
     // SAFETY: The W API receives an owned, writable, terminated UTF-16 string.
     let returned = unsafe {
@@ -92,16 +94,19 @@ pub(super) fn ansi_case_string_in_place(
         return Ok(Vec::new());
     }
 
-    let (mut wide, spans) = codec.to_wide_with_ranges(source)?;
+    let mut wide = GuestTextBuffer::acquire();
+    let spans = codec.to_wide_with_ranges_into(source, &mut wide)?;
     let mut output = Vec::new();
     output.try_reserve_exact(source.len()).map_err(|error| RuntimeError::with_source(
         Kind::ResourceExhausted, "reserve Win16 in-place case result", error))?;
+    let mut encoded_character = Vec::new();
 
     for span in spans {
         let guest_bytes = &source[span.guest_bytes.clone()];
         let character = &mut wide[span.utf16_units.clone()];
-        let original = codec.from_wide(character)?;
-        if original.bytes.as_slice() != guest_bytes || original.used_default_char == Some(true) {
+        let original = codec.from_wide_in_buffer(character, encoded_character)?;
+        encoded_character = original.bytes;
+        if encoded_character.as_slice() != guest_bytes || original.used_default_char == Some(true) {
             output.extend_from_slice(guest_bytes);
             continue;
         }
@@ -121,9 +126,12 @@ pub(super) fn ansi_case_string_in_place(
                 "Windows UTF-16 character case conversion exceeded its requested length"));
         }
         if converted == length {
-            let bounded = codec.from_wide_bounded(character, guest_bytes.len())?;
+            let bounded = codec.from_wide_bounded_in_buffer(
+                character, guest_bytes.len(), encoded_character,
+            )?;
+            encoded_character = bounded.bytes;
             if !bounded.truncated && bounded.source_utf16_units == character.len() {
-                output.extend_from_slice(&bounded.bytes);
+                output.extend_from_slice(&encoded_character);
                 continue;
             }
         }
@@ -146,7 +154,8 @@ pub(super) fn ansi_case_buffer(
     if source.is_empty() {
         return Ok(Some(Vec::new()));
     }
-    let mut buffer = codec.to_wide(source)?;
+    let mut buffer = GuestTextBuffer::acquire();
+    codec.to_wide_into(source, &mut buffer)?;
     let length = u32::try_from(buffer.len()).map_err(|error| RuntimeError::with_source(
         Kind::InvalidInput, "Win16 UTF-16 case buffer exceeds the Windows API length", error))?;
     // SAFETY: The vector owns all requested writable UTF-16 units for this
@@ -179,12 +188,14 @@ pub(super) fn ansi_compare(
     right: &[u8],
     ignore_case: bool,
 ) -> Result<i16, RuntimeError> {
-    let left = codec.to_wide_z(left)?;
-    let right = codec.to_wide_z(right)?;
+    let mut wide_left = GuestTextBuffer::acquire();
+    codec.to_wide_z_into(left, &mut wide_left)?;
+    let mut wide_right = GuestTextBuffer::acquire();
+    codec.to_wide_z_into(right, &mut wide_right)?;
     // SAFETY: Both arguments are separate owned NUL-terminated UTF-16 strings.
     let result = unsafe {
-        if ignore_case { lstrcmpiW(left.as_ptr(), right.as_ptr()) }
-        else { lstrcmpW(left.as_ptr(), right.as_ptr()) }
+        if ignore_case { lstrcmpiW(wide_left.as_ptr(), wide_right.as_ptr()) }
+        else { lstrcmpW(wide_left.as_ptr(), wide_right.as_ptr()) }
     };
     Ok(result.signum() as i16)
 }
@@ -203,7 +214,8 @@ pub(super) fn ansi_next_offset(
     if is_dangling_dbcs_next(codec, source) {
         return next_damaged_dbcs_offset(codec, source);
     }
-    let (_, spans) = codec.to_wide_with_ranges(source)?;
+    let mut wide = GuestTextBuffer::acquire();
+    let spans = codec.to_wide_with_ranges_into(source, &mut wide)?;
     spans.first().map(|span| span.guest_bytes.end).ok_or_else(|| {
         RuntimeError::new(Kind::InternalInvariant,
             "decoded guest text has no character boundary")
@@ -239,10 +251,12 @@ pub(super) fn ansi_prev_offset(
     let prefix = &source[..current];
     // A DBCS trail byte can also be a valid lead byte. Determine the previous
     // boundary by scanning from the start, never by classifying the last byte.
-    let spans = match codec.to_wide_with_ranges(prefix) {
-        Ok((_, spans)) => spans,
+    let mut wide = GuestTextBuffer::acquire();
+    let spans = match codec.to_wide_with_ranges_into(prefix, &mut wide) {
+        Ok(spans) => spans,
         Err(prefix_error) => {
-            let (_, spans) = codec.to_wide_with_ranges(source).map_err(|_| prefix_error)?;
+            let spans = codec.to_wide_with_ranges_into(source, &mut wide)
+                .map_err(|_| prefix_error)?;
             spans
         }
     };

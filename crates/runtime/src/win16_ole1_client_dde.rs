@@ -401,6 +401,17 @@ impl Default for Win16Ole1ClientDdeJournal {
 }
 
 impl Win16Ole1ClientDdeJournal {
+    pub(super) fn needs_scheduler_progress(&self) -> bool {
+        !self.host_operations.is_empty()
+            || !self.pending_host_actions.is_empty()
+            || !self.initiate_attempts.is_empty()
+            || !self.endpoints.is_empty()
+            || !self.conversations.is_empty()
+            || !self.pending.is_empty()
+            || !self.committed_events.is_empty()
+            || !self.terminations.is_empty()
+    }
+
     pub(super) fn owner_pending(&self, owner: OwnerId) -> Result<usize, RuntimeError> {
         if owner.0 == 0 {
             return Err(RuntimeError::new(

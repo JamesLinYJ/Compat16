@@ -15,6 +15,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 use super::win16_window_worker::WorkerState;
+use super::guest_text::GuestTextBuffer;
 
 const MAX_NATIVE_TEXT_UNITS: usize = 1_048_576;
 
@@ -267,12 +268,15 @@ pub(super) fn native_text_length_upper_bound(
 pub(super) fn wide_z_from_guest(
     state: &Rc<RefCell<WorkerState>>,
     bytes: &[u8],
-) -> Result<Vec<u16>, RuntimeError> {
+) -> Result<GuestTextBuffer, RuntimeError> {
     if bytes.contains(&0) {
         return Err(RuntimeError::new(Kind::InvalidInput,
             "owned Win16 window text contains an embedded NUL"));
     }
-    state.borrow().text_codec.to_wide_z(bytes)
+    let codec = state.borrow().text_codec;
+    let mut wide = GuestTextBuffer::acquire();
+    codec.to_wide_z_into(bytes, &mut wide)?;
+    Ok(wide)
 }
 
 /// Copy a USER-supplied UTF-16 C string during the synchronous native callback
@@ -313,7 +317,7 @@ pub(super) fn guest_z_to_native_prefix(
     state: &Rc<RefCell<WorkerState>>,
     guest_z: &[u8],
     native_capacity_units: usize,
-) -> Result<(Vec<u16>, usize), RuntimeError> {
+) -> Result<(GuestTextBuffer, usize), RuntimeError> {
     if guest_z.last() != Some(&0)
         || guest_z[..guest_z.len().saturating_sub(1)].contains(&0)
     {
@@ -321,11 +325,12 @@ pub(super) fn guest_z_to_native_prefix(
             "Win16 window output is not a single terminated guest string"));
     }
     if native_capacity_units == 0 {
-        return Ok((Vec::new(), 0));
+        return Ok((GuestTextBuffer::acquire(), 0));
     }
-    let mut wide = state.borrow().text_codec.to_wide(
-        &guest_z[..guest_z.len() - 1],
-    )?;
+    let codec = state.borrow().text_codec;
+    let mut wide = GuestTextBuffer::acquire();
+    codec.to_wide_z_into(&guest_z[..guest_z.len() - 1], &mut wide)?;
+    wide.pop();
     let visible_limit = native_capacity_units.saturating_sub(1);
     if wide.len() > visible_limit {
         let mut visible = visible_limit;
@@ -338,9 +343,7 @@ pub(super) fn guest_z_to_native_prefix(
         wide.truncate(visible);
     }
     let count = wide.len();
-    wide.try_reserve(1).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "terminate converted native window text", error,
-    ))?;
+    // The converter reserved this terminator before the native-prefix clip.
     wide.push(0);
     Ok((wide, count))
 }
@@ -351,9 +354,19 @@ pub(super) fn native_prefix_to_guest(
     native_text: &[u16],
     guest_capacity_bytes: usize,
 ) -> Result<(Vec<u8>, usize), RuntimeError> {
-    let bounded = state.borrow().text_codec.from_wide_bounded(
+    native_prefix_to_guest_in_buffer(state, native_text, guest_capacity_bytes, Vec::new())
+}
+
+pub(super) fn native_prefix_to_guest_in_buffer(
+    state: &Rc<RefCell<WorkerState>>,
+    native_text: &[u16],
+    guest_capacity_bytes: usize,
+    buffer: Vec<u8>,
+) -> Result<(Vec<u8>, usize), RuntimeError> {
+    let bounded = state.borrow().text_codec.from_wide_bounded_in_buffer(
         native_text,
         guest_capacity_bytes,
+        buffer,
     )?;
     let count = bounded.bytes.len();
     let used_default_char = bounded.used_default_char;

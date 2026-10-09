@@ -9,16 +9,17 @@ use windows_sys::Win32::Graphics::Gdi::{
     TextOutW,
 };
 
-use super::super::guest_text::GuestTextSpan;
+use super::super::guest_text::{GuestTextBuffer, GuestTextSpan};
 use super::super::win16_gdi::Win16Dcs;
 
 /// Convert a counted guest byte string using the encoding captured by its DC
 /// table. Conversion uses the selected Windows code page instead of the
 /// process ACP, retaining Windows' legacy replacement behavior.
-fn guest_text(dcs: &Win16Dcs, bytes: &[u8]) -> Result<Vec<u16>, RuntimeError> {
+fn guest_text(dcs: &Win16Dcs, bytes: &[u8]) -> Result<GuestTextBuffer, RuntimeError> {
     let codec = dcs.text_codec();
-    let wide = codec
-        .to_wide(bytes)
+    let mut wide = GuestTextBuffer::acquire();
+    codec
+        .to_wide_into(bytes, &mut wide)
         .map_err(|error| error.with_context("decode Win16 GDI guest text"))?;
     Ok(wide)
 }
@@ -92,10 +93,11 @@ pub(super) fn ext_text_out(
         return Ok(false);
     }
 
-    let (wide, native_spacing) = match spacing {
+    let mut wide = GuestTextBuffer::acquire();
+    let native_spacing = match spacing {
         Some(values) => {
             let codec = dcs.text_codec();
-            let (wide, spans) = match codec.to_wide_with_ranges(bytes) {
+            let spans = match codec.to_wide_with_ranges_into(bytes, &mut wide) {
                 Ok(converted) => converted,
                 // The runtime host reports a mapping gap and returns ordinary
                 // failure; propagate the typed cause without converting twice.
@@ -106,9 +108,13 @@ pub(super) fn ext_text_out(
             else {
                 return Ok(false);
             };
-            (wide, Some(converted))
+            Some(converted)
         }
-        None => (guest_text(dcs, bytes)?, None),
+        None => {
+            dcs.text_codec().to_wide_into(bytes, &mut wide)
+                .map_err(|error| error.with_context("decode Win16 GDI guest text"))?;
+            None
+        }
     };
     let Ok(count) = u32::try_from(wide.len()) else {
         return Ok(false);
@@ -265,18 +271,14 @@ pub(super) fn draw_text(
         return Ok(Win16DrawingResult::DrawText { height: 0, rect });
     }
 
-    let mut wide = guest_text(dcs, &bytes)?;
+    let mut wide = GuestTextBuffer::acquire();
     let native_count = if count == -1 {
-        wide.try_reserve(1).map_err(|error| {
-            RuntimeError::with_source(
-                Kind::ResourceExhausted,
-                "reserve terminated Win16 DrawText text",
-                error,
-            )
-        })?;
-        wide.push(0);
+        dcs.text_codec().to_wide_z_into(&bytes, &mut wide)
+            .map_err(|error| error.with_context("decode Win16 GDI guest text"))?;
         -1
     } else {
+        dcs.text_codec().to_wide_into(&bytes, &mut wide)
+            .map_err(|error| error.with_context("decode Win16 GDI guest text"))?;
         let Ok(count) = i32::try_from(wide.len()) else {
             return Ok(Win16DrawingResult::DrawText { height: 0, rect });
         };

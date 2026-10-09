@@ -47,6 +47,17 @@ pub struct RuntimeProgress {
 }
 
 impl Runtime {
+    /// Share one bounded executor across pure host-buffer work before execution.
+    pub fn set_work_executor(&mut self, work: parallel_work::SharedExecutor) -> Result<(), RuntimeError> {
+        if self.instructions != 0 {
+            return Err(RuntimeError::new(Kind::InvalidInput,
+                "buffer executor must be selected before guest execution"));
+        }
+        self.graphics_frame_decoder.set_executor(std::sync::Arc::clone(&work));
+        if let Some(state) = self.win16.as_mut() { state.set_work_executor(work); }
+        Ok(())
+    }
+
     /// Enable native generic thunks after the host has installed its stable
     /// 32-bit mapping and reentrant worker, before any guest instruction runs.
     pub fn enable_native_thunks(&mut self) -> Result<(), RuntimeError> {

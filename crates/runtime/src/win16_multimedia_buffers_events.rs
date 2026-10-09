@@ -8,13 +8,15 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
         deliver_callbacks: bool,
-    ) -> Result<(), RuntimeError> {
+    ) -> Result<bool, RuntimeError> {
+        let mut progress = false;
         for _ in 0..MAX_WAVE_EVENTS_PER_POLL {
             if let Some(mut event) = self.wave_audio.pending_host_events.pop_front() {
                 if let Err(error) = self.consume_wave_event(&mut event, memory, deliver_callbacks) {
                     self.wave_audio.pending_host_events.push_front(event);
                     return Err(error);
                 }
+                progress = true;
                 continue;
             }
             self.wave_audio
@@ -28,13 +30,14 @@ impl Win16State {
                     )
                 })?;
             let Some(event) = host.win16_wave_poll()? else {
-                return Ok(());
+                return Ok(progress);
             };
             self.wave_audio.pending_host_events.push_back(event);
+            progress = true;
         }
         // Revisit a busy producer at the next safe point so one poll never
         // monopolizes guest execution while native completions arrive.
-        Ok(())
+        Ok(progress)
     }
 
     fn consume_wave_event(

@@ -10,9 +10,12 @@ use windows_sys::Win32::Graphics::Gdi::{
     BI_RLE4, BI_RLE8, BITMAPINFO, BITMAPINFOHEADER, GetBitmapBits, GetDIBits,
     SetBitmapBits, SetDIBits, SetDIBitsToDevice,
 };
+use zerocopy::IntoBytes;
 
 use super::win16_gdi::Win16Dcs;
 use super::win16_gdi_objects::Win16Objects;
+
+const PARALLEL_DIB_MIN_BYTES: usize = 256 * 1024;
 
 /// Executes one native bitmap-data operation. Guest pointers never cross this
 /// boundary; each non-null buffer is owned and DWORD-aligned for the call.
@@ -20,6 +23,7 @@ pub(super) fn execute(
     dcs: &Win16Dcs,
     objects: &mut Win16Objects,
     operation: Operation,
+    work: &parallel_work::BoundedExecutor,
 ) -> Result<ResultValue, RuntimeError> {
     match operation {
         Operation::SetBitmapBits { bitmap, bytes } => {
@@ -64,8 +68,8 @@ pub(super) fn execute(
             let Some(native_bitmap) = objects.native_bitmap(bitmap) else {
                 return Ok(ResultValue::Count(0));
             };
-            let info = aligned_optional(info.as_deref())?;
-            let bits = aligned_optional(bits.as_deref())?;
+            let info = aligned_optional(info.as_deref(), work)?;
+            let bits = aligned_optional(bits.as_deref(), work)?;
             let info_pointer = info.as_ref().map_or(ptr::null(), |bytes|
                 bytes.as_ptr().cast::<BITMAPINFO>());
             let bits_pointer = bits.as_ref().map_or(ptr::null(), |bytes|
@@ -101,8 +105,10 @@ pub(super) fn execute(
             let Some(native_bitmap) = objects.native_bitmap(bitmap) else {
                 return Ok(ResultValue::GetDibits { count: 0, info, bits });
             };
-            let mut info = info.map(|bytes| AlignedBytes::copy_from(&bytes)).transpose()?;
-            let mut bits = bits.map(|bytes| AlignedBytes::copy_from(&bytes)).transpose()?;
+            let mut info = info.map(|bytes| AlignedBytes::copy_from_with(&bytes, Some(work)))
+                .transpose()?;
+            let mut bits = bits.map(|bytes| AlignedBytes::copy_from_with(&bytes, Some(work)))
+                .transpose()?;
 
             // RLE output has no capacity argument at the native boundary.
             // Query its required size against an independent copy of the full
@@ -119,12 +125,12 @@ pub(super) fn execute(
             };
             let rle_preflight = match rle_preflight {
                 Ok(preflight) => preflight,
-                Err(()) => return get_dibits_result(0, info, bits),
+                Err(()) => return get_dibits_result(0, info, bits, work),
             };
             if let Some((original_signature, bits_capacity)) = rle_preflight {
                 let Some(mut query_info) = info.as_ref()
                     .map(AlignedBytes::try_clone).transpose()? else {
-                    return get_dibits_result(0, info, bits);
+                    return get_dibits_result(0, info, bits, work);
                 };
                 // SAFETY: The bitmap is retained by its shared table; `dc_use`
                 // pins the HDC through both native calls. query_info is an
@@ -153,7 +159,7 @@ pub(super) fn execute(
                             required <= bits_capacity)
                     });
                 if !capacity_is_sufficient {
-                    return get_dibits_result(0, info, bits);
+                    return get_dibits_result(0, info, bits, work);
                 }
             }
 
@@ -175,7 +181,7 @@ pub(super) fn execute(
                     color_usage,
                 )
             };
-            get_dibits_result(count, info, bits)
+            get_dibits_result(count, info, bits, work)
         }
         Operation::SetDibitsToDevice {
             dc,
@@ -192,8 +198,8 @@ pub(super) fn execute(
             color_usage,
         } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else { return Ok(ResultValue::Count(0)); };
-            let info = aligned_optional(info.as_deref())?;
-            let bits = aligned_optional(bits.as_deref())?;
+            let info = aligned_optional(info.as_deref(), work)?;
+            let bits = aligned_optional(bits.as_deref(), work)?;
             let info_pointer = info.as_ref().map_or(ptr::null(), |bytes|
                 bytes.as_ptr().cast::<BITMAPINFO>());
             let bits_pointer = bits.as_ref().map_or(ptr::null(), |bytes|
@@ -233,19 +239,30 @@ pub(super) struct AlignedBytes {
 
 impl AlignedBytes {
     pub(super) fn copy_from(bytes: &[u8]) -> Result<Self, RuntimeError> {
+        Self::copy_from_with(bytes, None)
+    }
+
+    fn copy_from_with(
+        bytes: &[u8],
+        work: Option<&parallel_work::BoundedExecutor>,
+    ) -> Result<Self, RuntimeError> {
         let padded = bytes.len().checked_add(3).ok_or_else(|| RuntimeError::new(
             Kind::ResourceExhausted, "Win16 native DIB buffer length overflowed"))?;
         let word_count = (padded / 4).max(1);
         let mut words = Vec::new();
         words.try_reserve_exact(word_count).map_err(|error| RuntimeError::with_source(
             Kind::ResourceExhausted, "allocate aligned native Win16 DIB buffer", error))?;
-        for chunk in bytes.chunks(4) {
-            let mut word = [0_u8; 4];
-            word[..chunk.len()].copy_from_slice(chunk);
-            words.push(u32::from_ne_bytes(word));
-        }
-        if words.is_empty() {
-            words.push(0);
+        words.resize(word_count, 0_u32);
+        // zerocopy exposes the initialized DWORD allocation without raw
+        // pointer casts. Its final padding bytes retain their zero values.
+        let output = &mut words.as_mut_slice().as_mut_bytes()[..bytes.len()];
+        let convert = |offset: usize, chunk: &mut [u8]| {
+            chunk.copy_from_slice(&bytes[offset..offset + chunk.len()]);
+        };
+        if let Some(work) = work {
+            work.for_each_chunk_aligned(output, PARALLEL_DIB_MIN_BYTES, 4, convert);
+        } else {
+            convert(0, output);
         }
         Ok(Self { words, byte_length: bytes.len() })
     }
@@ -266,18 +283,19 @@ impl AlignedBytes {
         self.words.as_ptr().cast()
     }
 
-    fn into_bytes(self) -> Result<Vec<u8>, RuntimeError> {
+    fn into_bytes(self, work: &parallel_work::BoundedExecutor) -> Result<Vec<u8>, RuntimeError> {
         let mut bytes = Vec::new();
         bytes.try_reserve_exact(self.byte_length).map_err(|error| RuntimeError::with_source(
             Kind::ResourceExhausted, "allocate Win16 DIB result bytes", error))?;
-        for word in self.words {
-            let word_bytes = word.to_ne_bytes();
-            let count = (self.byte_length - bytes.len()).min(word_bytes.len());
-            bytes.extend_from_slice(&word_bytes[..count]);
-            if bytes.len() == self.byte_length {
-                break;
+        bytes.resize(self.byte_length, 0);
+        // Aligned chunk boundaries retain the exact DWORD-to-byte mapping,
+        // including a final partial word and untouched guest trailing bytes.
+        work.for_each_chunk_aligned(&mut bytes, PARALLEL_DIB_MIN_BYTES, 4,
+            |offset, chunk| {
+                chunk.copy_from_slice(&self.words.as_slice().as_bytes()
+                    [offset..offset + chunk.len()]);
             }
-        }
+        );
         Ok(bytes)
     }
 
@@ -347,14 +365,19 @@ fn get_dibits_result(
     count: i32,
     info: Option<AlignedBytes>,
     bits: Option<AlignedBytes>,
+    work: &parallel_work::BoundedExecutor,
 ) -> Result<ResultValue, RuntimeError> {
     Ok(ResultValue::GetDibits {
         count,
-        info: info.map(AlignedBytes::into_bytes).transpose()?,
-        bits: bits.map(AlignedBytes::into_bytes).transpose()?,
+        info: info.map(|bytes| bytes.into_bytes(work)).transpose()?,
+        bits: bits.map(|bytes| bytes.into_bytes(work)).transpose()?,
     })
 }
 
-fn aligned_optional(bytes: Option<&[u8]>) -> Result<Option<Vec<u32>>, RuntimeError> {
-    bytes.map(|bytes| AlignedBytes::copy_from(bytes).map(|aligned| aligned.words)).transpose()
+fn aligned_optional(
+    bytes: Option<&[u8]>,
+    work: &parallel_work::BoundedExecutor,
+) -> Result<Option<Vec<u32>>, RuntimeError> {
+    bytes.map(|bytes| AlignedBytes::copy_from_with(bytes, Some(work))
+        .map(|aligned| aligned.words)).transpose()
 }

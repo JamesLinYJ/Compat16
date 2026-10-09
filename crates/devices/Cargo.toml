@@ -6,8 +6,8 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+parallel-work = { path = "../parallel-work" }
 guest-core = { path = "../guest" }
-rayon.workspace = true
 
 [lints]
 workspace = true

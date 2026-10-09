@@ -2,6 +2,8 @@
 param(
     [ValidateSet('arm64', 'amd64', 'x64', 'all')]
     [string]$Architecture,
+    [ValidateSet('none', 'generate', 'use')]
+    [string]$Pgo = 'none',
     [switch]$Offline,
     [switch]$NonInteractive
 )
@@ -252,6 +254,12 @@ try {
     }
     Write-Status OK 'MSVC and path-remapping settings are ready.'
 
+    $baseEncodedFlags = $env:CARGO_ENCODED_RUSTFLAGS
+    if ($Pgo -ne 'none') {
+        . (Join-Path $PSScriptRoot 'pgo.ps1') -Library
+        Write-Status INFO ("PGO mode: {0}; profiles remain under target/pgo." -f $Pgo)
+    }
+
     $vsTargetByArchitecture = @{ arm64 = 'arm64'; x64 = 'amd64' }
     $cargoTargetDirectory = Join-Path $projectRoot 'target'
     $offlineArgument = ''
@@ -263,11 +271,41 @@ try {
         $architecture = $architectures[$index]
         $target = $targetByArchitecture[$architecture]
         $label = Get-ArchitectureLabel $architecture
+        $env:CARGO_ENCODED_RUSTFLAGS = $baseEncodedFlags
+        $pgoBuild = $null
+        if ($Pgo -ne 'none') {
+            $pgoTools = Get-PgoTools $rustcExe $sysroot $target
+            $pgoIdentity = Get-PgoBuildIdentity $projectRoot $target $pgoTools $cargoExe $baseEncodedFlags $remapPairs $vsDevCmd $effectiveCargoHome
+            if ($Pgo -eq 'generate') {
+                $sessionId = [Guid]::NewGuid().ToString('N')
+                $sessionDirectory = Join-Path $projectRoot ('target\pgo\' + $architecture + '\sessions\' + $sessionId)
+                New-Item -ItemType Directory -Path $sessionDirectory -Force | Out-Null
+                $pgoBuild = [pscustomobject]@{ session = $sessionId; directory = $sessionDirectory; identity = $pgoIdentity }
+                # Avoid embedding a machine-specific profile output directory.
+                # The collector supplies LLVM_PROFILE_FILE to all child images.
+                $env:CARGO_ENCODED_RUSTFLAGS += [char]0x1f + '-Cprofile-generate'
+            } else {
+                $pgoSession = Get-PgoSession $projectRoot $architecture
+                Assert-PgoIdentity $pgoSession.metadata.identity $pgoIdentity
+                $pgoMerged = Get-Content -LiteralPath (Join-Path $pgoSession.directory 'merged.json') -Raw | ConvertFrom-Json
+                if ($pgoMerged.schema -ne 1 -or $pgoMerged.session -cne $pgoSession.metadata.session -or $pgoMerged.modules -notcontains 'compat16.dll') { throw 'Invalid or incomplete merged PGO receipt.' }
+                Assert-PgoIdentity $pgoMerged.identity $pgoIdentity
+                if (-not $pgoMerged.collectionSha256 -or $pgoMerged.collectionSha256 -cne (Get-PgoCollectionHash $pgoSession.directory)) { throw 'PGO collection changed after merging; merge the workloads again.' }
+                $pgoProfile = Join-Path $pgoSession.directory 'merged.profdata'
+                if ((Get-FileHash -LiteralPath $pgoProfile -Algorithm SHA256).Hash -cne $pgoMerged.sha256) { throw 'The merged PGO profile changed; merge the collected workloads again.' }
+                $pgoBuild = [pscustomobject]@{ session = $pgoMerged.session; directory = $pgoSession.directory; identity = $pgoIdentity; profileSha256 = $pgoMerged.sha256; modules = $pgoMerged.modules }
+                $env:CARGO_ENCODED_RUSTFLAGS += [char]0x1f + ('-Cprofile-use=' + $pgoProfile) + [char]0x1f + '-Cllvm-args=-pgo-warn-missing-function'
+                foreach ($file in $requiredFiles) {
+                    if ($pgoMerged.modules -notcontains $file) { Write-Status WARN ("No executed functions recorded for {0}; its performance remains untrained." -f $file) }
+                }
+            }
+            $buildTargetDirectory = Join-Path $projectRoot ('target\pgo\' + $architecture + '\build-' + $Pgo)
+        } else { $buildTargetDirectory = $cargoTargetDirectory }
         $percent = [int](($index * 70) / $architectures.Count)
         Write-Progress -Activity 'COMPAT16 / BUILD' -Status ("Building {0} ({1}/{2})" -f $label, ($index + 1), $architectures.Count) -PercentComplete $percent
         Write-Status INFO ("Building {0} -> {1}" -f $label, $target)
         $command = 'call "{0}" -arch={1} -host_arch={2} && "{3}" build --quiet --workspace --release --locked --target {4} --target-dir "{5}"{6}' -f `
-            $vsDevCmd, $vsTargetByArchitecture[$architecture], $vsHostArchitecture, $cargoExe, $target, $cargoTargetDirectory, $offlineArgument
+            $vsDevCmd, $vsTargetByArchitecture[$architecture], $vsHostArchitecture, $cargoExe, $target, $buildTargetDirectory, $offlineArgument
         # Native diagnostics may contain Cargo/SDK paths even after rustc source
         # remapping. Keep local account and checkout paths out of shared logs.
         # Merge native streams in cmd: PowerShell 5.1 otherwise promotes stderr
@@ -284,7 +322,8 @@ try {
         $releaseBuilds += [pscustomobject]@{
             architecture = $architecture
             target = $target
-            releaseDirectory = Join-Path $cargoTargetDirectory (Join-Path $target 'release')
+            releaseDirectory = Join-Path $buildTargetDirectory (Join-Path $target 'release')
+            pgo = $pgoBuild
         }
         Write-Status OK ("{0} build finished." -f $label)
     }
@@ -298,9 +337,9 @@ try {
         $percent = [int](70 + (($index * 30) / $releaseBuilds.Count))
         Write-Progress -Activity 'COMPAT16 / BUILD' -Status ("Staging {0} ({1}/{2})" -f $label, ($index + 1), $releaseBuilds.Count) -PercentComplete $percent
 
-        $distributionRoot = Join-Path $projectRoot 'dist'
+        $distributionRoot = if ($Pgo -eq 'generate') { $releaseBuild.pgo.directory } else { Join-Path $projectRoot 'dist' }
         $stagingDirectory = Join-Path $distributionRoot ('.' + $architecture + '.staging-' + [Guid]::NewGuid().ToString('N'))
-        $destinationDirectory = Join-Path $distributionRoot $architecture
+        $destinationDirectory = if ($Pgo -eq 'generate') { Join-Path $distributionRoot 'runtime' } else { Join-Path $distributionRoot $architecture }
         $backupDirectory = Join-Path $distributionRoot ('.' + $architecture + '.previous-' + [Guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $distributionRoot -Force | Out-Null
         New-Item -ItemType Directory -Path $stagingDirectory | Out-Null
@@ -332,6 +371,11 @@ try {
                     }
             )
             $manifest = [pscustomobject][ordered]@{ target = $target; files = $manifestFiles }
+            if ($Pgo -ne 'none') {
+                $optimization = [ordered]@{ pgo = $Pgo; sourceSha256 = $releaseBuild.pgo.identity.sourceSha256 }
+                if ($Pgo -eq 'use') { $optimization.profileSha256 = $releaseBuild.pgo.profileSha256 }
+                $manifest | Add-Member -NotePropertyName optimization -NotePropertyValue $optimization
+            }
             $manifestText = (ConvertTo-Json -InputObject $manifest -Depth 4) + "`n"
             [System.IO.File]::WriteAllText((Join-Path $stagingDirectory 'manifest.json'), $manifestText, [System.Text.UTF8Encoding]::new($false))
 
@@ -344,7 +388,19 @@ try {
                 throw
             }
             if (Test-Path -LiteralPath $backupDirectory) { Remove-Item -LiteralPath $backupDirectory -Recurse -Force }
-            Write-Status OK ("dist/{0} is ready." -f $architecture)
+            if ($Pgo -eq 'generate') {
+                if ((Get-PgoSourceHash $projectRoot) -cne $releaseBuild.pgo.identity.sourceSha256) { throw 'Source changed during PGO generation; build a new session.' }
+                $sessionMetadata = [pscustomobject][ordered]@{
+                    schema = 1
+                    session = $releaseBuild.pgo.session
+                    architecture = $architecture
+                    identity = $releaseBuild.pgo.identity
+                    binaries = Get-PgoBinaryReceipt $destinationDirectory $architecture
+                }
+                Write-PgoJson (Join-Path $distributionRoot 'session.json') $sessionMetadata
+                Write-PgoJson (Join-Path $projectRoot ('target\pgo\' + $architecture + '\current.json')) ([pscustomobject]@{ session = $releaseBuild.pgo.session })
+                Write-Status OK ("{0} instrumented session is ready; collect representative workloads with scripts/pgo.ps1." -f $label)
+            } else { Write-Status OK ("dist/{0} is ready." -f $architecture) }
         } catch {
             if (Test-Path -LiteralPath $stagingDirectory) { Remove-Item -LiteralPath $stagingDirectory -Recurse -Force }
             throw
@@ -362,7 +418,8 @@ try {
             'LICENSES/Microsoft-MS-DOS-MIT.txt',
             'manifest.json'
         ))
-        Write-Host ("  dist/{0} ({1})" -f $releaseBuild.architecture, $releaseBuild.target) -ForegroundColor White
+        $outputLocation = if ($Pgo -eq 'generate') { 'target/pgo/' + $releaseBuild.architecture + '/sessions/' + $releaseBuild.pgo.session + '/runtime' } else { 'dist/' + $releaseBuild.architecture }
+        Write-Host ("  {0} ({1})" -f $outputLocation, $releaseBuild.target) -ForegroundColor White
         Write-Host ("    {0}" -f ($packageItems -join ', ')) -ForegroundColor DarkGray
     }
 } catch {

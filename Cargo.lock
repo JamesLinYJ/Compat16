@@ -126,7 +126,7 @@ name = "devices"
 version = "0.1.0"
 dependencies = [
  "guest-core",
- "rayon",
+ "parallel-work",
 ]
 
 [[package]]
@@ -171,6 +171,7 @@ dependencies = [
  "compat-services",
  "formats",
  "host-services",
+ "parallel-work",
  "runtime",
  "text-codec",
  "zerocopy",
@@ -224,6 +225,7 @@ dependencies = [
  "formats",
  "graphics",
  "guest-core",
+ "parallel-work",
  "runtime",
  "serde",
  "serde_json",
@@ -353,6 +355,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
+name = "parallel-work"
+version = "0.1.0"
+dependencies = [
+ "rayon",
+]
+
+[[package]]
 name = "phf"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -418,6 +427,7 @@ dependencies = [
  "formats",
  "graphics",
  "guest-core",
+ "parallel-work",
  "text-codec",
  "win16-abi",
  "x86-cpu",

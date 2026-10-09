@@ -67,6 +67,22 @@ impl Default for ClassicDdeRuntimeState {
     }
 }
 
+impl ClassicDdeRuntimeState {
+    pub(super) fn needs_scheduler_progress(&self) -> bool {
+        self.event_tracker.pending().next().is_some()
+            || !self.operations.is_empty()
+            || !self.pending_begins.is_empty()
+            || !self.callbacks.is_empty()
+            || self.atoms.needs_scheduler_progress()
+            || !self.guest_globals.is_empty()
+            || !self.deferred_sync.is_empty()
+            || !self.queued_events.is_empty()
+            || !self.pending_endpoint_polls.is_empty()
+            || !self.deferred_queued_events.is_empty()
+            || self.owner_shutdown.is_some()
+    }
+}
+
 #[derive(Clone, Eq, PartialEq)]
 pub(super) enum ClassicDdeOperationOwner {
     /// A bounded mailbox poll. Its result is either no event or one exact

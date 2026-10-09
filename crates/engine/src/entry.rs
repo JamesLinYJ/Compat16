@@ -144,10 +144,13 @@ fn run() -> Result<u8, RuntimeError> {
     }
     let directory = program.parent().ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "program has no parent directory"))?;
     let text_profile = crate::program_encoding::resolve(&bytes, ansi_code_page);
+    // Declared first so every runtime/host owner retires before the executor.
+    let work = std::sync::Arc::new(parallel_work::BoundedExecutor::new());
     let mut host = match &text_profile {
         Some(profile) => WindowsHost::new_with_ansi_code_page(directory, code_page, profile.selection.code_page),
         None => WindowsHost::new(directory, code_page),
     }.map_err(|e| RuntimeError::with_source(Kind::HostFailure, "host initialization", e))?;
+    host.set_work_executor(std::sync::Arc::clone(&work));
     if let Some(profile) = &text_profile {
         crate::program_encoding::report(&mut host, profile);
     }
@@ -176,6 +179,7 @@ fn run() -> Result<u8, RuntimeError> {
     } else {
         Runtime::load_with_environment(&bytes, &tail, &virtual_path, &environment)?
     };
+    runtime.set_work_executor(std::sync::Arc::clone(&work))?;
     if trace_on_failure { runtime.enable_instruction_trace()?; }
     if let Some((address, length)) = memory_watch {
         runtime.watch_guest_memory(address, length)?;

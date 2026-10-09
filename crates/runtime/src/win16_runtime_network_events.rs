@@ -30,12 +30,13 @@ const WSAHOST_NOT_FOUND: i32 = 11_001;
 mod retirement;
 
 impl Win16State {
+    /// Returns true only after an exact source event finishes advancing.
     pub(in crate::win16_runtime) fn poll_network_events(
         &mut self,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
-    ) -> Result<(), RuntimeError> {
-        if self.network.producer_quiescing() { return Ok(()); }
+    ) -> Result<bool, RuntimeError> {
+        if self.network.producer_quiescing() { return Ok(false); }
         if self.network.pending_event.is_none() {
             match host.win16_peek_network_event() {
                 Ok(Some(event)) => {
@@ -49,23 +50,23 @@ impl Win16State {
                 Ok(None) => {
                     self.network.clear_retired_routes();
                     self.network.clear_event_poll_failure();
-                    return Ok(());
+                    return Ok(false);
                 }
                 Err(error) => {
                     if let Some(error) = self.network.retain_event_poll_failure(error) {
                         host.report_diagnostic(error.diagnostic());
                     }
-                    return Ok(());
+                    return Ok(false);
                 }
             }
         }
 
-        let Some(mut pending) = self.network.pending_event.take() else { return Ok(()); };
+        let Some(mut pending) = self.network.pending_event.take() else { return Ok(false); };
         match self.advance_network_event(&mut pending, memory, host) {
-            Ok(true) => Ok(()),
+            Ok(true) => Ok(true),
             Ok(false) => {
                 self.network.pending_event = Some(pending);
-                Ok(())
+                Ok(false)
             }
             Err(error) => {
                 let cause = std::sync::Arc::new(error);

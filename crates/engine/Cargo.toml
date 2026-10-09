@@ -11,6 +11,7 @@ name = "engine"
 crate-type = ["cdylib"]
 
 [dependencies]
+parallel-work = { path = "../parallel-work" }
 formats = { path = "../formats" }
 runtime = { path = "../runtime" }
 host-services = { path = "../host" }

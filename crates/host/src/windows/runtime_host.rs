@@ -232,6 +232,12 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<Option<runtime::Win16GuestCallbackEvent>, RuntimeError> {
         callbacks::take_guest_callback(self)
     }
+    fn win16_scheduler_readiness(&self) -> Option<runtime::Win16SchedulerReadiness> {
+        Some(runtime::Win16SchedulerReadiness {
+            generation: self.win16_work_generation.load(std::sync::atomic::Ordering::Acquire),
+            callback_pending: self.win16_callback_receiver.has_pending(),
+        })
+    }
     fn win16_guest_callback_sender(&self) -> Option<runtime::Win16GuestCallbackSender> {
         Some(self.win16_callback_sender.clone())
     }

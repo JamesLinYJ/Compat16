@@ -33,6 +33,12 @@ pub(super) struct Win16NetbiosState {
     pending: Vec<PendingNcb>,
 }
 
+impl Win16NetbiosState {
+    pub(super) fn needs_scheduler_progress(&self) -> bool {
+        !self.pending.is_empty()
+    }
+}
+
 struct PendingNcb {
     host_id: Win16HostNetbiosId,
     guest_ncb: SegmentedPointer,

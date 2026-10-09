@@ -165,6 +165,8 @@ pub fn encode(text: &str, code_page: u32) -> Result<Vec<u8>, DosHostError> {
 }
 
 pub struct WindowsHost {
+    win16_format_work: parallel_work::SharedExecutor,
+    win16_work_generation: Arc<AtomicU64>,
     win16_callback_sender: runtime::Win16GuestCallbackSender,
     win16_callback_receiver: runtime::Win16GuestCallbackReceiver,
     filesystem: Filesystem,
@@ -211,6 +213,11 @@ pub struct WindowsHost {
 }
 
 impl WindowsHost {
+    /// Format jobs operate on owned buffers; native calls stay on this owner.
+    pub fn set_work_executor(&mut self, work: parallel_work::SharedExecutor) {
+        self.win16_format_work = work;
+    }
+
     /// Prepare the one stable guest backing used by this host/runtime pair.
     pub fn prepare_guest_memory(
         &mut self,
@@ -311,7 +318,10 @@ impl WindowsHost {
         let win16_network = win16_network::Win16NetworkHost::new(
             identity_source, multimedia_wake.clone())
             .map_err(|error| DosHostError::with_source(DosErrorCode::GeneralFailure, error))?;
+        let win16_work_generation = multimedia_wake.generation_observer();
         Ok(Self {
+            win16_format_work: Arc::new(parallel_work::BoundedExecutor::new()),
+            win16_work_generation,
             filesystem,
             code_page,
             input,

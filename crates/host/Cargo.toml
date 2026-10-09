@@ -11,6 +11,7 @@ name = "compat16host"
 path = "src/bin/native_worker.rs"
 
 [dependencies]
+parallel-work = { path = "../parallel-work" }
 guest-core = { path = "../guest" }
 compat-services = { path = "../compat" }
 dos-kernel = { path = "../dos" }

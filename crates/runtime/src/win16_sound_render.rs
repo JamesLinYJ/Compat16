@@ -4,6 +4,7 @@ use super::sound_queue::{QueueEntry, RenderedQueue, S_SEROFM, MAX_PCM_FRAMES};
 use crate::{DiagnosticKind as Kind, RuntimeError};
 
 const MAX_TOTAL_VOICE_FRAMES: usize = 24_000_000;
+const PARALLEL_MIX_MIN_FRAMES: usize = 128 * 1024;
 
 /// Mono 8-bit samples use one byte per frame. Bound the sum of all retained
 /// voice renderings as well as each individual track so sixteen valid guest
@@ -15,15 +16,21 @@ pub(super) fn validate_snapshot_budget(snapshots: &[RenderedQueue]) -> Result<()
     (total <= MAX_TOTAL_VOICE_FRAMES).then_some(()).ok_or(S_SEROFM)
 }
 
-pub(super) fn mix_snapshots(snapshots: &[RenderedQueue]) -> Result<Vec<u8>, RuntimeError> {
+pub(super) fn mix_snapshots(
+    snapshots: &[RenderedQueue],
+    work: &parallel_work::BoundedExecutor,
+) -> Result<Vec<u8>, RuntimeError> {
     let mut tracks = Vec::new();
     tracks.try_reserve_exact(snapshots.len()).map_err(|error| RuntimeError::with_source(
         Kind::ResourceExhausted, "reserve SOUND renderer tracks", error))?;
     tracks.extend(snapshots.iter().map(|snapshot| snapshot.samples.as_slice()));
-    mix_tracks(&tracks)
+    mix_tracks(&tracks, work)
 }
 
-pub(super) fn mix_tracks(tracks: &[&[u8]]) -> Result<Vec<u8>, RuntimeError> {
+pub(super) fn mix_tracks(
+    tracks: &[&[u8]],
+    work: &parallel_work::BoundedExecutor,
+) -> Result<Vec<u8>, RuntimeError> {
     let frames = tracks.iter().map(|track| track.len()).max().unwrap_or(0);
     let total_frames = tracks.iter().try_fold(0_usize, |total, track| {
         total.checked_add(track.len())
@@ -36,11 +43,16 @@ pub(super) fn mix_tracks(tracks: &[&[u8]]) -> Result<Vec<u8>, RuntimeError> {
     samples.try_reserve_exact(frames).map_err(|error| RuntimeError::with_source(
         Kind::ResourceExhausted, "reserve mixed SOUND PCM buffer", error))?;
     samples.resize(frames, 128_u8);
-    for (frame, mixed) in samples.iter_mut().enumerate() {
-        let sum = tracks.iter().filter_map(|track| track.get(frame))
-            .map(|sample| i32::from(*sample) - 128).sum::<i32>();
-        *mixed = (128 + sum.clamp(-128, 127)) as u8;
-    }
+    // Each output frame is independent. Keep the summation order within one
+    // frame and finish all disjoint ranges before native WAVE submission.
+    work.for_each_chunk(&mut samples, PARALLEL_MIX_MIN_FRAMES, |offset, chunk| {
+        for (relative_frame, mixed) in chunk.iter_mut().enumerate() {
+            let frame = offset + relative_frame;
+            let sum = tracks.iter().filter_map(|track| track.get(frame))
+                .map(|sample| i32::from(*sample) - 128).sum::<i32>();
+            *mixed = (128 + sum.clamp(-128, 127)) as u8;
+        }
+    });
     Ok(samples)
 }
 

@@ -7,6 +7,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
+parallel-work = { path = "../parallel-work" }
 compat-services = { path = "../compat" }
 guest-core = { path = "../guest" }
 x86-cpu = { path = "../cpu" }
