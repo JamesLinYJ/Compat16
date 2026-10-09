@@ -533,30 +533,29 @@ impl Runtime {
                     selectors: &state.selectors,
                     memory_len: self.memory.len(),
                 };
-                let writer = self.cpu.regs.clone();
-                let mut memory = crate::trace::GuestMemoryWriteObserver::new(
+                let instruction_address = (self.cpu.regs.cs, self.cpu.regs.ip());
+                let before_stack = (self.cpu.regs.ss, self.cpu.regs.sp());
+                let outcome = crate::cpu_execution::step_observing_events(
+                    &mut self.cpu,
                     self.memory.bus(),
+                    &mut self.ports,
+                    &context,
                     self.memory_write_watch.as_mut(),
                     self.instructions,
-                    &writer,
-                    crate::trace::GuestWriteBoundary::CpuStep,
-                );
-                let outcome = self
-                    .cpu
-                    .step_with_context_observing_events(&mut memory, &mut self.ports, &context)
-                    .map_err(|error| {
-                        crate::runtime_error(error).with_context(format!(
-                            "Win16 instruction at {:04X}:{:04X}",
-                            writer.cs,
-                            writer.ip(),
-                        ))
-                    })?;
+                )
+                .map_err(|error| {
+                    crate::runtime_error(error).with_context(format!(
+                        "Win16 instruction at {:04X}:{:04X}",
+                        instruction_address.0,
+                        instruction_address.1,
+                    ))
+                })?;
                 crate::machine::check_memory_storage(&self.memory)?;
                 self.instructions += 1;
                 if self.cpu.allows_real_mode_service_intercepts() {
                     state.observe_control_transfer(
                         self.cpu.control_transfer(),
-                        &writer,
+                        before_stack,
                         &self.cpu.regs,
                     )?;
                     returned_from_guest = self

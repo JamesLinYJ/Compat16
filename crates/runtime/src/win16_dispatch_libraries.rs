@@ -16,13 +16,20 @@ impl Win16State {
         host: &mut impl RuntimeHost,
         descriptor: &Win16ExportDescriptor,
         return_to: (u16, u16, u32),
-        callback_context: x86_cpu::CpuContext,
     ) -> Result<Option<u8>, RuntimeError> {
         let (return_selector, return_offset, return_sp) = return_to;
         let value = match request {
             Win16ApiRequest::PrintQueue(request) => self.print_queue_api(request),
             Win16ApiRequest::Ole1(request) => self.ole1_client_document_api(request, memory),
             Win16ApiRequest::Mci(request) => {
+                // MCI retains its own context across asynchronous callbacks.
+                // Other library calls use the dispatch-owned snapshot directly.
+                let callback_context = self.window_dispatch_context.clone().ok_or_else(|| {
+                    RuntimeError::new(
+                        Kind::InternalInvariant,
+                        "Win16 MCI operation has no CPU context from guest dispatch",
+                    )
+                })?;
                 return self.begin_mci_request(
                     request,
                     registers,

@@ -385,34 +385,34 @@ impl Runtime {
                 }
             }
             self.check_memory_storage()?;
-            let step_writer = self.cpu.regs.clone();
             let step_number = self.instructions;
-            let outcome = {
-                let mut memory = GuestMemoryWriteObserver::new(
-                    self.memory.bus(),
-                    self.memory_write_watch.as_mut(),
-                    self.instructions,
-                    &step_writer,
-                    GuestWriteBoundary::CpuStep,
-                );
-                self.cpu.step_with_io(&mut memory, &mut self.ports)
-            };
+            let step = crate::cpu_execution::step_with_io(
+                &mut self.cpu,
+                self.memory.bus(),
+                &mut self.ports,
+                self.memory_write_watch.as_mut(),
+                step_number,
+            );
             self.capture_memory_watch_cpu_history();
             self.check_memory_storage()?;
-            let outcome = outcome.map_err(runtime_error)?;
+            let outcome = step.outcome.map_err(runtime_error)?;
             self.instructions += 1;
             match outcome {
                 StepOutcome::Continue => {}
                 StepOutcome::Halt => halted = true,
                 StepOutcome::Interrupt(number) => {
-                    let mut memory = GuestMemoryWriteObserver::new(
-                        self.memory.bus(),
-                        self.memory_write_watch.as_mut(),
-                        step_number,
-                        &step_writer,
-                        GuestWriteBoundary::InterruptEntry,
-                    );
-                    enter_interrupt(&mut self.cpu, &mut memory, number)?;
+                    if let Some(writer) = step.writer.as_ref() {
+                        let mut memory = GuestMemoryWriteObserver::new(
+                            self.memory.bus(),
+                            self.memory_write_watch.as_mut(),
+                            step_number,
+                            writer,
+                            GuestWriteBoundary::InterruptEntry,
+                        );
+                        enter_interrupt(&mut self.cpu, &mut memory, number)?;
+                    } else {
+                        enter_interrupt(&mut self.cpu, &mut self.memory.bus(), number)?;
+                    }
                 }
             }
             if self.instructions % 4096 == 0 {

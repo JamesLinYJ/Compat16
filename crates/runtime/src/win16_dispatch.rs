@@ -86,17 +86,17 @@ impl Win16State {
         let (return_selector, return_offset, return_sp) =
             self.far_return(registers, memory, decoded.stack_cleanup.callee_pop_bytes)?;
         let return_to = (return_selector, return_offset, return_sp);
-        let callback_context = cpu.capture_context();
         let request = match decoded.request {
             Win16ApiRequest::Ole1(request) => {
                 return self.begin_ole1_request(request, cpu, dos, memory, host,
                     return_to, descriptor.return_kind);
             }
             Win16ApiRequest::KernelDiagnostics(request) => {
+                let callback_context = cpu.capture_context();
                 let call_owner = self.capture_legacy_cpu_call_frame(cpu, dos, memory)?;
                 let previous_window_context = self
                     .window_dispatch_context
-                    .replace(callback_context.clone());
+                    .replace(callback_context);
                 let previous_call_owner = self.active_dispatch_call_owner.replace(call_owner);
                 let previous_direct_return = self.active_dispatch_return.take();
                 let result = self.begin_kernel_diagnostic(request, cpu, memory, host, return_to);
@@ -126,6 +126,7 @@ impl Win16State {
             }
             request => request,
         };
+        let callback_context = cpu.capture_context();
         if crate::win16_io_trace::observes_io(&request) {
             host.observe_win16_io(&crate::Win16IoEvent::Api {
                 module: descriptor.module(),
@@ -151,7 +152,7 @@ impl Win16State {
         } else {
             None
         };
-        let previous_window_context = self.window_dispatch_context.replace(callback_context.clone());
+        let previous_window_context = self.window_dispatch_context.replace(callback_context);
         let previous_call_owner = std::mem::replace(
             &mut self.active_dispatch_call_owner,
             call_owner,
@@ -172,7 +173,7 @@ impl Win16State {
                     call, cpu, dos, memory, host, return_to, descriptor.return_kind,
                 ),
                 request => self.dispatch_libraries(
-                    request, &mut cpu.regs, memory, host, descriptor, return_to, callback_context,
+                    request, &mut cpu.regs, memory, host, descriptor, return_to,
                 ),
             },
         };
@@ -206,15 +207,20 @@ impl Win16State {
             "Win16 service dispatch returned without a retained operation or staged caller return",
         ))?;
         self.retain_legacy_cpu_frame_roots(owner, &target.registers, dos, memory)?;
+        let return_address = (
+            target.registers.cs,
+            u32::from(target.registers.ip()),
+            target.registers.ss,
+        );
         self.return_legacy_cpu_call_frame(
             owner,
             cpu,
             memory,
             CallEffectPolicy::PreserveX87,
             CallResumeBoundary::NoGuestExecution,
-            target.clone(),
+            target,
         )?;
-        self.retire_far_return(target.registers.cs, u32::from(target.registers.ip()), target.registers.ss);
+        self.retire_far_return(return_address.0, return_address.1, return_address.2);
         self.release_legacy_cpu_frame(owner, dos, memory)
     }
 }

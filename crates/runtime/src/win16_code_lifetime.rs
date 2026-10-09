@@ -18,7 +18,8 @@ pub(super) struct FarCallResume {
 
 impl Win16State {
     pub(super) fn observe_control_transfer(&mut self, transfer: Option<ControlTransfer>,
-        before: &Registers, registers: &Registers) -> Result<(), RuntimeError> {
+        before_stack: (u16, u16), registers: &Registers) -> Result<(), RuntimeError> {
+        let (stack_selector, frame_sp) = before_stack;
         match transfer {
             Some(ControlTransfer::FarCall { return_selector, return_offset, stack_selector }) => {
                 if self.far_returns.len() == MAX_OBSERVED_FAR_CALLS {
@@ -39,8 +40,8 @@ impl Win16State {
                 // destination: recursive calls can share a return CS:IP.
                 if let Some(index) = self.far_returns.iter().rposition(|entry|
                     entry.selector == registers.cs && entry.offset == u32::from(registers.ip())
-                        && entry.stack == registers.ss && entry.stack == before.ss
-                        && entry.frame_sp == before.sp()) {
+                        && entry.stack == registers.ss && entry.stack == stack_selector
+                        && entry.frame_sp == frame_sp) {
                     self.far_returns.truncate(index);
                 }
             }

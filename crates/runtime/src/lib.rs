@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 mod clock;
+mod cpu_execution;
 mod diagnostics;
 mod environment;
 mod hardware_interrupts;
