@@ -1,23 +1,31 @@
-use rustc_apfloat::ieee::Quad;
-use rustc_apfloat::Float;
+//! Table-assisted binary128 minimax kernels with fused polynomial evaluation.
+//!
+//! Fits and certified polynomial errors are recorded beside the coefficient
+//! data. The actual instruction result also includes reduction, evaluation,
+//! and Ext80 rounding error; those are not covered by the polynomial bound.
+
+use rustc_apfloat::{Float, Round, ieee::Quad};
 
 use crate::x87_state::Ext80;
 
-use super::payne_hanek;
+use super::{coefficients, payne_hanek};
 
+const ONE_BITS: u128 = 0x3fff_0000_0000_0000_0000_0000_0000_0000;
 const PI_BITS: u128 = 0x4000_921f_b544_42d1_8469_898c_c517_01b8;
-const LN2_BITS: u128 = 0x3ffe_62e4_2fef_a39e_f357_93c7_6730_07e5;
+const CELL_BITS: i32 = 5; // Centers are spaced by 1/32.
+// Binary128 has 113 significand bits. Below these exponents the omitted
+// relative correction is <2^-119: cubic for odd functions, quadratic for
+// cosine, and quadratic/linear for expm1. Instruction retirement still owns
+// the strict directional inequalities when an approximation equals its input.
+const ODD_LINEAR_MAX_EXPONENT: i32 = -60;
+const EXP_LINEAR_MAX_EXPONENT: i32 = -120;
 
-fn pi_value() -> Quad {
+pub(crate) fn one() -> Quad {
+    Quad::from_bits(ONE_BITS)
+}
+
+pub(crate) fn pi() -> Quad {
     Quad::from_bits(PI_BITS)
-}
-
-fn ln2() -> Quad {
-    Quad::from_bits(LN2_BITS)
-}
-
-fn integer(value: i128) -> Quad {
-    Quad::from_i128(value).value
 }
 
 pub(crate) fn add(left: Quad, right: Quad) -> Quad {
@@ -36,168 +44,138 @@ fn div(left: Quad, right: Quad) -> Quad {
     (left / right).value
 }
 
-/// Approximate 2^x-1 on x in [-1,1] with an expm1 Taylor recurrence.
-/// The recurrence avoids subtractive cancellation near zero. At |x|<=1,
-/// forty terms leave a tail far below Quad's 113-bit significand.
+fn inverse_ln2() -> Quad {
+    Quad::from_bits(coefficients::INV_LN2[0])
+}
+
+/// Each software FMA rounds once to binary128, independent of the host FPU.
+/// APFloat provides arithmetic but no transcendental functions, so these
+/// bounded-domain polynomials and reductions belong to the instruction layer.
+fn polynomial<const N: usize>(x: Quad, coefficients: &[u128; N]) -> Quad {
+    let mut value = Quad::from_bits(coefficients[N - 1]);
+    for &coefficient in coefficients[..N - 1].iter().rev() {
+        value = value.mul_add(x, Quad::from_bits(coefficient)).value;
+    }
+    value
+}
+
+/// The caller has already bounded the scaled positive argument to [0,32].
+/// Nearest/even cell selection gives a residual distance of at most 1/64.
+fn nearest_cell(scaled: Quad) -> usize {
+    let mut exact = false;
+    scaled
+        .to_u128_r(CELL_BITS as usize + 1, Round::NearestTiesToEven, &mut exact)
+        .value as usize
+}
+
+/// F2XM1: approximate on [-1/4,1/4], then apply expm1(2a)=u*(u+2)
+/// twice. FMA performs each reconstruction without subtracting nearly equal
+/// values. The linear tiny path differs by less than binary128 guard precision.
 pub(crate) fn exp2m1(x: Quad) -> Quad {
-    let z = mul(x, ln2());
-    if z.is_zero() {
-        return z;
+    if x.is_zero() || x.abs().ilogb() <= EXP_LINEAR_MAX_EXPONENT {
+        return mul(x, Quad::from_bits(coefficients::EXP[0]));
     }
-    let mut term = z;
-    let mut sum = z;
-    for n in 2..=48_i128 {
-        term = div(mul(term, z), integer(n));
-        let next = add(sum, term);
-        if next.bitwise_eq(sum) {
-            break;
-        }
-        sum = next;
+    let reduced = x.scalbn(-2);
+    let mut value = mul(reduced, polynomial(reduced, &coefficients::EXP));
+    for _ in 0..2 {
+        value = value.mul_add(value, value.scalbn(1)).value;
     }
-    sum
+    value
 }
 
-/// Compute log2(x) for positive finite x. The mantissa is scaled into
-/// [3/4,3/2], keeping the atanh-series argument within 1/5. `exact` is true
-/// precisely for powers of two; all other positive finite inputs have an
-/// irrational base-2 logarithm.
+/// Positive finite x is normalized to [1,2). A nearest dyadic center c leaves
+/// u=(m-c)/(m+c) with |u|<=1/128. The identity ln(m/c)=2*atanh(u)
+/// avoids loss of small residuals, and powers of two keep their exact result.
 pub(crate) fn log2_positive(x: Quad) -> (Quad, bool) {
-    let mut exponent = x.ilogb();
-    let mut mantissa = x.scalbn(-exponent);
-    let three_halves = integer(3).scalbn(-1);
-    if mantissa > three_halves {
-        mantissa = mantissa.scalbn(-1);
-        exponent += 1;
+    let exponent = x.ilogb();
+    let mantissa = x.scalbn(-exponent);
+    let integral = Quad::from_i128(i128::from(exponent)).value;
+    if mantissa.bitwise_eq(one()) {
+        return (integral, true);
     }
-
-    let z = div(sub(mantissa, Quad::from_bits(0x3fff_0000_0000_0000_0000_0000_0000_0000)),
-        add(mantissa, Quad::from_bits(0x3fff_0000_0000_0000_0000_0000_0000_0000)));
-    let exact = z.is_zero();
-    if exact {
-        return (integer(i128::from(exponent)), true);
-    }
-
-    let z2 = mul(z, z);
-    let mut power = z;
-    let mut sum = z;
-    for k in 1..=80_i128 {
-        power = mul(power, z2);
-        let term = div(power, integer(2 * k + 1));
-        let next = add(sum, term);
-        if next.bitwise_eq(sum) {
-            break;
-        }
-        sum = next;
-    }
-    let log_mantissa = mul(integer(2), sum);
-    let fractional = div(log_mantissa, ln2());
-    (add(integer(i128::from(exponent)), fractional), false)
+    let index = nearest_cell(sub(mantissa, one()).scalbn(CELL_BITS));
+    let center = add(
+        one(),
+        Quad::from_u128(index as u128).value.scalbn(-CELL_BITS),
+    );
+    let residual = div(sub(mantissa, center), add(mantissa, center));
+    let correction = mul(atanh_small(residual), inverse_ln2().scalbn(1));
+    let base = add(integral, Quad::from_bits(coefficients::LOG_CENTERS[index]));
+    (add(base, correction), false)
 }
 
-/// Stable log2(1+x) for -1/2 <= x <= 1/2. Using
-/// `u=x/(x+2)` retains tiny x even when `1+x` rounds to one in Quad.
+/// Keep tiny x in x/(x+2), avoiding a rounded 1+x that erases it. Outside
+/// |x|<=1/128, forming 1+x loses at most about seven bits of relative guard
+/// precision; the table-assisted positive logarithm then handles the value.
 pub(crate) fn log2_one_plus(x: Quad) -> (Quad, bool) {
     if x.is_zero() {
-        // Preserve log1p's signed-zero identity; the following multiplication
-        // in FYL2XP1 uses this sign for zero/infinity combinations.
-        return (if x.is_negative() { -Quad::ZERO } else { Quad::ZERO }, true);
+        return (x, true);
     }
-    let u = div(x, add(x, integer(2)));
-    let u2 = mul(u, u);
-    let mut power = u;
-    let mut sum = u;
-    for k in 1..=80_i128 {
-        power = mul(power, u2);
-        let term = div(power, integer(2 * k + 1));
-        let next = add(sum, term);
-        if next.bitwise_eq(sum) {
-            break;
-        }
-        sum = next;
+    if x.abs() <= one().scalbn(-7) {
+        let residual = div(x, add(x, one().scalbn(1)));
+        return (mul(atanh_small(residual), inverse_ln2().scalbn(1)), false);
     }
-    (div(mul(integer(2), sum), ln2()), false)
+    log2_positive(add(one(), x))
 }
 
-/// Return sin(x), cos(x) for a finite x in the architectural range.
-/// `magnitude` is the positive raw encoding; the input sign is applied here.
+fn atanh_small(x: Quad) -> Quad {
+    if x.is_zero() || x.abs().ilogb() <= ODD_LINEAR_MAX_EXPONENT {
+        return x;
+    }
+    mul(x, polynomial(mul(x, x), &coefficients::ATANH))
+}
+
+/// Payne-Hanek leaves a remainder in [-pi/4,pi/4]. The direct path is limited
+/// to that same interval, so the minimax kernels always use their fitted domain.
 pub(crate) fn sin_cos(magnitude: Ext80, value: Quad, negative: bool) -> (Quad, Quad) {
-    let (quadrant, reduced) = if magnitude.sign_exponent & 0x7fff < 0x3fff {
+    let (quadrant, reduced) = if value <= pi().scalbn(-2) {
         (0, value)
     } else {
         payne_hanek::reduce(magnitude)
     };
     let (sin_r, cos_r) = sin_cos_small(reduced);
-    let (mut sine, cosine) = match quadrant & 3 {
+    let (sine, cosine) = match quadrant {
         0 => (sin_r, cos_r),
         1 => (cos_r, -sin_r),
         2 => (-sin_r, -cos_r),
         _ => (-cos_r, sin_r),
     };
-    if negative {
-        sine = -sine;
-    }
-    (sine, cosine)
+    (if negative { -sine } else { sine }, cosine)
 }
 
 pub(crate) fn sin_cos_small(x: Quad) -> (Quad, Quad) {
-    let x2 = mul(x, x);
-    let mut sin_term = x;
-    let mut sine = x;
-    let mut cos_term = Quad::from_bits(0x3fff_0000_0000_0000_0000_0000_0000_0000);
-    let mut cosine = cos_term;
-
-    for n in 1..=32_i128 {
-        let s_denominator = integer((2 * n) * (2 * n + 1));
-        sin_term = -div(mul(sin_term, x2), s_denominator);
-        let next_sine = add(sine, sin_term);
-        let sine_done = next_sine.bitwise_eq(sine);
-        sine = next_sine;
-
-        let c_denominator = integer((2 * n - 1) * (2 * n));
-        cos_term = -div(mul(cos_term, x2), c_denominator);
-        let next_cosine = add(cosine, cos_term);
-        let cosine_done = next_cosine.bitwise_eq(cosine);
-        cosine = next_cosine;
-        if sine_done && cosine_done {
-            break;
-        }
+    if x.is_zero() || x.abs().ilogb() <= ODD_LINEAR_MAX_EXPONENT {
+        // sin(x)-x and cos(x)-1 are below binary128's useful precision;
+        // the instruction retirement layer retains their directed-rounding sides.
+        return (x, one());
     }
-    (sine, cosine)
+    let squared = mul(x, x);
+    (
+        mul(x, polynomial(squared, &coefficients::SIN)),
+        polynomial(squared, &coefficients::COS),
+    )
 }
 
-/// atan(t) for |t|<=1, reducing values above 1/2 around pi/4 before the
-/// alternating series. The largest series argument is 1/2, so 112 terms are
-/// more than sufficient for Quad precision.
+/// For |t|<=1, atan(t)=atan(c)+atan((t-c)/(1+c*t)) with c=k/32.
+/// The residual is bounded by 1/64, allowing an odd degree-17 minimax fit
+/// instead of a long alternating series. The table retains binary128 precision.
 pub(crate) fn atan_unit(t: Quad) -> Quad {
-    let half = integer(1).scalbn(-1);
-    if t.abs() > half {
-        let reduced = div(sub(t, integer(1)), add(t, integer(1)));
-        add(div(pi_value(), integer(4)), atan_series(reduced))
+    let magnitude = t.abs();
+    let index = nearest_cell(magnitude.scalbn(CELL_BITS));
+    let center = Quad::from_u128(index as u128).value.scalbn(-CELL_BITS);
+    let denominator = center.mul_add(magnitude, one()).value;
+    let residual = div(sub(magnitude, center), denominator);
+    let correction = if residual.is_zero() || residual.abs().ilogb() <= ODD_LINEAR_MAX_EXPONENT {
+        residual
     } else {
-        atan_series(t)
-    }
-}
-
-fn atan_series(x: Quad) -> Quad {
-    let x2 = mul(x, x);
-    let mut power = x;
-    let mut sum = x;
-    for n in 1..=128_i128 {
-        power = mul(power, x2);
-        let term = div(power, integer(2 * n + 1));
-        let next = if n & 1 == 0 { add(sum, term) } else { sub(sum, term) };
-        if next.bitwise_eq(sum) {
-            break;
-        }
-        sum = next;
-    }
-    sum
-}
-
-pub(crate) fn pi() -> Quad {
-    pi_value()
-}
-
-pub(crate) fn one() -> Quad {
-    Quad::from_bits(0x3fff_0000_0000_0000_0000_0000_0000_0000)
+        mul(
+            residual,
+            polynomial(mul(residual, residual), &coefficients::ATAN),
+        )
+    };
+    let value = add(
+        Quad::from_bits(coefficients::ATAN_CENTERS[index]),
+        correction,
+    );
+    if t.is_negative() { -value } else { value }
 }

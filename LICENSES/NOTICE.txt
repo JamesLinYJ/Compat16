@@ -4,6 +4,5 @@ Source and data notices
 The workspace manifest declares LGPL-2.1-or-later; the full text is in the root LICENSE. Third-party data and derivative source retain their own notices:
 
 - MS-DOS 4 US/CP437 NLS data: Microsoft Corporation copyright and MIT license; the source table points to LICENSES/Microsoft-MS-DOS-MIT.txt.
-- x87 transcendental implementation: numerical identities and range-reduction approach adapted from SoftFloat extension files written for Bochs by Stanislav Shwartsman. The derivative-work notice and required four paragraphs remain in crates/cpu/src/x87_transcendental/mod.rs.
 
 Registry crate licenses and notices are collected in LICENSES/DEPENDENCIES.txt. These notices do not claim Microsoft authored the project.

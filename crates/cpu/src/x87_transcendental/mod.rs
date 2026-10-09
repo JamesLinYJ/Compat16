@@ -1,46 +1,23 @@
-//! x87 transcendental instruction execution using a Quad-precision software
-//! approximation and one final extended-precision rounding step.
+//! x87 transcendental execution with binary128 software arithmetic.
 //!
-//! The numerical identities and range-reduction approach are adapted from
-//! legacy SoftFloat extension files `f2xm1.c`, `fyl2x.c`, `fpatan.c`, and
-//! `fsincos.c`, originally written for Bochs by Stanislav Shwartsman. This is
-//! a derivative Rust implementation; it does not copy their C implementation
-//! or its historical finite-precision argument-reduction behavior. The code
-//! uses an independent 256-bit Payne-Hanek reducer and the project APFloat
-//! adapter.
+//! Numerical kernels use independently computed minimax coefficients, dyadic
+//! center tables, fused Horner evaluation, and the 256-bit Payne-Hanek reducer.
+//! Coefficients are mathematical data; normal builds need neither Sollya nor a
+//! native numerical library. The existing instruction layer owns operand
+//! classification, stack effects, architectural exceptions, and Ext80 rounding.
 //!
-//! The relevant source header's derivative-work notice is retained here:
-//!
-//! > This source file is an extension to the SoftFloat IEC/IEEE Floating-point
-//! > Arithmetic Package, Release 2b, written for Bochs (x86 achitecture
-//! > simulator) floating point emulation.
-//! >
-//! > THIS SOFTWARE IS DISTRIBUTED AS IS, FOR FREE. Although reasonable effort
-//! > has been made to avoid it, THIS SOFTWARE MAY CONTAIN FAULTS THAT WILL AT
-//! > TIMES RESULT IN INCORRECT BEHAVIOR. USE OF THIS SOFTWARE IS RESTRICTED TO
-//! > PERSONS AND ORGANIZATIONS WHO CAN AND WILL TAKE FULL RESPONSIBILITY FOR
-//! > ALL LOSSES, COSTS, OR OTHER PROBLEMS THEY INCUR DUE TO THE SOFTWARE, AND
-//! > WHO FURTHERMORE EFFECTIVELY INDEMNIFY JOHN HAUSER AND THE INTERNATIONAL
-//! > COMPUTER SCIENCE INSTITUTE (possibly via similar legal warning) AGAINST
-//! > ALL LOSSES, COSTS, OR OTHER PROBLEMS INCURRED BY THEIR CUSTOMERS AND
-//! > CLIENTS DUE TO THE SOFTWARE.
-//! >
-//! > Derivative works are acceptable, even for commercial purposes, so long as
-//! > (1) the source code for the derivative work includes prominent notice
-//! > that the work is derivative, and (2) the source code includes prominent
-//! > notice with these four paragraphs for those parts of this code that are
-//! > retained.
-//! >
-//! > Written for Bochs (x86 achitecture simulator) by Stanislav Shwartsman
-//! > [sshwarts at sourceforge net].
-//!
-//! Quad has 113 significand bits. That is enough guard precision for ordinary
-//! x87 results and the reducer retains substantially more than the original
-//! 128-bit reduction constant for arguments below 2^63. It is not a proof of
-//! correct rounding for every hard-to-round transcendental input. Tiny results
-//! that lie outside Quad's exponent range and the last-bit directed-rounding
-//! cases are handled explicitly where the sign and direction are known; the
-//! remaining approximation bound is documented in `kernel.rs`.
+//! Russinoff, "Modeling the x87 Transcendental Instructions with Elementary
+//! Polynomial Approximations" (2007), distinguishes approximation bounds from
+//! final rounding guarantees. The fits here use different reductions and
+//! degrees; their certified exact-evaluation bounds are in `coefficients.hex`.
+//! They are not a proof of correctly rounded results for every input: reduction,
+//! finite arithmetic, extreme exponents, and hard-to-round boundaries remain
+//! separate numerical concerns. Existing tiny-result directional handling is
+//! preserved at instruction retirement.
+
+mod coefficients {
+    include!(concat!(env!("OUT_DIR"), "/x87_coefficients.rs"));
+}
 
 mod atan;
 mod kernel;
