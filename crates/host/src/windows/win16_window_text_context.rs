@@ -15,7 +15,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 use super::win16_window_worker::WorkerState;
-use super::guest_text::GuestTextBuffer;
+use crate::windows::guest_text::GuestTextBuffer;
 
 const MAX_NATIVE_TEXT_UNITS: usize = 1_048_576;
 

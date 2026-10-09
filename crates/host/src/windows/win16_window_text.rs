@@ -9,7 +9,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 use super::win16_window_worker::WorkerState;
-use super::guest_text::GuestTextBuffer;
+use crate::windows::guest_text::GuestTextBuffer;
 
 /// Non-NUL marker for owned text output buffers. Its value is not an encoding rule.
 pub(super) const WIN16_TEXT_OUTPUT_FILL: u8 = u8::MAX;
