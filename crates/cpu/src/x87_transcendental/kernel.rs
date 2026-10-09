@@ -71,16 +71,25 @@ fn nearest_cell(scaled: Quad) -> usize {
 /// F2XM1: approximate on [-1/4,1/4], then apply expm1(2a)=u*(u+2)
 /// twice. FMA performs each reconstruction without subtracting nearly equal
 /// values. The linear tiny path differs by less than binary128 guard precision.
-pub(crate) fn exp2m1(x: Quad) -> Quad {
-    if x.is_zero() || x.abs().ilogb() <= EXP_LINEAR_MAX_EXPONENT {
-        return mul(x, Quad::from_bits(coefficients::EXP[0]));
+pub(crate) fn exp2m1(x: Quad) -> (Quad, i32) {
+    if x.is_zero() {
+        return (x, 0);
+    }
+    let exponent = x.abs().ilogb();
+    if exponent <= EXP_LINEAR_MAX_EXPONENT {
+        // Keep guard bits for the unmasked-underflow biased register result,
+        // even when the eventual masked result is an Ext80 subnormal or zero.
+        return (
+            mul(x.scalbn(-exponent), Quad::from_bits(coefficients::EXP[0])),
+            exponent,
+        );
     }
     let reduced = x.scalbn(-2);
     let mut value = mul(reduced, polynomial(reduced, &coefficients::EXP));
     for _ in 0..2 {
         value = value.mul_add(value, value.scalbn(1)).value;
     }
-    value
+    (value, 0)
 }
 
 /// Positive finite x is normalized to [1,2). A nearest dyadic center c leaves
@@ -104,18 +113,28 @@ pub(crate) fn log2_positive(x: Quad) -> (Quad, bool) {
     (add(base, correction), false)
 }
 
-/// Keep tiny x in x/(x+2), avoiding a rounded 1+x that erases it. Outside
-/// |x|<=1/128, forming 1+x loses at most about seven bits of relative guard
-/// precision; the table-assisted positive logarithm then handles the value.
-pub(crate) fn log2_one_plus(x: Quad) -> (Quad, bool) {
+/// Return a logarithm significand, separate scale, and exactness. Normalize
+/// extremely tiny x before x/ln(2): rounding a subnormal intermediate can
+/// discard guard bits that a later multiplication by large y would expose.
+/// Outside |x|<=1/128, forming 1+x loses at most about seven guard bits.
+pub(crate) fn log2_one_plus(x: Quad) -> (Quad, i32, bool) {
     if x.is_zero() {
-        return (x, true);
+        return (x, 0, true);
+    }
+    let exponent = x.abs().ilogb();
+    if exponent <= EXP_LINEAR_MAX_EXPONENT {
+        return (mul(x.scalbn(-exponent), inverse_ln2()), exponent, false);
     }
     if x.abs() <= one().scalbn(-7) {
         let residual = div(x, add(x, one().scalbn(1)));
-        return (mul(atanh_small(residual), inverse_ln2().scalbn(1)), false);
+        return (
+            mul(atanh_small(residual), inverse_ln2().scalbn(1)),
+            0,
+            false,
+        );
     }
-    log2_positive(add(one(), x))
+    let (value, exact) = log2_positive(add(one(), x));
+    (value, 0, exact)
 }
 
 fn atanh_small(x: Quad) -> Quad {

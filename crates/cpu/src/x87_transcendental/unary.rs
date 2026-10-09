@@ -34,8 +34,8 @@ pub(super) fn f2xm1(state: &mut X87State) -> bool {
             Ext80 { significand: 1 << 63, sign_exponent: 0x3fff }
         }
     } else {
-        let approximation = kernel::exp2m1(x);
-        let result = status::round_quad(state, approximation, true);
+        let (approximation, exponent_adjust) = kernel::exp2m1(x);
+        let result = status::round_quad_scaled(state, approximation, exponent_adjust, true);
         commit_rounded(state, result);
         return true;
     };

@@ -55,7 +55,11 @@ pub(super) fn fyl2x(state: &mut X87State, plus_one: bool) -> bool {
 
 #[derive(Clone, Copy)]
 enum Logarithm {
-    Finite { value: Quad, exact: bool },
+    Finite {
+        value: Quad,
+        exponent_adjust: i32,
+        exact: bool,
+    },
     Infinity { negative: bool },
     Invalid,
 }
@@ -67,6 +71,7 @@ fn logarithm_operand(input: Decoded, plus_one: bool) -> (Logarithm, u16) {
                 return (
                     Logarithm::Finite {
                         value: Quad::from_bits(0xbfff_0000_0000_0000_0000_0000_0000_0000),
+                        exponent_adjust: 0,
                         exact: true,
                     },
                     0,
@@ -74,8 +79,15 @@ fn logarithm_operand(input: Decoded, plus_one: bool) -> (Logarithm, u16) {
             }
             let (argument, exact_argument) = if plus_one {
                 if x.abs() <= kernel::one().scalbn(-1) {
-                    let (value, exact) = kernel::log2_one_plus(x);
-                    return (Logarithm::Finite { value, exact }, 0);
+                    let (value, exponent_adjust, exact) = kernel::log2_one_plus(x);
+                    return (
+                        Logarithm::Finite {
+                            value,
+                            exponent_adjust,
+                            exact,
+                        },
+                        0,
+                    );
                 }
                 if x.is_negative() {
                     ((x + kernel::one()).value, true)
@@ -105,7 +117,14 @@ fn logarithm_operand(input: Decoded, plus_one: bool) -> (Logarithm, u16) {
                 return (Logarithm::Invalid, IE);
             }
             let (value, exact) = kernel::log2_positive(argument);
-            (Logarithm::Finite { value, exact: exact && exact_argument }, 0)
+            (
+                Logarithm::Finite {
+                    value,
+                    exponent_adjust: 0,
+                    exact: exact && exact_argument,
+                },
+                0,
+            )
         }
         Number::Infinity { negative: false } => (Logarithm::Infinity { negative: false }, 0),
         Number::Infinity { negative: true } => (Logarithm::Invalid, IE),
@@ -141,7 +160,11 @@ fn product_with_log(y: Decoded, logarithm: Logarithm) -> ProductResult {
             Number::Infinity { negative } => ProductResult::infinite(negative ^ log_negative, 0),
             Number::NaN { .. } | Number::Unsupported => ProductResult::invalid(IE),
         },
-        Logarithm::Finite { value: log_value, exact } => match y.number {
+        Logarithm::Finite {
+            value: log_value,
+            exponent_adjust: log_scale,
+            exact,
+        } => match y.number {
             Number::Finite(y_value) => {
                 if y_value.is_zero() || log_value.is_zero() {
                     let product = (y_value * log_value).value;
@@ -168,6 +191,7 @@ fn product_with_log(y: Decoded, logarithm: Logarithm) -> ProductResult {
                     normalized_product,
                     y_exponent
                         .saturating_add(log_exponent)
+                        .saturating_add(log_scale)
                         .saturating_add(product_exponent),
                     !exact || product_inexact,
                     0,
