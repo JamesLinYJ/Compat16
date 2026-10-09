@@ -147,11 +147,7 @@ fn atanh_small(x: Quad) -> Quad {
 /// Payne-Hanek leaves a remainder in [-pi/4,pi/4]. The direct path is limited
 /// to that same interval, so the minimax kernels always use their fitted domain.
 pub(crate) fn sin_cos(magnitude: Ext80, value: Quad, negative: bool) -> (Quad, Quad) {
-    let (quadrant, reduced) = if value <= pi().scalbn(-2) {
-        (0, value)
-    } else {
-        payne_hanek::reduce(magnitude)
-    };
+    let (quadrant, reduced) = reduce_angle(magnitude, value);
     let (sin_r, cos_r) = sin_cos_small(reduced);
     let (sine, cosine) = match quadrant {
         0 => (sin_r, cos_r),
@@ -160,6 +156,47 @@ pub(crate) fn sin_cos(magnitude: Ext80, value: Quad, negative: bool) -> (Quad, Q
         _ => (-cos_r, sin_r),
     };
     (if negative { -sine } else { sine }, cosine)
+}
+
+fn reduce_angle(magnitude: Ext80, value: Quad) -> (u8, Quad) {
+    if value <= pi().scalbn(-2) {
+        (0, value)
+    } else {
+        payne_hanek::reduce(magnitude)
+    }
+}
+
+pub(crate) fn sin(magnitude: Ext80, value: Quad, negative: bool) -> Quad {
+    single_trig(magnitude, value, negative, false)
+}
+
+pub(crate) fn cos(magnitude: Ext80, value: Quad) -> Quad {
+    single_trig(magnitude, value, false, true)
+}
+
+/// A scalar instruction needs only one reduced polynomial. Odd quadrants
+/// exchange sine and cosine, while the original reduction and coefficient
+/// evaluation order remain identical to the paired instruction path.
+fn single_trig(magnitude: Ext80, value: Quad, negative: bool, cosine: bool) -> Quad {
+    let (quadrant, reduced) = reduce_angle(magnitude, value);
+    let use_cosine = (quadrant & 1 != 0) ^ cosine;
+    let tiny = reduced.is_zero() || reduced.abs().ilogb() <= ODD_LINEAR_MAX_EXPONENT;
+    let result = if tiny {
+        if use_cosine { one() } else { reduced }
+    } else {
+        let squared = mul(reduced, reduced);
+        if use_cosine {
+            polynomial(squared, &coefficients::COS)
+        } else {
+            mul(reduced, polynomial(squared, &coefficients::SIN))
+        }
+    };
+    let quadrant_negative = if cosine {
+        matches!(quadrant, 1 | 2)
+    } else {
+        quadrant & 2 != 0
+    };
+    if negative ^ quadrant_negative { -result } else { result }
 }
 
 pub(crate) fn sin_cos_small(x: Quad) -> (Quad, Quad) {

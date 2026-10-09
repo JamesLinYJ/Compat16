@@ -160,23 +160,26 @@ fn trig(state: &mut X87State, op: TrigOp) -> bool {
     }
     status::clear_c2(state);
     let magnitude = Ext80 { sign_exponent: raw.sign_exponent & 0x7fff, ..raw };
-    let (sine, cosine) = kernel::sin_cos(magnitude, x.abs(), value::sign(raw));
     let nonzero = !x.is_zero();
     match op {
         TrigOp::Sin => {
+            let sine = kernel::sin(magnitude, x.abs(), value::sign(raw));
             let result = round_sine(state, sine, x, raw, nonzero);
             commit_rounded(state, result);
         }
         TrigOp::Cos => {
+            let cosine = kernel::cos(magnitude, x.abs());
             let result = round_cosine(state, cosine, nonzero);
             commit_rounded(state, result);
         }
         TrigOp::SinCos => {
+            let (sine, cosine) = kernel::sin_cos(magnitude, x.abs(), value::sign(raw));
             let sin_result = round_sine(state, sine, x, raw, nonzero);
             let cos_result = round_cosine(state, cosine, nonzero);
             push_pair(state, sin_result, cos_result, masked_source_underflow);
         }
         TrigOp::Tan => {
+            let (sine, cosine) = kernel::sin_cos(magnitude, x.abs(), value::sign(raw));
             if let Some((tangent, exponent_adjust)) = wide_quotient(sine, cosine) {
                 let result = round_tangent(
                     state,

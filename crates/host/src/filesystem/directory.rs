@@ -243,12 +243,14 @@ impl Filesystem {
     ) -> Result<DosHostSearch, DosHostError> {
         let path = self.resolve_path(directory, true)?;
         let path = self.confined_path(&path, true, false)?;
-        let dir = self
-            .root
-            .open_dir(Self::cap_path(&path))
-            .map_err(os_error)?;
-        drop(dir);
-        let aliases = self.aliases_for(&path)?.clone();
+        let (directory_entries, case_sensitivity) = self.read_directory_entries(&path)?;
+        let names = directory_entries
+            .iter()
+            .map(|entry| entry.name.clone())
+            .collect();
+        self.refresh_aliases_for_names(&path, names, case_sensitivity)?;
+        let aliases = self.aliases.get(&path).expect("alias table was inserted");
+        let code_page = self.code_page;
         let mut entries = Vec::with_capacity(aliases.by_real_name.len() + 2);
         // DOS subdirectories expose their current and parent directory entries.
         // Rust's read_dir omits these names. They describe the mapped hierarchy;
@@ -274,24 +276,16 @@ impl Filesystem {
                 });
             }
         }
-        for item in self
-            .root
-            .read_dir(Self::cap_path(&path))
-            .map_err(os_error)?
-        {
-            let item = item.map_err(os_error)?;
-            let name = item.file_name();
-            if name.to_str().is_some_and(super::is_reserved_device_name) {
-                continue;
-            }
+        for directory_entry in directory_entries {
+            let name = directory_entry.name;
             let Some(short_name) = aliases.by_real_name.get(&name) else {
                 return Err(invalid(DosErrorCode::GeneralFailure));
             };
-            let encoded_name = encode(short_name, self.code_page)?;
+            let encoded_name = encode(short_name, code_page)?;
             // Windows directory enumeration already supplies entry metadata.
             // Listing a link or protected child does not require opening its
             // target; access checks still apply when the guest opens it.
-            let metadata = item.metadata().map_err(os_error)?;
+            let metadata = directory_entry.entry.metadata().map_err(os_error)?;
             let (write_time, write_date) = metadata::dos_write_time(&metadata)?;
             let attributes = metadata::dos_attributes(&metadata);
             let size = if attributes & metadata::DOS_ATTRIBUTE_DIRECTORY != 0 {

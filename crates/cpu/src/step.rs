@@ -335,7 +335,9 @@ impl Cpu {
                 eflags: self.regs.eflags,
             },
         );
-        let decoded = x86_decode::decode(&mut bus, self.regs.cs, start_ip)?;
+        let decoded = x86_decode::decode_cached(
+            &mut bus, self.regs.cs, start_ip, &mut self.decode_cache,
+        )?;
         bus.set_instruction_opcode(decoded.opcode);
         if !self
             .model

@@ -99,6 +99,9 @@ impl ControlTransfer {
 /// Architectural state shared by the instruction engine and machine owner.
 pub struct Cpu {
     pub regs: Registers,
+    // Nonarchitectural reuse, deliberately excluded from CpuContext. Every
+    // hit is checked against bytes fetched from the current memory context.
+    decode_cache: x86_decode::DecodeCache,
     model: CpuModel,
     x87: x87_state::X87State,
     pending_x87_irq13: bool,
@@ -166,6 +169,7 @@ impl Cpu {
         let system = system::CpuSystem::reset_for_registers(&regs);
         Self {
             regs,
+            decode_cache: x86_decode::DecodeCache::default(),
             model,
             x87: x87_state::X87State::default(),
             pending_x87_irq13: false,

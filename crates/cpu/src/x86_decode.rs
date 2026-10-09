@@ -18,6 +18,9 @@ use crate::{ControlTransfer, CpuError, CpuExecutionMode, registers::SegmentRegis
 
 const MAX_INSTRUCTION_LENGTH: usize = 15;
 
+mod cache;
+pub(crate) use cache::DecodeCache;
+
 mod system;
 pub(super) use system::{
     NormalizedSystemInstruction, SelectorQuery, SystemMemoryAddress, SystemOperand,
@@ -160,10 +163,29 @@ fn is_far_call(instruction: Instruction) -> bool {
 
 /// Decode exactly the bytes iced-x86 asks for, never speculatively fetching
 /// the remainder of the architectural 15-byte instruction window.
+#[cfg(test)]
 pub(super) fn decode(
     bus: &mut impl CpuBus,
     cs: u16,
     start_ip: u32,
+) -> Result<DecodedInstruction, CpuError> {
+    decode_inner(bus, cs, start_ip, None)
+}
+
+pub(super) fn decode_cached(
+    bus: &mut impl CpuBus,
+    cs: u16,
+    start_ip: u32,
+    cache: &mut DecodeCache,
+) -> Result<DecodedInstruction, CpuError> {
+    decode_inner(bus, cs, start_ip, Some(cache))
+}
+
+fn decode_inner(
+    bus: &mut impl CpuBus,
+    cs: u16,
+    start_ip: u32,
+    mut cache: Option<&mut DecodeCache>,
 ) -> Result<DecodedInstruction, CpuError> {
     let bits = bus.code_bits();
     if !matches!(bits, 16 | 32) {
@@ -177,6 +199,10 @@ pub(super) fn decode(
         u32::MAX
     };
     let mut bytes = [0_u8; MAX_INSTRUCTION_LENGTH];
+    let candidate = cache.as_ref().and_then(|cache| {
+        cache.lookup(cs, start_ip, bits, protected_eip32)
+    });
+    let mut candidate_matches = true;
     for length in 1..=MAX_INSTRUCTION_LENGTH {
         let fetch_ip =
             start_ip
@@ -199,6 +225,18 @@ pub(super) fn decode(
             &mut bytes[length - 1..length],
         )?;
 
+        if let Some(candidate) = candidate {
+            candidate_matches &= bytes[length - 1] == candidate.bytes[length - 1];
+            if candidate_matches {
+                if length == candidate.decoded.instruction.len() {
+                    return Ok(candidate.decoded);
+                }
+                // This unchanged prefix belonged to a complete instruction.
+                // Read its next byte through the same bus before reusing it.
+                continue;
+            }
+        }
+
         let mut decoder = Decoder::with_ip(
             bits,
             &bytes[..length],
@@ -209,7 +247,7 @@ pub(super) fn decode(
         match decoder.last_error() {
             DecoderError::None if !instruction.is_invalid() => {
                 let instruction_length = instruction.len() as u32;
-                return Ok(DecodedInstruction {
+                let decoded = DecodedInstruction {
                     instruction,
                     opcode: bytes[0],
                     operand32: if bits == 16 {
@@ -220,7 +258,11 @@ pub(super) fn decode(
                     x87_opcode: x87_opcode(&bytes[..length]),
                     start_ip,
                     next_ip: start_ip.wrapping_add(instruction_length) & ip_mask,
-                });
+                };
+                if let Some(cache) = cache.as_mut() {
+                    cache.insert(cs, bits, protected_eip32, bytes, decoded);
+                }
+                return Ok(decoded);
             }
             DecoderError::NoMoreBytes if length < MAX_INSTRUCTION_LENGTH => {}
             DecoderError::NoMoreBytes => {

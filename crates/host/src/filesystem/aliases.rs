@@ -6,6 +6,7 @@ use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::os::windows::io::AsRawHandle;
 use std::path::Path;
 
+use cap_std::fs::DirEntry;
 use dos_kernel::{DosErrorCode, DosHostError};
 use windows_sys::Win32::Foundation::{
     ERROR_FILE_NOT_FOUND, ERROR_INVALID_FUNCTION, ERROR_INVALID_PARAMETER, ERROR_NOT_SUPPORTED,
@@ -72,6 +73,11 @@ impl AliasTable {
 pub(super) enum RealNameLookup {
     Resolved(Option<OsString>),
     Native { ordinal_candidate_exists: bool },
+}
+
+pub(super) struct DirectoryEntry {
+    pub(super) name: OsString,
+    pub(super) entry: DirEntry,
 }
 
 impl Filesystem {
@@ -218,9 +224,61 @@ impl Filesystem {
         directory: &Path,
     ) -> Result<(Vec<OsString>, DirectoryCaseSensitivity), DosHostError> {
         let directory = self.confined_path(directory, true, false)?;
+        let case_sensitivity = self.directory_case_sensitivity(&directory)?;
+        let mut names = Vec::new();
+        for item in self
+            .root
+            .read_dir(Self::cap_path(&directory))
+            .map_err(os_error)?
+        {
+            let name = item.map_err(os_error)?.file_name();
+            // Never expose a host entry through an alias that would later be
+            // interpreted by Win32 as a device rather than a directory child.
+            if !name.to_str().is_some_and(super::is_reserved_device_name) {
+                names.push(name);
+            }
+        }
+        Ok((
+            sort_directory_names(names, OsString::as_os_str),
+            case_sensitivity,
+        ))
+    }
+
+    /// Read one confined directory snapshot while retaining each native entry
+    /// for metadata retrieval after aliases have been refreshed from its names.
+    pub(super) fn read_directory_entries(
+        &self,
+        directory: &Path,
+    ) -> Result<(Vec<DirectoryEntry>, DirectoryCaseSensitivity), DosHostError> {
+        let directory = self.confined_path(directory, true, false)?;
+        let case_sensitivity = self.directory_case_sensitivity(&directory)?;
+        let mut entries = Vec::new();
+        for item in self
+            .root
+            .read_dir(Self::cap_path(&directory))
+            .map_err(os_error)?
+        {
+            let entry = item.map_err(os_error)?;
+            let name = entry.file_name();
+            // Keep the search snapshot in the same DOS-visible namespace as
+            // the aliases built from it.
+            if !name.to_str().is_some_and(super::is_reserved_device_name) {
+                entries.push(DirectoryEntry { name, entry });
+            }
+        }
+        Ok((
+            sort_directory_names(entries, |entry| entry.name.as_os_str()),
+            case_sensitivity,
+        ))
+    }
+
+    fn directory_case_sensitivity(
+        &self,
+        directory: &Path,
+    ) -> Result<DirectoryCaseSensitivity, DosHostError> {
         let native_directory = self
             .root
-            .open_dir(Self::cap_path(&directory))
+            .open_dir(Self::cap_path(directory))
             .map_err(os_error)?
             .into_std_file();
         let mut case_sensitive_info = FILE_CASE_SENSITIVE_INFO::default();
@@ -256,27 +314,7 @@ impl Filesystem {
             }
         };
         drop(native_directory);
-
-        let mut names = Vec::new();
-        for item in self
-            .root
-            .read_dir(Self::cap_path(&directory))
-            .map_err(crate::windows::os_error)?
-        {
-            let name = item.map_err(crate::windows::os_error)?.file_name();
-            // Never expose a host entry through an alias that would later be
-            // interpreted by Win32 as a device rather than a directory child.
-            if !name.to_str().is_some_and(super::is_reserved_device_name) {
-                names.push(name);
-            }
-        }
-        names.sort_by(|left, right| {
-            left.to_string_lossy()
-                .to_ascii_lowercase()
-                .cmp(&right.to_string_lossy().to_ascii_lowercase())
-                .then_with(|| left.cmp(right))
-        });
-        Ok((names, case_sensitivity))
+        Ok(case_sensitivity)
     }
 
     pub(super) fn aliases_for(&mut self, directory: &Path) -> Result<&AliasTable, DosHostError> {
@@ -284,14 +322,24 @@ impl Filesystem {
         // that remain. This makes external additions visible without changing
         // active aliases already returned to the guest.
         let (names, case_sensitivity) = self.read_names(directory)?;
-        let native_short_names = self.native_short_names(directory);
-        let previous = self.aliases.remove(directory).unwrap_or_default();
-        let table = make_alias_table(names, previous, native_short_names, case_sensitivity)?;
-        self.aliases.insert(directory.to_path_buf(), table);
+        self.refresh_aliases_for_names(directory, names, case_sensitivity)?;
         Ok(self
             .aliases
             .get(directory)
             .expect("alias table was inserted"))
+    }
+
+    pub(super) fn refresh_aliases_for_names(
+        &mut self,
+        directory: &Path,
+        names: Vec<OsString>,
+        case_sensitivity: DirectoryCaseSensitivity,
+    ) -> Result<(), DosHostError> {
+        let native_short_names = self.native_short_names(directory);
+        let previous = self.aliases.remove(directory).unwrap_or_default();
+        let table = make_alias_table(names, previous, native_short_names, case_sensitivity)?;
+        self.aliases.insert(directory.to_path_buf(), table);
+        Ok(())
     }
 
     /// Ask the already capability-opened directory for its native 8.3 aliases.
@@ -390,6 +438,25 @@ impl Filesystem {
         }
         result
     }
+}
+
+fn sort_directory_names<T, F>(items: Vec<T>, name: F) -> Vec<T>
+where
+    F: for<'a> Fn(&'a T) -> &'a OsStr,
+{
+    let mut keyed: Vec<_> = items
+        .into_iter()
+        .map(|item| {
+            let sort_key = name(&item).to_string_lossy().to_ascii_lowercase();
+            (sort_key, item)
+        })
+        .collect();
+    keyed.sort_by(|(left_key, left), (right_key, right)| {
+        left_key
+            .cmp(right_key)
+            .then_with(|| name(left).cmp(name(right)))
+    });
+    keyed.into_iter().map(|(_, item)| item).collect()
 }
 
 fn make_alias_table(
