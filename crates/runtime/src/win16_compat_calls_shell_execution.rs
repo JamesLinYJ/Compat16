@@ -28,6 +28,9 @@ impl Win16ShellExecutionContinuation {
         &self,
     ) -> Option<(u16, ExternalApplicationKind)> {
         match self.kind {
+            Win16ShellExecutionContinuationKind::WinExec { identity } => {
+                Some((identity, ExternalApplicationKind::Activation))
+            }
             Win16ShellExecutionContinuationKind::Execute { identity } => {
                 Some((identity, ExternalApplicationKind::Activation))
             }
@@ -41,6 +44,7 @@ impl Win16ShellExecutionContinuation {
 }
 
 pub(super) enum Win16ShellExecutionContinuationKind {
+    WinExec { identity: u16 },
     DragAcceptFiles,
     Execute {
         identity: u16,
@@ -129,6 +133,33 @@ fn project_shell_execution_result(
     let reserved_identity = continuation.terminal_external_application();
     let return_kind = continuation.return_kind;
     let value = match (&continuation.kind, result) {
+        (
+            Win16ShellExecutionContinuationKind::WinExec { identity },
+            Win16HostShellExecutionResult::WinExec(Ok(activation)),
+        ) => {
+            let application_state = match activation {
+                Win16HostShellActivation::ProcessStarted { process } => {
+                    ExternalApplicationState::ProcessStarted { process: *process }
+                }
+                Win16HostShellActivation::NativeActivationReceipt => {
+                    ExternalApplicationState::NativeActivationReceipt
+                }
+            };
+            state.commit_external_application(
+                *identity,
+                ExternalApplicationKind::Activation,
+                application_state,
+            )?;
+            u32::from(*identity)
+        }
+        (
+            Win16ShellExecutionContinuationKind::WinExec { identity },
+            Win16HostShellExecutionResult::WinExec(Err(failure)),
+        ) => {
+            rollback_expected_api_failure(state, *identity, ExternalApplicationKind::Activation,
+                RuntimeError::new(Kind::HostFailure, "native WinExec process creation failed"))?;
+            u32::from(failure.code)
+        }
         (
             Win16ShellExecutionContinuationKind::DragAcceptFiles,
             Win16HostShellExecutionResult::DragAcceptFiles(accepted),
@@ -412,6 +443,15 @@ fn project_shell_execution_result(
     };
     if matches!(continuation.kind, Win16ShellExecutionContinuationKind::Execute { .. }) {
         host.observe_win16_io(&crate::Win16IoEvent::ShellExecuteResult { value });
+    } else if matches!(continuation.kind, Win16ShellExecutionContinuationKind::WinExec { .. }) {
+        let native_error = match result {
+            Win16HostShellExecutionResult::WinExec(Err(failure)) => failure.native_error,
+            _ => None,
+        };
+        host.observe_win16_io(&crate::Win16IoEvent::WinExecResult {
+            value: value as u16,
+            native_error,
+        });
     }
     Ok((value, return_kind))
 }
@@ -427,6 +467,35 @@ impl Win16State {
         return_kind: Win16ReturnKind,
     ) -> Result<Option<u8>, RuntimeError> {
         match request {
+            Win16ShellExecutionRequest::WinExec { command_line, show } => {
+                let owner = self.current_task_owner()?;
+                let directory = self.kernel_file_system.current_directory_text(owner)?;
+                host.observe_win16_io(&crate::Win16IoEvent::WinExecRequest {
+                    command_line: &command_line,
+                    directory: &directory,
+                    show,
+                });
+                let identity = match self.reserve_external_application(ExternalApplicationKind::Activation) {
+                    Ok(identity) => identity,
+                    Err(error) if error.kind() == Kind::ResourceExhausted => {
+                        return self.complete_return(registers, return_to.0, return_to.1,
+                            return_to.2, 8, return_kind);
+                    }
+                    Err(error) => return Err(error),
+                };
+                self.begin_reserved_shell_operation(
+                    registers, memory, host,
+                    Win16WindowOperation::ShellExecution(Win16HostShellExecutionOperation::WinExec {
+                        command_line, directory, show,
+                    }),
+                    identity, ExternalApplicationKind::Activation,
+                    WindowReturn::ShellExecution(Win16ShellExecutionContinuation {
+                        kind: Win16ShellExecutionContinuationKind::WinExec { identity },
+                        return_kind,
+                    }),
+                    return_to,
+                )
+            }
             Win16ShellExecutionRequest::Execute {
                 owner,
                 operation,

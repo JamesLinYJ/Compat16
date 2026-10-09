@@ -323,6 +323,17 @@ pub(super) fn decode(
                 source1: dword_argument(arguments, 1)?, source2: dword_argument(arguments, 2)?,
             },
         )),
+        Win16ExportId::UserEqualRect => Win16ApiRequest::User(super::Win16UserRequest::Geometry(
+            super::Win16UserGeometryRequest::EqualRect {
+                source1: dword_argument(arguments, 0)?, source2: dword_argument(arguments, 1)?,
+            },
+        )),
+        Win16ExportId::UserSubtractRect => Win16ApiRequest::User(super::Win16UserRequest::Geometry(
+            super::Win16UserGeometryRequest::SubtractRect {
+                destination: dword_argument(arguments, 0)?,
+                source1: dword_argument(arguments, 1)?, source2: dword_argument(arguments, 2)?,
+            },
+        )),
         Win16ExportId::UserPtInRect => {
             let (x, y) = unpack_point(dword_argument(arguments, 1)?);
             Win16ApiRequest::User(super::Win16UserRequest::Geometry(

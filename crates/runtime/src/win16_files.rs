@@ -1,6 +1,8 @@
 //! Win16 task HFILE ownership and storage-query result conversion.
 
 use super::{FIRST_GUEST_HFILE, Win16State};
+use compat_services::win16_lzexpand::OFSTRUCT_BYTES;
+use guest_core::memory::Memory;
 use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostDriveKind, Win16HostFile,
     Win16HostFileClose};
 
@@ -16,6 +18,41 @@ const DRIVE_REMOTE: u16 = 4;
 const LAST_GUEST_HFILE: u16 = i16::MAX as u16;
 
 impl Win16State {
+    pub(super) fn open_structured_file(
+        &mut self, path: &[u8], ofstruct: u32, style: u16,
+        memory: &mut Memory, host: &mut impl RuntimeHost,
+    ) -> Result<u16, RuntimeError> {
+        let pointer = self.selectors.pointer_from_far(ofstruct).map_err(crate::runtime_error)?;
+        let previous = self.read_text_bytes(memory, pointer, OFSTRUCT_BYTES)?;
+        let output = self.prepare_text_write(memory, pointer, OFSTRUCT_BYTES)?;
+        let opened = host.win16_open_file(path, style, previous)?;
+        if opened.ofstruct.len() != OFSTRUCT_BYTES {
+            if let Some(file) = opened.file { let _ = host.win16_file_close(file)?; }
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "host OpenFile returned an invalid OFSTRUCT size"));
+        }
+        if let Err(error) = output.commit(memory, &opened.ofstruct) {
+            if let Some(file) = opened.file { let _ = host.win16_file_close(file)?; }
+            return Err(error);
+        }
+        let result = match opened.file {
+            Some(file) if opened.result >= 0 => match self.allocate_file_number(file) {
+                Some(number) => number,
+                None => { let _ = host.win16_file_close(file)?; super::INVALID_GUEST_HFILE }
+            },
+            Some(file) => {
+                let _ = host.win16_file_close(file)?;
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "host OpenFile returned a file for a failed result"));
+            }
+            None => opened.result as u16,
+        };
+        host.observe_win16_io(&crate::Win16IoEvent::Open {
+            path, mode: style, created: style & 0x1000 != 0, result: Some(result),
+        });
+        Ok(result)
+    }
+
     pub(super) fn open_legacy_file(
         &mut self, path: &[u8], mode: u16, created: bool, host: &mut impl RuntimeHost,
     ) -> Result<u16, RuntimeError> {

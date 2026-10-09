@@ -114,6 +114,10 @@ pub(super) const USER_INTERSECT_RECT_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "source1", kind: ArgumentKind::Dword, parameter_type: FAR_BUFFER },
     Win16Parameter { name: "source2", kind: ArgumentKind::Dword, parameter_type: FAR_BUFFER },
 ];
+pub(super) const USER_EQUAL_RECT_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "source1", kind: ArgumentKind::Dword, parameter_type: FAR_BUFFER },
+    Win16Parameter { name: "source2", kind: ArgumentKind::Dword, parameter_type: FAR_BUFFER },
+];
 pub(super) const USER_OUTPUT_RECT_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "rect", kind: ArgumentKind::Dword, parameter_type: FAR_OUTPUT_BUFFER },
 ];

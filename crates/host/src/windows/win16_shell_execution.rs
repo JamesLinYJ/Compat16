@@ -8,16 +8,21 @@ use std::sync::Arc;
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostProcess, Win16HostShellActivation,
     Win16HostShellExecutionOperation, Win16HostShellExecutionResult, Win16HostShellFailure,
-    Win16HostShellInputEncodingFailure, Win16NativeModalCancelSignal, Win16NativeModalCancellation,
+    Win16HostShellInputEncodingFailure, Win16HostWinExecFailure, Win16NativeModalCancelSignal, Win16NativeModalCancellation,
     Win16WindowResult, Win16WindowTarget,
 };
 use windows_sys::Win32::Foundation::{
-    ERROR_ACCESS_DENIED, ERROR_FILE_NOT_FOUND, ERROR_NOT_ENOUGH_MEMORY, ERROR_OUTOFMEMORY,
+    ERROR_ACCESS_DENIED, ERROR_BAD_EXE_FORMAT, ERROR_ELEVATION_REQUIRED, ERROR_FILE_NOT_FOUND,
+    ERROR_NOT_ENOUGH_MEMORY, ERROR_OUTOFMEMORY,
     ERROR_PATH_NOT_FOUND, ERROR_SHARING_VIOLATION, GetLastError, HWND, MAX_PATH,
+};
+use windows_sys::Win32::System::Threading::{
+    CreateProcessW, PROCESS_INFORMATION, STARTF_USESHOWWINDOW, STARTUPINFOW, WaitForInputIdle,
 };
 use windows_sys::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx, CoUninitialize};
 use windows_sys::Win32::UI::Shell::{
-    DragAcceptFiles, FindExecutableW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW,
+    DragAcceptFiles, FindExecutableW, SEE_MASK_CLASSNAME, SEE_MASK_NOASYNC,
+    SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW,
     ShellAboutW, ShellExecuteExW,
 };
 
@@ -27,6 +32,7 @@ use paths::{
     AnsiInputConversion, PathEncodingOutcome, lossless_executable_path, resolve_executable_input,
 };
 
+use super::super::guest_text::GuestTextCodec;
 use super::super::win16_images::Win16IconLease;
 use super::win16_window_worker::WorkerState;
 use super::win16_windows_dde::allocate_shared_identity;
@@ -99,6 +105,12 @@ pub(super) fn execute(
     operation: Win16HostShellExecutionOperation,
 ) -> Result<super::super::win16_modal::NativeModalOperationOutcome, RuntimeError> {
     match operation {
+        Win16HostShellExecutionOperation::WinExec { command_line, directory, show } => {
+            win_exec(state, &command_line, &directory, show).map(|result|
+                super::super::win16_modal::NativeModalOperationOutcome::Returned(
+                    Win16WindowResult::ShellExecution(Win16HostShellExecutionResult::WinExec(result)),
+                ))
+        }
         Win16HostShellExecutionOperation::DragAcceptFiles { owner, accept } => {
             let Some((token, hwnd)) = resolve_drop_owner(state, owner) else {
                 return Ok(
@@ -184,6 +196,187 @@ pub(super) fn execute(
             icon,
         ),
     }
+}
+
+fn win_exec(
+    state: &Rc<RefCell<WorkerState>>,
+    command_line: &[u8],
+    directory: &str,
+    show: u16,
+) -> Result<Result<Win16HostShellActivation, Win16HostWinExecFailure>, RuntimeError> {
+    let codec = state.borrow().text_codec;
+    let mut command = match codec.to_wide_z(command_line) {
+        Ok(command) if command.len() > 1 && command.len() <= 32_767 => command,
+        Ok(_) => return Ok(Err(Win16HostWinExecFailure { code: 11, native_error: None })),
+        Err(error) if error.kind() == Kind::InvalidInput =>
+            return Ok(Err(Win16HostWinExecFailure { code: 11, native_error: None })),
+        Err(error) => return Err(error),
+    };
+    let mut cwd: Vec<u16> = directory.encode_utf16().collect();
+    if cwd.is_empty() || cwd.contains(&0) {
+        return Ok(Err(Win16HostWinExecFailure { code: 3, native_error: None }));
+    }
+    cwd.push(0);
+    let token = {
+        let source = Arc::clone(&state.borrow().identity_source);
+        Win16HostProcess(allocate_shared_identity(&source)?)
+    };
+    {
+        let mut worker = state.borrow_mut();
+        worker.shell_processes.try_reserve(1).map_err(|error| RuntimeError::with_source(
+            Kind::ResourceExhausted, "reserve WinExec process lease", error))?;
+        worker.shell_processes.push(ProcessLease { token, handle: None });
+    }
+    let mut startup = STARTUPINFOW::default();
+    startup.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
+    startup.dwFlags = STARTF_USESHOWWINDOW;
+    startup.wShowWindow = show;
+    let mut process = PROCESS_INFORMATION::default();
+    let created = unsafe { CreateProcessW(
+        std::ptr::null(), command.as_mut_ptr(), std::ptr::null(), std::ptr::null(), 0, 0,
+        std::ptr::null(), cwd.as_ptr(), &startup, &mut process,
+    ) };
+    if created == 0 {
+        let error = unsafe { GetLastError() };
+        if error == ERROR_ELEVATION_REQUIRED {
+            let result = shell_execute_for_elevation(
+                state,
+                token,
+                codec,
+                command_line,
+                &cwd,
+                show,
+            );
+            if !matches!(&result, Ok(Ok(_))) {
+                retire_process_reservation(state, token);
+            }
+            return result;
+        }
+        retire_process_reservation(state, token);
+        let code = match error {
+            ERROR_FILE_NOT_FOUND => 2,
+            ERROR_PATH_NOT_FOUND => 3,
+            ERROR_ACCESS_DENIED => 5,
+            ERROR_NOT_ENOUGH_MEMORY | ERROR_OUTOFMEMORY => 8,
+            ERROR_BAD_EXE_FORMAT => 11,
+            _ => 31,
+        };
+        return Ok(Err(Win16HostWinExecFailure { code, native_error: Some(error) }));
+    }
+    let owned = unsafe { OwnedHandle::from_raw_handle(process.hProcess as RawHandle) };
+    let thread = unsafe { OwnedHandle::from_raw_handle(process.hThread as RawHandle) };
+    drop(thread);
+    let _ = unsafe { WaitForInputIdle(process.hProcess, 10_000) };
+    let mut worker = state.borrow_mut();
+    let lease = worker.shell_processes.iter_mut().find(|lease| lease.token == token)
+        .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
+            "WinExec process reservation disappeared after native launch"))?;
+    lease.handle = Some(owned);
+    Ok(Ok(Win16HostShellActivation::ProcessStarted { process: token }))
+}
+
+fn shell_execute_for_elevation(
+    state: &Rc<RefCell<WorkerState>>,
+    token: Win16HostProcess,
+    codec: GuestTextCodec,
+    command_line: &[u8],
+    cwd: &[u16],
+    show: u16,
+) -> Result<Result<Win16HostShellActivation, Win16HostWinExecFailure>, RuntimeError> {
+    let command = codec.to_wide_z(command_line)?;
+    let Some((file, parameters)) = split_win_exec_command_line(&command) else {
+        return Ok(Err(Win16HostWinExecFailure {
+            code: 31,
+            native_error: Some(ERROR_ELEVATION_REQUIRED),
+        }));
+    };
+    let Some(file) = resolve_executable_input(&file, Some(cwd))? else {
+        return Ok(Err(Win16HostWinExecFailure {
+            code: 31,
+            native_error: Some(ERROR_ELEVATION_REQUIRED),
+        }));
+    };
+    let _apartment = match ComApartment::initialize_sta() {
+        Ok(apartment) => apartment,
+        Err(_) => return Ok(Err(Win16HostWinExecFailure {
+            code: 31,
+            native_error: None,
+        })),
+    };
+    let verb: [u16; 5] = [b'o' as u16, b'p' as u16, b'e' as u16, b'n' as u16, 0];
+    let class: [u16; 8] = [
+        b'e' as u16, b'x' as u16, b'e' as u16, b'f' as u16,
+        b'i' as u16, b'l' as u16, b'e' as u16, 0,
+    ];
+    let mut info = SHELLEXECUTEINFOW::default();
+    info.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
+    // The shell brokers UAC consent. A verified executable can have a
+    // temporary non-.exe suffix, so supply the documented executable class
+    // instead of changing its path or registering a file association.
+    info.fMask = SEE_MASK_CLASSNAME | SEE_MASK_NOASYNC | SEE_MASK_NOCLOSEPROCESS;
+    info.lpVerb = verb.as_ptr();
+    info.lpFile = file.as_ptr();
+    info.lpParameters = parameters.as_ref().map_or(std::ptr::null(), |value| value.as_ptr());
+    info.lpDirectory = cwd.as_ptr();
+    info.lpClass = class.as_ptr();
+    info.nShow = i32::from(show);
+    let called = unsafe { ShellExecuteExW(&mut info) } != 0;
+    let native_error = unsafe { GetLastError() };
+    let shell_status = info.hInstApp as usize;
+    if called && shell_status > 32 {
+        if info.hProcess.is_null() {
+            retire_process_reservation(state, token);
+            return Ok(Ok(Win16HostShellActivation::NativeActivationReceipt));
+        }
+        let handle = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
+        let mut worker = state.borrow_mut();
+        let lease = worker.shell_processes.iter_mut().find(|lease| lease.token == token)
+            .ok_or_else(|| RuntimeError::new(
+                Kind::InternalInvariant,
+                "WinExec process reservation disappeared after ShellExecuteEx",
+            ))?;
+        lease.handle = Some(handle);
+        return Ok(Ok(Win16HostShellActivation::ProcessStarted { process: token }));
+    }
+    if !info.hProcess.is_null() {
+        let _unexpected = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
+    }
+    let code = if shell_status > 0 && shell_status <= 32 {
+        shell_status as u16
+    } else {
+        map_shell_error(native_error)
+    };
+    Ok(Err(Win16HostWinExecFailure {
+        code,
+        native_error: Some(native_error),
+    }))
+}
+
+fn split_win_exec_command_line(command: &[u16]) -> Option<(Vec<u16>, Option<Vec<u16>>)> {
+    let text = command.strip_suffix(&[0])?;
+    let start = text.iter().position(|unit| !matches!(*unit, 0x20 | 0x09))?;
+    let text = &text[start..];
+    let (file, tail) = if text.first() == Some(&(b'"' as u16)) {
+        let end = text[1..].iter().position(|unit| *unit == b'"' as u16)? + 1;
+        (&text[1..end], &text[end + 1..])
+    } else {
+        let end = text.iter().position(|unit| matches!(*unit, 0x20 | 0x09))
+            .unwrap_or(text.len());
+        (&text[..end], &text[end..])
+    };
+    if file.is_empty() || tail.first().is_some_and(|unit| !matches!(*unit, 0x20 | 0x09)) {
+        return None;
+    }
+    let tail_start = tail.iter().position(|unit| !matches!(*unit, 0x20 | 0x09))
+        .unwrap_or(tail.len());
+    let mut file = file.to_vec();
+    file.push(0);
+    let parameters = (tail_start < tail.len()).then(|| {
+        let mut parameters = tail[tail_start..].to_vec();
+        parameters.push(0);
+        parameters
+    });
+    Some((file, parameters))
 }
 
 fn execute_file(

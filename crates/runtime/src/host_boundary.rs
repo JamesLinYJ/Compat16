@@ -57,6 +57,14 @@ pub struct Win16HostLzOpen {
     pub ofstruct: Vec<u8>,
 }
 
+/// KERNEL.OpenFile result, including the caller-owned 16-bit OFSTRUCT image.
+#[derive(Clone, Debug)]
+pub struct Win16HostOpenFile {
+    pub result: i16,
+    pub file: Option<Win16HostFile>,
+    pub ofstruct: Vec<u8>,
+}
+
 /// Native drive classification returned by the host without DOS drive
 /// confinement or guest-visible host handles.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1171,6 +1179,15 @@ pub trait RuntimeHost:
             DiagnosticKind::CompatibilityGap,
             "host Win16 file opening forwarding is unavailable",
         ))
+    }
+    fn win16_open_file(
+        &mut self,
+        _path: &[u8],
+        _style: u16,
+        _previous_ofstruct: Vec<u8>,
+    ) -> Result<Win16HostOpenFile, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 OpenFile forwarding is unavailable"))
     }
     fn win16_file_read(
         &mut self,

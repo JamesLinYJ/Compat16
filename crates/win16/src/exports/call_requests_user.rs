@@ -316,6 +316,8 @@ pub(super) fn decode(
         | Win16ExportId::UserSetRectEmpty
         | Win16ExportId::UserCopyRect
         | Win16ExportId::UserUnionRect
+        | Win16ExportId::UserEqualRect
+        | Win16ExportId::UserSubtractRect
         | Win16ExportId::UserIsRectEmpty
         | Win16ExportId::UserPtInRect
         | Win16ExportId::UserOffsetRect

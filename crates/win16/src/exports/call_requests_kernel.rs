@@ -59,6 +59,12 @@ pub(super) fn decode(
         Win16ExportId::KernelIsDbcsLeadByte => {
             kernel_locale::decode(descriptor.id, arguments)?.ok_or(Win16Error::InvalidRange)?
         }
+        Win16ExportId::KernelWinExec => Win16ApiRequest::ShellExecution(
+            super::Win16ShellExecutionRequest::WinExec {
+                command_line: read_far_string(dword_argument(arguments, 0)?, selectors, memory)?,
+                show: word_argument(arguments, 1)?,
+            },
+        ),
         Win16ExportId::KernelWritePrivateProfileSection
         | Win16ExportId::KernelWriteProfileSection
         | Win16ExportId::KernelGetPrivateProfileSection
@@ -165,6 +171,7 @@ pub(super) fn decode(
         }
         Win16ExportId::KernelLclose
         | Win16ExportId::KernelLopen
+        | Win16ExportId::KernelOpenFile
         | Win16ExportId::KernelLlseek
         | Win16ExportId::KernelLcreat
         | Win16ExportId::KernelSetHandleCount => {

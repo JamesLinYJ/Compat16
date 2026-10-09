@@ -2,7 +2,7 @@
 
 use super::super::Win16ExportId;
 use super::super::request::Win16ApiRequest;
-use super::call_helpers::{dword_argument, read_far_string, word_argument};
+use super::call_helpers::{dword_argument, read_far_string, read_nullable_far_string, word_argument};
 use crate::{SelectorTable, Win16Error};
 use guest_core::GuestMemory;
 
@@ -22,6 +22,14 @@ pub(super) fn decode(
             super::Win16KernelFilesRequest::OpenFile {
                 path: read_far_string(dword_argument(arguments, 0)?, selectors, memory)?,
                 mode: word_argument(arguments, 1)? as i16,
+            },
+        )),
+        Win16ExportId::KernelOpenFile => Win16ApiRequest::Kernel(super::Win16KernelRequest::Files(
+            super::Win16KernelFilesRequest::OpenStructuredFile {
+                path: read_nullable_far_string(dword_argument(arguments, 0)?, selectors, memory)?
+                    .unwrap_or_default(),
+                ofstruct: dword_argument(arguments, 1)?,
+                style: word_argument(arguments, 2)?,
             },
         )),
         Win16ExportId::KernelLlseek => Win16ApiRequest::Kernel(super::Win16KernelRequest::Files(

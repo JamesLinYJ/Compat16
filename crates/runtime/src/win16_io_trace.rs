@@ -129,6 +129,8 @@ pub enum Win16IoEvent<'a> {
         directory: Option<&'a [u8]>,
     },
     ShellExecuteResult { value: u32 },
+    WinExecRequest { command_line: &'a [u8], directory: &'a str, show: u16 },
+    WinExecResult { value: u16, native_error: Option<u32> },
     Dialog {
         api: &'static str,
         caption: &'a [u8],
@@ -307,6 +309,13 @@ impl fmt::Display for Win16IoEvent<'_> {
                 match directory { Some(value) => write_quoted(f, value), None => f.write_str("null") }
             }
             Self::ShellExecuteResult { value } => write!(f, "shell-execute result={value}"),
+            Self::WinExecRequest { command_line, directory, show } => {
+                f.write_str("win-exec command=")?;
+                write_quoted(f, command_line)?;
+                write!(f, " directory={directory:?} show={show}")
+            }
+            Self::WinExecResult { value, native_error } =>
+                write!(f, "win-exec result={value} native-error={native_error:?}"),
             Self::Dialog { api, caption, text } => {
                 write!(f, "dialog api={api} caption=")?;
                 write_quoted(f, caption)?;
@@ -745,6 +754,8 @@ pub(crate) fn observes_io(request: &win16_abi::Win16ApiRequest) -> bool {
             win16_abi::Win16KernelFilesRequest::CreateFile { .. }
         )) | Request::Kernel(win16_abi::Win16KernelRequest::Files(
             win16_abi::Win16KernelFilesRequest::OpenFile { .. }
+        )) | Request::Kernel(win16_abi::Win16KernelRequest::Files(
+            win16_abi::Win16KernelFilesRequest::OpenStructuredFile { .. }
         )) | Request::Kernel(win16_abi::Win16KernelRequest::Files(
             win16_abi::Win16KernelFilesRequest::ReadFile { .. }
         )) | Request::Kernel(win16_abi::Win16KernelRequest::Files(

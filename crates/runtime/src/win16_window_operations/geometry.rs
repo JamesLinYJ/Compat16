@@ -150,6 +150,47 @@ impl Win16State {
                 )
             }
             Request::User(win16_abi::Win16UserRequest::Geometry(
+                win16_abi::Win16UserGeometryRequest::EqualRect { source1, source2 },
+            )) => {
+                let source1 = self.checked_guest_range(source1, Rect16::SIZE, Access::Read, memory)?;
+                let source2 = self.checked_guest_range(source2, Rect16::SIZE, Access::Read, memory)?;
+                let equal = self.read_rect(memory, source1)? == self.read_rect(memory, source2)?;
+                self.complete_return(registers, return_to.0, return_to.1, return_to.2,
+                    u32::from(equal), return_kind)
+            }
+            Request::User(win16_abi::Win16UserRequest::Geometry(
+                win16_abi::Win16UserGeometryRequest::SubtractRect {
+                    destination, source1, source2,
+                },
+            )) => {
+                let destination = self.checked_guest_range(destination, Rect16::SIZE, Access::Write, memory)?;
+                let source1 = self.checked_guest_range(source1, Rect16::SIZE, Access::Read, memory)?;
+                let source2 = self.checked_guest_range(source2, Rect16::SIZE, Access::Read, memory)?;
+                let first = self.read_rect(memory, source1)?;
+                let second = self.read_rect(memory, source2)?;
+                let mut result = first;
+                if is_rect_empty(first) ||
+                    (second.left <= first.left && second.top <= first.top &&
+                     second.right >= first.right && second.bottom >= first.bottom) {
+                    result = Rect16::default();
+                } else if second.top <= first.top && second.bottom >= first.bottom {
+                    if second.left <= first.left && second.right > first.left && second.right < first.right {
+                        result.left = second.right;
+                    } else if second.right >= first.right && second.left > first.left && second.left < first.right {
+                        result.right = second.left;
+                    }
+                } else if second.left <= first.left && second.right >= first.right {
+                    if second.top <= first.top && second.bottom > first.top && second.bottom < first.bottom {
+                        result.top = second.bottom;
+                    } else if second.bottom >= first.bottom && second.top > first.top && second.top < first.bottom {
+                        result.bottom = second.top;
+                    }
+                }
+                self.write_rect(memory, destination, result)?;
+                self.complete_return(registers, return_to.0, return_to.1, return_to.2,
+                    u32::from(!is_rect_empty(result)), return_kind)
+            }
+            Request::User(win16_abi::Win16UserRequest::Geometry(
                 win16_abi::Win16UserGeometryRequest::IsRectEmpty { rect },
             )) => {
                 let pointer = self.checked_guest_range(rect, Rect16::SIZE, Access::Read, memory)?;

@@ -634,6 +634,9 @@ impl Win16State {
                 win16_abi::Win16KernelFilesRequest::OpenFile { path, mode },
             )) => u32::from(self.open_legacy_file(&path, mode as u16, false, host)?),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Files(
+                win16_abi::Win16KernelFilesRequest::OpenStructuredFile { path, ofstruct, style },
+            )) => u32::from(self.open_structured_file(&path, ofstruct, style, memory, host)?),
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Files(
                 win16_abi::Win16KernelFilesRequest::ReadFile {
                     file_handle,
                     buffer,

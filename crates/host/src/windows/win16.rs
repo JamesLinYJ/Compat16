@@ -479,7 +479,7 @@ fn guest_file_path(codec: GuestTextCodec, path: &[u8]) -> Result<Option<Vec<u16>
     }
 }
 
-fn open_access_and_share(mode: u16) -> Option<(u32, u32)> {
+pub(super) fn open_access_and_share(mode: u16) -> Option<(u32, u32)> {
     const ACCESS_MASK: u16 = 0x0003;
     const SHARE_MASK: u16 = 0x0070;
     if mode & !(ACCESS_MASK | SHARE_MASK) != 0 {

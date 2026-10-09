@@ -9,6 +9,7 @@ const MAX_SHELL_STRING_BYTES: usize = crate::MAX_WIN16_STRING_BYTES;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16ShellExecutionRequest {
+    WinExec { command_line: Vec<u8>, show: u16 },
     Execute {
         owner: u16,
         operation: Option<Vec<u8>>,

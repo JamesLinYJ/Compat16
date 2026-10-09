@@ -11,6 +11,12 @@ pub enum Win16KernelFilesRequest {
         mode: i16,
     },
 
+    OpenStructuredFile {
+        path: Vec<u8>,
+        ofstruct: u32,
+        style: u16,
+    },
+
     /// Read file bytes into the raw guest far buffer. The decoder retains the
     /// signed count and never validates or dereferences the pointer; zero count
     /// leaves the pointer unused and negative counts are rejected by runtime.

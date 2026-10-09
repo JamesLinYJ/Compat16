@@ -9,8 +9,15 @@ use crate::{RuntimeError, Win16HostIcon, Win16WindowTarget};
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct Win16HostProcess(pub u64);
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Win16HostWinExecFailure {
+    pub code: u16,
+    pub native_error: Option<u32>,
+}
+
 #[derive(Clone, Debug)]
 pub enum Win16HostShellExecutionOperation {
+    WinExec { command_line: Vec<u8>, directory: String, show: u16 },
     DragAcceptFiles { owner: Win16WindowTarget, accept: bool },
     Execute {
         owner: Win16WindowTarget,
@@ -168,6 +175,7 @@ impl Error for Win16HostShellFailure {
 
 #[derive(Debug)]
 pub enum Win16HostShellExecutionResult {
+    WinExec(Result<Win16HostShellActivation, Win16HostWinExecFailure>),
     /// Native DragAcceptFiles is void; false reports that the owner did not
     /// identify a live native HWND, not a successful registration.
     DragAcceptFiles(bool),

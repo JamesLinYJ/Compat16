@@ -583,6 +583,13 @@ impl RuntimeHost for WindowsHost {
         self.win16_files
             .open(self.win16_dcs.text_codec(), path, mode)
     }
+    fn win16_open_file(
+        &mut self, path: &[u8], style: u16, previous_ofstruct: Vec<u8>,
+    ) -> Result<runtime::Win16HostOpenFile, RuntimeError> {
+        super::win16_open_file::open(
+            &mut self.win16_files, self.win16_dcs.text_codec(), path, style, previous_ofstruct,
+        )
+    }
     fn win16_file_read(
         &mut self,
         file: Win16HostFile,

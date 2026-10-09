@@ -117,4 +117,8 @@ pub enum Win16UserGeometryRequest {
         source1: u32,
         source2: u32,
     },
+
+    EqualRect { source1: u32, source2: u32 },
+
+    SubtractRect { destination: u32, source1: u32, source2: u32 },
 }

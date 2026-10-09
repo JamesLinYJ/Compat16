@@ -23,6 +23,7 @@ mod service_trace;
 #[path = "vga_window.rs"]
 mod vga_window;
 mod win16;
+mod win16_open_file;
 mod win16_common;
 mod win16_drawing;
 mod win16_gdi;

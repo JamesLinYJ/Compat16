@@ -12,6 +12,15 @@ pub(super) const LOPEN_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "path", kind: ArgumentKind::Dword, parameter_type: FAR_STRING },
     Win16Parameter { name: "mode", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
 ];
+pub(super) const OPEN_FILE_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "path", kind: ArgumentKind::Dword, parameter_type: FAR_STRING },
+    Win16Parameter { name: "reopen", kind: ArgumentKind::Dword, parameter_type: FAR_OUTPUT_BUFFER },
+    Win16Parameter { name: "style", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+];
+pub(super) const WIN_EXEC_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "command_line", kind: ArgumentKind::Dword, parameter_type: FAR_STRING },
+    Win16Parameter { name: "show", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+];
 
 pub(super) const LREAD_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "file_handle", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
