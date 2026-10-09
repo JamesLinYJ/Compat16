@@ -359,6 +359,11 @@ try {
                 if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Expected release file was not produced: $file" }
                 Copy-Item -LiteralPath $source -Destination (Join-Path $stagingDirectory $file)
             }
+            if ($architecture -eq 'arm64') {
+                $systemDirectory = Join-Path $stagingDirectory 'system'
+                New-Item -ItemType Directory -Path $systemDirectory | Out-Null
+                Copy-Item -LiteralPath (Join-Path $releaseBuild.releaseDirectory 'ntvdm64.dll') -Destination (Join-Path $systemDirectory 'ntvdm64.dll')
+            }
             foreach ($legalFile in $requiredLegalFiles) {
                 $source = Join-Path $projectRoot $legalFile
                 $destination = Join-Path $stagingDirectory $legalFile
@@ -424,6 +429,7 @@ try {
             'LICENSES/Microsoft-MS-DOS-MIT.txt',
             'manifest.json'
         ))
+        if ($releaseBuild.architecture -eq 'arm64') { $packageItems += 'system/ntvdm64.dll' }
         $outputLocation = if ($Pgo -eq 'generate') { 'target/pgo/' + $releaseBuild.architecture + '/sessions/' + $releaseBuild.pgo.session + '/runtime' } else { 'dist/' + $releaseBuild.architecture }
         Write-Host ("  {0} ({1})" -f $outputLocation, $releaseBuild.target) -ForegroundColor White
         Write-Host ("    {0}" -f ($packageItems -join ', ')) -ForegroundColor DarkGray

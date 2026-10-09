@@ -32,6 +32,13 @@ if ([IO.Path]::GetFullPath([string]$receipt.installPath).TrimEnd('\') -ine [IO.P
     [string]$receipt.architecture -cne $architecture) { throw 'Receipt path or native architecture does not match this installation.' }
 $stateHash = (Get-FileHash -LiteralPath $receiptPath -Algorithm SHA256).Hash
 $files = @($receipt.files)
+$systemLauncher = $receipt.systemLauncher
+if ($systemLauncher) {
+    if ($architecture -cne 'arm64' -or $systemLauncher.name -cne 'ntvdm64.dll' -or
+        [string]$systemLauncher.sha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 'Invalid system launch adapter receipt; no changes made.' }
+    $systemLauncherPath = Get-SystemLauncherPath
+    Assert-NoInstallReparsePoint (Split-Path -Parent $systemLauncherPath) $systemLauncherPath
+}
 $seen = @{}
 foreach ($file in $files) {
     $relative = [string]$file.path
@@ -92,6 +99,7 @@ Write-Phase 2 'Review owned registry values and recorded file hashes'
 Write-Host "  Registry views with conflicts: $registryConflicts"
 Write-Host "  Unchanged recorded files: $fileDelete; modified/replaced files: $fileChanged"
 Write-Host '  Unrecorded files are never deleted.'
+if ($systemLauncher) { Write-Host "  Recorded native launch adapter: $systemLauncherPath" }
 if ($registryConflicts) { Write-Host '  Registry conflicts keep all runtime files in place.' -ForegroundColor Yellow }
 if (-not (Confirm-Compat16 -Yes:$Yes -Prompt 'Restore this Compat16 installation?')) { Write-Host 'Cancelled; no changes made.' -ForegroundColor Yellow; return }
 if ((Get-FileHash -LiteralPath $receiptPath -Algorithm SHA256).Hash -ine $stateHash) { throw 'Receipt changed after review; no changes made.' }
@@ -143,6 +151,22 @@ if ($conflicts.Count -or $errors.Count) {
     foreach ($message in $errors) { Write-Host "  ERROR: $message" -ForegroundColor Red }
     Write-Host "Receipt retained: $receiptPath" -ForegroundColor Yellow
     return
+}
+if ($systemLauncher) {
+    try {
+        Assert-NoInstallReparsePoint (Split-Path -Parent $systemLauncherPath) $systemLauncherPath
+        if (Test-Path -LiteralPath $systemLauncherPath) {
+            if (-not (Test-Path -LiteralPath $systemLauncherPath -PathType Leaf) -or
+                (Get-FileHash $systemLauncherPath).Hash -ine $systemLauncher.sha256) {
+                throw 'The system launch module changed; runtime files and the receipt were preserved.'
+            }
+            Remove-Item -LiteralPath $systemLauncherPath -Force
+        }
+    } catch {
+        Write-Host $_.Exception.Message -ForegroundColor Yellow
+        Write-Host "Receipt retained: $receiptPath" -ForegroundColor Yellow
+        return
+    }
 }
 $bootstrapNames = @('uninstall.ps1', 'installation.ps1')
 foreach ($file in $files) {

@@ -25,6 +25,12 @@ function Get-ProgramFilesRoot {
     }
     [IO.Path]::GetFullPath($root)
 }
+function Get-SystemLauncherPath {
+    if (-not [Environment]::Is64BitProcess) { throw 'System launch integration requires a 64-bit PowerShell process.' }
+    $windows = [Environment]::GetFolderPath('Windows')
+    if (-not $windows) { throw 'The Windows directory was not found.' }
+    Join-Path (Join-Path $windows 'System32') 'ntvdm64.dll'
+}
 function Assert-Compat16Admin([string]$Operation, [string]$ScriptPath) {
     if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) {
         throw 'Compat16 integration requires native 64-bit Windows.'

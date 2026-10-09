@@ -564,6 +564,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "system-launch"
+version = "0.1.0"
+dependencies = [
+ "windows-core",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "text-codec"
 version = "0.1.0"
 dependencies = [

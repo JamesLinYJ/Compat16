@@ -1,0 +1,19 @@
+[package]
+name = "system-launch"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+# The Windows loader requests this module name; it is not a product name.
+name = "ntvdm64"
+crate-type = ["cdylib"]
+
+[target.'cfg(windows)'.dependencies]
+windows-sys.workspace = true
+windows-core.workspace = true
+
+[lints]
+workspace = true

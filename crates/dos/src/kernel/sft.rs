@@ -469,9 +469,13 @@ fn refresh_standard_entry(
             entry.attributes = 0;
             entry.status = None;
         }
-        Err(error) if error.code == DosErrorCode::InvalidFunction => {
-            // A redirected stream whose host identity is unavailable remains
-            // unclassified; never report it as CON based on its handle number.
+        Err(error) if matches!(error.code,
+            DosErrorCode::InvalidFunction | DosErrorCode::InvalidHandle) => {
+            // A GUI process may have no native standard handles. Its tracked
+            // DOS standard slots still exist, but their backing object cannot
+            // be classified, just like an unknown redirected stream. Refresh
+            // metadata without inventing a CON device or aborting an unrelated
+            // DOS call. Actual stream I/O and IOCTL retain the host's error.
             entry.device_info = 0;
             entry.device_header = None;
             entry.attributes = 0;

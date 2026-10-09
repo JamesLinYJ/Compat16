@@ -135,6 +135,17 @@ foreach ($entry in @($manifest.files)) {
 }
 $required = @('compat16.exe', 'compat16w.exe', 'compat16.dll', 'compat16host.exe')
 foreach ($name in $required) { if (-not $seen.ContainsKey($name)) { throw "Manifest is missing release file '$name'." } }
+$systemLauncher = $null
+$systemLauncherSource = $null
+if ($architecture -eq 'arm64') {
+    $systemLauncherPath = Get-SystemLauncherPath
+    if (-not (Test-Path -LiteralPath $systemLauncherPath)) {
+        $systemLauncherSource = @($packageFiles | Where-Object { $_.path -ceq 'system/ntvdm64.dll' })
+        if ($systemLauncherSource.Count -ne 1) { throw 'The ARM64 system launch adapter is missing. Rebuild the package first.' }
+        $systemLauncherSource = $systemLauncherSource[0]
+        $systemLauncher = [pscustomobject]@{ name = 'ntvdm64.dll'; sha256 = $systemLauncherSource.hash }
+    }
+}
 $views = @('Registry64', 'Registry32')
 $viewStates = @()
 foreach ($view in $views) {
@@ -158,6 +169,7 @@ $receipt = [pscustomobject]@{
     product = 'Compat16'; schemaVersion = 1; installId = [Guid]::NewGuid().ToString('D')
     architecture = $architecture; installPath = $installRoot; files = @($files)
     registryValues = @($registryValues); registryViews = @($viewStates)
+    systemLauncher = $systemLauncher
 }
 
 Write-Phase 2 'Review files and NtVdm64 registration'
@@ -168,7 +180,8 @@ Write-Host '  Global .exe associations: unchanged'
 foreach ($provider in $wildcards) { Write-Host "  Existing wildcard provider: $($provider.product) [$($provider.key), $($provider.view)]" -ForegroundColor Yellow }
 if ($wildcards.Count) { Write-Host '  Provider priority is host-defined and is not verified; existing providers will not be removed.' -ForegroundColor Yellow }
 if ($architecture -eq 'arm64') {
-    Write-Host '  Windows 10 ARM lacks NtVdm64; Windows 11 ARM64 support is unconfirmed. Registration alone does not guarantee double-click support.' -ForegroundColor Yellow
+    if ($systemLauncher) { Write-Host "  Native launch adapter: $systemLauncherPath (new file)" -ForegroundColor Yellow }
+    else { Write-Host '  Existing Windows launch module retained; provider selection requires runtime verification.' -ForegroundColor Yellow }
 }
 if (-not (Confirm-Compat16 -Yes:$Yes -Prompt 'Install this provider?')) { Write-Host 'Cancelled; no changes made.' -ForegroundColor Yellow; return }
 
@@ -178,6 +191,7 @@ foreach ($view in $viewStates) {
     if ($current.keyExists -or $current.parentExisted -ne $view.parentExisted) { throw "$($view.view) registry state changed after review; no files were copied." }
 }
 if ((Test-Path -LiteralPath $installRoot) -or (Test-Path -LiteralPath $receiptPath)) { throw 'Install path or receipt appeared after review; nothing was overwritten.' }
+if ($systemLauncher -and (Test-Path -LiteralPath $systemLauncherPath)) { throw 'The system launch module appeared after review; it was left untouched.' }
 Write-DurableState $receiptPath $receipt
 try {
     New-Item -ItemType Directory -Path $installRoot | Out-Null
@@ -187,6 +201,12 @@ try {
     Copy-VerifiedFile $manifestPath 'manifest.json' $files[($files.Count - 3)].sha256 $installRoot
     Copy-VerifiedFile $helper 'installation.ps1' $files[($files.Count - 2)].sha256 $installRoot
     Copy-VerifiedFile $uninstaller 'uninstall.ps1' $files[($files.Count - 1)].sha256 $installRoot
+    if ($systemLauncher) {
+        $systemDirectory = Split-Path -Parent $systemLauncherPath
+        Assert-NoInstallReparsePoint $systemDirectory $systemLauncherPath
+        [IO.File]::Copy($systemLauncherSource.source, $systemLauncherPath, $false)
+        if ((Get-FileHash $systemLauncherPath).Hash -ine $systemLauncher.sha256) { throw 'System launch adapter hash verification failed.' }
+    }
 
     Write-Phase 4 'Create the new provider key in both registry views'
     foreach ($view in $views) { Add-Provider $receipt $view }
@@ -208,4 +228,4 @@ try {
 }
 Write-Host 'Compat16 files and provider values were installed.' -ForegroundColor Green
 Write-Host "Uninstaller: $installRoot\uninstall.ps1"
-Write-Host 'Windows provider selection was not tested; ARM64 support remains unconfirmed.' -ForegroundColor Yellow
+Write-Host 'Validate system launching with an original legacy application on this Windows version.' -ForegroundColor Yellow

@@ -93,7 +93,9 @@ After building, run from an **administrator PowerShell**:
 
 Installation copies the native runtime and adds its own Windows legacy application launch entry. Uninstallation removes unchanged files and settings recorded by this installation, retaining other software's settings and additional files.
 
-Double-click launching depends on the Windows `NtVdm64` mechanism. Microsoft documents its absence on Windows 10 ARM; triggering it on Windows 11 ARM64 still requires native validation. Launching an application explicitly does not require this registry integration. [Microsoft documentation](https://learn.microsoft.com/en-us/windows/win32/winprog64/application-installation)
+The ARM64 package includes `system/ntvdm64.dll`, a system launch component built with the runtime. The installer adds it only when the system module is absent and records its hash for removal. Its filename and export follow the Windows launch interface; it is part of Compat16.
+
+Double-click launching requires a Windows legacy-image callback. Microsoft documents the `NtVdm64` mechanism's absence on Windows 10 ARM; availability and behavior on later ARM64 versions require native validation. Explicit launcher invocation does not require system integration. [Microsoft documentation](https://learn.microsoft.com/en-us/windows/win32/winprog64/application-installation)
 
 ### Development
 
@@ -164,7 +166,9 @@ ARM64 与 AMD64 的数据分别收集。脚本检查源码、编译设置、工�
 .\scripts\uninstall.ps1
 ```
 
-双击启动依赖 Windows 的 `NtVdm64` 机制，不能保证所有系统版本都支持。微软明确记录 Windows 10 ARM 不包含该机制；Windows 11 ARM64 的触发行为仍需实机核验。直接调用启动器不依赖此注册表接管机制。[微软说明](https://learn.microsoft.com/zh-cn/windows/win32/winprog64/application-installation)
+ARM64 包包含与运行时一起构建的系统启动组件 `system/ntvdm64.dll`。安装脚本仅在系统缺少该模块时添加它，并记录哈希以供卸载。文件名和导出名遵循 Windows 启动接口；该组件属于 Compat16。
+
+双击启动需要 Windows 提供旧程序启动回调。微软记录 Windows 10 ARM 不包含 `NtVdm64` 机制；后续 ARM64 版本的接口可用性和行为需实机核验。直接调用启动器不依赖系统集成。[微软说明](https://learn.microsoft.com/zh-cn/windows/win32/winprog64/application-installation)
 
 ### 结构
 
