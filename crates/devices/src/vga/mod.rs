@@ -21,7 +21,7 @@ mod ports_tests;
 #[path = "svga_tests.rs"]
 mod svga_tests;
 
-pub use frame::VgaFrame;
+pub use frame::{VgaFrame, VgaFrameDecoder};
 pub use modes::{ModeInfo, ModeKind};
 
 use std::cell::{Ref, RefCell, RefMut};

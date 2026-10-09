@@ -196,7 +196,8 @@ impl Runtime {
         Ok(Self { memory, cpu: Cpu::new(regs), dos,
             devices, ports, port_clock: DeviceClock::new(),
             xms, arenas, instructions: 0, rendered_video_version,
-            rendered_graphics_version: None, instruction_trace: None,
+            rendered_graphics_version: None,
+            graphics_frame_decoder: devices::vga::VgaFrameDecoder::new(), instruction_trace: None,
             memory_write_watch: None,
             input: crate::input::MouseInputBridge::new(), rendered_mouse_cursor: None,
             process_frames: Vec::new(), win16 })

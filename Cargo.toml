@@ -54,9 +54,11 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 cap-std = "4.0.3"
+rayon = "=1.12.0"
 
 [profile.release]
 overflow-checks = true
+lto = "thin"
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

@@ -10,8 +10,13 @@
 use super::{
     VgaDevice, VgaState,
     modes::{ModeInfo, ModeKind, mode_info},
-    svga::{self, SvgaState},
+    svga::{self, SvgaMode, SvgaState},
 };
+#[path = "frame_parallel.rs"]
+mod frame_parallel;
+use frame_parallel::ScanoutPool;
+
+const SVGA_PARALLEL_MIN_PIXELS: usize = 256 * 1024;
 
 /// An immutable RGB snapshot of a graphics-mode VGA frame.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -24,6 +29,77 @@ pub struct VgaFrame {
     pub generation: u64,
 }
 
+/// Runtime-owned scanout state. Its frame storage is reusable, and its lazy
+/// Rayon pool has an explicit shutdown path that joins every worker.
+pub struct VgaFrameDecoder {
+    pixels: Vec<u32>,
+    parallel_pool: Option<ScanoutPool>,
+    pool_initialization_attempted: bool,
+}
+
+impl VgaFrameDecoder {
+    pub fn new() -> Self {
+        Self {
+            pixels: Vec::new(),
+            parallel_pool: None,
+            pool_initialization_attempted: false,
+        }
+    }
+
+    /// Decode a frame using this decoder's reusable storage and, for larger
+    /// VBE modes, its lazily initialized bounded worker pool.
+    /// Return the snapshot with `recycle` after rendering to retain its storage.
+    pub fn decode(&mut self, device: &VgaDevice) -> Option<VgaFrame> {
+        let state_guard = device.borrow();
+        // Only this immutable state reference reaches the worker tasks. The
+        // Rc/RefCell handle and its borrow guard stay on the calling thread.
+        let state: &VgaState = &state_guard;
+        let VgaFrameDecoder {
+            pixels,
+            parallel_pool,
+            pool_initialization_attempted,
+        } = self;
+
+        let needs_parallel_pool = state.svga.as_ref().is_some_and(|svga_state| {
+            if !svga_state.is_valid() {
+                return false;
+            }
+            let Some(mode) = svga::mode_info(svga_state.mode) else {
+                return false;
+            };
+            usize::from(mode.width)
+                .checked_mul(usize::from(mode.height))
+                .is_some_and(|count| count >= SVGA_PARALLEL_MIN_PIXELS)
+        });
+        if needs_parallel_pool && !*pool_initialization_attempted {
+            *parallel_pool = ScanoutPool::new();
+            *pool_initialization_attempted = true;
+        }
+        let pool = needs_parallel_pool
+            .then(|| parallel_pool.as_ref().map(ScanoutPool::thread_pool))
+            .flatten();
+        let (width, height) = render_state_into(state, pixels, pool)?;
+        Some(VgaFrame {
+            width,
+            height,
+            pixels: std::mem::take(pixels),
+            generation: state.generation,
+        })
+    }
+
+    /// Recover frame storage after the synchronous host renderer has consumed
+    /// its borrowed snapshot.
+    pub fn recycle(&mut self, frame: VgaFrame) {
+        self.pixels = frame.pixels;
+    }
+}
+
+impl Default for VgaFrameDecoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VgaDevice {
     /// Decode the current graphics framebuffer into row-major 24-bit RGB.
     ///
@@ -31,60 +107,163 @@ impl VgaDevice {
     /// return `None`. The shared state is immutably borrowed for the entire
     /// decode so registers, palette, and VRAM belong to one generation.
     pub fn graphics_frame(&self) -> Option<VgaFrame> {
-        let state = self.borrow();
-        if let Some(svga) = state.svga.as_ref() {
-            return render_svga(&state, svga);
-        }
-        let mode = mode_info(state.bios_mode)?;
-        render_with_mode(&state, mode)
+        let mut pixels = Vec::new();
+        let (width, height, generation) = self.graphics_frame_into(&mut pixels)?;
+        Some(VgaFrame {
+            width,
+            height,
+            pixels,
+            generation,
+        })
+    }
+
+    /// Decode a frame into caller-owned storage and return its dimensions and
+    /// generation. The vector is resized on success, retaining its capacity
+    /// so a runtime can reuse its allocation across redraws.
+    pub fn graphics_frame_into(&self, pixels: &mut Vec<u32>) -> Option<(u16, u16, u64)> {
+        let state_guard = self.borrow();
+        let state: &VgaState = &state_guard;
+        let (width, height) = render_state_into(state, pixels, None)?;
+        Some((width, height, state.generation))
     }
 }
 
-fn render_svga(state: &VgaState, svga_state: &SvgaState) -> Option<VgaFrame> {
+fn render_state_into(
+    state: &VgaState,
+    pixels: &mut Vec<u32>,
+    pool: Option<&rayon::ThreadPool>,
+) -> Option<(u16, u16)> {
+    if let Some(svga_state) = state.svga.as_ref() {
+        render_svga_into(state, svga_state, pixels, pool)
+    } else {
+        let mode = mode_info(state.bios_mode)?;
+        render_with_mode_into(state, mode, pixels)
+    }
+}
+
+fn render_svga_into(
+    state: &VgaState,
+    svga_state: &SvgaState,
+    pixels: &mut Vec<u32>,
+    pool: Option<&rayon::ThreadPool>,
+) -> Option<(u16, u16)> {
     if !svga_state.is_valid() {
         return None;
     }
     let mode = svga::mode_info(svga_state.mode)?;
-    let pixel_count = usize::from(mode.width).checked_mul(usize::from(mode.height))?;
-    let bytes_per_scanline = usize::from(svga_state.stride)
-        .checked_mul(usize::from(mode.bytes_per_pixel))?;
-    let x_offset = usize::from(svga_state.display_x)
-        .checked_mul(usize::from(mode.bytes_per_pixel))?;
+    let width = usize::from(mode.width);
+    let height = usize::from(mode.height);
+    let pixel_count = width.checked_mul(height)?;
+    let bytes_per_scanline =
+        usize::from(svga_state.stride).checked_mul(usize::from(mode.bytes_per_pixel))?;
+    let x_offset =
+        usize::from(svga_state.display_x).checked_mul(usize::from(mode.bytes_per_pixel))?;
     let y_offset = usize::from(svga_state.display_y).checked_mul(bytes_per_scanline)?;
     let display_start = y_offset.checked_add(x_offset)?;
-    let mut pixels = Vec::new();
-    pixels.try_reserve_exact(pixel_count).ok()?;
-    pixels.resize(pixel_count, 0);
+    let bytes_per_pixel = usize::from(mode.bytes_per_pixel);
+    let visible_row_bytes = width.checked_mul(bytes_per_pixel)?;
+    // Prove the arithmetic used by both serial and parallel row decoders.
+    // Backing-memory reads may still be short and display as zero, as before.
+    display_start
+        .checked_add((height - 1).checked_mul(bytes_per_scanline)?)?
+        .checked_add(visible_row_bytes)?;
 
-    for y in 0..usize::from(mode.height) {
-        let row_start = display_start.checked_add(y.checked_mul(bytes_per_scanline)?)?;
-        for x in 0..usize::from(mode.width) {
-            let pixel_offset = row_start
-                .checked_add(x.checked_mul(usize::from(mode.bytes_per_pixel))?)?;
-            let pixel = if mode.bytes_per_pixel == 1 {
-                state
-                    .vram
-                    .get(pixel_offset)
-                    .copied()
-                    .map(|index| dac_rgb(state, index))
-                    .unwrap_or(0)
-            } else {
-                let packed = state
-                    .vram
-                    .get(pixel_offset..pixel_offset.checked_add(2)?)
-                    .map(|bytes| u16::from_le_bytes([bytes[0], bytes[1]]));
-                packed.map(rgb565_to_rgb).unwrap_or(0)
-            };
-            pixels[y * usize::from(mode.width) + x] = pixel;
+    resize_pixels(pixels, pixel_count)?;
+    let palette = (mode.bytes_per_pixel == 1).then(|| dac_palette(state));
+    if pixel_count >= SVGA_PARALLEL_MIN_PIXELS {
+        if let Some(pool) = pool {
+            use rayon::prelude::*;
+            // All row work completes before install returns and the adapter
+            // borrow is released; no job retains data between frames.
+            pool.install(|| {
+                pixels
+                    .par_chunks_mut(width)
+                    .enumerate()
+                    .for_each(|(y, row)| {
+                        render_svga_row(
+                            state,
+                            mode,
+                            display_start,
+                            bytes_per_scanline,
+                            palette.as_ref(),
+                            y,
+                            row,
+                        );
+                    });
+            });
+        } else {
+            render_svga_rows(
+                state,
+                mode,
+                display_start,
+                bytes_per_scanline,
+                palette.as_ref(),
+                pixels,
+            );
         }
+    } else {
+        render_svga_rows(
+            state,
+            mode,
+            display_start,
+            bytes_per_scanline,
+            palette.as_ref(),
+            pixels,
+        );
     }
 
-    Some(VgaFrame {
-        width: mode.width,
-        height: mode.height,
-        pixels,
-        generation: state.generation,
-    })
+    Some((mode.width, mode.height))
+}
+
+fn render_svga_rows(
+    state: &VgaState,
+    mode: SvgaMode,
+    display_start: usize,
+    bytes_per_scanline: usize,
+    palette: Option<&[u32; 256]>,
+    pixels: &mut [u32],
+) {
+    let width = usize::from(mode.width);
+    for (y, row) in pixels.chunks_mut(width).enumerate() {
+        render_svga_row(
+            state,
+            mode,
+            display_start,
+            bytes_per_scanline,
+            palette,
+            y,
+            row,
+        );
+    }
+}
+
+fn render_svga_row(
+    state: &VgaState,
+    mode: SvgaMode,
+    display_start: usize,
+    bytes_per_scanline: usize,
+    palette: Option<&[u32; 256]>,
+    y: usize,
+    row: &mut [u32],
+) {
+    let row_start = display_start + y * bytes_per_scanline;
+    let bytes_per_pixel = usize::from(mode.bytes_per_pixel);
+    for (x, output) in row.iter_mut().enumerate() {
+        let pixel_offset = row_start + x * bytes_per_pixel;
+        *output = if let Some(palette) = palette {
+            state
+                .vram
+                .get(pixel_offset)
+                .map(|index| palette[usize::from(*index)])
+                .unwrap_or(0)
+        } else {
+            state
+                .vram
+                .get(pixel_offset..pixel_offset + 2)
+                .map(|bytes| rgb565_to_rgb(u16::from_le_bytes([bytes[0], bytes[1]])))
+                .unwrap_or(0)
+        };
+    }
 }
 
 fn rgb565_to_rgb(value: u16) -> u32 {
@@ -97,15 +276,18 @@ fn rgb565_to_rgb(value: u16) -> u32 {
     (u32::from(red) << 16) | (u32::from(green) << 8) | u32::from(blue)
 }
 
-fn render_with_mode(state: &VgaState, mode: ModeInfo) -> Option<VgaFrame> {
+fn render_with_mode_into(
+    state: &VgaState,
+    mode: ModeInfo,
+    pixels: &mut Vec<u32>,
+) -> Option<(u16, u16)> {
     if mode.kind == ModeKind::Text || mode.width == 0 || mode.height == 0 {
         return None;
     }
 
-    let pixel_count = usize::from(mode.width).checked_mul(usize::from(mode.height))?;
-    let mut pixels = Vec::new();
-    pixels.try_reserve_exact(pixel_count).ok()?;
-    pixels.resize(pixel_count, 0);
+    let width = usize::from(mode.width);
+    let height = usize::from(mode.height);
+    let pixel_count = width.checked_mul(height)?;
 
     let pixels_per_byte = match mode.kind {
         ModeKind::Planar => 8,
@@ -124,23 +306,32 @@ fn render_with_mode(state: &VgaState, mode: ModeInfo) -> Option<VgaFrame> {
         ModeKind::Chain4 => u16::from((state.attribute[0x13] & 0x0f) >> 1),
         _ => u16::from(state.attribute[0x13] & 0x07),
     };
-    let crtc_byte_pan = u16::from((state.crtc[0x08] >> 5) & 0x03)
-        .saturating_mul(pixels_per_byte);
+    let crtc_byte_pan = u16::from((state.crtc[0x08] >> 5) & 0x03).saturating_mul(pixels_per_byte);
     let horizontal_pan = pel_pan.saturating_add(crtc_byte_pan);
+    resize_pixels(pixels, pixel_count)?;
 
-    for y in 0..mode.height {
+    // Resolve all DAC and attribute-controller work once for this immutable
+    // register/palette snapshot, then keep the pixel loops to table lookups.
+    let palette = dac_palette(state);
+    let attribute_palette: [u32; 16] =
+        std::array::from_fn(|color| palette[usize::from(attribute_dac_index(state, color as u8))]);
+    let chain4_direct = state.attribute[0x10] & 0x40 != 0;
+
+    for y in 0..height {
+        let y_u16 = u16::try_from(y).ok()?;
         let row_counter = match mode.kind {
             // CGA scanout stores alternate raster lines in separate 8 KiB
             // banks; each pair advances one packed-memory row.
             ModeKind::Cga1 | ModeKind::Cga2 => {
-                start_counter.wrapping_add(row_step.wrapping_mul(y / 2))
+                start_counter.wrapping_add(row_step.wrapping_mul(y_u16 / 2))
             }
-            _ => start_counter.wrapping_add(row_step.wrapping_mul(y)),
+            _ => start_counter.wrapping_add(row_step.wrapping_mul(y_u16)),
         };
         let row_base = u32::from(row_counter) * u32::from(address_scale);
+        let row = &mut pixels[y * width..(y + 1) * width];
 
-        for x in 0..mode.width {
-            let source_x = u32::from(x) + u32::from(horizontal_pan);
+        for (x, output) in row.iter_mut().enumerate() {
+            let source_x = x as u32 + u32::from(horizontal_pan);
             let pixel = match mode.kind {
                 ModeKind::Planar => {
                     let address = row_base.wrapping_add(source_x / 8) as u16;
@@ -152,45 +343,52 @@ fn render_with_mode(state: &VgaState, mode: ModeInfo) -> Option<VgaFrame> {
                             color |= ((plane_byte(state, address, plane) >> bit) & 1) << plane;
                         }
                     }
-                    dac_rgb(state, attribute_dac_index(state, color))
+                    attribute_palette[usize::from(color)]
                 }
                 ModeKind::Chain4 => {
                     let logical_byte = row_base.wrapping_add(source_x);
                     let input = chain4_byte(state, logical_byte);
-                    let dac_index = if state.attribute[0x10] & 0x40 != 0 {
-                        input
+                    if chain4_direct {
+                        palette[usize::from(input)]
                     } else {
-                        attribute_dac_index(state, input & 0x0f)
-                    };
-                    dac_rgb(state, dac_index)
+                        attribute_palette[usize::from(input & 0x0f)]
+                    }
                 }
                 ModeKind::Cga1 => {
-                    let line_base = cga_line_base(row_base, y);
+                    let line_base = cga_line_base(row_base, y_u16);
                     let byte_offset = source_x / 8;
                     let byte = cga1_byte(state, line_base.wrapping_add(byte_offset));
                     let bit = 7 - (source_x & 7) as u8;
-                    dac_rgb(state, attribute_dac_index(state, (byte >> bit) & 1))
+                    attribute_palette[usize::from((byte >> bit) & 1)]
                 }
                 ModeKind::Cga2 => {
-                    let line_base = cga_line_base(row_base, y);
+                    let line_base = cga_line_base(row_base, y_u16);
                     let byte_offset = source_x / 4;
                     let byte = cga_byte(state, line_base.wrapping_add(byte_offset));
                     let shift = 6 - ((source_x & 3) * 2) as u8;
-                    dac_rgb(state, attribute_dac_index(state, (byte >> shift) & 3))
+                    attribute_palette[usize::from((byte >> shift) & 3)]
                 }
                 ModeKind::Text => return None,
             };
-            let index = usize::from(y) * usize::from(mode.width) + usize::from(x);
-            pixels[index] = pixel;
+            *output = pixel;
         }
     }
 
-    Some(VgaFrame {
-        width: mode.width,
-        height: mode.height,
-        pixels,
-        generation: state.generation,
-    })
+    Some((mode.width, mode.height))
+}
+
+fn resize_pixels(pixels: &mut Vec<u32>, pixel_count: usize) -> Option<()> {
+    // Every visible pixel is replaced during scanout. Retain the initialized
+    // storage as well as its capacity to avoid zeroing an unchanged frame size.
+    if pixel_count > pixels.len() {
+        pixels.try_reserve_exact(pixel_count - pixels.len()).ok()?;
+    }
+    pixels.resize(pixel_count, 0);
+    Some(())
+}
+
+fn dac_palette(state: &VgaState) -> [u32; 256] {
+    std::array::from_fn(|index| dac_rgb(state, index as u8))
 }
 
 /// Number of emulated memory bytes selected by one CRTC address count.

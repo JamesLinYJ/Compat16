@@ -28,6 +28,7 @@ pub struct Runtime {
     pub(crate) instructions: u64,
     pub(crate) rendered_video_version: u64,
     pub(crate) rendered_graphics_version: Option<u64>,
+    pub(crate) graphics_frame_decoder: devices::vga::VgaFrameDecoder,
     pub(crate) instruction_trace: Option<crate::trace::InstructionTrace>,
     pub(crate) memory_write_watch: Option<crate::trace::GuestMemoryWriteWatch>,
     pub(crate) input: MouseInputBridge,
@@ -469,14 +470,20 @@ impl Runtime {
             let vga = self.devices.video.vga();
             let version = vga.generation();
             if self.rendered_graphics_version != Some(version) {
-                let frame = vga.graphics_frame().ok_or_else(|| {
-                    RuntimeError::new(
-                        Kind::InternalInvariant,
-                        "graphics mode has no framebuffer decoder",
-                    )
-                })?;
-                host.render_graphics(&frame)?;
-                self.rendered_graphics_version = Some(frame.generation);
+                let frame = self
+                    .graphics_frame_decoder
+                    .decode(&vga)
+                    .ok_or_else(|| {
+                        RuntimeError::new(
+                            Kind::InternalInvariant,
+                            "graphics mode has no framebuffer decoder",
+                        )
+                    })?;
+                let generation = frame.generation;
+                let render_result = host.render_graphics(&frame);
+                self.graphics_frame_decoder.recycle(frame);
+                render_result?;
+                self.rendered_graphics_version = Some(generation);
             }
             return Ok(());
         }

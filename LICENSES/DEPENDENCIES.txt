@@ -13,6 +13,10 @@ cap-std 4.0.3 | Cargo license: Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR M
 cfg-if 1.0.5 | Cargo license: MIT OR Apache-2.0 | selected: MIT | license text: L10 | registry notices: - | source headers: -
 chardetng 1.0.0 | Cargo license: Apache-2.0 OR MIT | selected: MIT | license text: L11 | registry notices: N01 | source headers: H04
 core_detect 1.0.0 | Cargo license: MIT/Apache-2.0 | selected: MIT | license text: L15 | registry notices: - | source headers: -
+crossbeam-deque 0.8.8 | Cargo license: MIT OR Apache-2.0 | selected: MIT | license text: L24 | registry notices: - | source headers: -
+crossbeam-epoch 0.9.21 | Cargo license: MIT OR Apache-2.0 | selected: MIT | license text: L24 | registry notices: - | source headers: -
+crossbeam-utils 0.8.23 | Cargo license: MIT OR Apache-2.0 | selected: MIT | license text: L24 | registry notices: - | source headers: -
+either 1.18.0 | Cargo license: MIT OR Apache-2.0 | selected: MIT | license text: L25 | registry notices: - | source headers: -
 encoding_rs 0.8.42 | Cargo license: (Apache-2.0 OR MIT) AND BSD-3-Clause | selected: MIT AND BSD-3-Clause | license text: L11, L14 | registry notices: N03 | source headers: -
 errno 0.3.14 | Cargo license: MIT OR Apache-2.0 | selected: MIT | license text: L16 | registry notices: - | source headers: H14, H03
 fs-set-times 0.20.3 | Cargo license: Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | selected: MIT | license text: L08 | registry notices: N13 | source headers: -
@@ -35,6 +39,8 @@ phf 0.11.3 | Cargo license: MIT | selected: MIT | license text: L01 | registry n
 phf_shared 0.11.3 | Cargo license: MIT | selected: MIT | license text: L01 | registry notices: - | source headers: -
 proc-macro2 1.0.107 | Cargo license: MIT OR Apache-2.0 | selected: MIT | license text: L08 | registry notices: - | source headers: -
 quote 1.0.47 | Cargo license: MIT OR Apache-2.0 | selected: MIT | license text: L08 | registry notices: - | source headers: -
+rayon 1.12.0 | Cargo license: MIT OR Apache-2.0 | selected: MIT | license text: L26 | registry notices: - | source headers: -
+rayon-core 1.13.0 | Cargo license: MIT OR Apache-2.0 | selected: MIT | license text: L26 | registry notices: - | source headers: -
 rustc_apfloat 0.2.3+llvm-462a31f5a5ab | Cargo license: Apache-2.0 WITH LLVM-exception | selected: Apache-2.0 WITH LLVM-exception | license text: L18 | registry notices: - | source headers: -
 rustix 1.1.5 | Cargo license: Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | selected: MIT | license text: L08 | registry notices: N05 | source headers: -
 rustix-linux-procfs 0.1.1 | Cargo license: Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | selected: MIT | license text: L08 | registry notices: N12 | source headers: -
@@ -1632,3 +1638,95 @@ Distinct source-header attribution
 
 Limit: iced-x86 1.21.0 declares MIT in Cargo metadata and its source headers identify MIT and the copyright notice shown above, but the cached package contains no standalone license file. The standard MIT terms block is shared from another registry crate and is not represented as an iced-x86 file. This inventory covers Cargo registry dependencies only; it does not claim that every non-Cargo fixture or system component has been inventoried.
 
+
+[L24] sha256=5734ed989dfca1f625b40281ee9f4530f91b2411ec01cb748223e7eb87e201ab bytes=1099
+  source: crossbeam-deque-0.8.8/LICENSE-MIT
+  BEGIN TEXT bytes=1099
+The MIT License (MIT)
+
+Copyright (c) 2019 The Crossbeam Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+  END TEXT
+
+[L25] sha256=7576269ea71f767b99297934c0b2367532690f8c4badc695edf8e04ab6a1e545 bytes=1043
+  source: either-1.18.0/LICENSE-MIT
+  BEGIN TEXT bytes=1043
+Copyright (c) 2015
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+  END TEXT
+
+[L26] sha256=0621878e61f0d0fda054bcbe02df75192c28bde1ecc8289cbd86aeba2dd72720 bytes=1071
+  source: rayon-1.12.0/LICENSE-MIT
+  BEGIN TEXT bytes=1071
+Copyright (c) 2010 The Rust Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+  END TEXT
