@@ -105,6 +105,9 @@ pub struct Win16HostFontRecord {
     pub logfont_dimensions: [i32; 5],
     pub logfont_styles: [u8; 8],
     pub face_name: [u8; 32],
+    /// ENUMLOGFONT16 names; zero-filled for the legacy EnumFonts route.
+    pub full_name: [u8; 64],
+    pub style: [u8; 32],
     pub textmetric_dimensions: [i32; 8],
     pub textmetric_styles: [u8; 9],
     pub textmetric_extra: [i32; 3],

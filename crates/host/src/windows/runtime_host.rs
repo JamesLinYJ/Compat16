@@ -691,6 +691,14 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
         runtime_host_gdi::enum_fonts(self, dc, face)
     }
+
+    fn win16_enum_font_families(
+        &mut self,
+        dc: Win16HostDc,
+        face: Option<&[u8]>,
+    ) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+        runtime_host_gdi::enum_font_families(self, dc, face)
+    }
     fn win16_get_stock_object(
         &mut self,
         index: i16,

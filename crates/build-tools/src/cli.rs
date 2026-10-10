@@ -6,8 +6,8 @@ use std::process::ExitCode;
 
 use build_tools::{
     audit_win16_module, dos_probe_bytes, generate_rust, parse_spec, vga_probe_bytes,
-    win16_dialog_probe_bytes, win16_modeless_probe_bytes, ProbeFormat, SpecEntry, SpecModule,
-    VGA_PROBE_FILE_NAME,
+    win16_dialog_probe_bytes, win16_font_families_probe_bytes, win16_modeless_probe_bytes,
+    ProbeFormat, SpecEntry, SpecModule, VGA_PROBE_FILE_NAME,
 };
 use win16_abi::exports::export_descriptors;
 
@@ -48,11 +48,15 @@ fn run_command() -> Result<ExitCode, String> {
             Ok(ExitCode::SUCCESS)
         }
         "win16-dialog-probe" => {
-            run_win16_dialog_probe_command(false, args)?;
+            run_win16_probe_command("win16-dialog-probe", args)?;
             Ok(ExitCode::SUCCESS)
         }
         "win16-modeless-probe" => {
-            run_win16_dialog_probe_command(true, args)?;
+            run_win16_probe_command("win16-modeless-probe", args)?;
+            Ok(ExitCode::SUCCESS)
+        }
+        "win16-font-families-probe" => {
+            run_win16_probe_command("win16-font-families-probe", args)?;
             Ok(ExitCode::SUCCESS)
         }
         "vga-probe" => {
@@ -224,8 +228,8 @@ fn run_probe_command(args: impl Iterator<Item = OsString>) -> Result<(), String>
     Ok(())
 }
 
-fn run_win16_dialog_probe_command(
-    modeless: bool,
+fn run_win16_probe_command(
+    command: &str,
     args: impl Iterator<Item = OsString>,
 ) -> Result<(), String> {
     let mut output = None;
@@ -233,10 +237,12 @@ fn run_win16_dialog_probe_command(
         "--output" => set_once(&mut output, PathBuf::from(value), key),
         _ => Err(format!("unknown option `{key}`")),
     })?;
-    let command = if modeless { "win16-modeless-probe" } else { "win16-dialog-probe" };
     let output = output.ok_or_else(|| format!("{command} requires --output\n{}", usage()))?;
-    let image = if modeless { win16_modeless_probe_bytes() } else { win16_dialog_probe_bytes() }
-        .map_err(|error| error.to_string())?;
+    let image = match command {
+        "win16-modeless-probe" => win16_modeless_probe_bytes(),
+        "win16-font-families-probe" => win16_font_families_probe_bytes(),
+        _ => win16_dialog_probe_bytes(),
+    }.map_err(|error| error.to_string())?;
     fs::write(&output, &image)
         .map_err(|error| format!("could not write {}: {error}", output.display()))?;
     println!("generated {command} hidden NE fixture ({} bytes)", image.len());
@@ -344,5 +350,5 @@ fn usage() -> String {
     let command = std::env::current_exe().ok()
         .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
         .unwrap_or_else(|| "build-tools".to_owned());
-    format!("usage:\n  {command} inspect --input FILE --module ORIGINAL_NAME\n  {command} generate --input FILE --module ORIGINAL_NAME --output FILE\n  {command} audit-win16 --module USER --spec FILE\n  {command} probe --output FILE [--format com|mz]\n  {command} vga-probe --output FILE\n  {command} win16-dialog-probe --output FILE\n  {command} win16-modeless-probe --output FILE")
+    format!("usage:\n  {command} inspect --input FILE --module ORIGINAL_NAME\n  {command} generate --input FILE --module ORIGINAL_NAME --output FILE\n  {command} audit-win16 --module USER --spec FILE\n  {command} probe --output FILE [--format com|mz]\n  {command} vga-probe --output FILE\n  {command} win16-dialog-probe --output FILE\n  {command} win16-modeless-probe --output FILE\n  {command} win16-font-families-probe --output FILE")
 }

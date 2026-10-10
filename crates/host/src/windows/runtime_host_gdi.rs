@@ -186,6 +186,14 @@ pub(super) fn enum_fonts(
     host.win16_dcs.enum_fonts(dc, face)
 }
 
+pub(super) fn enum_font_families(
+    host: &mut WindowsHost,
+    dc: Win16HostDc,
+    face: Option<&[u8]>,
+) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+    host.win16_dcs.enum_font_families(dc, face)
+}
+
 pub(super) fn stock_object(
     host: &mut WindowsHost,
     index: i16,

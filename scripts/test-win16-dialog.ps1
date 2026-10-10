@@ -21,7 +21,7 @@ function Stop-OwnedProbe {
             if (-not $OwnedProcess.HasExited) { throw }
         }
         if (-not $OwnedProcess.WaitForExit(5000)) {
-            throw 'The owned dialog probe process tree did not stop after termination.'
+            throw 'The owned Win16 probe process tree did not stop after termination.'
         }
     }
 }
@@ -41,7 +41,7 @@ function Write-ProbeDiagnostic {
 }
 
 function Assert-ProbeTrace {
-    param([string]$Trace, [System.Collections.IDictionary]$ServiceCounts, [int]$InitializationCount)
+    param([string]$Trace, [System.Collections.IDictionary]$ServiceCounts, [int]$InitializationCount, [string]$Module)
     # Match the complete trace's @sequence prefix and the actual Display
     # formats in runtime/win16_io_trace.rs and host/windows/win16_io_trace.rs.
     # A DOS stub exiting zero cannot satisfy these NE service/callback checks.
@@ -49,15 +49,25 @@ function Assert-ProbeTrace {
     foreach ($ordinal in $ServiceCounts.Keys) {
         $expectedCount = $ServiceCounts[[string]$ordinal]
         foreach ($stage in @('dispatch-enter', 'dispatch-return')) {
-            $pattern = '(?m)^@\d+ service-boundary stage={0} module=USER name=\S+ ordinal={1} instruction=\d+ guest=[0-9A-F]{{4}}:[0-9A-F]{{4}}\r?$' -f $stage, $ordinal
+            $pattern = '(?m)^@\d+ service-boundary stage={0} module={2} name=\S+ ordinal={1} instruction=\d+ guest=[0-9A-F]{{4}}:[0-9A-F]{{4}}\r?$' -f $stage, $ordinal, $Module
             $observed = [regex]::Matches($Trace, $pattern).Count
             if ($observed -ne $expectedCount) {
-                throw "Expected $expectedCount USER ordinal $ordinal $stage markers; observed $observed."
+                throw "Expected $expectedCount $Module ordinal $ordinal $stage markers; observed $observed."
             }
         }
     }
     if ($Trace -cmatch '(?m)^@\d+ service-boundary stage=dispatch-error ') {
         throw 'The Win16 service trace contains a failed dispatch.'
+    }
+    if ($Module -eq 'GDI') {
+        # There is no font-callback trace marker. The generated guest itself
+        # executes counter/LPARAM/layout/string/caller-state assertions and must
+        # exit zero; service traces separately prove the intended native route.
+        $expectedBoundaries = 2 * ($ServiceCounts.Values | Measure-Object -Sum).Sum
+        $actualBoundaries = [regex]::Matches($Trace, '(?m)^@\d+ service-boundary stage=dispatch-(?:enter|return) module=GDI ').Count
+        if ($actualBoundaries -ne $expectedBoundaries) {
+            throw "Expected exactly $expectedBoundaries GDI service boundaries; observed $actualBoundaries."
+        }
     }
     $callbackPattern = '(?m)^@\d+ window-callback phase={0} procedure=dlgproc callback=(\d+) window=([0-9A-F]{{4}}) message=0110 return=(\S+) dialog-msgresult=\S+\r?$'
     $initializations = [regex]::Matches($Trace, ($callbackPattern -f 'guest-entry'))
@@ -93,6 +103,7 @@ function Invoke-ProbeCase {
         [string]$ProgramName,
         [System.Collections.IDictionary]$ServiceCounts,
         [int]$InitializationCount,
+        [string]$Module,
         [string]$RuntimeDirectory,
         [string]$VsDevCmd,
         [string]$VsArchitecture,
@@ -130,7 +141,7 @@ function Invoke-ProbeCase {
         foreach ($argument in @('--max-instructions', '1000000', '--trace-file', $instructionTrace, '--trace-win16-io-complete', $win16Trace, $program)) {
             $start.ArgumentList.Add($argument)
         }
-        Write-Host "Running the generated $Name NE dialog/icon guest with a 30-second external timeout; no visible windows or input."
+        Write-Host "Running the generated $Name NE guest with a 30-second external timeout; no visible windows or input."
         $process = [Diagnostics.Process]::Start($start)
         # Drain both pipes concurrently so diagnostics cannot deadlock the guest.
         $stdoutRead = $process.StandardOutput.ReadToEndAsync()
@@ -144,7 +155,7 @@ function Invoke-ProbeCase {
         if (-not (Test-Path -LiteralPath $win16Trace -PathType Leaf)) {
             throw 'The guest exited without producing its Win16 service/callback trace.'
         }
-        Assert-ProbeTrace -Trace (Get-Content -LiteralPath $win16Trace -Raw) -ServiceCounts $ServiceCounts -InitializationCount $InitializationCount
+        Assert-ProbeTrace -Trace (Get-Content -LiteralPath $win16Trace -Raw) -ServiceCounts $ServiceCounts -InitializationCount $InitializationCount -Module $Module
     } catch {
         $failures += $_.Exception.Message
     } finally {
@@ -176,7 +187,7 @@ function Invoke-ProbeCase {
             $process.Dispose()
         }
         if ($temporaryDirectoryCreated) {
-            # Log both cases' service/callback evidence. Instruction traces are
+            # Log each case's service/callback evidence. Instruction traces are
             # verbose and needed only for a failed case, before owned cleanup.
             try {
                 Write-ProbeDiagnostic $stdoutPath "Generated $Name probe stdout"
@@ -195,12 +206,16 @@ function Invoke-ProbeCase {
         }
     }
     if ($failures.Count -gt 0) { throw ($failures -join '; ') }
-    Write-Host "PASS: generated $Name NE dialog/icon guest exited zero with exact USER service counts and $InitializationCount validated WM_INITDIALOG callback returns."
+    if ($Module -eq 'GDI') {
+        Write-Host "PASS: generated $Name NE guest exited zero with exact GDI52/330/68 service counts and guest-executed font callback assertions; font callbacks have no dedicated trace marker."
+    } else {
+        Write-Host "PASS: generated $Name NE dialog/icon guest exited zero with exact USER service counts and $InitializationCount validated WM_INITDIALOG callback returns."
+    }
 }
 
 try {
     if (-not [Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Runtime.InteropServices.OSPlatform]::Windows)) {
-        throw 'The generated Win16 dialog probes require native Windows AMD64 or ARM64.'
+        throw 'The generated Win16 probes require native Windows AMD64 or ARM64.'
     }
     $architectureName = if ($Architecture -eq 'arm64') { 'arm64' } else { 'x64' }
     $nativeArchitecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
@@ -242,6 +257,7 @@ try {
             ProgramName = 'DIALOG.EXE'
             ServiceCounts = [ordered]@{ '87' = 1; '91' = 1; '111' = 1; '88' = 1 }
             InitializationCount = 1
+            Module = 'USER'
         },
         @{
             Name = 'modeless'
@@ -249,6 +265,15 @@ try {
             ProgramName = 'MODELESS.EXE'
             ServiceCounts = [ordered]@{ '89' = 2; '91' = 2; '111' = 2; '174' = 4; '53' = 2; '47' = 2 }
             InitializationCount = 2
+            Module = 'USER'
+        },
+        @{
+            Name = 'font-families'
+            Generator = 'win16-font-families-probe'
+            ProgramName = 'FAMILIES.EXE'
+            ServiceCounts = [ordered]@{ '52' = 1; '330' = 2; '68' = 1 }
+            InitializationCount = 0
+            Module = 'GDI'
         }
     )
     # Modal: GetDlgItem/STM_GETICON and EndDialog result 17. Modeless: two
@@ -265,7 +290,7 @@ try {
         }
     }
     if ($failedCases.Count -gt 0) {
-        throw ('Generated Win16 dialog acceptance failed: ' + ($failedCases -join '; '))
+        throw ('Generated Win16 acceptance failed: ' + ($failedCases -join '; '))
     }
 } finally {
     Set-Location -LiteralPath $originalLocation.Path

@@ -494,6 +494,26 @@ impl Win16State {
                     dos,
                     memory,
                     host,
+                    super::font_callback::FontEnumerationMode::Fonts,
+                    dc,
+                    face_name.as_deref(),
+                    callback,
+                    parameter,
+                    (return_selector, return_offset, return_sp),
+                );
+            }
+            Win16ApiRequest::GdiText(win16_abi::Win16GdiTextRequest::EnumFontFamilies {
+                dc,
+                face_name,
+                callback,
+                parameter,
+            }) => {
+                return self.begin_enum_fonts(
+                    cpu,
+                    dos,
+                    memory,
+                    host,
+                    super::font_callback::FontEnumerationMode::Families,
                     dc,
                     face_name.as_deref(),
                     callback,

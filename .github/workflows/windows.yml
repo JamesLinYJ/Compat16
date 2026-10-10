@@ -148,6 +148,8 @@ jobs:
             '-p runtime --lib dos_search_tests::',
             '-p runtime --lib get_char_width',
             '-p host-services --lib get_char_width',
+            '-p runtime --lib enum_font_families',
+            '-p host-services --lib enum_font_families',
             '-p runtime --lib scroll_dc',
             '-p host-services --lib scroll_dc'
           )
@@ -558,9 +560,11 @@ jobs:
         timeout-minutes: 25
         run: .\scripts\build.ps1 -Architecture $env:BUILD_ARCHITECTURE -NonInteractive
 
-      - name: Run generated modal and modeless Win16 acceptance
+      - name: Run generated dialog and font-family Win16 acceptance
         # Independent generated NE guests exercise modal completion and two
         # modeless create/destroy cycles with shared-icon identity survival.
+        # A third guest discovers a native font family and checks GDI330
+        # callback records, arguments, early stop, and caller-state restoration.
         # No ShowWindow, WS_VISIBLE, DestroyIcon, or input automation.
         if: ${{ !cancelled() && steps.native_release.outcome == 'success' }}
         timeout-minutes: 5

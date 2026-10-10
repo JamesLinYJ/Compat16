@@ -23,6 +23,7 @@ pub(super) fn decode(
         | Win16ExportId::GdiGetDeviceCaps
         | Win16ExportId::GdiGetStockObject
         | Win16ExportId::GdiEnumFonts
+        | Win16ExportId::GdiEnumFontFamilies
         | Win16ExportId::GdiLineDda
         | Win16ExportId::GdiMulDiv
         | Win16ExportId::GdiSelectObject

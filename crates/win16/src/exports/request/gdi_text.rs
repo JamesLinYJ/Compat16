@@ -91,6 +91,14 @@ pub enum Win16GdiTextRequest {
         parameter: i32,
     },
 
+    /// Enumerate families with an ENUMLOGFONT16 callback record.
+    EnumFontFamilies {
+        dc: u16,
+        face_name: Option<Vec<u8>>,
+        callback: u32,
+        parameter: i32,
+    },
+
     /// Set the guest DC background color; returns the previous COLORREF in DX:AX.
     SetBkColor {
         dc: u16,

@@ -341,6 +341,7 @@ GdiGetObject => GDI_GET_OBJECT: ("GDI", 82u16, Stack, gdi::GDI_GET_OBJECT_PARAME
 GdiGetDeviceCaps => GDI_GET_DEVICE_CAPS: ("GDI", 80u16, Stack, gdi::GDI_GET_DEVICE_CAPS_PARAMETERS, Word);
 GdiGetStockObject => GDI_GET_STOCK_OBJECT: ("GDI", 87u16, Stack, gdi::GDI_GET_STOCK_OBJECT_PARAMETERS, Word);
 GdiEnumFonts => GDI_ENUM_FONTS: ("GDI", 70u16, Stack, gdi::GDI_ENUM_FONTS_PARAMETERS, Word);
+GdiEnumFontFamilies => GDI_ENUM_FONT_FAMILIES: ("GDI", 330u16, Stack, gdi::GDI_ENUM_FONTS_PARAMETERS, Word);
 GdiLineDda => GDI_LINE_DDA: ("GDI", 100u16, Stack, gdi::GDI_LINE_DDA_PARAMETERS, Word);
 GdiMulDiv => GDI_MUL_DIV: ("GDI", 128u16, Stack, gdi::GDI_MUL_DIV_PARAMETERS, Word);
 GdiSelectObject => GDI_SELECT_OBJECT: ("GDI", 45u16, Stack, gdi::GDI_SELECT_OBJECT_PARAMETERS, Word);

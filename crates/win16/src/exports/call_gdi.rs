@@ -60,6 +60,18 @@ pub(super) fn decode(
                 parameter: dword_argument(arguments, 3)? as i32,
             })
         }
+        Win16ExportId::GdiEnumFontFamilies => {
+            Win16ApiRequest::GdiText(super::Win16GdiTextRequest::EnumFontFamilies {
+                dc: word_argument(arguments, 0)?,
+                face_name: read_nullable_far_string(
+                    dword_argument(arguments, 1)?,
+                    selectors,
+                    memory,
+                )?,
+                callback: dword_argument(arguments, 2)?,
+                parameter: dword_argument(arguments, 3)? as i32,
+            })
+        }
         Win16ExportId::GdiMulDiv => {
             Win16ApiRequest::GdiDrawing(super::Win16GdiDrawingRequest::MulDiv {
                 multiplicand: word_argument(arguments, 0)? as i16,
@@ -274,3 +286,7 @@ pub(super) fn read_exact_bytes(
     }
     Ok(bytes)
 }
+
+#[cfg(test)]
+#[path = "call_enum_font_families_tests.rs"]
+mod enum_font_families_tests;

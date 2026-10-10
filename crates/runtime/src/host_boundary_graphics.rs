@@ -48,6 +48,11 @@ macro_rules! graphics_runtime_host_ports {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 font enumeration is unavailable"))
     }
+    fn win16_enum_font_families(&mut self, _dc: Win16HostDc, _face: Option<&[u8]>)
+        -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 font family enumeration is unavailable"))
+    }
     fn win16_get_stock_object(&mut self, _index: i16)
         -> Result<Option<Win16HostGdiObject>, RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,

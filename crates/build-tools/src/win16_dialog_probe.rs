@@ -26,16 +26,40 @@ pub(super) fn build_image(
     fixups: &[[u8; 8]],
     data_length: usize,
 ) -> Result<Vec<u8>, ProbeBuildError> {
-    if CODE + code.len() + 2 + fixups.len() * 8 > DATA {
-        return Err(build_error("Win16 dialog probe code overlaps its data segment"));
+    build_image_with_import(code, fixups, data_length, b"USER", true)
+}
+
+/// Shared two-segment NE packaging. Dialog fixtures retain their original
+/// offsets; larger generated guests receive an aligned, nonoverlapping DGROUP.
+pub(super) fn build_image_with_import(
+    code: &[u8],
+    fixups: &[[u8; 8]],
+    data_length: usize,
+    module: &[u8],
+    resources: bool,
+) -> Result<Vec<u8>, ProbeBuildError> {
+    if module.is_empty() || module.len() > 4 || code.len() > u16::MAX as usize
+        || data_length == 0 || data_length > 0x1000 || fixups.len() > u16::MAX as usize {
+        return Err(build_error("invalid generated Win16 probe layout"));
+    }
+    let data = (CODE + code.len() + 2 + fixups.len() * 8).max(DATA).next_multiple_of(256);
+    let dialog_offset = data + (DIALOG - DATA);
+    let group_offset = data + (GROUP - DATA);
+    let icon_offset = data + (ICON - DATA);
+    if resources && data_length > DIALOG - DATA {
+        return Err(build_error("Win16 probe data overlaps its resources"));
     }
     let dialog = dialog_template();
     let icon = icon_image();
     let group = icon_group(icon.len() as u32);
-    let mut image = vec![0; ICON + icon.len()];
+    let length = if resources { icon_offset + icon.len() } else { data + data_length };
+    if length > u16::MAX as usize {
+        return Err(build_error("generated Win16 probe exceeds its bounded image layout"));
+    }
+    let mut image = vec![0; length];
     image[..2].copy_from_slice(b"MZ");
-    word(&mut image, 2, (ICON + icon.len()) as u16 % 512);
-    word(&mut image, 4, image_len_pages(ICON + icon.len()));
+    word(&mut image, 2, (length % 512) as u16);
+    word(&mut image, 4, image_len_pages(length));
     word(&mut image, 8, 4);
     word(&mut image, 0x18, 0x40);
     dword(&mut image, 0x3c, NE as u32);
@@ -49,7 +73,7 @@ pub(super) fn build_image(
     word(&mut image, NE + 0x18, 0x1000);
     word(&mut image, NE + 0x1a, 2); // SS = DGROUP
     word(&mut image, NE + 0x1c, 2);
-    word(&mut image, NE + 0x1e, 1); // USER import
+    word(&mut image, NE + 0x1e, 1); // one ordinal-import module
     word(&mut image, NE + 0x22, 0x40);
     word(&mut image, NE + 0x24, 0x50);
     word(&mut image, NE + 0x26, 0x90);
@@ -60,7 +84,7 @@ pub(super) fn build_image(
     word(&mut image, NE + 0x3e, 0x030a);
     for (offset, location, length, flags, memory) in [
         (0x40, CODE, code.len(), 0x0100, code.len()),
-        (0x48, DATA, data_length, 0x0001, 0x1000),
+        (0x48, data, data_length, 0x0001, 0x1000),
     ] {
         word(&mut image, NE + offset, (location >> 4) as u16);
         word(&mut image, NE + offset + 2, length as u16);
@@ -68,31 +92,36 @@ pub(super) fn build_image(
         word(&mut image, NE + offset + 6, memory as u16);
     }
     // Resource alignment zero means byte offsets/lengths (unlike NE segments).
-    for (index, (kind, id, offset, length)) in [
-        (5, 1, DIALOG, dialog.len()),
-        (14, 7, GROUP, group.len()),
-        (3, 9, ICON, icon.len()),
-    ].into_iter().enumerate() {
-        let record = NE + 0x52 + index * 20;
-        word(&mut image, record, 0x8000 | kind);
-        word(&mut image, record + 2, 1);
-        word(&mut image, record + 8, offset as u16);
-        word(&mut image, record + 10, length as u16);
-        word(&mut image, record + 12, 0x0030); // movable, pure resource
-        word(&mut image, record + 14, 0x8000 | id);
+    if resources {
+        for (index, (kind, id, offset, length)) in [
+            (5, 1, dialog_offset, dialog.len()),
+            (14, 7, group_offset, group.len()),
+            (3, 9, icon_offset, icon.len()),
+        ].into_iter().enumerate() {
+            let record = NE + 0x52 + index * 20;
+            word(&mut image, record, 0x8000 | kind);
+            word(&mut image, record + 2, 1);
+            word(&mut image, record + 8, offset as u16);
+            word(&mut image, record + 10, length as u16);
+            word(&mut image, record + 12, 0x0030); // movable, pure resource
+            word(&mut image, record + 14, 0x8000 | id);
+        }
     }
     // The zero resource terminator occupies 0x8e..0x90. Resident names,
-    // module USER name offset, and the entry table terminator are also zero.
-    image[NE + 0x93..NE + 0x98].copy_from_slice(b"\x04USER");
+    // import module name offset, and the entry table terminator are also zero.
+    image[NE + 0x93] = module.len() as u8;
+    image[NE + 0x94..NE + 0x94 + module.len()].copy_from_slice(module);
     image[CODE..CODE + code.len()].copy_from_slice(code);
     word(&mut image, CODE + code.len(), fixups.len() as u16);
     for (index, fixup) in fixups.iter().enumerate() {
         let offset = CODE + code.len() + 2 + index * 8;
         image[offset..offset + 8].copy_from_slice(fixup);
     }
-    image[DIALOG..DIALOG + dialog.len()].copy_from_slice(&dialog);
-    image[GROUP..GROUP + group.len()].copy_from_slice(&group);
-    image[ICON..ICON + icon.len()].copy_from_slice(&icon);
+    if resources {
+        image[dialog_offset..dialog_offset + dialog.len()].copy_from_slice(&dialog);
+        image[group_offset..group_offset + group.len()].copy_from_slice(&group);
+        image[icon_offset..icon_offset + icon.len()].copy_from_slice(&icon);
+    }
     Ok(image)
 }
 

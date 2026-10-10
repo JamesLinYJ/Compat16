@@ -20,7 +20,16 @@ use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostFontReco
 
 const LOGFONT16_BYTES: usize = 50;
 const NEWTEXTMETRIC16_BYTES: usize = 41;
-const FONT_RECORD_BYTES: usize = LOGFONT16_BYTES + NEWTEXTMETRIC16_BYTES;
+const ENUMLOGFONT16_BYTES: usize = 146;
+
+#[derive(Clone, Copy)]
+pub(super) enum FontEnumerationMode { Fonts, Families }
+
+impl FontEnumerationMode {
+    fn font_bytes(self) -> usize {
+        match self { Self::Fonts => LOGFONT16_BYTES, Self::Families => ENUMLOGFONT16_BYTES }
+    }
+}
 const CALLBACK_STACK_BYTES: u16 = 18; // FAR return, two FAR pointers, WORD, DWORD.
 
 pub(super) struct FontCallbackFrame {
@@ -30,6 +39,7 @@ pub(super) struct FontCallbackFrame {
     callback: u32,
     parameter: i32,
     records: Vec<Win16HostFontRecord>,
+    mode: FontEnumerationMode,
     next_index: usize,
     last_result: u16,
     allocation: Option<GlobalHandle>,
@@ -42,14 +52,20 @@ fn narrow(value: i32) -> i16 {
     value.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16
 }
 
-fn encode_font(record: &Win16HostFontRecord) -> [u8; FONT_RECORD_BYTES] {
-    let mut bytes = [0_u8; FONT_RECORD_BYTES];
+fn encode_font(record: &Win16HostFontRecord, mode: FontEnumerationMode)
+    -> [u8; ENUMLOGFONT16_BYTES + NEWTEXTMETRIC16_BYTES]
+{
+    let mut bytes = [0_u8; ENUMLOGFONT16_BYTES + NEWTEXTMETRIC16_BYTES];
     for (index, value) in record.logfont_dimensions.iter().enumerate() {
         bytes[index * 2..index * 2 + 2].copy_from_slice(&narrow(*value).to_le_bytes());
     }
     bytes[10..18].copy_from_slice(&record.logfont_styles);
     bytes[18..50].copy_from_slice(&record.face_name);
-    let metric = LOGFONT16_BYTES;
+    if let FontEnumerationMode::Families = mode {
+        bytes[50..114].copy_from_slice(&record.full_name);
+        bytes[114..146].copy_from_slice(&record.style);
+    }
+    let metric = mode.font_bytes();
     bytes[metric..metric + TEXTMETRIC16_SIZE].copy_from_slice(&TextMetric16::from_host(
         record.textmetric_dimensions, record.textmetric_styles, record.textmetric_extra,
     ).encode());
@@ -83,6 +99,7 @@ impl Win16State {
         dos: &mut DosKernel,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
+        mode: FontEnumerationMode,
         dc: u16,
         face_name: Option<&[u8]>,
         callback: u32,
@@ -93,7 +110,10 @@ impl Win16State {
             return self.complete_return(&mut cpu.regs, return_to.0, return_to.1,
                 return_to.2, 0, Win16ReturnKind::Word);
         };
-        let records = host.win16_enum_fonts(native_dc, face_name)?;
+        let records = match mode {
+            FontEnumerationMode::Fonts => host.win16_enum_fonts(native_dc, face_name)?,
+            FontEnumerationMode::Families => host.win16_enum_font_families(native_dc, face_name)?,
+        };
         if records.is_empty() {
             return self.complete_return(&mut cpu.regs, return_to.0, return_to.1,
                 return_to.2, 0, Win16ReturnKind::Word);
@@ -107,7 +127,7 @@ impl Win16State {
         }
         let callback_id = self.reserve_callback_frame_id()?;
         let allocation = match self.heap.alloc(memory, OwnerId(1),
-            FONT_RECORD_BYTES as u32, AllocationFlags::fixed().with_zero_init()) {
+            (mode.font_bytes() + NEWTEXTMETRIC16_BYTES) as u32, AllocationFlags::fixed().with_zero_init()) {
             Ok(handle) => handle,
             Err(Win16Error::OutOfMemory | Win16Error::HandleTableFull) => {
                 return self.complete_return(&mut cpu.regs, return_to.0, return_to.1,
@@ -123,7 +143,7 @@ impl Win16State {
             }
         };
         self.font_callbacks.push(FontCallbackFrame {
-            callback_id, saved: cpu.regs.clone(), return_to, callback, parameter, records,
+            callback_id, saved: cpu.regs.clone(), return_to, callback, parameter, records, mode,
             next_index: 0, last_result: 0, allocation: Some(allocation),
             allocation_locked: true, data, active_call: None,
         });
@@ -142,9 +162,10 @@ impl Win16State {
             Kind::InternalInvariant, "Win16 font callback frame is missing"))?;
         let record = frame.records.get(frame.next_index).ok_or_else(|| RuntimeError::new(
             Kind::InternalInvariant, "Win16 font callback record is missing"))?;
-        let bytes = encode_font(record);
-        self.selectors.write(memory, frame.data, &bytes).map_err(crate::runtime_error)?;
-        let metric = self.selectors.add_bytes(frame.data, LOGFONT16_BYTES as u32)
+        let bytes = encode_font(record, frame.mode);
+        self.selectors.write(memory, frame.data,
+            &bytes[..frame.mode.font_bytes() + NEWTEXTMETRIC16_BYTES]).map_err(crate::runtime_error)?;
+        let metric = self.selectors.add_bytes(frame.data, frame.mode.font_bytes() as u32)
             .map_err(crate::runtime_error)?;
         let callback = frame.callback;
         let parameter = frame.parameter as u32;
@@ -162,7 +183,7 @@ impl Win16State {
                 Win16FarCallbackArgument::GuestPointer {
                     far: data_far,
                     access: Access::Read,
-                    bytes: LOGFONT16_BYTES as u32,
+                    bytes: frame.mode.font_bytes() as u32,
                 },
                 Win16FarCallbackArgument::GuestPointer {
                     far: metric_far,
@@ -297,3 +318,7 @@ impl Win16State {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "win16_font_callback_tests.rs"]
+mod tests;
