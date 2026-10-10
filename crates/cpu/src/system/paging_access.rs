@@ -117,12 +117,7 @@ impl<'a, M: GuestMemory, S: SegmentResolver> CpuMemoryAccess<'a, M, S> {
         if kind.writes() {
             self.validate_chunks(&chunks, false)?;
         }
-        let read_chunks = if kind.reads() {
-            clone_chunks(&chunks)?
-        } else {
-            Vec::new()
-        };
-        let write_chunks = if kind.writes() { chunks } else { Vec::new() };
+        let (read_chunks, write_chunks) = split_access_chunks(chunks, kind)?;
         Ok(AccessParts {
             linear_start: Some(linear),
             len: span.len,
@@ -156,12 +151,7 @@ impl<'a, M: GuestMemory, S: SegmentResolver> CpuMemoryAccess<'a, M, S> {
         if kind.writes() {
             self.validate_chunks(&chunks, false)?;
         }
-        let read_chunks = if kind.reads() {
-            clone_chunks(&chunks)?
-        } else {
-            Vec::new()
-        };
-        let write_chunks = if kind.writes() { chunks } else { Vec::new() };
+        let (read_chunks, write_chunks) = split_access_chunks(chunks, kind)?;
         Ok(AccessParts {
             linear_start: Some(linear),
             len: span.len,
@@ -325,12 +315,7 @@ impl<'a, M: GuestMemory, S: SegmentResolver> CpuMemoryAccess<'a, M, S> {
         if kind.writes() {
             self.validate_chunks(&chunks, false)?;
         }
-        let read_chunks = if kind.reads() {
-            clone_chunks(&chunks)?
-        } else {
-            Vec::new()
-        };
-        let write_chunks = if kind.writes() { chunks } else { Vec::new() };
+        let (read_chunks, write_chunks) = split_access_chunks(chunks, kind)?;
         Ok(AccessParts {
             linear_start: Some(address),
             len,
@@ -618,6 +603,9 @@ impl<'a, M: GuestMemory, S: SegmentResolver> CpuMemoryAccess<'a, M, S> {
 }
 
 fn merge_adjacent_chunks(chunks: Vec<PhysicalChunk>) -> Result<Vec<PhysicalChunk>, CpuError> {
+    if chunks.len() <= 1 {
+        return Ok(chunks);
+    }
     let mut merged: Vec<PhysicalChunk> = Vec::new();
     merged
         .try_reserve_exact(chunks.len())
@@ -640,6 +628,20 @@ fn merge_adjacent_chunks(chunks: Vec<PhysicalChunk>) -> Result<Vec<PhysicalChunk
         merged.push(chunk);
     }
     Ok(merged)
+}
+
+fn split_access_chunks(
+    chunks: Vec<PhysicalChunk>,
+    kind: AccessKind,
+) -> Result<(Vec<PhysicalChunk>, Vec<PhysicalChunk>), CpuError> {
+    // Single-direction accesses can retain the translated allocation. Only
+    // read-modify-write plans need independently owned read and write lists.
+    Ok(match (kind.reads(), kind.writes()) {
+        (true, true) => (clone_chunks(&chunks)?, chunks),
+        (true, false) => (chunks, Vec::new()),
+        (false, true) => (Vec::new(), chunks),
+        (false, false) => (Vec::new(), Vec::new()),
+    })
 }
 
 fn clone_chunks(chunks: &[PhysicalChunk]) -> Result<Vec<PhysicalChunk>, CpuError> {

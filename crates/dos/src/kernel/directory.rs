@@ -556,15 +556,15 @@ pub(super) fn parse_search_spec(
         pattern.name[..filename.len()].copy_from_slice(filename);
         return Ok((directory.to_vec(), pattern));
     }
-    let dots: Vec<_> = filename_chars
+    let mut dots = filename_chars
         .iter()
         .filter(|character| character.is_standalone_ascii(b'.'))
-        .map(|character| character.byte_range.start)
-        .collect();
-    if dots.len() > 1 {
+        .map(|character| character.byte_range.start);
+    let dot = dots.next();
+    if dots.next().is_some() {
         return Err(DosErrorCode::FileNotFound);
     }
-    let (name, extension) = match dots.first().copied() {
+    let (name, extension) = match dot {
         Some(dot) => (&filename[..dot], Some(&filename[dot + 1..])),
         None => (filename, None),
     };
@@ -647,15 +647,15 @@ pub(super) fn short_name_fields(
     }) {
         return None;
     }
-    let dots: Vec<_> = characters
+    let mut dots = characters
         .iter()
         .filter(|character| character.is_standalone_ascii(b'.'))
-        .map(|character| character.byte_range.start)
-        .collect();
-    if dots.len() > 1 {
+        .map(|character| character.byte_range.start);
+    let dot = dots.next();
+    if dots.next().is_some() {
         return None;
     }
-    let (base, extension) = match dots.first().copied() {
+    let (base, extension) = match dot {
         Some(dot) => (&name[..dot], Some(&name[dot + 1..])),
         None => (name, None),
     };
@@ -731,10 +731,14 @@ fn encoded_characters(
 }
 
 fn path_has_wildcard(path: &[u8], page: text_codec::CodePage) -> Result<bool, DosErrorCode> {
-    let characters = encoded_characters(path, page)?;
-    Ok(characters.iter().any(|character| {
-        character.is_standalone_ascii(b'*') || character.is_standalone_ascii(b'?')
-    }))
+    let mut has_wildcard = false;
+    // Continue decoding after a match so malformed trailing bytes still fail.
+    for character in text_codec::encoded_characters(path, page) {
+        let character = character.map_err(|_| DosErrorCode::InvalidData)?;
+        has_wildcard |=
+            character.is_standalone_ascii(b'*') || character.is_standalone_ascii(b'?');
+    }
+    Ok(has_wildcard)
 }
 
 fn valid_non_search_path(path: &[u8], page: text_codec::CodePage) -> bool {
@@ -758,24 +762,27 @@ pub(super) fn dos_path_drive(
     path: &[u8],
     page: text_codec::CodePage,
 ) -> Result<Option<u8>, DosErrorCode> {
-    let characters = encoded_characters(path, page)?;
-    let drive_prefix = characters.len() >= 2
-        && characters[0].is_standalone_ascii(path[0])
-        && characters[1].is_standalone_ascii(b':')
-        && path[0].is_ascii_alphabetic()
-        && path[1] == b':';
-    let has_colon = characters
-        .iter()
-        .any(|character| character.is_standalone_ascii(b':'));
+    let mut first_is_drive_letter = false;
+    let mut second_is_colon = false;
+    let mut has_colon = false;
+    let mut has_later_colon = false;
+    for (index, character) in text_codec::encoded_characters(path, page).enumerate() {
+        let character = character.map_err(|_| DosErrorCode::InvalidData)?;
+        let is_colon = character.is_standalone_ascii(b':');
+        has_colon |= is_colon;
+        match index {
+            0 => {
+                first_is_drive_letter = character.is_standalone_ascii(path[0])
+                    && path[0].is_ascii_alphabetic();
+            }
+            1 => second_is_colon = is_colon,
+            _ => has_later_colon |= is_colon,
+        }
+    }
     if !has_colon {
         return Ok(None);
     }
-    if !drive_prefix
-        || characters
-            .iter()
-            .skip(2)
-            .any(|character| character.is_standalone_ascii(b':'))
-    {
+    if !first_is_drive_letter || !second_is_colon || has_later_colon {
         return Err(DosErrorCode::InvalidData);
     }
     Ok(Some(dos_upper(path[0]) - b'A'))
