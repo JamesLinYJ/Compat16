@@ -76,28 +76,44 @@ pub(super) fn dispatch_int21(
 
     // WNet-created HFILEs share the runtime HFILE allocator but are backed by
     // a spooler document rather than the DOS kernel's handle table. Claim
-    // exact current-task aliases before forwarding AH=3E/AH=40 to DOS, where
-    // a numerically equal DOS handle must never be touched.
+    // every known spool alias before forwarding AH=3E/AH=40 to DOS, where
+    // a numerically equal DOS handle must never be touched. Only a live
+    // current-task job can be used; foreign and reserved aliases fail closed.
     if matches!(service, 0x3e | 0x40) {
         let hfile = regs.bx();
         let owner = state.current_task_owner()?;
-        if state.network_print_hfile_is_owned(owner, hfile) {
-            let result = if service == 0x3e {
-                state.close_legacy_file(hfile, host)?
+        if state.network_print_jobs.values().any(|jobs| jobs.owns_hfile(hfile)) {
+            dos.prepare_external_int21(memory).map_err(runtime_error)?;
+            if state.network_print_jobs.get(&owner)
+                .is_some_and(|jobs| jobs.open_job(hfile).is_some())
+            {
+                let result = if service == 0x3e {
+                    state.close_legacy_file(hfile, host)?
+                } else {
+                    let far_buffer = (u32::from(regs.ds) << 16) | u32::from(regs.dx());
+                    state.write_file(hfile, far_buffer, i32::from(regs.cx()), memory, host)?
+                };
+                let failed = if service == 0x3e { result != 0 } else { result == u32::MAX };
+                if failed {
+                    // WritePrinter failures without a more specific DOS
+                    // mapping are reported as access denied.
+                    regs.set_ax(if service == 0x3e {
+                        DosErrorCode::InvalidHandle as u16
+                    } else {
+                        DosErrorCode::AccessDenied as u16
+                    });
+                } else {
+                    regs.set_ax(result as u16);
+                }
+                regs.set_carry(failed);
             } else {
-                let far_buffer = (u32::from(regs.ds) << 16) | u32::from(regs.dx());
-                state.write_file(hfile, far_buffer, i32::from(regs.cx()), memory, host)?
-            };
-            let failed = if service == 0x3e { result != 0 } else { result == u32::MAX };
-            if failed {
-                // DOS error 6 is invalid handle. WritePrinter failures without
-                // a more specific DOS mapping are reported as access denied.
-                regs.set_ax(if service == 0x3e { 6 } else { 5 });
+                regs.set_ax(DosErrorCode::InvalidHandle as u16);
                 regs.set_carry(true);
-            } else {
-                regs.set_ax(result as u16);
-                regs.set_carry(false);
             }
+            // Publish completed I/O and retire a successfully closed alias
+            // before refresh. A metadata failure must not undo that identity
+            // change or replay a completed host operation.
+            dos.finish_external_int21(memory, host).map_err(runtime_error)?;
             state.finish_file_cdr_dos_operation(file_cdr_notice, regs, &DosAction::Continue)?;
             return Ok(DosAction::Continue);
         }
@@ -461,3 +477,7 @@ mod dos_extended_open_tests;
 #[cfg(test)]
 #[path = "win16_dos_temporary_file_tests.rs"]
 mod dos_temporary_file_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_spool_tests.rs"]
+mod spool_tests;

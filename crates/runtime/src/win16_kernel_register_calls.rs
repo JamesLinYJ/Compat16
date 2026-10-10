@@ -139,7 +139,7 @@ fn dispatch_dos3call(
             )
         })?;
         match runtime.cpu.regs.ah() {
-            0x0e | 0x19 | 0x25 | 0x35 | 0x3a | 0x3b | 0x47 | 0x57 | 0x68 => {
+            0x0e | 0x19 | 0x25 | 0x35 | 0x3a | 0x3b | 0x3e | 0x40 | 0x47 | 0x57 | 0x68 => {
                 super::dos_interrupts::dispatch_int21(
                     state,
                     &mut runtime.dos,
