@@ -126,7 +126,10 @@ jobs:
             '-p host-services --lib file_set_write_time_',
             '-p runtime --lib set_window_pos_tests',
             '-p runtime --lib dos_interrupts::spool_tests',
-            '-p runtime --lib exec_fcb_'
+            '-p runtime --lib exec_fcb_',
+            '-p runtime --lib ansi_next_',
+            '-p host-services --lib ansi_next_',
+            '-p host-services --lib ansi_prev_'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

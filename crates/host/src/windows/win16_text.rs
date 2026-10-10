@@ -6,7 +6,6 @@ use windows_sys::Win32::Globalization::{lstrcmpW, lstrcmpiW};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CharLowerBuffW, CharLowerW, CharUpperBuffW, CharUpperW,
 };
-use windows_sys::Win32::Globalization::IsDBCSLeadByteEx;
 
 pub(super) fn ansi_lower_char(codec: GuestTextCodec, value: u16) -> Result<u16, RuntimeError> {
     ansi_case_char(codec, value, false)
@@ -200,39 +199,6 @@ pub(super) fn ansi_compare(
     Ok(result.signum() as i16)
 }
 
-/// Return the guest-byte offset of the next character. Valid text is mapped
-/// through the codec's per-character spans. An isolated DBCS lead uses only
-/// the explicit code-page lead-byte query to preserve its historical offset
-/// past the NUL when that position has real guest backing.
-pub(super) fn ansi_next_offset(
-    codec: GuestTextCodec,
-    source: &[u8],
-) -> Result<usize, RuntimeError> {
-    if source.is_empty() || source[0] == 0 {
-        return Ok(0);
-    }
-    if is_dangling_dbcs_next(codec, source) {
-        return next_damaged_dbcs_offset(codec, source);
-    }
-    let mut wide = GuestTextBuffer::acquire();
-    let spans = codec.to_wide_with_ranges_into(source, &mut wide)?;
-    spans.first().map(|span| span.guest_bytes.end).ok_or_else(|| {
-        RuntimeError::new(Kind::InternalInvariant,
-            "decoded guest text has no character boundary")
-    })
-}
-
-fn next_damaged_dbcs_offset(
-    _codec: GuestTextCodec,
-    _source: &[u8],
-) -> Result<usize, RuntimeError> {
-    // A damaged DBCS lead is followed by the owned string terminator. The
-    // Win16 byte boundary advances over the lead and that terminator; this
-    // arithmetic preserves the old offset without passing guest bytes to an
-    // ANSI host API.
-    Ok(2)
-}
-
 /// Return the guest-byte offset of the previous character before current.
 /// A current offset splitting a DBCS sequence uses its checked range or the
 /// explicit guest-page lead-byte query to preserve the Win16 byte offset.
@@ -254,11 +220,10 @@ pub(super) fn ansi_prev_offset(
     let mut wide = GuestTextBuffer::acquire();
     let spans = match codec.to_wide_with_ranges_into(prefix, &mut wide) {
         Ok(spans) => spans,
-        Err(prefix_error) => {
-            let spans = codec.to_wide_with_ranges_into(source, &mut wide)
-                .map_err(|_| prefix_error)?;
-            spans
+        Err(prefix_error) if current < source.len() => {
+            codec.to_wide_with_ranges_into(source, &mut wide).map_err(|_| prefix_error)?
         }
+        Err(prefix_error) => return Err(prefix_error),
     };
     spans.iter().rev()
         .find(|span| span.guest_bytes.start < current)
@@ -267,13 +232,6 @@ pub(super) fn ansi_prev_offset(
         RuntimeError::new(Kind::InternalInvariant,
             "decoded guest prefix has no previous-character boundary")
     })
-}
-
-fn is_dangling_dbcs_next(codec: GuestTextCodec, source: &[u8]) -> bool {
-    let Some(&first) = source.first() else { return false; };
-    let followed_by_nul = source.get(1).copied().unwrap_or(0) == 0;
-    // SAFETY: This API reads only the selected explicit code page and byte.
-    followed_by_nul && unsafe { IsDBCSLeadByteEx(codec.code_page(), first) != 0 }
 }
 
 #[cfg(test)]
@@ -326,15 +284,23 @@ mod tests {
     }
 
     #[test]
-    fn dbcs_offsets_use_ranges_and_preserve_damaged_lead_contract() {
+    fn ansi_prev_offsets_use_prefix_ranges() {
         let codec = cp936();
         let valid = [0xd6, 0xd0, b'A']; // GBK for the first character is two bytes.
-        assert_eq!(ansi_next_offset(codec, &valid).unwrap(), 2);
         assert_eq!(ansi_prev_offset(codec, &valid, 1).unwrap(), 0);
         assert_eq!(ansi_prev_offset(codec, &valid, 2).unwrap(), 0);
         assert_eq!(ansi_prev_offset(codec, &valid, 3).unwrap(), 2);
 
-        assert_eq!(ansi_next_offset(codec, &[0x81]).unwrap(), 2);
         assert_eq!(ansi_prev_offset(codec, &[b'A', 0x81], 2).unwrap(), 1);
+        assert_eq!(ansi_prev_offset(codec, &[], 0).unwrap(), 0);
+        let ambiguous = [0x81, 0x81, 0x81, 0x40];
+        assert_eq!(ansi_prev_offset(codec, &ambiguous, 3).unwrap(), 2);
+        assert_eq!(ansi_prev_offset(codec, &ambiguous, 4).unwrap(), 2);
+
+        let utf8 = GuestTextCodec::new(65001).unwrap();
+        // A direct caller with bytes beyond current still needs the full
+        // source fallback when current splits a strict UTF-8 scalar.
+        assert_eq!(ansi_prev_offset(utf8, &[0xc2, 0xa2], 1).unwrap(), 0);
+        assert!(ansi_prev_offset(utf8, &[0xc2], 1).is_err());
     }
 }

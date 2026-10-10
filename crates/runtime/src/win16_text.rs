@@ -5,7 +5,7 @@ use win16_abi::{Access, MAX_WIN16_STRING_BYTES, Win16AnsiCaseTarget};
 use win16_abi::exports::Win16StringComparison;
 
 use super::Win16State;
-use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost};
+use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16AnsiNextProbe};
 
 impl Win16State {
     pub(super) fn ansi_case(
@@ -122,21 +122,24 @@ impl Win16State {
         memory: &Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        let source = win16_abi::strings::read_ansi_z(
-            &self.selectors, memory, pointer, MAX_WIN16_STRING_BYTES,
-        ).map_err(crate::runtime_error)?;
-        let delta = host.win16_ansi_next_offset(&source)?;
-        // A malformed trailing DBCS lead may produce the native position
-        // just past NUL. It still needs real guest backing, not host padding.
-        if delta > source.len() + 1 || (source.is_empty() && delta != 0) {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "Windows ANSI next-character result exceeds the copied character data"));
-        }
-        if delta == 0 { return Ok(pointer); }
         let start = self.selectors.pointer_from_far(pointer).map_err(crate::runtime_error)?;
+        let delta = probe_next_character(|offset| {
+            let current = self.selectors.add_bytes(start, offset as u32)
+                .map_err(crate::runtime_error)?;
+            let mut byte = [0];
+            self.selectors.read(memory, current, &mut byte).map_err(crate::runtime_error)?;
+            Ok(byte[0])
+        }, |source| host.win16_ansi_next_probe(source))?;
+        if delta == 0 { return Ok(pointer); }
         let next = self.selectors.add_bytes(start, delta as u32).map_err(crate::runtime_error)?;
         self.selectors.translate(next, Access::Read, 1, memory).map_err(crate::runtime_error)?;
-        Ok(next.far_value())
+        // Checked selector references canonicalize TI/RPL bits. Retain the
+        // caller's exact high word when movement stays in its descriptor.
+        if next.selector() == start.selector() {
+            Ok((pointer & 0xffff_0000) | u32::from(next.offset()))
+        } else {
+            Ok(next.far_value())
+        }
     }
 
     pub(super) fn ansi_prev(
@@ -181,3 +184,37 @@ fn append_terminator(bytes: &mut Vec<u8>) -> Result<(), RuntimeError> {
     bytes.push(0);
     Ok(())
 }
+
+/// Each requested byte is read once. Keeping this loop independent of the
+/// selector reader also lets tests count actual reads without timing claims.
+fn probe_next_character(
+    mut read: impl FnMut(usize) -> Result<u8, RuntimeError>,
+    mut probe: impl FnMut(&[u8]) -> Result<Win16AnsiNextProbe, RuntimeError>,
+) -> Result<usize, RuntimeError> {
+    let mut source = [0; 4];
+    for index in 0..source.len() {
+        source[index] = read(index)?;
+        if index == 0 && source[0] == 0 { return Ok(0); }
+        let prefix = &source[..=index];
+        match probe(prefix)? {
+            Win16AnsiNextProbe::Complete(delta) => {
+                let end = prefix.iter().position(|&byte| byte == 0).unwrap_or(prefix.len());
+                if delta == 0 || delta > end {
+                    return Err(RuntimeError::new(Kind::InternalInvariant,
+                        "Win16 ANSI next-character result exceeds its checked prefix"));
+                }
+                return Ok(delta);
+            }
+            Win16AnsiNextProbe::NeedMore if source[index] != 0 && index + 1 < source.len() => {}
+            Win16AnsiNextProbe::NeedMore => {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "Win16 ANSI character probe exceeded its terminator or four-byte bound"));
+            }
+        }
+    }
+    unreachable!("a four-byte probe must complete or fail")
+}
+
+#[cfg(test)]
+#[path = "win16_text_tests.rs"]
+mod tests;

@@ -16,6 +16,16 @@ use devices::{keyboard::KeyStroke, mouse::MouseInput, video::ConsoleSnapshot};
 use dos_kernel::DosHost;
 use guest_core::OwnerId;
 
+/// Result of probing only the first Win16 ANSI character. The input contains
+/// actual guest bytes, not an implicitly terminated or padded host string.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16AnsiNextProbe {
+    /// Read exactly one more checked guest byte, up to four bytes in total.
+    NeedMore,
+    /// Byte offset of the next character or the explicit terminal NUL.
+    Complete(usize),
+}
+
 /// Opaque host file identity. It is never a guest HFILE or native HANDLE.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Win16HostFile(pub u64);
@@ -1156,7 +1166,11 @@ pub trait RuntimeHost:
             "host Win16 ANSI string comparison is unavailable",
         ))
     }
-    fn win16_ansi_next_offset(&mut self, _source: &[u8]) -> Result<usize, RuntimeError> {
+    /// Probe a one-to-four-byte prefix using the fixed Win16 guest ANSI page.
+    /// Missing bytes are not NUL; unsupported encodings must return an error.
+    fn win16_ansi_next_probe(
+        &mut self, _source: &[u8],
+    ) -> Result<Win16AnsiNextProbe, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
             "host Win16 ANSI next-character lookup is unavailable",

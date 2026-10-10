@@ -373,8 +373,10 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<i16, RuntimeError> {
         win16_text::ansi_compare(self.win16_dcs.text_codec(), left, right, ignore_case)
     }
-    fn win16_ansi_next_offset(&mut self, source: &[u8]) -> Result<usize, RuntimeError> {
-        win16_text::ansi_next_offset(self.win16_dcs.text_codec(), source)
+    fn win16_ansi_next_probe(
+        &mut self, source: &[u8],
+    ) -> Result<runtime::Win16AnsiNextProbe, RuntimeError> {
+        self.win16_dcs.text_codec().next_character_probe(source)
     }
     fn win16_ansi_prev_offset(
         &mut self,

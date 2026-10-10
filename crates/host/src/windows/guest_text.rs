@@ -1,5 +1,8 @@
 //! Checked conversion between an explicit guest code page and host UTF-16.
 
+#[path = "guest_text_next.rs"]
+mod next;
+
 #[path = "guest_text_buffer.rs"]
 mod buffer;
 pub(in crate::windows) use buffer::GuestTextBuffer;
