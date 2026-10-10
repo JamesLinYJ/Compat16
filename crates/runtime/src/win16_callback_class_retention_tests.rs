@@ -426,46 +426,59 @@ fn callback_class_pending_window_and_mdi_creation_block_both_release_routes() {
 
 #[test]
 fn callback_class_free_library_and_reaping_keep_callback_owned_registration() {
-    use crate::win16_runtime::module_registry::ModuleState;
+    use crate::win16_runtime::{module_memory::ModuleAllocation, module_registry::ModuleState};
     let mut runtime = fixture();
     let mut host = ClassDataHost::default();
     let mut donor = fixture();
     let donor_state = donor.win16.as_mut().unwrap();
     let mut module = donor_state.modules.records.remove(&donor_state.modules.main).unwrap();
-    module.handle = 0xff10;
-    module.instance = 0xff11;
+    let state = runtime.win16.as_mut().unwrap();
+    // Real module retirement cancels selector-generation-bound notifications
+    // and frees its private header. A fabricated numeric handle cannot satisfy
+    // that contract even when the module intentionally owns no executable code.
+    let header = ModuleAllocation::allocate(&mut state.heap, &mut state.selectors,
+        &mut runtime.memory, 64, false).unwrap();
+    let header_selector = header.selector;
+    let header_global = header.handle;
+    let module_handle = header_selector.raw().0;
+    module.handle = module_handle;
+    module.instance = module_handle;
     module.loaded = None;
     module.definition = None;
-    module.allocations.clear();
+    module.allocations = vec![header];
     module.deps.clear();
     module.pinned = false;
     module.explicit_refs = 1;
     module.continuation_owner_refs = 0;
-    runtime.win16.as_mut().unwrap().modules.records.insert(module.handle, module);
+    assert!(state.modules.records.insert(module_handle, module).is_none());
     let mut info = class_info(&runtime, 0);
-    info.h_instance = 0xff11;
+    info.h_instance = module_handle;
     let class = register(&mut runtime, &mut host, info, Win16ClassName::Name(b"DllClass".to_vec()));
     let hwnd = window(&mut runtime, class, 1);
     dispatch(&mut runtime, hwnd, None);
     let return_to = (runtime.cpu.regs.cs, 0x22, u32::from(runtime.cpu.regs.sp()));
     let state = runtime.win16.as_mut().unwrap();
     state.retire_window_handle(hwnd).unwrap();
-    state.begin_free_library(0xff10, &mut runtime.cpu.regs, &mut runtime.memory,
+    state.begin_free_library(module_handle, &mut runtime.cpu.regs, &mut runtime.memory,
         &mut host, return_to).unwrap();
-    assert_eq!(state.modules.records[&0xff10].explicit_refs, 0);
-    assert_eq!(state.modules.records[&0xff10].state, ModuleState::Ready);
+    assert_eq!(state.modules.records[&module_handle].explicit_refs, 0);
+    assert_eq!(state.modules.records[&module_handle].state, ModuleState::Ready);
     assert!(state.is_registered_class_atom(class.atom));
     assert!(host.unregistrations.is_empty());
     state.module_reap_pending = true;
     state.reap_modules(&mut runtime.cpu, &mut runtime.memory, &mut host).unwrap();
-    assert_eq!(state.modules.records[&0xff10].state, ModuleState::Ready);
+    assert_eq!(state.modules.records[&module_handle].state, ModuleState::Ready);
     assert!(state.is_registered_class_atom(class.atom));
+    assert!(state.selectors.describe(header_selector).is_ok());
+    assert!(state.heap.info(header_global).is_ok());
     assert!(host.unregistrations.is_empty());
     return_callback(&mut runtime, &mut host, 0).unwrap();
     let state = runtime.win16.as_mut().unwrap();
     state.module_reap_pending = true;
     state.reap_modules(&mut runtime.cpu, &mut runtime.memory, &mut host).unwrap();
     assert!(!state.is_registered_class_atom(class.atom));
-    assert!(!state.modules.records.contains_key(&0xff10));
+    assert!(!state.modules.records.contains_key(&module_handle));
+    assert!(state.selectors.describe(header_selector).is_err());
+    assert!(state.heap.info(header_global).is_err());
     assert_eq!(host.unregistrations, vec![class.class]);
 }

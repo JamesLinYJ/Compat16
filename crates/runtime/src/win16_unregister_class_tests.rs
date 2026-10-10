@@ -252,7 +252,7 @@ fn callback(runtime: &mut Runtime, class: Registered, hwnd: u16, native: Win16Ho
 }
 
 #[test]
-fn unregister_class_retains_exact_callback_class_after_hwnd_retirement_and_reuse() {
+fn unregister_class_retains_exact_registration_after_hwnd_retirement_and_reuse() {
     let mut runtime = fixture();
     let mut host = ClassDataHost::default();
     let active = named_class(&mut runtime, &mut host, b"Active", 0);
