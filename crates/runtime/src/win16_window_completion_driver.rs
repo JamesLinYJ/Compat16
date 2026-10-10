@@ -784,182 +784,55 @@ impl Win16State {
         frame_id: u64,
     ) -> Result<(u32, Win16ReturnKind), RuntimeError> {
         use super::operation_frame::WindowCallProjectionPhase as Phase;
-        let (guest_window, native_window, succeeded, invalidated_menus, phase, return_kind) = self
-            .window_operations
-            .last()
+        let frame = self.window_operations.last_mut()
             .filter(|frame| frame.id == frame_id)
-            .and_then(|frame| frame.completion.as_ref())
-            .and_then(|completion| {
-                match (
-                    &completion.continuation,
-                    &completion.result,
-                    &completion.journal.projection,
-                ) {
-                    (
-                        WindowReturn::WindowCall(call),
-                        Win16WindowResult::WindowCall(crate::Win16WindowCallResult::Destroyed {
-                            succeeded,
-                            invalidated_menus,
-                        }),
-                        WindowProjectionJournal::Api(WindowApiProjectionJournal::WindowCall(owner)),
-                    ) => Some((
-                        call.destroyed_guest_window?,
-                        call.destroyed_native_window,
-                        *succeeded,
-                        invalidated_menus,
-                        owner.phase,
-                        call.return_kind,
-                    )),
-                    _ => None,
-                }
-            })
-            .ok_or_else(|| {
-                RuntimeError::new(
-                    Kind::InternalInvariant,
-                    "DestroyWindow result has no exact token and completion owner",
-                )
-            })?;
-
-        if phase == Phase::Ready {
-            if succeeded {
-                self.guest_menus.invalidate(invalidated_menus);
-            }
-            let owner = self
-                .window_operations
-                .last_mut()
-                .filter(|frame| frame.id == frame_id)
-                .and_then(|frame| frame.completion.as_mut())
-                .and_then(|completion| match &mut completion.journal.projection {
-                    WindowProjectionJournal::Api(WindowApiProjectionJournal::WindowCall(owner)) => {
-                        Some(owner)
-                    }
-                    _ => None,
-                })
-                .ok_or_else(|| {
-                    RuntimeError::new(
-                        Kind::InternalInvariant,
-                        "DestroyWindow projection journal changed during menu retirement",
-                    )
-                })?;
-            owner.value = Some(u32::from(succeeded));
-            owner.phase = Phase::MenusInvalidated;
-        }
-
-        let exact_live_incarnation = native_window
-            .is_some_and(|native| self.window_handles.get(&guest_window) == Some(&native));
-        let owned_incarnation =
-            exact_live_incarnation && self.owned_window_handles.contains(&guest_window);
-        let current_phase = self
-            .window_operations
-            .last()
-            .filter(|frame| frame.id == frame_id)
-            .and_then(|frame| frame.completion.as_ref())
-            .and_then(|completion| match &completion.journal.projection {
-                WindowProjectionJournal::Api(WindowApiProjectionJournal::WindowCall(owner)) => {
-                    Some(owner.phase)
-                }
-                _ => None,
-            })
-            .ok_or_else(|| {
-                RuntimeError::new(
-                    Kind::InternalInvariant,
-                    "DestroyWindow projection owner disappeared",
-                )
-            })?;
-        if current_phase == Phase::MenusInvalidated {
-            let owner = self
-                .window_operations
-                .last_mut()
-                .filter(|frame| frame.id == frame_id)
-                .and_then(|frame| frame.completion.as_mut())
-                .and_then(|completion| match &mut completion.journal.projection {
-                    WindowProjectionJournal::Api(WindowApiProjectionJournal::WindowCall(owner)) => {
-                        Some(owner)
-                    }
-                    _ => None,
-                })
-                .ok_or_else(|| {
-                    RuntimeError::new(
-                        Kind::InternalInvariant,
-                        "DestroyWindow projection owner disappeared before tree retirement",
-                    )
-                })?;
-            owner.phase = if succeeded && owned_incarnation {
-                Phase::DestroyTreeRetiring
-            } else {
-                Phase::OwnerBookkeepingCommitted
+            .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
+                "DestroyWindow projection lost its exact source frame"))?;
+        let mut completion = frame.completion.take().ok_or_else(|| {
+            RuntimeError::new(Kind::InternalInvariant,
+                "DestroyWindow projection lost its cached result")
+        })?;
+        // Temporarily borrow the carrier, as for state-owned message output.
+        // Always restore it, including after partial cleanup failure. Retrying
+        // consumes the same receipts and never repeats native DestroyWindow.
+        let result = (|| {
+            let (
+                WindowReturn::WindowCall(call),
+                Win16WindowResult::WindowCall(crate::Win16WindowCallResult::Destroyed {
+                    succeeded, retirements,
+                }),
+                WindowProjectionJournal::Api(WindowApiProjectionJournal::WindowCall(owner)),
+            ) = (&completion.continuation, &completion.result, &mut completion.journal.projection)
+            else {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "DestroyWindow result has no matching completion owner"));
             };
-        }
-
-        let tree_pending = self
-            .window_operations
-            .last()
-            .filter(|frame| frame.id == frame_id)
-            .and_then(|frame| frame.completion.as_ref())
-            .is_some_and(|completion| {
-                matches!(
-                    &completion.journal.projection,
-                    WindowProjectionJournal::Api(WindowApiProjectionJournal::WindowCall(owner))
-                        if owner.phase == Phase::DestroyTreeRetiring,
-                )
-            });
-        if tree_pending {
-            self.retire_window_tree(guest_window)?;
-            let owner = self
-                .window_operations
-                .last_mut()
-                .filter(|frame| frame.id == frame_id)
-                .and_then(|frame| frame.completion.as_mut())
-                .and_then(|completion| match &mut completion.journal.projection {
-                    WindowProjectionJournal::Api(WindowApiProjectionJournal::WindowCall(owner)) => {
-                        Some(owner)
-                    }
-                    _ => None,
-                })
-                .ok_or_else(|| {
-                    RuntimeError::new(
-                        Kind::InternalInvariant,
-                        "DestroyWindow projection owner disappeared after tree retirement",
-                    )
-                })?;
-            owner.phase = Phase::DestroyedTreeRetired;
-        }
-
-        let owner = self
-            .window_operations
-            .last_mut()
-            .filter(|frame| frame.id == frame_id)
-            .and_then(|frame| frame.completion.as_mut())
-            .and_then(|completion| match &mut completion.journal.projection {
-                WindowProjectionJournal::Api(WindowApiProjectionJournal::WindowCall(owner)) => {
-                    Some(owner)
-                }
-                _ => None,
+            if call.destroyed_guest_window.is_none()
+                || !matches!(call.output, crate::Win16WindowCallOutput::None)
+            {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "DestroyWindow result conflicts with its captured output contract"));
+            }
+            if owner.phase == Phase::Ready {
+                self.retire_exact_window_retirement_batch(retirements)?;
+                owner.value = Some(u32::from(*succeeded));
+                owner.phase = Phase::Complete;
+            }
+            if owner.phase != Phase::Complete {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "DestroyWindow projection has an unexpected retirement phase"));
+            }
+            owner.value.map(|value| (value, call.return_kind)).ok_or_else(|| {
+                RuntimeError::new(Kind::InternalInvariant,
+                    "DestroyWindow projection lost its cached BOOL result")
             })
-            .ok_or_else(|| {
-                RuntimeError::new(
-                    Kind::InternalInvariant,
-                    "DestroyWindow projection owner disappeared before return",
-                )
-            })?;
-        if owner.phase == Phase::DestroyedTreeRetired {
-            owner.phase = Phase::OwnerBookkeepingCommitted;
+        })();
+        self.window_operations.last_mut().expect("projection cannot pop its source frame")
+            .completion = Some(completion);
+        match result {
+            Ok(value) => Ok(value),
+            Err(error) => self.retain_window_completion_failure(frame_id, error),
         }
-        if owner.phase == Phase::OwnerBookkeepingCommitted {
-            owner.phase = Phase::ReturnReady;
-        }
-        if owner.phase == Phase::ReturnReady {
-            owner.phase = Phase::Complete;
-        }
-        owner
-            .value
-            .map(|value| (value, return_kind))
-            .ok_or_else(|| {
-                RuntimeError::new(
-                    Kind::InternalInvariant,
-                    "DestroyWindow projection lost its cached BOOL result",
-                )
-            })
     }
 }
 

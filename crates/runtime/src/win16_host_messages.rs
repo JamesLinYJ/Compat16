@@ -803,10 +803,9 @@ pub enum Win16WindowResult {
     Visibility(Option<bool>),
     Destroyed {
         succeeded: bool,
-        /// HMENUs invalidated by USER when a window and its attached menu tree
-        /// were destroyed. Runtime must retire these identities without
-        /// issuing a second DestroyMenu call.
-        invalidated_menus: Vec<Win16HostMenu>,
+        /// Exact window and menu lifetime effects, independent of the BOOL.
+        /// Runtime consumes these without issuing another native destroy.
+        retirements: crate::Win16HostWindowRetirementBatch,
     },
     WindowTextSet(bool),
     /// Only the native output prefix, including its NUL, is returned. An

@@ -99,12 +99,6 @@ impl Win16State {
             return_kind,
             output,
             destroyed_guest_window,
-            destroyed_native_window: match &call {
-                Win16WindowCall::DestroyWindow {
-                    window: Win16WindowTarget::Mapped(native),
-                } => Some(*native),
-                _ => None,
-            },
         };
         self.begin_window_operation(
             registers,

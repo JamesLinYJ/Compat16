@@ -233,6 +233,28 @@ impl Win16State {
         Ok(())
     }
 
+    /// Consume only host-proven dead incarnations. Ownership and runtime
+    /// parent edges cannot prove that any additional native HWND was destroyed.
+    /// Revalidate the whole batch on retry: completed aliases disappear, and
+    /// a reused guest slot names a different never-reused host token.
+    pub(super) fn retire_exact_window_retirement_batch(
+        &mut self,
+        batch: &crate::Win16HostWindowRetirementBatch,
+    ) -> Result<(), RuntimeError> {
+        let claims = self.prevalidate_window_retirement_batch(&batch.receipts)?;
+        // Cleanup cannot enter guest code, so the prevalidated token-to-alias
+        // claims remain exact until this projection attempt returns.
+        for guest in claims {
+            self.retire_window_handle(guest)?;
+            // Unreceipted aliases survive, but their old parent slot no longer
+            // denotes a live incarnation. Do not let later HWND16 reuse attach
+            // them to an unrelated replacement parent.
+            self.window_parents.retain(|_, parent| *parent != guest);
+        }
+        self.guest_menus.invalidate(&batch.invalidated_menus);
+        Ok(())
+    }
+
     pub(super) fn retire_window_tree(&mut self, root: u16) -> Result<(), RuntimeError> {
         let mut pending = vec![(root, false)];
         let mut visited = std::collections::BTreeSet::new();

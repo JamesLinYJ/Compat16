@@ -207,7 +207,7 @@ impl Win16State {
                 Win16WindowCallOutput::None,
                 return_to,
                 return_kind,
-                (window != 0).then_some(window),
+                Some(window),
             ),
             Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::SetActiveWindow { window },

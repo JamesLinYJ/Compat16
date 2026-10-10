@@ -305,3 +305,35 @@ fn child_queries_reject_null_invalid_unknown_and_retired_window_tokens() {
         Win16WindowTarget::Mapped(replacement)));
     host.finish();
 }
+
+#[test]
+#[ignore = "requires a Windows USER desktop; creates hidden native window trees"]
+fn destroy_receipts_include_callback_free_owned_popups_and_children() {
+    let host = NativeQueries::new();
+    let parent = host.root();
+    let child = host.window(Some(parent), [10, 10, 40, 30], WS_CHILD, 0);
+    let popup = host.window(Some(parent), [400, 300, 40, 30], WS_POPUP, 0);
+    let survivor = host.root();
+    // Ownership is a native destruction relationship, not a child-parent edge.
+    assert!(!host.is_child(Win16WindowTarget::Mapped(parent),
+        Win16WindowTarget::Mapped(popup)));
+    let Win16WindowCallResult::Destroyed { succeeded, retirements } =
+        host.call(Win16WindowCall::DestroyWindow {
+            window: Win16WindowTarget::Mapped(parent),
+        }) else { panic!("DestroyWindow must return exact retirement receipts"); };
+    assert!(succeeded);
+    let mut actual: Vec<_> = retirements.receipts.iter().map(|receipt| receipt.window).collect();
+    actual.sort_unstable();
+    let mut expected = vec![parent, child, popup];
+    expected.sort_unstable();
+    assert_eq!(actual, expected);
+    for window in expected {
+        assert!(matches!(host.call(Win16WindowCall::IsWindow {
+            window: Win16WindowTarget::Mapped(window),
+        }), Win16WindowCallResult::Boolean(false)));
+    }
+    assert!(matches!(host.call(Win16WindowCall::IsWindow {
+        window: Win16WindowTarget::Mapped(survivor),
+    }), Win16WindowCallResult::Boolean(true)));
+    host.finish();
+}

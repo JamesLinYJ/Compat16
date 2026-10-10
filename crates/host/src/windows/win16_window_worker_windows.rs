@@ -430,29 +430,38 @@ pub(in crate::windows::win16_windows) fn show_window(
 pub(in crate::windows::win16_windows) fn destroy_window_operation(
     state: &Rc<RefCell<WorkerState>>,
     token: Win16HostWindow,
-) -> (bool, Vec<Win16HostMenu>) {
+) -> (bool, runtime::Win16HostWindowRetirementBatch) {
+    let empty = || runtime::Win16HostWindowRetirementBatch {
+        receipts: Vec::new(),
+        invalidated_menus: Vec::new(),
+    };
     let Some(hwnd) = destruction_target(state, token) else {
-        return (false, Vec::new());
+        return (false, empty());
     };
     let preparation = match window_retirement::prepare_window_retirement(
         state, token, hwnd,
     ) {
         Ok(Some(preparation)) => preparation,
-        Ok(None) => return (false, Vec::new()),
+        Ok(None) => return (false, empty()),
         Err(error) => {
+            // This is terminal, not a normal false/empty completion: latching
+            // sends the typed error and aborts the worker, which suppresses
+            // ordinary results. Terminal teardown owns remaining aliases.
             super::super::win16_menu_attachment::latch_retirement_failure(state, error);
-            return (false, Vec::new());
+            return (false, empty());
         }
     };
-    if !preparation.ready {
-        let _ = window_retirement::finish_window_retirement(state, preparation.scope, false);
-        return (false, Vec::new());
-    }
-    let destroyed = unsafe { DestroyWindow(hwnd) } != 0;
+    // Preparation may reenter and retire an exact candidate even when the
+    // outer native call can no longer proceed. Its receipts still belong to
+    // this completion; the API BOOL is not evidence of their lifetime.
+    let destroyed = preparation.ready && unsafe { DestroyWindow(hwnd) } != 0;
     let finished = window_retirement::finish_window_retirement(
-        state, preparation.scope, destroyed,
+        state, preparation.scope, true,
     );
-    (destroyed, finished.invalidated_menus)
+    (destroyed, runtime::Win16HostWindowRetirementBatch {
+        receipts: finished.receipts,
+        invalidated_menus: finished.invalidated_menus,
+    })
 }
 
 pub(in crate::windows::win16_windows) fn destroy_quiet(

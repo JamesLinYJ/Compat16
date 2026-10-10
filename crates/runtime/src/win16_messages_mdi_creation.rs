@@ -676,7 +676,7 @@ impl Win16State {
         Ok(())
     }
 
-    fn prevalidate_window_retirement_batch(
+    pub(in crate::win16_runtime) fn prevalidate_window_retirement_batch(
         &self,
         receipts: &[crate::Win16HostWindowRetirementReceipt],
     ) -> Result<Vec<u16>, RuntimeError> {

@@ -165,7 +165,8 @@ pub enum Win16WindowCallResult {
     Integer(i32),
     Destroyed {
         succeeded: bool,
-        invalidated_menus: Vec<crate::Win16HostMenu>,
+        /// Exact lifetime effects, independent of the native API BOOL.
+        retirements: crate::Win16HostWindowRetirementBatch,
     },
 }
 
@@ -192,11 +193,9 @@ pub(crate) enum Win16WindowCallOutput {
 pub(crate) struct Win16WindowCallContinuation {
     pub return_kind: win16_abi::Win16ReturnKind,
     pub output: Win16WindowCallOutput,
-    /// The guest token to retire after a successful explicit DestroyWindow.
+    /// Marks explicit DestroyWindow, including a null guest argument. Actual
+    /// retirement is authorized only by the host's exact incarnation receipts.
     pub destroyed_guest_window: Option<u16>,
-    /// Host incarnation captured at submission; teardown must not retire a
-    /// guest token that was reused during a reentrant host callback.
-    pub destroyed_native_window: Option<crate::Win16HostWindow>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

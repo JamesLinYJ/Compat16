@@ -163,7 +163,13 @@ impl RuntimeHost for ParentHost {
             ))
         } else {
             Win16WindowResult::WindowCall(Win16WindowCallResult::Destroyed {
-                succeeded: true, invalidated_menus: vec![],
+                succeeded: true,
+                retirements: crate::Win16HostWindowRetirementBatch {
+                    receipts: vec![crate::Win16HostWindowRetirementReceipt {
+                        window: self.old_parent,
+                    }],
+                    invalidated_menus: vec![],
+                },
             })
         };
         Ok(Win16WindowStep::SourceRetired {

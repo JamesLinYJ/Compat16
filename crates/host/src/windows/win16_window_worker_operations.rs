@@ -303,10 +303,10 @@ pub(super) fn run_operation(
                     Win16WindowResult::Visibility(show_window(state, window, command)),
                 ),
                 Win16WindowOperation::Destroy { window } => {
-                    let (succeeded, invalidated_menus) = destroy_window_operation(state, window);
+                    let (succeeded, retirements) = destroy_window_operation(state, window);
                     Ok(Win16WindowResult::Destroyed {
                         succeeded,
-                        invalidated_menus,
+                        retirements,
                     })
                 }
                 Win16WindowOperation::Menu(operation) => {

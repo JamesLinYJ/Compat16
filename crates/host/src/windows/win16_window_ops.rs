@@ -150,12 +150,15 @@ pub(super) fn execute(
             ResultValue::Window(token_for_native(state, native)?)
         }
         Call::DestroyWindow { window } => {
-            let (succeeded, invalidated_menus) = match window {
+            let (succeeded, retirements) = match window {
                 Win16WindowTarget::Mapped(token) =>
                     worker::destroy_window_operation(state, token),
-                Win16WindowTarget::Null | Win16WindowTarget::Invalid => (false, Vec::new()),
+                Win16WindowTarget::Null | Win16WindowTarget::Invalid => (false,
+                    runtime::Win16HostWindowRetirementBatch {
+                        receipts: Vec::new(), invalidated_menus: Vec::new(),
+                    }),
             };
-            ResultValue::Destroyed { succeeded, invalidated_menus }
+            ResultValue::Destroyed { succeeded, retirements }
         }
         Call::GetClassName { window, capacity } => {
             let mut wide = vec![0xFFFF_u16; usize::from(capacity).max(1)];

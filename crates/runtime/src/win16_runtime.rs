@@ -839,3 +839,7 @@ impl Win16State {
 #[cfg(test)]
 #[path = "win16_test_support.rs"]
 mod test_support;
+
+#[cfg(test)]
+#[path = "win16_destroy_receipt_tests.rs"]
+mod destroy_receipt_tests;

@@ -308,7 +308,12 @@ fn open_icon_rejects_non_boolean_results_without_publishing_or_mapping() {
         Win16WindowCallResult::Integer(7),
         Win16WindowCallResult::Window(None),
         Win16WindowCallResult::Window(Some(Win16HostWindow(0xfedc_ba98_7654))),
-        Win16WindowCallResult::Destroyed { succeeded: true, invalidated_menus: vec![] },
+        Win16WindowCallResult::Destroyed {
+            succeeded: true,
+            retirements: crate::Win16HostWindowRetirementBatch {
+                receipts: vec![], invalidated_menus: vec![],
+            },
+        },
     ] {
         let mut runtime = fixture();
         prepare(&mut runtime, 0x1234);

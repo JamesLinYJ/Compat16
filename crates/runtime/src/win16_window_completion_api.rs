@@ -757,11 +757,6 @@ pub(super) fn finish_window_call(
             (Output::None, ResultValue::Window(None)) => Some(0),
             (Output::None, ResultValue::Window(Some(native))) =>
                 Some(u32::from(access.map_window_handle(*native, false)?)),
-            (Output::None, ResultValue::Destroyed { succeeded, invalidated_menus })
-                if call.destroyed_guest_window.is_none() => {
-                    if *succeeded { access.guest_menus.invalidate(invalidated_menus); }
-                    Some(u32::from(*succeeded))
-                }
             (Output::WindowRect { range, .. }, ResultValue::Rect(rect)) => {
                 if let Some(rect) = rect {
                     let output = win16_abi::Rect16 {

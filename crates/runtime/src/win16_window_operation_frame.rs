@@ -522,9 +522,6 @@ pub(in crate::win16_runtime) enum WindowCallProjectionPhase {
     Ready,
     OwnerBookkeepingCommitted,
     GuestOutputCommitted,
-    DestroyTreeRetiring,
-    DestroyedTreeRetired,
-    MenusInvalidated,
     ReturnReady,
     Complete,
 }
