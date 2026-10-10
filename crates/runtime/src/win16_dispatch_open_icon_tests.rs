@@ -15,7 +15,7 @@ use dos_kernel::{
     DosDirectoryEntry, DosFileAccess, DosFileSharing, DosHost, DosHostError,
     DosHostFile, DosHostSearch, DosSeekOrigin,
 };
-use guest_core::Selector;
+use guest_core::{GuestMemory, Selector};
 use std::sync::Arc;
 use win16_abi::{ExportLookupTarget, lookup_export};
 
@@ -252,7 +252,7 @@ fn query_open_is_a_pointer_free_scalar_message() {
 
 #[test]
 fn open_icon_guest_query_callback_preserves_identity_and_reply() {
-    use guest_core::{GuestMemory, io::NoPorts};
+    use guest_core::io::NoPorts;
     for reply in [0_u32, 1] {
         let mut runtime = fixture();
         let mut class_host = super::ClassDataHost::default();
