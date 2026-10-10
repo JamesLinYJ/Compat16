@@ -212,10 +212,28 @@ fn create_new_native_uses_existing_short_alias_identity() {
     std::fs::write(&native, b"keep").unwrap();
     let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
     let search = fs.directory_search_open(b".").unwrap();
-    let entry = fs.directory_search_next(search).unwrap().unwrap();
+    let mut files = Vec::new();
+    while let Some(entry) = fs.directory_search_next(search).unwrap() {
+        // DOS subdirectory searches include synthetic '.' and '..' entries.
+        // Select the fixture's file by type, never by enumeration position.
+        if entry.attributes & 0x10 == 0 {
+            files.push(entry);
+        }
+    }
     fs.directory_search_close(search).unwrap();
+    assert_eq!(files.len(), 1, "fixture must expose exactly one regular file");
+    let entry = files.pop().unwrap();
+    assert_eq!(entry.size, 4);
+    // Prove this enumerated alias names the long file before testing the
+    // collision. Close the read handle to exclude sharing as a failure cause.
+    let opened = fs.file_open(&entry.short_name, DosFileAccess::ReadOnly, DosFileSharing::DenyNone).unwrap();
+    let mut contents = [0; 4];
+    assert_eq!(fs.file_read(opened, &mut contents).unwrap(), 4);
+    assert_eq!(&contents, b"keep");
+    fs.file_close(opened).unwrap();
     assert_eq!(fs.file_create_new(&entry.short_name, 0).unwrap_err().code, DosErrorCode::FileExists);
     assert_eq!(std::fs::read(&native).unwrap(), b"keep");
+    assert!(fs.files.is_empty());
 }
 
 #[test]
