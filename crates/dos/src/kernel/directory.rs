@@ -745,17 +745,22 @@ fn valid_non_search_path(path: &[u8], page: text_codec::CodePage) -> bool {
     if path.is_empty() {
         return false;
     }
-    let Ok(characters) = encoded_characters(path, page) else {
-        return false;
-    };
-    if characters.iter().any(|character| {
-        (character.byte_range.len() == 1 && path[character.byte_range.start] < b' ')
+    let mut valid = true;
+    for character in text_codec::encoded_characters(path, page) {
+        let Ok(character) = character else {
+            return false;
+        };
+        let invalid = (character.byte_range.len() == 1
+            && path[character.byte_range.start] < b' ')
             || character.is_standalone_ascii(b'*')
             || character.is_standalone_ascii(b'?')
-    }) {
-        return false;
+            // A drive colon follows exactly one ASCII alphabetic byte.
+            || (character.is_standalone_ascii(b':')
+                && !(character.byte_range.start == 1 && path[0].is_ascii_alphabetic()));
+        // Keep decoding so malformed trailing bytes are still rejected.
+        valid &= !invalid;
     }
-    dos_path_drive(path, page).is_ok()
+    valid
 }
 
 pub(super) fn dos_path_drive(
