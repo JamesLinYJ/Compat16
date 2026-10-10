@@ -185,3 +185,106 @@ fn disk_space_reports_the_mounted_native_volume() {
         DosErrorCode::UnknownUnit
     );
 }
+
+#[test]
+fn create_new_native_preserves_existing_contents_and_attributes() {
+    let directory = TestDirectory::new();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let original = fs.file_create_new(b"KEEP.DAT", 0x02).unwrap();
+    fs.file_write(original, b"preserved contents").unwrap();
+    let attributes = fs.file_get_attributes(b"KEEP.DAT").unwrap();
+    for spelling in [b"KEEP.DAT".as_slice(), b"keep.dat".as_slice()] {
+        assert_eq!(fs.file_create_new(spelling, 0).unwrap_err().code, DosErrorCode::FileExists);
+        assert_eq!(fs.file_get_attributes(spelling).unwrap(), attributes);
+    }
+    assert_eq!(fs.file_seek(original, 0, DosSeekOrigin::Current).unwrap(), 18);
+    fs.file_seek(original, 0, DosSeekOrigin::Start).unwrap();
+    let mut bytes = [0; 18];
+    assert_eq!(fs.file_read(original, &mut bytes).unwrap(), bytes.len());
+    assert_eq!(&bytes, b"preserved contents");
+    fs.file_close(original).unwrap();
+}
+
+#[test]
+fn create_new_native_uses_existing_short_alias_identity() {
+    let directory = TestDirectory::new();
+    let native = directory.0.join("Long existing filename.dat");
+    std::fs::write(&native, b"keep").unwrap();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let search = fs.directory_search_open(b".").unwrap();
+    let entry = fs.directory_search_next(search).unwrap().unwrap();
+    fs.directory_search_close(search).unwrap();
+    assert_eq!(fs.file_create_new(&entry.short_name, 0).unwrap_err().code, DosErrorCode::FileExists);
+    assert_eq!(std::fs::read(&native).unwrap(), b"keep");
+}
+
+#[test]
+fn create_new_native_has_shared_cursor_and_compatibility_sharing() {
+    let directory = TestDirectory::new();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let file = fs.file_create_new(b"SHARED.DAT", 0).unwrap();
+    let copy = fs.file_duplicate(file).unwrap();
+    fs.file_write(copy, b"abc").unwrap();
+    assert_eq!(fs.file_seek(file, 0, DosSeekOrigin::Current).unwrap(), 3);
+    let independent = fs.file_open(
+        b"SHARED.DAT", DosFileAccess::ReadWrite, DosFileSharing::Compatibility,
+    ).unwrap();
+    assert_eq!(fs.file_seek(independent, 0, DosSeekOrigin::Current).unwrap(), 0);
+    fs.file_close(independent).unwrap();
+    fs.file_close(file).unwrap();
+    fs.file_write(copy, b"def").unwrap();
+    assert_eq!(fs.file_status(copy).unwrap().size, 6);
+    fs.file_close(copy).unwrap();
+    assert_eq!(std::fs::read(directory.0.join("SHARED.DAT")).unwrap(), b"abcdef");
+}
+
+#[test]
+fn create_new_native_concurrent_creators_have_exactly_one_winner() {
+    let directory = TestDirectory::new();
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let workers: Vec<_> = (0..2).map(|_| {
+        let path = directory.0.clone();
+        let barrier = std::sync::Arc::clone(&barrier);
+        std::thread::spawn(move || {
+            let mut fs = Filesystem::new_native_directory(&path, 437).unwrap();
+            barrier.wait();
+            match fs.file_create_new(b"ATOMIC.DAT", 0) {
+                Ok(file) => {
+                    fs.file_write(file, b"winner").unwrap();
+                    fs.file_close(file).unwrap();
+                    Ok(())
+                }
+                Err(error) => Err(error.code),
+            }
+        })
+    }).collect();
+    let outcomes: Vec<_> = workers.into_iter().map(|worker| worker.join().unwrap()).collect();
+    assert_eq!(outcomes.iter().filter(|result| result.is_ok()).count(), 1);
+    assert_eq!(outcomes.iter().filter(|result| **result == Err(DosErrorCode::FileExists)).count(), 1);
+    assert_eq!(std::fs::read(directory.0.join("ATOMIC.DAT")).unwrap(), b"winner");
+}
+
+#[test]
+fn create_new_native_exhausted_tokens_and_invalid_attributes_do_not_create() {
+    let directory = TestDirectory::new();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    assert_eq!(fs.file_create_new(b"INVALID.DAT", 0x10).unwrap_err().code, DosErrorCode::InvalidAccess);
+    assert!(!directory.0.join("INVALID.DAT").exists());
+    fs.next_file = u64::MAX;
+    assert_eq!(fs.file_create_new(b"EXHAUST.DAT", 0).unwrap_err().code, DosErrorCode::TooManyOpenFiles);
+    assert!(!directory.0.join("EXHAUST.DAT").exists());
+}
+
+#[test]
+fn create_new_native_existing_directory_is_preserved() {
+    let directory = TestDirectory::new();
+    let existing = directory.0.join("EXISTING");
+    std::fs::create_dir(&existing).unwrap();
+    std::fs::write(existing.join("KEEP.DAT"), b"directory contents").unwrap();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let error = fs.file_create_new(b"EXISTING", 0).unwrap_err();
+    assert!(matches!(error.code, DosErrorCode::AccessDenied | DosErrorCode::FileExists));
+    assert!(existing.is_dir());
+    assert_eq!(std::fs::read(existing.join("KEEP.DAT")).unwrap(), b"directory contents");
+    assert!(fs.files.is_empty());
+}

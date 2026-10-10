@@ -14,6 +14,37 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Win16ApiRequest, Win16Error> {
     let request = match id {
+        Win16ExportId::UserCreateCaret => Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::CreateCaret {
+                window: word_argument(arguments, 0)?,
+                bitmap: word_argument(arguments, 1)?,
+                width: word_argument(arguments, 2)? as i16,
+                height: word_argument(arguments, 3)? as i16,
+            }),
+        ),
+        Win16ExportId::UserDestroyCaret => Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::DestroyCaret),
+        ),
+        Win16ExportId::UserSetCaretPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::SetCaretPos {
+                x: word_argument(arguments, 0)? as i16,
+                y: word_argument(arguments, 1)? as i16,
+            }),
+        ),
+        Win16ExportId::UserHideCaret | Win16ExportId::UserShowCaret => {
+            let window = word_argument(arguments, 0)?;
+            let request = if id == Win16ExportId::UserHideCaret {
+                super::Win16UserWindowRequest::HideCaret { window }
+            } else {
+                super::Win16UserWindowRequest::ShowCaret { window }
+            };
+            Win16ApiRequest::User(super::Win16UserRequest::Window(request))
+        }
+        Win16ExportId::UserGetCaretPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::GetCaretPos {
+                point: dword_argument(arguments, 0)?,
+            }),
+        ),
         Win16ExportId::UserGetWindowPlacement | Win16ExportId::UserSetWindowPlacement => {
             let window = word_argument(arguments, 0)?;
             let placement = dword_argument(arguments, 1)?;
@@ -276,6 +307,14 @@ pub(super) fn decode(
             super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::ScreenToClient {
                 window: word_argument(arguments, 0)?,
                 point: dword_argument(arguments, 1)?,
+            }),
+        ),
+        Win16ExportId::UserMapWindowPoints => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::MapWindowPoints {
+                from: word_argument(arguments, 0)?,
+                to: word_argument(arguments, 1)?,
+                points: dword_argument(arguments, 2)?,
+                count: word_argument(arguments, 3)?,
             }),
         ),
         Win16ExportId::UserWindowFromPoint => {

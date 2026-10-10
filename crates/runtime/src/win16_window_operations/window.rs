@@ -20,6 +20,16 @@ impl Win16State {
 
         match request {
             Request::User(win16_abi::Win16UserRequest::Window(
+                request @ (win16_abi::Win16UserWindowRequest::CreateCaret { .. }
+                    | win16_abi::Win16UserWindowRequest::DestroyCaret
+                    | win16_abi::Win16UserWindowRequest::SetCaretPos { .. }
+                    | win16_abi::Win16UserWindowRequest::HideCaret { .. }
+                    | win16_abi::Win16UserWindowRequest::ShowCaret { .. }
+                    | win16_abi::Win16UserWindowRequest::GetCaretPos { .. }),
+            )) => self.begin_caret_request(
+                registers, memory, host, request, return_to, return_kind,
+            ),
+            Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetClassName {
                     window,
                     output,

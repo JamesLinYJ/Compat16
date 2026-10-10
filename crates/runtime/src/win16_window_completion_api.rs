@@ -787,6 +787,32 @@ pub(super) fn finish_window_call(
                 }
                 Some(0)
             }
+            (Output::Points { range, count }, ResultValue::Points(points)) => {
+                if let Some(points) = points {
+                    if points.len() != usize::from(*count)
+                        || points.len().checked_mul(win16_abi::Point16::SIZE) != Some(range.length())
+                    {
+                        return Err(RuntimeError::new(Kind::InternalInvariant,
+                            "native MapWindowPoints result does not match its captured array"));
+                    }
+                    let mut output = Vec::new();
+                    output.try_reserve_exact(range.length()).map_err(|error|
+                        RuntimeError::with_source(Kind::ResourceExhausted,
+                            "retain Win16 MapWindowPoints output", error))?;
+                    for point in points {
+                        // POINT16 retains the low signed 16-bit coordinate,
+                        // matching the other Win16 coordinate conversions.
+                        output.extend_from_slice(&win16_abi::Point16 {
+                            x: point.x as i16, y: point.y as i16,
+                        }.encode());
+                    }
+                    super::super::guest_ranges::commit_guest_output_with_selectors(
+                        access.selectors, memory, range, &output,
+                    )?;
+                    owner.phase = Phase::GuestOutputCommitted;
+                }
+                Some(0)
+            }
             (Output::Placement(range), ResultValue::Placement(placement)) => {
                 if let Some(placement) = placement {
                     use win16_abi::user_abi::WindowPlacement16;

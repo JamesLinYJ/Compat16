@@ -46,10 +46,24 @@ pub enum Win16WindowTarget {
     Mapped(Win16HostWindow),
 }
 
+/// Native USER's two built-in caret shapes. No guest bitmap or address may
+/// cross this boundary; bitmap carets need a separate retained GDI owner.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16CaretShape {
+    Solid,
+    Gray,
+}
+
 /// One synchronous native USER window operation. The host worker executes the
 /// call on the window-owning thread and can suspend it for guest callbacks.
 #[derive(Clone, Debug)]
 pub enum Win16WindowCall {
+    CreateCaret { window: Win16WindowTarget, shape: Win16CaretShape, width: i16, height: i16 },
+    DestroyCaret,
+    SetCaretPos { x: i16, y: i16 },
+    HideCaret { window: Win16WindowTarget },
+    ShowCaret { window: Win16WindowTarget },
+    GetCaretPos,
     WindowData(crate::Win16WindowDataCall),
     SetWindowProperty {
         window: Win16WindowTarget,
@@ -94,6 +108,11 @@ pub enum Win16WindowCall {
     GetLastActivePopup { window: Win16WindowTarget },
     ClientToScreen { window: Win16WindowTarget, point: Win16HostPoint },
     ScreenToClient { window: Win16WindowTarget, point: Win16HostPoint },
+    MapWindowPoints {
+        from: Win16WindowTarget,
+        to: Win16WindowTarget,
+        points: Vec<Win16HostPoint>,
+    },
     WindowFromPoint { point: Win16HostPoint },
     MoveWindow {
         window: Win16WindowTarget,
@@ -126,6 +145,9 @@ pub enum Win16WindowCallResult {
     Boolean(bool),
     Rect(Option<Win16HostRect>),
     Point(Option<Win16HostPoint>),
+    /// The entire mapped array, or no output on native failure. A successful
+    /// result must contain exactly the submitted number of points.
+    Points(Option<Vec<Win16HostPoint>>),
     Placement(Option<Win16WindowPlacement>),
     Window(Option<Win16HostWindow>),
     ClassName {
@@ -151,6 +173,7 @@ pub(crate) enum Win16WindowCallOutput {
         guest_window: u16,
     },
     Point(crate::win16_runtime::guest_ranges::GuestOutputRange),
+    Points { range: crate::win16_runtime::guest_ranges::GuestOutputRange, count: u16 },
     Placement(crate::win16_runtime::guest_ranges::GuestOutputRange),
     ClassName { range: crate::win16_runtime::guest_ranges::GuestOutputRange, capacity: u16 },
 }

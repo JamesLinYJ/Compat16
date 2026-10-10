@@ -122,6 +122,7 @@ pub(in super::super) fn shutdown_all(state: &Rc<RefCell<WorkerState>>) -> Result
             )));
         }
     }
+    result = combine_cleanup(result, super::super::win16_window_caret::shutdown());
     result = combine_cleanup(result,
         super::super::win16_common_controls_bitmap_pins::retire_all(state));
 

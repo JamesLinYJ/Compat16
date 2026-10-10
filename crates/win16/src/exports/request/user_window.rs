@@ -92,6 +92,35 @@ pub enum Win16UserWindowRequest {
 
     GetCapture,
 
+    /// Bitmap 0/1 selects a solid/gray caret. Other values remain guest GDI
+    /// handles and require a separate lifetime-safe bitmap implementation.
+    CreateCaret {
+        window: u16,
+        bitmap: u16,
+        width: i16,
+        height: i16,
+    },
+
+    DestroyCaret,
+
+    SetCaretPos {
+        x: i16,
+        y: i16,
+    },
+
+    HideCaret {
+        window: u16,
+    },
+
+    ShowCaret {
+        window: u16,
+    },
+
+    /// USER.183 writes one checked packed POINT16 and has no return value.
+    GetCaretPos {
+        point: u32,
+    },
+
     /// USER.39 writes one packed PAINTSTRUCT16 through this raw guest FAR address.
     BeginPaint {
         window: u16,

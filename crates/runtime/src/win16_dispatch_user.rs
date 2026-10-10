@@ -85,6 +85,14 @@ impl Win16State {
             // helpers cannot be decoded but omitted from runtime dispatch.
             request @ (Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(_))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::CreateCaret { .. }
+                | win16_abi::Win16UserWindowRequest::DestroyCaret
+                | win16_abi::Win16UserWindowRequest::SetCaretPos { .. }
+                | win16_abi::Win16UserWindowRequest::HideCaret { .. }
+                | win16_abi::Win16UserWindowRequest::ShowCaret { .. }
+                | win16_abi::Win16UserWindowRequest::GetCaretPos { .. },
+            ))
+            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetClassName { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
@@ -665,3 +673,11 @@ impl Win16State {
 #[cfg(test)]
 #[path = "win16_dispatch_geometry_tests.rs"]
 mod geometry_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_map_window_points_tests.rs"]
+mod map_window_points_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_caret_tests.rs"]
+mod caret_tests;

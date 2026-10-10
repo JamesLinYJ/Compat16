@@ -463,6 +463,40 @@ impl Win16State {
                 )
             }
             Request::User(win16_abi::Win16UserRequest::Geometry(
+                win16_abi::Win16UserGeometryRequest::MapWindowPoints { from, to, points, count },
+            )) => {
+                // USER.258 is void in the Win3.1 SDK. With no points there is
+                // no memory to access or result to obtain, even for a NULL FAR
+                // pointer. Do not turn that harmless call into a guest fault.
+                if count == 0 {
+                    return self.complete_return(registers, return_to.0, return_to.1,
+                        return_to.2, 0, return_kind);
+                }
+                let length = usize::from(count).checked_mul(Point16::SIZE).ok_or_else(||
+                    RuntimeError::new(Kind::GuestFault, "Win16 MapWindowPoints array size overflow"))?;
+                let pointer = self.checked_guest_range(points, length, Access::Read, memory)?;
+                let range = super::super::guest_ranges::GuestOutputRange::capture(
+                    self, memory, pointer, length,
+                )?;
+                let bytes = range.read(self, memory)?;
+                let mut points = Vec::new();
+                points.try_reserve_exact(usize::from(count)).map_err(|error|
+                    RuntimeError::with_source(Kind::ResourceExhausted,
+                        "copy Win16 MapWindowPoints input", error))?;
+                for bytes in bytes.chunks_exact(Point16::SIZE) {
+                    let point = Point16::decode(bytes.try_into().map_err(|_| RuntimeError::new(
+                        Kind::InternalInvariant, "Win16 MapWindowPoints input is not a POINT16"))?);
+                    points.push(Win16HostPoint { x: i32::from(point.x), y: i32::from(point.y) });
+                }
+                self.submit_call(
+                    registers, memory, host,
+                    Win16WindowCall::MapWindowPoints {
+                        from: self.native_window(from), to: self.native_window(to), points,
+                    },
+                    Win16WindowCallOutput::Points { range, count }, return_to, return_kind, None,
+                )
+            }
+            Request::User(win16_abi::Win16UserRequest::Geometry(
                 win16_abi::Win16UserGeometryRequest::WindowFromPoint { x, y },
             )) => self.submit_value_call(
                 registers,

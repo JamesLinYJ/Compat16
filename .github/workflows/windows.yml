@@ -83,9 +83,9 @@ jobs:
             throw 'Visual Studio developer command script was not found.'
           }
           $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
-          # Limit native host/runtime coverage to existing pure or mock-backed
-          # library tests: error mapping, VGA conversion and the input bridge.
-          # These filters do not exercise redirected native stdin or open UI.
+          # Limit host/runtime coverage to pure or mock-backed library tests
+          # and isolated temporary-directory filesystem tests. These filters
+          # do not exercise redirected native stdin or open UI.
           $suites = @(
             '-p x86-cpu',
             '-p text-codec',
@@ -104,7 +104,11 @@ jobs:
             '-p runtime --lib resource_metadata_',
             '-p runtime --lib hresult_tests',
             '-p runtime --lib put_element_',
-            '-p runtime --lib brush_exports'
+            '-p runtime --lib brush_exports',
+            '-p runtime --lib map_window_points',
+            '-p host-services --lib create_new_',
+            '-p runtime --lib create_new_',
+            '-p runtime --lib caret_'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

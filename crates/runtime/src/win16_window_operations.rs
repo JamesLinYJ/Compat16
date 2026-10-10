@@ -17,6 +17,8 @@ use crate::{
 
 #[path = "win16_window_operations/geometry.rs"]
 mod geometry;
+#[path = "win16_window_operations/caret.rs"]
+mod caret;
 #[path = "win16_window_operations/window.rs"]
 mod window;
 #[path = "win16_window_operations/mdi.rs"]

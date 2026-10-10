@@ -54,6 +54,9 @@ pub(super) struct TestHost {
     disk_space: Option<DosDiskSpace>,
     duplicate_calls: usize,
     fail_duplicate_at: Option<usize>,
+    create_new_calls: usize,
+    fail_create_new: Option<DosErrorCode>,
+    create_new_token_override: Option<DosHostFile>,
     duplicate_token_override: Option<DosHostFile>,
     max_file_write: Option<usize>,
     code_page: Option<text_codec::CodePage>,
@@ -115,6 +118,20 @@ impl DosHost for TestHost {
     fn file_create(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
         self.attributes.insert(path.to_vec(), attributes);
         Ok(self.open_new(path, true))
+    }
+    fn file_create_new(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
+        self.create_new_calls += 1;
+        if let Some(code) = self.fail_create_new {
+            return Err(DosHostError::new(code));
+        }
+        if let Some(token) = self.create_new_token_override {
+            return Ok(token);
+        }
+        if self.paths.contains_key(path) || self.directories.contains_key(path) {
+            return Err(DosHostError::new(DosErrorCode::FileExists));
+        }
+        self.attributes.insert(path.to_vec(), attributes);
+        Ok(self.open_new(path, false))
     }
     fn file_open(&mut self, path: &[u8], _access: DosFileAccess) -> Result<DosHostFile, DosHostError> {
         if !self.paths.contains_key(path) { return Err(DosHostError::new(DosErrorCode::FileNotFound)); }
@@ -1185,3 +1202,6 @@ fn real_mode_dta_query_returns_words_without_dereferencing_but_search_validates(
     assert_eq!(host.next_search_id, 0);
     assert!(host.searches.is_empty());
 }
+
+#[path = "create_new_tests.rs"]
+mod create_new_tests;

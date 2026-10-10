@@ -332,9 +332,16 @@ pub(super) fn decode(
         | Win16ExportId::UserGetLastActivePopup
         | Win16ExportId::UserClientToScreen
         | Win16ExportId::UserGetCursorPos
+        | Win16ExportId::UserCreateCaret
+        | Win16ExportId::UserDestroyCaret
+        | Win16ExportId::UserSetCaretPos
+        | Win16ExportId::UserHideCaret
+        | Win16ExportId::UserShowCaret
+        | Win16ExportId::UserGetCaretPos
         | Win16ExportId::UserGetWindowPlacement
         | Win16ExportId::UserSetWindowPlacement
         | Win16ExportId::UserScreenToClient
+        | Win16ExportId::UserMapWindowPoints
         | Win16ExportId::UserWindowFromPoint => {
             call_window_ops::decode(descriptor.id, &arguments, selectors, memory)?
         }

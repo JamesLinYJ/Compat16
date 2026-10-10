@@ -779,6 +779,9 @@ impl DosHost for WindowsHost {
     fn file_create(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
         self.filesystem.file_create(path, attributes)
     }
+    fn file_create_new(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
+        self.filesystem.file_create_new(path, attributes)
+    }
     fn file_open(
         &mut self,
         path: &[u8],

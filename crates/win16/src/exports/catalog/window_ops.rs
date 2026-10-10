@@ -3,8 +3,22 @@
 //! The declarations follow the Windows 3.1 SDK Programmer's Reference,
 //! Volume 2. RECT16 and POINT16 pointers stay raw guest FAR values until the
 //! runtime can validate the fixed guest structure size and direction.
+//! The six void caret signatures are also recorded in Open Watcom's Win16
+//! header: https://github.com/open-watcom/open-watcom-v2/blob/08a5064dd9831edf10234844630e605e83606989/bld/w16api/include/win16.mh
 
 use super::*;
+
+pub(super) const USER_CREATE_CARET_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "window", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+    Win16Parameter { name: "bitmap", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+    Win16Parameter { name: "width", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
+    Win16Parameter { name: "height", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
+];
+
+pub(super) const USER_SET_CARET_POS_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "x", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
+    Win16Parameter { name: "y", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
+];
 
 pub(super) const USER_CURSOR_POINT_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
     name: "point",
@@ -57,6 +71,13 @@ pub(super) const USER_SHOW_OWNED_POPUPS_PARAMETERS: &[Win16Parameter] = &[
 pub(super) const USER_WINDOW_POINT_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "window", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
     Win16Parameter { name: "point", kind: ArgumentKind::Dword, parameter_type: FAR_BUFFER },
+];
+
+pub(super) const USER_MAP_WINDOW_POINTS_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "from", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+    Win16Parameter { name: "to", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+    Win16Parameter { name: "points", kind: ArgumentKind::Dword, parameter_type: FAR_BUFFER },
+    Win16Parameter { name: "count", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
 ];
 
 pub(super) const USER_POINT_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {

@@ -30,6 +30,15 @@ pub enum Win16UserGeometryRequest {
         point: u32,
     },
 
+    /// Convert a checked POINT16 array in place. Zero HWNDs select screen
+    /// coordinates; a count of two also covers the two corners of a RECT16.
+    MapWindowPoints {
+        from: u16,
+        to: u16,
+        points: u32,
+        count: u16,
+    },
+
     /// POINT16 is supplied by value as two packed signed Win16 coordinates.
     WindowFromPoint {
         x: i16,

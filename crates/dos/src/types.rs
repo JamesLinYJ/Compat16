@@ -127,6 +127,16 @@ pub trait DosHost {
     fn flush_stdin(&mut self) -> Result<(), DosHostError>;
 
     fn file_create(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError>;
+    /// Atomically create a new read/write file in compatibility sharing mode.
+    /// An existing entry must remain unchanged and return FileExists. Hosts
+    /// must not emulate this using an existence check followed by file_create.
+    fn file_create_new(
+        &mut self,
+        _path: &[u8],
+        _attributes: u8,
+    ) -> Result<DosHostFile, DosHostError> {
+        Err(DosHostError::new(DosErrorCode::InvalidFunction))
+    }
     fn file_open(&mut self, path: &[u8], access: DosFileAccess) -> Result<DosHostFile, DosHostError>;
     /// Open with DOS's sharing mode. Hosts without a native sharing primitive
     /// must make an explicit policy choice. Windows enforces the requested

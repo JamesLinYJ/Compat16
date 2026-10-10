@@ -132,26 +132,53 @@ impl Filesystem {
         path: &[u8],
         attributes: u8,
     ) -> Result<DosHostFile, DosHostError> {
+        self.create_file(path, attributes, false)
+    }
+
+    pub(crate) fn file_create_new(
+        &mut self,
+        path: &[u8],
+        attributes: u8,
+    ) -> Result<DosHostFile, DosHostError> {
+        self.create_file(path, attributes, true)
+    }
+
+    fn create_file(
+        &mut self,
+        path: &[u8],
+        attributes: u8,
+        exclusive: bool,
+    ) -> Result<DosHostFile, DosHostError> {
         metadata::validate_attributes(attributes)?;
+        self.next_file
+            .checked_add(1)
+            .ok_or_else(|| invalid(DosErrorCode::TooManyOpenFiles))?;
         let path = self.resolve_path(path, false)?;
-        let path = self.confined_path(&path, true, true)?;
+        // Exclusive creation operates on the directory entry itself, so even
+        // a dangling final symlink counts as existing. Confine its parent and
+        // let the capability-rooted atomic create decide whether it exists.
+        let path = self.confined_path(&path, !exclusive, true)?;
         let native = if attributes == 0 {
             FILE_ATTRIBUTE_NORMAL
         } else {
             u32::from(attributes)
         };
+        let mut options = OpenOptions::new();
+        options
+            .read(true)
+            .write(true)
+            .create(!exclusive)
+            .truncate(!exclusive)
+            .create_new(exclusive)
+            .attributes(native);
+        if exclusive {
+            // Match file_open's documented local compatibility-mode policy.
+            options.share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE);
+        }
         let file = self
             .root
-            .open_with(
-                &path,
-                OpenOptions::new()
-                    .read(true)
-                    .write(true)
-                    .create(true)
-                    .truncate(true)
-                    .attributes(native),
-            )
-            .map_err(os_error)?;
+            .open_with(&path, &options)
+            .map_err(|error| if exclusive { create_new_error(error) } else { os_error(error) })?;
         let short_name = self.file_short_name(&path)?;
         self.insert_file(Arc::new(Mutex::new(OpenFile::new(file, short_name))))
     }
@@ -318,5 +345,42 @@ impl Filesystem {
     ) -> Result<(), DosHostError> {
         let path = self.resolve_path(path, false)?;
         self.set_attributes(&path, attributes)
+    }
+}
+
+fn create_new_error(error: io::Error) -> DosHostError {
+    // CREATE_NEW reports ERROR_FILE_EXISTS (80). Preserve DOS 5Bh's distinct
+    // error without changing 3Ch, mkdir, or rename's existing error policies.
+    // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
+    if matches!(error.raw_os_error(), Some(80 | 183))
+        || error.kind() == io::ErrorKind::AlreadyExists
+    {
+        DosHostError::with_source(DosErrorCode::FileExists, error)
+    } else {
+        os_error(error)
+    }
+}
+
+#[cfg(test)]
+mod create_new_error_tests {
+    use super::*;
+
+    #[test]
+    fn create_new_error_preserves_exists_and_other_native_failures() {
+        for code in [80, 183] {
+            assert_eq!(
+                create_new_error(io::Error::from_raw_os_error(code)).code,
+                DosErrorCode::FileExists,
+            );
+        }
+        for (code, expected) in [
+            (3, DosErrorCode::PathNotFound),
+            (5, DosErrorCode::AccessDenied),
+            (32, DosErrorCode::SharingViolation),
+            (112, DosErrorCode::DiskFull),
+        ] {
+            assert_eq!(create_new_error(io::Error::from_raw_os_error(code)).code, expected);
+        }
+        assert_eq!(os_error(io::Error::from_raw_os_error(80)).code, DosErrorCode::AccessDenied);
     }
 }

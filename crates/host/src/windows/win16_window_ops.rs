@@ -12,8 +12,8 @@ use runtime::{
     Win16WindowCall, Win16WindowCallResult, Win16WindowInsertAfter,
     Win16WindowSearchClass, Win16WindowTarget, Win16WindowPlacement,
 };
-use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
-use windows_sys::Win32::Graphics::Gdi::{ClientToScreen, ScreenToClient};
+use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND, POINT, RECT};
+use windows_sys::Win32::Graphics::Gdi::{ClientToScreen, MapWindowPoints, ScreenToClient};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     EnableWindow, GetActiveWindow, IsWindowEnabled, SetActiveWindow,
 };
@@ -38,6 +38,10 @@ pub(super) fn execute(
     use Win16WindowCallResult as ResultValue;
 
     let result = match call {
+        call @ (Call::CreateCaret { .. } | Call::DestroyCaret | Call::SetCaretPos { .. }
+            | Call::HideCaret { .. } | Call::ShowCaret { .. } | Call::GetCaretPos) => {
+                super::win16_window_caret::execute(state, call)?
+            }
         Call::GetWindowPlacement { window } => {
             let mut placement = WINDOWPLACEMENT {
                 length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
@@ -244,6 +248,27 @@ pub(super) fn execute(
             let success = hwnd(state, window)
                 .is_some_and(|native| unsafe { ScreenToClient(native, &mut point) != 0 });
             ResultValue::Point(success.then_some(host_point(point)))
+        }
+        Call::MapWindowPoints { from, to, mut points } => {
+            let (Some(from), Some(to)) = (hwnd(state, from), hwnd(state, to)) else {
+                return Ok(ResultValue::Points(None));
+            };
+            for point in &mut points {
+                let mut native = native_point(*point);
+                // Win16 maps points, including the two RECT16 corners, without
+                // Win32's later two-point RTL rectangle edge reordering. Map
+                // each point separately as documented for independent points:
+                // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-mapwindowpoints
+                // Zero displacement is successful, so distinguish it from an
+                // error via last-error, never by testing the packed offset alone.
+                unsafe { SetLastError(0); }
+                let displacement = unsafe { MapWindowPoints(from, to, &mut native, 1) };
+                if displacement == 0 && unsafe { GetLastError() } != 0 {
+                    return Ok(ResultValue::Points(None));
+                }
+                *point = host_point(native);
+            }
+            ResultValue::Points(Some(points))
         }
         Call::WindowFromPoint { point } => {
             let native = unsafe { WindowFromPoint(native_point(point)) };

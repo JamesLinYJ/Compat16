@@ -104,6 +104,8 @@ mod win16_window_enumeration;
 mod win16_window_geometry;
 #[path = "win16_window_ops.rs"]
 mod win16_window_ops;
+#[path = "win16_window_caret.rs"]
+mod win16_window_caret;
 #[path = "win16_window_position.rs"]
 mod win16_window_position;
 #[path = "win16_window_properties.rs"]
