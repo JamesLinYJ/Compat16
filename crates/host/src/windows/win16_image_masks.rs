@@ -1,6 +1,6 @@
 //! Native icon/cursor mask constructors using the shared image ownership table.
 
-use super::{Win16Images, ImageKind, NativeImage, destroy};
+use super::{Win16Images, ImageKind, NativeIconGuard};
 use runtime::{RuntimeError, Win16HostIcon, Win16HostCursor, Win16HostImageMasks};
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{CreateIcon, CreateCursor, HICON};
@@ -34,12 +34,6 @@ impl Win16Images {
 
     fn retain_mask_image(&self, native: HICON, kind: ImageKind) -> Result<Option<u64>, RuntimeError> {
         if native.is_null() { return Ok(None); }
-        match self.insert(native, kind, true) {
-            Ok(token) => Ok(Some(token)),
-            Err(error) => {
-                destroy(NativeImage::new(native, kind, true));
-                Err(error)
-            }
-        }
+        self.insert_owned(NativeIconGuard::new_kind(native, kind)).map(Some)
     }
 }

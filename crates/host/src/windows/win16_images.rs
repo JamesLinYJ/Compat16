@@ -1,7 +1,7 @@
 //! Native USER icon and cursor handles kept apart from guest 16-bit handles.
 
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
 
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostCursor, Win16HostIcon, Win16HostIconSize,
@@ -44,82 +44,34 @@ impl NativeImage {
     fn handle(self) -> HICON { self.handle as HICON }
 }
 
-/// Owns the native resource while either its token or a short USER call lease
-/// references it. The final Arc drop destroys only host-owned handles.
-struct RetainedNativeImage {
-    image: NativeImage,
-}
+#[path = "win16_image_ownership.rs"]
+mod ownership;
+use ownership::{ImageTable, NativeIconGuard};
+pub(super) use ownership::Win16IconLease;
 
-impl Drop for RetainedNativeImage {
-    fn drop(&mut self) { destroy(self.image); }
-}
-
-/// Pins a token-backed HICON for one native operation without holding the
-/// shared identity-table lock across USER32.
-pub(super) struct Win16IconLease(Arc<RetainedNativeImage>);
-
-impl Win16IconLease {
-    pub(super) fn native(&self) -> HICON { self.0.image.handle() }
-}
-
-/// Owns an extracted HICON until it is registered in the opaque host table.
-struct NativeIconGuard(HICON);
-
-impl NativeIconGuard {
-    fn new(handle: HICON) -> Self { Self(handle) }
-
-    fn handle(&self) -> HICON { self.0 }
-
-    fn disarm(&mut self) { self.0 = std::ptr::null_mut(); }
-}
-
-impl Drop for NativeIconGuard {
-    fn drop(&mut self) {
-        if !self.0.is_null() {
-            destroy(NativeImage::new(self.0, ImageKind::Icon, true));
-        }
-    }
-}
-
-/// Owns every raw icon slot left by ExtractIconExW until each handle is moved
-/// into the opaque host table. This also cleans up native outputs on errors.
+/// Owns every raw icon slot left by ExtractIconExW until registration consumes it.
 struct NativeIconSlots {
     large: Vec<HICON>,
     small: Vec<HICON>,
 }
 
+impl NativeIconSlots {
+    fn take(&mut self, raw: HICON, large_count: usize, slots: &[(usize, usize)]) {
+        // The sorted index makes alias transfer logarithmic plus alias count.
+        let start = slots.partition_point(|(handle, _)| *handle < raw as usize);
+        for &(handle, index) in &slots[start..] {
+            if handle != raw as usize { break; }
+            if index < large_count {
+                self.large[index] = std::ptr::null_mut();
+            } else {
+                self.small[index - large_count] = std::ptr::null_mut();
+            }
+        }
+    }
+}
+
 impl Drop for NativeIconSlots {
-    fn drop(&mut self) { destroy_icon_slots(&self.large, &self.small); }
-}
-
-struct ImageTable {
-    images: BTreeMap<u64, Arc<RetainedNativeImage>>,
-    next_id: u64,
-}
-
-impl ImageTable {
-    fn new() -> Self {
-        Self { images: BTreeMap::new(), next_id: 1 }
-    }
-
-    fn insert(&mut self, handle: HICON, kind: ImageKind, owned: bool)
-        -> Result<u64, RuntimeError> {
-        let next = self.next_id.checked_add(1).ok_or_else(|| RuntimeError::new(
-            Kind::ResourceExhausted, "Win16 host image identity exhausted",
-        ))?;
-        let token = self.next_id;
-        self.next_id = next;
-        self.images.insert(token, Arc::new(RetainedNativeImage {
-            image: NativeImage::new(handle, kind, owned),
-        }));
-        Ok(token)
-    }
-}
-
-impl Drop for ImageTable {
-    fn drop(&mut self) {
-        for (_, image) in std::mem::take(&mut self.images) { drop(image); }
-    }
+    fn drop(&mut self) { destroy_icon_slots(&mut self.large, &mut self.small); }
 }
 
 /// Clones refer to one host-private token table. Raw Win32 handles are stored
@@ -142,9 +94,26 @@ impl Win16Images {
         ))
     }
 
-    fn insert(&self, handle: HICON, kind: ImageKind, owned: bool)
-        -> Result<u64, RuntimeError> {
-        self.lock()?.insert(handle, kind, owned)
+    fn insert_owned(&self, mut guard: NativeIconGuard) -> Result<u64, RuntimeError> {
+        let mut collision = None;
+        let result = {
+            let mut table = self.lock()?;
+            table.register_owned(&mut guard, &mut collision)
+        };
+        // Never run native destruction while holding the identity-table mutex.
+        drop(guard);
+        drop(collision);
+        result
+    }
+
+    fn adopt_image(&self, handle: HICON, kind: ImageKind) -> Result<u64, RuntimeError> {
+        let mut recovered = None;
+        let result = {
+            let mut table = self.lock()?;
+            table.adopt(handle, kind, &mut recovered)
+        };
+        drop(recovered);
+        result
     }
 
     fn system(&self, id: u16, kind: ImageKind) -> Result<Option<u64>, RuntimeError> {
@@ -156,7 +125,7 @@ impl Win16Images {
             ImageKind::Cursor => LoadCursorW(std::ptr::null_mut(), name),
         } };
         if handle.is_null() { return Ok(None); }
-        self.insert(handle, kind, false).map(Some)
+        self.lock()?.register_borrowed(handle, kind).map(Some)
     }
 
     pub(super) fn system_icon(&self, id: u16)
@@ -240,13 +209,7 @@ impl Win16Images {
             WINDOWS_3_RESOURCE_VERSION, width, height, 0,
         ) };
         if handle.is_null() { return Ok(None); }
-        match self.insert(handle, kind, true) {
-            Ok(token) => Ok(Some(token)),
-            Err(error) => {
-                destroy(NativeImage::new(handle, kind, true));
-                Err(error)
-            }
-        }
+        self.insert_owned(NativeIconGuard::new_kind(handle, kind)).map(Some)
     }
 
     pub(super) fn create_icon(&self, image: &[u8])
@@ -273,9 +236,7 @@ impl Win16Images {
         // independently owned icon suitable for the existing image table.
         let copied = unsafe { CopyIcon(icon) };
         if copied.is_null() { return Ok(None); }
-        let mut guard = NativeIconGuard::new(copied);
-        let token = self.insert(guard.handle(), ImageKind::Icon, true)?;
-        guard.disarm();
+        let token = self.insert_owned(NativeIconGuard::new(copied))?;
         Ok(Some(Win16HostIcon(token)))
     }
 
@@ -296,6 +257,7 @@ impl Win16Images {
             }
         };
         drop(removed);
+        self.lock()?.maintain();
         Ok(())
     }
 
@@ -329,38 +291,20 @@ impl Win16Images {
             .map(|image| image.image.handle()))
     }
 
-    /// Registers a caller-owned native icon without taking ownership. If this
-    /// raw handle is already present, return its existing token and preserve
-    /// the existing ownership flag.
+    /// Preserve any live host owner, including one retained only by a suspended
+    /// USER call. Unknown native images retain their external ownership contract.
     pub(super) fn adopt_borrowed_icon(
-        &self,
-        icon: HICON,
+        &self, icon: HICON,
     ) -> Result<Option<Win16HostIcon>, RuntimeError> {
         if icon.is_null() { return Ok(None); }
-        let mut table = self.lock()?;
-        if let Some((&token, _)) = table.images.iter().find(|(_, image)| {
-            image.image.kind == ImageKind::Icon && image.image.handle == icon as usize
-        }) {
-            return Ok(Some(Win16HostIcon(token)));
-        }
-        table.insert(icon, ImageKind::Icon, false).map(Win16HostIcon).map(Some)
+        self.adopt_image(icon, ImageKind::Icon).map(Win16HostIcon).map(Some)
     }
 
-    /// Registers a caller-owned native cursor without taking ownership. If this
-    /// raw handle is already present, return its existing token and preserve
-    /// the existing ownership flag.
     pub(super) fn adopt_borrowed_cursor(
-        &self,
-        cursor: HICON,
+        &self, cursor: HICON,
     ) -> Result<Option<Win16HostCursor>, RuntimeError> {
         if cursor.is_null() { return Ok(None); }
-        let mut table = self.lock()?;
-        if let Some((&token, _)) = table.images.iter().find(|(_, image)| {
-            image.image.kind == ImageKind::Cursor && image.image.handle == cursor as usize
-        }) {
-            return Ok(Some(Win16HostCursor(token)));
-        }
-        table.insert(cursor, ImageKind::Cursor, false).map(Win16HostCursor).map(Some)
+        self.adopt_image(cursor, ImageKind::Cursor).map(Win16HostCursor).map(Some)
     }
 
     pub(super) fn shell_icon_call(
@@ -405,9 +349,7 @@ impl Win16Images {
                 if icon as usize == 1 {
                     return Ok(Win16HostShellIconResult::NonIconFile);
                 }
-                let mut guard = NativeIconGuard::new(icon);
-                let token = self.insert(guard.handle(), ImageKind::Icon, true)?;
-                guard.disarm();
+                let token = self.insert_owned(NativeIconGuard::new(icon))?;
                 Ok(Win16HostShellIconResult::Icon {
                     icon: Some(Win16HostIcon(token)),
                 })
@@ -440,15 +382,14 @@ impl Win16Images {
                         icon: None, path: Vec::new(), index,
                     });
                 }
-                let mut guard = NativeIconGuard::new(icon);
+                let guard = NativeIconGuard::new(icon);
                 let Some(path_length) = path_buffer.iter().position(|unit| *unit == 0) else {
                     return Err(RuntimeError::new(Kind::InternalInvariant,
                         "native ExtractAssociatedIcon output is not NUL-terminated"));
                 };
                 let returned_path = self.text_codec
                     .from_wide_bounded(&path_buffer[..path_length], max_path - 1)?.bytes;
-                let token = self.insert(guard.handle(), ImageKind::Icon, true)?;
-                guard.disarm();
+                let token = self.insert_owned(guard)?;
                 Ok(Win16HostShellIconResult::AssociatedIcon {
                     icon: Some(Win16HostIcon(token)),
                     path: returned_path,
@@ -526,6 +467,19 @@ impl Win16Images {
         small_count: usize,
         small_requested: bool,
     ) -> Result<(Vec<Option<Win16HostIcon>>, Vec<Option<Win16HostIcon>>), RuntimeError> {
+        self.retain_extracted_slots_with(slots, large_count, large_requested,
+            small_count, small_requested, |raw| self.insert_owned(NativeIconGuard::new(raw)))
+    }
+
+    fn retain_extracted_slots_with(
+        &self,
+        slots: &mut NativeIconSlots,
+        large_count: usize,
+        large_requested: bool,
+        small_count: usize,
+        small_requested: bool,
+        mut register: impl FnMut(HICON) -> Result<u64, RuntimeError>,
+    ) -> Result<(Vec<Option<Win16HostIcon>>, Vec<Option<Win16HostIcon>>), RuntimeError> {
         let mut result = (Vec::new(), Vec::new());
         let total = large_count.saturating_add(small_count);
         if result.0.try_reserve_exact(if large_requested { large_count } else { 0 })
@@ -541,18 +495,42 @@ impl Win16Images {
                 "could not track extracted icon ownership"));
         }
 
+        let mut originals = Vec::new();
+        originals.try_reserve_exact(total).map_err(|error| RuntimeError::with_source(
+            Kind::ResourceExhausted, "snapshot extracted icon slot identities", error,
+        ))?;
+        originals.extend_from_slice(&slots.large[..large_count]);
+        originals.extend_from_slice(&slots.small[..small_count]);
+        let mut transfer_slots = Vec::new();
+        transfer_slots.try_reserve_exact(total).map_err(|error| RuntimeError::with_source(
+            Kind::ResourceExhausted, "index extracted icon ownership transfers", error,
+        ))?;
+        transfer_slots.extend(originals.iter().enumerate().filter_map(|(index, raw)| {
+            (!raw.is_null()).then_some((*raw as usize, index))
+        }));
+        transfer_slots.sort_unstable_by_key(|entry| entry.0);
+        let mut published = BTreeMap::new();
+
         if large_requested {
             for index in 0..large_count {
-                let raw = slots.large[index];
+                let raw = originals[index];
                 if raw.is_null() {
                     result.0.push(None);
                     continue;
                 }
-                match self.insert(raw, ImageKind::Icon, true) {
+                let registration = if let Some(&token) = published.get(&(raw as usize)) {
+                    Ok(token)
+                } else {
+                    slots.take(raw, large_count, &transfer_slots);
+                    register(raw).map(|token| {
+                        published.insert(raw as usize, token);
+                        retained.push(Win16HostIcon(token));
+                        token
+                    })
+                };
+                match registration {
                     Ok(token) => {
-                        slots.large[index] = std::ptr::null_mut();
                         let icon = Win16HostIcon(token);
-                        retained.push(icon);
                         result.0.push(Some(icon));
                     }
                     Err(error) => {
@@ -563,16 +541,24 @@ impl Win16Images {
         }
         if small_requested {
             for index in 0..small_count {
-                let raw = slots.small[index];
+                let raw = originals[large_count + index];
                 if raw.is_null() {
                     result.1.push(None);
                     continue;
                 }
-                match self.insert(raw, ImageKind::Icon, true) {
+                let registration = if let Some(&token) = published.get(&(raw as usize)) {
+                    Ok(token)
+                } else {
+                    slots.take(raw, large_count, &transfer_slots);
+                    register(raw).map(|token| {
+                        published.insert(raw as usize, token);
+                        retained.push(Win16HostIcon(token));
+                        token
+                    })
+                };
+                match registration {
                     Ok(token) => {
-                        slots.small[index] = std::ptr::null_mut();
                         let icon = Win16HostIcon(token);
-                        retained.push(icon);
                         result.1.push(Some(icon));
                     }
                     Err(error) => {
@@ -641,10 +627,31 @@ fn icon_slots(count: usize, requested: bool) -> Result<Vec<HICON>, RuntimeError>
     Ok(slots)
 }
 
-fn destroy_icon_slots(large: &[HICON], small: &[HICON]) {
-    for &icon in large.iter().chain(small) {
-        if !icon.is_null() {
-            destroy(NativeImage::new(icon, ImageKind::Icon, true));
+fn destroy_icon_slots(large: &mut [HICON], small: &mut [HICON]) {
+    visit_unique_icon_slots(large, small, |icon| {
+        destroy(NativeImage::new(icon, ImageKind::Icon, true));
+    });
+}
+
+fn visit_unique_icon_slots(
+    large: &mut [HICON], small: &mut [HICON], mut visit: impl FnMut(HICON),
+) {
+    // Sorting in place avoids allocation and quadratic alias scans in Drop.
+    large.sort_unstable_by_key(|icon| *icon as usize);
+    small.sort_unstable_by_key(|icon| *icon as usize);
+    let mut large = large.iter().copied().peekable();
+    let mut small = small.iter().copied().peekable();
+    let mut previous = std::ptr::null_mut();
+    while large.peek().is_some() || small.peek().is_some() {
+        let from_large = match (large.peek(), small.peek()) {
+            (Some(left), Some(right)) => (*left as usize) <= (*right as usize),
+            (Some(_), None) => true,
+            _ => false,
+        };
+        let next = if from_large { large.next() } else { small.next() };
+        if let Some(icon) = next {
+            if !icon.is_null() && icon != previous { visit(icon); }
+            previous = icon;
         }
     }
 }

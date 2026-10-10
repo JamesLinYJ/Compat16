@@ -94,6 +94,7 @@ jobs:
             '-p graphics',
             '-p devices',
             '-p host-services --lib diagnostics_tests::',
+            '-p host-services --lib image_ownership_tests::',
             '-p host-services --lib windows::vga_window::tests::',
             '-p runtime --lib input::tests::',
             '-p runtime --lib diagnostics::tests::',
