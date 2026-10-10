@@ -139,7 +139,7 @@ fn finish_callback() {
     if let Some(error) = CALLBACK_PANIC.with(|slot| slot.borrow_mut().take()) {
         std::panic::resume_unwind(error);
     }
-    assert!(!pending, "SetParent must exercise the armed synchronous callback");
+    assert!(!pending, "native call must exercise the armed synchronous callback");
 }
 
 fn reparent(state: &SharedWorker, child: Win16HostWindow, parent: Win16WindowTarget)
@@ -358,3 +358,7 @@ fn reparent_never_queries_a_replacement_child_identity_at_the_same_native_bits()
             Win16HostWindowParentObservation::Live { child_parent: Some(old_parent.0) });
     });
 }
+
+// Reuse the exact-identity fixture and synchronous native callback harness.
+#[path = "win16_set_window_pos_tests.rs"]
+mod set_window_pos_tests;

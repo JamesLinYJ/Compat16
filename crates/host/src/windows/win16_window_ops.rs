@@ -24,7 +24,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetWindow,
     GetWindowRect, IsChild, IsIconic, IsWindow, IsWindowVisible, IsZoomed, MoveWindow,
     SetWindowPos, ShowOwnedPopups, WindowFromPoint, GetWindowPlacement, SetWindowPlacement,
-    WINDOWPLACEMENT,
+    HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST, SWP_NOZORDER, WINDOWPLACEMENT,
 };
 
 use super::win16_window_worker::{self as worker, WorkerState};
@@ -308,14 +308,22 @@ pub(super) fn execute(
             }))
         }
         Call::SetWindowPos { window, insert_after, x, y, width, height, flags } => {
-            let insert_after = match insert_after {
-                Win16WindowInsertAfter::Top => Some(std::ptr::null_mut()),
-                Win16WindowInsertAfter::Bottom => Some(1_isize as HWND),
-                Win16WindowInsertAfter::Topmost => Some((-1_isize) as HWND),
-                Win16WindowInsertAfter::NotTopmost => Some((-2_isize) as HWND),
-                Win16WindowInsertAfter::Window(token) =>
-                    state.borrow().windows.get(&token).copied(),
+            let insert_after = if u32::from(flags) & SWP_NOZORDER != 0 {
+                // The ignored token need not exist or identify a live window.
+                Some(HWND_TOP)
+            } else {
+                match insert_after {
+                    Win16WindowInsertAfter::Top => Some(HWND_TOP),
+                    Win16WindowInsertAfter::Bottom => Some(HWND_BOTTOM),
+                    Win16WindowInsertAfter::Topmost => Some(HWND_TOPMOST),
+                    Win16WindowInsertAfter::NotTopmost => Some(HWND_NOTOPMOST),
+                    Win16WindowInsertAfter::Window(token) =>
+                        super::win16_window_identity::resolve_user_window(state, token),
+                }
             };
+            // Both operands use the worker's normal USER identity checks. No
+            // state borrow crosses USER's synchronous window callbacks, and
+            // no saved HWND is adopted or dereferenced after native return.
             ResultValue::Boolean(match (hwnd(state, window), insert_after) {
                 (Some(native), Some(insert_after)) => unsafe {
                     SetWindowPos(native, insert_after,

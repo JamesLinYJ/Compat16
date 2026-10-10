@@ -690,3 +690,7 @@ mod caret_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_child_lookup_tests.rs"]
 mod child_lookup_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_set_window_pos_tests.rs"]
+mod set_window_pos_tests;

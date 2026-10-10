@@ -427,3 +427,7 @@ mod unregister_class_tests;
 #[cfg(test)]
 #[path = "call_child_lookup_tests.rs"]
 mod child_lookup_tests;
+
+#[cfg(test)]
+#[path = "call_set_window_pos_tests.rs"]
+mod set_window_pos_tests;

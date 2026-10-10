@@ -2,6 +2,8 @@
 
 use super::*;
 
+const SWP_NOZORDER: u16 = 0x0004;
+
 impl Win16State {
     pub(super) fn begin_geometry_api(
         &mut self,
@@ -525,7 +527,16 @@ impl Win16State {
                 host.observe_win16_io(&crate::Win16IoEvent::WindowPositionRequest {
                     window, insert_after, x, y, width, height, flags,
                 });
-                let Some(insert_after) = self.window_insert_after(insert_after) else {
+                // USER ignores hWndInsertAfter under SWP_NOZORDER, including
+                // unknown or retired guest handles. Keep the original flags
+                // and use a harmless pseudo-handle without looking it up.
+                // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setwindowpos
+                let insert_after = if flags & SWP_NOZORDER != 0 {
+                    Some(Win16WindowInsertAfter::Top)
+                } else {
+                    self.window_insert_after(insert_after)
+                };
+                let Some(insert_after) = insert_after else {
                     return self.complete_return(
                         registers,
                         return_to.0,
