@@ -3,14 +3,16 @@ use compat_services::automation::{
     FADF_BSTR, FADF_DISPATCH, FADF_UNKNOWN, FADF_VARIANT, SafeArray16, SafeArrayBound16,
     VT_ARRAY, VT_BYREF, VT_I2, VT_I4,
 };
-use guest_core::PhysAddr;
+use guest_core::{GuestMemory, PhysAddr};
 use win16_abi::{
     AccessRights, AllocationFlags, ExportLookupTarget, ReturnAddressWidth, SegmentedPointer,
-    Win16ApiRequest, Win16CallFrame, Win16ReturnKind, decode_export_call, lookup_export,
+    Win16ApiRequest, Win16CallFrame, Win16Error, Win16ReturnKind, decode_export_call, lookup_export,
 };
 use super::super::Win16AutomationGuestResult;
 
 const OWNER: OwnerId = OwnerId(1);
+const HEAP_BASE: PhysAddr = PhysAddr(0x10_0000);
+const HEAP_SIZE: u32 = 0x30_0000;
 
 struct Fixture {
     state: Win16AutomationState,
@@ -25,13 +27,16 @@ struct Fixture {
 impl Fixture {
     fn new(features: u16, width: u16, bounds: &[(u32, i32)]) -> Self {
         let memory = Memory::with_size(0x40_0000).unwrap();
+        // Keep the whole heap above the protected 0xF0000..0x100000 ROM.
+        // Exhaustion tests must reach allocator OOM, not a memory-write fault.
+        memory.validate_write(HEAP_BASE, HEAP_SIZE as usize).unwrap();
         let mut selectors = SelectorTable::new().unwrap();
         let selector = selectors.alloc_block(
             PhysAddr(0x1000), 0x1000, AccessRights::read_write(), &memory,
         ).unwrap();
         let mut this = Self {
             state: Win16AutomationState::default(),
-            heap: GlobalHeap::new(PhysAddr(0x20000), 0x30_0000).unwrap(),
+            heap: GlobalHeap::new(HEAP_BASE, HEAP_SIZE).unwrap(),
             selectors, memory, metadata: SegmentedPointer::new(selector, 0), array: 0,
             warnings: 0,
         };
@@ -312,14 +317,24 @@ fn put_element_oom_preserves_old_bstr_and_source() {
     let source = f.bstr(&[b'x'; 256]);
     f.set_data(f.array, &old.to_le_bytes());
     for size in [65536, 1024, 16] {
-        while f.heap.alloc(&mut f.memory, OWNER, size, AllocationFlags::fixed()).is_ok() {}
+        loop {
+            match f.heap.alloc(&mut f.memory, OWNER, size, AllocationFlags::fixed()) {
+                Ok(_) => {}
+                Err(Win16Error::OutOfMemory) => break,
+                Err(error) => panic!("heap fill failed before exhaustion: {error:?}"),
+            }
+        }
     }
     let count = f.count();
+    let heap_count = f.heap.allocation_count();
     assert_eq!(f.put(source, &[0]), 0x8000_0002);
     assert_eq!(pointer_value(&f.data(f.array)), old);
     assert!(f.state.allocations.contains_key(&old));
     assert!(f.state.allocations.contains_key(&source));
     assert_eq!(f.count(), count);
+    assert_eq!(f.heap.allocation_count(), heap_count);
+    assert_eq!(f.state.read_bstr(&f.selectors, &f.memory, old).unwrap(), Some(b"old".to_vec()));
+    assert_eq!(f.state.read_bstr(&f.selectors, &f.memory, source).unwrap(), Some(vec![b'x'; 256]));
     assert_eq!(f.descriptor(f.array).locks, 0);
 }
 
