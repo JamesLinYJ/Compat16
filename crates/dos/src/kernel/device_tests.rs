@@ -1,6 +1,6 @@
 use super::tests::{TestHost, TestMemory};
 use super::DosKernel;
-use crate::DosError;
+use crate::{DosError, DosHost, DosSeekOrigin};
 use guest_core::{GuestMemory, Registers};
 
 const SYSTEM_SEGMENT: u16 = 0x0800;
@@ -202,6 +202,43 @@ fn console_safe_input_peeks_then_input_consumes_the_cached_byte_once() {
     assert_eq!(read_word(&memory, 0x2020 + 18), 1);
     assert_eq!(read_word(&memory, 0x2020 + 3), 0x0100);
     assert_eq!(kernel.pending_input, None);
+}
+
+#[test]
+fn explicit_console_status_and_safe_input_ignore_redirected_guest_stdin() {
+    let mut kernel = DosKernel::new(0x1000);
+    let mut memory = TestMemory::new();
+    let mut host = TestHost::default();
+    kernel.initialize_character_devices(&mut memory).unwrap();
+    let file = host.file_create(b"input", 0).unwrap();
+    host.file_write(file, b"F").unwrap();
+    host.file_seek(file, 0, DosSeekOrigin::Start).unwrap();
+    kernel.handles.insert(3, super::state::Handle::File(file));
+    assert!(kernel.file_table.register_open(3, 2).is_some());
+    let mut redirect = Registers::default();
+    redirect.set_ax(0x4600);
+    redirect.set_bx(3);
+    redirect.set_cx(0);
+    kernel.interrupt(0x21, &mut redirect, &mut memory, &mut host).unwrap();
+    assert!(!redirect.carry());
+    kernel.pending_input = Some(b'C');
+    let regs = device_regs();
+
+    for command in [5, 6] {
+        memory.put(0x2020, &request(14, command));
+        call_device(&mut kernel, 0x0120, 0x0130, &regs, &mut memory, &mut host);
+        assert_eq!(read_word(&memory, 0x2020 + 3), 0x0100);
+        if command == 5 {
+            assert_eq!(memory.read_u8(guest_core::PhysAddr(0x2020 + 13)).unwrap(), b'C');
+        }
+        assert_eq!(kernel.pending_input, Some(b'C'));
+        assert_eq!(host.file_seek(file, 0, DosSeekOrigin::Current).unwrap(), 0);
+    }
+    kernel.pending_input = None;
+    memory.put(0x2020, &request(13, 6));
+    call_device(&mut kernel, 0x0120, 0x0130, &regs, &mut memory, &mut host);
+    assert_eq!(read_word(&memory, 0x2020 + 3), 0x0300);
+    assert_eq!(host.file_seek(file, 0, DosSeekOrigin::Current).unwrap(), 0);
 }
 
 #[test]

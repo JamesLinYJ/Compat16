@@ -819,6 +819,9 @@ impl DosHost for WindowsHost {
     fn file_read(&mut self, file: DosHostFile, output: &mut [u8]) -> Result<usize, DosHostError> {
         self.filesystem.file_read(file, output)
     }
+    fn file_input_status(&mut self, file: DosHostFile) -> Result<bool, DosHostError> {
+        self.filesystem.file_input_status(file)
+    }
     fn file_write(&mut self, file: DosHostFile, input: &[u8]) -> Result<usize, DosHostError> {
         self.filesystem.file_write(file, input)
     }

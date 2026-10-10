@@ -201,6 +201,14 @@ pub trait DosHost {
     fn file_status(&mut self, _file: DosHostFile) -> Result<DosFileStatus, DosHostError> {
         Err(DosHostError::new(DosErrorCode::InvalidFunction))
     }
+    /// Query whether a byte remains at this open object's shared cursor without
+    /// reading, buffering, or moving it. Use the native size and position, not
+    /// the low-DWORD DOS SFT projection. This is an observation, not a promise
+    /// that a later read will succeed if the file changes in between.
+    /// Hosts without a non-consuming query must report unsupported.
+    fn file_input_status(&mut self, _file: DosHostFile) -> Result<bool, DosHostError> {
+        Err(DosHostError::new(DosErrorCode::InvalidFunction))
+    }
     /// Query DOS-facing identity for an opaque file token. Hosts that cannot
     /// prove this information must leave the default unsupported result.
     fn file_ioctl_info(&self, _file: DosHostFile) -> Result<DosIoctlObjectInfo, DosHostError> {

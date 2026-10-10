@@ -155,6 +155,14 @@ impl FileTable {
             .is_some_and(|entry| entry.mode & SFT_MODE_NO_INHERIT == 0)
     }
 
+    /// Access mode from the owned SFT, never its guest-writable projection.
+    pub(super) fn file_open_mode(&self, guest_handle: u16) -> Option<u16> {
+        let &index = self.handles.get(&guest_handle)?;
+        self.pool_read().entries[index as usize]
+            .filter(|entry| entry.kind == SftKind::File)
+            .map(|entry| entry.mode)
+    }
+
     pub(super) fn can_duplicate_handle(&self, source: u16, target: u16) -> bool {
         if target >= MAX_JFT_LEN { return false; }
         let Some(&index) = self.handles.get(&source) else { return false; };

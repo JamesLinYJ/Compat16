@@ -8,6 +8,7 @@ use super::Filesystem;
 use super::files::dos_dword;
 
 mod extended_open;
+mod input_status;
 
 struct TestDirectory(PathBuf);
 

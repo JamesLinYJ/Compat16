@@ -72,6 +72,12 @@ pub(super) struct TestHost {
     last_open_access: Option<DosFileAccess>,
     file_status_calls: Vec<DosHostFile>,
     file_status_error: Option<DosErrorCode>,
+    file_input_status_calls: Vec<DosHostFile>,
+    file_input_status_error: Option<DosErrorCode>,
+    file_read_calls: Vec<(DosHostFile, usize)>,
+    file_read_error: Option<DosErrorCode>,
+    file_read_count_override: Option<usize>,
+    stdin_poll_calls: usize,
 }
 
 impl TestHost {
@@ -123,7 +129,10 @@ impl DosHost for TestHost {
         }
         Ok(count)
     }
-    fn try_read_stdin(&mut self) -> Result<Option<u8>, DosHostError> { Ok(self.input.pop_front()) }
+    fn try_read_stdin(&mut self) -> Result<Option<u8>, DosHostError> {
+        self.stdin_poll_calls += 1;
+        Ok(self.input.pop_front())
+    }
     fn write_stdout(&mut self, input: &[u8]) -> Result<usize, DosHostError> { self.stdout.extend_from_slice(input); Ok(input.len()) }
     fn write_stderr(&mut self, input: &[u8]) -> Result<usize, DosHostError> { self.stderr.extend_from_slice(input); Ok(input.len()) }
     fn flush_stdin(&mut self) -> Result<(), DosHostError> { self.input.clear(); Ok(()) }
@@ -201,6 +210,9 @@ impl DosHost for TestHost {
         self.handles.remove(&file).map(|_| ()).ok_or(DosHostError::new(DosErrorCode::InvalidHandle))
     }
     fn file_read(&mut self, file: DosHostFile, output: &mut [u8]) -> Result<usize, DosHostError> {
+        self.file_read_calls.push((file, output.len()));
+        if let Some(code) = self.file_read_error { return Err(DosHostError::new(code)); }
+        if let Some(count) = self.file_read_count_override { return Ok(count); }
         let state = self.file_for(file)?;
         let start = state.cursor as usize;
         if start >= state.bytes.len() { return Ok(0); }
@@ -245,6 +257,15 @@ impl DosHost for TestHost {
         status.size = state.bytes.len() as u32;
         status.position = state.cursor;
         Ok(status)
+    }
+
+    fn file_input_status(&mut self, file: DosHostFile) -> Result<bool, DosHostError> {
+        self.file_input_status_calls.push(file);
+        if let Some(code) = self.file_input_status_error {
+            return Err(DosHostError::new(code));
+        }
+        let state = self.file_for(file)?;
+        Ok(u64::from(state.cursor) < state.bytes.len() as u64)
     }
 
     fn file_ioctl_info(&self, file: DosHostFile) -> Result<DosIoctlObjectInfo, DosHostError> {
@@ -1269,3 +1290,6 @@ mod extended_open_tests;
 
 #[path = "temporary_file_tests.rs"]
 mod temporary_file_tests;
+
+#[path = "input_polling_tests.rs"]
+mod input_polling_tests;

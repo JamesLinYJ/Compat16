@@ -24,6 +24,11 @@ pub(super) const fn dos_dword(value: u64) -> u32 {
     value as u32
 }
 
+/// Native readiness must not use the DOS SFT's low-DWORD size/cursor fields.
+pub(super) const fn file_has_unread_bytes(position: u64, length: u64) -> bool {
+    position < length
+}
+
 impl Filesystem {
     pub(super) fn file_short_name(&mut self, path: &std::path::Path) -> Result<[u8; 11], DosHostError> {
         let parent = path.parent().unwrap_or_else(|| std::path::Path::new(""));
@@ -228,6 +233,16 @@ impl Filesystem {
         let shared = self.file(file)?;
         let mut handle = Self::lock_file(&shared)?;
         handle.file.read(output).map_err(os_error)
+    }
+
+    pub(crate) fn file_input_status(&mut self, file: DosHostFile) -> Result<bool, DosHostError> {
+        let shared = self.file(file)?;
+        let mut handle = Self::lock_file(&shared)?;
+        // Query the same open object and cursor used by reads and duplicates,
+        // under their shared lock. No speculative read or cursor restoration.
+        let length = handle.file.metadata().map_err(os_error)?.len();
+        let position = handle.file.stream_position().map_err(os_error)?;
+        Ok(file_has_unread_bytes(position, length))
     }
 
     pub(crate) fn file_write(
