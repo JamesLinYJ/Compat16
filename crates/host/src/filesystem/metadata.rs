@@ -9,7 +9,8 @@ use windows_sys::Win32::Storage::FileSystem::{
 };
 use windows_sys::Win32::System::Time::{
     DYNAMIC_TIME_ZONE_INFORMATION, FileTimeToSystemTime, GetDynamicTimeZoneInformation,
-    SystemTimeToTzSpecificLocalTimeEx, TIME_ZONE_ID_INVALID,
+    SystemTimeToTzSpecificLocalTime, SystemTimeToTzSpecificLocalTimeEx,
+    TIME_ZONE_ID_INVALID, TIME_ZONE_INFORMATION,
 };
 
 use crate::windows::{invalid, os_error};
@@ -60,9 +61,32 @@ fn dos_file_time(ticks: u64, zone: &DYNAMIC_TIME_ZONE_INFORMATION) -> Result<(u1
     // dynamic rules and the user's dynamic-DST setting for the selected zone.
     // https://learn.microsoft.com/en-us/windows/win32/sysinfo/file-times
     // https://learn.microsoft.com/en-us/windows/win32/api/timezoneapi/nf-timezoneapi-systemtimetotzspecificlocaltimeex
-    // SAFETY: All structures have the Windows ABI layout; inputs and output
-    // are initialized and do not overlap. This only reads timezone settings.
-    if unsafe { SystemTimeToTzSpecificLocalTimeEx(zone, &system, &mut local) } == 0 {
+    let converted = if zone.DynamicDaylightTimeDisabled || zone.TimeZoneKeyName[0] == 0 {
+        // Explicitly fixed/custom settings have no year-specific history to
+        // resolve. Use their supplied transitions (zero months disable DST).
+        // Ex still looks up a registry key even when dynamic DST is disabled.
+        // GetDynamicTimeZoneInformation can also succeed without a key, as
+        // handled by Microsoft's TimeZoneInfo.GetLocalTimeZone implementation.
+        // https://learn.microsoft.com/en-us/windows/win32/api/timezoneapi/ns-timezoneapi-dynamic_time_zone_information
+        // https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.Windows.cs
+        let fixed = TIME_ZONE_INFORMATION {
+            Bias: zone.Bias,
+            StandardName: zone.StandardName,
+            StandardDate: zone.StandardDate,
+            StandardBias: zone.StandardBias,
+            DaylightName: zone.DaylightName,
+            DaylightDate: zone.DaylightDate,
+            DaylightBias: zone.DaylightBias,
+        };
+        // SAFETY: Inputs and output are initialized, disjoint ABI structures.
+        unsafe { SystemTimeToTzSpecificLocalTime(&fixed, &system, &mut local) }
+    } else {
+        // SAFETY: Inputs and output are initialized, disjoint ABI structures.
+        // This reads the named zone's history without changing system settings.
+        unsafe { SystemTimeToTzSpecificLocalTimeEx(zone, &system, &mut local) }
+    };
+    // Never replace a named dynamic-zone lookup failure with fixed rules.
+    if converted == 0 {
         return Err(os_error(io::Error::last_os_error()));
     }
     Ok(pack_dos_time(&local))
