@@ -52,14 +52,17 @@ fn call_and_return_keep_full_eip_and_esp() {
 #[test]
 fn stack_address_size_is_independent_of_operand_size() {
     let (mut cpu, mut ram) = cpu_with(&[], 0x30000);
-    cpu.regs.eip = 0x10000;
-    ram.put(0x10000, &[0x50, 0x5b, 0x66, 0x50, 0x66, 0x59]);
+    cpu.regs.eip = 0x18000;
+    ram.put(0x18000, &[0x50, 0x5b, 0x66, 0x50, 0x66, 0x59]);
     cpu.regs.eax = 0x1234_5678;
     cpu.regs.esp = 0xaabb_0002;
     step(&mut cpu, &mut ram, false);
     assert_eq!(cpu.regs.esp, 0xaabb_fffe);
     assert_eq!(&ram.bytes[0xfffe..0x10000], &[0x78, 0x56]);
-    assert_eq!(&ram.bytes[0..2], &[0x34, 0x12]);
+    // SP arithmetic wraps at 16 bits, but bytes within one operand stay
+    // contiguous in this flat, unconstrained segment.
+    assert_eq!(&ram.bytes[0x10000..0x10002], &[0x34, 0x12]);
+    assert_eq!(&ram.bytes[0..2], &[0, 0]);
     step(&mut cpu, &mut ram, false);
     assert_eq!((cpu.regs.ebx, cpu.regs.esp), (0x1234_5678, 0xaabb_0002));
     cpu.regs.esp = 0x20002;

@@ -1,4 +1,8 @@
-use super::{Cpu, CpuError, StepOutcome, CF, OF, SF};
+use super::{
+    Cpu, CpuError, CpuEventSource, CpuModel, CpuObservedStepOutcome, RealModeSegments,
+    StepOutcome, CF, OF, SF,
+};
+use guest_core::io::NoPorts;
 use guest_core::{GuestMemory, MemoryError, PhysAddr, Registers};
 
 mod modes32;
@@ -105,7 +109,7 @@ fn loop_and_near_call_preserve_wrapping_stack_state() {
 }
 
 #[test]
-fn instruction_fetch_and_data_offsets_wrap_at_sixteen_bits() {
+fn instruction_pointer_wraps_after_fetch_at_end_of_sixteen_bit_segment() {
     let mut ram = Ram::new(0x22000);
     let code_address = usize::from(0x1000_u16) * 16 + 0xfffe;
     ram.put(code_address, &[0xeb, 0xfe]);
@@ -115,22 +119,36 @@ fn instruction_fetch_and_data_offsets_wrap_at_sixteen_bits() {
     let mut cpu = Cpu::new(regs);
     assert_eq!(cpu.step(&mut ram).unwrap(), StepOutcome::Continue);
     assert_eq!(cpu.regs.ip(), 0xfffe);
+}
 
-    ram.put(0, &[0xa1, 0xff, 0xff]);
-    ram.put(0x10fff, &[0x34]);
-    ram.put(0x1000, &[0x12]);
-    cpu.regs.cs = 0;
-    cpu.regs.ds = 0x100;
-    cpu.regs.set_ip(0);
-    assert_eq!(cpu.step(&mut ram).unwrap(), StepOutcome::Continue);
-    assert_eq!(cpu.regs.ax(), 0x1234);
+#[test]
+fn real_mode_word_data_crossing_segment_limit_faults_without_wrapping() {
+    // Intel SDM Vol. 3B, "Segment Wraparound": unlike the 8086, the
+    // Intel486 faults when a word crosses a real-address segment limit.
+    // mov ax,[ffff]; mov [ffff],ax
+    for opcode in [0xa1, 0xa3] {
+        let (mut cpu, mut ram) = cpu_with(&[opcode, 0xff, 0xff], 0x22000);
+        cpu.regs.ds = 0x100;
+        cpu.regs.set_ax(0xabcd);
+        ram.put(0x10fff, &[0x34]);
+        ram.put(0x1000, &[0x12]);
+        let before = cpu.regs.clone();
+        let event = observe_event(&mut cpu, &mut ram);
+        assert_eq!(event.vector, 13);
+        assert_eq!(event.source, CpuEventSource::Fault);
+        assert_eq!(event.error_code, Some(0));
+        assert_eq!(event.saved_ip, 0);
+        assert_eq!(cpu.regs, before);
+        assert_eq!(ram.bytes[0x10fff], 0x34);
+        assert_eq!(ram.bytes[0x1000], 0x12);
+    }
+}
 
-    ram.put(0, &[0xa3, 0xff, 0xff]);
-    cpu.regs.set_ax(0xabcd);
-    cpu.regs.set_ip(0);
-    assert_eq!(cpu.step(&mut ram).unwrap(), StepOutcome::Continue);
-    assert_eq!(ram.bytes[0x10fff], 0xcd);
-    assert_eq!(ram.bytes[0x1000], 0xab);
+fn observe_event(cpu: &mut Cpu, ram: &mut Ram) -> super::CpuEventObservation {
+    match cpu.step_with_context_observing_events(ram, &mut NoPorts, &RealModeSegments).unwrap() {
+        CpuObservedStepOutcome::EventDeferred(event) => event.observation(),
+        other => panic!("expected a processor event, got {other:?}"),
+    }
 }
 
 #[test]
@@ -159,26 +177,52 @@ fn failed_guest_data_read_is_reported_without_committing_ip() {
 }
 
 #[test]
-fn software_interrupt_returns_with_ip_after_instruction() {
-    let (mut cpu, mut ram) = cpu_with(&[0xcd, 0x21], 0x1000);
-    assert_eq!(cpu.step(&mut ram).unwrap(), StepOutcome::Interrupt(0x21));
-    assert_eq!(cpu.regs.ip(), 2);
+fn software_interrupt_saves_ip_after_instruction_and_iret_returns() {
+    let (mut cpu, mut ram) = cpu_with(&[0xcd, 0x21, 0xf4], 0x20000);
+    ram.put(0x21 * 4, &[0x00, 0x02, 0x00, 0x00]);
+    ram.put(0x200, &[0xcf]); // iret
+    assert_eq!(cpu.step(&mut ram).unwrap(), StepOutcome::Continue);
+    assert_eq!((cpu.regs.cs, cpu.regs.ip(), cpu.regs.sp()), (0, 0x200, 0xfff8));
+    assert_eq!(&ram.bytes[0x10ff8..0x10ffe], &[2, 0, 0, 0, 2, 0]);
+    assert_eq!(cpu.step(&mut ram).unwrap(), StepOutcome::Continue);
+    assert_eq!((cpu.regs.cs, cpu.regs.ip(), cpu.regs.sp()), (0, 2, 0xfffe));
+    assert_eq!(cpu.regs.eflags, 2);
+    assert_eq!(cpu.step(&mut ram).unwrap(), StepOutcome::Halt);
 }
 
 #[test]
 fn fifteen_prefix_bytes_enforce_the_instruction_length_limit() {
     let (mut cpu, mut ram) = cpu_with(&[0x66; 16], 0x1000);
-    assert_eq!(cpu.step(&mut ram).unwrap_err(), CpuError::InstructionTooLong { ip: 15 });
+    // Keep the decoder's precise diagnostic as well as the CPU's architectural
+    // #GP delivery contract; the fault restarts at the beginning of the prefix run.
+    let mut system = crate::system::CpuSystem::reset();
+    let mut bus = crate::memory_access::CpuMemoryAccess::new(
+        &mut ram, &RealModeSegments, &mut system,
+        crate::memory_access::AccessSite { opcode: 0, ip: 0, eflags: 2 },
+    );
+    assert!(matches!(
+        crate::x86_decode::decode(&mut bus, 0, 0),
+        Err(CpuError::InstructionTooLong { ip: 15 })
+    ));
+    let event = observe_event(&mut cpu, &mut ram);
+    assert_eq!(event.vector, 13);
+    assert_eq!(event.source, CpuEventSource::Fault);
+    assert_eq!(event.error_code, Some(0));
+    assert_eq!(event.saved_ip, 0);
     assert_eq!(cpu.regs.ip(), 0);
 }
 
 #[test]
-fn unsupported_cpuid_is_an_explicit_error() {
-    let (mut cpu, mut ram) = cpu_with(&[0x0f, 0xa2], 0x1000);
-    assert_eq!(
-        cpu.step(&mut ram).unwrap_err(),
-        CpuError::UnsupportedOpcode { opcode: 0x0f, ip: 0 }
-    );
+fn cpuid_is_an_invalid_opcode_on_the_i486_profile() {
+    let (cpu, mut ram) = cpu_with(&[0x0f, 0xa2], 0x1000);
+    let mut cpu = Cpu::new_with_model(cpu.regs, CpuModel::I486);
+    let before = cpu.regs.clone();
+    let event = observe_event(&mut cpu, &mut ram);
+    assert_eq!(event.vector, 6);
+    assert_eq!(event.source, CpuEventSource::Fault);
+    assert_eq!(event.error_code, None);
+    assert_eq!(event.saved_ip, 0);
+    assert_eq!(cpu.regs, before);
 }
 
 #[test]
@@ -226,10 +270,10 @@ fn real_mode_interrupt_pushes_frame_loads_ivt_and_wakes_halted_cpu() {
 }
 
 #[test]
-fn real_mode_interrupt_stack_offsets_wrap_at_sixteen_bits() {
-    let (mut cpu, mut ram) = cpu_with(&[], 0x22000);
+fn real_mode_interrupt_stack_pointer_wraps_between_aligned_words() {
+    let (mut cpu, mut ram) = cpu_with(&[], 0x70000);
     cpu.regs.ss = 0x1000;
-    cpu.regs.set_sp(1);
+    cpu.regs.set_sp(0);
     cpu.regs.cs = 0x1234;
     cpu.regs.set_ip(0x4567);
     cpu.regs.eflags = 0x0302;
@@ -238,15 +282,33 @@ fn real_mode_interrupt_stack_offsets_wrap_at_sixteen_bits() {
     cpu.enter_real_mode_interrupt(0x80, &mut ram).unwrap();
 
     assert_eq!((cpu.regs.cs, cpu.regs.ip()), (0x5678, 0x9abc));
-    assert_eq!(cpu.regs.sp(), 0xfffb);
-    assert_eq!(&ram.bytes[0x1fffb..0x1ffff], &[0x67, 0x45, 0x34, 0x12]);
-    assert_eq!(ram.bytes[0x1ffff], 0x02);
-    assert_eq!(ram.bytes[0x10000], 0x03);
+    assert_eq!(cpu.regs.sp(), 0xfffa);
+    assert_eq!(&ram.bytes[0x1fffa..0x20000], &[0x67, 0x45, 0x34, 0x12, 0x02, 0x03]);
+}
+
+#[test]
+fn real_mode_interrupt_word_crossing_stack_limit_faults_without_writes() {
+    let (mut cpu, mut ram) = cpu_with(&[], 0x70000);
+    cpu.regs.ss = 0x1000;
+    cpu.regs.set_sp(1);
+    cpu.regs.set_ip(0x4567);
+    cpu.regs.cs = 0x1234;
+    ram.put(0x80 * 4, &[0xbc, 0x9a, 0x78, 0x56]);
+    ram.put(0x1fffb, &[0xaa; 5]);
+    ram.put(0x10000, &[0xbb]);
+    let before = cpu.regs.clone();
+    assert_eq!(
+        cpu.enter_real_mode_interrupt(0x80, &mut ram).unwrap_err(),
+        CpuError::StackSegmentFault { error_code: 0, ip: 0x4567 }
+    );
+    assert_eq!(cpu.regs, before);
+    assert_eq!(&ram.bytes[0x1fffb..0x20000], &[0xaa; 5]);
+    assert_eq!(ram.bytes[0x10000], 0xbb);
 }
 
 #[test]
 fn rejected_interrupt_stack_write_leaves_registers_and_stack_unchanged() {
-    let (mut cpu, mut ram) = cpu_with(&[], 0x30000);
+    let (mut cpu, mut ram) = cpu_with(&[], 0x70000);
     cpu.regs.set_sp(0x1002);
     cpu.regs.set_ip(0x4567);
     cpu.regs.cs = 0x1234;

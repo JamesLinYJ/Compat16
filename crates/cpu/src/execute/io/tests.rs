@@ -37,7 +37,7 @@ impl PortIo for Bus {
 
 fn run(code: &[u8], regs: &mut Registers, memory: &mut Ram, ports: &mut Bus) -> Result<Option<(u32, bool, DataBreakpointHits)>, CpuError> {
     memory.0[..code.len()].copy_from_slice(code);
-    let mut system = CpuSystem::reset();
+    let mut system = CpuSystem::reset_for_registers(regs);
     let resolver = RealModeSegments;
     let mut memory_bus = CpuMemoryAccess::new(
         memory,

@@ -135,15 +135,16 @@ fn negative_register_bit_offset_selects_the_previous_memory_element() {
 fn negative_register_bit_offset_uses_address_size_override_for_32_bit_memory() {
     let mut ram = Ram::new(0x20000);
     let mut regs = Registers::default();
-    regs.ebx = 0x1_0020;
+    regs.ebx = 0x1_0000;
     regs.ecx = u32::MAX;
-    ram.put(0x1_001c, &0x8000_0001_u32.to_le_bytes());
-    let decoded = instruction(&[0x67, 0x0f, 0xb3, 0x0b], &mut ram); // BTR dword [EBX],ECX
+    // The signed bit displacement selects the preceding dword, within 64 KiB.
+    ram.put(0xfffc, &0x8000_0001_u32.to_le_bytes());
+    let decoded = instruction(&[0x66, 0x67, 0x0f, 0xb3, 0x0b], &mut ram); // BTR dword [EBX],ECX
 
     run_bit(&mut regs, &mut ram, &decoded).unwrap();
 
     assert_eq!(
-        u32::from_le_bytes(ram.bytes[0x1_001c..0x1_0020].try_into().unwrap()),
+        u32::from_le_bytes(ram.bytes[0xfffc..0x1_0000].try_into().unwrap()),
         1
     );
     assert_ne!(regs.eflags & CF, 0);
