@@ -232,7 +232,8 @@ pub(super) fn encode_native_template(
             return Ok(None);
         }
         let is_guest_class = matches!(&item.class, Win16HostDialogAtom::GuestClass(_));
-        let cookie = is_guest_class.then(|| dialog_control_cookie(creation, index, item.id));
+        let has_cookie = is_guest_class || item.initial_icon.is_some();
+        let cookie = has_cookie.then(|| dialog_control_cookie(creation, index, item.id));
         let cookie_length = cookie.as_ref().map_or(0, |_| 16);
         let payload_length = item
             .creation_data
@@ -266,7 +267,7 @@ pub(super) fn encode_native_template(
             writer.bytes.extend_from_slice(&cookie);
         }
         writer.bytes.extend_from_slice(&item.creation_data);
-        control_offsets.push(is_guest_class.then_some((size_offset, data_offset)));
+        control_offsets.push(has_cookie.then_some((size_offset, data_offset)));
     }
     writer.align_dword()?;
     writer.finish().map(|words| {

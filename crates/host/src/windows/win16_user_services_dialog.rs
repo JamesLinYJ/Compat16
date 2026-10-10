@@ -97,6 +97,9 @@ pub(super) fn create(
             ));
         }
     };
+    if !super::win16_dialog_icon_controls::eligible(&template) {
+        return Ok(create_failure(modal, Win16WindowCreationRejection::NativeTemplateUnavailable));
+    }
     let Some(encoded) = template::encode_native_template(state, &template, creation)? else {
         return Ok(create_failure(
             modal,
@@ -179,7 +182,8 @@ pub(super) fn create(
     if let Err(error) = route_reservation {
         return Err(cleanup_menu_after_error(state, menu, error));
     }
-    let Some(identity_count) = controls.len().checked_add(1) else {
+    let icon_count = template.items.iter().filter(|item| item.initial_icon.is_some()).count();
+    let Some(identity_count) = controls.len().checked_add(icon_count).and_then(|count| count.checked_add(1)) else {
         let primary = RuntimeError::new(
             Kind::ResourceExhausted,
             "Win16 dialog identity count overflowed",
@@ -204,32 +208,48 @@ pub(super) fn create(
                 owner: owner_window,
                 root,
                 root_window: None,
+                init_published: false,
                 controls,
                 menu,
             });
     }
     let template_pointer = encoded.words.as_ptr().cast();
-    let native_result = if modal {
-        let result = unsafe {
-            DialogBoxIndirectParamW(
-                native_instance,
-                template_pointer,
-                owner_window,
-                dialog_proc,
-                cookie as isize,
-            )
-        };
-        Ok(Win16HostDialogResult::ModalResult(Some(result as i16)))
-    } else {
-        create_modeless(
-            state,
-            native_instance,
-            template_pointer,
-            owner_window,
-            cookie,
-            root_token,
-            dialog_proc,
-        )
+    let icon_scope = super::win16_dialog_icon_controls::prepare(
+        state, &template, &encoded.control_offsets, template_base, operation, creation, modal,
+    );
+    let native_result = match icon_scope {
+        Err(error) => Err(error),
+        Ok(icon_scope) => {
+            let native_result = if modal {
+                let result = unsafe {
+                    DialogBoxIndirectParamW(
+                        native_instance,
+                        template_pointer,
+                        owner_window,
+                        dialog_proc,
+                        cookie as isize,
+                    )
+                };
+                Ok(Win16HostDialogResult::ModalResult(Some(result as i16)))
+            } else {
+                create_modeless(
+                    state,
+                    native_instance,
+                    template_pointer,
+                    owner_window,
+                    cookie,
+                    root_token,
+                    dialog_proc,
+                )
+            };
+            let observer_result = icon_scope.map_or(Ok(()), |scope| scope.finish());
+            match (native_result, observer_result) {
+                (Ok(result), Ok(())) => Ok(result),
+                (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
+                (Err(primary), Err(cleanup)) => Err(combine_dialog_cleanup_failure(
+                    primary, cleanup, "dialog call and icon observer both failed")),
+            }
+        }
     };
     let retain_modeless = !modal
         && matches!(
@@ -270,6 +290,7 @@ pub(super) fn create(
             None => cleanup,
         });
     }
+    super::win16_dialog_icon_controls::retire_after_call(state);
     if let Some(error) = failure {
         Err(error)
     } else {
@@ -314,6 +335,12 @@ fn create_modeless(
             },
             menu: None,
         });
+    }
+    if !state.borrow().pending_dialog_routes.iter().any(|pending|
+        pending.root_token == root_token && pending.init_published)
+    {
+        return Err(RuntimeError::new(Kind::HostFailure,
+            "live modeless dialog returned before its INIT route was published"));
     }
     let token = match super::win16_window_identity::resolve(state, root_token) {
         Some(hwnd) if hwnd == native => root_token,
@@ -382,6 +409,23 @@ fn reserve_dialog_identity_storage(
     count: usize,
 ) -> Result<(), RuntimeError> {
     let mut state = state.borrow_mut();
+    // Nested creation must reserve for suspended outer templates too: their
+    // not-yet-bound identities do not appear in windows.len().
+    let pending_dialogs = state.pending_dialog_routes.iter().try_fold(0usize, |count, pending| {
+        let controls = pending.controls.iter().filter(|control| !state.windows.contains_key(&control.window_token)).count();
+        count.checked_add(controls)?.checked_add(usize::from(pending.root_window.is_none()))
+    }).ok_or_else(|| RuntimeError::new(Kind::ResourceExhausted, "pending dialog identity count overflow"))?;
+    let count = count.checked_add(pending_dialogs)
+        .and_then(|count| count.checked_add(state.dialog_icon_sidecars.unbound_count()))
+        .ok_or_else(|| RuntimeError::new(Kind::ResourceExhausted, "dialog identity reservation overflow"))?;
+    let retirements = state.windows.len().checked_add(count)
+        .and_then(|count| count.checked_add(state.pending_creations.len()))
+        .and_then(|count| count.checked_add(state.pending_mdi_creations.len()))
+        .ok_or_else(|| RuntimeError::new(Kind::ResourceExhausted, "dialog retirement reservation overflow"))?;
+    state.windows.try_reserve(count).map_err(|error| RuntimeError::with_source(
+        Kind::ResourceExhausted, "reserve dialog window identities", error))?;
+    state.retired_window_tokens.try_reserve(retirements).map_err(|error| RuntimeError::with_source(
+        Kind::ResourceExhausted, "reserve dialog identity retirement receipts", error))?;
     state
         .windows_by_native
         .try_reserve(count)

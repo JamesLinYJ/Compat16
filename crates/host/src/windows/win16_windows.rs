@@ -13,6 +13,8 @@ mod win16_common_controls_drag_list;
 mod win16_control_outputs;
 #[path = "win16_deferred_native_messages.rs"]
 mod win16_deferred_native_messages;
+#[path = "win16_dialog_icon_controls.rs"]
+mod win16_dialog_icon_controls;
 #[path = "win16_dialog_callbacks.rs"]
 mod win16_dialog_callbacks;
 #[path = "win16_gdi_bitmap_lease.rs"]

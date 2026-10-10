@@ -282,6 +282,7 @@ pub(in crate::windows::win16_windows) struct PendingDialogRoute {
     pub(in crate::windows::win16_windows) owner: HWND,
     pub(in crate::windows::win16_windows) root: Option<DialogRootCreationRoute>,
     pub(in crate::windows::win16_windows) root_window: Option<usize>,
+    pub(in crate::windows::win16_windows) init_published: bool,
     pub(in crate::windows::win16_windows) controls: Vec<DialogControlCreationRoute>,
     pub(in crate::windows::win16_windows) menu: Option<Win16HostMenu>,
 }
@@ -425,6 +426,7 @@ pub(in crate::windows) struct WorkerState {
     /// Runtime operation currently installing a native DLGPROC. This exists
     /// only around CreateDialog*/DialogBox* calls, including their modal pump.
     pub(in crate::windows::win16_windows) pending_dialog_routes: Vec<PendingDialogRoute>,
+    pub(in crate::windows::win16_windows) dialog_icon_sidecars: super::super::win16_dialog_icon_controls::IconSidecars,
     /// Native dialog HWND to copied route identity; no guest FAR is stored.
     pub(in crate::windows::win16_windows) dialog_routes_by_native: HashMap<usize, DialogRoute>,
     /// Checked CREATESTRUCT16 source copied for each custom dialog WndProc

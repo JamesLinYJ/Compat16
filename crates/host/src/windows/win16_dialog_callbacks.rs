@@ -1086,3 +1086,10 @@ fn retire_after_native_destroy(state: &Rc<RefCell<WorkerState>>, hwnd: HWND, mes
         }
     }
 }
+
+#[cfg(test)]
+pub(super) fn test_dialog_route(
+    state: &Rc<RefCell<WorkerState>>, hwnd: HWND, message: u32, parameter: isize,
+) -> Result<Option<DialogRoute>, RuntimeError> {
+    callback_routes::dialog_route(state, hwnd, message, parameter)
+}

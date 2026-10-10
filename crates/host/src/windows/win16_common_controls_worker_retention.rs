@@ -19,6 +19,7 @@ pub(super) fn join_worker_before_ready(
 ) -> Result<(), RuntimeError> {
     let join_failure = thread.join().err().map(|payload|
         shared_worker_error(worker_join_failure(payload), "worker exited before readiness"));
+    crate::windows::win16_dialog_icon_retention::retire_worker_after_join(worker_id);
     let bitmap_failure = retire_worker_after_join(
         worker_id, toolbar_bitmap_retention, retention_slot_reserved).err();
     match (join_failure, bitmap_failure) {

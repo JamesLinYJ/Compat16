@@ -408,7 +408,7 @@ impl Win16State {
                     };
                     template.menu_template = Some(menu_template);
                 }
-                if !self.resolve_dialog_template_titles(&mut template, instance)? {
+                if !self.resolve_dialog_template_titles(&mut template, instance, host)? {
                     host.report_diagnostic(&crate::Diagnostic::warning(Kind::CompatibilityGap,
                         "Win16 dialog control title ordinal is not a string resource or needs a typed image resource route"));
                     return Ok(dialog_create_not_invoked(modal, return_kind,
@@ -778,3 +778,7 @@ mod retained_class_tests {
         assert!(!continuation.retains_window_class(control));
     }
 }
+
+#[cfg(test)]
+#[path = "win16_dialog_icon_title_tests.rs"]
+mod dialog_icon_title_tests;

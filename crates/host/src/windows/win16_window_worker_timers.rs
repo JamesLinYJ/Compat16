@@ -142,6 +142,7 @@ pub(super) fn worker_main(
         active_operations: Vec::<ActiveOperation>::new(),
         live_callbacks: Vec::new(),
         pending_dialog_routes: Vec::new(),
+        dialog_icon_sidecars: super::super::win16_dialog_icon_controls::IconSidecars::new(),
         dialog_routes_by_native: HashMap::new(),
         dialog_creation_data: HashMap::new(),
         dialog_children_by_native: HashMap::new(),

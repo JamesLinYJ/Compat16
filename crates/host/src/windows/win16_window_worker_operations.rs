@@ -628,6 +628,7 @@ fn finish_toolbar_bitmap_leases(
         Option<super::super::win16_gdi_bitmap_lease::Win16BitmapLease>,
     >,
 ) -> Result<NativeModalOperationOutcome, RuntimeError> {
+    super::super::win16_dialog_icon_controls::retire_after_call(state);
     let lease_cleanup = release_toolbar_bitmap_leases(state, operation, leases);
     let destruction_cleanup =
         super::super::win16_common_controls_bitmap_pins::retire_destroyed_windows(state);
