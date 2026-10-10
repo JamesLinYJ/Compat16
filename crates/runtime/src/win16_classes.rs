@@ -25,6 +25,9 @@ struct GuestWindowClass {
     lower_name: Option<Vec<u8>>,
     info: WndClass16,
     menu_name: Option<Win16ResourceName>,
+    /// Guest cbClsExtra bytes belong to this registration, not its HWNDs.
+    /// They never alias native superclass/private class storage.
+    extra_bytes: Vec<u8>,
 }
 
 pub(super) struct ResolvedWindowClass {
@@ -90,6 +93,26 @@ impl GuestWindowClasses {
         }
         let entry = self.system_classes.iter().find(|entry| entry.host_class == host_class)?;
         usize::try_from(entry.metadata.spec.window_extra).ok()
+    }
+
+    /// Only guest registrations have a Win16 class-data layout. Predefined
+    /// aliases must not expose the native class's private extra bytes.
+    pub(super) fn guest_class_extra_mut(
+        &mut self,
+        host_class: Win16HostClass,
+    ) -> Option<&mut [u8]> {
+        Some(self.entries.iter_mut().find(|entry| entry.host_class == host_class)?
+            .extra_bytes.as_mut_slice())
+    }
+
+    /// Return copied guest metadata and the actual registration atom. The
+    /// source name atom can differ, and neither atom is a native pointer.
+    pub(super) fn guest_class_info(
+        &self,
+        host_class: Win16HostClass,
+    ) -> Option<(u16, WndClass16)> {
+        let entry = self.entries.iter().find(|entry| entry.host_class == host_class)?;
+        Some((entry.atom, entry.info))
     }
 
     /// Resolve only class aliases backed by an exact predefined system class.
@@ -282,6 +305,14 @@ impl Win16State {
                 None => return Ok(0),
             }
         };
+        // Reserve and zero guest-owned class bytes before native registration.
+        // A failed allocation must not leave a native class without its guest
+        // storage. Removing the acknowledged registration releases both.
+        let extra_len = info.cb_cls_extra as usize; // nonnegative checked above
+        let mut extra_bytes = Vec::new();
+        extra_bytes.try_reserve_exact(extra_len).map_err(|_| RuntimeError::new(
+            Kind::ResourceExhausted, "Win16 class extra-data storage cannot grow"))?;
+        extra_bytes.resize(extra_len, 0);
         let Some(registered) = host.win16_register_window_class(Win16HostClassSpec {
             style: info.style,
             class_extra: info.cb_cls_extra,
@@ -295,7 +326,7 @@ impl Win16State {
             instance: owner, atom: registered.atom,
             source_name_atom, name: class_name,
             host_class: registered.class,
-            lower_name, info, menu_name,
+            lower_name, info, menu_name, extra_bytes,
         });
         Ok(registered.atom)
     }

@@ -3,7 +3,8 @@
 
 pub use exports::{
     DibColorTableKind, DibRgbQuad16, DocInfo16, GdiDeviceRequest, PaletteEntry16,
-    PaletteTransferKind, PrintOperation, Win16PrinterRequest, Win16WindowDataRequest,
+    PaletteTransferKind, PrintOperation, Win16ClassDataRequest, Win16PrinterRequest,
+    Win16WindowDataRequest,
     Win16WindowPropertyName, Win16WindowPropertyRequest,
 };
 

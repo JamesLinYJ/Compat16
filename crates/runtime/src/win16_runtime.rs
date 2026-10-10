@@ -278,6 +278,8 @@ mod selector_errors;
 mod selector_mapping;
 #[path = "win16_classes.rs"]
 mod classes;
+#[path = "win16_class_data.rs"]
+mod class_data;
 #[path = "win16_mdi_client_creation.rs"]
 pub(crate) mod mdi_client_creation;
 #[path = "win16_mdi_child_creation.rs"]

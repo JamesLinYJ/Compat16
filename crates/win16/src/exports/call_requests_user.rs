@@ -90,6 +90,12 @@ pub(super) fn decode(
         | Win16ExportId::UserEnumProps => {
             call_window_properties::decode(descriptor.id, &arguments, selectors, memory)?
         }
+        Win16ExportId::UserGetClassWord
+        | Win16ExportId::UserSetClassWord
+        | Win16ExportId::UserGetClassLong
+        | Win16ExportId::UserSetClassLong => Win16ApiRequest::ClassData(
+            class_data::decode_class_data(descriptor.ordinal(), arguments)?,
+        ),
         Win16ExportId::UserGetWindowWord
         | Win16ExportId::UserSetWindowWord
         | Win16ExportId::UserGetWindowLong
@@ -395,3 +401,7 @@ pub(super) fn decode(
     };
     Ok(Some(request))
 }
+
+#[cfg(test)]
+#[path = "call_class_data_tests.rs"]
+mod class_data_tests;

@@ -24,7 +24,8 @@ pub use request_modules::{
     PaletteTransferKind, PrintOperation, TIMECAPS16_SIZE, WAVEHDR16_BYTES_RECORDED_OFFSET,
     WAVEHDR16_FLAGS_OFFSET, WAVEHDR16_SIZE, WAVEINCAPS16_SIZE, WAVEOUTCAPS16_SIZE,
     Win16AcceleratorEntry, Win16AcceleratorResourceError, Win16AnsiCaseTarget, Win16AsyncLookup,
-    Win16AtomName, Win16ClassName, Win16CommctrlRequest, Win16CommdlgRequest, Win16Ctl3dArgument,
+    Win16AtomName, Win16ClassDataRequest, Win16ClassName, Win16CommctrlRequest,
+    Win16CommdlgRequest, Win16Ctl3dArgument,
     Win16MultimediaArgument, Win16MultimediaCall,
     Win16Ctl3dModule, Win16Ctl3dRequest, Win16DdeBuffer, Win16DdeRequest, Win16DdeTransactionData,
     Win16DestroyImageRequest, Win16GdiDrawingRequest, Win16GdiObjectsRequest, Win16GdiTextRequest,
@@ -74,7 +75,7 @@ pub(super) use request_modules::{
     decode_shell_icon_export, decode_shell_registry_export,
     decode_system, decode_toolhelp, decode_toolhelp_stack, decode_wifeman_dbcs_lead_byte, network,
 };
-pub use request_modules::{gdi_device, window_data, window_properties};
+pub use request_modules::{class_data, gdi_device, window_data, window_properties};
 
 /// USER window enumeration with a guest FAR callback and opaque LPARAM.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -116,6 +117,7 @@ pub enum Win16ApiRequest {
     Dde(Win16DdeRequest),
     GdiDevice(GdiDeviceRequest),
     Printer(Win16PrinterRequest),
+    ClassData(Win16ClassDataRequest),
     WindowData(Win16WindowDataRequest),
     WindowProperties(Win16WindowPropertyRequest),
     WindowEnumeration(Win16WindowEnumerationRequest),

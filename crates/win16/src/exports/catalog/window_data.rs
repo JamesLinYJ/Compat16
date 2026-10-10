@@ -1,4 +1,4 @@
-//! Semantic parameter roles for USER window data accessors.
+//! Shared scalar parameter roles for USER class and window data accessors.
 
 use super::{ArgumentKind, Win16Parameter, Win16ParameterType};
 

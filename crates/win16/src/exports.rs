@@ -147,8 +147,9 @@ pub use request::{
     DibColorTableKind, DibRgbQuad16, DocInfo16, GdiDeviceRequest, PaletteEntry16,
     PaletteTransferKind, PrintOperation, Win16CommctrlRequest, Win16CommdlgRequest,
     Win16Ctl3dArgument, Win16Ctl3dModule, Win16Ctl3dRequest, Win16PrinterRequest,
-    Win16WindowDataRequest, Win16WindowPropertyName, Win16WindowPropertyRequest,
-    Win16WindowEnumerationRequest, window_data,
+    Win16ClassDataRequest, Win16WindowDataRequest, Win16WindowPropertyName,
+    Win16WindowPropertyRequest,
+    Win16WindowEnumerationRequest, class_data, window_data,
     window_properties,
 };
 pub use request::{

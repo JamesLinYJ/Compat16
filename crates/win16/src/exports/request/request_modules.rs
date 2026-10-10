@@ -23,6 +23,9 @@ pub use print_queue::{Win16PrintQueueRequest, decode_print_queue_export};
 mod kernel_file_system;
 pub use kernel_file_system::Win16KernelFileSystemRequest;
 
+#[path = "class_data.rs"]
+pub mod class_data;
+pub use class_data::Win16ClassDataRequest;
 #[path = "window_data.rs"]
 pub mod window_data;
 pub use window_data::Win16WindowDataRequest;

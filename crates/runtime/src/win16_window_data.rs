@@ -112,6 +112,13 @@ pub(super) struct Win16WindowDataContinuation {
 }
 
 impl Win16State {
+    /// Exact registration associated with this live HWND incarnation. Class
+    /// names and the HWND's possibly subclassed procedure are not identities.
+    pub(super) fn window_host_class(&self, window: u16) -> Option<Win16HostClass> {
+        self.window_handles.get(&window)?;
+        self.window_data.get(&window)?.class
+    }
+
     pub(super) fn window_is_dialog(&self, window: u16) -> bool {
         self.window_data.get(&window).is_some_and(|state| state.is_dialog)
     }
