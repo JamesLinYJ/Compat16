@@ -5,6 +5,7 @@ use crate::{DosAction, DosError, DosErrorCode, DosHost, DosHostError};
 use guest_core::Registers;
 
 use super::DosKernel;
+use super::state::{Handle, StandardHandle};
 
 impl DosKernel {
     pub(super) fn success(regs: &mut Registers) {
@@ -42,7 +43,7 @@ impl DosKernel {
         host: &mut impl DosHost,
         byte: u8,
     ) -> Result<DosAction, DosError> {
-        match host.write_stdout(&[byte]) {
+        match self.standard_output_bytes(host, &[byte]) {
             Ok(1) => {
                 regs.set_al(byte);
             }
@@ -111,7 +112,7 @@ impl DosKernel {
         mut bytes: &[u8],
     ) -> Result<bool, DosError> {
         while !bytes.is_empty() {
-            match host.write_stdout(bytes) {
+            match self.standard_output_bytes(host, bytes) {
                 Ok(0) => {
                     return Err(DosError::HostContractViolation(
                         "console write made no progress",
@@ -132,6 +133,31 @@ impl DosKernel {
         Ok(true)
     }
 
+    fn standard_output_bytes(
+        &self,
+        host: &mut impl DosHost,
+        bytes: &[u8],
+    ) -> Result<usize, DosHostError> {
+        // MS-DOS 4.0 Programmer's Reference, section 1.2 and Function 46H:
+        // standard-character output follows handle 1 after forced duplication.
+        // https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/
+        // Direct CON device requests use their separate device-driver path.
+        match self.handles.get(&1).copied() {
+            Some(Handle::Standard(StandardHandle::Output)) => host.write_stdout(bytes),
+            Some(Handle::Standard(StandardHandle::Error)) => host.write_stderr(bytes),
+            Some(Handle::File(file)) => {
+                let written = host.file_write(file, bytes)?;
+                if written == 0 && !bytes.is_empty() {
+                    return Err(DosHostError::new(DosErrorCode::DiskFull));
+                }
+                Ok(written)
+            }
+            Some(Handle::Standard(StandardHandle::Input)) | None => {
+                Err(DosHostError::new(DosErrorCode::InvalidHandle))
+            }
+        }
+    }
+
     pub(super) fn print_dollar_string(
         &mut self,
         regs: &mut Registers,
@@ -140,7 +166,9 @@ impl DosKernel {
     ) -> Result<DosAction, DosError> {
         let pointer = memory.resolve_caller_pointer(regs.ds, regs.dx())?;
         let bytes = memory.read_caller_terminated(pointer, b'$', 65_536, DosSpanPolicy::Linear)?;
-        let _ = self.write_console(regs, host, &bytes)?;
+        if !self.write_console(regs, host, &bytes)? {
+            return Ok(DosAction::Continue);
+        }
         regs.set_al(b'$');
         Ok(DosAction::Continue)
     }

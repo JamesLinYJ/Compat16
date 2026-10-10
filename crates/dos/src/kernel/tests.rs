@@ -54,6 +54,7 @@ pub(super) struct TestHost {
     disk_space: Option<DosDiskSpace>,
     duplicate_calls: usize,
     fail_duplicate_at: Option<usize>,
+    max_file_write: Option<usize>,
     code_page: Option<text_codec::CodePage>,
     redirected_standard_streams: bool,
     input_eof: bool,
@@ -145,6 +146,7 @@ impl DosHost for TestHost {
         Ok(count)
     }
     fn file_write(&mut self, file: DosHostFile, input: &[u8]) -> Result<usize, DosHostError> {
+        let input = &input[..self.max_file_write.unwrap_or(input.len()).min(input.len())];
         let state = self.file_for(file)?;
         state.written = true;
         let start = state.cursor as usize;
@@ -388,6 +390,149 @@ fn dollar_string_is_bounded_and_keeps_embedded_nul() {
     dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
     assert_eq!(host.stdout, b"a\0b");
     assert_eq!(regs.al(), b'$');
+}
+
+fn force_stdout(
+    dos: &mut DosKernel,
+    host: &mut TestHost,
+    memory: &mut TestMemory,
+    regs: &mut Registers,
+    source: u16,
+) {
+    regs.set_bx(source);
+    regs.set_cx(1);
+    regs.set_ax(0x4600);
+    dos.interrupt(0x21, regs, memory, host).unwrap();
+    assert!(!regs.carry());
+}
+
+fn create_output_file(
+    dos: &mut DosKernel,
+    host: &mut TestHost,
+    memory: &mut TestMemory,
+    regs: &mut Registers,
+) -> u16 {
+    memory.put(0x10100, b"OUT.DAT\0");
+    regs.ds = 0x1000;
+    regs.set_dx(0x0100);
+    regs.set_cx(0);
+    regs.set_ax(0x3c00);
+    dos.interrupt(0x21, regs, memory, host).unwrap();
+    assert!(!regs.carry());
+    regs.ax()
+}
+
+#[test]
+fn character_output_follows_forced_file_handle_and_restored_stdout() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+    regs.set_bx(1);
+    regs.set_ax(0x4500);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    let saved_stdout = regs.ax();
+    let output = create_output_file(&mut dos, &mut host, &mut memory, &mut regs);
+    force_stdout(&mut dos, &mut host, &mut memory, &mut regs, output);
+    // The redirected alias remains usable after the original handle closes.
+    regs.set_bx(output);
+    regs.set_ax(0x3e00);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    host.max_file_write = Some(1); // Exercise the string's partial-write loop.
+    for (service, byte) in [(0x02, b'A'), (0x06, b'B')] {
+        regs.set_ah(service);
+        regs.set_dl(byte);
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+        assert!(!regs.carry());
+        assert_eq!(regs.al(), byte);
+    }
+    memory.put(0x10200, b"C\0D$");
+    regs.set_dx(0x0200);
+    regs.set_ah(0x09);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(regs.al(), b'$');
+    host.input.push_back(b'E');
+    regs.set_ah(0x01);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(regs.al(), b'E');
+    let file = host.paths[b"OUT.DAT".as_slice()];
+    assert_eq!(host.files[&file].bytes, b"ABC\0DE");
+    assert_eq!(host.files[&file].cursor, 6);
+    assert!(host.stdout.is_empty());
+    assert!(host.stderr.is_empty());
+
+    force_stdout(&mut dos, &mut host, &mut memory, &mut regs, saved_stdout);
+    regs.set_ah(0x02);
+    regs.set_dl(b'Z');
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(host.stdout, b"Z");
+    assert_eq!(host.files[&file].bytes, b"ABC\0DE");
+}
+
+#[test]
+fn character_and_string_output_follow_forced_stderr() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+    force_stdout(&mut dos, &mut host, &mut memory, &mut regs, 2);
+    regs.set_ah(0x02);
+    regs.set_dl(b'X');
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    memory.put(0x10100, b"YZ$");
+    regs.ds = 0x1000;
+    regs.set_dx(0x0100);
+    regs.set_ah(0x09);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    assert_eq!(regs.al(), b'$');
+    assert_eq!(host.stderr, b"XYZ");
+    assert!(host.stdout.is_empty());
+}
+
+#[test]
+fn redirected_output_zero_progress_preserves_disk_full_error() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+    let output = create_output_file(&mut dos, &mut host, &mut memory, &mut regs);
+    force_stdout(&mut dos, &mut host, &mut memory, &mut regs, output);
+    host.max_file_write = Some(0);
+    memory.put(0x10200, b"text$");
+    for service in [0x02, 0x06, 0x09] {
+        regs.set_dx(if service == 0x09 { 0x0200 } else { u16::from(b'X') });
+        regs.set_ah(service);
+        regs.set_carry(false);
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+        assert!(regs.carry());
+        assert_eq!(regs.ax(), DosErrorCode::DiskFull as u16);
+    }
+    let file = host.paths[b"OUT.DAT".as_slice()];
+    assert!(host.files[&file].bytes.is_empty());
+    assert!(host.stdout.is_empty());
+}
+
+#[test]
+fn dollar_string_preserves_invalid_closed_stdout_error() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+    regs.set_bx(1);
+    regs.set_ax(0x3e00);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(!regs.carry());
+    memory.put(0x10100, b"text$");
+    regs.ds = 0x1000;
+    regs.set_dx(0x0100);
+    regs.set_ah(0x09);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(regs.carry());
+    assert_eq!(regs.ax(), DosErrorCode::InvalidHandle as u16);
+    assert!(host.stdout.is_empty());
 }
 
 #[test]
