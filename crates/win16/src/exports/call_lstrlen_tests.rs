@@ -53,7 +53,7 @@ fn lstrlen_null_decodes_zero_without_resolving_or_reading_guest_memory() {
 #[test]
 fn lstrlen_physical_frame_decodes_byte_counts_including_maximum_word() {
     for source in [Vec::new(), b"ASCII".to_vec(), b"\x81\x40A\x82\xa0".to_vec(), vec![b'x'; 65535]] {
-        let mut memory = Memory::with_size(0x40000).unwrap();
+        let mut memory = Memory::with_size(0x10_0000).unwrap();
         let mut selectors = SelectorTable::new().unwrap();
         let stack = selectors.alloc_block(PhysAddr(0x1000), 8, AccessRights::read_write(), &memory).unwrap();
         let text = selectors.alloc_block(PhysAddr(0x2000), source.len() as u32 + 1,
@@ -74,7 +74,7 @@ fn lstrlen_physical_frame_decodes_byte_counts_including_maximum_word() {
 
 #[test]
 fn lstrlen_physical_frame_rejects_truncated_far_argument() {
-    let mut memory = Memory::with_size(0x4000).unwrap();
+    let mut memory = Memory::with_size(0x10_0000).unwrap();
     let mut selectors = SelectorTable::new().unwrap();
     let stack = selectors.alloc_block(PhysAddr(0x1000), 7, AccessRights::read_write(), &memory).unwrap();
     memory.write(PhysAddr(0x1000), &[0; 8]).unwrap();
@@ -85,7 +85,7 @@ fn lstrlen_physical_frame_rejects_truncated_far_argument() {
 
 #[test]
 fn lstrlen_optimization_leaves_copy_and_concat_source_snapshots_owned() {
-    let mut memory = Memory::with_size(0x4000).unwrap();
+    let mut memory = Memory::with_size(0x10_0000).unwrap();
     let mut selectors = SelectorTable::new().unwrap();
     let source = b"\x81\x40ABC";
     let text = selectors.alloc_block(PhysAddr(0x2000), source.len() as u32 + 1,

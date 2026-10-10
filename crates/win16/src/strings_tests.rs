@@ -16,7 +16,7 @@ struct CountingMemory {
 
 impl CountingMemory {
     fn new(bytes: &[u8]) -> Self {
-        let mut memory = Memory::with_size(0x40000).unwrap();
+        let mut memory = Memory::with_size(0x10_0000).unwrap();
         memory.write(PhysAddr(BASE), bytes).unwrap();
         Self {
             memory, reads: RefCell::new(Vec::new()), validations: RefCell::new(Vec::new()),
