@@ -55,6 +55,7 @@ impl DosKernel {
             0x36 => self.disk_space(regs, host),
             0x3c | 0x5b => self.create_file(regs, memory, host),
             0x3d => self.open_file(regs, memory, host),
+            0x6c => self.extended_open_file(regs, memory, host),
             0x3e => self.close_file(regs, host),
             0x3f => self.read_file(regs, memory, host),
             0x40 => self.write_file(regs, memory, host),

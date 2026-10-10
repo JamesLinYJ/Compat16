@@ -17,6 +17,7 @@ pub use kernel::{SYSTEM_BYTES, SYSTEM_SEGMENT};
 pub use kernel::{collating_table, upper_case_table};
 pub use types::{
     DosAction, DosDirectoryEntry, DosDiskSpace, DosExecRequest, DosFileAccess, DosFileSharing,
+    DosFileDisposition, DosFileOpenOutcome, DosFileOpenRequest, DosFileOpenResult,
     DosFileStatus, DosHost, DosHostFile, DosHostSearch, DosIoctlObjectInfo, DosIoctlStream,
     DosSeekOrigin, DosLocalDateTime,
 };

@@ -90,6 +90,36 @@ pub enum DosFileSharing {
     DenyNone,
 }
 
+/// Non-destructive INT 21h/AX=6C00 dispositions. Replacement is intentionally
+/// absent until the host can preserve existing-only and attribute contracts.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DosFileDisposition {
+    OpenExisting,
+    CreateNew,
+    OpenOrCreate,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DosFileOpenRequest {
+    pub access: DosFileAccess,
+    pub sharing: DosFileSharing,
+    pub disposition: DosFileDisposition,
+    /// Creation attributes only; existing files must remain unchanged.
+    pub attributes: u8,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DosFileOpenOutcome {
+    Opened,
+    Created,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DosFileOpenResult {
+    pub file: DosHostFile,
+    pub outcome: DosFileOpenOutcome,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DosSeekOrigin {
     Start,
@@ -135,6 +165,20 @@ pub trait DosHost {
         _path: &[u8],
         _attributes: u8,
     ) -> Result<DosHostFile, DosHostError> {
+        Err(DosHostError::new(DosErrorCode::InvalidFunction))
+    }
+    /// Open/create without replacing an existing file, retaining the requested
+    /// access and sharing on the returned distinct closeable token. Outcomes
+    /// must come from the successful operation, not an existence precheck.
+    /// Unsupported modes must fail before creating or changing a file. A host
+    /// may reject read-only creation while still supporting existing-file reads.
+    /// DOS owns no-inherit and its critical-error policy; commit-on-write is
+    /// rejected before this boundary rather than silently dropping that flag.
+    fn file_extended_open(
+        &mut self,
+        _path: &[u8],
+        _request: DosFileOpenRequest,
+    ) -> Result<DosFileOpenResult, DosHostError> {
         Err(DosHostError::new(DosErrorCode::InvalidFunction))
     }
     fn file_open(&mut self, path: &[u8], access: DosFileAccess) -> Result<DosHostFile, DosHostError>;

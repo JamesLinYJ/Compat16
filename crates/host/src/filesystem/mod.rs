@@ -6,6 +6,7 @@
 mod aliases;
 mod directory;
 mod environment;
+mod extended_open;
 mod files;
 mod metadata;
 mod volume;

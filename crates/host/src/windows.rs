@@ -124,8 +124,9 @@ use devices::keyboard::KeyStroke;
 use devices::mouse::MouseInput;
 use devices::video::ConsoleSnapshot;
 use dos_kernel::{
-    DosDirectoryEntry, DosDiskSpace, DosErrorCode, DosFileAccess, DosFileSharing, DosHost,
-    DosHostError, DosHostFile, DosHostSearch, DosSeekOrigin,
+    DosDirectoryEntry, DosDiskSpace, DosErrorCode, DosFileAccess, DosFileOpenRequest,
+    DosFileOpenResult, DosFileSharing, DosHost, DosHostError, DosHostFile, DosHostSearch,
+    DosSeekOrigin,
 };
 use mouse::{MouseMapper, map_button_state};
 use runtime::{
@@ -781,6 +782,13 @@ impl DosHost for WindowsHost {
     }
     fn file_create_new(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
         self.filesystem.file_create_new(path, attributes)
+    }
+    fn file_extended_open(
+        &mut self,
+        path: &[u8],
+        request: DosFileOpenRequest,
+    ) -> Result<DosFileOpenResult, DosHostError> {
+        self.filesystem.file_extended_open(path, request)
     }
     fn file_open(
         &mut self,

@@ -8,6 +8,7 @@ mod directory;
 mod disk;
 mod dispatch;
 mod exec;
+mod extended_open;
 mod files;
 mod file_time;
 mod ioctl;

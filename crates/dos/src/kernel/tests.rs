@@ -1,4 +1,5 @@
 use crate::{DosAction, DosDirectoryEntry, DosDiskSpace, DosError, DosErrorCode, DosFileAccess, DosFileSharing, DosFileStatus, DosHost, DosHostError, DosHostFile, DosHostSearch, DosIoctlObjectInfo, DosIoctlStream, DosKernel, DosSeekOrigin};
+use crate::{DosFileDisposition, DosFileOpenOutcome, DosFileOpenRequest, DosFileOpenResult};
 use super::directory::{dos_path_drive, parse_search_spec, search_attribute_matches};
 use super::state::Handle;
 use super::directory::{dos_field_matches, short_name_fields};
@@ -57,6 +58,10 @@ pub(super) struct TestHost {
     create_new_calls: usize,
     fail_create_new: Option<DosErrorCode>,
     create_new_token_override: Option<DosHostFile>,
+    extended_open_calls: Vec<(Vec<u8>, DosFileOpenRequest)>,
+    extended_open_error: Option<DosErrorCode>,
+    extended_open_result_override: Option<DosFileOpenResult>,
+    file_close_error: Option<DosErrorCode>,
     duplicate_token_override: Option<DosHostFile>,
     max_file_write: Option<usize>,
     code_page: Option<text_codec::CodePage>,
@@ -141,6 +146,33 @@ impl DosHost for TestHost {
         self.last_open_access = Some(access);
         Ok(self.open_new(path, false))
     }
+    fn file_extended_open(&mut self, path: &[u8], request: DosFileOpenRequest) -> Result<DosFileOpenResult, DosHostError> {
+        self.extended_open_calls.push((path.to_vec(), request));
+        if let Some(code) = self.extended_open_error {
+            return Err(DosHostError::new(code));
+        }
+        if let Some(result) = self.extended_open_result_override {
+            return Ok(result);
+        }
+        let exists = self.paths.contains_key(path);
+        if self.directories.contains_key(path) {
+            return Err(DosHostError::new(DosErrorCode::AccessDenied));
+        }
+        let outcome = match (request.disposition, exists) {
+            (DosFileDisposition::CreateNew, true) => return Err(DosHostError::new(DosErrorCode::FileExists)),
+            (DosFileDisposition::OpenExisting, false) => return Err(DosHostError::new(DosErrorCode::FileNotFound)),
+            (_, true) => DosFileOpenOutcome::Opened,
+            (_, false) => {
+                if request.access == DosFileAccess::ReadOnly {
+                    return Err(DosHostError::new(DosErrorCode::InvalidFunction));
+                }
+                self.attributes.insert(path.to_vec(), request.attributes);
+                DosFileOpenOutcome::Created
+            }
+        };
+        self.last_open_access = Some(request.access);
+        Ok(DosFileOpenResult { file: self.open_new(path, false), outcome })
+    }
     fn file_open_with_sharing(&mut self, path: &[u8], access: DosFileAccess, _sharing: DosFileSharing) -> Result<DosHostFile, DosHostError> {
         self.file_open(path, access)
     }
@@ -159,6 +191,7 @@ impl DosHost for TestHost {
         Ok(copy)
     }
     fn file_close(&mut self, file: DosHostFile) -> Result<(), DosHostError> {
+        if let Some(code) = self.file_close_error { return Err(DosHostError::new(code)); }
         self.handles.remove(&file).map(|_| ()).ok_or(DosHostError::new(DosErrorCode::InvalidHandle))
     }
     fn file_read(&mut self, file: DosHostFile, output: &mut [u8]) -> Result<usize, DosHostError> {
@@ -1224,3 +1257,6 @@ mod create_new_tests;
 
 #[path = "file_time_tests.rs"]
 mod file_time_tests;
+
+#[path = "extended_open_tests.rs"]
+mod extended_open_tests;

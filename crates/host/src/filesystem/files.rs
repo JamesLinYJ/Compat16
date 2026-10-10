@@ -25,7 +25,7 @@ pub(super) const fn dos_dword(value: u64) -> u32 {
 }
 
 impl Filesystem {
-    fn file_short_name(&mut self, path: &std::path::Path) -> Result<[u8; 11], DosHostError> {
+    pub(super) fn file_short_name(&mut self, path: &std::path::Path) -> Result<[u8; 11], DosHostError> {
         let parent = path.parent().unwrap_or_else(|| std::path::Path::new(""));
         let name = path
             .file_name()
@@ -49,7 +49,7 @@ impl Filesystem {
         Ok(result)
     }
 
-    fn insert_file(&mut self, file: SharedFile) -> Result<DosHostFile, DosHostError> {
+    pub(super) fn insert_file(&mut self, file: SharedFile) -> Result<DosHostFile, DosHostError> {
         let id = DosHostFile(self.next_file);
         self.next_file = self
             .next_file
@@ -191,27 +191,9 @@ impl Filesystem {
     ) -> Result<DosHostFile, DosHostError> {
         let path = self.resolve_path(path, false)?;
         let path = self.confined_path(&path, true, false)?;
-        let share_mode = match sharing {
-            // DOS compatibility mode permits repeated opens by local
-            // processes. Win32 has no compatibility-mode flag; read/write
-            // sharing is the permissive local mapping. Exact DOS
-            // process-aware conflict rules would need DOS-level open tracking.
-            DosFileSharing::Compatibility | DosFileSharing::DenyNone => {
-                FILE_SHARE_READ | FILE_SHARE_WRITE
-            }
-            DosFileSharing::DenyAll => 0,
-            DosFileSharing::DenyWrite => FILE_SHARE_READ,
-            DosFileSharing::DenyRead => FILE_SHARE_WRITE,
-        };
         let file = self
             .root
-            .open_with(
-                &path,
-                OpenOptions::new()
-                    .read(access != DosFileAccess::WriteOnly)
-                    .write(access != DosFileAccess::ReadOnly)
-                    .share_mode(share_mode),
-            )
+            .open_with(&path, &open_options(access, sharing))
             .map_err(os_error)?;
         let short_name = self.file_short_name(&path)?;
         self.insert_file(Arc::new(Mutex::new(OpenFile::new(file, short_name))))
@@ -348,7 +330,28 @@ impl Filesystem {
     }
 }
 
-fn create_new_error(error: io::Error) -> DosHostError {
+pub(super) fn open_options(access: DosFileAccess, sharing: DosFileSharing) -> OpenOptions {
+    let share_mode = match sharing {
+        // DOS compatibility mode permits repeated opens by local processes.
+        // Win32 has no compatibility-mode flag; read/write sharing is the
+        // permissive local mapping. Exact DOS process-aware conflict rules
+        // would need DOS-level open tracking.
+        DosFileSharing::Compatibility | DosFileSharing::DenyNone => {
+            FILE_SHARE_READ | FILE_SHARE_WRITE
+        }
+        DosFileSharing::DenyAll => 0,
+        DosFileSharing::DenyWrite => FILE_SHARE_READ,
+        DosFileSharing::DenyRead => FILE_SHARE_WRITE,
+    };
+    let mut options = OpenOptions::new();
+    options
+        .read(access != DosFileAccess::WriteOnly)
+        .write(access != DosFileAccess::ReadOnly)
+        .share_mode(share_mode);
+    options
+}
+
+pub(super) fn create_new_error(error: io::Error) -> DosHostError {
     // CREATE_NEW reports ERROR_FILE_EXISTS (80). Preserve DOS 5Bh's distinct
     // error without changing 3Ch, mkdir, or rename's existing error policies.
     // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew

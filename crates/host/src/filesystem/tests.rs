@@ -7,6 +7,8 @@ use dos_kernel::{DosErrorCode, DosFileAccess, DosFileSharing, DosIoctlObjectInfo
 use super::Filesystem;
 use super::files::dos_dword;
 
+mod extended_open;
+
 struct TestDirectory(PathBuf);
 
 #[test]
