@@ -156,7 +156,7 @@ fn fixture() -> (Runtime, ExtendedOpenHost) {
     let address = state.selectors.translate(code, Access::Execute, 2, &runtime.memory).unwrap();
     runtime.memory.write(address, &[0xcd, 0x21]).unwrap();
     // Resolve the firmware alias now, before tests deliberately free DS slots.
-    resolve_interrupt_target(state, 0x21, &runtime.memory).unwrap();
+    resolve_interrupt_target(state, 0x21, &mut runtime.memory).unwrap();
     let procedure = (u32::from(runtime.cpu.regs.cs) << 16) | 0x30;
     assert_eq!(state.execute_kernel_file_system(
         Win16KernelFileSystemRequest::FileCdr { procedure }, &mut runtime.memory, &mut host,
