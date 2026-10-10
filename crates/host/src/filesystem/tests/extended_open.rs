@@ -234,8 +234,15 @@ fn extended_open_native_preserves_directories_and_missing_parents() {
     for disposition in [DosFileDisposition::OpenExisting, DosFileDisposition::CreateNew, DosFileDisposition::OpenOrCreate] {
         let error = fs.file_extended_open(b"SUBDIR", request(disposition, DosFileAccess::ReadWrite)).unwrap_err();
         assert!(matches!(error.code, DosErrorCode::AccessDenied | DosErrorCode::FileExists));
-        assert!(fs.file_extended_open(b"MISSING/NEW.DAT", request(disposition, DosFileAccess::ReadWrite)).is_err());
+        let missing = fs.file_extended_open(b"MISSING/NEW.DAT",
+            request(disposition, DosFileAccess::ReadWrite)).unwrap_err();
+        if disposition != DosFileDisposition::OpenExisting {
+            assert_eq!(missing.code, DosErrorCode::PathNotFound);
+        }
     }
+    assert_eq!(fs.file_extended_open(b"SUBDIR/ABSENT.DAT",
+        request(DosFileDisposition::OpenExisting, DosFileAccess::ReadWrite)).unwrap_err().code,
+        DosErrorCode::FileNotFound);
     assert_eq!(std::fs::read(directory.0.join("SUBDIR/KEEP.DAT")).unwrap(), b"keep");
     assert!(!directory.0.join("MISSING").exists());
     assert!(fs.files.is_empty());

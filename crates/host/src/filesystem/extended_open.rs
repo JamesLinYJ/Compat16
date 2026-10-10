@@ -16,7 +16,7 @@ use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_NORMAL;
 
 use crate::windows::{invalid, os_error};
 
-use super::files::{create_new_error, open_options};
+use super::files::{create_new_error, create_new_path_error, open_options};
 use super::{Filesystem, OpenFile, metadata};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -41,11 +41,15 @@ impl Filesystem {
             request.disposition,
             request.access,
             |attempt| {
-                let path = self.resolve_path(path, false)?;
+                let create = attempt == OpenAttempt::CreateNew;
+                let path = self.resolve_path(path, false).map_err(|error| {
+                    if create { create_new_path_error(error) } else { error }
+                })?;
                 // Follow an existing file's final entry, but CREATE_NEW must
                 // retain that entry: even a dangling symlink already exists.
-                let create = attempt == OpenAttempt::CreateNew;
-                let path = self.confined_path(&path, !create, create)?;
+                let path = self.confined_path(&path, !create, create).map_err(|error| {
+                    if create { create_new_path_error(error) } else { error }
+                })?;
                 let mut options = open_options(request.access, request.sharing);
                 if create {
                     let attributes = if request.attributes == 0 {

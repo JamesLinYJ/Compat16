@@ -362,3 +362,24 @@ fn temporary_create_new_native_uses_supplied_subdirectory_and_rejects_unmounted_
         assert_eq!(fs.file_create_new(namespace, 0).unwrap_err().code, DosErrorCode::InvalidData);
     }
 }
+
+#[test]
+fn create_new_native_distinguishes_missing_parents_from_missing_final_leaf() {
+    let directory = TestDirectory::new();
+    std::fs::create_dir(directory.0.join("EXISTS")).unwrap();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    for path in [b"MISSING\\NEW.DAT".as_slice(),
+        b"EXISTS\\MISSING\\NEW.DAT".as_slice(), b"MISSING\\NESTED\\NEW.DAT".as_slice()] {
+        assert_eq!(fs.file_create_new(path, 0).unwrap_err().code, DosErrorCode::PathNotFound);
+        assert!(fs.files.is_empty());
+    }
+    assert!(!directory.0.join("MISSING").exists());
+    assert!(!directory.0.join("EXISTS/MISSING").exists());
+    // Missing final leaves remain ordinary lookup failures for existing-only
+    // operations. Only exclusive creation gets the path-error classification.
+    assert_eq!(fs.file_open(b"EXISTS\\NEW.DAT", DosFileAccess::ReadOnly,
+        DosFileSharing::Compatibility).unwrap_err().code, DosErrorCode::FileNotFound);
+    let file = fs.file_create_new(b"EXISTS\\NEW.DAT", 0).unwrap();
+    fs.file_close(file).unwrap();
+    assert!(directory.0.join("EXISTS/NEW.DAT").is_file());
+}

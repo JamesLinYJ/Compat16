@@ -153,11 +153,15 @@ impl Filesystem {
         self.next_file
             .checked_add(1)
             .ok_or_else(|| invalid(DosErrorCode::TooManyOpenFiles))?;
-        let path = self.resolve_path(path, false)?;
+        let path = self.resolve_path(path, false).map_err(|error| {
+            if exclusive { create_new_path_error(error) } else { error }
+        })?;
         // Exclusive creation operates on the directory entry itself, so even
         // a dangling final symlink counts as existing. Confine its parent and
         // let the capability-rooted atomic create decide whether it exists.
-        let path = self.confined_path(&path, !exclusive, true)?;
+        let path = self.confined_path(&path, !exclusive, true).map_err(|error| {
+            if exclusive { create_new_path_error(error) } else { error }
+        })?;
         let native = if attributes == 0 {
             FILE_ATTRIBUTE_NORMAL
         } else {
@@ -351,6 +355,21 @@ pub(super) fn open_options(access: DosFileAccess, sharing: DosFileSharing) -> Op
     options
 }
 
+pub(super) fn create_new_path_error(mut error: DosHostError) -> DosHostError {
+    // Resolving an exclusive-create path enumerates each parent for its DOS
+    // aliases. A missing parent may therefore surface as ERROR_FILE_NOT_FOUND
+    // from a metadata/open operation, before CREATE_NEW sees the full path.
+    // A missing final leaf is valid for creation; failures in these phases
+    // are path-not-found (DOS 5Ah/5Bh), not an existing-file lookup failure.
+    // Apply this only before/during creation, never to post-create metadata.
+    // Preserve the original native cause for diagnostics.
+    // https://www.pcjs.org/documents/books/mspl13/msdos/encyclopedia/section5/
+    if error.code == DosErrorCode::FileNotFound {
+        error.code = DosErrorCode::PathNotFound;
+    }
+    error
+}
+
 pub(super) fn create_new_error(error: io::Error) -> DosHostError {
     // CREATE_NEW reports ERROR_FILE_EXISTS (80). Preserve DOS 5Bh's distinct
     // error without changing 3Ch, mkdir, or rename's existing error policies.
@@ -360,7 +379,7 @@ pub(super) fn create_new_error(error: io::Error) -> DosHostError {
     {
         DosHostError::with_source(DosErrorCode::FileExists, error)
     } else {
-        os_error(error)
+        create_new_path_error(os_error(error))
     }
 }
 
@@ -377,6 +396,7 @@ mod create_new_error_tests {
             );
         }
         for (code, expected) in [
+            (2, DosErrorCode::PathNotFound),
             (3, DosErrorCode::PathNotFound),
             (5, DosErrorCode::AccessDenied),
             (32, DosErrorCode::SharingViolation),
@@ -385,5 +405,20 @@ mod create_new_error_tests {
             assert_eq!(create_new_error(io::Error::from_raw_os_error(code)).code, expected);
         }
         assert_eq!(os_error(io::Error::from_raw_os_error(80)).code, DosErrorCode::AccessDenied);
+        assert_eq!(os_error(io::Error::from_raw_os_error(2)).code, DosErrorCode::FileNotFound);
+        assert_eq!(create_new_error(io::Error::from(io::ErrorKind::NotFound)).code, DosErrorCode::PathNotFound);
+    }
+
+    #[test]
+    fn create_new_path_error_retains_native_cause_and_other_dos_codes() {
+        let error = create_new_path_error(os_error(io::Error::from_raw_os_error(2)));
+        assert_eq!(error.code, DosErrorCode::PathNotFound);
+        let cause = std::error::Error::source(&error).unwrap().downcast_ref::<io::Error>().unwrap();
+        assert_eq!(cause.raw_os_error(), Some(2));
+        for code in [DosErrorCode::PathNotFound, DosErrorCode::FileExists,
+            DosErrorCode::AccessDenied, DosErrorCode::SharingViolation,
+            DosErrorCode::InvalidData, DosErrorCode::UnknownUnit, DosErrorCode::DiskFull] {
+            assert_eq!(create_new_path_error(DosHostError::new(code)).code, code);
+        }
     }
 }
