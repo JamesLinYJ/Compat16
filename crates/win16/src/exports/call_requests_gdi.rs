@@ -50,6 +50,9 @@ pub(super) fn decode(
         | Win16ExportId::GdiCreateFontIndirect
         | Win16ExportId::GdiCreateBitmap
         | Win16ExportId::GdiCreateBitmapIndirect
+        | Win16ExportId::GdiCreateHatchBrush
+        | Win16ExportId::GdiCreatePatternBrush
+        | Win16ExportId::GdiCreateDibPatternBrush
         | Win16ExportId::GdiCreateBrushIndirect
         | Win16ExportId::GdiCreateCompatibleBitmap => {
             gdi_objects_calls::decode(descriptor.id, &arguments, selectors, memory)?

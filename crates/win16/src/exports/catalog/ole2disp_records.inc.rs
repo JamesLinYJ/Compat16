@@ -56,6 +56,8 @@ macro_rules! export_catalog_with_ole2disp {
                 ("OLE2DISP", 24u16, Stack, ole2disp::SAFE_ARRAY_ONE, Dword);
             Ole2DispSafeArrayGetElement => OLE2DISP_SAFE_ARRAY_GET_ELEMENT:
                 ("OLE2DISP", 25u16, Stack, ole2disp::SAFE_ARRAY_ELEMENT, Dword);
+            Ole2DispSafeArrayPutElement => OLE2DISP_SAFE_ARRAY_PUT_ELEMENT:
+                ("OLE2DISP", 26u16, Stack, ole2disp::SAFE_ARRAY_PUT_ELEMENT, Dword);
             Ole2DispSafeArrayPtrOfIndex => OLE2DISP_SAFE_ARRAY_PTR_OF_INDEX:
                 ("OLE2DISP", 109u16, Stack, ole2disp::SAFE_ARRAY_ELEMENT, Dword);
             Ole2DispSafeArrayCopy => OLE2DISP_SAFE_ARRAY_COPY:

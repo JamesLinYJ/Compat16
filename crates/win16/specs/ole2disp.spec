@@ -24,7 +24,7 @@
 23 pascal SafeArrayAccessData(ptr ptr)
 24 pascal SafeArrayUnaccessData(ptr)
 25 pascal SafeArrayGetElement(segptr ptr ptr)
-26 stub SAFEARRAYPUTELEMENT
+26 pascal SafeArrayPutElement(segptr ptr segptr)
 27 pascal SafeArrayCopy(ptr ptr)
 28 pascal DispGetParam(ptr word word ptr ptr)
 29 pascal DispGetIDsOfNames(segptr segptr word segptr)

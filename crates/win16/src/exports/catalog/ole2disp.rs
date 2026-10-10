@@ -33,5 +33,8 @@ parameters!(SAFE_ARRAY_ONE: [array: Dword / FAR_BUFFER]);
 parameters!(SAFE_ARRAY_BOUND: [array: Dword / FAR_BUFFER, dimension: Word / SCALAR_WORD, bound: Dword / FAR_OUTPUT_BUFFER]);
 parameters!(SAFE_ARRAY_ACCESS_DATA: [array: Dword / FAR_BUFFER, data: Dword / FAR_OUTPUT_BUFFER]);
 parameters!(SAFE_ARRAY_ELEMENT: [array: Dword / FAR_BUFFER, indices: Dword / FAR_BUFFER, value: Dword / FAR_OUTPUT_BUFFER]);
+// Win16 dispatch.h: STDAPI with three FAR pointers. pv is a direct BSTR or
+// interface value for those feature flags, otherwise a pointer to input data.
+parameters!(SAFE_ARRAY_PUT_ELEMENT: [array: Dword / FAR_BUFFER, indices: Dword / FAR_BUFFER, value: Dword / FAR_BUFFER]);
 parameters!(SAFE_ARRAY_COPY: [source: Dword / FAR_BUFFER, destination: Dword / FAR_OUTPUT_BUFFER]);
 parameters!(SAFE_ARRAY_ALLOC_DESCRIPTOR: [dimensions: Word / SCALAR_WORD, descriptor: Dword / FAR_OUTPUT_BUFFER]);

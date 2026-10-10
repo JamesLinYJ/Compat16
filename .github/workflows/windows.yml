@@ -102,7 +102,9 @@ jobs:
             '-p runtime --lib safe_array_ptr_of_index',
             '-p runtime --lib is_equal_guid',
             '-p runtime --lib resource_metadata_',
-            '-p runtime --lib hresult_tests'
+            '-p runtime --lib hresult_tests',
+            '-p runtime --lib put_element_',
+            '-p runtime --lib brush_exports'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

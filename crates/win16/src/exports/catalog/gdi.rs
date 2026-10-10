@@ -490,3 +490,18 @@ pub(super) const GDI_REGION_POINT_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "x", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
     Win16Parameter { name: "y", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
 ];
+
+// GDI.58/60/445: Pascal WORD handles/styles, DWORD COLORREF, WORD HBRUSH.
+pub(super) const GDI_HATCH_BRUSH_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "hatch", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
+    Win16Parameter { name: "color", kind: ArgumentKind::Dword, parameter_type: SCALAR_DWORD },
+];
+
+pub(super) const GDI_PATTERN_BRUSH_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "bitmap", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+];
+
+pub(super) const GDI_DIB_PATTERN_BRUSH_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "dib", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+    Win16Parameter { name: "color_usage", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+];

@@ -123,7 +123,7 @@ fn execute_var_from(
         }
     };
     if !hresult_succeeded(converted.hresult) {
-        return guest_hresult(converted.hresult);
+        return guest_hresult(native_hresult_to_win16(converted.hresult));
     }
     let Some(value) = converted.value else {
         return Err(RuntimeError::new(
@@ -234,7 +234,7 @@ fn execute_variant_change(
         Err(error) => return map_guest_error(error, services, "native VariantChangeType failed"),
     };
     if !hresult_succeeded(converted.hresult) {
-        return guest_hresult(converted.hresult);
+        return guest_hresult(native_hresult_to_win16(converted.hresult));
     }
     let Some(NativeValue::Variant(value)) = converted.value else {
         return Err(RuntimeError::new(
@@ -541,4 +541,40 @@ fn unsupported_call() -> RuntimeError {
         Kind::InternalInvariant,
         "decoded OLE2DISP conversion has no output layout",
     )
+}
+
+// Translate only native call statuses at the guest ABI boundary. The nine
+// names below have different Win16 SCODE values; all other statuses are opaque.
+// Win16 definitions:
+// https://github.com/open-watcom/open-watcom-v2/blob/08a5064dd9831edf10234844630e605e83606989/bld/w16api/include/scode.mh
+// Native definitions:
+// https://learn.microsoft.com/en-us/windows/win32/seccrypto/common-hresult-values
+fn native_hresult_to_win16(status: u32) -> u32 {
+    match status {
+        0x8000_4001 => 0x8000_0001, // E_NOTIMPL
+        0x8007_000e => 0x8000_0002, // E_OUTOFMEMORY
+        0x8007_0057 => 0x8000_0003, // E_INVALIDARG
+        0x8000_4002 => 0x8000_0004, // E_NOINTERFACE
+        0x8000_4003 => 0x8000_0005, // E_POINTER
+        0x8007_0006 => 0x8000_0006, // E_HANDLE
+        0x8000_4004 => 0x8000_0007, // E_ABORT
+        0x8000_4005 => 0x8000_0008, // E_FAIL
+        0x8007_0005 => 0x8000_0009, // E_ACCESSDENIED
+        _ => status,
+    }
+}
+
+#[cfg(test)]
+mod hresult_tests {
+    use super::native_hresult_to_win16;
+
+    #[test]
+    fn success_and_guest_statuses_remain_unchanged() {
+        for status in [0, 1, 0x0004_0001, 0x7fff_ffff]
+            .into_iter()
+            .chain(0x8000_0001..=0x8000_0009)
+        {
+            assert_eq!(native_hresult_to_win16(status), status);
+        }
+    }
 }
