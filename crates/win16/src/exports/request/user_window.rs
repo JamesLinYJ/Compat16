@@ -40,6 +40,12 @@ pub enum Win16UserWindowRequest {
         menu_name: Option<Win16ResourceName>,
     },
 
+    /// Remove only the guest registration owned by this module instance.
+    UnregisterClass {
+        class_name: Win16ClassName,
+        instance: u16,
+    },
+
     /// Create a guest window from copied class/title strings and scalar ABI
     /// values. Window/menu/instance handles and creation data remain guest
     /// values for runtime translation; `parameter` is never a host pointer.

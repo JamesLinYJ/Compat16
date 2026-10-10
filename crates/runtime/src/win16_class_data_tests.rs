@@ -1,5 +1,8 @@
 //! Host-independent USER.129–132 service-gate and class-lifetime coverage.
 
+#[path = "win16_unregister_class_tests.rs"]
+mod class_data_unregister_tests;
+
 use super::super::{ImportBinding, test_support::tiny_ne_executable, windows::WindowProcedure};
 use crate::{
     Diagnostic, DiagnosticKind as Kind, Runtime, RuntimeError, RuntimeHost,
@@ -34,6 +37,7 @@ struct ClassDataHost {
     unregistration_result: HostResult,
     diagnostics: Vec<Kind>,
     atom_name: Option<(u16, Vec<u8>)>,
+    dbcs_case: bool,
 }
 
 impl DosHost for ClassDataHost {
@@ -71,6 +75,15 @@ impl DosHost for ClassDataHost {
 
 impl RuntimeHost for ClassDataHost {
     fn win16_ansi_lower_string(&mut self, source: &[u8]) -> Result<Vec<u8>, RuntimeError> {
+        if self.dbcs_case {
+            let mut lower = source.to_vec();
+            let mut index = 0;
+            while index < lower.len() {
+                if lower[index] == 0x82 && index + 1 < lower.len() { index += 2; }
+                else { lower[index] = lower[index].to_ascii_lowercase(); index += 1; }
+            }
+            return Ok(lower);
+        }
         Ok(source.to_ascii_lowercase())
     }
     fn win16_register_window_class(

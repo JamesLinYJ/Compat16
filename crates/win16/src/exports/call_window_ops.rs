@@ -78,6 +78,19 @@ pub(super) fn decode(
                 ))
             }
         }
+        Win16ExportId::UserUnregisterClass => {
+            let far_name = dword_argument(arguments, 0)?;
+            let class_name = if far_name >> 16 == 0 {
+                Win16ClassName::Atom(far_name as u16)
+            } else {
+                Win16ClassName::Name(read_far_string(far_name, selectors, memory)?)
+            };
+            Win16ApiRequest::User(super::Win16UserRequest::Window(
+                super::Win16UserWindowRequest::UnregisterClass {
+                    class_name, instance: word_argument(arguments, 1)?,
+                },
+            ))
+        }
         Win16ExportId::UserRegisterClass => {
             let far_class = dword_argument(arguments, 0)?;
             let window_class = crate::user_abi::WndClass16::read_from(

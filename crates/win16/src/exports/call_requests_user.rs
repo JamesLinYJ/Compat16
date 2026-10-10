@@ -314,6 +314,7 @@ pub(super) fn decode(
         | Win16ExportId::UserGetTopWindow
         | Win16ExportId::UserGetNextWindow
         | Win16ExportId::UserRegisterClass
+        | Win16ExportId::UserUnregisterClass
         | Win16ExportId::UserCreateWindow
         | Win16ExportId::UserCreateWindowEx
         | Win16ExportId::UserShowWindow
@@ -405,3 +406,7 @@ pub(super) fn decode(
 #[cfg(test)]
 #[path = "call_class_data_tests.rs"]
 mod class_data_tests;
+
+#[cfg(test)]
+#[path = "call_unregister_class_tests.rs"]
+mod unregister_class_tests;

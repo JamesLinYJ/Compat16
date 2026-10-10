@@ -202,6 +202,11 @@ pub(super) const USER_REGISTER_CLASS_PARAMETERS: &[Win16Parameter] = &[Win16Para
     parameter_type: FAR_BUFFER,
 }];
 
+pub(super) const USER_UNREGISTER_CLASS_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "class_name", kind: ArgumentKind::Dword, parameter_type: CLASS_NAME },
+    Win16Parameter { name: "instance", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+];
+
 pub(super) const USER_CREATE_WINDOW_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "class_name", kind: ArgumentKind::Dword, parameter_type: CLASS_NAME },
     Win16Parameter { name: "window_name", kind: ArgumentKind::Dword, parameter_type: NULLABLE_FAR_STRING },

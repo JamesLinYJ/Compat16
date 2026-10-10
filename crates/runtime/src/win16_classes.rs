@@ -16,6 +16,9 @@ const MAX_CLASS_NAME_BYTES: usize = 255;
 // for a class background; Win16 passes COLOR_* + 1 as an HBRUSH value.
 const LAST_SYSTEM_COLOR_INDEX: u16 = 30;
 
+#[path = "win16_unregister_class.rs"]
+mod unregister;
+
 struct GuestWindowClass {
     instance: u16,
     atom: u16,

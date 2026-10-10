@@ -504,6 +504,9 @@ impl Win16State {
                 u32::from(self.register_class(window_class, class_name, menu_name, memory, host)?)
             }
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::UnregisterClass { class_name, instance },
+            )) => u32::from(self.unregister_class(instance, class_name, host)?),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::CreateWindow {
                     class_name,
                     window_name,
