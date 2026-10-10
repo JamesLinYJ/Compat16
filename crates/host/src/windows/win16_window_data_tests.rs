@@ -362,3 +362,6 @@ fn reparent_never_queries_a_replacement_child_identity_at_the_same_native_bits()
 // Reuse the exact-identity fixture and synchronous native callback harness.
 #[path = "win16_set_window_pos_tests.rs"]
 mod set_window_pos_tests;
+
+#[path = "win16_open_icon_tests.rs"]
+mod open_icon_tests;

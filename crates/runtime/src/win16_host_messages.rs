@@ -31,6 +31,8 @@ pub enum Win16ScalarMessage {
     Close = 0x0010,
     /// System session query; LPARAM is a modern end-session option bitmask.
     QueryEndSession = 0x0011,
+    /// Pointer-free restore query; a zero WndProc result vetoes opening the icon.
+    QueryOpen = 0x0013,
     /// End-session result; WPARAM is BOOL and LPARAM carries session options.
     EndSession = 0x0016,
     ShowWindow = 0x0018,
@@ -76,6 +78,7 @@ impl Win16ScalarMessage {
             0x000f => Self::Paint,
             0x0010 => Self::Close,
             0x0011 => Self::QueryEndSession,
+            0x0013 => Self::QueryOpen,
             0x0016 => Self::EndSession,
             0x0018 => Self::ShowWindow,
             0x001f => Self::CancelMode,

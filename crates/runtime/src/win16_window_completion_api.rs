@@ -752,7 +752,7 @@ pub(super) fn finish_window_call(
     }
     if owner.phase == Phase::Ready {
         let value = match (&call.output, result) {
-            (Output::None, ResultValue::Boolean(value)) => Some(u32::from(*value)),
+            (Output::None | Output::Boolean, ResultValue::Boolean(value)) => Some(u32::from(*value)),
             (Output::None, ResultValue::Integer(value)) => Some(u32::from(*value as u16)),
             (Output::None, ResultValue::Window(None)) => Some(0),
             (Output::None, ResultValue::Window(Some(native))) =>

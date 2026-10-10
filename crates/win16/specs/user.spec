@@ -40,6 +40,7 @@
 41 pascal -ret16 CreateWindow(str str long s_word s_word s_word s_word word word word segptr)
 42 pascal -ret16 ShowWindow(word word)
 43 pascal -ret16 CloseWindow(word)
+# SDK 3.1 WINDOWS.H:3286 BOOL WINAPI OpenIcon(HWND); LIBW IMPDEF 0x615d => USER.44.
 44 pascal -ret16 OpenIcon(word)
 45 pascal -ret16 BringWindowToTop(word)
 46 pascal -ret16 GetParent(word)

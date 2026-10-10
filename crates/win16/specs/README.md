@@ -1,7 +1,7 @@
 # Verified Microsoft SDK declarations
 
 This record covers GDI.350 GetCharWidth, USER.196 TabbedTextOut,
-USER.197 GetTabbedTextExtent, and the four GDI rectangle predicate exports
+USER.197 GetTabbedTextExtent, USER.44 OpenIcon, and the four GDI rectangle predicate exports
 listed below. It independently establishes the stated import identities and
 ABI evidence for these entries. It does not establish other entries'
 provenance or verify runtime behavior. Existing third-party notices remain applicable.
@@ -105,3 +105,31 @@ debug/retail error-behavior equivalence claim. The original shared code also
 consults the calling module's expected Windows version before a rectangle-edge
 adjustment. That behavior is separate from these entrypoint names and is not
 implemented by this routing change.
+
+## OpenIcon and its restore query
+
+The same original SDK disk 03 artifacts independently establish USER.44:
+
+- `WINDOWS.H` line 3286 declares `BOOL WINAPI OpenIcon(HWND)`.
+- `LIBW.LIB` IMPDEF record at byte offset `0x615d` imports `OPENICON` from
+  `USER` by ordinal `0x002c` (44).
+- `WINAPI` is far Pascal (line 124), `BOOL` is 16-bit int (line 129), and
+  `HWND` is declared on line 2622. The handle macros on lines 209–216 use
+  a 16-bit near pointer under STRICT or UINT otherwise. The argument is
+  therefore one WORD: two callee-popped bytes, with a WORD BOOL in AX.
+  The far return adds four bytes, for six total bytes consumed on return.
+- `WINDOWS.H` line 3266 defines `WM_QUERYOPEN` as `0x0013`.
+
+Modern Microsoft documentation supplies the native forwarding contract:
+[OpenIcon](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-openicon)
+restores and activates an iconic window, returns a success BOOL, and sends
+[WM_QUERYOPEN](https://learn.microsoft.com/en-us/windows/win32/winmsg/wm-queryopen).
+That message has no pointer-bearing parameters, and a zero window-procedure
+result vetoes restoration. It must reach the guest through the normal callback
+continuation; ShowWindow's previous-visibility result is not interchangeable.
+
+The runtime retains the target token and accepts only a Boolean completion.
+The worker resolves the existing HWND identity before native OpenIcon and
+holds no worker-state borrow across synchronous callbacks. Regression tests
+cover the ABI and callback/result contracts; real restore/veto/reentry tests
+are Windows-desktop opt-in tests, not evidence that GUI behavior was executed.

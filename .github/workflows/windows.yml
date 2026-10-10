@@ -112,6 +112,7 @@ jobs:
             '-p runtime --lib local_atom_',
             '-p host-services --lib local_atom_',
             '-p runtime --lib class_data_',
+            '-p runtime --lib open_icon_tests',
             '-p runtime --lib callback_class_',
             '-p runtime --lib child_lookup',
             '-p runtime --lib dos_timestamp_tests',

@@ -60,6 +60,11 @@ pub(super) fn decode(
                 point: dword_argument(arguments, 0)?,
             }),
         ),
+        Win16ExportId::UserOpenIcon => Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::OpenIcon {
+                window: word_argument(arguments, 0)?,
+            },
+        )),
         Win16ExportId::UserIsIconic => Win16ApiRequest::User(super::Win16UserRequest::Window(
             super::Win16UserWindowRequest::IsIconic {
                 window: word_argument(arguments, 0)?,
@@ -425,3 +430,7 @@ pub(super) fn decode(
 fn unpack_point(packed: u32) -> (i16, i16) {
     (packed as u16 as i16, (packed >> 16) as u16 as i16)
 }
+
+#[cfg(test)]
+#[path = "call_open_icon_tests.rs"]
+mod open_icon_tests;

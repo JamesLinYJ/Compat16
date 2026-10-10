@@ -309,7 +309,8 @@ pub(super) fn decode(
         | Win16ExportId::UserCheckMenuRadioItem => {
             call_menus::decode(descriptor.id, &arguments, selectors, memory)?
         }
-        Win16ExportId::UserIsIconic
+        Win16ExportId::UserOpenIcon
+        | Win16ExportId::UserIsIconic
         | Win16ExportId::UserGetWindowRect
         | Win16ExportId::UserGetClientRect
         | Win16ExportId::UserEnableWindow

@@ -22,7 +22,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetClientRect, GetClassNameW,
     GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
     GetWindow,
-    GetWindowRect, IsChild, IsIconic, IsWindow, IsWindowVisible, IsZoomed, MoveWindow,
+    GetWindowRect, IsChild, IsIconic, IsWindow, IsWindowVisible, IsZoomed, MoveWindow, OpenIcon,
     SetWindowPos, ShowOwnedPopups, WindowFromPoint, GetWindowPlacement, SetWindowPlacement,
     HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST, SWP_NOZORDER, WINDOWPLACEMENT,
 };
@@ -82,6 +82,11 @@ pub(super) fn execute(
             }
         Call::WindowData(call) => ResultValue::WindowData(
             super::win16_window_data::execute(state, call)?),
+        // OpenIcon owns WM_QUERYOPEN, restoration and activation, and returns
+        // success rather than ShowWindow's previous visibility. Resolve exact
+        // identity before the call and retain no worker borrow over reentry.
+        Call::OpenIcon { window } => ResultValue::Boolean(hwnd(state, window)
+            .is_some_and(|native| unsafe { OpenIcon(native) != 0 })),
         Call::IsIconic { window } => ResultValue::Boolean(hwnd(state, window)
             .is_some_and(|native| unsafe { IsIconic(native) != 0 })),
         Call::GetWindowRect { window } => {

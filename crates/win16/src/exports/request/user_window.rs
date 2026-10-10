@@ -139,6 +139,12 @@ pub enum Win16UserWindowRequest {
         paint: u32,
     },
 
+    /// USER.44 restores an iconic window through native OpenIcon, including
+    /// WM_QUERYOPEN and its guest veto. The result is a success BOOL.
+    OpenIcon {
+        window: u16,
+    },
+
     /// Query the native minimized state of a window.
     IsIconic {
         window: u16,

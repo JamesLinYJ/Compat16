@@ -1,5 +1,8 @@
 //! Host-independent USER.129–132 service-gate and class-lifetime coverage.
 
+#[path = "win16_dispatch_open_icon_tests.rs"]
+mod open_icon_tests;
+
 #[path = "win16_class_procedure_tests.rs"]
 mod class_procedure_tests;
 
