@@ -8,6 +8,7 @@ const EXEC_PARAMETER_BLOCK_BYTES: usize = 14;
 const EXEC_COMMAND_TAIL_BYTES: usize = 128;
 const EXEC_COMMAND_MAX: usize = 126;
 const FCB_BYTES: usize = 16;
+const FCB_NAME_BYTES: usize = 12;
 
 impl DosKernel {
     pub(super) fn execute_program(
@@ -134,7 +135,15 @@ fn read_optional_fcb(
 
     let mut fcb = [0; FCB_BYTES];
     let pointer = memory.resolve_caller_pointer(segment, offset)?;
-    memory.read_caller_range(pointer, 0, &mut fcb, DosSpanPolicy::OffsetWrap)?;
+    // MS-DOS 4.0 EXEC.ASM, exec_build_header: copy the drive, eight-byte
+    // filename and three-byte extension, then zero the current-block and
+    // record-size words. Those four output bytes are not caller input.
+    memory.read_caller_range(
+        pointer,
+        0,
+        &mut fcb[..FCB_NAME_BYTES],
+        DosSpanPolicy::OffsetWrap,
+    )?;
     Ok(fcb)
 }
 

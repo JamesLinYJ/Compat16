@@ -304,8 +304,9 @@ pub struct DosExecRequest {
     pub environment_segment: u16,
     /// PSP command-tail bytes: length, command bytes, CR, then zero padding.
     pub command_tail: [u8; 128],
-    /// The first 16-byte FCB copied for the child PSP.
+    /// First child PSP FCB: 12 copied drive/name/extension bytes, then four
+    /// zero bytes for the current block and record size.
     pub first_fcb: [u8; 16],
-    /// The second 16-byte FCB copied for the child PSP.
+    /// Second child PSP FCB, initialized with the same layout as the first.
     pub second_fcb: [u8; 16],
 }
