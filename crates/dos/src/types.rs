@@ -117,7 +117,8 @@ pub trait DosHost {
     fn local_date_time(&mut self) -> Result<DosLocalDateTime, DosHostError> {
         Err(DosHostError::new(DosErrorCode::InvalidFunction))
     }
-    /// Blocking input. Must return at least one byte or a DOS-mappable error.
+    /// Blocking input. Returns bytes read, zero at redirected-stream EOF,
+    /// or a DOS-mappable error. An empty output buffer also returns zero.
     fn read_stdin(&mut self, output: &mut [u8]) -> Result<usize, DosHostError>;
     /// Poll and consume at most one byte without waiting.
     fn try_read_stdin(&mut self) -> Result<Option<u8>, DosHostError>;

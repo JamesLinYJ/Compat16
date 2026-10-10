@@ -728,6 +728,17 @@ impl DosHost for WindowsHost {
             output[0] = byte;
             return Ok(1);
         }
+        if self.original_input_mode.is_none()
+            && self.keys.is_empty()
+            && !self.vga_window.is_active()
+        {
+            crate::ioctl::validate_redirected_input(self.input)?;
+            // DOS Function 3FH returns zero bytes at file EOF. Redirected
+            // bytes, including NUL, must not become extended keyboard events.
+            // Microsoft MS-DOS 4.0 Programmer's Reference, Function 3FH:
+            // https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/
+            return io::stdin().read(output).map_err(os_error);
+        }
         let key = self
             .key(true)?
             .ok_or_else(|| invalid(DosErrorCode::GeneralFailure))?;
