@@ -89,6 +89,14 @@ pub struct DosKernel {
     pub(super) block_leases: super::block_lease::DosBlockLeases,
     pub(super) system_tables: Option<super::system::SystemTables>,
     pub(super) file_table: super::sft::FileTable,
+    /// Handle ownership does not follow AH=50's selected PSP. Switching a
+    /// complete DOS file context is separate from selecting a scalar PSP word.
+    pub(super) jft_owner_psp: u16,
+    pub(super) jft_capacity: u16,
+    pub(super) jft_storage: Option<super::DosBlockLease>,
+    /// Prepared replacements and retired tables remain owned until checked
+    /// release succeeds, including when guest storage fails during publication.
+    pub(super) retired_jft_storage: Vec<super::DosBlockLease>,
     pub(super) device_requests: [Option<(u16, u16)>; 2],
     pub(super) handles: BTreeMap<u16, Handle>,
     /// Host duplicates which could not be closed during an inheritance
@@ -151,6 +159,10 @@ impl DosKernel {
             block_leases: super::block_lease::DosBlockLeases::new(),
             system_tables: None,
             file_table: super::sft::FileTable::new(),
+            jft_owner_psp: psp_segment,
+            jft_capacity: super::sft::DEFAULT_JFT_LEN,
+            jft_storage: None,
+            retired_jft_storage: Vec::new(),
             device_requests: [None; 2],
             handles,
             orphan_file_handles: Vec::new(),
@@ -211,6 +223,8 @@ impl DosKernel {
         parent: &mut DosKernel,
         host: &mut impl DosHost,
     ) -> Result<(), DosError> {
+        self.block_leases.check_storage_state()?;
+        parent.block_leases.check_storage_state()?;
         if self.pending_input.is_some()
             || self
                 .handles
@@ -267,7 +281,12 @@ impl DosKernel {
         host: &mut impl DosHost,
     ) -> Result<(), DosError> {
         // This method is intended for a newly-created child kernel.
-        if !self.orphan_file_handles.is_empty()
+        self.block_leases.check_storage_state()?;
+        parent.block_leases.check_storage_state()?;
+        if self.jft_capacity != super::sft::DEFAULT_JFT_LEN
+            || self.jft_storage.is_some()
+            || !self.retired_jft_storage.is_empty()
+            || !self.orphan_file_handles.is_empty()
             || self.handles.values().any(|h| matches!(h, Handle::File(_)))
         {
             return Err(DosError::HostContractViolation(
@@ -277,7 +296,8 @@ impl DosKernel {
         let mut inherited = BTreeMap::new();
         let mut duplicated = Vec::new();
         for (&guest, &handle) in &parent.handles {
-            if !parent.file_table.is_handle_inheritable(guest) {
+            if guest >= super::sft::DEFAULT_JFT_LEN
+                || !parent.file_table.is_handle_inheritable(guest) {
                 continue;
             }
             let target = match handle {
@@ -396,6 +416,13 @@ impl DosKernel {
         memory: &mut impl DosCallAddressSpace,
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
+        self.block_leases.check_storage_state()?;
+        if number == 0x21 && regs.ah() == 0x67 {
+            // This storage-only operation owns its metadata lifecycle. In
+            // particular, unsupported and unchanged requests must not run a
+            // generic SFT/JFT refresh that could write through a guest pointer.
+            return self.set_handle_count(regs, memory);
+        }
         if number == 0x21 {
             self.validate_system_tables(memory)?;
             if self.system_tables.is_some() {
@@ -416,6 +443,7 @@ impl DosKernel {
                 .map_err(DosError::HostOperation)?;
             self.close_all_handles_checked(host)
                 .map_err(DosError::HostOperation)?;
+            self.release_jft_storage(memory)?;
             self.last_exit_code = *code;
         } else if number == 0x21 && !matches!(&action, DosAction::Unhandled) {
             self.refresh_system_tables(memory, host)?;
@@ -448,6 +476,9 @@ impl DosKernel {
         &mut self,
         host: &mut impl DosHost,
     ) -> Result<(), DosHostError> {
+        self.block_leases.check_storage_state().map_err(|error| {
+            DosHostError::with_source(DosErrorCode::GeneralFailure, error)
+        })?;
         loop {
             let next_file = self
                 .handles
@@ -476,6 +507,7 @@ impl DosKernel {
 
     /// Close every active directory search owned by `psp_segment`.
     pub fn close_searches_for_psp(&mut self, psp_segment: u16, host: &mut impl DosHost) {
+        if self.block_leases.check_storage_state().is_err() { return; }
         let keys: Vec<_> = self
             .searches
             .keys()
@@ -498,6 +530,9 @@ impl DosKernel {
         psp_segment: u16,
         host: &mut impl DosHost,
     ) -> Result<(), DosHostError> {
+        self.block_leases.check_storage_state().map_err(|error| {
+            DosHostError::with_source(DosErrorCode::GeneralFailure, error)
+        })?;
         loop {
             let key = self
                 .searches
@@ -520,6 +555,9 @@ impl DosKernel {
         &mut self,
         host: &mut impl DosHost,
     ) -> Result<(), DosHostError> {
+        self.block_leases.check_storage_state().map_err(|error| {
+            DosHostError::with_source(DosErrorCode::GeneralFailure, error)
+        })?;
         loop {
             let Some((key, state)) = self
                 .searches
@@ -574,7 +612,8 @@ impl DosKernel {
         exit_code: Option<u8>,
         allocation_owner_psp: u16,
     ) -> Result<(), DosError> {
-        if allocation_owner_psp == 0 {
+        self.block_leases.check_storage_state()?;
+        if allocation_owner_psp == 0 || allocation_owner_psp != self.jft_owner_psp {
             return Err(DosError::HostContractViolation(
                 "child cleanup requires its immutable allocation PSP",
             ));
@@ -583,6 +622,7 @@ impl DosKernel {
             .map_err(DosError::HostOperation)?;
         self.close_all_handles_checked(host)
             .map_err(DosError::HostOperation)?;
+        self.release_jft_storage(memory)?;
         self.free_process_blocks(memory, allocation_owner_psp)?;
 
         parent.mcb_head = self.mcb_head;

@@ -119,6 +119,15 @@ impl Runtime {
             }
         }
         if prerequisites_complete {
+            if let Err(error) = self.dos.release_jft_storage(&mut self.memory) {
+                remember_cleanup(
+                    &mut cleanup_error,
+                    crate::runtime_error(error).with_context("DOS JFT storage cleanup"),
+                );
+                prerequisites_complete = false;
+            }
+        }
+        if prerequisites_complete {
             if let Some(state) = self.win16.as_mut() {
                 if let Err(error) = state.release_all_dos_caller_address_spaces(
                     &mut self.dos,

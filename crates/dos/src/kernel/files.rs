@@ -6,8 +6,7 @@ use crate::{
 use guest_core::Registers;
 
 use super::DosKernel;
-use super::memory::{first_free_handle, read_dos_c_string};
-use super::sft::DEFAULT_JFT_LEN;
+use super::memory::read_dos_c_string;
 use super::state::{Handle, StandardHandle};
 
 const OPEN_ACCESS_MASK: u8 = 0x07;
@@ -21,7 +20,7 @@ impl DosKernel {
         memory: &mut impl DosCallAddressSpace,
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
-        let Some(handle) = first_free_handle(&self.handles) else {
+        let Some(handle) = self.first_free_handle() else {
             Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         };
@@ -79,7 +78,7 @@ impl DosKernel {
         memory: &mut impl DosCallAddressSpace,
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
-        let Some(handle) = first_free_handle(&self.handles) else {
+        let Some(handle) = self.first_free_handle() else {
             Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         };
@@ -361,7 +360,7 @@ impl DosKernel {
                 return Ok(DosAction::Continue);
             }
         };
-        let new_id = first_free_handle(&self.handles);
+        let new_id = self.first_free_handle();
         let Some(new_id) = new_id else {
             Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
@@ -409,7 +408,7 @@ impl DosKernel {
             Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
             return Ok(DosAction::Continue);
         };
-        if target_id >= DEFAULT_JFT_LEN {
+        if !self.handle_fits_jft(target_id) {
             Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
             return Ok(DosAction::Continue);
         }

@@ -1,9 +1,7 @@
-use std::collections::BTreeMap;
-
 use crate::{DosAction, DosError, DosErrorCode, DosHostError};
 use guest_core::{GuestMemory, Registers, real_address};
 
-use super::state::{DosKernel, Handle, Mcb};
+use super::state::{DosKernel, Mcb};
 use super::system::{SYSTEM_BYTES, SYSTEM_SEGMENT};
 
 impl DosKernel {
@@ -19,6 +17,7 @@ impl DosKernel {
         environment_paragraphs: u16,
         end_segment: u16,
     ) -> Result<(), DosError> {
+        self.block_leases.check_storage_state()?;
         if self.mcb_head.is_some() || self.system_tables.is_some() {
             return Err(DosError::HostContractViolation(
                 "initial DOS process arena was already initialized",
@@ -431,6 +430,7 @@ impl DosKernel {
         &mut self,
         memory: &mut impl GuestMemory,
     ) -> Result<Vec<Mcb>, DosError> {
+        self.block_leases.check_storage_state()?;
         let head = if let Some(head) = self.mcb_head {
             head
         } else {
@@ -597,12 +597,6 @@ pub(super) fn allocate_block_for_owner(
         write_mcb(memory, allocated)?;
     }
     Ok(Some(psp_segment))
-}
-
-pub(super) fn first_free_handle(handles: &BTreeMap<u16, Handle>) -> Option<u16> {
-    // Scan the actual default JFT, including closed standard-stream slots.
-    // FreeDOS kernel/dosfns.c get_free_hndl uses the same lowest-free rule.
-    (0..super::sft::DEFAULT_JFT_LEN).find(|id| !handles.contains_key(id))
 }
 
 pub(super) fn read_mcb(memory: &impl GuestMemory, segment: u16) -> Result<Mcb, DosError> {

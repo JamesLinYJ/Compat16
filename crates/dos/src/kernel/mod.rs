@@ -17,6 +17,7 @@ mod memory;
 mod nls;
 mod protected_scalar;
 mod sft;
+mod handle_capacity;
 mod state;
 mod system;
 mod vectors;
@@ -50,3 +51,6 @@ mod device_tests;
 mod disk_tests;
 #[cfg(test)]
 mod system_tests;
+
+#[cfg(test)]
+mod handle_capacity_tests;

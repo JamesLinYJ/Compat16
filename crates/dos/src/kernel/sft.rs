@@ -18,9 +18,9 @@ use super::system::{CON_HEADER_OFFSET, SFT_OFFSET, SFT_ENTRY_COUNT,
     SFT_ENTRY_BYTES as SFT_ENTRY_LEN, SFT_HEADER_BYTES as SFT_HEADER_LEN};
 
 pub(super) const DEFAULT_JFT_LEN: u16 = 20;
-const MAX_JFT_LEN: u16 = 255;
-const PSP_JFT_COUNT_OFFSET: u16 = 0x32;
-const PSP_JFT_POINTER_OFFSET: u16 = 0x34;
+pub(super) const MAX_JFT_LEN: u16 = 0xfffe;
+pub(super) const PSP_JFT_COUNT_OFFSET: u16 = 0x32;
+pub(super) const PSP_JFT_POINTER_OFFSET: u16 = 0x34;
 
 const SF_REF_COUNT: usize = 0;
 const SF_MODE: usize = 2;
@@ -240,7 +240,7 @@ impl FileTable {
             let mut inherited = BTreeMap::new();
             for (&handle, &index) in &parent.handles {
                 let Some(entry) = pool.entries[index as usize] else { return false; };
-                if entry.mode & SFT_MODE_NO_INHERIT == 0 {
+                if handle < DEFAULT_JFT_LEN && entry.mode & SFT_MODE_NO_INHERIT == 0 {
                     inherited.insert(handle, index);
                 }
             }
@@ -294,8 +294,8 @@ impl FileTable {
         self.handles.get(&guest_handle).copied()
     }
 
-    fn live_handles(&self) -> Vec<(u16, u8)> {
-        self.handles.iter().map(|(&handle, &index)| (handle, index)).collect()
+    pub(super) fn live_handles(&self) -> impl ExactSizeIterator<Item = (u16, u8)> + '_ {
+        self.handles.iter().map(|(&handle, &index)| (handle, index))
     }
 }
 
@@ -317,17 +317,34 @@ impl DosKernel {
     /// operation can have host-visible side effects.
     pub(super) fn validate_jft(&self, memory: &impl GuestMemory) -> Result<(), DosError> {
         let Some(system) = self.system_tables.as_ref() else { return Ok(()); };
-        let header = real_address(self.psp_segment, PSP_JFT_COUNT_OFFSET);
+        self.validate_jft_metadata(memory)?;
+        let sft_address = real_address(system.segment, SFT_OFFSET);
+        memory.validate_write(sft_address, SFT_HEADER_LEN + SFT_ENTRY_COUNT * SFT_ENTRY_LEN)?;
+        Ok(())
+    }
+
+    pub(super) fn validate_jft_metadata(&self, memory: &impl GuestMemory) -> Result<(), DosError> {
+        self.block_leases.check_storage_state()?;
+        let header = real_address(self.jft_owner_psp, PSP_JFT_COUNT_OFFSET);
         memory.validate_read(header, 6)?;
         let count = memory.read_u16(header)?;
-        if !(DEFAULT_JFT_LEN..=MAX_JFT_LEN).contains(&count) {
-            return Err(DosError::MalformedGuestInput("PSP JFT size is outside the supported range"));
+        if !(DEFAULT_JFT_LEN..=MAX_JFT_LEN).contains(&count) || count != self.jft_capacity {
+            return Err(DosError::MalformedGuestInput("PSP JFT size differs from the owned capacity"));
         }
-        let pointer = real_address(self.psp_segment, PSP_JFT_POINTER_OFFSET);
+        let pointer = real_address(self.jft_owner_psp, PSP_JFT_POINTER_OFFSET);
         let offset = memory.read_u16(pointer)?;
-        let segment = memory.read_u16(real_address(self.psp_segment, PSP_JFT_POINTER_OFFSET + 2))?;
+        let segment = memory.read_u16(real_address(self.jft_owner_psp, PSP_JFT_POINTER_OFFSET + 2))?;
         if u32::from(offset) + u32::from(count) > 0x1_0000 {
             return Err(DosError::MalformedGuestInput("PSP JFT crosses a segment boundary"));
+        }
+        if let Some(lease) = self.jft_storage.as_ref() {
+            if offset != 0 || segment != lease.extent().data_segment()
+                || lease.extent().owner_psp_segment() != self.jft_owner_psp
+            {
+                return Err(DosError::MalformedGuestInput("PSP JFT pointer differs from its owned storage"));
+            }
+        } else if count != DEFAULT_JFT_LEN {
+            return Err(DosError::HostContractViolation("expanded JFT has no owned storage"));
         }
         let address = real_address(segment, offset);
         memory.validate_read(address, usize::from(count))?;
@@ -337,8 +354,6 @@ impl DosKernel {
                 return Err(DosError::MalformedGuestInput("open handle is outside the PSP JFT"));
             }
         }
-        let sft_address = real_address(system.segment, SFT_OFFSET);
-        memory.validate_write(sft_address, SFT_HEADER_LEN + SFT_ENTRY_COUNT * SFT_ENTRY_LEN)?;
         Ok(())
     }
 
@@ -352,7 +367,7 @@ impl DosKernel {
         let Some(system) = self.system_tables.as_ref() else { return Ok(()); };
         self.validate_jft(memory)?;
 
-        let (jft_count, jft_offset, jft_segment) = read_jft_pointer(self.psp_segment, memory)?;
+        let (jft_count, jft_offset, jft_segment) = read_jft_pointer(self.jft_owner_psp, memory)?;
         let sft_address = real_address(system.segment, SFT_OFFSET);
         let sft_len = SFT_HEADER_LEN + SFT_ENTRY_COUNT * SFT_ENTRY_LEN;
         memory.validate_write(sft_address, sft_len)?;

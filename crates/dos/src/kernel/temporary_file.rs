@@ -13,7 +13,6 @@ use crate::{
 use guest_core::{MemoryError, Registers};
 
 use super::DosKernel;
-use super::memory::first_free_handle;
 use super::state::Handle;
 
 const PATH_BUFFER_LIMIT: usize = 260;
@@ -32,7 +31,7 @@ impl DosKernel {
         if regs.cx() & !0x0027 != 0 {
             return Ok(Self::temporary_file_failure(regs, DosErrorCode::AccessDenied));
         }
-        let Some(handle) = first_free_handle(&self.handles) else {
+        let Some(handle) = self.first_free_handle() else {
             return Ok(Self::temporary_file_failure(regs, DosErrorCode::TooManyOpenFiles));
         };
         if !self.file_table.has_free_slot() {

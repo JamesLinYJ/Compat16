@@ -91,7 +91,8 @@ fn duplicate_and_forceduplicate_share_sft_and_replace_old_target_reference() {
     assert_eq!(entries[1].0, 2);
     assert_eq!(entries[1].1.references, 1);
     assert!(table.can_duplicate_handle(0, 5)); // same SFT alias is already installed
-    assert!(!table.can_duplicate_handle(0, 255)); // FF is the closed JFT marker
+    assert!(table.can_duplicate_handle(0, 255)); // WORD handle, independent of its byte SFT index
+    assert!(!table.can_duplicate_handle(0, 0xfffe)); // largest count has slots 0..FFFEh
 
     let input = match entries[0].1 {
         SftEntry { kind: super::SftKind::Standard(kind), .. } => kind,

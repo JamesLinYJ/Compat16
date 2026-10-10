@@ -1293,3 +1293,6 @@ mod temporary_file_tests;
 
 #[path = "input_polling_tests.rs"]
 mod input_polling_tests;
+
+#[path = "handle_capacity_lifecycle_tests.rs"]
+mod handle_capacity_lifecycle_tests;

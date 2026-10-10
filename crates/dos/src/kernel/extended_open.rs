@@ -10,7 +10,7 @@ use crate::{
 use guest_core::Registers;
 
 use super::DosKernel;
-use super::memory::{first_free_handle, read_dos_c_string};
+use super::memory::read_dos_c_string;
 use super::state::Handle;
 
 impl DosKernel {
@@ -27,7 +27,7 @@ impl DosKernel {
                 return Ok(DosAction::Continue);
             }
         };
-        let Some(handle) = first_free_handle(&self.handles) else {
+        let Some(handle) = self.first_free_handle() else {
             Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         };
