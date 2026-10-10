@@ -3,6 +3,9 @@
 #[path = "win16_unregister_class_tests.rs"]
 mod class_data_unregister_tests;
 
+#[path = "win16_callback_class_retention_tests.rs"]
+mod callback_class_retention_tests;
+
 use super::super::{ImportBinding, test_support::tiny_ne_executable, windows::WindowProcedure};
 use crate::{
     Diagnostic, DiagnosticKind as Kind, Runtime, RuntimeError, RuntimeHost,
@@ -535,6 +538,13 @@ fn class_data_cleanup_failure_retains_bytes_and_successful_reregistration_zeroes
             assert_eq!(call(&mut runtime, &mut host, 132, hwnd, 0, Some(0xabcd_1234)), 0);
             host.unregistration_result = failure;
             let state = runtime.win16.as_mut().unwrap();
+            if module_cleanup {
+                // Automatic cleanup must not ask even a permissive host to
+                // unregister while the runtime still owns a live window.
+                state.release_module_classes(&[state.modules.main], &mut host).unwrap();
+                assert!(host.unregistrations.is_empty());
+                state.retire_window_handle(hwnd).unwrap();
+            }
             let result = if module_cleanup {
                 state.release_module_classes(&[state.modules.main], &mut host)
             } else {
@@ -547,8 +557,12 @@ fn class_data_cleanup_failure_retains_bytes_and_successful_reregistration_zeroes
             }
             assert!(state.is_registered_class_atom(class.atom));
             assert_eq!(state.class_code_references(), vec![class.info.lpfn_wnd_proc]);
-            assert_eq!(call(&mut runtime, &mut host, 131, hwnd, 0, None), 0xabcd_1234);
-            runtime.win16.as_mut().unwrap().retire_window_handle(hwnd).unwrap();
+            assert_eq!(state.window_classes.guest_class_extra_mut(class.class).unwrap(),
+                &0xabcd_1234u32.to_le_bytes());
+            if !module_cleanup {
+                assert_eq!(call(&mut runtime, &mut host, 131, hwnd, 0, None), 0xabcd_1234);
+                runtime.win16.as_mut().unwrap().retire_window_handle(hwnd).unwrap();
+            }
             host.unregistration_result = HostResult::Success;
             let state = runtime.win16.as_mut().unwrap();
             if module_cleanup {

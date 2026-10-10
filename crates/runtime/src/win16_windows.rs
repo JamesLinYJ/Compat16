@@ -71,7 +71,7 @@ mod callback_continuation;
 pub(super) use callback_continuation::{ForwardedWindowMessage, WindowCallbackContinuation};
 #[path = "win16_window_callback_frame.rs"]
 mod callback_frame;
-pub(super) use callback_frame::{WindowCallbackEntryPhase, WindowCallbackFrame, WindowCallbackSetupJournal, WindowCallbackSetupPhase};
+pub(super) use callback_frame::{WindowCallbackEntryPhase, WindowCallbackFrame, WindowCallbackSetupJournal, WindowCallbackSetupPhase, WindowClassRoot};
 #[path = "win16_window_payload_retirement.rs"]
 mod payload_retirement;
 pub(super) use payload_retirement::{RetainedWindowPayloadCounts, RetiredWindowPayloadOwner, WindowCallbackPayloadCleanup};
@@ -586,14 +586,14 @@ impl Win16State {
     fn pending_dialog_procedure_for(
         &mut self,
         native_window: Win16HostWindow,
-    ) -> Option<(Option<(u32, u16)>, u16)> {
+    ) -> Option<(Option<(u32, u16)>, u16, WindowClassRoot)> {
         self.window_operations.iter_mut().rev().find_map(|frame| {
             let Some(WindowReturn::UserFamily(continuation)) = frame.continuation_mut() else {
                 return None;
             };
             if !continuation.bind_pending_dialog_window(native_window) { return None; }
             continuation.pending_dialog_instance().map(|instance|
-                (continuation.pending_dialog_procedure(), instance))
+                (continuation.pending_dialog_procedure(), instance, continuation.pending_dialog_class_root()))
         })
     }
 
@@ -627,8 +627,9 @@ impl Win16State {
         &mut self, registers: &mut Registers, memory: &mut Memory,
         message: Msg16, timer: bool, return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
-        let (procedure, continuation, instance) = if timer {
-            (message.l_param, WindowCallbackContinuation::GuestTimer, None)
+        let (procedure, continuation, instance, class_root) = if timer {
+            (message.l_param, WindowCallbackContinuation::GuestTimer, None,
+                WindowClassRoot::NoRegistration)
         } else {
             if message.hwnd == 0 {
                 return self.complete_return(registers, return_to.0, return_to.1,
@@ -639,10 +640,10 @@ impl Win16State {
                 self.reset_dialog_message_result(message.hwnd);
                 (address, WindowCallbackContinuation::GuestDialogDispatch {
                     window: message.hwnd,
-                }, Some(instance))
+                }, Some(instance), self.window_class_root(message.hwnd))
             } else if let Some(procedure) = self.window_procedures.get(&message.hwnd).copied() {
                 (procedure.address, WindowCallbackContinuation::GuestDispatch,
-                    Some(procedure.instance))
+                    Some(procedure.instance), WindowClassRoot::Class(procedure.class))
             } else {
                 return self.complete_return(registers, return_to.0, return_to.1,
                     return_to.2, 0, Win16ReturnKind::Dword);
@@ -674,6 +675,7 @@ impl Win16State {
             callback_payload,
             None,
             procedure,
+            class_root,
             None,
             None,
             continuation,
@@ -735,6 +737,7 @@ impl Win16State {
             payload,
             forwarded.and_then(|message| message.guest_notification),
             procedure,
+            forwarded.map_or(WindowClassRoot::NoRegistration, |source| source.class_root),
             None,
             None,
             WindowCallbackContinuation::GuestProcedureCall { forwarded },

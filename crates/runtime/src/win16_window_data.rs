@@ -14,7 +14,7 @@ use win16_abi::{
     },
 };
 
-use super::{Win16State, windows::WindowReturn};
+use super::{Win16State, windows::{WindowClassRoot, WindowReturn}};
 use crate::{
     Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost,
     Win16HostClass, Win16WindowCall, Win16WindowDataCall,
@@ -35,7 +35,8 @@ const DIALOG_USER_RANGE: std::ops::Range<usize> =
 
 #[derive(Debug)]
 pub(super) struct Win16WindowDataState {
-    class: Option<Win16HostClass>,
+    native_window: Win16HostWindow,
+    class_root: WindowClassRoot,
     /// `None` means that no guest `cbWndExtra` contract is known. An empty
     /// vector means a known class explicitly requested zero extra bytes.
     extra_bytes: Option<Vec<u8>>,
@@ -49,7 +50,8 @@ pub(super) struct Win16WindowDataState {
 
 impl Win16WindowDataState {
     fn new(
-        class: Option<Win16HostClass>,
+        native_window: Win16HostWindow,
+        class_root: WindowClassRoot,
         instance: u16,
         is_dialog: bool,
         extra_len: Option<usize>,
@@ -61,7 +63,8 @@ impl Win16WindowDataState {
         };
         let extra_bytes = length.map(zeroed_bytes).transpose()?;
         Ok(Self {
-            class,
+            native_window,
+            class_root,
             extra_bytes,
             instance,
             is_dialog,
@@ -115,8 +118,40 @@ impl Win16State {
     /// Exact registration associated with this live HWND incarnation. Class
     /// names and the HWND's possibly subclassed procedure are not identities.
     pub(super) fn window_host_class(&self, window: u16) -> Option<Win16HostClass> {
-        self.window_handles.get(&window)?;
-        self.window_data.get(&window)?.class
+        match self.window_class_root(window) {
+            WindowClassRoot::Class(class) => Some(class),
+            WindowClassRoot::NoRegistration | WindowClassRoot::Unresolved => None,
+        }
+    }
+
+    pub(super) fn window_class_root(&self, window: u16) -> WindowClassRoot {
+        let Some(state) = self.window_data.get(&window) else {
+            return WindowClassRoot::Unresolved;
+        };
+        if self.window_handles.get(&window) != Some(&state.native_window) {
+            return WindowClassRoot::Unresolved;
+        }
+        state.class_root
+    }
+
+    /// Refine unknown provenance only from an exact native callback or the
+    /// root route of the exact dialog creation. Child routes are not proof.
+    pub(super) fn record_window_class_root(
+        &mut self, window: u16, native: Win16HostWindow, root: WindowClassRoot,
+    ) -> Result<(), RuntimeError> {
+        let state = self.window_data.get_mut(&window).ok_or_else(|| RuntimeError::new(
+            Kind::InternalInvariant, "Win16 class provenance has no window data owner"))?;
+        if state.native_window != native || self.window_handles.get(&window) != Some(&native) {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "Win16 class provenance belongs to a different native HWND generation"));
+        }
+        if root == WindowClassRoot::Unresolved { return Ok(()); }
+        if state.class_root != WindowClassRoot::Unresolved && state.class_root != root {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "Win16 window data was assigned to a different class registration"));
+        }
+        state.class_root = root;
+        Ok(())
     }
 
     pub(super) fn window_is_dialog(&self, window: u16) -> bool {
@@ -134,14 +169,20 @@ impl Win16State {
         dialog: bool,
         extra_len: Option<usize>,
     ) -> Result<(), RuntimeError> {
-        if window == 0 || !self.window_handles.contains_key(&window) {
+        let native_window = self.window_handles.get(&window).copied().filter(|_| window != 0);
+        let Some(native_window) = native_window else {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "Win16 window data was initialized before its guest HWND mapping"));
-        }
+        };
+        let class_root = class.map_or(WindowClassRoot::Unresolved, WindowClassRoot::Class);
         if let Some(existing) = self.window_data.get_mut(&window) {
-            if existing.class.is_none() {
-                existing.class = class;
-            } else if class.is_some() && existing.class != class {
+            if existing.native_window != native_window {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "Win16 window data belongs to a different native HWND generation"));
+            }
+            if existing.class_root == WindowClassRoot::Unresolved {
+                existing.class_root = class_root;
+            } else if class_root != WindowClassRoot::Unresolved && existing.class_root != class_root {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
                     "Win16 window data was assigned to a different guest class"));
             }
@@ -166,7 +207,7 @@ impl Win16State {
         }
 
         self.window_data.insert(window, Win16WindowDataState::new(
-            class, instance, dialog, extra_len,
+            native_window, class_root, instance, dialog, extra_len,
         )?);
         Ok(())
     }

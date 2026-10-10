@@ -29,7 +29,7 @@ impl Win16State {
         Ok(())
     }
 
-    pub(super) fn begin_host_window_callback(
+    pub(in crate::win16_runtime) fn begin_host_window_callback(
         &mut self,
         registers: &mut Registers,
         memory: &mut Memory,
@@ -53,6 +53,12 @@ impl Win16State {
             _ => None,
         };
         let callback_id = self.reserve_window_callback_frame()?;
+        let expected_root = WindowClassRoot::Class(procedure.class);
+        let class_root = if WindowClassRoot::from_native_message(source, native_window) == expected_root {
+            expected_root
+        } else {
+            WindowClassRoot::Unresolved
+        };
         let frame = WindowCallbackFrame {
             callback_id,
             saved: registers.clone(),
@@ -87,6 +93,7 @@ impl Win16State {
             guest_notification,
             mdi_child_creation,
             callback_address: procedure.address,
+            class_root,
             host_operation: Some(operation_id),
             native_source: Some(source),
             continuation: WindowCallbackContinuation::Host {
@@ -99,6 +106,11 @@ impl Win16State {
         self.publish_window_callback_frame(frame)?;
 
         let setup = (|| {
+            if class_root == WindowClassRoot::Unresolved {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "native WndProc source differs from its exact selected class registration"));
+            }
+            self.record_window_class_root(window, native_window, class_root)?;
             self.check_window_callback(registers, procedure.address, memory)?;
             self.record_preparing_window_callback_phase(
                 callback_id,

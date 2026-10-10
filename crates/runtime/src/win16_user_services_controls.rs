@@ -83,6 +83,21 @@ pub(super) struct Win16UserFamilyContinuation {
 }
 
 impl Win16UserFamilyContinuation {
+    /// The dialog root's registration is independent of custom child routes.
+    /// An exact creation with no custom root uses the builtin dialog class.
+    pub(super) fn pending_dialog_class_root(&self) -> super::windows::WindowClassRoot {
+        use super::windows::WindowClassRoot;
+        match &self.completion {
+            FamilyCompletion::DialogCreate { class_routes, .. } => {
+                let mut roots = class_routes.iter().filter(|route| route.root);
+                let root = roots.next().map_or(WindowClassRoot::NoRegistration,
+                    |route| WindowClassRoot::Class(route.host_class));
+                if roots.next().is_some() { WindowClassRoot::Unresolved } else { root }
+            }
+            _ => WindowClassRoot::Unresolved,
+        }
+    }
+
     /// Custom root/control classes stay registered until the entire dialog
     /// creation continuation retires, including controls not yet created.
     pub(super) fn retains_window_class(&self, class: crate::Win16HostClass) -> bool {
@@ -717,6 +732,10 @@ fn dialog_create_not_invoked(
         window_creation_observation,
     }
 }
+
+#[cfg(test)]
+#[path = "win16_dialog_class_retention_tests.rs"]
+mod dialog_class_retention_tests;
 
 #[cfg(test)]
 mod retained_class_tests {

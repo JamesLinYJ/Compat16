@@ -3,7 +3,7 @@
 use super::*;
 use crate::win16_runtime::{
     module_registry::ModuleState,
-    windows::{WindowCallbackContinuation, WindowCallbackFrame, WindowCreateRequest, WindowReturn},
+    windows::{WindowCallbackContinuation, WindowCallbackFrame, WindowClassRoot, WindowCreateRequest, WindowReturn},
 };
 
 fn unregister(
@@ -245,14 +245,14 @@ fn callback(runtime: &mut Runtime, class: Registered, hwnd: u16, native: Win16Ho
         crate::win16_runtime::window_payloads::GuestWindowPayload {
             message: 0x111, w_param: 0, l_param: 0, allocation: None, output: None,
             callback_dc: None, command_control: None, command_parent: None, common_dialog_request: None,
-        }, None, class.info.lpfn_wnd_proc, None, None,
+        }, None, class.info.lpfn_wnd_proc, WindowClassRoot::Class(class.class), None, None,
         WindowCallbackContinuation::Host { callback: crate::Win16HostCallback(1),
             native_window: native, window: hwnd, destroyed: false },
     ));
 }
 
 #[test]
-fn unregister_class_allows_unrelated_live_callbacks_but_refuses_retired_hwnd_ambiguity() {
+fn unregister_class_retains_exact_callback_class_after_hwnd_retirement_and_reuse() {
     let mut runtime = fixture();
     let mut host = ClassDataHost::default();
     let active = named_class(&mut runtime, &mut host, b"Active", 0);
@@ -266,8 +266,10 @@ fn unregister_class_allows_unrelated_live_callbacks_but_refuses_retired_hwnd_amb
     runtime.win16.as_mut().unwrap().next_window_handle = hwnd;
     assert_eq!(window(&mut runtime, replacement, 2), hwnd);
     assert_eq!(unregister(&mut runtime, &mut host, active.info.h_instance, atom(active)).unwrap(), 0);
-    assert!(host.diagnostics.contains(&Kind::CompatibilityGap));
+    assert!(!host.diagnostics.contains(&Kind::CompatibilityGap));
     assert_eq!(host.unregistrations, vec![other.class]);
+    runtime.win16.as_mut().unwrap().retire_window_handle(hwnd).unwrap();
+    assert_eq!(unregister(&mut runtime, &mut host, replacement.info.h_instance, atom(replacement)).unwrap(), 1);
     runtime.win16.as_mut().unwrap().window_callbacks.pop();
     assert_eq!(unregister(&mut runtime, &mut host, active.info.h_instance, atom(active)).unwrap(), 1);
 }

@@ -104,6 +104,7 @@ impl Win16State {
         let pending_dialog_window = continuation.pending_dialog_window();
         let pending_dialog_window_destroyed = continuation.pending_dialog_window_destroyed();
         let pending_dialog_creation = continuation.pending_dialog_creation();
+        let pending_dialog_class_root = continuation.pending_dialog_class_root();
 
         let value = match (continuation.completion, result) {
             (Completion::SystemParameters(spi), ResultValue::SystemParameters(result)) => {
@@ -204,6 +205,8 @@ impl Win16State {
                                 )
                             })?;
                             self.associate_window_creation(guest, window, creation)?;
+                            self.initialize_dialog_window_data(guest, instance)?;
+                            self.record_window_class_root(guest, window, pending_dialog_class_root)?;
                             Some(guest)
                         }
                         None => {

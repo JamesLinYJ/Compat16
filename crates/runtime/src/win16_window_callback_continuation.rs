@@ -12,6 +12,7 @@ pub(in crate::win16_runtime) struct ForwardedWindowMessage {
     pub(in crate::win16_runtime) w_param: u16,
     pub(in crate::win16_runtime) l_param: u32,
     pub(in crate::win16_runtime) guest_notification: Option<Win16GuestNotification>,
+    pub(in crate::win16_runtime) class_root: super::WindowClassRoot,
 }
 
 #[derive(Clone, Copy)]

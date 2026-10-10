@@ -106,6 +106,7 @@ impl Win16State {
                     w_param: frame.payload.w_param,
                     l_param: frame.payload.l_param,
                     guest_notification: frame.guest_notification,
+                    class_root: frame.class_root,
                 }
             }
             WindowCallbackContinuation::GuestProcedureCall {

@@ -493,7 +493,10 @@ impl Win16State {
             };
             for index in (0..self.window_classes.entries.len()).rev() {
                 let class = &self.window_classes.entries[index];
-                if class.instance != instance {
+                if class.instance != instance
+                    || self.window_class_retention(class.host_class)
+                        != unregister::WindowClassRetention::Unretained
+                {
                     continue;
                 }
                 if host.win16_unregister_window_class(class.host_class)? {

@@ -111,7 +111,8 @@ jobs:
             '-p runtime --lib caret_',
             '-p runtime --lib local_atom_',
             '-p host-services --lib local_atom_',
-            '-p runtime --lib class_data_'
+            '-p runtime --lib class_data_',
+            '-p runtime --lib callback_class_'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

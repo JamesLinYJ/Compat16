@@ -10,8 +10,15 @@ use crate::Diagnostic;
 use crate::win16_runtime::{
     messages::MessageOutput,
     messages_mdi::MdiOutputPlan,
-    windows::{WindowCallbackContinuation, WindowReturn},
+    windows::{WindowClassRoot, WindowReturn},
 };
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum WindowClassRetention {
+    Unretained,
+    Retained,
+    Unresolved,
+}
 
 impl Win16State {
     pub(in crate::win16_runtime) fn unregister_class(
@@ -26,6 +33,23 @@ impl Win16State {
         let Some(owner) = self.class_instance(instance) else { return Ok(0); };
         let Some(index) = self.class_to_unregister(owner, &name, host)? else { return Ok(0); };
         let class = self.window_classes.entries[index].host_class;
+        match self.window_class_retention(class) {
+            WindowClassRetention::Retained => return Ok(0),
+            WindowClassRetention::Unresolved => return Ok(unresolved_callback_class(host)),
+            WindowClassRetention::Unretained => {}
+        }
+        // This synchronous host contract does not run guest callbacks. Its
+        // opaque token targets the worker's own registration, including native
+        // windows not yet projected as guest HWNDs. Keep all bytes/roots until
+        // success; a refusal or an error leaves the entire entry untouched.
+        if !host.win16_unregister_window_class(class)? { return Ok(0); }
+        self.window_classes.entries.remove(index);
+        Ok(1)
+    }
+
+    /// Shared with automatic module cleanup: native unregister success alone
+    /// cannot release a registration still owned by suspended guest work.
+    pub(super) fn window_class_retention(&self, class: Win16HostClass) -> WindowClassRetention {
         if self.window_handles.keys().any(|&window| {
             self.window_host_class(window) == Some(class)
                 || self.window_procedures.get(&window).is_some_and(|proc| proc.class == class)
@@ -38,44 +62,15 @@ impl Win16State {
                 mdi_output: Some(MdiOutputPlan::Create(plan)),
             }) => plan.mdi.class == class,
             _ => false,
-        }) {
-            return Ok(0);
+        }) || self.window_callbacks.iter().any(|frame|
+            frame.class_root == WindowClassRoot::Class(class))
+        {
+            return WindowClassRetention::Retained;
         }
-        for frame in &self.window_callbacks {
-            let target = match frame.continuation {
-                WindowCallbackContinuation::Host { window, native_window, .. }
-                | WindowCallbackContinuation::HostDialog { window, native_window, .. } =>
-                    Some((window, native_window)),
-                WindowCallbackContinuation::GuestProcedureCall { forwarded: Some(source) } =>
-                    Some((source.window, source.native_window)),
-                WindowCallbackContinuation::GuestDispatch
-                | WindowCallbackContinuation::GuestDialogDispatch { .. } => {
-                    return Ok(unresolved_callback_class(host));
-                }
-                // Explicit FAR procedure calls and timers retain their code
-                // independently and have no class registration to retire.
-                _ => None,
-            };
-            if let Some((window, native)) = target {
-                // The old HWND may already be retired and numerically reused
-                // while a callback is suspended. Never infer its old class
-                // from the replacement window or from a procedure address.
-                if self.window_handles.get(&window) != Some(&native) {
-                    return Ok(unresolved_callback_class(host));
-                }
-                let Some(callback_class) = self.window_host_class(window) else {
-                    return Ok(unresolved_callback_class(host));
-                };
-                if callback_class == class { return Ok(0); }
-            }
+        if self.window_callbacks.iter().any(|frame| frame.class_root == WindowClassRoot::Unresolved) {
+            return WindowClassRetention::Unresolved;
         }
-        // This synchronous host contract does not run guest callbacks. Its
-        // opaque token targets the worker's own registration, including native
-        // windows not yet projected as guest HWNDs. Keep all bytes/roots until
-        // success; a refusal or an error leaves the entire entry untouched.
-        if !host.win16_unregister_window_class(class)? { return Ok(0); }
-        self.window_classes.entries.remove(index);
-        Ok(1)
+        WindowClassRetention::Unretained
     }
 
     fn class_to_unregister(

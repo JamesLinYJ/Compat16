@@ -3,7 +3,7 @@
 use super::*;
 
 impl Win16State {
-    pub(super) fn begin_dialog_callback(
+    pub(in crate::win16_runtime) fn begin_dialog_callback(
         &mut self,
         registers: &mut Registers,
         memory: &mut Memory,
@@ -42,7 +42,7 @@ impl Win16State {
         } else {
             None
         };
-        let pending_procedure = pending_route.and_then(|(procedure, _)| procedure);
+        let pending_procedure = pending_route.and_then(|(procedure, _, _)| procedure);
         let window = match (mapped_window, pending_route) {
             (Some(window), _) => window,
             (None, Some(_)) => self.map_window_handle(native_window, false)?,
@@ -78,14 +78,26 @@ impl Win16State {
                 .copied()
                 .or(pending_procedure)
         };
-        let known_null_procedure = pending_route.is_some_and(|(procedure, _)| procedure.is_none())
+        let known_null_procedure = pending_route.is_some_and(|(procedure, _, _)| procedure.is_none())
             || self.dialog_procedures.get(&window)
                 .is_some_and(|(procedure, _)| *procedure == 0);
-        let dialog_instance = pending_route.map(|(_, instance)| instance)
+        let dialog_instance = pending_route.map(|(_, instance, _)| instance)
             .or_else(|| self.dialog_procedures.get(&window).map(|(_, instance)| *instance));
+        let source_root = WindowClassRoot::from_native_message(source, native_window);
+        let existing_root = self.window_class_root(window);
+        let pending_root = pending_route.map_or(WindowClassRoot::Unresolved, |(_, _, root)| root);
+        let valid_root = source_root != WindowClassRoot::Unresolved
+            && [existing_root, pending_root].into_iter().all(|root|
+                root == WindowClassRoot::Unresolved || root == source_root);
+        let class_root = if valid_root { source_root } else { WindowClassRoot::Unresolved };
         let Some((address, instance)) = procedure.filter(|(address, _)| *address != 0) else {
+            if !valid_root {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "native DLGPROC source differs from its exact dialog class provenance"));
+            }
             if let Some(instance) = dialog_instance {
                 self.initialize_dialog_window_data(window, instance)?;
+                self.record_window_class_root(window, native_window, class_root)?;
                 if is_init {
                     self.dialog_procedures.insert(window, (0, instance));
                 }
@@ -147,6 +159,7 @@ impl Win16State {
             guest_notification,
             mdi_child_creation: None,
             callback_address: address,
+            class_root,
             host_operation: Some(operation_id),
             native_source: Some(source),
             continuation: WindowCallbackContinuation::HostDialog {
@@ -158,6 +171,10 @@ impl Win16State {
         })?;
 
         let setup = (|| {
+            if !valid_root {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "native DLGPROC source differs from its exact dialog class provenance"));
+            }
             if is_destroy {
                 self.mark_pending_dialog_destroyed(native_window);
                 self.record_preparing_window_callback_phase(
@@ -166,6 +183,7 @@ impl Win16State {
                 );
             }
             self.initialize_dialog_window_data(window, instance)?;
+            self.record_window_class_root(window, native_window, class_root)?;
             self.record_preparing_window_callback_phase(
                 callback_id,
                 WindowCallbackSetupPhase::DialogDataInitialized,

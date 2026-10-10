@@ -11,7 +11,7 @@ use super::super::window_payloads::GuestWindowPayload;
 use super::{
     Win16State, WindowCallbackContinuation, WindowCallbackEntryPhase,
     WindowCallbackFrame, WindowCallbackSetupJournal, WindowCallbackSetupPhase,
-    WNDPROC_STACK_BYTES,
+    WindowClassRoot, WNDPROC_STACK_BYTES,
 };
 use crate::{
     RuntimeError, Win16HostCallback, Win16HostWindow,
@@ -25,7 +25,7 @@ impl Win16State {
     /// `Some(host_timer_id)` identifies a SetTimer generation, including one
     /// retired after KillTimer; `None` is reserved for a verified guest-post
     /// sidecar whose LPARAM is a guest FAR value.
-    pub(super) fn begin_host_timer_callback(
+    pub(in crate::win16_runtime) fn begin_host_timer_callback(
         &mut self,
         registers: &mut Registers,
         memory: &mut Memory,
@@ -51,10 +51,10 @@ impl Win16State {
                     return Ok(false);
                 }
                 let window_proc = if registration.callback.is_none() && guest_window != 0 {
-                    self.dialog_procedures.get(&guest_window).copied().or_else(|| {
-                        self.window_procedures.get(&guest_window)
-                            .map(|procedure| (procedure.address, procedure.instance))
-                    })
+                    // A TIMERPROC retains its FAR target after KillTimer, but
+                    // fallback dispatch may only select a live procedure from
+                    // this timer's exact original HWND generation.
+                    self.timer_window_procedure(guest_window, registration.host_window)
                 } else {
                     None
                 };
@@ -69,10 +69,7 @@ impl Win16State {
                     None => 0,
                 };
                 let window_proc = if guest_l_param == 0 && guest_window != 0 {
-                    self.dialog_procedures.get(&guest_window).copied().or_else(|| {
-                        self.window_procedures.get(&guest_window)
-                            .map(|procedure| (procedure.address, procedure.instance))
-                    })
+                    self.timer_window_procedure(guest_window, host_window)
                 } else {
                     None
                 };
@@ -80,14 +77,14 @@ impl Win16State {
                     window_proc)
             };
 
-        let (procedure, instance, stack_l_param, stack_w_param) =
+        let (procedure, instance, stack_l_param, stack_w_param, class_root) =
             if let Some(procedure) = timer_proc {
                 // TIMERPROC(HWND, UINT, UINT_PTR, DWORD) is FAR PASCAL; its
                 // DWORD time value occupies the WndProc LPARAM stack slot.
-                (procedure, None, time, guest_timer_id)
-            } else if let Some((procedure, instance)) = window_proc {
+                (procedure, None, time, guest_timer_id, WindowClassRoot::NoRegistration)
+            } else if let Some((procedure, instance, class_root)) = window_proc {
                 if guest_window == 0 { return Ok(false); }
-                (procedure, Some(instance), guest_l_param, guest_timer_id)
+                (procedure, Some(instance), guest_l_param, guest_timer_id, class_root)
             } else {
                 return Ok(false);
             };
@@ -128,6 +125,7 @@ impl Win16State {
             guest_notification: None,
             mdi_child_creation: None,
             callback_address: procedure,
+            class_root,
             host_operation: Some(operation_id),
             native_source: Some(source),
             continuation: WindowCallbackContinuation::HostTimer { callback },
@@ -174,5 +172,17 @@ impl Win16State {
         }
         frame.setup.last_completed = WindowCallbackSetupPhase::GuestEntryCommitted;
         Ok(true)
+    }
+
+    fn timer_window_procedure(
+        &self, window: u16, native: Option<Win16HostWindow>,
+    ) -> Option<(u32, u16, WindowClassRoot)> {
+        let native = native?;
+        if self.window_handles.get(&window) != Some(&native) { return None; }
+        if let Some(&(address, instance)) = self.dialog_procedures.get(&window) {
+            return (address != 0).then(|| (address, instance, self.window_class_root(window)));
+        }
+        self.window_procedures.get(&window).map(|procedure|
+            (procedure.address, procedure.instance, WindowClassRoot::Class(procedure.class)))
     }
 }
