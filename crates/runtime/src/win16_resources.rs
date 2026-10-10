@@ -719,23 +719,28 @@ fn resource_metadata_for_definition(
     definition: &NeModule,
     info: u16,
 ) -> Option<ResourceMetadata> {
-    let mut row_offset = NE_RESOURCE_ALIGNMENT_SHIFT_BYTES;
     let table_offset = usize::from(definition.header.resource_table_offset);
+    let requested_row = usize::from(info).checked_sub(table_offset)?;
+    let mut row_offset = NE_RESOURCE_ALIGNMENT_SHIFT_BYTES;
     for (type_index, entry) in definition.resource_types.iter().enumerate() {
         row_offset = row_offset.checked_add(NE_RESOURCE_TYPEINFO_BYTES)?;
-        for resource in &entry.resources {
-            let header_relative = table_offset.checked_add(row_offset)?;
-            if u16::try_from(header_relative).ok()? == info {
-                return Some(ResourceMetadata {
-                    key: ResourceKey { module, info },
-                    type_index,
-                    offset: resource.file_offset,
-                    length: resource.byte_length,
-                    flags: resource.flags,
-                });
-            }
-            row_offset = row_offset.checked_add(NE_RESOURCE_NAMEINFO_BYTES)?;
+        let rows_length = entry.resources.len().checked_mul(NE_RESOURCE_NAMEINFO_BYTES)?;
+        let rows_end = row_offset.checked_add(rows_length)?;
+        // HRSRC identifies the start of a NAMEINFO record, not its contents.
+        // Skip whole type ranges instead of visiting every preceding resource.
+        let relative = requested_row.checked_sub(row_offset)?;
+        if requested_row < rows_end {
+            if relative % NE_RESOURCE_NAMEINFO_BYTES != 0 { return None; }
+            let resource = entry.resources.get(relative / NE_RESOURCE_NAMEINFO_BYTES)?;
+            return Some(ResourceMetadata {
+                key: ResourceKey { module, info },
+                type_index,
+                offset: resource.file_offset,
+                length: resource.byte_length,
+                flags: resource.flags,
+            });
         }
+        row_offset = rows_end;
     }
     None
 }
@@ -796,3 +801,7 @@ fn is_resource_capacity_error(error: &win16_abi::Win16Error) -> bool {
             | win16_abi::Win16Error::SelectorTableFull
             | win16_abi::Win16Error::SelectorBlockInterior)
 }
+
+#[cfg(test)]
+#[path = "win16_resource_metadata_tests.rs"]
+mod metadata_tests;
