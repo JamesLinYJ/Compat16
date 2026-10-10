@@ -312,6 +312,7 @@ pub(super) fn decode(
             call_menus::decode(descriptor.id, &arguments, selectors, memory)?
         }
         Win16ExportId::UserCloseWindow
+        | Win16ExportId::UserArrangeIconicWindows
         | Win16ExportId::UserOpenIcon
         | Win16ExportId::UserIsIconic
         | Win16ExportId::UserGetWindowRect

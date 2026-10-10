@@ -18,7 +18,7 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     EnableWindow, GetActiveWindow, IsWindowEnabled, SetActiveWindow,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CloseWindow, GetWindowLongW, GWL_STYLE, WS_CHILD, WS_POPUP,
+    ArrangeIconicWindows, CloseWindow, GetWindowLongW, GWL_STYLE, WS_CHILD, WS_POPUP,
     BringWindowToTop, ChildWindowFromPoint, ChildWindowFromPointEx, FindWindowW,
     GetClientRect, GetClassNameW,
     GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
@@ -92,6 +92,9 @@ pub(super) fn execute(
                 let style = GetWindowLongW(native, GWL_STYLE) as u32;
                 style & (WS_POPUP | WS_CHILD) == 0 && CloseWindow(native) != 0
             })),
+        Call::ArrangeIconicWindows { window } => ResultValue::Integer(
+            arrange_iconic_windows_with(state, window, |native| unsafe { ArrangeIconicWindows(native) }) as i32,
+        ),
         // OpenIcon owns WM_QUERYOPEN, restoration and activation, and returns
         // success rather than ShowWindow's previous visibility. Resolve exact
         // identity before the call and retain no worker borrow over reentry.
@@ -387,6 +390,22 @@ fn native_point(point: Win16HostPoint) -> POINT {
 
 fn host_point(point: POINT) -> Win16HostPoint {
     Win16HostPoint { x: point.x, y: point.y }
+}
+
+// NULL has special meanings in several USER APIs. This API requires an exact
+// live parent mapping, never an implicit desktop fallback. Owned windows use
+// cookie identity; foreign windows retain ordinary USER liveness resolution.
+// Identity resolution
+// finishes (and releases all state borrows) before synchronous native callbacks.
+pub(super) fn arrange_iconic_windows_with(
+    state: &SharedWorker,
+    target: Win16WindowTarget,
+    native_call: impl FnOnce(HWND) -> u32,
+) -> u32 {
+    let Win16WindowTarget::Mapped(token) = target else { return 0; };
+    let Some(native) = super::win16_window_identity::resolve_user_window(state, token)
+        else { return 0; };
+    native_call(native)
 }
 
 #[cfg(test)]

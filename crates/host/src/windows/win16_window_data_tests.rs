@@ -372,3 +372,6 @@ mod set_parent_tests;
 
 #[path = "win16_close_window_tests.rs"]
 mod close_window_tests;
+
+#[path = "win16_arrange_iconic_windows_tests.rs"]
+mod arrange_iconic_windows_tests;

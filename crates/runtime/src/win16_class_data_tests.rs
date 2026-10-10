@@ -1,5 +1,8 @@
 //! Host-independent USER.129–132 service-gate and class-lifetime coverage.
 
+#[path = "win16_dispatch_arrange_iconic_windows_tests.rs"]
+mod arrange_iconic_windows_tests;
+
 #[path = "win16_dispatch_set_parent_tests.rs"]
 mod set_parent_tests;
 

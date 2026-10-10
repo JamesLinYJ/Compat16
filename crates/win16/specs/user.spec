@@ -168,6 +168,7 @@
 167 pascal -ret16 ShowCaret(word)
 168 pascal -ret16 SetCaretBlinkTime(word)
 169 pascal -ret16 GetCaretBlinkTime()
+# SDK 3.1 WINDOWS.H:4230 UINT WINAPI ArrangeIconicWindows(HWND); LIBW IMPDEF 0x7d69 => USER.170.
 170 pascal -ret16 ArrangeIconicWindows(word)
 171 pascal -ret16 WinHelp(word str word long)
 172 pascal -ret16 SwitchToThisWindow(word word)

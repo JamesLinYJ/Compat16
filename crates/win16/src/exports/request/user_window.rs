@@ -150,6 +150,11 @@ pub enum Win16UserWindowRequest {
         window: u16,
     },
 
+    /// USER.170 arranges minimized children and returns an unsigned row height.
+    ArrangeIconicWindows {
+        window: u16,
+    },
+
     /// Query the native minimized state of a window.
     IsIconic {
         window: u16,

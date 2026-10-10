@@ -70,6 +70,11 @@ pub(super) fn decode(
                 window: word_argument(arguments, 0)?,
             },
         )),
+        Win16ExportId::UserArrangeIconicWindows => Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::ArrangeIconicWindows {
+                window: word_argument(arguments, 0)?,
+            },
+        )),
         Win16ExportId::UserIsIconic => Win16ApiRequest::User(super::Win16UserRequest::Window(
             super::Win16UserWindowRequest::IsIconic {
                 window: word_argument(arguments, 0)?,
@@ -447,3 +452,7 @@ mod open_icon_tests;
 #[cfg(test)]
 #[path = "call_close_window_tests.rs"]
 mod close_window_tests;
+
+#[cfg(test)]
+#[path = "call_arrange_iconic_windows_tests.rs"]
+mod arrange_iconic_windows_tests;

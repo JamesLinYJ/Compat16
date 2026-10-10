@@ -126,6 +126,14 @@ impl Win16State {
                 None,
             ),
             Request::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::ArrangeIconicWindows { window },
+            )) => self.submit_call(
+                registers, memory, host,
+                Win16WindowCall::ArrangeIconicWindows { window: self.native_window(window) },
+                Win16WindowCallOutput::Integer,
+                return_to, return_kind, None,
+            ),
+            Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::IsIconic { window },
             )) => self.submit_value_call(
                 registers,

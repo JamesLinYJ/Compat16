@@ -97,6 +97,7 @@ jobs:
             '-p host-services --lib image_ownership_tests::',
             '-p host-services --lib dialog_icon_',
             '-p runtime --lib dialog_icon_title_',
+            '-p runtime --lib arrange_iconic_windows',
             '-p host-services --lib windows::vga_window::tests::',
             '-p runtime --lib input::tests::',
             '-p runtime --lib diagnostics::tests::',
@@ -266,6 +267,34 @@ jobs:
           }
           if (($probeOutput -join "`n") -notmatch 'test result: ok\. 1 passed; 0 failed; 0 ignored;') {
             throw 'BLOCKED: the exact hidden dialog icon integration fixture did not execute once.'
+          }
+
+      - name: Exercise hidden iconic window arrangement
+        # Diagnostic only: hidden USER windows, no ShowWindow or input. Keep its
+        # ignored test isolated from the ordinary noninteractive test filters.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for hidden iconic window arrangement.'
+          }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'BLOCKED: Visual Studio developer command script unavailable for hidden iconic window arrangement.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $filter = 'arrange_iconic_windows_tests::'
+          Write-Host 'Exercising owned hidden parent arrangement, minimized-child coordinates, unchanged sibling and exact identity checks.'
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib {4} -- --ignored --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+          & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+          $probeExitCode = $LASTEXITCODE
+          if ($probeExitCode -ne 0) {
+            throw "UNSUPPORTED/FAILED: hidden iconic window arrangement (exit $probeExitCode); inspect owned iconic window arrangement diagnostics above."
+          }
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 3 passed; 0 failed; 0 ignored;') {
+            throw 'BLOCKED: the three hidden iconic window arrangement fixtures did not execute.'
           }
 
       - name: Build and stage native release

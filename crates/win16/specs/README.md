@@ -1,7 +1,8 @@
 # Verified Microsoft SDK declarations
 
 This record covers GDI.350 GetCharWidth, USER.196 TabbedTextOut,
-USER.197 GetTabbedTextExtent, USER.43 CloseWindow, USER.44 OpenIcon, USER.233 SetParent, and the four GDI rectangle predicate exports
+USER.197 GetTabbedTextExtent, USER.43 CloseWindow, USER.44 OpenIcon,
+USER.170 ArrangeIconicWindows, USER.233 SetParent, and the four GDI rectangle predicate exports
 listed below. It independently establishes the stated import identities and
 ABI evidence for these entries. It does not establish other entries'
 provenance or verify runtime behavior. Existing third-party notices remain applicable.
@@ -199,3 +200,36 @@ reference specifies failure output contents: native FALSE suppresses scratch
 RECT copy-back and HRGN snapshot commit, matching the existing ScrollWindowEx
 failure path. ABI, mock, and owned-memory native fixtures cover this bounded
 bridge; they do not establish historical equivalence or desktop application behavior.
+
+## USER.170 ArrangeIconicWindows
+
+The original SDK disk 03 artifacts establish `UINT WINAPI
+ArrangeIconicWindows(HWND)` (`WINDOWS.H` line 4230) and the USER ordinal 170
+import (`LIBW.LIB` IMPDEF at `0x7d69`). This is one WORD HWND argument,
+two bytes of far Pascal callee cleanup, and an unsigned WORD result in AX;
+DX is preserved. The existing spec declaration now reaches a typed request.
+
+The worker forwards to native
+[ArrangeIconicWindows](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-arrangeiconicwindows)
+on its HWND-owning thread. The native row-height result is narrowed to the
+Win16 unsigned WORD, never Booleanized. NULL, invalid tokens, retired mappings, and mismatched worker-owned identity
+cookies return zero without entering the native API or substituting a desktop
+HWND. Foreign-thread windows retain the existing USER resolver's weaker native
+liveness check; this change does not establish foreign HWND incarnation safety. An
+explicit live mapped desktop token retains its usual native meaning, but tests
+never arrange the desktop. Identity resolution releases all worker-state
+borrows before callbacks, and completion uses the existing replay-free path.
+Only integer completions are accepted; malformed handle-bearing results cannot
+create guest handles or retire unrelated objects.
+
+Windows 3.0's no-icons wording differs from the later 3.1/native contract.
+Historical version-specific behavior is not established here: no special
+no-icons result is synthesized. The original 3.1 reference is
+[Programmer's Reference volume 2, printed page 26](https://www.bitsavers.org/pdf/microsoft/windows_3.1/Microsoft_Windows_3.1_SDK_1992/PC28916-0492_Programmers_Reference_Volume_2_199204.pdf).
+The SDK header/import artifacts establish the ABI independently of that prose.
+Host-independent tests cover lookup, frame bounds, unsigned results including
+37 and high-bit values, callbacks, invalid target encoding and completion retry.
+Opt-in native tests use owned hidden parents and minimized children only;
+they cover native row-height forwarding, stale identity rejection before a
+native call, and callback reentry. These are bounded contract tests, not a
+claim of historical layout equivalence or full application compatibility.
