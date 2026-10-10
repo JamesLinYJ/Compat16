@@ -506,8 +506,8 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Strings(
-                win16_abi::Win16KernelStringsRequest::StringLength { text },
-            )) => text.map_or(0, |bytes| bytes.len() as u16 as u32),
+                win16_abi::Win16KernelStringsRequest::StringLength { byte_count },
+            )) => u32::from(byte_count),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Strings(
                 win16_abi::Win16KernelStringsRequest::StringCopy {
                     destination,
@@ -793,3 +793,7 @@ fn finish_global_heap_call(registers: &mut Registers) {
     registers.fs = 0;
     registers.gs = 0;
 }
+
+#[cfg(test)]
+#[path = "win16_lstrlen_tests.rs"]
+mod lstrlen_tests;

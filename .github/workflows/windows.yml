@@ -130,7 +130,8 @@ jobs:
             '-p runtime --lib ansi_next_',
             '-p host-services --lib ansi_next_',
             '-p host-services --lib ansi_prev_',
-            '-p host-services --lib code_page_metadata_ -- --test-threads=1 --nocapture'
+            '-p host-services --lib code_page_metadata_ -- --test-threads=1 --nocapture',
+            '-p runtime --lib lstrlen_'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

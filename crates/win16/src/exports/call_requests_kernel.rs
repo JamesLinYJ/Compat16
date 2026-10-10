@@ -94,11 +94,17 @@ pub(super) fn decode(
         | Win16ExportId::KernelExitProcess => {
             kernel_runtime_calls::decode(descriptor.id, &arguments)?
         }
-        Win16ExportId::KernelLstrlen => Win16ApiRequest::Kernel(
-            super::Win16KernelRequest::Strings(super::Win16KernelStringsRequest::StringLength {
-                text: read_nullable_far_string(dword_argument(&arguments, 0)?, selectors, memory)?,
-            }),
-        ),
+        Win16ExportId::KernelLstrlen => {
+            let far = dword_argument(arguments, 0)?;
+            let byte_count = if far == 0 { 0 } else {
+                u16::try_from(crate::strings::count_ansi_z(
+                    selectors, memory, far, super::super::MAX_WIN16_STRING_BYTES,
+                )?).map_err(|_| Win16Error::InvalidRange)?
+            };
+            Win16ApiRequest::Kernel(super::Win16KernelRequest::Strings(
+                super::Win16KernelStringsRequest::StringLength { byte_count },
+            ))
+        }
         Win16ExportId::KernelLstrcpy => Win16ApiRequest::Kernel(
             super::Win16KernelRequest::Strings(super::Win16KernelStringsRequest::StringCopy {
                 destination: dword_argument(&arguments, 0)?,
@@ -275,3 +281,7 @@ pub(super) fn decode(
     };
     Ok(Some(request))
 }
+
+#[cfg(test)]
+#[path = "call_lstrlen_tests.rs"]
+mod lstrlen_tests;
