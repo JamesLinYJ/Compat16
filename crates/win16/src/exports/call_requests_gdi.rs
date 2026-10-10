@@ -151,6 +151,7 @@ pub(super) fn decode(
         | Win16ExportId::GdiSetRectRgn
         | Win16ExportId::GdiGetClipRgn
         | Win16ExportId::GdiRectInRegion
+        | Win16ExportId::GdiRectInRegionEhh
         | Win16ExportId::GdiPolyPolygon
         | Win16ExportId::GdiPolyBezier
         | Win16ExportId::GdiPolyBezierTo

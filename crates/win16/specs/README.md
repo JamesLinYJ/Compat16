@@ -1,8 +1,9 @@
 # Verified Microsoft SDK declarations
 
-This record covers only GDI.350 GetCharWidth, USER.196 TabbedTextOut, and
-USER.197 GetTabbedTextExtent. It independently establishes the import ordinals
-and header declarations for these entries. It does not establish other entries'
+This record covers GDI.350 GetCharWidth, USER.196 TabbedTextOut,
+USER.197 GetTabbedTextExtent, and the four GDI rectangle predicate exports
+listed below. It independently establishes the stated import identities and
+ABI evidence for these entries. It does not establish other entries'
 provenance or verify runtime behavior. Existing third-party notices remain applicable.
 
 Source: Microsoft Windows SDK 3.10 disk 03, archived by PCjs.
@@ -40,3 +41,67 @@ output lengths; read the unmodified headers and OMF COMENT records (record
 `0x88`, class `0xa0`, subtype `0x01`, import-by-ordinal flag `0x01`). Offsets
 refer to expanded `LIBW.LIB`. Header line numbers count original CRLF-delimited
 lines. `WINDOWS.H` line 124 defines WINAPI as far Pascal.
+
+## Rectangle predicate exports
+
+The same disk 03 `LIBW.LIB` contains these import-by-ordinal IMPDEF records.
+Names are shown with their original case; lookup in this project is ASCII
+case-insensitive.
+
+- GDI.104 RECTVISIBLE: OMF record offset `0x3b20`.
+- GDI.181 RECTINREGION: OMF record offset `0x41d1`.
+- GDI.465 RECTVISIBLE_EHH: OMF record offset `0x5414`.
+- GDI.466 RECTINREGION_EHH: OMF record offset `0x5455`.
+
+`WINDOWS.H` line 1590 declares RectVisible with HDC and `const RECT FAR*`
+parameters; line 1517 declares RectInRegion with HRGN and `const RECT FAR*`
+parameters. Both return BOOL, defined as int on line 129, and use WINAPI
+(far Pascal). The header does not declare the `_EHH` names.
+
+The original SDK debug GDI module independently confirms all four exported
+names and ordinals, including `_EHH`, rather than merely import-library aliases:
+
+- https://www.pcjs.org/software/pcx86/sdk/windows/3.10/#directory-of-windows-sdk-310-disk-02
+- https://diskettes.pcjs.org/pcx86/sdk/windows/3.10/WIN31SDK-DISK02.json
+- JSON SHA-256: `61021f4be09c98a3ec103678f81e04cfae046aaad0ef20c3445393955ac5ec96`.
+- Reconstructed disk: 1474560 bytes;
+  SHA-256 `370536e16d4ebeb02055c4c9f2cb08a74478fe6fff971c508705aafb1ba29103`;
+  MD5 `b7a6a8f0af4c0f0f5de989b3d446ce26` (matches archive imageInfo).
+- `DEBUG/GDI.EX_`: compressed MD5 `c3cf2ceffa7150dc9f7b130cf90e1497`.
+  Expanded `GDI.EXE`: 275261 bytes;
+  SHA-256 `81effc1e452ef9997cc07b5b56305cd2bb32456d22f967945c232b6b5cd99793`.
+- SDK file timestamp: 1992-03-23 03:10:00; inspected 2026-10-10.
+
+All following offsets refer to the expanded `GDI.EXE`. Its NE header is at
+`0x400`; segment 1 starts at file offset `0x1e20`. The NE nonresident-name
+record offsets and entry records are:
+
+- 104 RECTVISIBLE: name `0x104e`; entry `0x7fc`, segment 1:`5578`, file `0x7398`.
+- 181 RECTINREGION: name `0x1b6d`; entry `0x8e5`, segment 1:`5558`, file `0x7378`.
+- 465 RECTVISIBLE_EHH: name `0x13a4`; entry `0xbe2`, segment 1:`2fd8`, file `0x4df8`.
+- 466 RECTINREGION_EHH: name `0xe68`; entry `0xbe5`, segment 1:`30e0`, file `0x4f00`.
+
+The standard debug entrypoints check the handle and eight-byte FAR RECT,
+then tail-jump to their matching `_EHH` entry: 104 at file `0x73b2`
+(`e9 43 da`) to 465, and 181 at `0x7392` (`e9 6b db`) to 466.
+Their stack accesses establish a 16-bit handle and a 16:16 RECT pointer,
+six argument bytes in physical Pascal order. The BOOL result is in AX.
+Both shared exits, file `0x4e6f` and `0x4f74`, contain `ca 06 00` (RETF 6);
+the standard wrappers' failure exits at `0x73b5` and `0x7395` do too.
+This supplies the `_EHH` ABI evidence missing from the public header.
+
+The project retains its former `RectVisibleOld` and `RectInRegionOld` names
+as explicit GDI-scoped lookup aliases to 104 and 181. They are not additional
+SDK export declarations. Correcting the canonical `RectVisible` name moves
+its lookup from 465 to 104; both ordinals remain callable, but the former
+name-to-address identity cannot also be preserved. `RectInRegion` moves from
+the formerly unbound 466 declaration to 181, and 466 now has a typed request
+binding of its own. Existing Rust descriptor IDs keep their ordinal identities;
+their names need not match the canonical guest export names.
+
+This bounded change restores name/ordinal reachability and checked ABI
+decoding into the existing requests. It makes no historical geometry or
+debug/retail error-behavior equivalence claim. The original shared code also
+consults the calling module's expected Windows version before a rectangle-edge
+adjustment. That behavior is separate from these entrypoint names and is not
+implemented by this routing change.

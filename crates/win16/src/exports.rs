@@ -466,6 +466,10 @@ pub use declarations::{
 };
 include!("exports/catalog/declarations.rs");
 
+#[cfg(test)]
+#[path = "exports/call_rectangle_predicate_tests.rs"]
+mod rectangle_predicate_tests;
+
 /// The descriptor catalog establishes decoding into a project-owned request;
 /// runtime dispatch and host behavior are tracked separately.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]

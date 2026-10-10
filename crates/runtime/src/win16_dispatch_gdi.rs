@@ -559,3 +559,7 @@ impl Win16State {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "win16_gdi_rectangle_predicate_tests.rs"]
+mod rectangle_predicate_tests;

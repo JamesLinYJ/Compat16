@@ -282,7 +282,7 @@ pub(super) fn decode(
                 dc: word_argument(arguments, 0)?,
             })
         }
-        Win16ExportId::GdiRectInRegion => {
+        Win16ExportId::GdiRectInRegion | Win16ExportId::GdiRectInRegionEhh => {
             Win16ApiRequest::GdiDrawing(super::Win16GdiDrawingRequest::RectInRegion {
                 region: word_argument(arguments, 0)?,
                 rect: super::gdi_drawing_calls::read_optional_rect(

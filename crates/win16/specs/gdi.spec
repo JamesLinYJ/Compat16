@@ -101,7 +101,7 @@
 101 pascal -ret16 OffsetRgn(word s_word s_word)
 102 pascal -ret16 OffsetVisRgn(word s_word s_word)
 103 pascal -ret16 PtVisible(word s_word s_word)
-104 pascal -ret16 RectVisibleOld(word ptr)
+104 pascal -ret16 RectVisible(word ptr)
 105 pascal -ret16 SelectVisRgn(word word)
 106 pascal SetBitmapBits(word long ptr)
 117 pascal SetDCOrg(word s_word s_word)
@@ -164,7 +164,7 @@
 178 stub RSIN
 179 pascal -ret16 GetDCState(word)
 180 pascal -ret16 SetDCState(word word)
-181 pascal -ret16 RectInRegionOld(word ptr)
+181 pascal -ret16 RectInRegion(word ptr)
 182 stub REQUESTSEM
 183 stub CLEARSEM
 184 stub STUFFVISIBLE
@@ -306,8 +306,8 @@
 462 pascal -ret16 IsGDIObject(word)
 463 pascal -ret16 MakeObjectPrivate(word word)
 464 stub FIXUPBOGUSPUBLISHERMETAFILE
-465 pascal -ret16 RectVisible(word ptr)
-466 pascal -ret16 RectInRegion(word ptr)
+465 pascal -ret16 RectVisible_EHH(word ptr)
+466 pascal -ret16 RectInRegion_EHH(word ptr)
 467 pascal -ret16 UnicodeToAnsi(segptr segptr)
 468 pascal -ret16 GetBitmapDimensionEx(word ptr)
 469 pascal -ret16 GetBrushOrgEx(word ptr)

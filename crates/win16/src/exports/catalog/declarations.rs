@@ -419,6 +419,8 @@ GdiGetViewportOrg => GDI_GET_VIEWPORT_ORG: ("GDI", 95u16, Stack, gdi::GDI_DC_HAN
 GdiGetWindowExt => GDI_GET_WINDOW_EXT: ("GDI", 96u16, Stack, gdi::GDI_DC_HANDLE_PARAMETERS, Dword);
 GdiGetWindowOrg => GDI_GET_WINDOW_ORG: ("GDI", 97u16, Stack, gdi::GDI_DC_HANDLE_PARAMETERS, Dword);
 GdiLptoDp => GDI_LP_TO_DP: ("GDI", 99u16, Stack, gdi::GDI_POINTS_OUTPUT_PARAMETERS, Word);
+// Preserve the existing Rust IDs and ordinal identities. Canonical guest names
+// come from gdi.spec: RectVisible at 104 and RectVisible_EHH at 465.
 GdiRectVisibleOld => GDI_RECT_VISIBLE_OLD: ("GDI", 104u16, Stack, gdi::GDI_RECT_VISIBLE_PARAMETERS, Word);
 GdiRectVisible => GDI_RECT_VISIBLE: ("GDI", 465u16, Stack, gdi::GDI_RECT_VISIBLE_PARAMETERS, Word);
 GdiGetTextAlign => GDI_GET_TEXT_ALIGN: ("GDI", 345u16, Stack, gdi::GDI_DC_HANDLE_PARAMETERS, Word);
@@ -482,6 +484,7 @@ GdiPtInRegion => GDI_PT_IN_REGION: ("GDI", 161u16, Stack, gdi::GDI_REGION_POINT_
 GdiSetRectRgn => GDI_SET_RECT_RGN: ("GDI", 172u16, Stack, gdi::GDI_RECT_REGION_PARAMETERS, Word);
 GdiGetClipRgn => GDI_GET_CLIP_RGN: ("GDI", 173u16, Stack, gdi::GDI_DC_HANDLE_PARAMETERS, Word);
 GdiRectInRegion => GDI_RECT_IN_REGION: ("GDI", 181u16, Stack, gdi::GDI_RECT_IN_REGION_PARAMETERS, Word);
+GdiRectInRegionEhh => GDI_RECT_IN_REGION_EHH: ("GDI", 466u16, Stack, gdi::GDI_RECT_IN_REGION_PARAMETERS, Word);
 GdiChord => GDI_CHORD: ("GDI", 348u16, Stack, gdi::GDI_ARC_PARAMETERS, Word);
 GdiExtFloodFill => GDI_EXT_FLOOD_FILL: ("GDI", 372u16, Stack, gdi::GDI_EXT_FLOOD_FILL_PARAMETERS, Word);
 GdiPolyPolygon => GDI_POLY_POLYGON: ("GDI", 450u16, Stack, gdi::GDI_POLY_POLYGON_PARAMETERS, Word);

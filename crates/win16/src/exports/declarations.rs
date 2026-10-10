@@ -296,7 +296,8 @@ const fn same_module(left: &str, right: &str) -> bool {
 }
 
 /// Look up active Win16 declaration metadata by the same module/name rules used
-/// by the implemented descriptor catalog. A hit describes ABI metadata only.
+/// by the implemented descriptor catalog, including explicit compatibility
+/// names. A hit describes ABI metadata only; aliases return the canonical row.
 pub fn lookup_export_metadata(
     module: &[u8],
     target: ExportLookupTarget<'_>,
@@ -306,10 +307,25 @@ pub fn lookup_export_metadata(
             && metadata_module_matches(module, entry)
             && match target {
                 ExportLookupTarget::Ordinal(ordinal) => entry.ordinal == ordinal,
-                ExportLookupTarget::Name(name) => entry
-                    .name
-                    .is_some_and(|export_name| name.eq_ignore_ascii_case(export_name.as_bytes())),
+                ExportLookupTarget::Name(name) => {
+                    entry.name.is_some_and(|export_name| {
+                        name.eq_ignore_ascii_case(export_name.as_bytes())
+                    }) || compatibility_name_matches(name, entry)
+                }
             }
+    })
+}
+
+fn compatibility_name_matches(name: &[u8], entry: &ExportMetadata) -> bool {
+    // Earlier project specifications exposed these names at the same ordinals.
+    // Keep them callable without replacing the independently verified SDK names
+    // or introducing duplicate declarations. Scope every alias to its module.
+    const ALIASES: &[(&str, u16, &[u8])] = &[
+        ("GDI", 104, b"RectVisibleOld"),
+        ("GDI", 181, b"RectInRegionOld"),
+    ];
+    ALIASES.iter().any(|&(module, ordinal, alias)| {
+        entry.module == module && entry.ordinal == ordinal && name.eq_ignore_ascii_case(alias)
     })
 }
 
