@@ -235,7 +235,7 @@ fn exec_fcb_real_inputs_clear_both_record_fields_in_child_psp() {
 fn exec_fcb_real_twelve_byte_prefix_wraps_each_offset_in_child_psp() {
     let (mut runtime, mut host) = fixture();
     let parent = runtime.dos.psp_segment();
-    let pointers = [(parent + 0x100, 0xfffa), (parent + 0x200, 0xfffa)];
+    let pointers: [(u16, u16); 2] = [(parent + 0x100, 0xfffa), (parent + 0x200, 0xfffa)];
     for (index, (segment, offset)) in pointers.into_iter().enumerate() {
         // Poison linear continuation so only offset wrap can yield the name.
         runtime.memory.write(PhysAddr(real_address(segment, 0xffff).0 + 1), &[0xee; 10]).unwrap();
