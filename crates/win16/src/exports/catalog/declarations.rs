@@ -631,6 +631,7 @@ KernelGlobalWire => KERNEL_GLOBAL_WIRE: ("KERNEL", 111u16, Stack, kernel::GLOBAL
 KernelGlobalUnWire => KERNEL_GLOBAL_UNWIRE: ("KERNEL", 112u16, Stack, kernel::GLOBAL_HANDLE_PARAMETERS, Word);
 KernelGlobalUnfix => KERNEL_GLOBAL_UNFIX: ("KERNEL", 198u16, Stack, kernel::GLOBAL_HANDLE_PARAMETERS, Word);
 
+CompobjIsEqualGuid => COMPOBJ_IS_EQUAL_GUID: ("COMPOBJ", 18u16, Stack, compat::COM_GUID_COMPARE_PARAMETERS, Word);
 VerGetFileResourceSize => VER_GET_FILE_RESOURCE_SIZE: ("VER", 2u16, Stack, compat::VER_RESOURCE_SIZE_PARAMETERS, Dword);
 VerGetFileResource => VER_GET_FILE_RESOURCE: ("VER", 3u16, Stack, compat::VER_GET_RESOURCE_PARAMETERS, Dword);
 VerGetFileVersionInfoSize => VER_GET_FILE_VERSION_INFO_SIZE: ("VER", 6u16, Stack, compat::VER_VERSION_INFO_SIZE_PARAMETERS, Dword);

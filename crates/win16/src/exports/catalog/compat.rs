@@ -1,6 +1,11 @@
-//! Project-owned Win16 VER, LZEXPAND, and SHELL stack signatures.
+//! Project-owned Win16 COMPOBJ, VER, LZEXPAND, and SHELL stack signatures.
 
 use super::*;
+
+pub(super) const COM_GUID_COMPARE_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "left", kind: ArgumentKind::Dword, parameter_type: FAR_BUFFER },
+    Win16Parameter { name: "right", kind: ArgumentKind::Dword, parameter_type: FAR_BUFFER },
+];
 
 pub(super) const VER_RESOURCE_SIZE_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "path", kind: ArgumentKind::Dword, parameter_type: FAR_STRING },

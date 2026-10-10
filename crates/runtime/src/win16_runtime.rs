@@ -829,3 +829,7 @@ impl Win16State {
     }
 
 }
+
+#[cfg(test)]
+#[path = "win16_test_support.rs"]
+mod test_support;

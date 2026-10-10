@@ -1,5 +1,6 @@
 use crate::ne_checked::{checked_file_range, zeroed_buffer};
 use crate::ne_entrypoints::{build_entry_points, build_loaded_module};
+use crate::ne_prologs::patch_windows_prologs;
 use crate::ne_reloc::{apply_fixups, resolve_fixups};
 use crate::ne_segments::{allocation_size, expand_segment};
 use crate::{FormatError, GuestMemoryRollbackFailure, NeModule, NeResource};
@@ -161,6 +162,8 @@ pub fn ne_segment_allocation_size(
 ///
 /// Segment data and relocation chains are fully staged before guest memory is
 /// changed. Chain sites are read from the unrelocated expanded segment image.
+/// Recognized Windows-target entry prologs are adapted to the assigned data
+/// selector or instance-callback AX contract before relocation writes.
 /// Fixup records are applied in file order: repeated additive fixups accumulate,
 /// and later overlapping non-additive fixups overwrite earlier values.
 pub fn load_ne_segments(
@@ -307,6 +310,10 @@ fn load_ne_segments_inner(
 
     let entry_points = build_entry_points(module, &selectors, &allocation_sizes)?;
     let resolved_fixups = resolve_fixups(module, &selectors, &allocation_sizes, &entry_points, resolver, &images)?;
+    // Keep chain links pristine during resolution. As in the Windows NE
+    // loading sequence implemented by Wine's NE_LoadSegment, prolog patches
+    // precede relocation writes, so an overlapping relocation still wins.
+    patch_windows_prologs(module, &selectors, &mut images)?;
     apply_fixups(&mut images, &resolved_fixups)?;
 
     let mut staged = Vec::new();

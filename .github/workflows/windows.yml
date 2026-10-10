@@ -99,7 +99,8 @@ jobs:
             '-p runtime --lib diagnostics::tests::',
             '-p win16-abi --lib kernel_string::tests::',
             '-p runtime --lib rectangle_exports',
-            '-p runtime --lib safe_array_ptr_of_index'
+            '-p runtime --lib safe_array_ptr_of_index',
+            '-p runtime --lib is_equal_guid'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

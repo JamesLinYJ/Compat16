@@ -15,6 +15,7 @@ mod ne_entrypoints;
 mod ne_icon_table;
 mod ne_load;
 mod ne_menu;
+mod ne_prologs;
 mod ne_reloc;
 mod ne_segments;
 mod ne_string_table;

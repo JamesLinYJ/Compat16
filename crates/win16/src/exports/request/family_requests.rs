@@ -159,6 +159,9 @@ pub enum Win16KernelRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16LibraryRequest {
+    /// COMPOBJ.18 compares two copied GUID records; no COM object or host
+    /// pointer crosses the ABI boundary and neither input is retained.
+    IsEqualGuid { left: [u8; 16], right: [u8; 16] },
     Strings(Win16LibraryStringsRequest),
     Interrupts(Win16LibraryInterruptsRequest),
     Toolhelp(Win16LibraryToolhelpRequest),

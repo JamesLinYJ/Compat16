@@ -19,6 +19,9 @@ impl Win16State {
     ) -> Result<Option<u8>, RuntimeError> {
         let (return_selector, return_offset, return_sp) = return_to;
         let value = match request {
+            Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::IsEqualGuid {
+                left, right,
+            }) => u32::from(left == right),
             Win16ApiRequest::PrintQueue(request) => self.print_queue_api(request),
             Win16ApiRequest::Ole1(request) => self.ole1_client_document_api(request, memory),
             Win16ApiRequest::Mci(request) => {
@@ -249,3 +252,7 @@ impl Win16State {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "win16_guid_compare_tests.rs"]
+mod guid_compare_tests;

@@ -9,6 +9,8 @@ use super::request::*;
 pub(super) mod call_helpers;
 use call_helpers::*;
 
+#[path = "call_guid_compare.rs"]
+mod guid_compare_calls;
 #[path = "call_gdi.rs"]
 mod gdi_calls;
 #[path = "call_gdi_services.rs"]

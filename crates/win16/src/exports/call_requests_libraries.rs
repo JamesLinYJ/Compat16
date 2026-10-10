@@ -29,6 +29,9 @@ pub(super) fn decode(
     }
 
     let request = match descriptor.id {
+        Win16ExportId::CompobjIsEqualGuid => {
+            super::guid_compare_calls::decode(arguments, selectors, memory)?
+        }
         Win16ExportId::DdeInitialize
         | Win16ExportId::DdeUninitialize
         | Win16ExportId::DdeConnectList

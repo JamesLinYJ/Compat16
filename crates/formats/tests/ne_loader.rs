@@ -434,3 +434,6 @@ fn test_header(segment_count: u16) -> NeHeader {
         expected_windows_version: 0,
     }
 }
+
+#[path = "ne_loader/prologs.rs"]
+mod prologs;
