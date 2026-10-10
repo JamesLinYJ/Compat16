@@ -30,7 +30,7 @@ fn fixed_zone(bias: i32) -> DYNAMIC_TIME_ZONE_INFORMATION {
         // TRUE selects fixed transition rules, not necessarily no DST. Empty
         // transition months additionally disable DST in this base fixture.
         // No registry key or runner-selected timezone is used.
-        DynamicDaylightTimeDisabled: 1,
+        DynamicDaylightTimeDisabled: true,
         ..Default::default()
     }
 }
@@ -164,7 +164,7 @@ fn dos_timestamp_native_uses_named_zone_historical_rules() {
             break;
         }
     }
-    zone.DynamicDaylightTimeDisabled = 0;
+    zone.DynamicDaylightTimeDisabled = false;
     // Before the 2007 rule change, March 21 was still standard time (UTC-8).
     // Applying today's recurring rules to 2006 would incorrectly return 05:00.
     // https://learn.microsoft.com/en-us/dotnet/api/system.datetime.touniversaltime
