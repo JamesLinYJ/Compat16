@@ -399,3 +399,6 @@ mod close_window_tests;
 
 #[path = "win16_arrange_iconic_windows_tests.rs"]
 mod arrange_iconic_windows_tests;
+
+#[path = "win16_get_clip_cursor_tests.rs"]
+mod get_clip_cursor_tests;

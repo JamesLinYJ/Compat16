@@ -55,6 +55,11 @@ pub(super) fn decode(
             };
             Win16ApiRequest::User(super::Win16UserRequest::Geometry(request))
         }
+        Win16ExportId::UserGetClipCursor => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::GetClipCursor {
+                rect: dword_argument(arguments, 0)?,
+            }),
+        ),
         Win16ExportId::UserGetCursorPos => Win16ApiRequest::User(
             super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::GetCursorPos {
                 point: dword_argument(arguments, 0)?,
@@ -456,3 +461,7 @@ mod close_window_tests;
 #[cfg(test)]
 #[path = "call_arrange_iconic_windows_tests.rs"]
 mod arrange_iconic_windows_tests;
+
+#[cfg(test)]
+#[path = "call_get_clip_cursor_tests.rs"]
+mod get_clip_cursor_tests;

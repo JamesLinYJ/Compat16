@@ -106,6 +106,7 @@ pub enum Win16WindowCall {
     GetDlgCtrlId { window: Win16WindowTarget },
     GetDesktopWindow,
     GetCursorPos,
+    GetClipCursor,
     GetWindowPlacement { window: Win16WindowTarget },
     SetWindowPlacement { window: Win16WindowTarget, placement: Win16WindowPlacement },
     GetLastActivePopup { window: Win16WindowTarget },
@@ -181,6 +182,8 @@ pub(crate) enum Win16WindowCallOutput {
     Boolean,
     /// An integer WORD result; reject handle-bearing or Boolean completions.
     Integer,
+    /// Generic rectangle output without a window-geometry observation.
+    Rect(crate::win16_runtime::guest_ranges::GuestOutputRange),
     WindowRect {
         range: crate::win16_runtime::guest_ranges::GuestOutputRange,
         api: &'static str,

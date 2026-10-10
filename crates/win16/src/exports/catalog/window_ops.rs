@@ -20,6 +20,12 @@ pub(super) const USER_SET_CARET_POS_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "y", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
 ];
 
+pub(super) const USER_CLIP_RECT_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
+    name: "rect",
+    kind: ArgumentKind::Dword,
+    parameter_type: FAR_OUTPUT_BUFFER,
+}];
+
 pub(super) const USER_CURSOR_POINT_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
     name: "point",
     kind: ArgumentKind::Dword,

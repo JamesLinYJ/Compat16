@@ -65,6 +65,21 @@ impl Win16State {
                 self.submit_call(registers, memory, host, call, output, return_to, return_kind, None)
             }
             Request::User(win16_abi::Win16UserRequest::Geometry(
+                win16_abi::Win16UserGeometryRequest::GetClipCursor { rect },
+            )) => {
+                // SDK 3.1 declares void GetClipCursor(RECT FAR*), not BOOL.
+                // Historical failure-buffer behavior is not established; a
+                // failed native read conservatively leaves guest bytes intact.
+                let pointer = self.checked_guest_range(rect, Rect16::SIZE, Access::Write, memory)?;
+                let output = super::super::guest_ranges::GuestOutputRange::capture(
+                    self, memory, pointer, Rect16::SIZE,
+                )?;
+                self.submit_call(
+                    registers, memory, host, Win16WindowCall::GetClipCursor,
+                    Win16WindowCallOutput::Rect(output), return_to, return_kind, None,
+                )
+            }
+            Request::User(win16_abi::Win16UserRequest::Geometry(
                 win16_abi::Win16UserGeometryRequest::GetCursorPos { point },
             )) => {
                 // SDK 3.1 WINDOWS.H declares void GetCursorPos(POINT FAR*).

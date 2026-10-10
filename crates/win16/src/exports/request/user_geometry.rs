@@ -4,6 +4,8 @@
 pub enum Win16UserGeometryRequest {
     /// Write the desktop cursor location into a checked guest POINT16.
     GetCursorPos { point: u32 },
+    /// Read the desktop cursor clipping rectangle into a checked RECT16.
+    GetClipCursor { rect: u32 },
     GetWindowPlacement { window: u16, placement: u32 },
     SetWindowPlacement { window: u16, placement: u32 },
     /// Fill a checked guest RECT16 output through the raw FAR address.

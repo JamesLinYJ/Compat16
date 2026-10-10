@@ -21,7 +21,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     ArrangeIconicWindows, CloseWindow, GetWindowLongW, GWL_STYLE, WS_CHILD, WS_POPUP,
     BringWindowToTop, ChildWindowFromPoint, ChildWindowFromPointEx, FindWindowW,
     GetClientRect, GetClassNameW,
-    GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
+    GetClipCursor, GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
     GetWindow,
     GetWindowRect, IsChild, IsIconic, IsWindow, IsWindowVisible, IsZoomed, MoveWindow, OpenIcon,
     SetWindowPos, ShowOwnedPopups, WindowFromPoint, GetWindowPlacement, SetWindowPlacement,
@@ -31,6 +31,13 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 use super::win16_window_worker::{self as worker, WorkerState};
 
 type SharedWorker = Rc<RefCell<WorkerState>>;
+
+/// Keep native failure separate from rectangle contents and guest return ABI.
+pub(super) fn get_clip_cursor_with(read: impl FnOnce(&mut RECT) -> bool) -> Win16WindowCallResult {
+    let mut rect = RECT::default();
+    let success = read(&mut rect);
+    Win16WindowCallResult::Rect(success.then_some(host_rect(rect)))
+}
 
 pub(super) fn execute(
     state: &SharedWorker,
@@ -71,6 +78,11 @@ pub(super) fn execute(
             };
             ResultValue::Boolean(hwnd(state, window)
                 .is_some_and(|native| unsafe { SetWindowPlacement(native, &placement) != 0 }))
+        }
+        Call::GetClipCursor => {
+            // Read only. Access can fail (including WINSTA_READATTRIBUTES);
+            // never substitute screen bounds or alter the global clip region.
+            get_clip_cursor_with(|rect| unsafe { GetClipCursor(rect) != 0 })
         }
         Call::GetCursorPos => {
             let mut point = POINT::default();

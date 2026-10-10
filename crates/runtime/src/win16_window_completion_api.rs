@@ -789,7 +789,7 @@ pub(super) fn finish_window_call(
             (Output::None, ResultValue::Window(None)) => Some(0),
             (Output::None, ResultValue::Window(Some(native))) =>
                 Some(u32::from(access.map_window_handle(*native, false)?)),
-            (Output::WindowRect { range, .. }, ResultValue::Rect(rect)) => {
+            (Output::Rect(range) | Output::WindowRect { range, .. }, ResultValue::Rect(rect)) => {
                 if let Some(rect) = rect {
                     let output = win16_abi::Rect16 {
                         left: rect.left as i16, top: rect.top as i16,

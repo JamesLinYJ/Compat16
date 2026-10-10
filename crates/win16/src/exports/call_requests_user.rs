@@ -356,6 +356,7 @@ pub(super) fn decode(
         | Win16ExportId::UserGetDesktopWindow
         | Win16ExportId::UserGetLastActivePopup
         | Win16ExportId::UserClientToScreen
+        | Win16ExportId::UserGetClipCursor
         | Win16ExportId::UserGetCursorPos
         | Win16ExportId::UserCreateCaret
         | Win16ExportId::UserDestroyCaret

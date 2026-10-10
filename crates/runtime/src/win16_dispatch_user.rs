@@ -697,3 +697,7 @@ mod child_lookup_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_set_window_pos_tests.rs"]
 mod set_window_pos_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_get_clip_cursor_tests.rs"]
+mod get_clip_cursor_tests;

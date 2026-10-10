@@ -587,6 +587,8 @@ UserMakeMenuRToL => USER_MAKE_MENU_R_TO_L: ("USER", 485u16, Stack, menus::USER_M
 UserGetMenuItemRect => USER_GET_MENU_ITEM_RECT: ("USER", 665u16, Stack, menus::USER_GET_MENU_ITEM_RECT_PARAMETERS, Word);
 UserCheckMenuRadioItem => USER_CHECK_MENU_RADIO_ITEM: ("USER", 666u16, Stack, menus::USER_MENU_RADIO_ITEM_PARAMETERS, Word);
 UserClientToScreen => USER_CLIENT_TO_SCREEN: ("USER", 28u16, Stack, window_ops::USER_WINDOW_POINT_PARAMETERS, Void);
+// Windows 3.1 SDK: void WINAPI GetClipCursor(RECT FAR*), USER.309.
+UserGetClipCursor => USER_GET_CLIP_CURSOR: ("USER", 309u16, Stack, window_ops::USER_CLIP_RECT_PARAMETERS, Void);
 UserGetCursorPos => USER_GET_CURSOR_POS: ("USER", 17u16, Stack, window_ops::USER_CURSOR_POINT_PARAMETERS, Void);
     #[doc = "SDK 3.1 WINDOWS.H declares the caret APIs void, unlike the Win32 BOOL results."]
 UserCreateCaret => USER_CREATE_CARET: ("USER", 163u16, Stack, window_ops::USER_CREATE_CARET_PARAMETERS, Void);
