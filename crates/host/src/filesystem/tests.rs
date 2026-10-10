@@ -320,3 +320,45 @@ fn create_new_native_existing_directory_is_preserved() {
     assert_eq!(std::fs::read(existing.join("KEEP.DAT")).unwrap(), b"directory contents");
     assert!(fs.files.is_empty());
 }
+
+#[test]
+fn temporary_create_new_native_keeps_readonly_attribute_and_initial_write_handle() {
+    let directory = TestDirectory::new();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let file = fs.file_create_new(b".\\0C22384E", 0x01).unwrap();
+    assert_eq!(fs.file_write(file, b"initial write").unwrap(), 13);
+    fs.file_close(file).unwrap();
+    assert_ne!(fs.file_get_attributes(b".\\0C22384E").unwrap() & 1, 0);
+    assert_eq!(fs.file_open(b".\\0C22384E", DosFileAccess::ReadWrite,
+        DosFileSharing::Compatibility).unwrap_err().code, DosErrorCode::AccessDenied);
+    let read = fs.file_open(b".\\0C22384E", DosFileAccess::ReadOnly,
+        DosFileSharing::Compatibility).unwrap();
+    let mut contents = [0; 13];
+    assert_eq!(fs.file_read(read, &mut contents).unwrap(), contents.len());
+    assert_eq!(&contents, b"initial write");
+    fs.file_close(read).unwrap();
+    // DOS does not delete AH=5Ah files on close. Clear readonly for explicit
+    // cleanup, rather than relying on the test directory destructor.
+    assert!(directory.0.join("0C22384E").is_file());
+    fs.file_set_attributes(b".\\0C22384E", 0).unwrap();
+    fs.file_delete(b".\\0C22384E").unwrap();
+}
+
+#[test]
+fn temporary_create_new_native_uses_supplied_subdirectory_and_rejects_unmounted_drive() {
+    let directory = TestDirectory::new();
+    std::fs::create_dir(directory.0.join("SPOOL")).unwrap();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let file = fs.file_create_new(b"SPOOL\\0C22384E", 0).unwrap();
+    fs.file_close(file).unwrap();
+    assert!(directory.0.join("SPOOL").join("0C22384E").is_file());
+    assert!(!directory.0.join("0C22384E").exists());
+    let mut wrong_drive = b"C:\\0C22384E".to_vec();
+    wrong_drive[0] = b'A' + ((fs.drive() + 1) % 26);
+    assert_eq!(fs.file_create_new(&wrong_drive, 0).unwrap_err().code, DosErrorCode::UnknownUnit);
+    assert_eq!(fs.file_create_new(b"MISSING\\0C22384E", 0).unwrap_err().code, DosErrorCode::PathNotFound);
+    for namespace in [br"\\server\share\0C22384E".as_slice(),
+        br"\\?\C:\0C22384E".as_slice(), br"\\.\NUL\0C22384E".as_slice()] {
+        assert_eq!(fs.file_create_new(namespace, 0).unwrap_err().code, DosErrorCode::InvalidData);
+    }
+}

@@ -54,6 +54,7 @@ impl DosKernel {
             0x35 => self.get_interrupt_vector(regs, memory),
             0x36 => self.disk_space(regs, host),
             0x3c | 0x5b => self.create_file(regs, memory, host),
+            0x5a => self.create_temporary_file(regs, memory, host),
             0x3d => self.open_file(regs, memory, host),
             0x6c => self.extended_open_file(regs, memory, host),
             0x3e => self.close_file(regs, host),

@@ -102,6 +102,7 @@ pub struct DosKernel {
     /// Guest far pointers to ROM-backed country case-map callbacks, keyed by code page.
     pub(super) case_map_addresses: BTreeMap<u16, (u16, u16)>,
     pub(super) next_search_identity: u32,
+    pub(super) next_temporary_name: u32,
     /// DOS INT 21h/AH=33 Ctrl-Break checking state (default: disabled).
     pub(super) break_check_enabled: bool,
     pub(super) pending_input: Option<u8>,
@@ -158,6 +159,7 @@ impl DosKernel {
             uppercase_table_addresses: BTreeMap::new(),
             case_map_addresses: BTreeMap::new(),
             next_search_identity: 0,
+            next_temporary_name: 0,
             break_check_enabled: false,
             pending_input: None,
             last_exit_code: 0,

@@ -56,6 +56,8 @@ pub(super) struct TestHost {
     duplicate_calls: usize,
     fail_duplicate_at: Option<usize>,
     create_new_calls: usize,
+    create_new_paths: Vec<Vec<u8>>,
+    local_time: Option<crate::DosLocalDateTime>,
     fail_create_new: Option<DosErrorCode>,
     create_new_token_override: Option<DosHostFile>,
     extended_open_calls: Vec<(Vec<u8>, DosFileOpenRequest)>,
@@ -109,6 +111,9 @@ impl TestHost {
 }
 
 impl DosHost for TestHost {
+    fn local_date_time(&mut self) -> Result<crate::DosLocalDateTime, DosHostError> {
+        self.local_time.ok_or_else(|| DosHostError::new(DosErrorCode::InvalidFunction))
+    }
     fn read_stdin(&mut self, output: &mut [u8]) -> Result<usize, DosHostError> {
         let mut count = 0;
         while count < output.len() {
@@ -129,6 +134,7 @@ impl DosHost for TestHost {
     }
     fn file_create_new(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
         self.create_new_calls += 1;
+        self.create_new_paths.push(path.to_vec());
         if let Some(code) = self.fail_create_new {
             return Err(DosHostError::new(code));
         }
@@ -1260,3 +1266,6 @@ mod file_time_tests;
 
 #[path = "extended_open_tests.rs"]
 mod extended_open_tests;
+
+#[path = "temporary_file_tests.rs"]
+mod temporary_file_tests;

@@ -31,7 +31,7 @@ pub(super) enum ProtectedInterruptTarget {
 pub(super) fn needs_dos_directory_context(service: u8) -> bool {
     matches!(
         service,
-        0x39 | 0x3a | 0x3c | 0x3d | 0x41 | 0x43 | 0x4b | 0x4e | 0x56 | 0x5b | 0x6c
+        0x39 | 0x3a | 0x3c | 0x3d | 0x41 | 0x43 | 0x4b | 0x4e | 0x56 | 0x5a | 0x5b | 0x6c
     )
 }
 
@@ -420,6 +420,7 @@ mod create_new_tests {
     #[test]
     fn create_new_installs_current_task_directory_context() {
         assert!(needs_dos_directory_context(0x5b));
+        assert!(needs_dos_directory_context(0x5a));
         assert!(needs_dos_directory_context(0x6c));
         for service in [0x3e, 0x3f, 0x40, 0x42, 0x45, 0x46] {
             assert!(!needs_dos_directory_context(service));
@@ -438,3 +439,7 @@ mod dos_timestamp_tests;
 #[cfg(test)]
 #[path = "win16_dos_extended_open_tests.rs"]
 mod dos_extended_open_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_temporary_file_tests.rs"]
+mod dos_temporary_file_tests;

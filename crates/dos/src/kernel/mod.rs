@@ -3,6 +3,7 @@ mod block_view;
 mod caller_address_space;
 mod console;
 mod time;
+mod temporary_file;
 mod device;
 mod directory;
 mod disk;
