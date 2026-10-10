@@ -87,11 +87,18 @@ jobs:
           # library tests: error mapping, VGA conversion and the input bridge.
           # These filters do not exercise redirected native stdin or open UI.
           $suites = @(
-            '-p x86-cpu -p text-codec -p dos-kernel -p formats -p graphics -p devices',
+            '-p x86-cpu',
+            '-p text-codec',
+            '-p dos-kernel',
+            '-p formats',
+            '-p graphics',
+            '-p devices',
             '-p host-services --lib diagnostics_tests::',
             '-p host-services --lib windows::vga_window::tests::',
             '-p runtime --lib input::tests::',
-            '-p runtime --lib diagnostics::tests::'
+            '-p runtime --lib diagnostics::tests::',
+            '-p win16-abi --lib kernel_string::tests::',
+            '-p runtime --lib rectangle_exports'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

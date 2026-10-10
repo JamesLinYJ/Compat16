@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use formats::{
     extract_ne_resource, load_ne_segments, FarAddress, FormatError, NeEntry, NeEntryKind,
-    NeFixup, NeFixupAddressType, NeFixupTarget, NeHeader, NeImportTarget, NeLoadResolver,
+    NeFixup, NeFixupAddressType, NeFixupTarget, NeHeader, NeImportTarget, NeImportValue, NeLoadResolver,
     NeModule, NeRelocationKind, NeResource, NeResourceId, NeSegment,
 };
 use guest_core::{GuestMemory, MemoryError, PhysAddr, Selector};
@@ -132,7 +132,7 @@ impl NeLoadResolver for TestResolver {
         &mut self,
         _module_name: &[u8],
         _target: &NeImportTarget,
-    ) -> Result<FarAddress, FormatError> {
+    ) -> Result<NeImportValue, FormatError> {
         Err(FormatError::InvalidNeLoad("unexpected import in test"))
     }
 }

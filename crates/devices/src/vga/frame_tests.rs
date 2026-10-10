@@ -1,7 +1,16 @@
 use super::{
-    attribute_dac_index, cga_byte, chain4_byte, dac_rgb, expand_dac, render_with_mode,
+    attribute_dac_index, cga_byte, chain4_byte, dac_rgb, expand_dac, render_with_mode_into,
+    VgaFrame,
 };
 use crate::vga::{ModeInfo, ModeKind, VgaDevice, VgaState};
+
+// Keep synthetic mode sizes while exercising the current caller-owned buffer
+// renderer. Snapshot construction stays in this test adapter only.
+fn render_with_mode(state: &VgaState, mode: ModeInfo) -> Option<VgaFrame> {
+    let mut pixels = Vec::new();
+    let (width, height) = render_with_mode_into(state, mode, &mut pixels)?;
+    Some(VgaFrame { width, height, pixels, generation: state.generation })
+}
 
 fn mode(kind: ModeKind, width: u16, height: u16) -> ModeInfo {
     ModeInfo {
@@ -238,6 +247,7 @@ fn bios_pixel_writes_land_at_the_crtc_start_and_stride_for_graphics_modes() {
             }
         };
         let frame = vga.graphics_frame().unwrap();
+        assert_eq!(frame.generation, vga.generation());
         assert_eq!((frame.width, frame.height), (width, height));
         let index = usize::from(y) * usize::from(width) + usize::from(x);
         assert_eq!(frame.pixels[index], expected, "mode {bios_mode:#04x}, ({x},{y})");

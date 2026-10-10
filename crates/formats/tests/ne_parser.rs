@@ -18,6 +18,53 @@ fn parses_ne_header_segments_entries_imports_and_names() {
 }
 
 #[test]
+fn zero_segment_alignment_uses_nine_without_rewriting_the_header() {
+    let mut bytes = minimal_ne();
+    bytes[0xb2..0xb4].copy_from_slice(&0_u16.to_le_bytes());
+    bytes[0xd8..0xda].copy_from_slice(&1_u16.to_le_bytes());
+    bytes.resize(0x204, 0);
+    bytes[0x200..0x204].copy_from_slice(&[0x90, 0x90, 0xc3, 0]);
+
+    let parsed = parse_ne(&bytes).expect("zero alignment selects 512-byte sectors");
+    assert_eq!(parsed.header.alignment_shift, 0);
+    assert_eq!(parsed.header.segment_alignment_shift(), 9);
+    assert_eq!(parsed.segments[0].file_offset, Some(0x200));
+    assert_eq!(parsed.segments[0].file_size, 4);
+    assert_eq!(parsed.segments[0].memory_size, 16);
+}
+
+#[test]
+fn explicit_segment_alignment_shifts_are_preserved() {
+    for shift in 1_u16..=15 {
+        let mut bytes = minimal_ne();
+        let offset = 0x200_usize.max(1_usize << shift);
+        let sector = (offset >> shift) as u16;
+        bytes[0xb2..0xb4].copy_from_slice(&shift.to_le_bytes());
+        bytes[0xd8..0xda].copy_from_slice(&sector.to_le_bytes());
+        bytes.resize(offset + 4, 0);
+        bytes[offset..offset + 4].copy_from_slice(&[0x90, 0x90, 0xc3, 0]);
+
+        let parsed = parse_ne(&bytes).expect("explicit segment alignment");
+        assert_eq!(parsed.header.alignment_shift, shift);
+        assert_eq!(parsed.header.segment_alignment_shift(), shift);
+        assert_eq!(parsed.segments[0].file_offset, Some(offset));
+    }
+}
+
+#[test]
+fn zero_sector_remains_unallocated_with_default_alignment() {
+    let mut bytes = minimal_ne();
+    bytes[0xb2..0xb4].copy_from_slice(&0_u16.to_le_bytes());
+    bytes[0xd8..0xda].copy_from_slice(&0_u16.to_le_bytes());
+
+    let parsed = parse_ne(&bytes).expect("unallocated segment has no file image");
+    assert_eq!(parsed.header.segment_alignment_shift(), 9);
+    assert_eq!(parsed.segments[0].file_offset, None);
+    assert_eq!(parsed.segments[0].file_size, 0);
+    assert_eq!(parsed.segments[0].memory_size, 16);
+}
+
+#[test]
 fn parses_real_ne_relocation_record_and_target() {
     let bytes = minimal_ne_with_fixup();
     let parsed = parse_ne(&bytes).expect("valid NE with relocation");
@@ -78,6 +125,17 @@ fn resource_table_parses_numeric_type_and_resource_ids() {
     assert_eq!(resource_type.id, NeResourceId::Numeric(3));
     let resource = resource_type.resources.first().expect("resource");
     assert_eq!(resource.id, NeResourceId::Numeric(7));
+    assert_eq!((resource.file_offset, resource.byte_length), (0x160, 1));
+
+    // Default segment alignment must not change the resource table's own
+    // zero shift: resource offsets and lengths remain byte-granular.
+    bytes[0xb2..0xb4].copy_from_slice(&0_u16.to_le_bytes());
+    bytes[0xd8..0xda].copy_from_slice(&1_u16.to_le_bytes());
+    bytes.resize(0x204, 0);
+    let parsed = parse_ne(&bytes).expect("independent segment and resource alignment");
+    assert_eq!(parsed.header.segment_alignment_shift(), 9);
+    assert_eq!(parsed.segments[0].file_offset, Some(0x200));
+    let resource = &parsed.resource_types[0].resources[0];
     assert_eq!((resource.file_offset, resource.byte_length), (0x160, 1));
 }
 

@@ -80,57 +80,15 @@ impl Win16State {
                     (return_selector, return_offset, return_sp),
                 );
             }
-            request @ (Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::SetRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::IsRectEmpty { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::PtInRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::OffsetRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::InflateRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::IntersectRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::GetWindowRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::GetClientRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::ClientToScreen { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::GetCursorPos { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::GetWindowPlacement { .. }
-                | win16_abi::Win16UserGeometryRequest::SetWindowPlacement { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::ScreenToClient { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::WindowFromPoint { .. },
-            ))
+            // Geometry requests share checked guest-memory marshalling and
+            // return handling. Route the family together so new rectangle
+            // helpers cannot be decoded but omitted from runtime dispatch.
+            request @ (Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(_))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetClassName { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::FindWindow { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::SetWindowPos { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::MoveWindow { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::IsIconic { .. },
@@ -703,3 +661,7 @@ impl Win16State {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "win16_dispatch_geometry_tests.rs"]
+mod geometry_tests;
