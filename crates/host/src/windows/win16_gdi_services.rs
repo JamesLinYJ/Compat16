@@ -1,5 +1,8 @@
 //! Native Windows GDI operations for Win16 DC state and object queries.
 
+#[path = "win16_gdi_char_width.rs"]
+mod char_width;
+
 use std::ffi::c_void;
 use std::ptr;
 
@@ -119,6 +122,7 @@ pub(super) fn execute(
                 RemoveFontResourceW(path.as_ptr()) != 0
             }))
         }
+        Op::GetCharWidth { dc, first, last } => char_width::execute(dcs, dc, first, last),
         Op::GetCharAbcWidths { dc, first, last } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else {
                 return Ok(Value::AbcWidths {

@@ -192,7 +192,9 @@
 193 pascal -ret16 IsClipboardFormatAvailable(word)
 194 pascal -ret16 DlgDirSelectComboBox(word ptr word)
 195 pascal -ret16 DlgDirListComboBox(word ptr word word word)
+# Primary ordinal/header evidence: README.md (Microsoft SDK 3.10 disk 03).
 196 pascal TabbedTextOut(word s_word s_word ptr s_word s_word ptr s_word)
+# Primary ordinal/header evidence: README.md (Microsoft SDK 3.10 disk 03).
 197 pascal GetTabbedTextExtent(word ptr word word ptr)
 198 pascal -ret16 CascadeChildWindows(word word)
 199 pascal -ret16 TileChildWindows(word word)

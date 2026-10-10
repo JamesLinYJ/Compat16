@@ -38,6 +38,12 @@ pub enum Win16GdiServicesRequest {
     RemoveFontResource {
         input: Win16FontResourceInput,
     },
+    GetCharWidth {
+        dc: u16,
+        first: u16,
+        last: u16,
+        output: u32,
+    },
     GetCharAbcWidths {
         dc: u16,
         first: u16,

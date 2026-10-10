@@ -92,6 +92,17 @@ pub(super) const GDI_REMOVE_FONT_RESOURCE_PARAMETERS: &[Win16Parameter] = &[Win1
     parameter_type: FAR_STRING,
 }];
 
+// Microsoft Windows 3.1 SDK Disk 03: INC/WINDOWS.H declares
+// BOOL WINAPI GetCharWidth(HDC, UINT, UINT, int FAR*), with 16-bit UINT/int.
+// WLIB/LIBW.LIB independently records GETCHARWIDTH -> GDI ordinal 350 in its
+// OMF IMPDEF at offset 0x4cb1. Source disk and expanded-library SHA-256:
+// https://diskettes.pcjs.org/pcx86/sdk/windows/3.10/WIN31SDK-DISK03.json
+// 234101bae0f50884a6e2f5f932ac2a53dd79c017ce174772b449a9d98e049c06
+// Both queries have identical argument slots; their output element layouts
+// differ and are handled by separate typed requests/runtime encoders.
+pub(super) const GDI_GET_CHAR_WIDTH_PARAMETERS: &[Win16Parameter] =
+    GDI_GET_CHAR_ABC_WIDTHS_PARAMETERS;
+
 pub(super) const GDI_GET_CHAR_ABC_WIDTHS_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter {
         name: "dc",

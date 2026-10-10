@@ -112,6 +112,7 @@ GdiGetAspectRatioFilterEx => GDI_GET_ASPECT_RATIO_FILTER_EX: ("GDI", 486u16, Sta
 GdiIsGdiObject => GDI_IS_GDI_OBJECT: ("GDI", 462u16, Stack, gdi_services_parameters::GDI_IS_GDI_OBJECT_PARAMETERS, Word);
 GdiAddFontResource => GDI_ADD_FONT_RESOURCE: ("GDI", 119u16, Stack, gdi_services_parameters::GDI_ADD_FONT_RESOURCE_PARAMETERS, Word);
 GdiRemoveFontResource => GDI_REMOVE_FONT_RESOURCE: ("GDI", 136u16, Stack, gdi_services_parameters::GDI_REMOVE_FONT_RESOURCE_PARAMETERS, Word);
+GdiGetCharWidth => GDI_GET_CHAR_WIDTH: ("GDI", 350u16, Stack, gdi_services_parameters::GDI_GET_CHAR_WIDTH_PARAMETERS, Word);
 GdiGetCharABCWidths => GDI_GET_CHAR_ABC_WIDTHS: ("GDI", 307u16, Stack, gdi_services_parameters::GDI_GET_CHAR_ABC_WIDTHS_PARAMETERS, Word);
 GdiGetFontData => GDI_GET_FONT_DATA: ("GDI", 311u16, Stack, gdi_services_parameters::GDI_GET_FONT_DATA_PARAMETERS, Dword);
 GdiGetRasterizerCaps => GDI_GET_RASTERIZER_CAPS: ("GDI", 313u16, Stack, gdi_services_parameters::GDI_GET_RASTERIZER_CAPS_PARAMETERS, Word);

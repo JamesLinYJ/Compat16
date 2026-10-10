@@ -193,6 +193,38 @@ impl Win16State {
                     _ => Err(wrong_result("RemoveFontResource")),
                 }
             }
+            Req::GetCharWidth { dc, first, last, output } => {
+                if output == 0 || first > last {
+                    return Ok(0);
+                }
+                let count = usize::from(last - first) + 1;
+                let Some(byte_count) = count.checked_mul(2) else {
+                    return Ok(0);
+                };
+                // LPINT is a normal FAR pointer, not a huge pointer: the
+                // complete signed-int array must fit in its 16-bit segment.
+                // In particular, 0..=0xffff requires 131072 bytes, not zero.
+                if byte_count > 0x1_0000 - usize::from(output as u16) {
+                    return Ok(0);
+                }
+                let Some(dc) = self.guest_gdi.dc(dc) else {
+                    return Ok(0);
+                };
+                // Validate the entire destination before host work. Host
+                // failure or a malformed result never changes guest memory.
+                let target = preflight_guest_output(&self.selectors, memory, output, byte_count)?;
+                match host.win16_gdi_services(Operation::GetCharWidth { dc, first, last })? {
+                    Value::CharWidths { success: false, .. } => Ok(0),
+                    Value::CharWidths { success: true, entries } if entries.len() == count => {
+                        let Some(bytes) = encode_char_widths(&entries) else {
+                            return Ok(0);
+                        };
+                        write_guest_output(&self.selectors, memory, target, &bytes)?;
+                        Ok(1)
+                    }
+                    _ => Err(wrong_result("GetCharWidth")),
+                }
+            }
             Req::GetCharAbcWidths {
                 dc,
                 first,
@@ -440,3 +472,22 @@ fn wrong_result(api: &'static str) -> RuntimeError {
         format!("Win16 {api} received the wrong native result"),
     )
 }
+
+// Native logical widths are signed 32-bit integers; the SDK's int FAR*
+// stores signed 16-bit values. A result outside that range has no verified
+// historical overflow contract here: fail the entire query rather than
+// reporting a fabricated wrapped/saturated width. Encoding stays private until
+// every element has passed, so overflow never leaves a partial guest array.
+fn encode_char_widths(entries: &[i32]) -> Option<Vec<u8>> {
+    let capacity = entries.len().checked_mul(2)?;
+    let mut bytes = Vec::new();
+    bytes.try_reserve_exact(capacity).ok()?;
+    for width in entries {
+        bytes.extend_from_slice(&i16::try_from(*width).ok()?.to_le_bytes());
+    }
+    Some(bytes)
+}
+
+#[cfg(test)]
+#[path = "win16_gdi_char_width_tests.rs"]
+mod char_width_tests;

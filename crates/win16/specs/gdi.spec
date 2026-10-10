@@ -249,6 +249,7 @@
 347 stub MFDRAWTEXT
 348 pascal -ret16 Chord(word s_word s_word s_word s_word s_word s_word s_word s_word)
 349 pascal SetMapperFlags(word long)
+# Primary ordinal/header evidence: README.md (Microsoft SDK 3.10 disk 03).
 350 pascal -ret16 GetCharWidth(word word word ptr)
 351 pascal -ret16 ExtTextOut(word s_word s_word word ptr str word ptr)
 352 pascal -ret16 GetPhysicalFontHandle(word)

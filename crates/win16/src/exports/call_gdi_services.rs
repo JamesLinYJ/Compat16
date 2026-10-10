@@ -50,6 +50,12 @@ pub(super) fn decode(
         Win16ExportId::GdiRemoveFontResource => Request::RemoveFontResource {
             input: font_resource_input(dword_argument(arguments, 0)?, selectors, memory)?,
         },
+        Win16ExportId::GdiGetCharWidth => Request::GetCharWidth {
+            dc: word_argument(arguments, 0)?,
+            first: word_argument(arguments, 1)?,
+            last: word_argument(arguments, 2)?,
+            output: dword_argument(arguments, 3)?,
+        },
         Win16ExportId::GdiGetCharABCWidths => Request::GetCharAbcWidths {
             dc: word_argument(arguments, 0)?,
             first: word_argument(arguments, 1)?,
@@ -96,3 +102,7 @@ fn font_resource_input(
     read_nullable_far_string(far, selectors, memory)
         .map(|path| path.map_or(Win16FontResourceInput::Null, Win16FontResourceInput::Path))
 }
+
+#[cfg(test)]
+#[path = "call_get_char_width_tests.rs"]
+mod char_width_tests;

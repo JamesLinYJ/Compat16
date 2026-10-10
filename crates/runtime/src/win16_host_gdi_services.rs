@@ -65,6 +65,11 @@ pub enum Win16GdiServicesOperation {
     RemoveFontResource {
         guest_path: Vec<u8>,
     },
+    GetCharWidth {
+        dc: Win16HostDc,
+        first: u16,
+        last: u16,
+    },
     GetCharAbcWidths {
         dc: Win16HostDc,
         first: u16,
@@ -109,6 +114,10 @@ pub enum Win16GdiServicesResult {
         height: i32,
     },
     FontResourceCount(i32),
+    CharWidths {
+        success: bool,
+        entries: Vec<i32>,
+    },
     AbcWidths {
         success: bool,
         entries: Vec<Win16HostAbcWidth>,
