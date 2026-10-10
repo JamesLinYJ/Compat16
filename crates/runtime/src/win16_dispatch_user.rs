@@ -23,7 +23,8 @@ impl Win16State {
             Win16ApiRequest::NetworkRedirector(request) => {
                 u32::from(self.dispatch_network_redirector(request, memory, host)?)
             }
-            request @ Win16ApiRequest::User(win16_abi::Win16UserRequest::Mdi(_)) => {
+            request @ (Win16ApiRequest::User(win16_abi::Win16UserRequest::Mdi(_))
+                | Win16ApiRequest::User(win16_abi::Win16UserRequest::ChildLookup(_))) => {
                 return self.begin_window_api(registers, memory, host, request, return_to, descriptor.return_kind);
             }
             Win16ApiRequest::WindowData(request) => {
@@ -685,3 +686,7 @@ mod map_window_points_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_caret_tests.rs"]
 mod caret_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_child_lookup_tests.rs"]
+mod child_lookup_tests;

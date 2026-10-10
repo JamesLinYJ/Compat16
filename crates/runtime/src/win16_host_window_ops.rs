@@ -114,6 +114,12 @@ pub enum Win16WindowCall {
         points: Vec<Win16HostPoint>,
     },
     WindowFromPoint { point: Win16HostPoint },
+    /// Hit test immediate children at signed parent-client coordinates.
+    /// Native USER owns Z order, filtering, and the parent-as-hit fallback.
+    ChildWindowFromPoint { parent: Win16WindowTarget, point: Win16HostPoint },
+    ChildWindowFromPointEx { parent: Win16WindowTarget, point: Win16HostPoint, flags: u16 },
+    /// Descendant query. Ownership is distinct from parentage.
+    IsChild { parent: Win16WindowTarget, child: Win16WindowTarget },
     MoveWindow {
         window: Win16WindowTarget,
         x: i16,

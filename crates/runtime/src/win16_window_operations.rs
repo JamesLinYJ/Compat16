@@ -15,6 +15,8 @@ use crate::{
     DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostPoint, Win16WindowOperation,
 };
 
+#[path = "win16_window_operations/child_lookup.rs"]
+mod child_lookup;
 #[path = "win16_window_operations/geometry.rs"]
 mod geometry;
 #[path = "win16_window_operations/caret.rs"]
@@ -42,6 +44,9 @@ impl Win16State {
         use Win16ApiRequest as Request;
 
         match request {
+            Request::User(win16_abi::Win16UserRequest::ChildLookup(request)) => {
+                self.begin_user_child_lookup(request, registers, memory, host, return_to, return_kind)
+            }
             Request::User(win16_abi::Win16UserRequest::Mdi(request)) => {
                 self.begin_user_mdi(request, registers, memory, host, return_to, return_kind)
             }

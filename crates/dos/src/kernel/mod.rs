@@ -9,6 +9,7 @@ mod disk;
 mod dispatch;
 mod exec;
 mod files;
+mod file_time;
 mod ioctl;
 mod memory;
 mod nls;

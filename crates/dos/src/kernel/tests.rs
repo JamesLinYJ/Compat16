@@ -1,4 +1,4 @@
-use crate::{DosAction, DosDirectoryEntry, DosDiskSpace, DosError, DosErrorCode, DosFileAccess, DosFileSharing, DosHost, DosHostError, DosHostFile, DosHostSearch, DosIoctlObjectInfo, DosIoctlStream, DosKernel, DosSeekOrigin};
+use crate::{DosAction, DosDirectoryEntry, DosDiskSpace, DosError, DosErrorCode, DosFileAccess, DosFileSharing, DosFileStatus, DosHost, DosHostError, DosHostFile, DosHostSearch, DosIoctlObjectInfo, DosIoctlStream, DosKernel, DosSeekOrigin};
 use super::directory::{dos_path_drive, parse_search_spec, search_attribute_matches};
 use super::state::Handle;
 use super::directory::{dos_field_matches, short_name_fields};
@@ -31,7 +31,7 @@ impl GuestMemory for TestMemory {
 }
 
 #[derive(Default)]
-struct FileState { bytes: Vec<u8>, cursor: u32, written: bool }
+struct FileState { bytes: Vec<u8>, cursor: u32, written: bool, status: Option<DosFileStatus> }
 
 #[derive(Default)]
 struct TestDirectorySearch { entries: Vec<DosDirectoryEntry>, next: usize }
@@ -62,6 +62,9 @@ pub(super) struct TestHost {
     code_page: Option<text_codec::CodePage>,
     redirected_standard_streams: bool,
     input_eof: bool,
+    last_open_access: Option<DosFileAccess>,
+    file_status_calls: Vec<DosHostFile>,
+    file_status_error: Option<DosErrorCode>,
 }
 
 impl TestHost {
@@ -133,8 +136,9 @@ impl DosHost for TestHost {
         self.attributes.insert(path.to_vec(), attributes);
         Ok(self.open_new(path, false))
     }
-    fn file_open(&mut self, path: &[u8], _access: DosFileAccess) -> Result<DosHostFile, DosHostError> {
+    fn file_open(&mut self, path: &[u8], access: DosFileAccess) -> Result<DosHostFile, DosHostError> {
         if !self.paths.contains_key(path) { return Err(DosHostError::new(DosErrorCode::FileNotFound)); }
+        self.last_open_access = Some(access);
         Ok(self.open_new(path, false))
     }
     fn file_open_with_sharing(&mut self, path: &[u8], access: DosFileAccess, _sharing: DosFileSharing) -> Result<DosHostFile, DosHostError> {
@@ -190,6 +194,18 @@ impl DosHost for TestHost {
         state.written = true;
         state.bytes.resize(length as usize, 0);
         Ok(())
+    }
+
+    fn file_status(&mut self, file: DosHostFile) -> Result<DosFileStatus, DosHostError> {
+        self.file_status_calls.push(file);
+        if let Some(error) = self.file_status_error {
+            return Err(DosHostError::new(error));
+        }
+        let state = self.file_for(file)?;
+        let mut status = state.status.ok_or(DosHostError::new(DosErrorCode::InvalidFunction))?;
+        status.size = state.bytes.len() as u32;
+        status.position = state.cursor;
+        Ok(status)
     }
 
     fn file_ioctl_info(&self, file: DosHostFile) -> Result<DosIoctlObjectInfo, DosHostError> {
@@ -1205,3 +1221,6 @@ fn real_mode_dta_query_returns_words_without_dereferencing_but_search_validates(
 
 #[path = "create_new_tests.rs"]
 mod create_new_tests;
+
+#[path = "file_time_tests.rs"]
+mod file_time_tests;

@@ -78,6 +78,7 @@ impl DosKernel {
             0x4b => self.execute_program(regs, memory),
             0x4c => Ok(DosAction::Exit(regs.al())),
             0x56 => self.rename_file(regs, memory, host),
+            0x57 => self.file_date_time(regs, host),
             0x4d => {
                 regs.set_ax(u16::from(self.last_exit_code));
                 self.last_exit_code = 0;

@@ -429,3 +429,7 @@ mod create_new_tests {
 #[cfg(test)]
 #[path = "win16_dos_create_new_tests.rs"]
 mod protected_create_new_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_timestamp_tests.rs"]
+mod dos_timestamp_tests;

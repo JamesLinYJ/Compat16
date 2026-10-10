@@ -18,10 +18,11 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     EnableWindow, GetActiveWindow, IsWindowEnabled, SetActiveWindow,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    BringWindowToTop, FindWindowW, GetClientRect, GetClassNameW,
+    BringWindowToTop, ChildWindowFromPoint, ChildWindowFromPointEx, FindWindowW,
+    GetClientRect, GetClassNameW,
     GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
     GetWindow,
-    GetWindowRect, IsIconic, IsWindow, IsWindowVisible, IsZoomed, MoveWindow,
+    GetWindowRect, IsChild, IsIconic, IsWindow, IsWindowVisible, IsZoomed, MoveWindow,
     SetWindowPos, ShowOwnedPopups, WindowFromPoint, GetWindowPlacement, SetWindowPlacement,
     WINDOWPLACEMENT,
 };
@@ -108,6 +109,12 @@ pub(super) fn execute(
                 None => None,
             })
         }
+        Call::IsChild { parent, child } => ResultValue::Boolean(
+            match (hwnd(state, parent), hwnd(state, child)) {
+                (Some(parent), Some(child)) => unsafe { IsChild(parent, child) != 0 },
+                _ => false,
+            },
+        ),
         Call::IsWindow { window } => ResultValue::Boolean(hwnd(state, window)
             .is_some_and(|native| unsafe { IsWindow(native) != 0 })),
         Call::IsWindowVisible { window } => ResultValue::Boolean(hwnd(state, window)
@@ -274,6 +281,26 @@ pub(super) fn execute(
             let native = unsafe { WindowFromPoint(native_point(point)) };
             ResultValue::Window(token_for_native(state, native)?)
         }
+        Call::ChildWindowFromPoint { parent, point } => {
+            let native = hwnd(state, parent)
+                .map(|parent| unsafe { ChildWindowFromPoint(parent, native_point(point)) });
+            ResultValue::Window(match native {
+                Some(native) => token_for_native(state, native)?,
+                None => None,
+            })
+        }
+        Call::ChildWindowFromPointEx { parent, point, flags } => {
+            // USER owns immediate-child z-order, client-relative hit testing,
+            // and the CWP_SKIP* rules. Resolve both input and result through
+            // the existing opaque token/incarnation boundary.
+            let native = hwnd(state, parent).map(|parent| unsafe {
+                ChildWindowFromPointEx(parent, native_point(point), u32::from(flags))
+            });
+            ResultValue::Window(match native {
+                Some(native) => token_for_native(state, native)?,
+                None => None,
+            })
+        }
         Call::MoveWindow { window, x, y, width, height, repaint } => {
             ResultValue::Boolean(hwnd(state, window).is_some_and(|native| unsafe {
                 MoveWindow(native, i32::from(x), i32::from(y),
@@ -335,3 +362,7 @@ fn native_point(point: Win16HostPoint) -> POINT {
 fn host_point(point: POINT) -> Win16HostPoint {
     Win16HostPoint { x: point.x, y: point.y }
 }
+
+#[cfg(test)]
+#[path = "win16_window_child_queries_tests.rs"]
+mod child_queries_tests;

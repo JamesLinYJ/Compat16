@@ -16,6 +16,10 @@ pub use user_messages::Win16UserMessagesRequest;
 mod user_window;
 pub use user_window::Win16UserWindowRequest;
 
+#[path = "user_child_lookup.rs"]
+mod user_child_lookup;
+pub use user_child_lookup::Win16UserChildLookupRequest;
+
 #[path = "user_geometry.rs"]
 mod user_geometry;
 pub use user_geometry::Win16UserGeometryRequest;
@@ -134,6 +138,7 @@ use super::*;
 pub enum Win16UserRequest {
     Hooks(Win16UserHooksRequest),
     Mdi(Win16UserMdiRequest),
+    ChildLookup(Win16UserChildLookupRequest),
     Ansi(Win16UserAnsiRequest),
     Menu(Win16UserMenuRequest),
     Messages(Win16UserMessagesRequest),

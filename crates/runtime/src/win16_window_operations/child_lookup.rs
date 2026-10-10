@@ -1,9 +1,9 @@
-//! USER hit testing for direct child windows.
+//! USER hit testing for direct children and descendant relationship queries.
 
 use super::*;
 
 impl Win16State {
-    /// Handle USER.191 and USER.399 while keeping HWND identities opaque.
+    /// Handle USER.48, USER.191 and USER.399 with opaque HWND identities.
     pub(super) fn begin_user_child_lookup(
         &mut self,
         request: win16_abi::Win16UserChildLookupRequest,
@@ -15,24 +15,24 @@ impl Win16State {
     ) -> Result<Option<u8>, RuntimeError> {
         use win16_abi::Win16UserChildLookupRequest as Request;
 
-        let (parent, packed_point, flags) = match request {
-            Request::ChildWindowFromPoint { parent, point } => (parent, point, None),
-            Request::ChildWindowFromPointEx { parent, point, flags } => {
-                (parent, point, Some(flags))
-            }
-        };
-        let point = Win16HostPoint {
-            x: i32::from(packed_point as u16 as i16),
-            y: i32::from((packed_point >> 16) as u16 as i16),
-        };
-        let parent = self.native_window(parent);
-        let call = match flags {
-            Some(flags) => Win16WindowCall::ChildWindowFromPointEx {
-                parent,
-                point,
-                flags,
+        let call = match request {
+            Request::IsChild { parent, child } => Win16WindowCall::IsChild {
+                parent: self.native_window(parent),
+                child: self.native_window(child),
             },
-            None => Win16WindowCall::ChildWindowFromPoint { parent, point },
+            Request::ChildWindowFromPoint { parent, point } => {
+                Win16WindowCall::ChildWindowFromPoint {
+                    parent: self.native_window(parent),
+                    point: unpack_point(point),
+                }
+            }
+            Request::ChildWindowFromPointEx { parent, point, flags } => {
+                Win16WindowCall::ChildWindowFromPointEx {
+                    parent: self.native_window(parent),
+                    point: unpack_point(point),
+                    flags,
+                }
+            }
         };
         self.submit_value_call(
             registers,
@@ -42,5 +42,14 @@ impl Win16State {
             return_to,
             return_kind,
         )
+    }
+}
+
+fn unpack_point(packed: u32) -> Win16HostPoint {
+    // Coordinates are signed POINT16 fields in the parent's client space.
+    // Do not translate to screen coordinates or interpret these bits as FAR.
+    Win16HostPoint {
+        x: i32::from(packed as u16 as i16),
+        y: i32::from((packed >> 16) as u16 as i16),
     }
 }

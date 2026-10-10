@@ -15,6 +15,7 @@ pub use request_modules::Win16KernelFileSystemRequest;
 pub use request_modules::Win16KernelInstanceRequest;
 pub use request_modules::Win16Ole1Request;
 pub use request_modules::Win16UserMdiRequest;
+pub use request_modules::Win16UserChildLookupRequest;
 pub use request_modules::{Win16FontResourceInput, Win16GdiServicesRequest};
 pub use request_modules::{NF_NORMAL, NF_TASKSWITCH, NF_RIP};
 pub(super) use request_modules::decode_print_queue_export;

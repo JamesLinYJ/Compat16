@@ -28,6 +28,7 @@ pub use request::Win16UserHooksRequest;
 #[path = "exports/catalog/gdi_services.rs"]
 mod gdi_services_parameters;
 pub use request::Win16UserMdiRequest;
+pub use request::Win16UserChildLookupRequest;
 pub use request::Win16Ole1Request;
 
 #[path = "exports/call_kernel_instance.rs"]

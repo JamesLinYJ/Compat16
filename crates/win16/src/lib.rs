@@ -16,6 +16,7 @@ pub use exports::Win16PrintQueueRequest;
 pub use exports::Win16KernelInstanceRequest;
 pub use exports::Win16Ole1Request;
 pub use exports::Win16UserMdiRequest;
+pub use exports::Win16UserChildLookupRequest;
 pub use exports::{Win16UserNetworkBuffer, Win16UserNetworkRequest};
 pub use exports::Win16UserHooksRequest;
 pub use exports::{Win16FontResourceInput, Win16GdiServicesRequest};

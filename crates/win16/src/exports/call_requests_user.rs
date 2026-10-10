@@ -23,6 +23,19 @@ pub(super) fn decode(
         | Win16ExportId::UserCallNextHookEx => {
             return user_hooks_calls::decode(descriptor.id, arguments).map(Some);
         }
+        Win16ExportId::UserIsChild => Win16ApiRequest::User(Win16UserRequest::ChildLookup(
+            Win16UserChildLookupRequest::IsChild {
+                parent: word_argument(arguments, 0)?, child: word_argument(arguments, 1)?,
+            })),
+        Win16ExportId::UserChildWindowFromPoint => Win16ApiRequest::User(Win16UserRequest::ChildLookup(
+            Win16UserChildLookupRequest::ChildWindowFromPoint {
+                parent: word_argument(arguments, 0)?, point: dword_argument(arguments, 1)?,
+            })),
+        Win16ExportId::UserChildWindowFromPointEx => Win16ApiRequest::User(Win16UserRequest::ChildLookup(
+            Win16UserChildLookupRequest::ChildWindowFromPointEx {
+                parent: word_argument(arguments, 0)?, point: dword_argument(arguments, 1)?,
+                flags: word_argument(arguments, 2)?,
+            })),
         Win16ExportId::UserDefFrameProc => Win16ApiRequest::User(Win16UserRequest::Mdi(
             Win16UserMdiRequest::DefFrameProc {
                 frame: word_argument(arguments, 0)?, mdi_client: word_argument(arguments, 1)?,
@@ -410,3 +423,7 @@ mod class_data_tests;
 #[cfg(test)]
 #[path = "call_unregister_class_tests.rs"]
 mod unregister_class_tests;
+
+#[cfg(test)]
+#[path = "call_child_lookup_tests.rs"]
+mod child_lookup_tests;
