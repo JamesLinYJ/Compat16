@@ -83,9 +83,9 @@ jobs:
             throw 'Visual Studio developer command script was not found.'
           }
           $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
-          # Limit host/runtime coverage to pure or mock-backed library tests
-          # and isolated temporary-directory filesystem tests. These filters
-          # do not exercise redirected native stdin or open UI.
+          # Limit host/runtime coverage to pure/mock-backed library tests,
+          # isolated filesystem tests, and owned-memory GDI fixtures. These
+          # filters do not exercise redirected native stdin or open UI.
           $suites = @(
             '-p x86-cpu',
             '-p text-codec',
@@ -142,7 +142,9 @@ jobs:
             '-p runtime --lib lstrlen_',
             '-p runtime --lib dos_search_tests::',
             '-p runtime --lib get_char_width',
-            '-p host-services --lib get_char_width'
+            '-p host-services --lib get_char_width',
+            '-p runtime --lib scroll_dc',
+            '-p host-services --lib scroll_dc'
           )
           $failedSuites = @()
           $runtimeCompileChecked = $false

@@ -539,6 +539,7 @@ UserGetUpdateRgn => USER_GET_UPDATE_RGN: ("USER", 237u16, Stack, user_paint::USE
 UserExcludeUpdateRgn => USER_EXCLUDE_UPDATE_RGN: ("USER", 238u16, Stack, user_paint::USER_EXCLUDE_UPDATE_RGN_PARAMETERS, Word);
 UserRedrawWindow => USER_REDRAW_WINDOW: ("USER", 290u16, Stack, user_paint::USER_REDRAW_WINDOW_PARAMETERS, Word);
 UserLockWindowUpdate => USER_LOCK_WINDOW_UPDATE: ("USER", 294u16, Stack, user_paint::USER_LOCK_WINDOW_UPDATE_PARAMETERS, Word);
+UserScrollDC => USER_SCROLL_DC: ("USER", 221u16, Stack, user_paint::USER_SCROLL_DC_PARAMETERS, Word);
 UserScrollWindowEx => USER_SCROLL_WINDOW_EX: ("USER", 319u16, Stack, user_paint::USER_SCROLL_WINDOW_EX_PARAMETERS, Word);
 UserFillRect => USER_FILL_RECT: ("USER", 81u16, Stack, user_drawing::USER_FILL_RECT_PARAMETERS, Word);
 UserDrawText => USER_DRAW_TEXT: ("USER", 85u16, Stack, user_drawing::USER_DRAW_TEXT_PARAMETERS, Word);

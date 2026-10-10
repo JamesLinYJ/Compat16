@@ -92,3 +92,16 @@ pub(super) const USER_SCROLL_WINDOW_EX_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "update_rect", kind: ArgumentKind::Dword, parameter_type: FAR_OUTPUT_BUFFER },
     Win16Parameter { name: "flags", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
 ];
+
+// Win16 SDK WINDOWS.H: BOOL WINAPI ScrollDC(HDC,int,int,const RECT FAR*,
+// const RECT FAR*,HRGN,RECT FAR*); USER.221, 20 Pascal argument bytes.
+pub(super) const USER_SCROLL_DC_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "dc", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+    Win16Parameter { name: "dx", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
+    Win16Parameter { name: "dy", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
+    // These optional FAR values remain raw until runtime applies API rules.
+    Win16Parameter { name: "scroll_rect", kind: ArgumentKind::Dword, parameter_type: FAR_BUFFER },
+    Win16Parameter { name: "clip_rect", kind: ArgumentKind::Dword, parameter_type: FAR_BUFFER },
+    Win16Parameter { name: "update_region", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+    Win16Parameter { name: "update_rect", kind: ArgumentKind::Dword, parameter_type: FAR_OUTPUT_BUFFER },
+];

@@ -13,7 +13,8 @@ pub(super) fn update_region_output(
     use runtime::Win16HostUpdateOperation as Update;
     match operation {
         Win16WindowOperation::UpdateRegion(Update::GetUpdateRgn { region, .. }) => Some(*region),
-        Win16WindowOperation::UpdateRegion(Update::ScrollWindowEx { update_region, .. }) => {
+        Win16WindowOperation::UpdateRegion(Update::ScrollWindowEx { update_region, .. })
+        | Win16WindowOperation::UpdateRegion(Update::ScrollDC { update_region, .. }) => {
             *update_region
         }
         _ => None,
@@ -73,7 +74,8 @@ pub(super) fn update_region_tokens(
         | Update::ValidateRgn { region, .. }
         | Update::RedrawWindow { region, .. } => region.iter().copied().collect(),
         Update::GetUpdateRgn { region, .. } => [*region].into_iter().collect(),
-        Update::ScrollWindowEx { update_region, .. } => update_region.iter().copied().collect(),
+        Update::ScrollWindowEx { update_region, .. }
+        | Update::ScrollDC { update_region, .. } => update_region.iter().copied().collect(),
         _ => Default::default(),
     }
 }
@@ -111,3 +113,7 @@ pub(super) fn toolbar_bitmap_tokens(
         _ => std::collections::BTreeSet::new(),
     }
 }
+
+#[cfg(test)]
+#[path = "win16_scroll_dc_region_tests.rs"]
+mod scroll_dc_tests;

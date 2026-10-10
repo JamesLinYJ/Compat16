@@ -170,3 +170,32 @@ only as an internal Boolean completion, never as the guest return. Completion
 retry cannot repeat minimization, allocate HWNDs, or retire window handles.
 Native desktop fixtures are opt-in and ignored in unattended CI; mock and ABI
 tests do not establish executed GUI behavior or full historical equivalence.
+
+## USER.221 ScrollDC
+
+`WINDOWS.H` line 3440 declares
+`BOOL WINAPI ScrollDC(HDC, int, int, const RECT FAR*, const RECT FAR*, HRGN, RECT FAR*)`.
+`LIBW.LIB` IMPDEF at byte offset `0x87ed` imports `SCROLLDC` from USER
+ordinal `0x00dd` (221). The original artifact hashes above apply. The four
+16-bit scalar/handle arguments and three 32-bit FAR arguments occupy 20
+callee-popped Pascal argument bytes; BOOL returns in AX. This establishes
+the declaration and ABI, not complete historical scrolling behavior.
+
+The [original SDK reference](https://www.pcjs.org/documents/books/mspl13/win/w3sdkr1/)
+documents optional update-region/rectangle outputs. The
+[modern ScrollDC contract](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-scrolldc)
+additionally documents nullable scroll/clip rectangles; the older reference is
+silent on those two nullable inputs.
+The adapter copies input RECT16 values before output, checks the complete
+output range before native mutation, leases the HDC, and uses an independent
+HRGN snapshot with exact-token commit. A nonzero invalid handle never becomes
+NULL. Native ScrollDC uses the DC's existing mapping: deltas are device units,
+input rectangles are logical coordinates, and update outputs are client
+coordinates. The bridge adds no coordinate transform or window-scrolling substitute.
+
+Returned RECT16 coordinates retain the existing update-region saturation
+policy. Original Win16 out-of-range overflow semantics are unverified. Neither
+reference specifies failure output contents: native FALSE suppresses scratch
+RECT copy-back and HRGN snapshot commit, matching the existing ScrollWindowEx
+failure path. ABI, mock, and owned-memory native fixtures cover this bounded
+bridge; they do not establish historical equivalence or desktop application behavior.

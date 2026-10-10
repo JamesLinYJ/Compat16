@@ -20,6 +20,7 @@ pub(super) fn decode(
         | Win16ExportId::UserRedrawWindow
         | Win16ExportId::UserLockWindowUpdate
         | Win16ExportId::UserScrollWindow
+        | Win16ExportId::UserScrollDC
         | Win16ExportId::UserScrollWindowEx => decode_update(export, arguments),
         Win16ExportId::UserBeginPaint | Win16ExportId::UserEndPaint => {
             let window = word_argument(arguments, 0)?;
@@ -110,6 +111,15 @@ fn decode_update(
             scroll_rect: dword_argument(arguments, 3)?,
             clip_rect: dword_argument(arguments, 4)?,
         },
+        Win16ExportId::UserScrollDC => Win16UserUpdateRequest::ScrollDC {
+            dc: word_argument(arguments, 0)?,
+            dx: word_argument(arguments, 1)? as i16,
+            dy: word_argument(arguments, 2)? as i16,
+            scroll_rect: dword_argument(arguments, 3)?,
+            clip_rect: dword_argument(arguments, 4)?,
+            update_region: word_argument(arguments, 5)?,
+            update_rect: dword_argument(arguments, 6)?,
+        },
         Win16ExportId::UserScrollWindowEx => Win16UserUpdateRequest::ScrollWindowEx {
             window: word_argument(arguments, 0)?,
             dx: word_argument(arguments, 1)? as i16,
@@ -124,3 +134,7 @@ fn decode_update(
     };
     Ok(Win16ApiRequest::UserUpdate(request))
 }
+
+#[cfg(test)]
+#[path = "call_scroll_dc_tests.rs"]
+mod scroll_dc_tests;

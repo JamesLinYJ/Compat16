@@ -196,6 +196,7 @@ pub(super) fn decode(
         | Win16ExportId::UserRedrawWindow
         | Win16ExportId::UserLockWindowUpdate
         | Win16ExportId::UserScrollWindow
+        | Win16ExportId::UserScrollDC
         | Win16ExportId::UserScrollWindowEx
         | Win16ExportId::UserGetDc
         | Win16ExportId::UserGetWindowDc
