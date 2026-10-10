@@ -51,6 +51,8 @@ mod kernel_service_calls;
 mod kernel_locale;
 #[path = "call_kernel_heap.rs"]
 mod kernel_heap_calls;
+#[path = "call_kernel_atoms.rs"]
+mod kernel_atom_calls;
 #[path = "call_kernel_runtime.rs"]
 mod kernel_runtime_calls;
 #[path = "call_kernel_selectors.rs"]

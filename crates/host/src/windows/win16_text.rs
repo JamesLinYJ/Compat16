@@ -299,6 +299,23 @@ mod tests {
     }
 
     #[test]
+    fn local_atom_case_keys_preserve_dbcs_trail_bytes() {
+        for page in [932, 936] {
+            let codec = GuestTextCodec::new(page).expect("Windows DBCS code page");
+            // The second byte belongs to a two-byte character. Treating it
+            // as ASCII would turn two distinct atom names into the same key.
+            let upper_trail = [0x81, b'A', b'Z'];
+            let lower_trail = [0x81, b'a', b'Z'];
+            let first = ansi_lower_string(codec, &upper_trail).unwrap();
+            let second = ansi_lower_string(codec, &lower_trail).unwrap();
+            assert_eq!(first, [0x81, b'A', b'z'], "code page {page}");
+            assert_eq!(second, [0x81, b'a', b'z'], "code page {page}");
+            assert_ne!(first, second, "code page {page}");
+            assert_eq!(ansi_lower_string(codec, &[0x81, b'A', b'z']).unwrap(), first);
+        }
+    }
+
+    #[test]
     fn in_place_case_preserves_only_the_guest_character_that_would_expand() {
         let utf8 = GuestTextCodec::new(65001).expect("Windows should provide code page 65001");
         // U+023A lowercases to U+2C65, which needs three UTF-8 bytes instead

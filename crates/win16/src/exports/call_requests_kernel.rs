@@ -9,6 +9,14 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Option<Win16ApiRequest>, Win16Error> {
     let request = match descriptor.id {
+        Win16ExportId::KernelInitAtomTable
+        | Win16ExportId::KernelFindAtom
+        | Win16ExportId::KernelAddAtom
+        | Win16ExportId::KernelDeleteAtom
+        | Win16ExportId::KernelGetAtomName
+        | Win16ExportId::KernelGetAtomHandle => {
+            kernel_atom_calls::decode(descriptor.id, arguments, selectors, memory)?
+        }
         Win16ExportId::KernelGetInstanceData
         | Win16ExportId::KernelGetCodeHandle
         | Win16ExportId::KernelGetCodeInfo => {

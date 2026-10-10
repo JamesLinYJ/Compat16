@@ -2,6 +2,46 @@
 //! The catalog is the production declaration source.
 
 use super::*;
+
+// Win16 signatures and KERNEL ordinals: Open Watcom win16.mh and kernel.def,
+// revision 08a5064dd9831edf10234844630e605e83606989. Win16 int is signed
+// 16-bit; LPCSTR/LPSTR use four-byte FAR slots, and all six results use AX.
+pub(super) const INIT_ATOM_TABLE_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
+    name: "buckets",
+    kind: ArgumentKind::Word,
+    parameter_type: SIGNED_SCALAR,
+}];
+
+pub(super) const ATOM_NAME_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
+    name: "name",
+    kind: ArgumentKind::Dword,
+    parameter_type: Win16ParameterType::AtomName,
+}];
+
+pub(super) const ATOM_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
+    name: "atom",
+    kind: ArgumentKind::Word,
+    parameter_type: SCALAR_WORD,
+}];
+
+pub(super) const GET_ATOM_NAME_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter {
+        name: "atom",
+        kind: ArgumentKind::Word,
+        parameter_type: SCALAR_WORD,
+    },
+    Win16Parameter {
+        name: "buffer",
+        kind: ArgumentKind::Dword,
+        parameter_type: FAR_OUTPUT_BUFFER,
+    },
+    Win16Parameter {
+        name: "capacity",
+        kind: ArgumentKind::Word,
+        parameter_type: SIGNED_SCALAR,
+    },
+];
+
 pub(super) const LCLOSE_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
     name: "file_handle",
     kind: ArgumentKind::Word,

@@ -57,7 +57,7 @@ pub enum Win16ClassName {
     Name(Vec<u8>),
 }
 
-/// An atom name accepted by Win16 GlobalAddAtom / GlobalFindAtom. `Integer`
+/// An atom name accepted by Win16 local and global atom APIs. `Integer`
 /// represents a MAKEINTATOM value encoded with a zero selector; `String` owns
 /// bytes copied from a validated guest ANSI string.
 #[derive(Clone, Debug, Eq, PartialEq)]

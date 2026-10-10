@@ -79,6 +79,10 @@ pub use kernel_global_memory::Win16KernelGlobalMemoryRequest;
 mod kernel_local_heap;
 pub use kernel_local_heap::Win16KernelLocalHeapRequest;
 
+#[path = "kernel_atoms.rs"]
+mod kernel_atoms;
+pub use kernel_atoms::Win16KernelAtomsRequest;
+
 #[path = "kernel_files.rs"]
 mod kernel_files;
 pub use kernel_files::Win16KernelFilesRequest;
@@ -153,6 +157,7 @@ pub enum Win16KernelRequest {
     Selectors(Win16KernelSelectorsRequest),
     GlobalMemory(Win16KernelGlobalMemoryRequest),
     LocalHeap(Win16KernelLocalHeapRequest),
+    Atoms(Win16KernelAtomsRequest),
     Files(Win16KernelFilesRequest),
     Profiles(Win16KernelProfilesRequest),
 }

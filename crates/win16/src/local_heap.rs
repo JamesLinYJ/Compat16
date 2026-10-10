@@ -13,12 +13,14 @@ use std::fmt;
 use std::ops::Range;
 
 mod arena;
+mod atoms;
 mod compact;
 mod growth;
 mod handles;
 mod operations;
 mod write_tracking;
 
+pub use atoms::LocalAtomEntry;
 pub use growth::LocalHeapGrowthError;
 
 use write_tracking::{copy_within_range, fill_range, write_byte, write_word};
@@ -126,6 +128,8 @@ pub enum LocalHeapError {
     CorruptFreeList { offset: usize },
     /// A movable-handle table or entry is malformed at this segment offset.
     CorruptHandleTable { offset: usize },
+    /// The guest-resident local atom table or one of its entries is malformed.
+    CorruptAtomTable { offset: usize },
 }
 
 impl fmt::Display for LocalHeapError {
@@ -138,6 +142,7 @@ impl fmt::Display for LocalHeapError {
             Self::CorruptArenaChain { offset } => write!(f, "Win16 local-heap arena chain is corrupt at DGROUP offset 0x{offset:04X}"),
             Self::CorruptFreeList { offset } => write!(f, "Win16 local-heap free list is corrupt at DGROUP offset 0x{offset:04X}"),
             Self::CorruptHandleTable { offset } => write!(f, "Win16 local-heap handle table is corrupt at DGROUP offset 0x{offset:04X}"),
+            Self::CorruptAtomTable { offset } => write!(f, "Win16 local atom table is corrupt at DGROUP offset 0x{offset:04X}"),
         }
     }
 }
@@ -312,6 +317,17 @@ impl<'a> LocalHeap<'a> {
         &mut self,
         operation: impl FnOnce(&mut LocalHeap<'_>) -> Result<u16, LocalHeapError>,
     ) -> Result<u16, LocalHeapError> {
+        self.transaction_when(operation, |_| true)
+    }
+
+    // Atom allocation can require two fixed blocks. A failed attempt must
+    // discard both allocations and any intermediate compaction, so callers can
+    // retry against a larger DGROUP without publishing partial initialization.
+    fn transaction_when(
+        &mut self,
+        operation: impl FnOnce(&mut LocalHeap<'_>) -> Result<u16, LocalHeapError>,
+        commit: impl FnOnce(u16) -> bool,
+    ) -> Result<u16, LocalHeapError> {
         let mut scratch = Vec::new();
         scratch.try_reserve_exact(self.dgroup.len()).map_err(|_| LocalHeapError::OutOfMemory)?;
         scratch.extend_from_slice(self.dgroup);
@@ -321,7 +337,9 @@ impl<'a> LocalHeap<'a> {
             heap.validate()?;
             (value, heap.take_write_spans())
         };
-        self.apply_transaction_writes(&scratch, &writes)?;
+        if commit(value) {
+            self.apply_transaction_writes(&scratch, &writes)?;
+        }
         Ok(value)
     }
 

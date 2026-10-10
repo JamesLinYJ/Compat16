@@ -108,7 +108,9 @@ jobs:
             '-p runtime --lib map_window_points',
             '-p host-services --lib create_new_',
             '-p runtime --lib create_new_',
-            '-p runtime --lib caret_'
+            '-p runtime --lib caret_',
+            '-p runtime --lib local_atom_',
+            '-p host-services --lib local_atom_'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {
