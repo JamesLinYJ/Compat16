@@ -41,6 +41,18 @@ pub struct NeHeader {
     pub expected_windows_version: u16,
 }
 
+impl NeHeader {
+    /// Segment-sector shift after applying the legacy default encoding.
+    pub fn segment_alignment_shift(&self) -> u16 {
+        // Microsoft MS-DOS Encyclopedia, Appendix K, NE header offset 32h:
+        // an alignment shift count of zero is equivalent to nine.
+        // https://www.pcjs.org/documents/books/mspl13/msdos/encyclopedia/appendix-k/
+        // Keep alignment_shift unchanged so the parsed header retains its
+        // on-disk value. Resource tables have their own independent shift.
+        if self.alignment_shift == 0 { 9 } else { self.alignment_shift }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NeModule {
     pub ne_header_offset: usize,
@@ -293,7 +305,7 @@ fn parse_segments(bytes: &[u8], table: &[u8], header: &NeHeader) -> Result<Vec<N
             None
         } else {
             let absolute = u32::from(sector)
-                .checked_shl(u32::from(header.alignment_shift))
+                .checked_shl(u32::from(header.segment_alignment_shift()))
                 .ok_or(FormatError::InvalidNe("segment file offset overflows"))?;
             Some(usize::try_from(absolute).map_err(|_| FormatError::ArithmeticOverflow)?)
         };
