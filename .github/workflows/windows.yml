@@ -182,6 +182,34 @@ jobs:
             throw ('Compatibility tests failed: ' + ($failedSuites -join '; '))
           }
 
+      - name: Probe hidden STATIC creation contracts
+        # Diagnostic only: hidden USER windows, no ShowWindow or input. Keep its
+        # ignored test isolated from the ordinary noninteractive test filters.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for hidden STATIC probe.'
+          }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'BLOCKED: Visual Studio developer command script unavailable for hidden STATIC probe.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $filter = 'windows::dialog_static_creation_probe_tests::hidden_static_payload_and_precreate_subclass'
+          Write-Host 'Checking only hidden STATIC payload identity and precreation subclass callbacks; this is not GUI compatibility validation.'
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib {4} -- --ignored --exact --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+          & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+          $probeExitCode = $LASTEXITCODE
+          if ($probeExitCode -ne 0) {
+            throw "UNSUPPORTED/FAILED: hidden STATIC creation probe (exit $probeExitCode); inspect callback and cleanup diagnostics above."
+          }
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 1 passed; 0 failed; 0 ignored;') {
+            throw 'BLOCKED: the exact hidden STATIC diagnostic did not execute once.'
+          }
+
       - name: Build and stage native release
         # Still report compilation/staging failures when a test fails.
         if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}

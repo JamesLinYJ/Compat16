@@ -106,6 +106,9 @@ mod win16_dde;
 #[path = "windows/win16_classic_dde_wire.rs"]
 mod win16_classic_dde_wire;
 mod win16_images;
+#[cfg(test)]
+#[path = "windows/win16_dialog_static_creation_probe_tests.rs"]
+mod dialog_static_creation_probe_tests;
 mod win16_keyboard;
 #[path = "windows/win16_modal.rs"]
 mod win16_modal;
