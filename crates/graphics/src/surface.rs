@@ -472,7 +472,6 @@ fn parse_dib(bytes: &[u8]) -> Result<Surface, DibError> {
     let count = usize::try_from(count).map_err(|_| DibError::ImageTooLarge)?;
     let mut pixels = Vec::new();
     pixels.try_reserve_exact(count).map_err(|_| DibError::AllocationFailed)?;
-    pixels.resize(count, Color::BLACK);
 
     let palette_start = header_size;
     let mut palette = Vec::new();
@@ -532,7 +531,7 @@ fn parse_dib(bytes: &[u8]) -> Result<Surface, DibError> {
                 }
                 _ => unreachable!("bit depth validated above"),
             };
-            pixels[y * width as usize + x] = color;
+            pixels.push(color);
         }
     }
 
