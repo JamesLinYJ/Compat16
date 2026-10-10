@@ -287,7 +287,7 @@ fn child_lookup_keeps_null_unknown_retired_and_mapped_parent_inputs_distinct() {
 #[test]
 fn child_lookup_is_child_marshals_both_handles_and_uses_native_descendant_results() {
     for (parent, child, expected_parent, expected_child) in [
-        (0x1234, 0x2345, Win16WindowTarget::Mapped(PARENT), Win16WindowTarget::Mapped(CHILD)),
+        (0x1234, 0x2345_u16, Win16WindowTarget::Mapped(PARENT), Win16WindowTarget::Mapped(CHILD)),
         (0x1234, 0x1234, Win16WindowTarget::Mapped(PARENT), Win16WindowTarget::Mapped(PARENT)),
         (0, 0x2345, Win16WindowTarget::Null, Win16WindowTarget::Mapped(CHILD)),
         (0x1234, 0, Win16WindowTarget::Mapped(PARENT), Win16WindowTarget::Null),
