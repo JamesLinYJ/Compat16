@@ -17,6 +17,7 @@ fn decode_x87(bytes: &[u8]) -> NormalizedInstruction {
     NormalizedInstruction::new(DecodedInstruction {
         instruction,
         opcode: escape,
+        operand32: false,
         x87_opcode: Some((u16::from(escape & 7) << 8) | u16::from(modrm)),
         start_ip: 0,
         next_ip: bytes.len() as u32,

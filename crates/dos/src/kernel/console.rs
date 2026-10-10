@@ -95,11 +95,21 @@ impl DosKernel {
         &mut self,
         host: &mut impl DosHost,
     ) -> Result<u8, DosHostError> {
-        if let Some(byte) = self.pending_input.take() {
-            return Ok(byte);
-        }
         let mut byte = [0];
-        match host.read_stdin(&mut byte)? {
+        // MS-DOS 4.0 Programmer's Reference, Functions 01H/07H/08H/0AH:
+        // character input follows standard input, including Function 46H
+        // redirection. The pending byte belongs only to the host input stream.
+        // https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/
+        let count = match self.handles.get(&0).copied() {
+            Some(Handle::Standard(StandardHandle::Input)) => {
+                self.read_stdin_bytes(host, &mut byte)?
+            }
+            Some(Handle::File(file)) => host.file_read(file, &mut byte)?,
+            Some(Handle::Standard(_)) | None => {
+                return Err(DosHostError::new(DosErrorCode::InvalidHandle));
+            }
+        };
+        match count {
             1 => Ok(byte[0]),
             _ => Err(DosHostError::new(DosErrorCode::GeneralFailure)),
         }

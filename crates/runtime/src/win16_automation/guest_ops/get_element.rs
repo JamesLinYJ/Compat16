@@ -183,7 +183,7 @@ fn copy_element(
     }
 }
 
-fn array_cell_index(
+pub(super) fn array_cell_index(
     descriptor: &compat_services::automation::SafeArray16,
     raw_indices: &[u8],
 ) -> Result<usize, AutomationFailure> {

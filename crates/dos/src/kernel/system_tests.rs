@@ -105,6 +105,12 @@ fn corrupted_mcb_is_rejected_before_file_create_side_effect() {
     memory.put(real_address(psp, 0x0200).0, b"NEWFILE.TMP\0");
     // The initial MCB is at PSP-1. Catch guest corruption before file creation,
     // rather than during the post-call system-table refresh.
+    let mut expected_header = [0; 16];
+    memory.read(real_address(psp - 1, 0), &mut expected_header).unwrap();
+    assert_eq!(expected_header[0], b'Z');
+    assert_eq!(u16::from_le_bytes([expected_header[1], expected_header[2]]), psp);
+    assert_eq!(u16::from_le_bytes([expected_header[3], expected_header[4]]), 0x1000);
+    expected_header[0] = b'X';
     memory.put(real_address(psp - 1, 0).0, b"X");
 
     let mut regs = Registers::default();
@@ -127,8 +133,7 @@ fn corrupted_mcb_is_rejected_before_file_create_side_effect() {
     assert_eq!(chain_head, psp - 1);
     assert_eq!(psp_segment, psp);
     assert_eq!(previous, None);
-    assert_eq!(header[0], b'X');
-    assert_eq!(header[1..5], [0, 0, 0, 0]);
+    assert_eq!(header, expected_header);
     assert_eq!(regs, before);
     let lookup = host.file_open(b"NEWFILE.TMP", DosFileAccess::ReadOnly);
     assert_eq!(lookup.unwrap_err().code, crate::DosErrorCode::FileNotFound);

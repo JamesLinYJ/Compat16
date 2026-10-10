@@ -22,6 +22,7 @@ use super::{
 mod bstr_calls;
 mod convert_calls;
 mod get_element;
+mod ptr_of_index;
 mod safearray_calls;
 mod teardown;
 mod variant;
@@ -308,7 +309,7 @@ impl Win16AutomationState {
                 owner,
                 &mut reject_interface,
             ),
-            15..=25 | 27 | 38..=41 => safearray_calls::execute_safe_array_call(
+            15..=25 | 27 | 38..=41 | 109 => safearray_calls::execute_safe_array_call(
                 self,
                 call.ordinal,
                 &call.arguments,

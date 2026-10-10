@@ -85,6 +85,7 @@ pub(super) fn decode(
         | Win16ExportId::Ole2DispSafeArrayAccessData
         | Win16ExportId::Ole2DispSafeArrayUnaccessData
         | Win16ExportId::Ole2DispSafeArrayGetElement
+        | Win16ExportId::Ole2DispSafeArrayPtrOfIndex
         | Win16ExportId::Ole2DispSafeArrayCopy
         | Win16ExportId::Ole2DispSafeArrayAllocDescriptor
         | Win16ExportId::Ole2DispSafeArrayAllocData

@@ -356,10 +356,10 @@ impl DosKernel {
         let target = match source {
             Handle::Standard(kind) => Handle::Standard(kind),
             Handle::File(file) => match host.file_duplicate(file) {
-                Ok(copy) if copy != file => Handle::File(copy),
+                Ok(copy) if !self.owns_file_token(copy) => Handle::File(copy),
                 Ok(_) => {
                     return Err(DosError::HostContractViolation(
-                        "file_duplicate returned the source token",
+                        "file_duplicate returned an already owned file token",
                     ));
                 }
                 Err(error) => {
@@ -407,10 +407,10 @@ impl DosKernel {
         let replacement = match source {
             Handle::Standard(kind) => Handle::Standard(kind),
             Handle::File(file) => match host.file_duplicate(file) {
-                Ok(copy) if copy != file => Handle::File(copy),
+                Ok(copy) if !self.owns_file_token(copy) => Handle::File(copy),
                 Ok(_) => {
                     return Err(DosError::HostContractViolation(
-                        "file_duplicate returned the source token",
+                        "file_duplicate returned an already owned file token",
                     ));
                 }
                 Err(error) => {

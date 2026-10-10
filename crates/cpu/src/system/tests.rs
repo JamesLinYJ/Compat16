@@ -2,7 +2,7 @@ use guest_core::memory::Memory;
 use guest_core::{GuestMemory, LinearAddr, PhysAddr};
 
 use super::{
-    CR0_CD, CR0_NE, CR0_NW, CR0_PE, CR0_PG, CR0_WP, CR4_PSE, CpuFault, CpuSystem, DescriptorType,
+    CR0_CD, CR0_NE, CR0_NW, CR0_PE, CR0_PG, CR0_WP, CpuFault, CpuSystem, DescriptorType,
     ExceptionVector, PageAccess, SegmentAccess, SegmentDescriptor, SegmentTableRegister,
     TranslationError,
 };
@@ -12,7 +12,6 @@ const WRITABLE: u32 = 1 << 1;
 const USER: u32 = 1 << 2;
 const ACCESSED: u32 = 1 << 5;
 const DIRTY: u32 = 1 << 6;
-const PAGE_SIZE: u32 = 1 << 7;
 
 fn guest_memory() -> Memory {
     Memory::with_size(4 * 1024 * 1024).expect("test guest RAM")
@@ -144,89 +143,70 @@ fn user_write_protection_fault_has_architectural_error_bits() {
         .translate_linear(LinearAddr(linear), PageAccess::Write, 3, &mut memory)
         .expect_err("user cannot write read-only PTE");
     assert_page_fault(fault, linear, 0b0111);
-    assert_eq!(memory.read_u32(PhysAddr(0x1000)).unwrap() & ACCESSED, 0);
+    // Intel SDM Vol. 3A, #PF: a protection fault still sets the PDE A bit.
+    assert_eq!(memory.read_u32(PhysAddr(0x1000)).unwrap() & ACCESSED, ACCESSED);
     assert_eq!(memory.read_u32(PhysAddr(0x2008)).unwrap() & ACCESSED, 0);
 }
 
 #[test]
-fn reserved_large_page_bits_raise_present_reserved_page_fault() {
-    let mut memory = guest_memory();
-    let linear = 0x0123_4567;
-    let directory_index = linear >> 22;
-    put_u32(
-        &mut memory,
-        0x1000 + directory_index * 4,
-        0x0080_0000 | PRESENT | PAGE_SIZE | WRITABLE | USER | (1 << 12),
-    );
-    let mut system = paging_enabled(false);
-    system.write_cr4(CR4_PSE).expect("enable 4-MiB pages");
-
-    let fault = system
-        .translate_linear(LinearAddr(linear), PageAccess::Read, 3, &mut memory)
-        .expect_err("reserved PDE bit must fault");
-    assert_page_fault(fault, linear, 0b1101);
-}
-
-#[test]
-fn pse_reserved_bits_in_4k_entries_raise_present_reserved_page_faults() {
-    let mut memory = guest_memory();
-    let linear = 0x0020_1000;
-    let directory_index = linear >> 22;
-    let table_index = (linear >> 12) & 0x3ff;
-    put_u32(
-        &mut memory,
-        0x1000 + directory_index * 4,
-        0x2000 | PRESENT | WRITABLE | USER | DIRTY,
-    );
-    put_u32(
-        &mut memory,
-        0x2000 + table_index * 4,
-        0x8000 | PRESENT | WRITABLE | USER | PAGE_SIZE,
-    );
-    let mut system = paging_enabled(false);
-    system
-        .write_cr4(CR4_PSE)
-        .expect("enable PSE reserved-bit checks");
-
-    let pde_fault = system
-        .translate_linear(LinearAddr(linear), PageAccess::Read, 3, &mut memory)
-        .expect_err("reserved PDE bits must fault");
-
-    assert_page_fault(pde_fault, linear, 0b1101);
-    put_u32(
-        &mut memory,
-        0x1000 + directory_index * 4,
-        0x2000 | PRESENT | WRITABLE | USER,
-    );
-    let pte_fault = system
-        .translate_linear(LinearAddr(linear), PageAccess::Read, 3, &mut memory)
-        .expect_err("reserved PTE bits must fault");
-    assert_page_fault(pte_fault, linear, 0b1101);
-    assert_eq!(memory.read_u32(PhysAddr(0x1004)).unwrap() & ACCESSED, 0);
-    assert_eq!(memory.read_u32(PhysAddr(0x2004)).unwrap() & ACCESSED, 0);
-}
-
-#[test]
-fn four_mebibyte_page_translation_sets_leaf_accessed_and_dirty() {
+fn not_present_directory_fault_does_not_walk_or_modify_page_tables() {
     let mut memory = guest_memory();
     let linear = 0x0123_4567;
     let pde_address = 0x1000 + (linear >> 22) * 4;
-    put_u32(
-        &mut memory,
-        pde_address,
-        0x0080_0000 | PRESENT | PAGE_SIZE | WRITABLE | USER,
-    );
+    // Without Present, even an unbacked table address must produce #PF,
+    // rather than a backing-memory error or a speculative table access.
+    let pde = 0xdead_0000 | WRITABLE | USER;
+    put_u32(&mut memory, pde_address, pde);
     let mut system = paging_enabled(false);
-    system.write_cr4(CR4_PSE).expect("enable 4-MiB pages");
+
+    let fault = system
+        .translate_linear(LinearAddr(linear), PageAccess::Read, 3, &mut memory)
+        .expect_err("missing PDE must fault");
+    assert_page_fault(fault, linear, 0b0100);
+    assert_eq!(system.cr2, linear);
+    assert_eq!(memory.read_u32(PhysAddr(pde_address)).unwrap(), pde);
+}
+
+#[test]
+fn four_kib_user_reads_require_user_permission_at_both_levels() {
+    let linear = 0x0020_1000;
+    // The i486 profile uses two-level 4-KiB paging, without CR4/PSE.
+    // Either level can independently deny user access to a present page.
+    for (directory_flags, table_flags) in [(WRITABLE, WRITABLE | USER),
+        (WRITABLE | USER, WRITABLE)]
+    {
+        let mut memory = guest_memory();
+        install_4k_page(&mut memory, linear, 0x8000, directory_flags, table_flags);
+        let mut system = paging_enabled(false);
+        let fault = system
+            .translate_linear(LinearAddr(linear), PageAccess::Read, 3, &mut memory)
+            .expect_err("both directory and table must permit user access");
+        assert_page_fault(fault, linear, 0b0101);
+        assert_eq!(system.cr2, linear);
+    }
+}
+
+#[test]
+fn four_kib_read_sets_accessed_without_setting_dirty() {
+    let mut memory = guest_memory();
+    let linear = 0x0123_4567;
+    let pde_address = 0x1000 + (linear >> 22) * 4;
+    let pte_address = 0x2000 + ((linear >> 12) & 0x3ff) * 4;
+    install_4k_page(&mut memory, linear, 0x8000, WRITABLE | USER, WRITABLE | USER);
+    let mut system = paging_enabled(false);
 
     let physical = system
-        .translate_linear(LinearAddr(linear), PageAccess::Write, 3, &mut memory)
-        .expect("valid 4-MiB mapping");
+        .translate_linear(LinearAddr(linear), PageAccess::Read, 3, &mut memory)
+        .expect("valid 4-KiB mapping");
 
-    assert_eq!(physical, PhysAddr(0x00a3_4567));
+    assert_eq!(physical, PhysAddr(0x8567));
     assert_eq!(
         memory.read_u32(PhysAddr(pde_address)).unwrap() & (ACCESSED | DIRTY),
-        ACCESSED | DIRTY
+        ACCESSED
+    );
+    assert_eq!(
+        memory.read_u32(PhysAddr(pte_address)).unwrap() & (ACCESSED | DIRTY),
+        ACCESSED
     );
 }
 
@@ -257,14 +237,16 @@ fn invalid_control_register_writes_fault_without_changing_registers() {
         Err(CpuFault::general_protection(0))
     );
     assert_eq!(system.cr0, old_cr0);
-    assert_eq!(old_cr0, CR0_CD | super::CR0_ET);
+    // Intel 273021-001, Table 9-8: the Intel486 resets CR0 to 60000010h.
+    assert_eq!(old_cr0, CR0_CD | CR0_NW | super::CR0_ET);
 
     assert_eq!(
         system.write_cr0(CR0_NE | CR0_NW),
         Err(CpuFault::general_protection(0))
     );
     assert_eq!(system.cr0, old_cr0);
-    assert!(system.write_cr0(1 << 6).is_err());
+    // MOV CR0 ignores attempts to set reserved bits rather than raising #GP.
+    system.write_cr0(old_cr0 | (1 << 6)).expect("reserved CR0 bit is ignored");
     assert_eq!(system.cr0, old_cr0);
 
     system
@@ -275,8 +257,36 @@ fn invalid_control_register_writes_fault_without_changing_registers() {
         .write_cr3(0x2018)
         .expect("486 CR3 cache controls are supported");
     assert_eq!(system.cr3, 0x2018);
-    assert!(system.write_cr4(1 << 5).is_err());
-    assert_eq!(system.cr4, 0);
+}
+
+#[test]
+fn cr4_instructions_are_rejected_without_changing_i486_state() {
+    use crate::memory_access::{AccessSite, CpuMemoryAccess};
+    use crate::{CpuError, RealModeSegments, execute, x86_decode};
+    use guest_core::Registers;
+
+    // CR4 is outside this CPU profile. Exercise the instruction boundary
+    // instead of calling a control-register API that the i486 does not have.
+    for code in [[0x0f, 0x20, 0xe0], [0x0f, 0x22, 0xe0]] {
+        let mut memory = guest_memory();
+        memory.write_physical(PhysAddr(0), &code).unwrap();
+        let mut system = CpuSystem::reset();
+        let old_system = system;
+        let mut registers = Registers::default();
+        registers.eax = 1 << 5;
+        let old_registers = registers.clone();
+        let resolver = RealModeSegments;
+        let error = {
+            let mut bus = CpuMemoryAccess::new(&mut memory, &resolver, &mut system,
+                AccessSite { opcode: 0, ip: 0, eflags: registers.eflags });
+            let decoded = x86_decode::decode(&mut bus, 0, 0).unwrap();
+            let instruction = x86_decode::normalize_system_instruction(decoded).unwrap();
+            execute::execute_system(&mut registers, &mut bus, &instruction).unwrap_err()
+        };
+        assert_eq!(error, CpuError::InvalidOpcode { opcode: 0x0f, ip: 0 });
+        assert_eq!(registers, old_registers);
+        assert_eq!(system, old_system);
+    }
 }
 
 #[test]
@@ -395,7 +405,7 @@ fn descriptor_access_checks_entire_range_and_cpl_rpl_dpl() {
     );
     assert_eq!(
         data.check_access(0x1b, SegmentAccess::Write, 3, 3, 0xffff, 2),
-        Err(CpuFault::general_protection(0x18))
+        Err(CpuFault::general_protection(0))
     );
     assert!(
         data.check_access(0x1b, SegmentAccess::Read, 0, 3, 0, 1)
@@ -499,7 +509,7 @@ fn descriptor_table_register_checks_inclusive_limit_and_address_overflow() {
     );
     let overflowing = SegmentTableRegister {
         base: LinearAddr(u32::MAX - 3),
-        limit: u16::MAX,
+        limit: u32::from(u16::MAX),
     };
     assert!(overflowing.descriptor_address(0x08).is_err());
 }

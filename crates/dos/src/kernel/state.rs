@@ -245,6 +245,13 @@ impl DosKernel {
         Ok(())
     }
 
+    /// A duplicate owns a new closeable identity, not merely a shared cursor.
+    /// Include failed-close resources, which still belong to this process.
+    pub(super) fn owns_file_token(&self, file: DosHostFile) -> bool {
+        self.handles.values().any(|handle| *handle == Handle::File(file))
+            || self.orphan_file_handles.contains(&file)
+    }
+
     /// Current PSP segment, for the runtime and diagnostics.
     pub fn psp_segment(&self) -> u16 {
         self.psp_segment
@@ -296,7 +303,7 @@ impl DosKernel {
                         return Err(self.rollback_inherited_handles(duplicated, host, primary));
                     }
                     match host.file_duplicate(file) {
-                        Ok(copy) if copy != file => {
+                        Ok(copy) if !parent.owns_file_token(copy) => {
                             if duplicated.contains(&copy) {
                                 return Err(self.rollback_inherited_handles(
                                     duplicated,
@@ -314,7 +321,7 @@ impl DosKernel {
                                 duplicated,
                                 host,
                                 DosError::HostContractViolation(
-                                    "file_duplicate returned the live source file identity",
+                                    "file_duplicate returned a file identity already owned by the parent",
                                 ),
                             ));
                         }

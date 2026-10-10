@@ -1,5 +1,5 @@
 use super::execute;
-use crate::memory_access::{AccessSite, CpuMemoryAccess};
+use crate::memory_access::{AccessSite, CpuMemoryAccess, DataBreakpointHits};
 use crate::system::CpuSystem;
 use crate::{CpuError, DF, RealModeSegments, x86_decode};
 use guest_core::io::{PortError, PortIo, PortWidth};
@@ -35,7 +35,7 @@ impl PortIo for Bus {
     }
 }
 
-fn run(code: &[u8], regs: &mut Registers, memory: &mut Ram, ports: &mut Bus) -> Result<Option<u32>, CpuError> {
+fn run(code: &[u8], regs: &mut Registers, memory: &mut Ram, ports: &mut Bus) -> Result<Option<(u32, bool, DataBreakpointHits)>, CpuError> {
     memory.0[..code.len()].copy_from_slice(code);
     let mut system = CpuSystem::reset();
     let resolver = RealModeSegments;
@@ -90,7 +90,8 @@ fn rep_insw_segment_limit_faults_without_io_and_zero_count_has_no_bus_transactio
 
     regs.set_cx(0);
     let zero_count_regs = regs.clone();
-    assert_eq!(run(&[0xf3, 0x6d], &mut regs, &mut memory, &mut ports).unwrap(), Some(2));
+    assert_eq!(run(&[0xf3, 0x6d], &mut regs, &mut memory, &mut ports).unwrap(),
+        Some((2, false, DataBreakpointHits::default())));
     assert_eq!(regs, zero_count_regs);
     assert!(ports.reads.is_empty());
 }
@@ -135,9 +136,11 @@ fn long_rep_yields_and_retains_remaining_count() {
     let mut ports = Bus::default();
     regs.es = 0x1000;
     regs.set_cx(4097);
-    assert_eq!(run(&[0xf3, 0x6c], &mut regs, &mut memory, &mut ports).unwrap(), Some(0));
+    assert_eq!(run(&[0xf3, 0x6c], &mut regs, &mut memory, &mut ports).unwrap(),
+        Some((0, true, DataBreakpointHits::default())));
     assert_eq!((regs.cx(), regs.di()), (1, 4096));
     assert_eq!(ports.reads.len(), 4096);
-    assert_eq!(run(&[0xf3, 0x6c], &mut regs, &mut memory, &mut ports).unwrap(), Some(2));
+    assert_eq!(run(&[0xf3, 0x6c], &mut regs, &mut memory, &mut ports).unwrap(),
+        Some((2, false, DataBreakpointHits::default())));
     assert_eq!((regs.cx(), regs.di()), (0, 4097));
 }

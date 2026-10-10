@@ -54,6 +54,7 @@ pub(super) struct TestHost {
     disk_space: Option<DosDiskSpace>,
     duplicate_calls: usize,
     fail_duplicate_at: Option<usize>,
+    duplicate_token_override: Option<DosHostFile>,
     max_file_write: Option<usize>,
     code_page: Option<text_codec::CodePage>,
     redirected_standard_streams: bool,
@@ -127,6 +128,9 @@ impl DosHost for TestHost {
         self.duplicate_calls += 1;
         if self.fail_duplicate_at == Some(self.duplicate_calls) {
             return Err(DosHostError::new(DosErrorCode::AccessDenied));
+        }
+        if let Some(copy) = self.duplicate_token_override {
+            return Ok(copy);
         }
         self.next_id += 1;
         let copy = DosHostFile(self.next_id);
@@ -639,14 +643,20 @@ fn handle_inheritance_rolls_back_partial_host_duplicates() {
     let file_b = host.file_create(b"b", 0).unwrap();
     parent.handles.insert(5, Handle::File(file_a));
     parent.handles.insert(6, Handle::File(file_b));
+    assert!(parent.file_table.register_open(5, 2).is_some());
+    assert!(parent.file_table.register_open(6, 2).is_some());
+    let original_host_handles = host.handles.clone();
+    let original_child_handles = child.handles.clone();
     host.fail_duplicate_at = Some(2);
 
     assert!(matches!(
         child.inherit_handles_from(&parent, &mut host),
         Err(DosError::HostOperation(error)) if error.code == DosErrorCode::AccessDenied
     ));
-    assert_eq!(host.handles.len(), 2);
-    assert_eq!(child.handles.len(), 3);
+    assert_eq!(host.duplicate_calls, 2);
+    assert_eq!(host.handles, original_host_handles);
+    assert_eq!(child.handles, original_child_handles);
+    assert!(child.orphan_file_handles.is_empty());
 }
 
 #[test]
@@ -957,4 +967,221 @@ fn add_test_file(host: &mut TestHost, path: &[u8], attributes: u8, bytes: &[u8])
     let token = host.file_create(path, attributes).unwrap();
     host.file_for(token).unwrap().bytes = bytes.to_vec();
     host.file_close(token).unwrap();
+}
+
+#[test]
+fn duplicate_services_reject_owned_tokens_without_closing_or_replacing_handles() {
+    for service in [0x45, 0x46] {
+        for reused_token in 0..3 {
+            let mut dos = DosKernel::new(0x1000);
+            let mut host = TestHost::default();
+            let mut memory = TestMemory::new();
+            let source = host.file_create(b"source", 0).unwrap();
+            let target = host.file_create(b"target", 0).unwrap();
+            let orphan = host.file_create(b"orphan", 0).unwrap();
+            dos.handles.insert(3, Handle::File(source));
+            dos.handles.insert(4, Handle::File(target));
+            assert!(dos.file_table.register_open(3, 2).is_some());
+            assert!(dos.file_table.register_open(4, 2).is_some());
+            dos.reserve_file_cleanup_slot().unwrap();
+            dos.retain_unclosed_file(orphan).unwrap();
+            let original_handles = dos.handles.clone();
+            let original_host_handles = host.handles.clone();
+            host.duplicate_token_override = Some([source, target, orphan][reused_token]);
+            let mut regs = Registers::default();
+            regs.set_ah(service);
+            regs.set_bx(3);
+            regs.set_cx(4);
+
+            assert!(matches!(
+                dos.interrupt(0x21, &mut regs, &mut memory, &mut host),
+                Err(DosError::HostContractViolation(_))
+            ));
+            assert_eq!(host.duplicate_calls, 1);
+            assert_eq!(dos.handles, original_handles);
+            assert_eq!(host.handles, original_host_handles);
+            assert!(dos.file_table.can_duplicate_handle(3, 5));
+            assert!(dos.file_table.can_duplicate_handle(4, 5));
+            assert!(!dos.file_table.can_duplicate_handle(5, 6));
+            assert_eq!(dos.orphan_file_handles, vec![orphan]);
+        }
+    }
+}
+
+#[test]
+fn handle_inheritance_rejects_other_parent_tokens_without_closing_them() {
+    let mut parent = DosKernel::new(0x1000);
+    let mut child = DosKernel::new(0x2000);
+    let mut host = TestHost::default();
+    let source = host.file_create(b"source", 0).unwrap();
+    let other = host.file_create(b"other", 0).unwrap();
+    parent.handles.insert(3, Handle::File(source));
+    parent.handles.insert(4, Handle::File(other));
+    assert!(parent.file_table.register_open(3, 2).is_some());
+    assert!(parent.file_table.register_open(4, 2).is_some());
+    let original_host_handles = host.handles.clone();
+    let original_child_handles = child.handles.clone();
+    host.duplicate_token_override = Some(other);
+
+    assert!(matches!(
+        child.inherit_handles_from(&parent, &mut host),
+        Err(DosError::HostContractViolation(_))
+    ));
+    assert_eq!(host.duplicate_calls, 1);
+    assert_eq!(host.handles, original_host_handles);
+    assert_eq!(child.handles, original_child_handles);
+    assert!(child.orphan_file_handles.is_empty());
+}
+
+#[test]
+fn duplicate_services_keep_shared_cursor_and_independent_close_ownership() {
+    for service in [0x45, 0x46] {
+        let mut dos = DosKernel::new(0x1000);
+        let mut host = TestHost::default();
+        let mut memory = TestMemory::new();
+        let source = host.file_create(b"source", 0).unwrap();
+        let target = host.file_create(b"target", 0).unwrap();
+        host.file_write(source, b"abc").unwrap();
+        host.file_seek(source, 0, DosSeekOrigin::Start).unwrap();
+        dos.handles.insert(3, Handle::File(source));
+        dos.handles.insert(4, Handle::File(target));
+        assert!(dos.file_table.register_open(3, 2).is_some());
+        assert!(dos.file_table.register_open(4, 2).is_some());
+        let mut regs = Registers::default();
+        regs.set_ah(service);
+        regs.set_bx(3);
+        regs.set_cx(4);
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+        assert!(!regs.carry());
+        let duplicate = regs.ax();
+        assert_eq!(duplicate, if service == 0x45 { 5 } else { 4 });
+        let Handle::File(copy) = dos.handles[&duplicate] else {
+            panic!("duplicate must be a host file");
+        };
+        assert_ne!(copy, source);
+        assert_eq!(host.handles.contains_key(&target), service == 0x45);
+        let mut byte = [0];
+        assert_eq!(host.file_read(copy, &mut byte).unwrap(), 1);
+        assert_eq!(byte, [b'a']);
+        assert_eq!(host.file_seek(source, 0, DosSeekOrigin::Current).unwrap(), 1);
+
+        regs.set_ah(0x3e);
+        regs.set_bx(duplicate);
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+        assert!(!regs.carry());
+        assert!(!host.handles.contains_key(&copy));
+        assert_eq!(host.file_read(source, &mut byte).unwrap(), 1);
+        assert_eq!(byte, [b'b']);
+    }
+}
+
+
+#[test]
+fn character_input_follows_forced_duplicate_without_consuming_console_cache() {
+    for service in [0x01, 0x07, 0x08, 0x0a] {
+        let mut dos = DosKernel::new(0x1000);
+        let mut host = TestHost::default();
+        let mut memory = TestMemory::new();
+        let source = host.file_create(b"input", 0).unwrap();
+        host.file_write(source, b"\0\r").unwrap();
+        host.file_seek(source, 0, DosSeekOrigin::Start).unwrap();
+        dos.handles.insert(3, Handle::File(source));
+        assert!(dos.file_table.register_open(3, 2).is_some());
+        dos.pending_input = Some(b'p');
+        host.input.extend([b'q']);
+        let mut regs = Registers::default();
+        regs.set_ax(0x4600);
+        regs.set_bx(3);
+        regs.set_cx(0);
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+        assert!(!regs.carry());
+
+        regs.set_ah(service);
+        regs.ds = 0x1000;
+        regs.set_dx(0x0100);
+        memory.put(0x10100, &[4, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc]);
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+        assert!(!regs.carry());
+        if service == 0x0a {
+            let mut result = [0; 3];
+            memory.read(PhysAddr(0x10101), &mut result).unwrap();
+            assert_eq!(result, [1, 0, b'\r']);
+            assert_eq!(host.stdout, b"\0\r\n");
+        } else {
+            assert_eq!(regs.al(), 0); // NUL is data, not EOF.
+            assert_eq!(host.stdout.as_slice(), if service == 0x01 { b"\0".as_slice() } else { b"".as_slice() });
+        }
+        assert_eq!(dos.pending_input, Some(b'p'));
+        assert_eq!(host.input.front(), Some(&b'q'));
+        assert_eq!(host.file_seek(source, 0, DosSeekOrigin::Current).unwrap(),
+            if service == 0x0a { 2 } else { 1 });
+    }
+}
+
+#[test]
+fn character_input_rejects_closed_or_wrong_direction_standard_input() {
+    for replacement in [None, Some(super::state::StandardHandle::Output)] {
+        let mut dos = DosKernel::new(0x1000);
+        let mut host = TestHost::default();
+        let mut memory = TestMemory::new();
+        dos.handles.remove(&0);
+        if let Some(kind) = replacement {
+            dos.handles.insert(0, Handle::Standard(kind));
+        }
+        dos.pending_input = Some(b'p');
+        let mut regs = Registers::default();
+        regs.set_ah(0x08);
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+        assert!(regs.carry());
+        assert_eq!(regs.ax(), DosErrorCode::InvalidHandle as u16);
+        assert_eq!(dos.pending_input, Some(b'p'));
+    }
+}
+
+#[test]
+fn redirected_character_input_eof_does_not_fabricate_a_byte_or_use_console_input() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let file = host.file_create(b"empty", 0).unwrap();
+    dos.handles.insert(0, Handle::File(file));
+    dos.pending_input = Some(b'p');
+    let mut regs = Registers::default();
+    regs.set_ah(0x01);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert!(regs.carry());
+    assert_eq!(regs.ax(), DosErrorCode::GeneralFailure as u16);
+    assert!(host.stdout.is_empty());
+    assert_eq!(dos.pending_input, Some(b'p'));
+}
+
+
+#[test]
+fn real_mode_dta_query_returns_words_without_dereferencing_but_search_validates() {
+    let mut dos = DosKernel::new(0x1000);
+    let mut host = TestHost::default();
+    let mut memory = TestMemory::new();
+    let mut regs = Registers::default();
+    regs.set_ah(0x1a);
+    regs.ds = 0xffff;
+    regs.set_dx(0xffff);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    regs.set_ah(0x2f);
+    let mut expected = regs.clone();
+    expected.es = 0xffff;
+    expected.set_bx(0xffff);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(regs, expected);
+
+    memory.put(0x10100, b"*.*\0");
+    regs.set_ah(0x4e);
+    regs.ds = 0x1000;
+    regs.set_dx(0x0100);
+    regs.set_cx(0);
+    assert!(matches!(
+        dos.interrupt(0x21, &mut regs, &mut memory, &mut host),
+        Err(DosError::Memory(MemoryError::OutOfBounds { .. }))
+    ));
+    assert_eq!(host.next_search_id, 0);
+    assert!(host.searches.is_empty());
 }
