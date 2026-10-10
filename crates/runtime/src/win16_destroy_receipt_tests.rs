@@ -14,7 +14,7 @@ use dos_kernel::{
     DosDirectoryEntry, DosFileAccess, DosFileSharing, DosHost, DosHostError,
     DosHostFile, DosHostSearch, DosSeekOrigin,
 };
-use guest_core::Selector;
+use guest_core::{GuestMemory, Selector};
 use std::sync::Arc;
 use win16_abi::{ExportLookupTarget, lookup_export};
 
