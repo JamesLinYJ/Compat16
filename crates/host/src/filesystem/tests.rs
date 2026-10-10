@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dos_kernel::{DosErrorCode, DosFileAccess, DosFileSharing, DosIoctlObjectInfo, DosSeekOrigin};
@@ -78,15 +79,26 @@ fn native_volume_keeps_program_directory_separate_from_drive_root() {
 
 impl TestDirectory {
     fn new() -> Self {
+        static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path =
-            std::env::temp_dir().join(format!("filesystem-ioctl-{}-{nanos}", std::process::id()));
-        // Fail on collisions; only this newly created directory is removed.
-        std::fs::create_dir(&path).unwrap();
-        Self(path)
+        for _ in 0..100 {
+            let sequence = NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "filesystem-ioctl-{}-{nanos}-{sequence}",
+                std::process::id()
+            ));
+            // Clock ticks can coincide across parallel tests. Claim a fresh
+            // directory atomically; never adopt or remove an existing path.
+            match std::fs::create_dir(&path) {
+                Ok(()) => return Self(path),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => panic!("cannot create test directory: {error}"),
+            }
+        }
+        panic!("cannot reserve a unique test directory");
     }
 }
 

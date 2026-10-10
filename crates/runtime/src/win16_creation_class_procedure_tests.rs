@@ -241,6 +241,12 @@ fn prepare_gate(runtime: &mut Runtime, ordinal: u16, args: &[u8]) -> (u16, u16, 
 }
 
 fn begin_creation(runtime: &mut Runtime, host: &mut CreationHost, class: Registered, mdi: bool) {
+    begin_creation_with_parameter(runtime, host, class, mdi, 0x1234_5678);
+}
+
+fn begin_creation_with_parameter(
+    runtime: &mut Runtime, host: &mut CreationHost, class: Registered, mdi: bool, parameter: u32,
+) {
     let mut args = Vec::new();
     let ordinal = if mdi {
         let state = runtime.win16.as_mut().unwrap();
@@ -251,7 +257,7 @@ fn begin_creation(runtime: &mut Runtime, host: &mut CreationHost, class: Registe
             creation: Win16CreationId(0), class: class.class,
             guest_class_name: Win16HostClassName::Atom(class.atom),
             owner_instance: class.info.h_instance, title: None,
-            x: 2, y: 3, cx: 40, cy: 50, style: 0, parameter: 0x1234_5678,
+            x: 2, y: 3, cx: 40, cy: 50, style: 0, parameter,
         };
         let pointer = state.selectors.pointer_from_raw(Selector(runtime.cpu.regs.ds), 0x10).unwrap();
         state.selectors.write(&mut runtime.memory, pointer,
@@ -263,7 +269,7 @@ fn begin_creation(runtime: &mut Runtime, host: &mut CreationHost, class: Registe
         host.return_kind = Win16ReturnKind::Dword;
         111
     } else {
-        args.extend_from_slice(&0x1234_5678_u32.to_le_bytes());
+        args.extend_from_slice(&parameter.to_le_bytes());
         for value in [class.info.h_instance, 0, 0, 50, 40, 3, 2] {
             args.extend_from_slice(&value.to_le_bytes());
         }
@@ -540,7 +546,10 @@ fn class_data_saved_native_procedure_gate_preserves_call_window_proc_and_forward
             let saved = if low_bit_alias { saved | 0x0003_0000 } else { saved };
             let mut creation_host = CreationHost::new(0x2000);
             let (window, message, w_param, l_param, callback) = if active {
-                begin_creation(&mut runtime, &mut creation_host, class, false);
+                // Native CREATESTRUCT forwarding currently supports only
+                // null application parameters. Non-null rejection is tested
+                // separately below; it is unrelated to saved-gate validity.
+                begin_creation_with_parameter(&mut runtime, &mut creation_host, class, false, 0);
                 let window = selected_window(&runtime);
                 let frame = runtime.win16.as_ref().unwrap().window_callbacks.last().unwrap();
                 assert_eq!(frame.callback_address, replacement);
@@ -585,5 +594,90 @@ fn class_data_saved_native_procedure_gate_preserves_call_window_proc_and_forward
             }
             assert!(runtime.win16.as_ref().unwrap().window_operations.is_empty());
         }
+    }
+}
+
+
+#[test]
+fn class_data_saved_native_creation_rejects_non_null_parameter_without_host_call() {
+    for low_bit_alias in [false, true] {
+        let mut runtime = fixture();
+        let mut class_host = ClassDataHost::default();
+        let class = registered_class(&mut runtime, &mut class_host);
+        let selected = window(&mut runtime, class, 1);
+        let gate = runtime.win16.as_mut().unwrap()
+            .native_procedure_gate(Win16HostProcedure(0xfedc_ba98_7654_3210),
+                &mut runtime.memory).unwrap();
+        assert_ne!(gate, 0);
+        assert_eq!(call(&mut runtime, &mut class_host, 132, selected, GCL_WNDPROC,
+            Some(gate)), class.info.lpfn_wnd_proc);
+        let replacement = class.info.lpfn_wnd_proc + 2;
+        let saved = call(&mut runtime, &mut class_host, 132, selected, GCL_WNDPROC,
+            Some(replacement));
+        assert_eq!(saved, gate);
+        let saved = if low_bit_alias { saved | 0x0003_0000 } else { saved };
+
+        let mut creation_host = CreationHost::new(0x2000);
+        begin_creation(&mut runtime, &mut creation_host, class, false);
+        let window = selected_window(&runtime);
+        let state = runtime.win16.as_ref().unwrap();
+        let frame = state.window_callbacks.last().unwrap();
+        let callback_id = frame.callback_id;
+        let (message, w_param, l_param) =
+            (frame.payload.message, frame.payload.w_param, frame.payload.l_param);
+        let pointer = state.selectors.pointer_from_far(l_param).unwrap();
+        let create = win16_abi::CreateStruct16::read_from(&state.selectors,
+            &runtime.memory, pointer).unwrap();
+        assert_eq!(create.lp_create_params, 0x1234_5678);
+        let class_roots = state.class_code_references();
+        let window_roots: Vec<_> = state.window_procedure_roots().collect();
+        let claims = (state.window_handles.clone(), state.window_procedures.clone());
+        let operation_count = state.window_operations.len();
+
+        let mut args = Vec::from(l_param.to_le_bytes());
+        args.extend_from_slice(&w_param.to_le_bytes());
+        args.extend_from_slice(&message.to_le_bytes());
+        args.extend_from_slice(&window.to_le_bytes());
+        args.extend_from_slice(&saved.to_le_bytes());
+        let stack = runtime.cpu.regs.sp();
+        runtime.cpu.regs.set_sp(stack - 18);
+        let return_to = prepare_gate(&mut runtime, 122, &args);
+        let mut host = CreationHost::new(0x7000);
+        assert_eq!(runtime.win16.as_mut().unwrap().dispatch(&mut runtime.cpu,
+            &mut runtime.memory, &mut runtime.dos, &mut host, 0).unwrap(), None);
+        assert_eq!((runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.sp()), return_to);
+        assert_eq!(runtime.cpu.regs.sp(), stack);
+        assert_eq!((runtime.cpu.regs.dx(), runtime.cpu.regs.ax()), (0, 0));
+        assert!(host.native_calls.is_empty());
+        assert!(host.proof.is_none());
+        assert_eq!(host.consumed, 0);
+        let state = runtime.win16.as_ref().unwrap();
+        assert_eq!(state.window_operations.len(), operation_count);
+        assert_eq!(state.class_code_references(), class_roots);
+        assert_eq!(state.window_procedure_roots().collect::<Vec<_>>(), window_roots);
+        assert!((state.window_handles.clone(), state.window_procedures.clone()) == claims);
+        let frame = state.window_callbacks.last().unwrap();
+        assert_eq!(frame.callback_id, callback_id);
+        assert_eq!(frame.callback_address, replacement);
+        assert_eq!(frame.class_root, WindowClassRoot::Class(class.class));
+
+        // Rejection leaves the suspended creation usable and retains both
+        // root scopes until their respective owners are explicitly retired.
+        return_creation_callback(&mut runtime, &mut creation_host, 1).unwrap();
+        return_creation_callback(&mut runtime, &mut creation_host, 0).unwrap();
+        assert_eq!(project_creation(&mut runtime, &mut creation_host).unwrap().0,
+            u32::from(window));
+        let state = runtime.win16.as_mut().unwrap();
+        assert!(state.window_callbacks.is_empty());
+        assert!(state.window_operations.is_empty());
+        assert_eq!(state.class_code_references(), class_roots);
+        assert_eq!(state.window_procedure_roots().collect::<Vec<_>>(), window_roots);
+        state.retire_window_handle(window).unwrap();
+        state.retire_window_handle(selected).unwrap();
+        assert_eq!(state.window_procedure_roots().count(), 0);
+        assert_eq!(state.class_code_references(), class_roots);
+        assert_eq!(state.unregister_class(class.info.h_instance,
+            Win16ClassName::Atom(class.atom), &mut class_host).unwrap(), 1);
+        assert!(state.class_code_references().is_empty());
     }
 }
