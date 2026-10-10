@@ -66,6 +66,15 @@ pub(in crate::windows::win16_windows) enum WorkerCommand {
         window: Win16HostWindow,
         response: Sender<Result<Win16HostWindowLiveness, RuntimeError>>,
     },
+    QueryWindowParent {
+        window: Win16HostWindow,
+        response: Sender<Result<runtime::Win16HostWindowParentObservation, RuntimeError>>,
+    },
+    #[cfg(test)]
+    TestWindowData {
+        run: fn(&Rc<RefCell<WorkerState>>),
+        response: Sender<std::thread::Result<()>>,
+    },
     Abort {
         request_id: u64,
         response: Sender<ShutdownResult>,

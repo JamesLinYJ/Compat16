@@ -106,6 +106,7 @@ impl Win16State {
         self.publish_window_callback_frame(frame)?;
 
         let setup = (|| {
+            self.refresh_pending_window_parents(host)?;
             if class_root == WindowClassRoot::Unresolved {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
                     "native WndProc source differs from its exact selected class registration"));
@@ -182,6 +183,68 @@ impl Win16State {
             });
         }
         Ok(())
+    }
+
+    /// A null DLGPROC still has a real suspended native callback. Retain a
+    /// payload-free owner while querying pending parent changes and retiring
+    /// its tree; errors must not discard the only cancellable source identity.
+    pub(super) fn retain_default_dialog_parent_callback(
+        &mut self,
+        registers: &Registers,
+        operation_id: crate::Win16HostWindowOperationId,
+        callback: Win16HostCallback,
+        native_window: Win16HostWindow,
+        window: u16,
+        class_root: WindowClassRoot,
+        source: crate::Win16NativeCallbackSource,
+        destroyed: bool,
+    ) -> Result<CallbackFrameId, RuntimeError> {
+        let callback_id = self.reserve_window_callback_frame()?;
+        self.publish_window_callback_frame(WindowCallbackFrame {
+            callback_id,
+            saved: registers.clone(),
+            payload: GuestWindowPayload {
+                message: 0,
+                w_param: 0,
+                l_param: 0,
+                allocation: None,
+                output: None,
+                callback_dc: None,
+                command_control: None,
+                command_parent: None,
+                common_dialog_request: None,
+            },
+            payload_allocation_locked: false,
+            guest_drop_global: None,
+            guest_drop_generation: None,
+            payload_selector: None,
+            guest_return_value: None,
+            payload_result: None,
+            payload_error: None,
+            payload_cleanup_error: None,
+            payload_retained: None,
+            payload_cleaned: false,
+            window_tree_retired: false,
+            clipboard_retired: false,
+            trace_observed: false,
+            native_resume_error: None,
+            setup_error: None,
+            entry_phase: WindowCallbackEntryPhase::Preparing,
+            setup: WindowCallbackSetupJournal::preparing(),
+            guest_notification: None,
+            mdi_child_creation: None,
+            callback_address: 0,
+            class_root,
+            host_operation: Some(operation_id),
+            native_source: Some(source),
+            continuation: WindowCallbackContinuation::HostDialog {
+                callback,
+                native_window,
+                window,
+                destroyed,
+            },
+        })?;
+        Ok(callback_id)
     }
 
     pub(in crate::win16_runtime) fn preparing_window_callback_id(

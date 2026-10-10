@@ -32,3 +32,12 @@ pub enum Win16WindowDataResult {
         child_parent: Option<Win16HostWindow>,
     },
 }
+
+/// An exact native incarnation observed while a callback suspends USER.
+/// A retired token and a failed query are distinct from a live top-level
+/// window, whose ownership does not create a child destruction edge.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostWindowParentObservation {
+    Live { child_parent: Option<Win16HostWindow> },
+    Retired,
+}

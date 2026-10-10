@@ -12,6 +12,9 @@ mod class_data_unregister_tests;
 #[path = "win16_callback_class_retention_tests.rs"]
 mod callback_class_retention_tests;
 
+#[path = "win16_parent_callback_tests.rs"]
+mod parent_callback_tests;
+
 use super::super::{ImportBinding, test_support::tiny_ne_executable, windows::WindowProcedure};
 use crate::{
     Diagnostic, DiagnosticKind as Kind, Runtime, RuntimeError, RuntimeHost,

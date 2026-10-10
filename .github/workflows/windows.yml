@@ -114,7 +114,8 @@ jobs:
             '-p runtime --lib class_data_',
             '-p runtime --lib callback_class_',
             '-p runtime --lib child_lookup',
-            '-p runtime --lib dos_timestamp_tests'
+            '-p runtime --lib dos_timestamp_tests',
+            '-p runtime --lib parent_callback_tests'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

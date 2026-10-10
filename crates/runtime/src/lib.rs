@@ -89,6 +89,7 @@ mod win16_host_window_properties;
 pub use win16_host_window_properties::{Win16HostPropertyCallbackName, Win16HostPropertyName};
 mod win16_host_window_data;
 pub use win16_host_window_data::{
+    Win16HostWindowParentObservation,
     Win16WindowDataCall, Win16WindowDataField, Win16WindowDataResult,
 };
 mod win16_host_common_controls;

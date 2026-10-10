@@ -567,6 +567,12 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<runtime::Win16HostWindowLiveness, RuntimeError> {
         runtime_host_windows::win16_host_window_liveness(self, window)
     }
+    fn win16_host_window_parent(
+        &mut self,
+        window: Win16HostWindow,
+    ) -> Result<runtime::Win16HostWindowParentObservation, RuntimeError> {
+        runtime_host_windows::win16_host_window_parent(self, window)
+    }
     fn win16_file_create(
         &mut self,
         path: &[u8],

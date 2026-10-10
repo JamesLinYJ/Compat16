@@ -9,7 +9,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use runtime::{
-    RuntimeError, Win16HostWindow, Win16WindowDataCall, Win16WindowDataField,
+    DiagnosticKind as Kind, RuntimeError, Win16HostWindow, Win16HostWindowLiveness,
+    Win16HostWindowParentObservation, Win16WindowDataCall, Win16WindowDataField,
     Win16WindowDataResult, Win16WindowTarget,
 };
 use windows_sys::Win32::Foundation::{GetLastError, HWND, SetLastError};
@@ -18,9 +19,30 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     SetWindowLongPtrW, WS_CHILD,
 };
 
+use super::win16_window_identity as identity;
 use super::win16_window_worker::{self as worker, WorkerState};
 
 type SharedWorker = Rc<RefCell<WorkerState>>;
+
+/// Observe only the child-parent edge of this exact native incarnation.
+/// Unlike an ordinary USER scalar return, an unavailable observation is an
+/// error, not proof that the window retired or has no child parent.
+pub(super) fn query_parent(
+    state: &SharedWorker,
+    window: Win16HostWindow,
+) -> Result<Win16HostWindowParentObservation, RuntimeError> {
+    match identity::liveness(state, window)? {
+        Win16HostWindowLiveness::Retired => Ok(Win16HostWindowParentObservation::Retired),
+        Win16HostWindowLiveness::Live => {
+            let native = identity::resolve_user_window(state, window).ok_or_else(|| {
+                RuntimeError::new(Kind::HostFailure,
+                    "resolve the exact live Win16 window before querying its child parent")
+            })?;
+            let child_parent = read_child_parent_token(state, native)?;
+            Ok(Win16HostWindowParentObservation::Live { child_parent })
+        }
+    }
+}
 
 /// Execute one native-backed window-data operation on the HWND-owning thread.
 ///
@@ -65,7 +87,7 @@ pub(super) fn execute(
                 });
             };
             let previous = token_for_native(state, previous)?;
-            let child_parent = child_parent_token(state, native)?;
+            let child_parent = child_parent_token(state, window)?;
             Ok(ResultValue::Parent {
                 succeeded: true,
                 previous,
@@ -82,15 +104,29 @@ pub(super) fn execute(
                     child_parent: None,
                 });
             };
-            let Some(previous) = set_parent(native, new_parent) else {
+            // Capture the previous parent's token before SetParent can call
+            // guest code. Its raw returned HWND may already name a different
+            // incarnation when the synchronous native call returns.
+            let previous_native = read_parent(native);
+            let previous_token = match previous_native {
+                Some(previous) => token_for_native(state, previous)?,
+                None => None,
+            };
+            let Some(returned_previous) = set_parent(native, new_parent) else {
                 return Ok(ResultValue::Parent {
                     succeeded: false,
                     previous: None,
                     child_parent: None,
                 });
             };
-            let previous = token_for_native(state, previous)?;
-            let child_parent = child_parent_token(state, native)?;
+            let previous = previous_token.filter(|token| {
+                previous_native == Some(returned_previous)
+                    && identity::resolve_user_window(state, *token) == Some(returned_previous)
+            });
+            // A retired previous parent has no safely reusable guest alias.
+            // Project it to zero rather than adopt the post-callback raw HWND;
+            // the native operation's real success remains authoritative.
+            let child_parent = child_parent_token(state, window)?;
             Ok(ResultValue::Parent {
                 succeeded: true,
                 previous,
@@ -104,7 +140,7 @@ fn resolve_window(state: &SharedWorker, target: Win16WindowTarget) -> Option<HWN
     match target {
         Win16WindowTarget::Null => Some(std::ptr::null_mut()),
         Win16WindowTarget::Invalid => None,
-        Win16WindowTarget::Mapped(token) => state.borrow().windows.get(&token).copied(),
+        Win16WindowTarget::Mapped(token) => identity::resolve_user_window(state, token),
     }
 }
 
@@ -175,23 +211,36 @@ fn read_parent(native: HWND) -> Option<HWND> {
 
 fn child_parent_token(
     state: &SharedWorker,
-    native: HWND,
+    window: Win16WindowTarget,
 ) -> Result<Option<Win16HostWindow>, RuntimeError> {
-    let Some(style) = read_scalar(native, Win16WindowDataField::Style) else {
-        // The native window may have been destroyed by a synchronous callback
-        // during SetParent. Do not manufacture a child edge from stale state.
+    // SetParent may synchronously destroy and recycle the original child.
+    // Validate its original token again before making any ancestry query.
+    let Some(native) = resolve_window(state, window) else {
         return Ok(None);
     };
+    read_child_parent_token(state, native)
+}
+
+fn read_child_parent_token(
+    state: &SharedWorker,
+    native: HWND,
+) -> Result<Option<Win16HostWindow>, RuntimeError> {
+    let style = read_scalar(native, Win16WindowDataField::Style).ok_or_else(|| {
+        RuntimeError::new(Kind::HostFailure,
+            "read the live native style for an exact Win16 child-parent observation")
+    })?;
     if style & WS_CHILD == 0 {
         return Ok(None);
     }
 
-    // GetParent is the native parent for WS_CHILD windows. A failed or null
-    // read is represented as no observed edge; the API result itself remains
-    // successful when the preceding Get/Set operation succeeded.
+    // GetParent is the native parent only for WS_CHILD windows. Keep an
+    // observed desktop HWND as its real alias; never replace it with null or
+    // use a top-level owner as a child-parent edge.
+    unsafe { SetLastError(0) };
     let parent = unsafe { GetParent(native) };
-    if parent.is_null() {
-        return Ok(None);
+    if parent.is_null() && unsafe { GetLastError() } != 0 {
+        return Err(RuntimeError::new(Kind::HostFailure,
+            "query the live native parent for an exact Win16 child-parent observation"));
     }
     token_for_native(state, parent)
 }
@@ -236,3 +285,7 @@ fn token_for_native(
     }
     worker::token_for_native(state, native).map(Some)
 }
+
+#[cfg(test)]
+#[path = "win16_window_data_tests.rs"]
+mod tests;

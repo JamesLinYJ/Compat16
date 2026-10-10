@@ -87,7 +87,8 @@ fn enter_timer(runtime: &mut Runtime, native: Option<Win16HostWindow>, host_id: 
         window: native, host_timer_id: host_id, guest_w_param: 7, guest_l_param, time: 11,
     };
     runtime.win16.as_mut().unwrap().begin_host_timer_callback(
-        &mut runtime.cpu.regs, &mut runtime.memory, Win16HostCallback(2), native,
+        &mut runtime.cpu.regs, &mut runtime.memory, &mut ClassDataHost::default(),
+        Win16HostCallback(2), native,
         host_id, 7, guest_l_param, 11, Win16HostWindowOperationId(1), source)
 }
 

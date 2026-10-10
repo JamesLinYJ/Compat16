@@ -650,6 +650,19 @@ impl Win16Windows {
         self.worker()?.query_window_liveness(window)
     }
 
+    pub(super) fn host_window_parent(
+        &self,
+        window: Win16HostWindow,
+    ) -> Result<runtime::Win16HostWindowParentObservation, RuntimeError> {
+        if self.aborted {
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "exact Win16 window parent is unavailable after USER worker abort",
+            ));
+        }
+        self.worker()?.query_window_parent(window)
+    }
+
     pub(super) fn resume(
         &mut self,
         reply: Option<Win16WindowReply>,

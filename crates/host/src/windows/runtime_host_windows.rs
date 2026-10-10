@@ -282,6 +282,13 @@ pub(super) fn win16_host_window_liveness(
     host.win16_windows.host_window_liveness(window)
 }
 
+pub(super) fn win16_host_window_parent(
+    host: &WindowsHost,
+    window: Win16HostWindow,
+) -> Result<runtime::Win16HostWindowParentObservation, RuntimeError> {
+    host.win16_windows.host_window_parent(window)
+}
+
 pub(super) fn render_graphics(
     host: &mut WindowsHost,
     frame: &devices::vga::VgaFrame,

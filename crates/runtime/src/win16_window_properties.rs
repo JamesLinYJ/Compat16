@@ -163,6 +163,7 @@ impl Win16State {
         &mut self,
         registers: &mut Registers,
         memory: &mut Memory,
+        host: &mut impl RuntimeHost,
         callback: Win16HostCallback,
         native_window: Win16HostWindow,
         name: Win16HostPropertyCallbackName,
@@ -208,6 +209,7 @@ impl Win16State {
         });
 
         let setup = (|| {
+            self.refresh_pending_window_parents(host)?;
             let name_argument = match name {
                 Win16HostPropertyCallbackName::Atom(atom) => u32::from(atom),
                 Win16HostPropertyCallbackName::String(bytes) => {

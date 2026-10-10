@@ -463,6 +463,27 @@ impl WindowWorker {
         })?
     }
 
+    pub(super) fn query_window_parent(
+        &self,
+        window: Win16HostWindow,
+    ) -> Result<runtime::Win16HostWindowParentObservation, RuntimeError> {
+        let (response, receive) = mpsc::channel();
+        self.send(WorkerCommand::QueryWindowParent { window, response })
+            .map_err(|_| {
+                RuntimeError::new(
+                    Kind::HostFailure,
+                    "enqueue exact Win16 host-window parent query",
+                )
+            })?;
+        receive.recv().map_err(|error| {
+            RuntimeError::with_source(
+                Kind::HostFailure,
+                "receive exact Win16 host-window parent result",
+                error,
+            )
+        })?
+    }
+
     pub(super) fn ime_profile(
         &self,
         call: runtime::Win16HostImeProfileCall,
@@ -823,6 +844,14 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
         }
         WorkerCommand::QueryWindowLiveness { window, response } => {
             let _ = response.send(super::win16_window_identity::liveness(state, window));
+        }
+        WorkerCommand::QueryWindowParent { window, response } => {
+            let _ = response.send(super::win16_window_data::query_parent(state, window));
+        }
+        #[cfg(test)]
+        WorkerCommand::TestWindowData { run, response } => {
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run(state)));
+            let _ = response.send(result);
         }
         WorkerCommand::ImeProfile { call, response } => {
             let _ = response.send(super::win16_ime_profiles::execute(state, call));

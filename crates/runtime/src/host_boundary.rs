@@ -890,6 +890,18 @@ pub trait RuntimeHost:
             "host Win16 exact-window liveness query is unavailable",
         ))
     }
+    /// Read child ancestry for one exact incarnation while USER is suspended.
+    /// This must not invoke a callback, resume an operation, or treat a failed
+    /// identity/parent query as a successful absent parent.
+    fn win16_host_window_parent(
+        &mut self,
+        _window: Win16HostWindow,
+    ) -> Result<crate::Win16HostWindowParentObservation, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 exact-window parent observation is unavailable",
+        ))
+    }
     fn win16_window_begin(
         &mut self,
         _operation: Win16WindowOperation,

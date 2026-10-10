@@ -29,6 +29,7 @@ impl Win16State {
         &mut self,
         registers: &mut Registers,
         memory: &mut Memory,
+        host: &mut impl crate::RuntimeHost,
         callback: Win16HostCallback,
         host_window: Option<Win16HostWindow>,
         host_timer_id: Option<u64>,
@@ -132,6 +133,7 @@ impl Win16State {
         })?;
 
         let setup = (|| {
+            self.refresh_pending_window_parents(host)?;
             self.check_window_callback(registers, procedure, memory)?;
             self.record_preparing_window_callback_phase(
                 callback_id,

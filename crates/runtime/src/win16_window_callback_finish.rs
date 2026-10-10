@@ -331,7 +331,7 @@ impl Win16State {
         Ok(())
     }
 
-    fn resume_native_window_callback(
+    pub(super) fn resume_native_window_callback(
         &mut self,
         reply: Win16WindowReply,
         host: &mut impl RuntimeHost,
@@ -352,7 +352,7 @@ impl Win16State {
         }
     }
 
-    fn retire_window_callback_frame(
+    pub(super) fn retire_window_callback_frame(
         &mut self,
         callback_id: super::super::CallbackFrameId,
     ) -> Result<(), RuntimeError> {

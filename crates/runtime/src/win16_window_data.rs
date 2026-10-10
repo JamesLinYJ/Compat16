@@ -126,6 +126,8 @@ pub(super) struct Win16WindowDataContinuation {
     pub(super) return_kind: Win16ReturnKind,
     pub(super) return_mask: u32,
     pub(super) parent_result: bool,
+    /// Only active setters can change ancestry before their final result.
+    pub(super) parent_mutation: bool,
 }
 
 impl Win16State {
@@ -381,6 +383,7 @@ impl Win16State {
                     window, native_window, return_kind,
                     return_mask: u32::from(u16::MAX),
                     parent_result: true,
+                    parent_mutation: replacement.is_some(),
                 }, return_to);
         }
 
@@ -408,6 +411,7 @@ impl Win16State {
                 Win16WindowDataContinuation {
                     window, native_window, return_kind, return_mask: field_mask,
                     parent_result: false,
+                    parent_mutation: false,
                 }, return_to);
         }
 

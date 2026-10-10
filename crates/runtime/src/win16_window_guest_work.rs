@@ -212,6 +212,9 @@ impl Win16State {
             return self.complete_parked_window_resume(cpu, dos, memory, host, false);
         }
 
+        // The parked owner remains intact on failure. Retry this observation
+        // before servicing any guest callback on the next scheduling attempt.
+        self.refresh_pending_window_parents(host)?;
         // Classic DDE retains its own source and nested host-operation stack;
         // servicing it here must leave the enclosing USER wait proof intact.
         if self.service_classic_dde_safe_point(cpu, dos, memory, host)? {
@@ -362,6 +365,7 @@ impl Win16State {
             return self.complete_parked_window_resume(cpu, dos, memory, host, true);
         }
 
+        self.refresh_pending_window_parents(host)?;
         // Modal guest-work keeps the exact native USER source parked. Poll
         // the independent drop-retirement transport without resuming that
         // modal source or consuming its marker history.
