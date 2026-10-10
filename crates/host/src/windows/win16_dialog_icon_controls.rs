@@ -158,7 +158,7 @@ pub(super) fn retire_after_call(state: &Rc<RefCell<WorkerState>>) {
         let Some((owner, hwnd, operation, creation, window)) = candidate else { break; };
         let dead = match hwnd {
             None => !observer::has_frame(operation, creation) && retention::cancel_unbound(&owner),
-            Some(hwnd) => unsafe { IsWindow(hwnd as HWND) } == 0 && retention::retire_if_absent(&owner),
+            Some(hwnd) => (unsafe { IsWindow(hwnd as HWND) } == 0) && retention::retire_if_absent(&owner),
         };
         if dead {
             if let Some(hwnd) = hwnd { worker::remove_window_maps(state, window, hwnd as HWND); }
