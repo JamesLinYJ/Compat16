@@ -194,6 +194,14 @@ pub trait DosHost {
     /// Return a distinct closeable token sharing the same open-file cursor.
     fn file_duplicate(&mut self, file: DosHostFile) -> Result<DosHostFile, DosHostError>;
     fn file_close(&mut self, file: DosHostFile) -> Result<(), DosHostError>;
+    /// Synchronize buffered data and metadata for this exact owned open file.
+    /// Preserve its cursor, access, sharing, aliases, and closeable identity,
+    /// including on failure. Never reopen its pathname to obtain more rights.
+    /// A trusted read-only, clean open object may succeed without native I/O.
+    /// Hosts without this contract must report unsupported.
+    fn file_commit(&mut self, _file: DosHostFile) -> Result<(), DosHostError> {
+        Err(DosHostError::new(DosErrorCode::InvalidFunction))
+    }
     fn file_read(&mut self, file: DosHostFile, output: &mut [u8]) -> Result<usize, DosHostError>;
     fn file_write(&mut self, file: DosHostFile, input: &[u8]) -> Result<usize, DosHostError>;
     fn file_seek(&mut self, file: DosHostFile, offset: i32, origin: DosSeekOrigin) -> Result<u32, DosHostError>;

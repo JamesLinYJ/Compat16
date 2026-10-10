@@ -7,6 +7,7 @@ use dos_kernel::{DosErrorCode, DosFileAccess, DosFileSharing, DosIoctlObjectInfo
 use super::Filesystem;
 use super::files::dos_dword;
 
+mod commit;
 mod extended_open;
 mod input_status;
 

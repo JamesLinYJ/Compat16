@@ -69,7 +69,11 @@ impl Filesystem {
         // closes this native handle but may leave the newly created entry.
         // Do not unlink by path as rollback: another actor may now own it.
         let short_name = self.file_short_name(&path)?;
-        let file = self.insert_file(Arc::new(Mutex::new(OpenFile::new(file, short_name))))?;
+        let file = self.insert_file(Arc::new(Mutex::new(OpenFile::new(
+            file,
+            request.access,
+            short_name,
+        ))))?;
         Ok(DosFileOpenResult { file, outcome })
     }
 }

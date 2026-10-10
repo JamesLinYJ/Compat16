@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use cap_std::fs::{Dir, File};
-use dos_kernel::{DosErrorCode, DosHostError, DosHostFile, DosHostSearch};
+use dos_kernel::{DosErrorCode, DosFileAccess, DosHostError, DosHostFile, DosHostSearch};
 use runtime::{
     Win16CanonicalPath, Win16GuestPath, Win16HostFileSystemPath, Win16PathComponentSource,
     Win16PathNamespace,
@@ -32,14 +32,17 @@ use crate::windows::{decode, invalid, os_error};
 /// Open-description state is shared by duplicated DOS file tokens.
 pub(super) struct OpenFile {
     file: File,
+    // Rights selected for this native open, independent of file attributes.
+    access: DosFileAccess,
     written: bool,
     short_name: [u8; 11],
 }
 
 impl OpenFile {
-    fn new(file: File, short_name: [u8; 11]) -> Self {
+    fn new(file: File, access: DosFileAccess, short_name: [u8; 11]) -> Self {
         Self {
             file,
+            access,
             written: false,
             short_name,
         }

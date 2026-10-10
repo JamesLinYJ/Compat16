@@ -4,7 +4,7 @@
 //! selector:offset registrations in a separate overlay and only aliases
 //! default vector targets when the simulated IVT names checked ROM bytes.
 
-use dos_kernel::{DosAction, DosKernel};
+use dos_kernel::{DosAction, DosErrorCode, DosKernel};
 use guest_core::memory::{Memory, ROM_END, ROM_START};
 use guest_core::{GuestMemory, PhysAddr, Registers, Selector, real_address};
 use win16_abi::{Access, AccessRights, SegmentedPointer};
@@ -44,6 +44,20 @@ pub(super) fn dispatch_int21(
     host: &mut impl RuntimeHost,
 ) -> Result<DosAction, RuntimeError> {
     let service = regs.ah();
+    if service == 0x68
+        && (state.files.contains_key(&regs.bx())
+            || state.network_print_jobs.values().any(|jobs| jobs.owns_hfile(regs.bx())))
+    {
+        // DOS and Win16 HFILE values can collide, especially after AH=67h.
+        // No Win16 file/spool commit contract exists yet. Reject every known
+        // HFILE alias before DOS fallback, including another task's spool
+        // alias, rather than committing an unrelated equal-number DOS file.
+        dos.prepare_external_int21(memory).map_err(runtime_error)?;
+        regs.set_ax(DosErrorCode::InvalidFunction as u16);
+        regs.set_carry(true);
+        dos.finish_external_int21(memory, host).map_err(runtime_error)?;
+        return Ok(DosAction::Continue);
+    }
     if matches!(service, 0x0e | 0x19 | 0x3b | 0x47) {
         dos.prepare_external_int21(memory).map_err(runtime_error)?;
         let action = state
@@ -435,6 +449,10 @@ mod protected_create_new_tests;
 #[cfg(test)]
 #[path = "win16_dos_timestamp_tests.rs"]
 mod dos_timestamp_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_commit_tests.rs"]
+mod commit_tests;
 
 #[cfg(test)]
 #[path = "win16_dos_extended_open_tests.rs"]

@@ -64,10 +64,13 @@ pub(super) struct TestHost {
     extended_open_error: Option<DosErrorCode>,
     extended_open_result_override: Option<DosFileOpenResult>,
     file_close_error: Option<DosErrorCode>,
+    file_commit_calls: Vec<DosHostFile>,
+    file_commit_error: Option<DosErrorCode>,
     duplicate_token_override: Option<DosHostFile>,
     max_file_write: Option<usize>,
     code_page: Option<text_codec::CodePage>,
     redirected_standard_streams: bool,
+    standard_info_override: Option<DosIoctlObjectInfo>,
     input_eof: bool,
     last_open_access: Option<DosFileAccess>,
     file_status_calls: Vec<DosHostFile>,
@@ -209,6 +212,14 @@ impl DosHost for TestHost {
         if let Some(code) = self.file_close_error { return Err(DosHostError::new(code)); }
         self.handles.remove(&file).map(|_| ()).ok_or(DosHostError::new(DosErrorCode::InvalidHandle))
     }
+    fn file_commit(&mut self, file: DosHostFile) -> Result<(), DosHostError> {
+        self.file_commit_calls.push(file);
+        self.file_for(file)?;
+        match self.file_commit_error {
+            Some(code) => Err(DosHostError::new(code)),
+            None => Ok(()),
+        }
+    }
     fn file_read(&mut self, file: DosHostFile, output: &mut [u8]) -> Result<usize, DosHostError> {
         self.file_read_calls.push((file, output.len()));
         if let Some(code) = self.file_read_error { return Err(DosHostError::new(code)); }
@@ -277,6 +288,7 @@ impl DosHost for TestHost {
     }
 
     fn standard_ioctl_info(&self, stream: DosIoctlStream) -> Result<DosIoctlObjectInfo, DosHostError> {
+        if let Some(info) = self.standard_info_override { return Ok(info); }
         if self.redirected_standard_streams {
             return Err(DosHostError::new(DosErrorCode::InvalidFunction));
         }
@@ -1284,6 +1296,9 @@ mod create_new_tests;
 
 #[path = "file_time_tests.rs"]
 mod file_time_tests;
+
+#[path = "file_commit_tests.rs"]
+mod file_commit_tests;
 
 #[path = "extended_open_tests.rs"]
 mod extended_open_tests;

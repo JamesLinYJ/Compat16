@@ -11,6 +11,7 @@ mod dispatch;
 mod exec;
 mod extended_open;
 mod files;
+mod file_commit;
 mod file_time;
 mod ioctl;
 mod memory;

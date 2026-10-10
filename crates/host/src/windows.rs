@@ -816,6 +816,9 @@ impl DosHost for WindowsHost {
     fn file_close(&mut self, file: DosHostFile) -> Result<(), DosHostError> {
         self.filesystem.file_close(file)
     }
+    fn file_commit(&mut self, file: DosHostFile) -> Result<(), DosHostError> {
+        self.filesystem.file_commit(file)
+    }
     fn file_read(&mut self, file: DosHostFile, output: &mut [u8]) -> Result<usize, DosHostError> {
         self.filesystem.file_read(file, output)
     }

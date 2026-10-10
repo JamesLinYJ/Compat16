@@ -120,7 +120,9 @@ jobs:
             '-p host-services --lib extended_open -- --nocapture',
             '-p host-services --lib dos_timestamp_',
             '-p runtime --lib dos_temporary_file_tests',
-            '-p host-services --lib input_status'
+            '-p host-services --lib input_status',
+            '-p runtime --lib dos_interrupts::commit_tests',
+            '-p host-services --lib file_commit'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

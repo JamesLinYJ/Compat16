@@ -189,7 +189,11 @@ impl Filesystem {
             .open_with(&path, &options)
             .map_err(|error| if exclusive { create_new_error(error) } else { os_error(error) })?;
         let short_name = self.file_short_name(&path)?;
-        self.insert_file(Arc::new(Mutex::new(OpenFile::new(file, short_name))))
+        self.insert_file(Arc::new(Mutex::new(OpenFile::new(
+            file,
+            DosFileAccess::ReadWrite,
+            short_name,
+        ))))
     }
 
     pub(crate) fn file_open(
@@ -205,7 +209,7 @@ impl Filesystem {
             .open_with(&path, &open_options(access, sharing))
             .map_err(os_error)?;
         let short_name = self.file_short_name(&path)?;
-        self.insert_file(Arc::new(Mutex::new(OpenFile::new(file, short_name))))
+        self.insert_file(Arc::new(Mutex::new(OpenFile::new(file, access, short_name))))
     }
 
     pub(crate) fn file_duplicate(
@@ -223,6 +227,21 @@ impl Filesystem {
             .remove(&file)
             .map(drop)
             .ok_or_else(|| invalid(DosErrorCode::InvalidHandle))
+    }
+
+    pub(crate) fn file_commit(&mut self, file: DosHostFile) -> Result<(), DosHostError> {
+        let shared = self.file(file)?;
+        let handle = Self::lock_file(&shared)?;
+        // Read-only descriptions cannot have local changes. DOS accepts a
+        // clean commit, while Windows FlushFileBuffers requires write access:
+        // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers
+        if handle.access == DosFileAccess::ReadOnly {
+            return Ok(());
+        }
+        // Sync data and metadata on the same owned object, including creation
+        // or truncation before a write. The IOCTL written bit is historical,
+        // not pending-dirty state, and must not gate or be cleared by commit.
+        handle.file.sync_all().map_err(os_error)
     }
 
     pub(crate) fn file_read(
