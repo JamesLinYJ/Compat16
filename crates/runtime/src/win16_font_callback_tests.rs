@@ -109,13 +109,17 @@ fn dispatch(runtime: &mut Runtime, host: &mut FontHost) -> Result<Option<u8>, Ru
     runtime.win16.as_mut().unwrap().dispatch(&mut runtime.cpu, &mut runtime.memory, &mut runtime.dos, host, 0)
 }
 
-fn finish(runtime: &mut Runtime, result: u16) {
+fn return_font_callback(runtime: &mut Runtime, result: u16) -> Result<(), RuntimeError> {
     let state = runtime.win16.as_mut().unwrap();
     runtime.cpu.regs.set_ax(result);
     let segments = crate::win16_loader::Win16Segments { selectors: &state.selectors, memory_len: runtime.memory.len() };
     runtime.cpu.step_with_context(&mut runtime.memory.bus(), &mut NoPorts, &segments).unwrap();
     assert_eq!(runtime.cpu.control_transfer(), Some(x86_cpu::ControlTransfer::FarReturn));
-    state.finish_font_callback(&mut runtime.cpu, &mut runtime.dos, &mut runtime.memory).unwrap();
+    state.finish_font_callback(&mut runtime.cpu, &mut runtime.dos, &mut runtime.memory)
+}
+
+fn finish(runtime: &mut Runtime, result: u16) {
+    return_font_callback(runtime, result).unwrap();
 }
 
 #[test]
@@ -202,5 +206,84 @@ fn enum_font_families_invalid_dc_empty_result_bad_callback_and_stack() {
         assert_eq!(host.calls.len(), usize::from(case != 0));
         assert!(runtime.win16.as_ref().unwrap().font_callbacks.is_empty());
         assert_eq!(runtime.win16.as_ref().unwrap().heap.allocation_count(), allocations);
+    }
+}
+
+#[test]
+fn returned_font_callback_page_lock_cleanup_retries_without_reentering_guest() {
+    // Exercise the actual selector-based guest API and RETF. Only the terminal
+    // execution-ended token is injected because this test steps the CPU itself.
+    for (ordinal, terminal, cancel_while_locked) in [
+        (70, false, false), (70, true, false), (70, true, true),
+        (330, false, false), (330, true, false), (330, true, true),
+    ] {
+        let (mut runtime, dc, callback) = fixture();
+        let allocations = runtime.win16.as_ref().unwrap().heap.allocation_count();
+        let mut host = FontHost { records: vec![record()], ..Default::default() };
+        let return_to = prepare(&mut runtime, ordinal, dc, callback);
+        dispatch(&mut runtime, &mut host).unwrap();
+        let state = runtime.win16.as_mut().unwrap();
+        let data = state.font_callbacks.last().unwrap().data;
+        let selector = (data.far_value() >> 16) as u16;
+        assert_eq!(state.kernel_global_page_lock(selector).unwrap(), 1);
+        assert_eq!(state.legacy_cpu_frames.len(), 1);
+
+        let error = return_font_callback(&mut runtime, 7).unwrap_err();
+        assert_eq!(error.to_string(), crate::runtime_error(Win16Error::Locked).to_string());
+        let state = runtime.win16.as_mut().unwrap();
+        assert!(state.legacy_cpu_frames.is_empty());
+        assert_eq!(state.font_callbacks.len(), 1);
+        assert!(state.font_callbacks.last().unwrap().active_call.is_some());
+        assert!(!state.font_callbacks.last().unwrap().allocation_locked);
+        assert_eq!(state.heap.allocation_count(), allocations + 1);
+        assert!(state.font_code_references().contains(&callback));
+        let bindings = state.callback_frame_ids.clone();
+        let code_references = state.font_code_references();
+        // Retry completion while still pinned. The cached return must be
+        // retained, with no second guest execution or CPU owner required.
+        assert!(state.finish_font_callback(&mut runtime.cpu,
+            &mut runtime.dos, &mut runtime.memory).is_err());
+        assert_eq!(state.callback_frame_ids, bindings);
+        assert_eq!(state.font_code_references(), code_references);
+
+        let ended = super::super::execute::Win16TaskExecutionEnded::for_test();
+        runtime.cpu.regs.set_ax(0x4567);
+        let terminal_registers = runtime.cpu.regs.clone();
+        if cancel_while_locked {
+            for _ in 0..2 {
+                assert!(state.cancel_font_callback_for_teardown(&ended,
+                    &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory).is_err());
+                assert!(state.font_callbacks.last().unwrap().active_call.as_ref()
+                    .unwrap().is_terminal_aborted());
+                assert_eq!(runtime.cpu.regs, terminal_registers);
+                assert_eq!(state.callback_frame_ids, bindings);
+                assert_eq!(state.font_code_references(), code_references);
+                assert!(state.legacy_cpu_frames.is_empty());
+            }
+            assert!(state.finish_font_callback(&mut runtime.cpu,
+                &mut runtime.dos, &mut runtime.memory).is_err());
+        }
+        assert_eq!(state.kernel_global_page_unlock(selector).unwrap(), 0);
+        if terminal {
+            state.cancel_font_callback_for_teardown(&ended,
+                &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory).unwrap();
+            assert_eq!(runtime.cpu.regs, terminal_registers);
+            assert!(state.cancel_font_callback_for_teardown(&ended,
+                &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory).is_err());
+            assert_eq!(runtime.cpu.regs, terminal_registers);
+        } else {
+            state.finish_font_callback(&mut runtime.cpu,
+                &mut runtime.dos, &mut runtime.memory).unwrap();
+            assert_eq!(runtime.cpu.regs.ax(), 7);
+            assert_eq!((runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.sp()), return_to);
+        }
+        assert!(state.font_callbacks.is_empty());
+        assert!(state.callback_kinds.is_empty());
+        assert!(state.callback_frame_ids.is_empty());
+        assert!(state.legacy_cpu_frames.is_empty());
+        assert!(state.font_code_references().is_empty());
+        assert_eq!(state.heap.allocation_count(), allocations);
+        assert!(state.selectors.translate(data, Access::Read, 1, &runtime.memory).is_err());
+        assert_eq!(host.calls.len(), 1);
     }
 }

@@ -848,6 +848,12 @@ pub(super) struct Win16TaskExecutionEnded {
 }
 
 impl Win16TaskExecutionEnded {
+    /// Test-only stand-in for a stopped execution loop; never a runtime proof.
+    #[cfg(test)]
+    pub(super) fn for_test() -> Self {
+        Self { _seal: () }
+    }
+
     fn after_cpu_execution_boundary() -> Self {
         Self { _seal: () }
     }

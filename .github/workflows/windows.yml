@@ -149,6 +149,8 @@ jobs:
             '-p runtime --lib get_char_width',
             '-p host-services --lib get_char_width',
             '-p runtime --lib enum_font_families',
+            '-p runtime --lib returned_font_callback_page_lock_cleanup_retries_without_reentering_guest',
+            '-p runtime --lib terminal_ownerless_far_callback_requires_complete_return_and_exact_top',
             '-p host-services --lib enum_font_families',
             '-p runtime --lib scroll_dc',
             '-p host-services --lib scroll_dc'

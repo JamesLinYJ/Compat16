@@ -289,8 +289,9 @@ impl Win16State {
     }
 
     /// Abort an entered FAR callback only after the owning Win16 execution
-    /// loop has ended. The terminal CPU frame restores the complete captured
+    /// loop has ended. An unfinished CPU frame restores the complete captured
     /// architecture state and retires its roots without claiming a guest RETF.
+    /// An already-returned, released owner only seals terminal payload cleanup.
     pub(in crate::win16_runtime) fn abort_guest_far_callback_after_task_execution_ended(
         &mut self,
         ended: &super::execute::Win16TaskExecutionEnded,
@@ -312,6 +313,13 @@ impl Win16State {
                 Err(RuntimeError::new(Kind::InternalInvariant,
                     "terminally aborted FAR callback retained its CPU owner identity"))
             };
+        }
+        // A checked guest return can release its CPU owner before family
+        // payload cleanup fails. Its cached result remains needed for a normal
+        // finish retry, but terminal cleanup must not restore that CPU twice.
+        if frame.cpu_restored && frame.returned_value.is_some() && frame.cpu_owner.is_none() {
+            frame.terminal_aborted = true;
+            return Ok(());
         }
         let owner = frame.cpu_owner.ok_or_else(|| RuntimeError::new(
             Kind::InternalInvariant,
@@ -361,3 +369,7 @@ impl Win16FarCallbackArgument {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "win16_far_callback_tests.rs"]
+mod tests;
