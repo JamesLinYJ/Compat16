@@ -182,16 +182,31 @@ fn get_char_width_preflights_read_only_short_and_rom_destinations() {
     for (base, size, rights) in [
         (0x70000, 3, AccessRights::read_write()),
         (0x70000, 4, AccessRights::read_only()),
-        (0xf0000, 4, AccessRights::read_write()),
+        (0xf0000, 4, AccessRights::read_only()),
     ] {
         let (mut runtime, dc, output) = fixture();
+        let mut original = [0; 4];
+        runtime.memory.read_physical(PhysAddr(base), &mut original).unwrap();
         let state = runtime.win16.as_mut().unwrap();
+        if base == guest_core::memory::ROM_START {
+            // A writable ROM selector is rejected during construction. Keep
+            // that protection, then dispatch with the supported read-only
+            // ROM selector to exercise GetCharWidth's Access::Write preflight.
+            assert!(matches!(state.selectors.alloc_block(PhysAddr(base), size,
+                AccessRights::read_write(), &runtime.memory),
+                Err(win16_abi::Win16Error::Memory(guest_core::MemoryError::ReadOnly {
+                    address: 0xf0000, length: 4,
+                }))));
+        }
         let alias = state.selectors.alloc_block(PhysAddr(base), size, rights, &runtime.memory).unwrap();
         prepare(&mut runtime, dc, 65, 66, SegmentedPointer::new(alias, 0).far_value());
         let mut host = WidthHost::default();
         assert_eq!(dispatch(&mut runtime, &mut host).unwrap_err().kind(), Kind::GuestFault);
         assert!(host.calls.is_empty());
         assert_eq!(read_output(&runtime, output), [0x5a; 32]);
+        let mut actual = [0; 4];
+        runtime.memory.read_physical(PhysAddr(base), &mut actual).unwrap();
+        assert_eq!(actual, original);
     }
 }
 
