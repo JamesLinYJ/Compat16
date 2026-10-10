@@ -22,7 +22,7 @@ impl CreationScope {
         creation: Win16CreationId, expected: usize, modal: bool) -> Result<Self, RuntimeError>
     {
         ORPHANS.with(|orphans| {
-            orphans.borrow_mut().retain(|hook| unsafe { UnhookWindowsHookEx(*hook) } == 0);
+            orphans.borrow_mut().retain(|hook| !unhook(*hook));
             // Every active scope may need an orphan slot while unwinding.
             let active = FRAMES.with(|frames| frames.borrow().len());
             orphans.borrow_mut().try_reserve(active + 1).map_err(|source|
@@ -48,7 +48,7 @@ impl CreationScope {
                 frames.remove(index);
             }
         });
-        if unsafe { UnhookWindowsHookEx(self.hook) } == 0 {
+        if !unhook(self.hook) {
             ORPHANS.with(|orphans| orphans.borrow_mut().push(self.hook));
             record(&self.frame, error("remove dialog STATIC creation observer"));
         }
@@ -151,7 +151,11 @@ fn observe(frame: &Frame, hwnd: HWND, parameter: isize) -> Result<bool, RuntimeE
             && super::super::win16_window_identity::resolve(state, window) == Some(hwnd)
             && state.borrow().windows_by_native.get(&(hwnd as usize)).is_some_and(|identity|
                 identity.window == window && identity.creation == Some(frame.creation))
-        { return Ok(false); }
+        {
+            #[cfg(test)]
+            TEST_DUPLICATES.with(|count| count.set(count.get() + 1));
+            return Ok(false);
+        }
         return Err(error("dialog STATIC creation payload was replayed"));
     }
     super::super::win16_window_identity::bind_dialog_root(state, window, hwnd, None, Some(frame.creation))?;
@@ -178,4 +182,53 @@ fn class_is(hwnd: HWND, expected: &[u8]) -> bool {
     length > 0 && length as usize == expected.len()
         && name[..length as usize].iter().zip(expected).all(|(left, right)|
             u8::try_from(*left).is_ok_and(|left| left.eq_ignore_ascii_case(right)))
+}
+
+// Tests suppress selected removal attempts while the real hook remains live.
+// Every reported successful removal still comes from UnhookWindowsHookEx.
+fn unhook(hook: HHOOK) -> bool {
+    #[cfg(test)]
+    if TEST_UNHOOK_FAILURES.with(|remaining| {
+        let count = remaining.get();
+        if count == 0 { false } else { remaining.set(count - 1); true }
+    }) {
+        TEST_FAILED_UNHOOKS.with(|count| count.set(count.get() + 1));
+        return false;
+    }
+    let removed = unsafe { UnhookWindowsHookEx(hook) } != 0;
+    #[cfg(test)]
+    if removed { TEST_REMOVED_HOOKS.with(|count| count.set(count.get() + 1)); }
+    removed
+}
+#[cfg(test)]
+thread_local! {
+    static TEST_UNHOOK_FAILURES: Cell<usize> = const { Cell::new(0) };
+    static TEST_FAILED_UNHOOKS: Cell<usize> = const { Cell::new(0) };
+    static TEST_REMOVED_HOOKS: Cell<usize> = const { Cell::new(0) };
+    static TEST_DUPLICATES: Cell<usize> = const { Cell::new(0) };
+}
+#[cfg(test)]
+pub(super) fn test_fail_unhooks(count: usize) {
+    assert!(FRAMES.with(|frames| frames.borrow().is_empty()));
+    assert!(ORPHANS.with(|orphans| orphans.borrow().is_empty()));
+    TEST_UNHOOK_FAILURES.with(|remaining| remaining.set(count));
+    TEST_FAILED_UNHOOKS.with(|value| value.set(0));
+    TEST_REMOVED_HOOKS.with(|value| value.set(0));
+    TEST_DUPLICATES.with(|value| value.set(0));
+}
+#[cfg(test)]
+pub(super) fn test_hook_state() -> (usize, usize, usize, usize, usize) {
+    (TEST_UNHOOK_FAILURES.with(Cell::get), TEST_FAILED_UNHOOKS.with(Cell::get),
+        TEST_REMOVED_HOOKS.with(Cell::get), ORPHANS.with(|orphans| orphans.borrow().len()),
+        TEST_DUPLICATES.with(Cell::get))
+}
+#[cfg(test)]
+pub(super) fn test_panicked() -> bool { PANICKED.with(Cell::get) }
+#[cfg(test)]
+pub(super) fn test_cleanup_hooks() -> bool {
+    TEST_UNHOOK_FAILURES.with(|remaining| remaining.set(0));
+    ORPHANS.with(|orphans| {
+        orphans.borrow_mut().retain(|hook| !unhook(*hook));
+        orphans.borrow().is_empty()
+    })
 }

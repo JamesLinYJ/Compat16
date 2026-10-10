@@ -297,6 +297,155 @@ jobs:
             throw 'BLOCKED: the three hidden iconic window arrangement fixtures did not execute.'
           }
 
+      - name: Exercise hidden SetParent contracts
+        # Dedicated CI runner only; native fixtures remain ignored by default.
+        # Owned hidden windows only; desktop handles are read/borrowed, never owned.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for hidden SetParent contracts.'
+          }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'BLOCKED: Visual Studio developer command script unavailable for hidden SetParent contracts.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $filter = 'windows::win16_windows::win16_window_data::tests::set_parent_tests::'
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib {4} -- --ignored --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+          & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+          $probeExitCode = $LASTEXITCODE
+          if ($probeExitCode -ne 0) {
+            throw "UNSUPPORTED/FAILED: hidden SetParent contracts (exit $probeExitCode); inspect native diagnostics above."
+          }
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 3 passed; 0 failed; 0 ignored;') {
+            throw 'BLOCKED: expected exactly 3 passing hidden SetParent contracts fixtures.'
+          }
+
+      - name: Exercise hidden CloseWindow rejection
+        # Dedicated CI runner only; native fixtures remain ignored by default.
+        # Exact rejection fixture only; the minimizing CloseWindow tests stay deferred.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for hidden CloseWindow rejection.'
+          }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'BLOCKED: Visual Studio developer command script unavailable for hidden CloseWindow rejection.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $filter = 'windows::win16_windows::win16_window_data::tests::close_window_tests::close_window_ignores_popup_child_null_unknown_and_stale_targets'
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib {4} -- --ignored --exact --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+          & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+          $probeExitCode = $LASTEXITCODE
+          if ($probeExitCode -ne 0) {
+            throw "UNSUPPORTED/FAILED: hidden CloseWindow rejection (exit $probeExitCode); inspect native diagnostics above."
+          }
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 1 passed; 0 failed; 0 ignored;') {
+            throw 'BLOCKED: expected exactly one passing hidden CloseWindow rejection fixture.'
+          }
+
+      - name: Exercise hidden SetWindowPos contracts
+        # Dedicated CI runner only; native fixtures remain ignored by default.
+        # Includes TOPMOST changes on an owned hidden popup, with no show or activation.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for hidden SetWindowPos contracts.'
+          }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'BLOCKED: Visual Studio developer command script unavailable for hidden SetWindowPos contracts.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $filter = 'windows::win16_windows::win16_window_data::tests::set_window_pos_tests::'
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib {4} -- --ignored --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+          & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+          $probeExitCode = $LASTEXITCODE
+          if ($probeExitCode -ne 0) {
+            throw "UNSUPPORTED/FAILED: hidden SetWindowPos contracts (exit $probeExitCode); inspect native diagnostics above."
+          }
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 4 passed; 0 failed; 0 ignored;') {
+            throw 'BLOCKED: expected exactly 4 passing hidden SetWindowPos contracts fixtures.'
+          }
+
+      - name: Exercise hidden child query contracts
+        # Dedicated CI runner only; native fixtures remain ignored by default.
+        # Owned hidden trees only; no visible windows or input automation.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for hidden child query contracts.'
+          }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'BLOCKED: Visual Studio developer command script unavailable for hidden child query contracts.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $filter = 'windows::win16_windows::win16_window_ops::child_queries_tests::'
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib {4} -- --ignored --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+          & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+          $probeExitCode = $LASTEXITCODE
+          if ($probeExitCode -ne 0) {
+            throw "UNSUPPORTED/FAILED: hidden child query contracts (exit $probeExitCode); inspect native diagnostics above."
+          }
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 5 passed; 0 failed; 0 ignored;') {
+            throw 'BLOCKED: expected exactly 5 passing hidden child query contracts fixtures.'
+          }
+
+      - name: Exercise hidden parent identity regressions
+        # Dedicated CI runner only; native fixtures remain ignored by default.
+        # Exact allowlist excludes deferred minimizing/restoring window-data fixtures.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for hidden parent identity regressions.'
+          }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'BLOCKED: Visual Studio developer command script unavailable for hidden parent identity regressions.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $filters = @(
+            'windows::win16_windows::win16_window_data::tests::parent_query_distinguishes_child_edges_owners_desktop_and_retirement',
+            'windows::win16_windows::win16_window_data::tests::stale_cookie_rejects_scalar_parent_target_and_parent_query',
+            'windows::win16_windows::win16_window_data::tests::synchronous_reparent_callback_retires_previous_parent_without_readopting_it',
+            'windows::win16_windows::win16_window_data::tests::synchronous_reparent_callback_retires_child_before_result_ancestry_query',
+            'windows::win16_windows::win16_window_data::tests::reparent_never_projects_a_replacement_parent_identity_at_the_same_native_bits',
+            'windows::win16_windows::win16_window_data::tests::reparent_never_queries_a_replacement_child_identity_at_the_same_native_bits'
+          )
+          $failedSuites = @()
+          foreach ($filter in $filters) {
+            Write-Host "::group::cargo test $filter"
+            $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib {4} -- --ignored --exact --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+            & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+            $probeExitCode = $LASTEXITCODE
+            Write-Host '::endgroup::'
+            if ($probeExitCode -ne 0) {
+              $failedSuites += "$filter (exit $probeExitCode)"
+            } elseif (($probeOutput -join "`n") -notmatch 'test result: ok\. 1 passed; 0 failed; 0 ignored;') {
+              $failedSuites += "$filter (BLOCKED: expected exactly one passing fixture)"
+            }
+          }
+          if ($failedSuites.Count -gt 0) {
+            throw ('Hidden parent identity regressions failed: ' + ($failedSuites -join '; '))
+          }
+
       - name: Build and stage native release
         # Still report compilation/staging failures when a test fails.
         if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}

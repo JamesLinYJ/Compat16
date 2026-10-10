@@ -18,6 +18,8 @@ thread_local! {
     static FIRST_CHILD: Cell<usize> = const { Cell::new(0) };
     static REPLACEMENT: Cell<usize> = const { Cell::new(0) };
     static REPLACED: Cell<bool> = const { Cell::new(false) };
+    static INJECTED_PANIC: Cell<bool> = const { Cell::new(false) };
+    static FAILURE_OWNERS: RefCell<Vec<std::sync::Weak<DialogIconOwner>>> = const { RefCell::new(Vec::new()) };
     static HOOK_FAILED: Cell<bool> = const { Cell::new(false) };
 }
 fn run_on_worker(run: fn(&Rc<RefCell<WorkerState>>)) {
@@ -39,10 +41,30 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, _w: usize, l: is
             assert_eq!(unsafe { IsWindowVisible(hwnd) }, 0);
             if NEST.with(|nest| nest.replace(false)) { exercise(&state, true, 0); }
             if MODE.with(Cell::get) == 3 { return; }
+            if matches!(MODE.with(Cell::get), 7 | 8) {
+                let state = state.borrow();
+                let operation = state.active_operations.last().unwrap().id;
+                let owners = state.dialog_icon_sidecars.iter().filter(|sidecar| sidecar.operation == operation)
+                    .map(|sidecar| Arc::downgrade(&sidecar.owner)).collect::<Vec<_>>();
+                assert_eq!(owners.len(), 2);
+                FAILURE_OWNERS.with(|slot| *slot.borrow_mut() = owners);
+                if MODE.with(Cell::get) == 7 {
+                    assert!(INJECTED_PANIC.with(Cell::get));
+                    assert!(observer::test_panicked());
+                    assert!(state.dialog_icon_sidecars.iter().filter(|sidecar| sidecar.operation == operation)
+                        .all(|sidecar| sidecar.phase == Phase::Ready));
+                    assert!(!state.pending_dialog_routes.iter().find(|pending| pending.operation == operation)
+                        .unwrap().init_published);
+                }
+            }
         }
         let route = super::super::win16_dialog_callbacks::test_dialog_route(&state, hwnd, message, l);
-        if message == WM_INITDIALOG && MODE.with(Cell::get) == 4 {
-            assert!(route.is_err(), "destroyed Ready child must block INIT"); return;
+        if message == WM_INITDIALOG && matches!(MODE.with(Cell::get), 4 | 7) {
+            assert!(route.is_err(), "destroyed child or caught callback panic must block INIT");
+            if MODE.with(Cell::get) == 7 {
+                assert!(state.borrow().pending_dialog_routes.iter().all(|pending| !pending.init_published));
+            }
+            return;
         }
         let route = route.unwrap();
         if message == WM_INITDIALOG {
@@ -81,6 +103,9 @@ fn exercise(state: &Rc<RefCell<WorkerState>>, modal: bool, mode: u8) {
     FIRST_CHILD.with(|slot| slot.set(0));
     REPLACED.with(|slot| slot.set(false));
     HOOK_FAILED.with(|slot| slot.set(false));
+    INJECTED_PANIC.with(|slot| slot.set(false));
+    FAILURE_OWNERS.with(|slot| slot.borrow_mut().clear());
+    let initializations_before = INITIALIZED.with(Cell::get);
     static NEXT: AtomicU64 = AtomicU64::new(10000);
     let operation = NEXT.fetch_add(1, Ordering::Relaxed);
     let creation = Win16CreationId(operation);
@@ -111,14 +136,30 @@ fn exercise(state: &Rc<RefCell<WorkerState>>, modal: bool, mode: u8) {
     images.release_icon(replacement).unwrap();
     drop(replacement_lease);
     assert!(!HOOK_FAILED.with(Cell::get));
-    if matches!(mode, 2 | 3 | 4) {
+    if matches!(mode, 2 | 3 | 4 | 7 | 8) {
         if mode == 2 {
             assert!(result.is_err() || matches!(result, Ok(runtime::Win16HostDialogResult::Created { creation, .. }) if creation.live_window.is_none()));
-        } else { assert!(result.is_err(), "incomplete INIT must fail closed"); }
+        } else { assert!(result.is_err(), "incomplete INIT or failed observer cleanup must fail closed"); }
+        if mode == 7 {
+            assert!(INJECTED_PANIC.with(Cell::get));
+            assert_eq!(INITIALIZED.with(Cell::get), initializations_before,
+                "caught callback panic must publish zero INIT routes");
+        }
+        if mode == 8 {
+            assert_eq!(INITIALIZED.with(Cell::get), initializations_before + 1,
+                "failed unhook is injected after successful native initialization");
+        }
         images.release_icon(first).unwrap(); images.release_icon(second).unwrap();
         retire_after_call(state);
         assert!(!state.borrow().dialog_icon_sidecars.iter().any(|sidecar| sidecar.operation == operation));
         assert!(!state.borrow().windows_by_native.values().any(|identity| identity.creation == Some(creation)));
+        if matches!(mode, 7 | 8) {
+            FAILURE_OWNERS.with(|slot| {
+                assert_eq!(slot.borrow().len(), 2);
+                assert!(slot.borrow().iter().all(|owner| owner.upgrade().is_none()),
+                    "failed creation must release both process-retained owner records");
+            });
+        }
         if let Some(panic) = PANIC.with(|slot| slot.borrow_mut().take()) { std::panic::resume_unwind(panic); }
         return;
     }
@@ -181,9 +222,27 @@ fn hidden_dialog_icons_cover_duplicates_retention_and_nested_scopes() {
         NEST.with(|nest| nest.set(true));
         exercise(state, true, 0);
         assert_eq!(INITIALIZED.with(Cell::get), 6);
+        exercise(state, false, 7);
+        assert_eq!(INITIALIZED.with(Cell::get), 6);
+        let cleanup = OrphanHookCleanup;
+        observer::test_fail_unhooks(2);
+        exercise(state, false, 8);
+        assert_eq!(observer::test_hook_state(), (1, 1, 0, 1, 0));
+        exercise(state, false, 0);
+        let duplicate_state = observer::test_hook_state();
+        assert_eq!((duplicate_state.0, duplicate_state.1, duplicate_state.2, duplicate_state.3), (0, 2, 1, 1));
+        assert!(duplicate_state.4 >= 2, "retained live hook must observe both exact STATIC creations again");
+        exercise(state, false, 0);
+        let recovered = observer::test_hook_state();
+        assert_eq!((recovered.0, recovered.1, recovered.2, recovered.3), (0, 2, 3, 0));
+        assert_eq!(recovered.4, duplicate_state.4);
+        assert!(observer::test_cleanup_hooks(), "all orphan hooks must be removed by the native API");
+        drop(cleanup);
+        assert_eq!(INITIALIZED.with(Cell::get), 9);
+        eprintln!("hidden icon failure injection: real callback borrow panic blocked INIT; two injected removals retained a live hook; duplicate observations={}; actual successful removals={}; orphan hooks={}", recovered.4, recovered.2, recovered.3);
         assert!(state.borrow().dialog_icon_sidecars.is_empty());
         assert!(state.borrow().pending_dialog_routes.is_empty());
-        eprintln!("hidden dialog icons: six INIT routes; duplicate identities, released-token recovery, synthetic NCDESTROY retention, replacement during SET, veto rollback, missing INIT receipt, destroyed-child rejection, nested modal scopes and cleanup verified");
+        eprintln!("hidden dialog icons: nine INIT routes; duplicate identities, released-token recovery, synthetic NCDESTROY retention, replacement during SET, veto rollback, missing INIT receipt, destroyed-child rejection, nested modal scopes and cleanup verified");
     });
 }
 
@@ -196,7 +255,7 @@ struct TestHook(windows_sys::Win32::UI::WindowsAndMessaging::HHOOK);
 impl TestHook {
     fn enter(mode: u8) -> Self {
         use windows_sys::Win32::UI::WindowsAndMessaging::{SetWindowsHookExW, WH_CBT};
-        if !matches!(mode, 1 | 2 | 4 | 5 | 6) { return Self(std::ptr::null_mut()); }
+        if !matches!(mode, 1 | 2 | 4 | 5 | 6 | 7) { return Self(std::ptr::null_mut()); }
         let hook = unsafe { SetWindowsHookExW(WH_CBT, Some(test_hook), std::ptr::null_mut(),
             windows_sys::Win32::System::Threading::GetCurrentThreadId()) };
         assert!(!hook.is_null()); Self(hook)
@@ -220,7 +279,7 @@ unsafe extern "system" fn test_hook(code: i32, w: usize, l: isize) -> isize {
         let count = OBSERVED.with(|count| { let next = count.get() + 1; count.set(next); next });
         if count == 1 { FIRST_CHILD.with(|child| child.set(w)); }
         match MODE.with(Cell::get) {
-            1 | 5 | 6 if count == 1 => {
+            1 | 5 | 6 | 7 if count == 1 => {
                 if unsafe { windows_sys::Win32::UI::Shell::SetWindowSubclass(
                     w as HWND, Some(replace_proc), 0xD1A6, 0) } == 0
                 { HOOK_FAILED.with(|failed| failed.set(true)); }
@@ -244,14 +303,37 @@ unsafe extern "system" fn test_hook(code: i32, w: usize, l: isize) -> isize {
 unsafe extern "system" fn replace_proc(hwnd: HWND, message: u32, w: usize, l: isize,
     id: usize, _data: usize) -> isize
 {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| replace_message(hwnd, message, w, l, id))) {
+        Ok(result) => result,
+        Err(panic) => { PANIC.with(|slot| *slot.borrow_mut() = Some(panic)); 0 }
+    }
+}
+fn replace_message(hwnd: HWND, message: u32, w: usize, l: isize, id: usize) -> isize {
     use windows_sys::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass};
     if message == WM_NCDESTROY { unsafe { RemoveWindowSubclass(hwnd, Some(replace_proc), id); } }
     if MODE.with(Cell::get) == 5 && message == 0x0171 && !REPLACED.with(|replaced| replaced.replace(true)) {
         unsafe { SendMessageW(hwnd, 0x0170, 0, 0); }
+    }
+    if MODE.with(Cell::get) == 7 && message == 0x0171 && !INJECTED_PANIC.with(|flag| flag.replace(true)) {
+        // Both the production dispatch and its panic recovery will encounter
+        // this real conflicting borrow. Only the independent latch can reject
+        // INIT after subsequent normal installation reaches Ready.
+        let state = worker::worker_context().expect("test subclass owns its worker");
+        let _conflict = state.borrow_mut();
+        return unsafe { DefSubclassProc(hwnd, message, w, l) };
     }
     let result = unsafe { DefSubclassProc(hwnd, message, w, l) };
     if matches!(MODE.with(Cell::get), 1 | 6) && message == 0x0170 && !REPLACED.with(|replaced| replaced.replace(true)) {
         unsafe { SendMessageW(hwnd, 0x0170, REPLACEMENT.with(Cell::get), 0); }
     }
     result
+}
+
+// If an assertion fails between the injected removal and the final retry,
+// still remove actual orphan registrations before the worker test returns.
+struct OrphanHookCleanup;
+impl Drop for OrphanHookCleanup {
+    fn drop(&mut self) {
+        if !observer::test_cleanup_hooks() { HOOK_FAILED.with(|failed| failed.set(true)); }
+    }
 }
