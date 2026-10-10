@@ -109,6 +109,9 @@ mod win16_images;
 #[cfg(test)]
 #[path = "windows/win16_dialog_static_creation_probe_tests.rs"]
 mod dialog_static_creation_probe_tests;
+#[cfg(test)]
+#[path = "windows/win16_static_icon_ownership_probe_tests.rs"]
+mod static_icon_ownership_probe_tests;
 mod win16_keyboard;
 #[path = "windows/win16_modal.rs"]
 mod win16_modal;
