@@ -146,6 +146,58 @@ jobs:
             throw ('Compatibility tests failed: ' + ($failedSuites -join '; '))
           }
 
+      - name: Diagnose native code-page metadata
+        # Fixed-count reproduction, not retries that turn a failure into success.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 10
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'Visual Studio C++ tools were not found.'
+          }
+          $vsInstall = ([string]$installations[0]).Trim()
+          $vsDevCmd = Join-Path $vsInstall 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'Visual Studio developer command script was not found.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $diagnostics = @()
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            $diagnostics += @{
+              Label = "serial exact DBCS probe $attempt/5"
+              Arguments = '-p host-services --lib windows::guest_text::next::tests::ansi_next_dbcs_probe_needs_a_real_trail_or_terminator -- --exact --test-threads=1 --nocapture'
+            }
+          }
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            $diagnostics += @{
+              Label = "parallel original AnsiNext suite $attempt/5"
+              Arguments = '-p host-services --lib ansi_next_ -- --test-threads=5 --nocapture'
+            }
+          }
+          foreach ($phase in @('serial', 'concurrent')) {
+            $diagnostics += @{
+              Label = "raw metadata $phase probes"
+              Arguments = "-p host-services --lib windows::guest_text::metadata_tests::code_page_metadata_${phase}_probes -- --exact --test-threads=1 --nocapture"
+            }
+          }
+          $failedDiagnostics = @()
+          foreach ($diagnostic in $diagnostics) {
+            Write-Host "::group::$($diagnostic.Label)"
+            Write-Host "cargo test $($diagnostic.Arguments)"
+            $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} {4}' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $diagnostic.Arguments
+            & $env:ComSpec /d /c $command
+            $testExitCode = $LASTEXITCODE
+            Write-Host "Diagnostic exit code: $testExitCode"
+            Write-Host '::endgroup::'
+            if ($testExitCode -ne 0) {
+              $failedDiagnostics += "$($diagnostic.Label) (exit $testExitCode)"
+            }
+          }
+          if ($failedDiagnostics.Count -gt 0) {
+            throw ('Native metadata diagnostics failed: ' + ($failedDiagnostics -join '; '))
+          }
+
       - name: Build and stage native release
         # Still report compilation/staging failures when a test fails.
         if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}

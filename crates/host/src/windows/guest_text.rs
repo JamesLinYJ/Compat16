@@ -746,3 +746,7 @@ impl Error for GuestTextMappingError {}
 #[cfg(test)]
 #[path = "guest_text_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "guest_text_metadata_tests.rs"]
+mod metadata_tests;
