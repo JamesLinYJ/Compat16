@@ -718,6 +718,14 @@ impl DosHost for WindowsHost {
     ) -> Result<dos_kernel::DosFileStatus, DosHostError> {
         self.filesystem.file_status(file)
     }
+    fn file_set_write_time(
+        &mut self,
+        file: DosHostFile,
+        time: u16,
+        date: u16,
+    ) -> Result<(), DosHostError> {
+        self.filesystem.file_set_write_time(file, time, date)
+    }
     fn guest_code_page(&self) -> CodePage {
         self.filesystem.guest_code_page()
     }

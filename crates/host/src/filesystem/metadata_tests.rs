@@ -214,3 +214,149 @@ fn dos_timestamp_native_does_not_hide_named_dynamic_zone_lookup_errors() {
     // resolve its history. A failed lookup must remain a host error.
     assert!(dos_file_time(ticks(calendar(2024, 7, 15, 12, 0, 0)), &zone).is_err());
 }
+
+fn converted_ticks(time: u16, date: u16, zone: &DYNAMIC_TIME_ZONE_INFORMATION) -> u64 {
+    let native = super::dos_to_file_time(time, date, zone).unwrap();
+    let ticks = (u64::from(native.dwHighDateTime) << 32) | u64::from(native.dwLowDateTime);
+    assert_eq!(dos_file_time(ticks, zone).unwrap(), (time, date));
+    ticks
+}
+
+#[test]
+fn dos_timestamp_set_decodes_every_valid_two_second_clock_value() {
+    let zone = fixed_zone(0);
+    for hour in 0..24 {
+        for minute in 0..60 {
+            for second in (0..60).step_by(2) {
+                let local = calendar(2000, 2, 29, hour, minute, second);
+                let (time, date) = pack_dos_time(&local);
+                assert_eq!(converted_ticks(time, date, &zone), ticks(local));
+            }
+        }
+    }
+}
+
+#[test]
+fn dos_timestamp_set_accepts_local_year_limits_even_when_utc_crosses_them() {
+    for (zone, local, utc) in [
+        (fixed_zone(0), calendar(1980, 1, 1, 0, 0, 0), calendar(1980, 1, 1, 0, 0, 0)),
+        (fixed_zone(0), calendar(2107, 12, 31, 23, 59, 58), calendar(2107, 12, 31, 23, 59, 58)),
+        (fixed_zone(-330), calendar(1980, 1, 1, 0, 0, 0), calendar(1979, 12, 31, 18, 30, 0)),
+        (fixed_zone(300), calendar(2107, 12, 31, 23, 59, 58), calendar(2108, 1, 1, 4, 59, 58)),
+    ] {
+        let (time, date) = pack_dos_time(&local);
+        assert_eq!(converted_ticks(time, date, &zone), ticks(utc));
+    }
+}
+
+#[test]
+fn dos_timestamp_set_rejects_all_invalid_packed_clock_fields() {
+    let zone = fixed_zone(0);
+    for time in 0..=u16::MAX {
+        if (time >> 11) > 23 || ((time >> 5) & 63) > 59 || (time & 31) > 29 {
+            assert_eq!(super::dos_to_file_time(time, 0x21, &zone).err().expect("invalid time").code,
+                dos_kernel::DosErrorCode::InvalidData, "time={time:04x}");
+        }
+    }
+}
+
+#[test]
+fn dos_timestamp_set_rejects_invalid_months_days_and_non_leap_dates() {
+    let zone = fixed_zone(0);
+    let invalid = |date| {
+        assert_eq!(super::dos_to_file_time(0, date, &zone).err().expect("invalid date").code,
+            dos_kernel::DosErrorCode::InvalidData, "date={date:04x}");
+    };
+    for year in 1980..=2107 {
+        let year_bits = (year - 1980) << 9;
+        for month in [0, 13, 14, 15] { invalid(year_bits | (month << 5) | 1); }
+        for month in 1..=12 {
+            invalid(year_bits | (month << 5));
+            let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+            let days = match month { 2 if leap => 29, 2 => 28, 4 | 6 | 9 | 11 => 30, _ => 31 };
+            for day in (days + 1)..=31 { invalid(year_bits | (month << 5) | day); }
+        }
+    }
+    // 2000 is a Gregorian leap century; 2100 was rejected above.
+    assert_eq!(converted_ticks(0, 0x285d, &zone), ticks(calendar(2000, 2, 29, 0, 0, 0)));
+    invalid(0);
+}
+
+#[test]
+fn dos_timestamp_set_uses_historical_named_zone_rules_and_fixed_custom_rules() {
+    let named = named_zone("Eastern Standard Time");
+    let custom = seasonal_zone();
+    let unnamed_dynamic = DYNAMIC_TIME_ZONE_INFORMATION {
+        DynamicDaylightTimeDisabled: false,
+        ..custom
+    };
+    let named_fixed = DYNAMIC_TIME_ZONE_INFORMATION {
+        TimeZoneKeyName: named.TimeZoneKeyName,
+        ..custom
+    };
+    for (year, named_hour) in [(2006, 13), (2007, 12)] {
+        let (time, date) = pack_dos_time(&calendar(year, 3, 21, 8, 0, 0));
+        assert_eq!(converted_ticks(time, date, &named), ticks(calendar(year, 3, 21, named_hour, 0, 0)));
+        for zone in [&custom, &unnamed_dynamic, &named_fixed] {
+            assert_eq!(converted_ticks(time, date, zone), ticks(calendar(year, 3, 21, 12, 0, 0)));
+        }
+    }
+}
+
+#[test]
+fn dos_timestamp_set_respects_disabled_dst_with_a_named_zone_key() {
+    let zone = DYNAMIC_TIME_ZONE_INFORMATION {
+        DynamicDaylightTimeDisabled: true,
+        StandardDate: SYSTEMTIME::default(),
+        DaylightDate: SYSTEMTIME::default(),
+        ..named_zone("Eastern Standard Time")
+    };
+    for month in [1, 7] {
+        let (time, date) = pack_dos_time(&calendar(2024, month, 15, 8, 0, 0));
+        assert_eq!(converted_ticks(time, date, &zone), ticks(calendar(2024, month, 15, 13, 0, 0)));
+    }
+}
+
+#[test]
+fn dos_timestamp_set_rejects_dst_gaps_in_fixed_and_dynamic_rules() {
+    for zone in [seasonal_zone(), named_zone("Eastern Standard Time")] {
+        for minute in 0..60 {
+            let (time, date) = pack_dos_time(&calendar(2024, 3, 10, 2, minute, 0));
+            assert_eq!(super::dos_to_file_time(time, date, &zone).err().expect("nonexistent local time").code,
+                dos_kernel::DosErrorCode::InvalidData);
+        }
+        for (local, utc) in [
+            (calendar(2024, 3, 10, 1, 59, 58), calendar(2024, 3, 10, 6, 59, 58)),
+            (calendar(2024, 3, 10, 3, 0, 0), calendar(2024, 3, 10, 7, 0, 0)),
+        ] {
+            let (time, date) = pack_dos_time(&local);
+            assert_eq!(converted_ticks(time, date, &zone), ticks(utc));
+        }
+    }
+}
+
+#[test]
+fn dos_timestamp_set_accepts_documented_daylight_occurrence_of_repeated_hour() {
+    for zone in [seasonal_zone(), named_zone("Eastern Standard Time")] {
+        for minute in [0, 30, 59] {
+            let (time, date) = pack_dos_time(&calendar(2024, 11, 3, 1, minute, 58));
+            let daylight = ticks(calendar(2024, 11, 3, 5, minute, 58));
+            let standard = ticks(calendar(2024, 11, 3, 6, minute, 58));
+            assert_eq!(dos_file_time(daylight, &zone).unwrap(), (time, date));
+            assert_eq!(dos_file_time(standard, &zone).unwrap(), (time, date));
+            // DOS discarded which repeated-hour occurrence produced the value.
+            assert_eq!(converted_ticks(time, date, &zone), daylight);
+        }
+    }
+}
+
+#[test]
+fn dos_timestamp_set_does_not_fall_back_when_named_history_lookup_fails() {
+    let mut zone = seasonal_zone();
+    zone.DynamicDaylightTimeDisabled = false;
+    let key: Vec<u16> = "Compat16 nonexistent timezone fixture".encode_utf16().collect();
+    zone.TimeZoneKeyName[..key.len()].copy_from_slice(&key);
+    let (time, date) = pack_dos_time(&calendar(2024, 7, 15, 12, 0, 0));
+    assert!(super::dos_to_file_time(time, date, &zone).is_err());
+    assert!(super::dos_to_file_time(time, date, &seasonal_zone()).is_ok());
+}

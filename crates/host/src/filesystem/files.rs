@@ -11,7 +11,7 @@ use windows_sys::Win32::Foundation::HANDLE;
 use windows_sys::Win32::Storage::FileSystem::{
     FILE_ATTRIBUTE_ARCHIVE, FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_READONLY,
     FILE_ATTRIBUTE_SYSTEM, FILE_BASIC_INFO, FILE_FLAG_BACKUP_SEMANTICS, FILE_SHARE_READ,
-    FILE_SHARE_WRITE, FILE_WRITE_ATTRIBUTES, FileBasicInfo, SetFileInformationByHandle,
+    FILE_SHARE_WRITE, FILE_WRITE_ATTRIBUTES, FileBasicInfo, SetFileInformationByHandle, SetFileTime,
 };
 
 use crate::windows::{encode, invalid, os_error};
@@ -325,6 +325,43 @@ impl Filesystem {
             drive: self.drive,
             written: handle.written,
         })
+    }
+
+    pub(crate) fn file_set_write_time(
+        &mut self,
+        file: DosHostFile,
+        time: u16,
+        date: u16,
+    ) -> Result<(), DosHostError> {
+        let shared = self.file(file)?;
+        let mut handle = Self::lock_file(&shared)?;
+        let write_time = metadata::dos_to_native_write_time(time, date)?;
+        // DOS permits timestamp updates even on read-only DOS opens. Windows
+        // requires FILE_WRITE_ATTRIBUTES on this existing native handle; our
+        // read-only opens lack that right. Preserve the real native failure as
+        // a compatibility gap instead of reopening or widening every open.
+        // Only last-write time changes; null creation/access pointers preserve
+        // those fields. The shared lock retains the exact open-description
+        // identity and serializes this metadata change with writes and aliases.
+        // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfiletime
+        // SAFETY: The owned handle remains live under its lock. The timestamp
+        // is an initialized FILETIME, and the two optional pointers are null.
+        if unsafe {
+            SetFileTime(
+                handle.file.as_raw_handle() as HANDLE,
+                std::ptr::null(),
+                std::ptr::null(),
+                &write_time,
+            )
+        } == 0 {
+            return Err(os_error(io::Error::last_os_error()));
+        }
+        // Like DOS4's cleared SFT clean bit, this includes successful metadata
+        // writes. Native mutation is immediate, not DOS's deferred close-time
+        // update; later SFT refresh failure does not roll it back.
+        // https://github.com/microsoft/MS-DOS/blob/main/v4.0/src/DOS/HANDLE.ASM#L664-L695
+        handle.written = true;
+        Ok(())
     }
 
     pub(crate) fn file_status(&mut self, file: DosHostFile) -> Result<DosFileStatus, DosHostError> {

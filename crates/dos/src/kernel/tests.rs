@@ -75,6 +75,8 @@ pub(super) struct TestHost {
     last_open_access: Option<DosFileAccess>,
     file_status_calls: Vec<DosHostFile>,
     file_status_error: Option<DosErrorCode>,
+    file_set_write_time_calls: Vec<(DosHostFile, u16, u16)>,
+    file_set_write_time_error: Option<DosErrorCode>,
     file_input_status_calls: Vec<DosHostFile>,
     file_input_status_error: Option<DosErrorCode>,
     file_read_calls: Vec<(DosHostFile, usize)>,
@@ -268,6 +270,19 @@ impl DosHost for TestHost {
         status.size = state.bytes.len() as u32;
         status.position = state.cursor;
         Ok(status)
+    }
+
+    fn file_set_write_time(&mut self, file: DosHostFile, time: u16, date: u16) -> Result<(), DosHostError> {
+        self.file_set_write_time_calls.push((file, time, date));
+        if let Some(code) = self.file_set_write_time_error {
+            return Err(DosHostError::new(code));
+        }
+        let state = self.file_for(file)?;
+        let status = state.status.as_mut().ok_or(DosHostError::new(DosErrorCode::InvalidFunction))?;
+        status.write_time = time;
+        status.write_date = date;
+        state.written = true;
+        Ok(())
     }
 
     fn file_input_status(&mut self, file: DosHostFile) -> Result<bool, DosHostError> {

@@ -1,19 +1,19 @@
-//! Read-only DOS timestamps through protected INT 21h and KERNEL DOS3Call.
+//! Owned DOS timestamps through protected INT 21h and KERNEL DOS3Call.
 
 use super::dispatch_int21;
 use super::super::{
     ImportBinding,
     kernel_register_calls::{self, Win16KernelRegisterService},
-    test_support::tiny_ne_executable,
+    test_support::{NoHost, tiny_ne_executable},
 };
 use crate::{Runtime, RuntimeError, RuntimeHost, Win16CanonicalPath, Win16GuestPath};
 use devices::{keyboard::KeyStroke, video::ConsoleSnapshot};
 use dos_kernel::{
-    DosAction, DosDirectoryEntry, DosErrorCode, DosFileAccess, DosFileSharing,
+    DosAction, DosDirectoryEntry, DosError, DosErrorCode, DosFileAccess, DosFileSharing,
     DosFileStatus, DosHost, DosHostError, DosHostFile, DosHostSearch,
     DosIoctlObjectInfo, DosSeekOrigin,
 };
-use guest_core::{OwnerId, Registers, Selector};
+use guest_core::{GuestMemory, OwnerId, Registers, Selector, real_address};
 use win16_abi::{Access, ExportLookupTarget, Win16KernelFileSystemRequest, lookup_export};
 
 const HOST_FILE: DosHostFile = DosHostFile(0x1234);
@@ -27,26 +27,40 @@ struct TimestampHost {
     directory_activations: usize,
     status_calls: Vec<DosHostFile>,
     next_status_error: Option<DosErrorCode>,
+    set_time_calls: Vec<(DosHostFile, u16, u16)>,
+    next_set_time_error: Option<DosErrorCode>,
+    changed_timestamp: Option<(u16, u16)>,
 }
 
 impl DosHost for TimestampHost {
     fn file_ioctl_info(&self, file: DosHostFile) -> Result<DosIoctlObjectInfo, DosHostError> {
         assert_eq!(file, HOST_FILE);
         assert!(self.open);
-        Ok(DosIoctlObjectInfo::File { drive: 2, written: false })
+        Ok(DosIoctlObjectInfo::File { drive: 2, written: self.changed_timestamp.is_some() })
     }
     fn file_status(&mut self, file: DosHostFile) -> Result<DosFileStatus, DosHostError> {
         assert_eq!(file, HOST_FILE);
         assert!(self.open);
         self.status_calls.push(file);
-        // Fail the service query once, then allow the ordinary SFT refresh.
+        // Fail one service query or SFT refresh without losing the open file.
         if let Some(code) = self.next_status_error.take() {
             return Err(DosHostError::new(code));
         }
+        let (write_time, write_date) = self.changed_timestamp.unwrap_or((WRITE_TIME, WRITE_DATE));
         Ok(DosFileStatus {
             short_name: *b"STAMP   DAT", size: 0x1020, position: 7,
-            attributes: 0x21, write_time: WRITE_TIME, write_date: WRITE_DATE,
+            attributes: 0x21, write_time, write_date,
         })
+    }
+    fn file_set_write_time(&mut self, file: DosHostFile, time: u16, date: u16) -> Result<(), DosHostError> {
+        assert_eq!(file, HOST_FILE);
+        assert!(self.open);
+        self.set_time_calls.push((file, time, date));
+        if let Some(code) = self.next_set_time_error.take() {
+            return Err(DosHostError::new(code));
+        }
+        self.changed_timestamp = Some((time, date));
+        Ok(())
     }
     fn read_stdin(&mut self, _output: &mut [u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
     fn try_read_stdin(&mut self) -> Result<Option<u8>, DosHostError> { panic!("unexpected host call") }
@@ -106,7 +120,7 @@ impl RuntimeHost for TimestampHost {
     fn normalize_win16_dos_path(
         &mut self, _owner: OwnerId, _path: &Win16GuestPath,
     ) -> Result<Option<Win16CanonicalPath>, RuntimeError> {
-        panic!("timestamp reads must not resolve paths or capture FileCDR notices")
+        panic!("timestamp operations must not resolve paths or capture FileCDR notices")
     }
     fn epoch_seconds(&self) -> i64 { panic!("unexpected host call") }
     fn read_bios_key(&mut self) -> Result<KeyStroke, RuntimeError> { panic!("unexpected host call") }
@@ -198,20 +212,30 @@ fn use_invalid_data_selectors(runtime: &mut Runtime, expected: &mut Registers, s
     expected.es = selector;
 }
 
-fn call(runtime: &mut Runtime, host: &mut TimestampHost, route: Route, expected: Registers, status_calls: usize) {
+fn invoke(runtime: &mut Runtime, host: &mut TimestampHost, route: Route) -> Result<(), RuntimeError> {
     match route {
         Route::ProtectedInt21 => {
             assert_eq!(dispatch_int21(
                 runtime.win16.as_mut().unwrap(), &mut runtime.dos,
                 &mut runtime.cpu.regs, &mut runtime.memory, host,
-            ).unwrap(), DosAction::Continue);
+            )?, DosAction::Continue);
         }
         Route::Dos3Call => {
             let service = runtime.win16.as_ref().unwrap()
                 .kernel_register_service_at(&runtime.cpu.regs).unwrap().unwrap();
             assert_eq!(service, Win16KernelRegisterService::Dos3Call);
-            assert_eq!(kernel_register_calls::dispatch(runtime, service, host, 0).unwrap(), None);
+            assert_eq!(kernel_register_calls::dispatch(runtime, service, host, 0)?, None);
         }
+    }
+    Ok(())
+}
+
+fn call(runtime: &mut Runtime, host: &mut TimestampHost, route: Route, expected: Registers, status_calls: usize) {
+    let setter_requested = runtime.cpu.regs.ax() == 0x5701;
+    let setter_calls_before = host.set_time_calls.len();
+    invoke(runtime, host, route).unwrap();
+    if !setter_requested {
+        assert_eq!(host.set_time_calls.len(), setter_calls_before);
     }
     // Equality includes every untouched register, all high halves, non-CF
     // flags, and DOS3Call's checked CS:IP/SP far-return adjustment.
@@ -316,16 +340,320 @@ fn timestamp_read_routes_reject_closed_handles_without_host_queries() {
 #[test]
 fn timestamp_read_routes_reject_unsupported_subfunctions_before_querying_the_handle() {
     for route in ROUTES {
-        for subfunction in [1, 2, 0xff] {
+        for subfunction in [2, 0xff] {
             let (mut runtime, mut host, handle) = fixture();
             let mut expected = prepare(&mut runtime, route, handle, subfunction);
             use_invalid_data_selectors(&mut runtime, &mut expected, 0);
             runtime.cpu.regs.set_carry(false);
             expected.set_ax(DosErrorCode::InvalidFunction as u16);
             expected.set_carry(true);
-            // Refresh-only, including AL=01h: no setter or timestamp query.
+            // Refresh-only: no setter or service-level timestamp query.
             call(&mut runtime, &mut host, route, expected, 1);
+            assert!(host.set_time_calls.is_empty());
             runtime.dos.close_all_handles_checked(&mut host).unwrap();
         }
+    }
+}
+
+fn prepare_set(runtime: &mut Runtime, route: Route, handle: u16, time: u16, date: u16) -> Registers {
+    let mut expected = prepare(runtime, route, handle, 1);
+    runtime.cpu.regs.set_cx(time);
+    runtime.cpu.regs.set_dx(date);
+    expected.set_cx(time);
+    expected.set_dx(date);
+    expected
+}
+
+fn install_alias_collision(runtime: &mut Runtime, handle: u16, alias_kind: u8) {
+    let state = runtime.win16.as_mut().unwrap();
+    match alias_kind {
+        0 => {}
+        1 => { state.files.insert(handle, crate::Win16HostFile(0x5678)); }
+        2 | 3 => {
+            let owner = if alias_kind == 2 { OwnerId(1) } else { OwnerId(2) };
+            state.network_print_jobs.entry(owner).or_default().insert_open_job(
+                handle, crate::Win16HostSpoolJob::new(0x6789), b"QUEUE".to_vec(), None,
+            ).unwrap();
+        }
+        _ => panic!("unknown test alias kind"),
+    }
+}
+
+fn dos_metadata(runtime: &Runtime) -> Vec<u8> {
+    let psp = runtime.dos.psp_segment();
+    let mut bytes = vec![0; dos_kernel::SYSTEM_BYTES + 0x100 + 16];
+    let (system, process) = bytes.split_at_mut(dos_kernel::SYSTEM_BYTES);
+    let (psp_bytes, mcb) = process.split_at_mut(0x100);
+    runtime.memory.read(real_address(dos_kernel::SYSTEM_SEGMENT, 0), system).unwrap();
+    runtime.memory.read(real_address(psp, 0), psp_bytes).unwrap();
+    runtime.memory.read(real_address(psp - 1, 0), mcb).unwrap();
+    bytes
+}
+
+fn published_timestamp(runtime: &Runtime, handle: u16) -> (u16, u16, bool) {
+    let psp = runtime.dos.psp_segment();
+    let memory = &runtime.memory;
+    let jft_offset = memory.read_u16(real_address(psp, 0x34)).unwrap();
+    let jft_segment = memory.read_u16(real_address(psp, 0x36)).unwrap();
+    let index = memory.read_u8(real_address(jft_segment, jft_offset + handle)).unwrap();
+    assert_ne!(index, 0xff);
+    // Follow the installed LoL's SFT pointer. DOS 4 SF.INC uses a six-byte
+    // table header, 59-byte records, and a clean flag at bit 6 of device info.
+    let sft_offset = memory.read_u16(real_address(dos_kernel::SYSTEM_SEGMENT, 0x1c)).unwrap();
+    let sft_segment = memory.read_u16(real_address(dos_kernel::SYSTEM_SEGMENT, 0x1e)).unwrap();
+    let record = sft_offset + 6 + u16::from(index) * 59;
+    let device_info = memory.read_u16(real_address(sft_segment, record + 5)).unwrap();
+    let time = memory.read_u16(real_address(sft_segment, record + 13)).unwrap();
+    let date = memory.read_u16(real_address(sft_segment, record + 15)).unwrap();
+    (time, date, device_info & 0x40 == 0)
+}
+
+#[test]
+fn timestamp_write_default_host_contract_is_explicitly_unsupported() {
+    let error = NoHost.file_set_write_time(HOST_FILE, WRITE_TIME, WRITE_DATE).unwrap_err();
+    assert_eq!(error.code, DosErrorCode::InvalidFunction);
+}
+
+#[test]
+fn timestamp_write_routes_preserve_registers_and_raw_words_with_invalid_data_selectors() {
+    for route in ROUTES {
+        for selector in [0, 0xfff8] {
+            // Validation belongs to the host, so even zero or malformed packed
+            // fields must arrive unchanged rather than be treated as pointers.
+            for (time, date) in [(0, 0), (WRITE_TIME, WRITE_DATE), (0xffff, 0xffff)] {
+                let (mut runtime, mut host, handle) = fixture();
+                let mut expected = prepare_set(&mut runtime, route, handle, time, date);
+                use_invalid_data_selectors(&mut runtime, &mut expected, selector);
+                expected.set_carry(false);
+                call(&mut runtime, &mut host, route, expected, 1);
+                assert_eq!(host.set_time_calls, [(HOST_FILE, time, date)]);
+                assert_eq!(host.changed_timestamp, Some((time, date)));
+                assert_eq!(published_timestamp(&runtime, handle), (time, date, true));
+                assert!(host.open); // The read-only DOS handle remains owned.
+                runtime.dos.close_all_handles_checked(&mut host).unwrap();
+                assert!(!host.open);
+            }
+        }
+    }
+}
+
+#[test]
+fn timestamp_write_routes_do_not_activate_directory_or_capture_file_cdr_paths() {
+    assert!(!super::needs_dos_directory_context(0x57));
+    for route in ROUTES {
+        let (mut runtime, mut host, handle) = fixture();
+        let mut expected = prepare(&mut runtime, route, handle, 1);
+        // DS:DX still names STAMP.DAT and FileCDR has an executable callback.
+        // A path-based implementation would reach the host's panic above.
+        expected.set_carry(false);
+        call(&mut runtime, &mut host, route, expected, 1);
+        assert_eq!(host.set_time_calls, [(HOST_FILE, 0x4567, 0x0020)]);
+        runtime.dos.close_all_handles_checked(&mut host).unwrap();
+    }
+}
+
+#[test]
+fn timestamp_write_routes_return_host_errors_and_retain_handle_for_retry() {
+    for route in ROUTES {
+        for code in [DosErrorCode::AccessDenied, DosErrorCode::InvalidData,
+            DosErrorCode::InvalidFunction, DosErrorCode::GeneralFailure] {
+            let (mut runtime, mut host, handle) = fixture();
+            let mut expected = prepare_set(&mut runtime, route, handle, WRITE_TIME, WRITE_DATE);
+            use_invalid_data_selectors(&mut runtime, &mut expected, 0);
+            runtime.cpu.regs.set_carry(false);
+            host.next_set_time_error = Some(code);
+            expected.set_ax(code as u16);
+            expected.set_carry(true);
+            call(&mut runtime, &mut host, route, expected, 1);
+            assert_eq!(host.set_time_calls, [(HOST_FILE, WRITE_TIME, WRITE_DATE)]);
+            assert!(host.next_set_time_error.is_none());
+            assert_eq!(host.changed_timestamp, None);
+            assert!(host.open);
+
+            host.set_time_calls.clear();
+            host.status_calls.clear();
+            let mut expected = prepare_set(&mut runtime, route, handle, WRITE_TIME, WRITE_DATE);
+            expected.set_carry(false);
+            call(&mut runtime, &mut host, route, expected, 1);
+            assert_eq!(host.set_time_calls, [(HOST_FILE, WRITE_TIME, WRITE_DATE)]);
+            assert_eq!(host.changed_timestamp, Some((WRITE_TIME, WRITE_DATE)));
+            runtime.dos.close_all_handles_checked(&mut host).unwrap();
+        }
+    }
+}
+
+#[test]
+fn timestamp_write_routes_reject_missing_standard_and_closed_handles_without_mutation() {
+    for route in ROUTES {
+        for (handle, code) in [(0xffff, DosErrorCode::InvalidHandle),
+            (0, DosErrorCode::InvalidFunction), (1, DosErrorCode::InvalidFunction),
+            (2, DosErrorCode::InvalidFunction)] {
+            let (mut runtime, mut host, _) = fixture();
+            let mut expected = prepare_set(&mut runtime, route, handle, WRITE_TIME, WRITE_DATE);
+            use_invalid_data_selectors(&mut runtime, &mut expected, 0xfff8);
+            runtime.cpu.regs.set_carry(false);
+            expected.set_ax(code as u16);
+            expected.set_carry(true);
+            call(&mut runtime, &mut host, route, expected, 1);
+            assert!(host.set_time_calls.is_empty());
+            assert_eq!(host.changed_timestamp, None);
+            assert!(host.open);
+            runtime.dos.close_all_handles_checked(&mut host).unwrap();
+        }
+        let (mut runtime, mut host, handle) = fixture();
+        runtime.dos.close_all_handles_checked(&mut host).unwrap();
+        let mut expected = prepare_set(&mut runtime, route, handle, WRITE_TIME, WRITE_DATE);
+        use_invalid_data_selectors(&mut runtime, &mut expected, 0);
+        runtime.cpu.regs.set_carry(false);
+        expected.set_ax(DosErrorCode::InvalidHandle as u16);
+        expected.set_carry(true);
+        call(&mut runtime, &mut host, route, expected, 0);
+        assert!(host.set_time_calls.is_empty());
+        assert_eq!(host.changed_timestamp, None);
+        assert!(!host.open);
+    }
+}
+
+#[test]
+fn timestamp_write_routes_reject_win16_and_cross_task_spool_alias_collisions() {
+    for route in ROUTES {
+        for alias_kind in 1..=3 {
+            let (mut runtime, mut host, handle) = fixture();
+            // Deliberately collide exact numbers instead of relying on the
+            // ordinary HFILE allocator's separation from DOS handle numbers.
+            install_alias_collision(&mut runtime, handle, alias_kind);
+            let mut expected = prepare_set(&mut runtime, route, handle, WRITE_TIME, WRITE_DATE);
+            use_invalid_data_selectors(&mut runtime, &mut expected, 0);
+            runtime.cpu.regs.set_carry(false);
+            expected.set_ax(DosErrorCode::InvalidFunction as u16);
+            expected.set_carry(true);
+            call(&mut runtime, &mut host, route, expected, 1);
+            assert!(host.set_time_calls.is_empty());
+            assert_eq!(host.changed_timestamp, None);
+            assert!(host.open);
+
+            let state = runtime.win16.as_mut().unwrap();
+            state.files.clear();
+            state.network_print_jobs.clear();
+            host.status_calls.clear();
+            let mut expected = prepare_set(&mut runtime, route, handle, WRITE_TIME, WRITE_DATE);
+            expected.set_carry(false);
+            call(&mut runtime, &mut host, route, expected, 1);
+            assert_eq!(host.set_time_calls, [(HOST_FILE, WRITE_TIME, WRITE_DATE)]);
+            assert_eq!(host.changed_timestamp, Some((WRITE_TIME, WRITE_DATE)));
+            runtime.dos.close_all_handles_checked(&mut host).unwrap();
+        }
+    }
+}
+
+#[test]
+fn timestamp_write_routes_preflight_jft_and_mcb_before_host_or_collision_result() {
+    for route in ROUTES {
+        for alias_kind in 0..=3 {
+            for corrupt_mcb in [false, true] {
+                let (mut runtime, mut host, handle) = fixture();
+                install_alias_collision(&mut runtime, handle, alias_kind);
+                let _ = prepare_set(&mut runtime, route, handle, WRITE_TIME, WRITE_DATE);
+                let before = runtime.cpu.regs.clone();
+                let psp = runtime.dos.psp_segment();
+                if corrupt_mcb {
+                    runtime.memory.write(real_address(psp - 1, 0), b"X").unwrap();
+                } else {
+                    runtime.memory.write(real_address(psp, 0x34), &[0xff; 4]).unwrap();
+                }
+                let metadata_before = dos_metadata(&runtime);
+                let error = invoke(&mut runtime, &mut host, route).unwrap_err();
+                assert_eq!(error.kind(), crate::DiagnosticKind::GuestFault);
+                let cause = error.diagnostic().cause().unwrap().downcast_ref::<DosError>().unwrap();
+                if corrupt_mcb {
+                    assert!(matches!(cause, DosError::InvalidMcbSignature { .. }));
+                } else {
+                    assert!(matches!(cause, DosError::MalformedGuestInput(_)));
+                }
+                assert_eq!(runtime.cpu.regs, before, "{route:?}, alias={alias_kind}");
+                assert_eq!(dos_metadata(&runtime), metadata_before);
+                assert!(host.set_time_calls.is_empty());
+                assert!(host.status_calls.is_empty());
+                assert_eq!(host.changed_timestamp, None);
+                assert_eq!(host.directory_activations, 0);
+                assert!(!runtime.win16.as_ref().unwrap().kernel_file_system.has_active_callback());
+                assert!(host.open);
+                runtime.dos.close_all_handles_checked(&mut host).unwrap();
+                assert!(!host.open);
+            }
+        }
+    }
+}
+
+#[test]
+fn timestamp_write_dos3call_validates_far_return_before_mutation() {
+    for invalid_return in 0..3 {
+        let (mut runtime, mut host, handle) = fixture();
+        let _ = prepare_set(&mut runtime, Route::Dos3Call, handle, WRITE_TIME, WRITE_DATE);
+        if invalid_return == 0 {
+            runtime.cpu.regs.ss = 0;
+        } else {
+            let state = runtime.win16.as_mut().unwrap();
+            let stack = state.selectors.pointer_from_raw(
+                Selector(runtime.cpu.regs.ss), runtime.cpu.regs.sp() + 2,
+            ).unwrap();
+            // A NULL code selector or data-only selector cannot be returned to.
+            let return_cs = if invalid_return == 1 { 0 } else { runtime.cpu.regs.ds };
+            state.selectors.write(&mut runtime.memory, stack, &return_cs.to_le_bytes()).unwrap();
+        }
+        let before = runtime.cpu.regs.clone();
+        let metadata_before = dos_metadata(&runtime);
+        let error = invoke(&mut runtime, &mut host, Route::Dos3Call).unwrap_err();
+        assert_eq!(error.kind(), crate::DiagnosticKind::GuestFault);
+        assert_eq!(runtime.cpu.regs, before);
+        assert_eq!(dos_metadata(&runtime), metadata_before);
+        assert!(host.set_time_calls.is_empty());
+        assert!(host.status_calls.is_empty());
+        assert_eq!(host.changed_timestamp, None);
+        assert_eq!(host.directory_activations, 0);
+        assert!(host.open);
+        runtime.dos.close_all_handles_checked(&mut host).unwrap();
+        assert!(!host.open);
+    }
+}
+
+#[test]
+fn timestamp_write_routes_keep_mutation_and_handle_after_typed_sft_refresh_error() {
+    for route in ROUTES {
+        let (mut runtime, mut host, handle) = fixture();
+        let time = WRITE_TIME ^ 1;
+        let date = WRITE_DATE + 1;
+        let _ = prepare_set(&mut runtime, route, handle, time, date);
+        // The host mutation succeeds, but the later publication query fails.
+        // DOS3Call must not perform its far return on this runtime failure.
+        let mut expected = runtime.cpu.regs.clone();
+        expected.set_carry(false);
+        let metadata_before = dos_metadata(&runtime);
+        assert_eq!(published_timestamp(&runtime, handle), (WRITE_TIME, WRITE_DATE, false));
+        host.next_status_error = Some(DosErrorCode::GeneralFailure);
+        let error = invoke(&mut runtime, &mut host, route).unwrap_err();
+        assert_eq!(error.kind(), crate::DiagnosticKind::HostFailure);
+        let cause = error.diagnostic().cause().unwrap().downcast_ref::<DosError>().unwrap();
+        assert!(matches!(cause, DosError::HostOperation(error)
+            if error.code == DosErrorCode::GeneralFailure));
+        assert_eq!(runtime.cpu.regs, expected);
+        assert_eq!(host.set_time_calls, [(HOST_FILE, time, date)]);
+        assert_eq!(host.status_calls, [HOST_FILE]);
+        assert_eq!(host.changed_timestamp, Some((time, date)));
+        assert_eq!(dos_metadata(&runtime), metadata_before);
+        assert_eq!(published_timestamp(&runtime, handle), (WRITE_TIME, WRITE_DATE, false));
+        assert_eq!(host.directory_activations, 0);
+        assert!(host.open);
+        assert!(!runtime.win16.as_ref().unwrap().kernel_file_system.has_active_callback());
+
+        // Recover just the SFT publication without repeating the mutation.
+        runtime.dos.finish_external_int21(&mut runtime.memory, &mut host).unwrap();
+        assert_eq!(host.set_time_calls, [(HOST_FILE, time, date)]);
+        assert_eq!(host.status_calls, [HOST_FILE, HOST_FILE]);
+        assert_ne!(dos_metadata(&runtime), metadata_before);
+        assert_eq!(published_timestamp(&runtime, handle), (time, date, true));
+        assert_eq!(host.changed_timestamp, Some((time, date)));
+        runtime.dos.close_all_handles_checked(&mut host).unwrap();
+        assert!(!host.open); // The failed refresh did not orphan the DOS token.
     }
 }

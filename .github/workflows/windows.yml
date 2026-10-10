@@ -122,7 +122,8 @@ jobs:
             '-p runtime --lib dos_temporary_file_tests',
             '-p host-services --lib input_status',
             '-p runtime --lib dos_interrupts::commit_tests',
-            '-p host-services --lib file_commit'
+            '-p host-services --lib file_commit',
+            '-p host-services --lib file_set_write_time_'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

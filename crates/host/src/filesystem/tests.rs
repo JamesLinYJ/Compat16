@@ -10,6 +10,7 @@ use super::files::dos_dword;
 mod commit;
 mod extended_open;
 mod input_status;
+mod write_time;
 
 struct TestDirectory(PathBuf);
 

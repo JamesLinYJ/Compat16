@@ -47,7 +47,7 @@ pub enum DosIoctlObjectInfo {
     File {
         /// Zero-based DOS drive number (0 = A:, 2 = C:).
         drive: u8,
-        /// Whether writes have occurred through this open-file identity.
+        /// Whether data or timestamp metadata was written through this open-file identity.
         written: bool,
     },
     CharacterDevice {
@@ -207,6 +207,20 @@ pub trait DosHost {
     fn file_seek(&mut self, file: DosHostFile, offset: i32, origin: DosSeekOrigin) -> Result<u32, DosHostError>;
     fn file_set_len(&mut self, file: DosHostFile, length: u32) -> Result<(), DosHostError>;
     fn file_status(&mut self, _file: DosHostFile) -> Result<DosFileStatus, DosHostError> {
+        Err(DosHostError::new(DosErrorCode::InvalidFunction))
+    }
+    /// Set only the last-write timestamp of this exact owned open file. The
+    /// packed DOS time/date denote local calendar time (1980..=2107, two-second
+    /// precision); reject invalid fields, dates, and nonexistent local times.
+    /// Preserve cursor, access, sharing and aliases, including on failure; never
+    /// reopen a pathname or upgrade rights. Count successful metadata changes
+    /// toward the IOCTL written fact. Hosts without this contract are unsupported.
+    fn file_set_write_time(
+        &mut self,
+        _file: DosHostFile,
+        _time: u16,
+        _date: u16,
+    ) -> Result<(), DosHostError> {
         Err(DosHostError::new(DosErrorCode::InvalidFunction))
     }
     /// Query whether a byte remains at this open object's shared cursor without

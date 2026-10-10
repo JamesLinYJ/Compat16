@@ -194,7 +194,7 @@ fn get_file_time_rejects_unsupported_subfunctions_before_handle_or_host_access()
     let mut host = TestHost::default();
     let mut memory = TestMemory::new();
     let (handle, _) = open_timestamp_file(&mut dos, &mut host, &mut memory, b"STAMP.DAT", 0);
-    for subfunction in [1, 2, 0xff] {
+    for subfunction in [2, 0xff] {
         for target in [handle, 0, 0xffff] {
             assert_query(&mut dos, &mut host, &mut memory, target, subfunction, Err(DosErrorCode::InvalidFunction), None);
         }
@@ -241,3 +241,6 @@ fn get_file_time_stays_on_caller_aware_handle_route() {
     assert_eq!(regs, before);
     assert!(host.file_status_calls.is_empty());
 }
+
+#[path = "file_time_set_tests.rs"]
+mod setters;

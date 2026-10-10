@@ -44,14 +44,14 @@ pub(super) fn dispatch_int21(
     host: &mut impl RuntimeHost,
 ) -> Result<DosAction, RuntimeError> {
     let service = regs.ah();
-    if service == 0x68
+    if (service == 0x68 || (service == 0x57 && regs.al() == 1))
         && (state.files.contains_key(&regs.bx())
             || state.network_print_jobs.values().any(|jobs| jobs.owns_hfile(regs.bx())))
     {
         // DOS and Win16 HFILE values can collide, especially after AH=67h.
-        // No Win16 file/spool commit contract exists yet. Reject every known
-        // HFILE alias before DOS fallback, including another task's spool
-        // alias, rather than committing an unrelated equal-number DOS file.
+        // No Win16 file/spool commit or timestamp-set contract exists. Reject
+        // every known HFILE before DOS fallback, including another task's
+        // spool alias, rather than modifying an unrelated equal-number file.
         dos.prepare_external_int21(memory).map_err(runtime_error)?;
         regs.set_ax(DosErrorCode::InvalidFunction as u16);
         regs.set_carry(true);
