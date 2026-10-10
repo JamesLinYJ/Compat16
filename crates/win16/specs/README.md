@@ -1,7 +1,7 @@
 # Verified Microsoft SDK declarations
 
 This record covers GDI.350 GetCharWidth, USER.196 TabbedTextOut,
-USER.197 GetTabbedTextExtent, USER.44 OpenIcon, USER.233 SetParent, and the four GDI rectangle predicate exports
+USER.197 GetTabbedTextExtent, USER.43 CloseWindow, USER.44 OpenIcon, USER.233 SetParent, and the four GDI rectangle predicate exports
 listed below. It independently establishes the stated import identities and
 ABI evidence for these entries. It does not establish other entries'
 provenance or verify runtime behavior. Existing third-party notices remain applicable.
@@ -151,3 +151,22 @@ historical Win16 behavior for unusual window-style combinations.
 - https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setparent
 - https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getancestor
 - https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-destroywindow
+
+## USER.43 CloseWindow
+
+`WINDOWS.H` line 3287 declares `void WINAPI CloseWindow(HWND)`.
+`LIBW.LIB` IMPDEF at byte offset `0x6130` imports `CLOSEWINDOW` from USER
+ordinal `0x002b`. The original artifact hashes above apply. The one WORD
+argument is callee-popped (two bytes); the typed Void descriptor deliberately
+overrides the spec's `-ret16`, preserving guest AX and DX.
+
+The original Microsoft Windows 3.0 SDK reference's
+[CloseWindow section](https://www.pcjs.org/documents/books/mspl13/win/w3sdkr1/)
+specifies minimization of overlapped windows and no effect on popup or child
+windows. The worker explicitly rejects WS_POPUP/WS_CHILD before forwarding
+to native CloseWindow. It resolves exact HWND token/cookie identity and keeps
+no worker borrow across synchronous native callbacks. Native BOOL is accepted
+only as an internal Boolean completion, never as the guest return. Completion
+retry cannot repeat minimization, allocate HWNDs, or retire window handles.
+Native desktop fixtures are opt-in and ignored in unattended CI; mock and ABI
+tests do not establish executed GUI behavior or full historical equivalence.

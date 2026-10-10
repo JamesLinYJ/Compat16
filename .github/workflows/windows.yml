@@ -113,6 +113,7 @@ jobs:
             '-p host-services --lib local_atom_',
             '-p runtime --lib class_data_',
             '-p runtime --lib open_icon_tests',
+            '-p runtime --lib close_window_tests',
             '-p runtime --lib set_parent_tests',
             '-p host-services --lib destruction_graph_tests',
             '-p runtime --lib destroy_receipt_tests',

@@ -139,6 +139,11 @@ pub enum Win16UserWindowRequest {
         paint: u32,
     },
 
+    /// USER.43 minimizes an overlapped window; the Win16 result is void.
+    CloseWindow {
+        window: u16,
+    },
+
     /// USER.44 restores an iconic window through native OpenIcon, including
     /// WM_QUERYOPEN and its guest veto. The result is a success BOOL.
     OpenIcon {

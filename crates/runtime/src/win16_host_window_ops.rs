@@ -79,6 +79,7 @@ pub enum Win16WindowCall {
         name: crate::Win16HostPropertyName,
     },
     EnumWindowProperties { window: Win16WindowTarget },
+    CloseWindow { window: Win16WindowTarget },
     OpenIcon { window: Win16WindowTarget },
     IsIconic { window: Win16WindowTarget },
     GetWindowRect { window: Win16WindowTarget },

@@ -60,6 +60,11 @@ pub(super) fn decode(
                 point: dword_argument(arguments, 0)?,
             }),
         ),
+        Win16ExportId::UserCloseWindow => Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::CloseWindow {
+                window: word_argument(arguments, 0)?,
+            },
+        )),
         Win16ExportId::UserOpenIcon => Win16ApiRequest::User(super::Win16UserRequest::Window(
             super::Win16UserWindowRequest::OpenIcon {
                 window: word_argument(arguments, 0)?,
@@ -438,3 +443,7 @@ mod set_parent_tests;
 #[cfg(test)]
 #[path = "call_open_icon_tests.rs"]
 mod open_icon_tests;
+
+#[cfg(test)]
+#[path = "call_close_window_tests.rs"]
+mod close_window_tests;

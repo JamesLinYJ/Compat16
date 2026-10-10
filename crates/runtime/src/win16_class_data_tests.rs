@@ -598,3 +598,6 @@ fn class_data_cleanup_failure_retains_bytes_and_successful_reregistration_zeroes
         }
     }
 }
+
+#[path = "win16_dispatch_close_window_tests.rs"]
+mod close_window_tests;

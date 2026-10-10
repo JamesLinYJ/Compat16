@@ -101,7 +101,8 @@ impl Win16State {
                 win16_abi::Win16UserWindowRequest::FindWindow { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
-                win16_abi::Win16UserWindowRequest::OpenIcon { .. }
+                win16_abi::Win16UserWindowRequest::CloseWindow { .. }
+                | win16_abi::Win16UserWindowRequest::OpenIcon { .. }
                 | win16_abi::Win16UserWindowRequest::IsIconic { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(

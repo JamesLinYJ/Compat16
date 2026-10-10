@@ -39,6 +39,7 @@
 40 pascal -ret16 EndPaint(word ptr)
 41 pascal -ret16 CreateWindow(str str long s_word s_word s_word s_word word word word segptr)
 42 pascal -ret16 ShowWindow(word word)
+# SDK 3.1 WINDOWS.H:3287 void CloseWindow(HWND); typed Void overrides -ret16.
 43 pascal -ret16 CloseWindow(word)
 # SDK 3.1 WINDOWS.H:3286 BOOL WINAPI OpenIcon(HWND); LIBW IMPDEF 0x615d => USER.44.
 44 pascal -ret16 OpenIcon(word)

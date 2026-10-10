@@ -18,6 +18,7 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     EnableWindow, GetActiveWindow, IsWindowEnabled, SetActiveWindow,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
+    CloseWindow, GetWindowLongW, GWL_STYLE, WS_CHILD, WS_POPUP,
     BringWindowToTop, ChildWindowFromPoint, ChildWindowFromPointEx, FindWindowW,
     GetClientRect, GetClassNameW,
     GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
@@ -82,6 +83,15 @@ pub(super) fn execute(
             }
         Call::WindowData(call) => ResultValue::WindowData(
             super::win16_window_data::execute(state, call)?),
+        // Win16 CloseWindow has no effect on popup or child windows. Resolve
+        // the exact identity and drop worker borrows before native callbacks.
+        // Native BOOL stays internal; the guest ABI is void, not Win32 BOOL.
+        Call::CloseWindow { window } => ResultValue::Boolean(hwnd(state, window)
+            .filter(|native| !native.is_null())
+            .is_some_and(|native| unsafe {
+                let style = GetWindowLongW(native, GWL_STYLE) as u32;
+                style & (WS_POPUP | WS_CHILD) == 0 && CloseWindow(native) != 0
+            })),
         // OpenIcon owns WM_QUERYOPEN, restoration and activation, and returns
         // success rather than ShowWindow's previous visibility. Resolve exact
         // identity before the call and retain no worker borrow over reentry.
