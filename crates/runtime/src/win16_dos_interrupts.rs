@@ -481,3 +481,7 @@ mod dos_temporary_file_tests;
 #[cfg(test)]
 #[path = "win16_dos_spool_tests.rs"]
 mod spool_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_search_tests.rs"]
+mod dos_search_tests;

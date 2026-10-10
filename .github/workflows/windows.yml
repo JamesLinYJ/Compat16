@@ -131,7 +131,8 @@ jobs:
             '-p host-services --lib ansi_next_',
             '-p host-services --lib ansi_prev_',
             '-p host-services --lib code_page_metadata_ -- --test-threads=1 --nocapture',
-            '-p runtime --lib lstrlen_'
+            '-p runtime --lib lstrlen_',
+            '-p runtime --lib dos_search_tests::'
           )
           $failedSuites = @()
           foreach ($suite in $suites) {

@@ -330,7 +330,7 @@ impl DosKernel {
                 Self::success(regs);
             }
             Ok(None) => match host.directory_search_close(host_search) {
-                Ok(()) => Self::failure(regs, DosHostError::new(DosErrorCode::FileNotFound)),
+                Ok(()) => Self::failure(regs, DosHostError::new(DosErrorCode::NoMoreFiles)),
                 Err(error) => {
                     self.searches.insert(key, state);
                     Self::failure(regs, error);

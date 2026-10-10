@@ -49,6 +49,12 @@ pub(super) struct TestHost {
     files: BTreeMap<u64, FileState>,
     handles: BTreeMap<DosHostFile, u64>,
     searches: BTreeMap<DosHostSearch, TestDirectorySearch>,
+    search_open_calls: Vec<Vec<u8>>,
+    search_next_calls: Vec<DosHostSearch>,
+    search_close_calls: Vec<DosHostSearch>,
+    search_open_error: Option<DosErrorCode>,
+    search_next_error: Option<DosErrorCode>,
+    search_close_error: Option<DosErrorCode>,
     next_id: u64,
     next_search_id: u64,
     drive: u8,
@@ -397,6 +403,8 @@ impl DosHost for TestHost {
     }
 
     fn directory_search_open(&mut self, directory: &[u8]) -> Result<DosHostSearch, DosHostError> {
+        self.search_open_calls.push(directory.to_vec());
+        if let Some(code) = self.search_open_error { return Err(DosHostError::new(code)); }
         let normalized = test_strip_separator(directory);
         if !normalized.is_empty() && !test_is_root(normalized) && !self.directories.contains_key(normalized) {
             return Err(DosHostError::new(DosErrorCode::PathNotFound));
@@ -429,6 +437,8 @@ impl DosHost for TestHost {
     }
 
     fn directory_search_next(&mut self, search: DosHostSearch) -> Result<Option<DosDirectoryEntry>, DosHostError> {
+        self.search_next_calls.push(search);
+        if let Some(code) = self.search_next_error { return Err(DosHostError::new(code)); }
         let state = self.searches.get_mut(&search).ok_or(DosHostError::new(DosErrorCode::InvalidHandle))?;
         let entry = state.entries.get(state.next).cloned();
         if entry.is_some() { state.next += 1; }
@@ -436,6 +446,8 @@ impl DosHost for TestHost {
     }
 
     fn directory_search_close(&mut self, search: DosHostSearch) -> Result<(), DosHostError> {
+        self.search_close_calls.push(search);
+        if let Some(code) = self.search_close_error { return Err(DosHostError::new(code)); }
         self.searches.remove(&search).map(|_| ()).ok_or(DosHostError::new(DosErrorCode::InvalidHandle))
     }
 
@@ -1326,3 +1338,6 @@ mod input_polling_tests;
 
 #[path = "handle_capacity_lifecycle_tests.rs"]
 mod handle_capacity_lifecycle_tests;
+
+#[path = "search_exhaustion_tests.rs"]
+mod search_exhaustion_tests;
