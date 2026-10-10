@@ -277,13 +277,22 @@ fn real_mode_interrupt_stack_pointer_wraps_between_aligned_words() {
     cpu.regs.cs = 0x1234;
     cpu.regs.set_ip(0x4567);
     cpu.regs.eflags = 0x0302;
+    // Direct interrupt entry consumes CPU-owned hidden caches; unlike step(),
+    // it does not initialize them from fixture edits to the visible registers.
+    cpu.reset_real_mode_segments_from_visible_registers().unwrap();
+    let before = cpu.regs.clone();
     ram.put(0x80 * 4, &[0xbc, 0x9a, 0x78, 0x56]);
+    ram.put(0x56780 + 0x9abc, &[0xcf]); // iret
 
     cpu.enter_real_mode_interrupt(0x80, &mut ram).unwrap();
 
     assert_eq!((cpu.regs.cs, cpu.regs.ip()), (0x5678, 0x9abc));
     assert_eq!(cpu.regs.sp(), 0xfffa);
     assert_eq!(&ram.bytes[0x1fffa..0x20000], &[0x67, 0x45, 0x34, 0x12, 0x02, 0x03]);
+    assert_eq!(cpu.regs.eflags, 2);
+
+    assert_eq!(cpu.step(&mut ram).unwrap(), StepOutcome::Continue);
+    assert_eq!(cpu.regs, before);
 }
 
 #[test]
@@ -293,6 +302,7 @@ fn real_mode_interrupt_word_crossing_stack_limit_faults_without_writes() {
     cpu.regs.set_sp(1);
     cpu.regs.set_ip(0x4567);
     cpu.regs.cs = 0x1234;
+    cpu.reset_real_mode_segments_from_visible_registers().unwrap();
     ram.put(0x80 * 4, &[0xbc, 0x9a, 0x78, 0x56]);
     ram.put(0x1fffb, &[0xaa; 5]);
     ram.put(0x10000, &[0xbb]);

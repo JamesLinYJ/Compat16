@@ -442,7 +442,11 @@ impl GlobalHeap {
             return Ok(handle);
         }
 
-        if !block.flags.movable { return Err(Win16Error::OutOfMemory); }
+        // Win16 GMEM_MOVEABLE permits relocation of a fixed block for this
+        // resize; only GMEM_MODIFY changes the allocation's fixed/movable type.
+        if !block.flags.movable && flags & GMEM_MOVEABLE == 0 {
+            return Err(Win16Error::OutOfMemory);
+        }
         let new_base = self.find_range(new_size).ok_or(Win16Error::OutOfMemory)?;
         let target_len = usize::try_from(new_size).map_err(|_| Win16Error::OutOfMemory)?;
         memory.validate_write(new_base, target_len)?;
