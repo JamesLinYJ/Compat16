@@ -45,7 +45,13 @@ fn public_set_parent_preserves_native_desktop_null_and_style_conventions() {
                     unsafe { GetAncestor(direct.1, GA_PARENT) });
                 assert_eq!(unsafe { GetWindow(bridged.1, GW_OWNER) },
                     unsafe { GetWindow(direct.1, GW_OWNER) });
-                assert_eq!(read_scalar(bridged.1, Win16WindowDataField::Style), Some(before_style));
+                let after_style = read_scalar(bridged.1, Win16WindowDataField::Style).unwrap();
+                // SetParent preserves these two classification bits, not all
+                // styles: native USER can add WS_CLIPSIBLINGS on desktop moves.
+                assert_eq!(after_style & (WS_CHILD | WS_POPUP),
+                    before_style & (WS_CHILD | WS_POPUP));
+                assert_eq!(Some(after_style), read_scalar(direct.1, Win16WindowDataField::Style),
+                    "complete style outcome must match direct native SetParent");
                 let actual_parent = unsafe { GetAncestor(bridged.1, GA_PARENT) };
                 let expected_parent = if actual_parent.is_null() { None }
                     else { Some(worker::token_for_native(state, actual_parent).unwrap()) };
@@ -71,12 +77,34 @@ fn popup_actual_parent_is_distinct_from_legacy_owner_field() {
             Win16HostWindowParentObservation::Live { child_parent: Some(parent.0) });
         assert_eq!(read_scalar(popup.1, Win16WindowDataField::Style).unwrap() & WS_CHILD, 0);
         let other_owner = windows.window(ptr::null_mut(), WS_POPUP);
-        let old_field = read_parent(popup.1).unwrap();
+        // The owner-field documentation covers top-level windows. Once a
+        // style-preserving SetParent gives this popup an actual parent, use
+        // an independent native twin for the mixed-style field behavior.
+        let direct = windows.window(owner.1, WS_POPUP);
+        unsafe { SetLastError(0) };
+        let direct_parent_return = unsafe { SetParent(direct.1, parent.1) };
+        assert!(!direct_parent_return.is_null() || unsafe { GetLastError() } == 0);
+        let before = read_parent(popup.1).unwrap();
+        assert_eq!(read_parent(direct.1), Some(before));
+        let previous_candidate = token_for_native(state, before).unwrap();
+        unsafe { SetLastError(0) };
+        let direct_previous = unsafe { SetWindowLongPtrW(direct.1, GWLP_HWNDPARENT, other_owner.1 as _) };
+        let direct_error = unsafe { GetLastError() };
+        let direct_succeeded = direct_previous != 0 || direct_error == 0;
         let result = reparent(state, popup.0, Win16WindowTarget::Mapped(other_owner.0));
-        assert!(matches!(result, Win16WindowDataResult::ParentMutation {
-            attempted: true, succeeded: true, previous,
-        } if previous == token_for_native(state, old_field).unwrap()));
-        assert_eq!(unsafe { GetAncestor(popup.1, GA_PARENT) }, parent.1);
+        assert_eq!(result, Win16WindowDataResult::ParentMutation {
+            attempted: true, succeeded: direct_succeeded,
+            previous: previous_candidate.filter(|_| direct_succeeded && direct_previous as HWND == before),
+        });
+        let actual_parent = unsafe { GetAncestor(direct.1, GA_PARENT) };
+        assert_eq!(unsafe { GetAncestor(popup.1, GA_PARENT) }, actual_parent);
+        assert_eq!(unsafe { GetWindow(popup.1, GW_OWNER) }, unsafe { GetWindow(direct.1, GW_OWNER) });
+        assert_eq!(read_scalar(popup.1, Win16WindowDataField::Style),
+            read_scalar(direct.1, Win16WindowDataField::Style));
+        assert_eq!(query_parent(state, popup.0).unwrap(),
+            Win16HostWindowParentObservation::Live {
+                child_parent: token_for_native(state, actual_parent).unwrap(),
+            });
     });
 }
 

@@ -222,32 +222,56 @@ fn stale_cookie_rejects_scalar_parent_target_and_parent_query() {
 #[ignore = "requires a Windows USER desktop; creates hidden native windows"]
 fn synchronous_reparent_callback_retires_previous_parent_without_readopting_it() {
     run_on_worker(|state| {
-        let windows = NativeWindows::new(state);
-        let old_parent = windows.window(ptr::null_mut(), WS_POPUP);
-        let new_parent = windows.window(ptr::null_mut(), WS_POPUP);
-        let child = windows.window(old_parent.1, WS_CHILD);
-        let replacement = Rc::new(Cell::new(None));
-        let callback_windows = Rc::downgrade(&windows);
-        let callback_replacement = Rc::clone(&replacement);
-        CALLBACK.with(|slot| *slot.borrow_mut() = Some(CallbackAction {
-            child: child.1 as usize,
-            new_parent: new_parent.1 as usize,
-            run: Box::new(move || {
-                let callback_windows = callback_windows.upgrade().expect("live test fixture");
-                assert!(callback_windows.state.try_borrow_mut().is_ok());
-                callback_windows.retire(old_parent);
-                callback_replacement.set(Some(callback_windows.window(ptr::null_mut(), WS_POPUP)));
-            }),
-        }));
-        let result = reparent(state, child.0, Win16WindowTarget::Mapped(new_parent.0));
-        finish_callback();
-        assert!(matches!(result, Win16WindowDataResult::ParentMutation {
-            attempted: true, succeeded: true, previous: Some(previous),
-        } if previous == old_parent.0));
-        assert_eq!(query_parent(state, old_parent.0).unwrap(), Win16HostWindowParentObservation::Retired);
-        let replacement = replacement.get().expect("callback created a replacement native window");
-        assert_ne!(replacement.0, old_parent.0);
-        assert_eq!(identity::resolve(state, replacement.0), Some(replacement.1));
+        // Destruction during SetParent can affect the native API return even
+        // after the child has moved. Compare independent direct/bridged cases
+        // instead of assuming USER returns the now-destroyed previous HWND.
+        let run_case = |bridged: bool| {
+            let windows = NativeWindows::new(state);
+            let old_parent = windows.window(ptr::null_mut(), WS_POPUP);
+            let new_parent = windows.window(ptr::null_mut(), WS_POPUP);
+            let child = windows.window(old_parent.1, WS_CHILD);
+            let replacement = Rc::new(Cell::new(None));
+            let callback_windows = Rc::downgrade(&windows);
+            let callback_replacement = Rc::clone(&replacement);
+            CALLBACK.with(|slot| *slot.borrow_mut() = Some(CallbackAction {
+                child: child.1 as usize,
+                new_parent: new_parent.1 as usize,
+                run: Box::new(move || {
+                    let windows = callback_windows.upgrade().expect("live test fixture");
+                    assert!(windows.state.try_borrow_mut().is_ok());
+                    windows.retire(old_parent);
+                    callback_replacement.set(Some(windows.window(ptr::null_mut(), WS_POPUP)));
+                }),
+            }));
+            let (succeeded, previous_is_old) = if bridged {
+                let result = reparent(state, child.0, Win16WindowTarget::Mapped(new_parent.0));
+                let Win16WindowDataResult::ParentMutation { attempted: true, succeeded, previous } = result
+                    else { panic!("missing attempted native mutation: {result:?}"); };
+                // An immutable candidate may still name the original token;
+                // it must never adopt the callback's replacement incarnation.
+                assert!(previous.is_none() || previous == Some(old_parent.0), "{result:?}");
+                eprintln!("bridged destruction callback outcome: {result:?}");
+                (succeeded, previous == Some(old_parent.0))
+            } else {
+                unsafe { SetLastError(0) };
+                let previous = unsafe { SetParent(child.1, new_parent.1) };
+                let error = unsafe { GetLastError() };
+                eprintln!("direct destruction callback outcome: previous={previous:?}, error={error}");
+                let succeeded = !previous.is_null() || error == 0;
+                (succeeded, succeeded && previous == old_parent.1)
+            };
+            finish_callback();
+            assert_eq!(query_parent(state, old_parent.0).unwrap(), Win16HostWindowParentObservation::Retired);
+            assert_eq!(query_parent(state, child.0).unwrap(),
+                Win16HostWindowParentObservation::Live { child_parent: Some(new_parent.0) });
+            let replacement = replacement.get().expect("callback created a replacement native window");
+            assert_ne!(replacement.0, old_parent.0);
+            assert_eq!(identity::resolve(state, replacement.0), Some(replacement.1));
+            (succeeded, previous_is_old)
+        };
+        let native = run_case(false);
+        let bridged = run_case(true);
+        assert_eq!(bridged, native, "preserve native return while retaining exact previous-token identity");
     });
 }
 
