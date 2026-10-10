@@ -118,13 +118,34 @@ fn unregister_class_wrong_owner_name_atom_and_unavailable_module_never_reach_hos
     ] {
         assert_eq!(unregister(&mut runtime, &mut host, owner, selector).unwrap(), 0);
     }
+    // Keep the executing caller's module Ready. Retiring its own instance
+    // would invalidate SS/DS backing at service entry, before USER.403 can
+    // reject the target owner. Use a separate registration owner instead.
+    let mut target_runtime = fixture();
+    let target_state = target_runtime.win16.as_mut().unwrap();
+    let mut target = target_state.modules.records.remove(&target_state.modules.main).unwrap();
+    target.handle = 0xff10;
+    target.instance = 0xff11;
+    target.loaded = None;
+    target.definition = None;
+    target.allocations.clear();
+    runtime.win16.as_mut().unwrap().modules.records.insert(target.handle, target);
+    let mut info = class_info(&runtime, 0);
+    info.h_instance = 0xff11;
+    let unavailable_class = register(&mut runtime, &mut host, info, name(b"UnavailableOwner"));
     for unavailable in [ModuleState::Unloading, ModuleState::Retired] {
-        let state = runtime.win16.as_mut().unwrap();
-        state.modules.records.get_mut(&state.modules.main).unwrap().state = unavailable;
-        assert_eq!(unregister(&mut runtime, &mut host, class.info.h_instance, atom(class)).unwrap(), 0);
+        runtime.win16.as_mut().unwrap().modules.records.get_mut(&0xff10).unwrap().state = unavailable;
+        for owner in [0xff10, 0xff11] {
+            assert_eq!(unregister(&mut runtime, &mut host, owner, atom(unavailable_class)).unwrap(), 0);
+        }
     }
     assert!(host.unregistrations.is_empty());
-    assert_eq!(runtime.win16.as_ref().unwrap().class_code_references(), vec![class.info.lpfn_wnd_proc]);
+    let state = runtime.win16.as_ref().unwrap();
+    assert_eq!(state.modules.records[&state.modules.main].state, ModuleState::Ready);
+    assert!(state.is_registered_class_atom(class.atom));
+    assert!(state.is_registered_class_atom(unavailable_class.atom));
+    assert_eq!(state.class_code_references(),
+        vec![class.info.lpfn_wnd_proc, unavailable_class.info.lpfn_wnd_proc]);
 }
 
 #[test]
