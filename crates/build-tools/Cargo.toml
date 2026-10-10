@@ -9,6 +9,9 @@ rust-version.workspace = true
 abi-schema = { path = "../abi-schema" }
 win16-abi = { path = "../win16" }
 
+[dev-dependencies]
+formats = { path = "../formats" }
+
 [lib]
 name = "build_tools"
 path = "src/lib.rs"

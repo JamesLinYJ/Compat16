@@ -87,6 +87,7 @@ jobs:
           # isolated filesystem tests, and owned-memory GDI fixtures. These
           # filters do not exercise redirected native stdin or open UI.
           $suites = @(
+            '-p build-tools',
             '-p x86-cpu',
             '-p text-codec',
             '-p dos-kernel',
@@ -551,7 +552,15 @@ jobs:
           }
 
       - name: Build and stage native release
+        id: native_release
         # Still report compilation/staging failures when a test fails.
         if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
         timeout-minutes: 25
         run: .\scripts\build.ps1 -Architecture $env:BUILD_ARCHITECTURE -NonInteractive
+
+      - name: Run generated Win16 dialog acceptance
+        # A real generated NE guest exercises the staged runtime and returns
+        # during WM_INITDIALOG. No ShowWindow, WS_VISIBLE, or input automation.
+        if: ${{ !cancelled() && steps.native_release.outcome == 'success' }}
+        timeout-minutes: 5
+        run: .\scripts\test-win16-dialog.ps1 -Architecture $env:BUILD_ARCHITECTURE

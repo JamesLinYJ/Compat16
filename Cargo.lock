@@ -33,6 +33,7 @@ name = "build-tools"
 version = "0.1.0"
 dependencies = [
  "abi-schema",
+ "formats",
  "win16-abi",
 ]
 

@@ -6,7 +6,7 @@ use std::process::ExitCode;
 
 use build_tools::{
     audit_win16_module, dos_probe_bytes, generate_rust, parse_spec, vga_probe_bytes,
-    ProbeFormat, SpecEntry, SpecModule, VGA_PROBE_FILE_NAME,
+    win16_dialog_probe_bytes, ProbeFormat, SpecEntry, SpecModule, VGA_PROBE_FILE_NAME,
 };
 use win16_abi::exports::export_descriptors;
 
@@ -44,6 +44,10 @@ fn run_command() -> Result<ExitCode, String> {
         "audit-win16" => run_audit_win16_command(args),
         "probe" => {
             run_probe_command(args)?;
+            Ok(ExitCode::SUCCESS)
+        }
+        "win16-dialog-probe" => {
+            run_win16_dialog_probe_command(args)?;
             Ok(ExitCode::SUCCESS)
         }
         "vga-probe" => {
@@ -215,6 +219,20 @@ fn run_probe_command(args: impl Iterator<Item = OsString>) -> Result<(), String>
     Ok(())
 }
 
+fn run_win16_dialog_probe_command(args: impl Iterator<Item = OsString>) -> Result<(), String> {
+    let mut output = None;
+    parse_options(args, |key, value| match key {
+        "--output" => set_once(&mut output, PathBuf::from(value), key),
+        _ => Err(format!("unknown option `{key}`")),
+    })?;
+    let output = output.ok_or_else(|| format!("win16-dialog-probe requires --output\n{}", usage()))?;
+    let image = win16_dialog_probe_bytes().map_err(|error| error.to_string())?;
+    fs::write(&output, &image)
+        .map_err(|error| format!("could not write {}: {error}", output.display()))?;
+    println!("generated hidden Win16 dialog/icon NE probe ({} bytes)", image.len());
+    Ok(())
+}
+
 fn run_vga_probe_command(args: impl Iterator<Item = OsString>) -> Result<(), String> {
     let mut output = None;
     parse_options(args, |key, value| match key {
@@ -316,5 +334,5 @@ fn usage() -> String {
     let command = std::env::current_exe().ok()
         .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
         .unwrap_or_else(|| "build-tools".to_owned());
-    format!("usage:\n  {command} inspect --input FILE --module ORIGINAL_NAME\n  {command} generate --input FILE --module ORIGINAL_NAME --output FILE\n  {command} audit-win16 --module USER --spec FILE\n  {command} probe --output FILE [--format com|mz]\n  {command} vga-probe --output FILE")
+    format!("usage:\n  {command} inspect --input FILE --module ORIGINAL_NAME\n  {command} generate --input FILE --module ORIGINAL_NAME --output FILE\n  {command} audit-win16 --module USER --spec FILE\n  {command} probe --output FILE [--format com|mz]\n  {command} vga-probe --output FILE\n  {command} win16-dialog-probe --output FILE")
 }
