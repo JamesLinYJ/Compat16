@@ -11,6 +11,11 @@ struct MetadataObservation {
     extended_result: i32,
     extended_error: u32,
     extended_maximum: u32,
+    extended_code_page: u32,
+    extended_unicode_default: u16,
+    extended_name: String,
+    extended_default: [u8; 2],
+    extended_lead: [u8; 12],
     basic_result: i32,
     basic_error: u32,
     basic_maximum: u32,
@@ -37,6 +42,12 @@ fn observe_metadata(page: u32) -> MetadataObservation {
         extended_result,
         extended_error,
         extended_maximum: extended.MaxCharSize,
+        extended_code_page: extended.CodePage,
+        extended_unicode_default: extended.UnicodeDefaultChar,
+        extended_name: String::from_utf16_lossy(&extended.CodePageName[..extended.CodePageName
+            .iter().position(|unit| *unit == 0).unwrap_or(extended.CodePageName.len())]),
+        extended_default: extended.DefaultChar,
+        extended_lead: extended.LeadByte,
         basic_result,
         basic_error,
         basic_maximum: basic.MaxCharSize,
@@ -66,14 +77,80 @@ fn check_metadata(worker: usize, iterations: usize) -> Vec<String> {
                 // calls may leave LastError unchanged. Preserve both readings.
                 failures.push(format!(
                     "worker {worker}, iteration {iteration}, page {page}: \
-                     ExW result={}, error={}, maximum={}; basic result={}, error={}, maximum={}; probes={probes:?}",
+                     ExW result={}, error={}, maximum={}, page={}, unicode_default={}, name={:?}, \
+                     default={:?}, lead={:?}; \
+                     basic result={}, error={}, maximum={}; probes={probes:?}",
                     observation.extended_result, observation.extended_error, observation.extended_maximum,
+                    observation.extended_code_page, observation.extended_unicode_default, observation.extended_name,
+                    observation.extended_default, observation.extended_lead,
                     observation.basic_result, observation.basic_error, observation.basic_maximum,
                 ));
             }
         }
     }
     failures
+}
+
+#[test]
+fn cold_code_page_production_probe() {
+    // CI runs this exact test in its own process. No metadata observation or
+    // native differential may prime the code-page state before these probes.
+    const WORKERS: usize = 4;
+    let barrier = std::sync::Barrier::new(WORKERS);
+    let results = std::thread::scope(|scope| {
+        let threads = (0..WORKERS).map(|worker| {
+            let barrier = &barrier;
+            scope.spawn(move || {
+                barrier.wait();
+                let result = GuestTextCodec::new(932).and_then(|codec| {
+                    Ok((codec.next_character_probe(&[0x81])?,
+                        codec.next_character_probe(&[0x81, 0x40])?))
+                });
+                (worker, std::thread::current().id(), result)
+            })
+        }).collect::<Vec<_>>();
+        threads.into_iter().map(|thread| thread.join().expect("cold metadata worker panicked"))
+            .collect::<Vec<_>>()
+    });
+    let expected = (Probe::NeedMore, Probe::Complete(2));
+    let failures = results.iter().filter(|(_, _, result)|
+        !result.as_ref().is_ok_and(|actual| *actual == expected)).collect::<Vec<_>>();
+    if !failures.is_empty() {
+        // Observe only after every first production call has finished. These
+        // later readings never replace or retry a failed production result.
+        eprintln!("cold production failures: {failures:?}; post-failure native metadata: {:?}",
+            observe_metadata(932));
+    }
+    assert!(failures.is_empty(), "cold CP932 production failures: {failures:?}");
+    eprintln!("cold CP932 production checks passed: {WORKERS} synchronized workers, process={}",
+        std::process::id());
+}
+
+#[test]
+fn cold_code_page_extended_metadata() {
+    // Retain an independent cold observation of the extended API even though
+    // production needs only GetCPInfo. CI invokes this exact test separately.
+    const WORKERS: usize = 4;
+    let barrier = std::sync::Barrier::new(WORKERS);
+    let results = std::thread::scope(|scope| {
+        let threads = (0..WORKERS).map(|worker| {
+            let barrier = &barrier;
+            scope.spawn(move || {
+                barrier.wait();
+                (worker, std::thread::current().id(), observe_metadata(932))
+            })
+        }).collect::<Vec<_>>();
+        threads.into_iter().map(|thread| thread.join().expect("cold extended metadata worker panicked"))
+            .collect::<Vec<_>>()
+    });
+    let failures = results.iter().filter(|(_, _, observation)|
+        observation.extended_result == 0 || observation.extended_maximum != 2
+            || observation.basic_result == 0 || observation.basic_maximum != 2)
+        .collect::<Vec<_>>();
+    // A successful basic call never excuses a failed extended call.
+    assert!(failures.is_empty(), "cold CP932 extended metadata failures: {failures:?}");
+    eprintln!("cold CP932 extended metadata checks passed: {WORKERS} synchronized workers, process={}",
+        std::process::id());
 }
 
 #[test]

@@ -15,8 +15,8 @@ use std::ptr;
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::Foundation::{GetLastError, ERROR_NO_UNICODE_TRANSLATION};
 use windows_sys::Win32::Globalization::{
-    CP_ACP, CP_MACCP, CP_OEMCP, CP_SYMBOL, CP_THREAD_ACP, CP_UTF7, CP_UTF8, CPINFOEXW,
-    GetCPInfoExW, IsDBCSLeadByteEx, IsValidCodePage, MB_ERR_INVALID_CHARS, MultiByteToWideChar,
+    CP_ACP, CP_MACCP, CP_OEMCP, CP_SYMBOL, CP_THREAD_ACP, CP_UTF7, CP_UTF8, CPINFO,
+    GetCPInfo, IsDBCSLeadByteEx, IsValidCodePage, MB_ERR_INVALID_CHARS, MultiByteToWideChar,
     WC_ERR_INVALID_CHARS, WC_NO_BEST_FIT_CHARS, WideCharToMultiByte,
 };
 
@@ -223,11 +223,18 @@ impl GuestTextCodec {
                 "stateful guest code-page character ranges are not supported",
             ));
         }
-        let mut info = CPINFOEXW::default();
-        // SAFETY: `info` is an initialized, writable CPINFOEXW owned by this
+        // Only the maximum byte width is needed. GetCPInfo supplies that
+        // contract without requesting GetCPInfoExW's unused localized name
+        // and extended fields; a failed basic query still fails closed.
+        let mut info = CPINFO::default();
+        // SAFETY: `info` is an initialized, writable CPINFO owned by this
         // call; Windows writes only the documented structure synchronously.
-        if unsafe { GetCPInfoExW(self.code_page, 0, &mut info) } == 0 {
+        if unsafe { GetCPInfo(self.code_page, &mut info) } == 0 {
             let last_error = unsafe { GetLastError() };
+            #[cfg(test)]
+            eprintln!("GetCPInfo failed: page={}, error={last_error}, maximum={}, \
+                default={:?}, lead={:?}, thread={:?}", self.code_page,
+                info.MaxCharSize, info.DefaultChar, info.LeadByte, std::thread::current().id());
             return Err(mapping_gap_with_windows_error(
                 self.code_page,
                 "Windows code-page metadata is unavailable for character mapping",

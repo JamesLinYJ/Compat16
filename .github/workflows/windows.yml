@@ -132,6 +132,9 @@ jobs:
             '-p runtime --lib ansi_next_',
             '-p host-services --lib ansi_next_',
             '-p host-services --lib ansi_prev_',
+            # Keep the production-first concurrency probe in a fresh process.
+            '-p host-services --lib windows::guest_text::metadata_tests::cold_code_page_production_probe -- --exact --test-threads=1 --nocapture',
+            '-p host-services --lib windows::guest_text::metadata_tests::cold_code_page_extended_metadata -- --exact --test-threads=1 --nocapture',
             '-p host-services --lib code_page_metadata_ -- --test-threads=1 --nocapture',
             '-p runtime --lib lstrlen_',
             '-p runtime --lib dos_search_tests::',
@@ -139,7 +142,27 @@ jobs:
             '-p host-services --lib get_char_width'
           )
           $failedSuites = @()
+          $runtimeCompileChecked = $false
+          $runtimeCompileExitCode = 0
           foreach ($suite in $suites) {
+            if ($suite.StartsWith('-p runtime --lib ')) {
+              if (-not $runtimeCompileChecked) {
+                Write-Host '::group::Compile runtime library tests once'
+                $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p runtime --lib --no-run' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET
+                & $env:ComSpec /d /c $command
+                $runtimeCompileExitCode = $LASTEXITCODE
+                $runtimeCompileChecked = $true
+                Write-Host "Runtime test compilation exit code: $runtimeCompileExitCode"
+                Write-Host '::endgroup::'
+                if ($runtimeCompileExitCode -ne 0) {
+                  $failedSuites += "runtime library test compilation (exit $runtimeCompileExitCode)"
+                }
+              }
+              if ($runtimeCompileExitCode -ne 0) {
+                Write-Host "BLOCKED (not executed): cargo test $suite; runtime library test compilation failed."
+                continue
+              }
+            }
             Write-Host "::group::cargo test $suite"
             $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} {4}' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $suite
             & $env:ComSpec /d /c $command
