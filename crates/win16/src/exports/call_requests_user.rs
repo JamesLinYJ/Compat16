@@ -109,7 +109,8 @@ pub(super) fn decode(
         | Win16ExportId::UserSetClassLong => Win16ApiRequest::ClassData(
             class_data::decode_class_data(descriptor.ordinal(), arguments)?,
         ),
-        Win16ExportId::UserGetWindowWord
+        Win16ExportId::UserSetParent
+        | Win16ExportId::UserGetWindowWord
         | Win16ExportId::UserSetWindowWord
         | Win16ExportId::UserGetWindowLong
         | Win16ExportId::UserSetWindowLong => Win16ApiRequest::WindowData(

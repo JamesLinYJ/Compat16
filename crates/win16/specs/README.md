@@ -1,7 +1,7 @@
 # Verified Microsoft SDK declarations
 
 This record covers GDI.350 GetCharWidth, USER.196 TabbedTextOut,
-USER.197 GetTabbedTextExtent, USER.44 OpenIcon, and the four GDI rectangle predicate exports
+USER.197 GetTabbedTextExtent, USER.44 OpenIcon, USER.233 SetParent, and the four GDI rectangle predicate exports
 listed below. It independently establishes the stated import identities and
 ABI evidence for these entries. It does not establish other entries'
 provenance or verify runtime behavior. Existing third-party notices remain applicable.
@@ -133,3 +133,21 @@ The worker resolves the existing HWND identity before native OpenIcon and
 holds no worker-state borrow across synchronous callbacks. Regression tests
 cover the ABI and callback/result contracts; real restore/veto/reentry tests
 are Windows-desktop opt-in tests, not evidence that GUI behavior was executed.
+
+## USER.233 SetParent
+
+`WINDOWS.H` line 3073 declares `HWND WINAPI SetParent(HWND, HWND)`.
+The original `LIBW.LIB` IMPDEF at byte offset `0x8ace` imports `SETPARENT`
+from USER ordinal `0x00e9`. The header's HWND type and far Pascal WINAPI
+establish two WORD parameters, four callee-popped argument bytes, and an HWND16
+return. The artifact hashes above cover this independent ABI evidence.
+
+The host adapter delegates behavior to modern native SetParent, including its
+preservation of WS_CHILD/WS_POPUP and NULL-to-desktop convention. Actual parent
+observation uses GetAncestor(GA_PARENT), separately from the parent/owner field.
+These native contracts and the opt-in differential fixtures do not establish
+historical Win16 behavior for unusual window-style combinations.
+
+- https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setparent
+- https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getancestor
+- https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-destroywindow

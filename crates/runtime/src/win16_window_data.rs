@@ -280,7 +280,22 @@ impl Win16State {
         request: Win16WindowDataRequest,
         return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
+        if let Win16WindowDataRequest::SetParent { window, parent } = request {
+            let Some(native_window) = self.window_handles.get(&window).copied() else {
+                return self.complete_return(registers, return_to.0, return_to.1,
+                    return_to.2, 0, Win16ReturnKind::Word);
+            };
+            return self.submit_data_call(registers, memory, host,
+                Win16WindowDataCall::Reparent {
+                    window: self.window_target(window), parent: self.window_target(parent),
+                },
+                Win16WindowDataContinuation {
+                    window, native_window, return_kind: Win16ReturnKind::Word,
+                    return_mask: u32::from(u16::MAX), parent_result: true, parent_mutation: true,
+                }, return_to);
+        }
         let (window, index, width, replacement) = match request {
+            Win16WindowDataRequest::SetParent { .. } => unreachable!("handled public SetParent"),
             Win16WindowDataRequest::GetWindowWord { window, index } =>
                 (window, index, DataWidth::Word, None),
             Win16WindowDataRequest::SetWindowWord { window, index, value } =>

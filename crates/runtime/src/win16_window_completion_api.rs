@@ -621,55 +621,87 @@ pub(super) fn finish_window_data(
     result: &crate::Win16WindowDataResult,
     owner: &mut WindowDataProjection,
     access: &mut WindowProjectionAccess<'_>,
+    host: &mut impl RuntimeHost,
 ) -> Result<(u32, Win16ReturnKind), RuntimeError> {
     use WindowDataProjectionPhase as Phase;
+    use crate::Win16WindowDataResult as ResultValue;
     if owner.phase == Phase::Ready {
         match result {
-            crate::Win16WindowDataResult::Value(value) if !continuation.parent_result => {
+            ResultValue::Value(value) if !continuation.parent_result => {
                 owner.value = Some(value.unwrap_or(0) & continuation.return_mask);
                 owner.phase = Phase::ReturnValueMapped;
             }
-            crate::Win16WindowDataResult::Parent { .. }
-                if continuation.parent_result => {
+            ResultValue::Parent { .. }
+                if continuation.parent_result && !continuation.parent_mutation => {
                 owner.phase = Phase::ParentGraphRefreshing;
+            }
+            ResultValue::ParentMutation { attempted, succeeded, .. }
+                if continuation.parent_result && continuation.parent_mutation => {
+                if *succeeded && !*attempted {
+                    return Err(RuntimeError::new(Kind::InternalInvariant,
+                        "unattempted window-parent mutation cannot succeed"));
+                }
+                owner.phase = if *attempted { Phase::ParentObserving }
+                    else { Phase::ParentGraphRefreshed };
             }
             _ => return Err(RuntimeError::new(Kind::InternalInvariant,
                 "native Win16 window-data result does not match its exact owner")),
         }
     }
+    if owner.phase == Phase::ParentObserving {
+        // Native mutation already returned. A failed query retains this phase
+        // and the immutable native outcome; retry only the observation.
+        owner.parent_observation = Some(host.win16_host_window_parent(continuation.native_window)?);
+        owner.phase = Phase::ParentGraphRefreshing;
+    }
     if owner.phase == Phase::ParentGraphRefreshing {
-        let crate::Win16WindowDataResult::Parent {
-            succeeded, child_parent, ..
-        } = result else {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "window-parent journal no longer owns a parent result"));
-        };
-        if *succeeded {
-            access.refresh_child_parent_from_host(
-                continuation.window,
-                continuation.native_window,
-                *child_parent,
-            )?;
+        match result {
+            ResultValue::Parent { succeeded: true, child_parent, .. } => {
+                access.refresh_child_parent_from_host(
+                    continuation.window, continuation.native_window, *child_parent,
+                )?;
+            }
+            ResultValue::Parent { succeeded: false, .. } => {}
+            ResultValue::ParentMutation { .. } => {
+                let observation = owner.parent_observation.ok_or_else(|| RuntimeError::new(
+                    Kind::InternalInvariant, "window-parent projection lost its exact observation"))?;
+                if let crate::Win16HostWindowParentObservation::Live { child_parent } = observation {
+                    // A failing outer native call can still contain a nested
+                    // successful move. Apply the actual observation regardless
+                    // of the outer success bit, and only to the original token.
+                    access.refresh_child_parent_from_host(
+                        continuation.window, continuation.native_window, child_parent,
+                    )?;
+                }
+                // A retired child is not a live null-parent observation.
+                // Exact destruction receipts own its guest retirement.
+            }
+            _ => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "window-parent journal no longer owns a parent result")),
         }
         owner.phase = Phase::ParentGraphRefreshed;
     }
     if owner.phase == Phase::ParentGraphRefreshed {
-        let crate::Win16WindowDataResult::Parent { succeeded, previous, .. } = result else {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "window-parent value stage no longer owns a parent result"));
+        let (succeeded, previous, check_liveness) = match result {
+            ResultValue::Parent { succeeded, previous, .. } => (*succeeded, *previous, false),
+            ResultValue::ParentMutation { succeeded, previous, .. } => (*succeeded, *previous, true),
+            _ => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "window-parent value stage no longer owns a parent result")),
         };
-        if *succeeded {
-            let old = previous.map(|native| access.map_window_handle(native, false))
-                .transpose()?.unwrap_or(0);
-            owner.value = Some(u32::from(old) & continuation.return_mask);
-        } else {
-            owner.value = Some(0);
-        }
+        let old = if succeeded {
+            match previous {
+                Some(previous) => {
+                    let live = !check_liveness || matches!(host.win16_host_window_liveness(previous)?,
+                        crate::Win16HostWindowLiveness::Live);
+                    if live { access.map_window_handle(previous, false)? } else { 0 }
+                }
+                None => 0,
+            }
+        } else { 0 };
+        owner.value = Some(u32::from(old) & continuation.return_mask);
         owner.phase = Phase::ReturnValueMapped;
     }
-    if owner.phase == Phase::ReturnValueMapped {
-        owner.phase = Phase::ReturnReady;
-    }
+    if owner.phase == Phase::ReturnValueMapped { owner.phase = Phase::ReturnReady; }
     if owner.phase == Phase::ReturnReady { owner.phase = Phase::Complete; }
     owner.value.map(|value| (value, continuation.return_kind))
         .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,

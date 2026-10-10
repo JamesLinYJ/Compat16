@@ -13,7 +13,7 @@ use std::time::Duration;
 use windows_sys::Win32::Foundation::{HINSTANCE, LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, GetDesktopWindow, IsWindow,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, GetDesktopWindow, GetParent, IsWindow,
     RegisterClassW, UnregisterClassW, WM_WINDOWPOSCHANGED, WM_WINDOWPOSCHANGING,
     WNDCLASSW, WS_POPUP,
 };
@@ -160,23 +160,24 @@ fn parent_query_distinguishes_child_edges_owners_desktop_and_retirement() {
         let popup = windows.window(parent.1, WS_POPUP);
         assert_eq!(query_parent(state, child.0).unwrap(),
             Win16HostWindowParentObservation::Live { child_parent: Some(parent.0) });
+        let desktop = worker::token_for_native(state, unsafe { GetDesktopWindow() }).unwrap();
         assert_eq!(query_parent(state, popup.0).unwrap(),
-            Win16HostWindowParentObservation::Live { child_parent: None });
+            Win16HostWindowParentObservation::Live { child_parent: Some(desktop) });
         assert!(matches!(execute(state, Win16WindowDataCall::GetParent {
             window: Win16WindowTarget::Mapped(popup.0),
         }).unwrap(), Win16WindowDataResult::Parent {
-            succeeded: true, previous: Some(owner), child_parent: None,
-        } if owner == parent.0));
+            succeeded: true, previous: Some(owner), child_parent: Some(actual_parent),
+        } if owner == parent.0 && actual_parent == desktop));
         let other_owner = windows.window(ptr::null_mut(), WS_POPUP);
         assert!(matches!(reparent(state, popup.0, Win16WindowTarget::Mapped(other_owner.0)),
-            Win16WindowDataResult::Parent {
-                succeeded: true, previous: Some(owner), child_parent: None,
+            Win16WindowDataResult::ParentMutation {
+                attempted: true, succeeded: true, previous: Some(owner),
             } if owner == parent.0));
         assert_eq!(unsafe { GetParent(popup.1) }, other_owner.1);
         assert_eq!(read_scalar(popup.1, Win16WindowDataField::Style).unwrap() & WS_CHILD, 0);
         let result = reparent(state, child.0, Win16WindowTarget::Null);
-        let Win16WindowDataResult::Parent {
-            succeeded: true, previous: Some(previous), child_parent: Some(desktop),
+        let Win16WindowDataResult::ParentMutation {
+            attempted: true, succeeded: true, previous: Some(previous),
         } = result else { panic!("unexpected desktop reparent result: {result:?}") };
         assert_eq!(previous, parent.0);
         assert_eq!(identity::resolve_user_window(state, desktop), Some(unsafe { GetDesktopWindow() }));
@@ -212,7 +213,7 @@ fn stale_cookie_rejects_scalar_parent_target_and_parent_query() {
         assert!(observed.is_err(), "cookie mismatch must not masquerade as retirement");
         assert!(matches!(got.unwrap(), Win16WindowDataResult::Value(None)));
         assert!(matches!(set.unwrap(), Win16WindowDataResult::Value(None)));
-        assert!(matches!(result, Win16WindowDataResult::Parent { succeeded: false, .. }));
+        assert!(matches!(result, Win16WindowDataResult::ParentMutation { attempted: false, succeeded: false, .. }));
         assert_eq!(unsafe { GetParent(child.1) }, parent.1);
     });
 }
@@ -240,9 +241,9 @@ fn synchronous_reparent_callback_retires_previous_parent_without_readopting_it()
         }));
         let result = reparent(state, child.0, Win16WindowTarget::Mapped(new_parent.0));
         finish_callback();
-        assert!(matches!(result, Win16WindowDataResult::Parent {
-            succeeded: true, previous: None, child_parent: Some(parent),
-        } if parent == new_parent.0));
+        assert!(matches!(result, Win16WindowDataResult::ParentMutation {
+            attempted: true, succeeded: true, previous: Some(previous),
+        } if previous == old_parent.0));
         assert_eq!(query_parent(state, old_parent.0).unwrap(), Win16HostWindowParentObservation::Retired);
         let replacement = replacement.get().expect("callback created a replacement native window");
         assert_ne!(replacement.0, old_parent.0);
@@ -273,7 +274,7 @@ fn synchronous_reparent_callback_retires_child_before_result_ancestry_query() {
         }));
         let result = reparent(state, child.0, Win16WindowTarget::Mapped(new_parent.0));
         finish_callback();
-        assert!(matches!(result, Win16WindowDataResult::Parent { child_parent: None, .. }));
+        assert!(matches!(result, Win16WindowDataResult::ParentMutation { attempted: true, .. }));
         assert_eq!(query_parent(state, child.0).unwrap(), Win16HostWindowParentObservation::Retired);
         let replacement = replacement.get().expect("callback created a replacement child");
         assert_ne!(replacement.0, child.0);
@@ -310,9 +311,9 @@ fn reparent_never_projects_a_replacement_parent_identity_at_the_same_native_bits
         }));
         let result = reparent(state, child.0, Win16WindowTarget::Mapped(new_parent.0));
         finish_callback();
-        assert!(matches!(result, Win16WindowDataResult::Parent {
-            succeeded: true, previous: None, child_parent: Some(parent),
-        } if parent == new_parent.0));
+        assert!(matches!(result, Win16WindowDataResult::ParentMutation {
+            attempted: true, succeeded: true, previous: Some(previous),
+        } if previous == old_parent.0));
         let replacement = replacement.get().unwrap();
         assert_ne!(replacement, old_parent.0);
         assert_eq!(identity::resolve(state, replacement), Some(old_parent.1));
@@ -348,8 +349,8 @@ fn reparent_never_queries_a_replacement_child_identity_at_the_same_native_bits()
         }));
         let result = reparent(state, child.0, Win16WindowTarget::Mapped(new_parent.0));
         finish_callback();
-        assert!(matches!(result, Win16WindowDataResult::Parent {
-            succeeded: true, child_parent: None, ..
+        assert!(matches!(result, Win16WindowDataResult::ParentMutation {
+            attempted: true, succeeded: true, ..
         }));
         let replacement = replacement.get().unwrap();
         assert_ne!(replacement, child.0);
@@ -365,3 +366,6 @@ mod set_window_pos_tests;
 
 #[path = "win16_open_icon_tests.rs"]
 mod open_icon_tests;
+
+#[path = "win16_set_parent_tests.rs"]
+mod set_parent_tests;

@@ -95,7 +95,8 @@ impl RuntimeHost for ParentHost {
         let id = self.began as u64;
         let callback = match operation {
             Win16WindowOperation::WindowCall(Win16WindowCall::WindowData(
-                Win16WindowDataCall::SetParent { window, parent },
+                Win16WindowDataCall::SetParent { window, parent }
+                | Win16WindowDataCall::Reparent { window, parent },
             )) => {
                 assert_eq!(window, Win16WindowTarget::Mapped(self.child));
                 self.new_parent = match parent {
@@ -157,8 +158,8 @@ impl RuntimeHost for ParentHost {
                 self.observed_parent = self.new_parent.or(self.null_child_parent);
             }
             Win16WindowResult::WindowCall(Win16WindowCallResult::WindowData(
-                Win16WindowDataResult::Parent {
-                    succeeded: true, previous: None, child_parent: self.observed_parent,
+                Win16WindowDataResult::ParentMutation {
+                    attempted: true, succeeded: true, previous: None,
                 },
             ))
         } else {
@@ -279,7 +280,10 @@ fn project(runtime: &mut Runtime, host: &mut ParentHost, return_to: (u16, u16, u
 
 #[test]
 fn parent_setter_callback_destruction_keeps_the_reparented_child_live() {
-    for (desktop, callback_on_parent) in [(false, false), (true, false), (false, true), (true, true)] {
+    for (ordinal, desktop, callback_on_parent) in [134, 233].into_iter().flat_map(|ordinal|
+        [(false, false), (true, false), (false, true), (true, true)]
+            .map(|(desktop, callback_on_parent)| (ordinal, desktop, callback_on_parent)))
+    {
         let mut runtime = fixture();
         let mut class_host = ClassDataHost::default();
         let class = named_class(&mut runtime, &mut class_host, b"ParentLifecycle", 0);
@@ -305,9 +309,9 @@ fn parent_setter_callback_destruction_keeps_the_reparented_child_live() {
             active: vec![], proofs: BTreeMap::new(), began: 0, resumed: 0 };
         let parent_arg = if desktop { 0_u16 } else { new_parent };
         let mut args = Vec::from(parent_arg.to_le_bytes());
-        args.extend_from_slice(&GWW_HWNDPARENT.to_le_bytes());
+        if ordinal == 134 { args.extend_from_slice(&GWW_HWNDPARENT.to_le_bytes()); }
         args.extend_from_slice(&child.to_le_bytes());
-        let setter_return = gate(&mut runtime, &mut host, 134, &args);
+        let setter_return = gate(&mut runtime, &mut host, ordinal, &args);
         assert_eq!(runtime.win16.as_ref().unwrap().window_callbacks.len(), 1);
         let callback_stack = runtime.cpu.regs.sp();
         runtime.cpu.regs.set_sp(callback_stack - 6);
@@ -606,4 +610,64 @@ fn parent_setter_under_mdi_client_does_not_change_immutable_window_claims() {
     assert_eq!(state.window_creations, creations);
     assert_eq!(state.mdi_children, mdi);
     assert_eq!(state.owned_window_handles, owners);
+}
+
+#[test]
+fn set_parent_completion_preserves_pending_creation_parent_update() {
+    use crate::win16_runtime::windows::{
+        WindowCompletionJournal, WindowCreateRequest, WindowOperationCompletion,
+        WindowOperationCompletionSource, WindowReturn,
+    };
+    for observed in [None, Some(Win16HostWindow(0x1000))] {
+        let (mut runtime, mut host, old, _new, child) = parent_fixture();
+        host.null_child_parent = observed;
+        let state = runtime.win16.as_mut().unwrap();
+        let procedure = state.window_procedures[&child];
+        state.window_dispatch_context = Some(runtime.cpu.capture_context());
+        state.push_window_operation(runtime.cpu.regs.clone(),
+            (runtime.cpu.regs.cs, 0x12, u32::from(runtime.cpu.regs.sp())),
+            WindowReturn::Create {
+                creation: crate::Win16CreationId(501),
+                request: WindowCreateRequest {
+                    class_name: win16_abi::Win16ClassName::Name(b"ParentObservation".to_vec()),
+                    window_name: None, ex_style: 0, style: 0x4000_0000,
+                    x: 0, y: 0, width: 1, height: 1, parent: old, menu: 0,
+                    instance: procedure.instance, parameter: 0,
+                },
+                procedure, window: Some(child), parent_was_updated: false,
+            }).unwrap();
+        state.window_dispatch_context = None;
+        let create_id = state.window_operations.last().unwrap().id;
+        let mut args = Vec::from(0_u16.to_le_bytes());
+        args.extend_from_slice(&child.to_le_bytes());
+        let setter_return = gate(&mut runtime, &mut host, 233, &args);
+        return_callback(&mut runtime, &mut host);
+        project(&mut runtime, &mut host, setter_return);
+        let state = runtime.win16.as_mut().unwrap();
+        assert_eq!(state.window_operations.len(), 1);
+        let frame = state.window_operations.last_mut().unwrap();
+        assert_eq!(frame.id, create_id);
+        assert!(matches!(frame.continuation(), Some(WindowReturn::Create {
+            window: Some(created), parent_was_updated: true, ..
+        }) if *created == child));
+        let continuation = frame.result.take().unwrap();
+        frame.completion = Some(WindowOperationCompletion {
+            journal: WindowCompletionJournal::new(&continuation), continuation,
+            result: Win16WindowResult::Created(crate::Win16HostWindowCreationResult {
+                native_api_return: crate::Win16NativeWindowApiReturn::ReturnedWindow,
+                preflight_rejection: None, live_window: Some(host.child),
+            }),
+            source: WindowOperationCompletionSource::GuestCallback { callback_id: None },
+        });
+        // Check the durable marker independently from the cached observation:
+        // the creation fallback must not reconstruct the old requested edge.
+        state.window_parent_observations.remove(&host.child);
+        let expected_parent = observed.map(|native| state.window_handles.iter()
+            .find_map(|(guest, token)| (*token == native).then_some(*guest)).unwrap());
+        assert_eq!(state.project_create_window_completion(create_id).unwrap().0, u32::from(child));
+        assert_eq!(state.window_parents.get(&child).copied(), expected_parent);
+        assert_ne!(state.window_parents.get(&child), Some(&old));
+        assert!(matches!(state.window_operations.last().unwrap().continuation(),
+            Some(WindowReturn::Create { parent_was_updated: true, .. })));
+    }
 }

@@ -15,7 +15,7 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{GetLastError, HWND, SetLastError};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GWL_EXSTYLE, GWL_STYLE, GWLP_HWNDPARENT, GWLP_ID, GetParent, GetWindowLongPtrW, SetParent,
+    GWL_EXSTYLE, GWL_STYLE, GWLP_HWNDPARENT, GWLP_ID, GetAncestor, GA_PARENT, GetWindowLongPtrW, SetParent,
     SetWindowLongPtrW, WS_CHILD,
 };
 
@@ -94,43 +94,39 @@ pub(super) fn execute(
                 child_parent,
             })
         }
-        Call::SetParent { window, parent } => {
+        Call::SetParent { window, parent } | Call::Reparent { window, parent } => {
+            let not_attempted = || ResultValue::ParentMutation {
+                attempted: false, succeeded: false, previous: None,
+            };
             let (Some(native), Some(new_parent)) =
                 (resolve_window(state, window), resolve_window(state, parent))
-            else {
-                return Ok(ResultValue::Parent {
-                    succeeded: false,
-                    previous: None,
-                    child_parent: None,
-                });
+            else { return Ok(not_attempted()); };
+            if native.is_null() { return Ok(not_attempted()); }
+            let public_reparent = matches!(call, Call::Reparent { .. });
+            let use_set_parent = if public_reparent { true } else {
+                let Some(style) = read_scalar(native, Win16WindowDataField::Style) else {
+                    return Ok(not_attempted());
+                };
+                style & WS_CHILD != 0
             };
-            // Capture the previous parent's token before SetParent can call
-            // guest code. Its raw returned HWND may already name a different
-            // incarnation when the synchronous native call returns.
-            let previous_native = read_parent(native);
-            let previous_token = match previous_native {
-                Some(previous) => token_for_native(state, previous)?,
-                None => None,
-            };
-            let Some(returned_previous) = set_parent(native, new_parent) else {
-                return Ok(ResultValue::Parent {
-                    succeeded: false,
-                    previous: None,
-                    child_parent: None,
-                });
-            };
-            let previous = previous_token.filter(|token| {
-                previous_native == Some(returned_previous)
-                    && identity::resolve_user_window(state, *token) == Some(returned_previous)
-            });
-            // A retired previous parent has no safely reusable guest alias.
-            // Project it to zero rather than adopt the post-callback raw HWND;
-            // the native operation's real success remains authoritative.
-            let child_parent = child_parent_token(state, window)?;
-            Ok(ResultValue::Parent {
-                succeeded: true,
-                previous,
-                child_parent,
+            // Snapshot before synchronous USER callbacks. Public SetParent
+            // observes actual parentage even when WS_CHILD is absent; the old
+            // field setter must instead retain its parent/owner field value.
+            let previous_native = if public_reparent { read_actual_parent(native)? }
+                else {
+                    let Some(previous) = read_parent(native) else {
+                        return Ok(not_attempted());
+                    };
+                    previous
+                };
+            let previous_token = token_for_native(state, previous_native)?;
+            let returned_previous = mutate_parent(native, new_parent, use_set_parent);
+            // No queries, adoption or other fallible work after native USER.
+            // A desktop snapshot does not manufacture a desktop return when
+            // native SetParent returns NULL. Exact liveness is projected later.
+            let previous = previous_token.filter(|_| returned_previous == Some(previous_native));
+            Ok(ResultValue::ParentMutation {
+                attempted: true, succeeded: returned_previous.is_some(), previous,
             })
         }
     }
@@ -225,55 +221,39 @@ fn read_child_parent_token(
     state: &SharedWorker,
     native: HWND,
 ) -> Result<Option<Win16HostWindow>, RuntimeError> {
-    let style = read_scalar(native, Win16WindowDataField::Style).ok_or_else(|| {
-        RuntimeError::new(Kind::HostFailure,
-            "read the live native style for an exact Win16 child-parent observation")
-    })?;
-    if style & WS_CHILD == 0 {
-        return Ok(None);
-    }
-
-    // GetParent is the native parent only for WS_CHILD windows. Keep an
-    // observed desktop HWND as its real alias; never replace it with null or
-    // use a top-level owner as a child-parent edge.
-    unsafe { SetLastError(0) };
-    let parent = unsafe { GetParent(native) };
-    if parent.is_null() && unsafe { GetLastError() } != 0 {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "query the live native parent for an exact Win16 child-parent observation"));
-    }
-    token_for_native(state, parent)
+    token_for_native(state, read_actual_parent(native)?)
 }
 
-fn set_parent(native: HWND, new_parent: HWND) -> Option<HWND> {
-    // Windows distinguishes the parent of a WS_CHILD window from the owner
-    // of a top-level window. The API choice is based on the current native
-    // style; this operation deliberately does not alter WS_CHILD/WS_POPUP.
-    let style = read_scalar(native, Win16WindowDataField::Style)?;
-    if style & WS_CHILD != 0 {
-        // SAFETY: both HWNDs were resolved on the USER worker. SetParent may
-        // synchronously dispatch messages, and no RefCell borrow is held.
-        unsafe { SetLastError(0) };
-        let previous = unsafe { SetParent(native, new_parent) };
-        let error = unsafe { GetLastError() };
-        if previous.is_null() && error != 0 {
-            None
-        } else {
-            Some(previous)
-        }
-    } else {
-        // GWLP_HWNDPARENT sets the owner for top-level windows. Unlike
-        // SetParent, this API's return is pointer-sized and zero can be a
-        // successful previous value when the window had no owner.
-        unsafe { SetLastError(0) };
-        let previous = unsafe { SetWindowLongPtrW(native, GWLP_HWNDPARENT, new_parent as _) };
-        let error = unsafe { GetLastError() };
-        if previous == 0 && error != 0 {
-            None
-        } else {
-            Some(previous as HWND)
-        }
+fn read_actual_parent(native: HWND) -> Result<HWND, RuntimeError> {
+    // GA_PARENT excludes owners and remains correct when SetParent preserves
+    // WS_POPUP/overlapped styles. Keep the real desktop alias as metadata.
+    // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getancestor
+    unsafe { SetLastError(0) };
+    let parent = unsafe { GetAncestor(native, GA_PARENT) };
+    if parent.is_null() && unsafe { GetLastError() } != 0 {
+        return Err(RuntimeError::new(Kind::HostFailure,
+            "query the live native parent for an exact Win16 actual-parent observation"));
     }
+    Ok(parent)
+}
+
+#[cfg(test)]
+fn set_parent(native: HWND, new_parent: HWND) -> Option<HWND> {
+    let style = read_scalar(native, Win16WindowDataField::Style)?;
+    mutate_parent(native, new_parent, style & WS_CHILD != 0)
+}
+
+fn mutate_parent(native: HWND, new_parent: HWND, use_set_parent: bool) -> Option<HWND> {
+    // No RefCell borrow is held over these callback-capable native calls.
+    unsafe { SetLastError(0) };
+    let previous = if use_set_parent {
+        unsafe { SetParent(native, new_parent) }
+    } else {
+        // GWW_HWNDPARENT keeps the old top-level owner-field semantics.
+        unsafe { SetWindowLongPtrW(native, GWLP_HWNDPARENT, new_parent as _) as HWND }
+    };
+    let error = unsafe { GetLastError() };
+    if previous.is_null() && error != 0 { None } else { Some(previous) }
 }
 
 fn token_for_native(

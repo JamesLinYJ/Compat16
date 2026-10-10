@@ -79,7 +79,9 @@ impl Win16State {
         }
     }
 
-    pub(super) fn project_create_window_completion(
+    // Runtime-only projection entrypoint also used to verify nested creation
+    // reconciliation without fabricating a native source-retirement proof.
+    pub(in crate::win16_runtime) fn project_create_window_completion(
         &mut self,
         frame_id: u64,
     ) -> Result<(u32, Win16ReturnKind), RuntimeError> {

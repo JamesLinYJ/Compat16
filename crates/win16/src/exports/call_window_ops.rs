@@ -432,5 +432,9 @@ fn unpack_point(packed: u32) -> (i16, i16) {
 }
 
 #[cfg(test)]
+#[path = "call_set_parent_tests.rs"]
+mod set_parent_tests;
+
+#[cfg(test)]
 #[path = "call_open_icon_tests.rs"]
 mod open_icon_tests;

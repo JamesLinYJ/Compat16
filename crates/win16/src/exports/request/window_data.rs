@@ -1,4 +1,4 @@
-//! Guest ABI arguments for USER window-word and window-long accessors.
+//! Guest ABI arguments for USER window fields and public SetParent.
 //!
 //! Predefined indexes follow the Microsoft Windows 3.1 SDK 3.10 `WINDOWS.H`:
 //! its “Window field offsets” block names the negative window-structure fields,
@@ -13,7 +13,7 @@
 
 use crate::{Win16Argument, Win16Error};
 
-/// A decoded USER.133–136 request.
+/// A decoded USER.133–136 or USER.233 request.
 ///
 /// Window handles and LONG values retain their Win16 bit patterns. The signed
 /// index is an `INT16`; positive values address guest window-extra bytes, while
@@ -21,6 +21,8 @@ use crate::{Win16Argument, Win16Error};
 /// special-field handling, and result-width behavior belongs to the runtime.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16WindowDataRequest {
+    /// USER.233: native reparenting, distinct from the parent/owner field.
+    SetParent { window: u16, parent: u16 },
     /// USER.133: retrieve a WORD at a signed window-field/extra-byte index.
     GetWindowWord { window: u16, index: i16 },
     /// USER.134: store a WORD and return the previous WORD.
@@ -31,7 +33,7 @@ pub enum Win16WindowDataRequest {
     SetWindowLong { window: u16, index: i16, value: i32 },
 }
 
-/// Decode one of USER.133–136's exact stack argument layouts.
+/// Decode USER.133–136 and USER.233's exact stack argument layouts.
 ///
 /// The SDK declares `int` for the index; retaining the WORD's bit pattern as
 /// `i16` is required for the negative predefined field offsets.
@@ -40,6 +42,9 @@ pub fn decode_window_data(
     arguments: &[Win16Argument],
 ) -> Result<Win16WindowDataRequest, Win16Error> {
     let request = match (ordinal, arguments) {
+        (233, [Win16Argument::Word(window), Win16Argument::Word(parent)]) => {
+            Win16WindowDataRequest::SetParent { window: *window, parent: *parent }
+        }
         (133, [Win16Argument::Word(window), Win16Argument::Word(index)]) => {
             Win16WindowDataRequest::GetWindowWord {
                 window: *window,

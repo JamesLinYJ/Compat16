@@ -391,6 +391,7 @@ pub(in crate::win16_runtime) struct WindowPropertyProjection {
 pub(in crate::win16_runtime) struct WindowDataProjection {
     pub(in crate::win16_runtime) phase: WindowDataProjectionPhase,
     pub(in crate::win16_runtime) value: Option<u32>,
+    pub(in crate::win16_runtime) parent_observation: Option<crate::Win16HostWindowParentObservation>,
 }
 
 pub(in crate::win16_runtime) struct CursorAcceleratorProjection {
@@ -528,6 +529,7 @@ pub(in crate::win16_runtime) enum WindowCallProjectionPhase {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::win16_runtime) enum WindowDataProjectionPhase {
     Ready,
+    ParentObserving,
     ParentGraphRefreshing,
     ParentGraphRefreshed,
     ReturnValueMapped,
@@ -677,6 +679,7 @@ impl WindowApiProjectionJournal {
             Return::WindowData(_) => Self::WindowData(WindowDataProjection {
                 phase: WindowDataProjectionPhase::Ready,
                 value: None,
+                parent_observation: None,
             }),
             Return::WindowProperties(_) => Self::WindowProperties(WindowPropertyProjection {
                 phase: WindowPropertyProjectionPhase::Ready,

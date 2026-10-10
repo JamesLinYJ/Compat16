@@ -232,6 +232,7 @@
 230 pascal -ret16 GetNextWindow(word word)
 231 pascal GetSystemDebugState()
 232 pascal -ret16 SetWindowPos(word word word word word word word)
+# SDK 3.1 WINDOWS.H:3073 HWND WINAPI SetParent(HWND, HWND); LIBW IMPDEF 0x8ace => USER.233.
 233 pascal -ret16 SetParent(word word)
 234 pascal -ret16 UnhookWindowsHook(s_word segptr)
 235 pascal DefHookProc(s_word word long ptr)
