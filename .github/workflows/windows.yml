@@ -1,0 +1,115 @@
+name: Windows build and tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: '1'
+
+jobs:
+  windows:
+    name: Windows ${{ matrix.architecture }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            architecture: x64
+            target: x86_64-pc-windows-msvc
+            vs_architecture: amd64
+          - runner: windows-11-arm
+            architecture: arm64
+            target: aarch64-pc-windows-msvc
+            vs_architecture: arm64
+    env:
+      BUILD_ARCHITECTURE: ${{ matrix.architecture }}
+      RUST_TARGET: ${{ matrix.target }}
+      VS_ARCHITECTURE: ${{ matrix.vs_architecture }}
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install the repository-pinned Rust toolchain
+        id: toolchain
+        timeout-minutes: 10
+        run: |
+          # Hosted Windows images include official rustup and MSVC. Installing
+          # without a channel reads the profile, targets and components from
+          # rust-toolchain.toml instead of maintaining another version pin here.
+          rustup set default-host $env:RUST_TARGET
+          if ($LASTEXITCODE -ne 0) { throw 'Could not select the native Rust host.' }
+          rustup toolchain install
+          if ($LASTEXITCODE -ne 0) { throw 'Could not install rust-toolchain.toml requirements.' }
+          $version = @(rustc --version --verbose)
+          if ($LASTEXITCODE -ne 0) { throw 'The pinned Rust compiler did not start.' }
+          $version | Write-Output
+          if ($version -notcontains "host: $env:RUST_TARGET") {
+            throw "Rust must run natively on $env:RUST_TARGET."
+          }
+          cargo --version
+          if ($LASTEXITCODE -ne 0) { throw 'The pinned Cargo did not start.' }
+
+      - name: Run existing compatibility tests
+        timeout-minutes: 20
+        run: |
+          # build.ps1 restores its caller's environment. Initialize MSVC again
+          # for tests rather than depending on a preceding build's side effects.
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'Visual Studio C++ tools were not found.'
+          }
+          $vsInstall = ([string]$installations[0]).Trim()
+          $vsDevCmd = Join-Path $vsInstall 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'Visual Studio developer command script was not found.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          # Limit native host/runtime coverage to existing pure or mock-backed
+          # library tests: error mapping, VGA conversion and the input bridge.
+          # These filters do not exercise redirected native stdin or open UI.
+          $suites = @(
+            '-p x86-cpu -p text-codec -p dos-kernel -p formats -p graphics -p devices',
+            '-p host-services --lib diagnostics_tests::',
+            '-p host-services --lib windows::vga_window::tests::',
+            '-p runtime --lib input::tests::',
+            '-p runtime --lib diagnostics::tests::'
+          )
+          $failedSuites = @()
+          foreach ($suite in $suites) {
+            Write-Host "::group::cargo test $suite"
+            $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} {4}' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $suite
+            & $env:ComSpec /d /c $command
+            $testExitCode = $LASTEXITCODE
+            Write-Host '::endgroup::'
+            if ($testExitCode -ne 0) {
+              $failedSuites += "$suite (exit $testExitCode)"
+            }
+          }
+          if ($failedSuites.Count -gt 0) {
+            throw ('Compatibility tests failed: ' + ($failedSuites -join '; '))
+          }
+
+      - name: Build and stage native release
+        # Still report compilation/staging failures when a test fails.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 25
+        run: .\scripts\build.ps1 -Architecture $env:BUILD_ARCHITECTURE -NonInteractive
