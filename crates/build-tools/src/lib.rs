@@ -4,6 +4,7 @@ mod audit;
 mod probe;
 mod vga_probe;
 mod win16_dialog_probe;
+mod win16_modeless_probe;
 pub mod spec;
 
 pub use audit::{audit_win16_module, Win16AuditReport};
@@ -12,6 +13,7 @@ pub use probe::{
 };
 pub use vga_probe::{vga_probe_bytes, VGA_PROBE_FILE_CONTENTS, VGA_PROBE_FILE_NAME};
 pub use win16_dialog_probe::win16_dialog_probe_bytes;
+pub use win16_modeless_probe::win16_modeless_probe_bytes;
 pub use spec::{generate_rust, parse_spec, SpecEntry, SpecModule, SpecParseError};
 pub use abi_schema::ExportAttributes;
 

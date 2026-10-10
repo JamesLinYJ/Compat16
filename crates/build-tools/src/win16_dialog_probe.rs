@@ -18,6 +18,14 @@ const ICON: usize = 0x560;
 /// EndDialog runs even on a failed child/icon check to avoid leaving a modal UI.
 pub fn win16_dialog_probe_bytes() -> Result<Vec<u8>, ProbeBuildError> {
     let (code, fixups) = guest_code()?;
+    build_image(&code, &fixups, 6)
+}
+
+pub(super) fn build_image(
+    code: &[u8],
+    fixups: &[[u8; 8]],
+    data_length: usize,
+) -> Result<Vec<u8>, ProbeBuildError> {
     if CODE + code.len() + 2 + fixups.len() * 8 > DATA {
         return Err(build_error("Win16 dialog probe code overlaps its data segment"));
     }
@@ -52,7 +60,7 @@ pub fn win16_dialog_probe_bytes() -> Result<Vec<u8>, ProbeBuildError> {
     word(&mut image, NE + 0x3e, 0x030a);
     for (offset, location, length, flags, memory) in [
         (0x40, CODE, code.len(), 0x0100, code.len()),
-        (0x48, DATA, 6, 0x0001, 0x1000),
+        (0x48, DATA, data_length, 0x0001, 0x1000),
     ] {
         word(&mut image, NE + offset, (location >> 4) as u16);
         word(&mut image, NE + offset + 2, length as u16);
@@ -76,7 +84,7 @@ pub fn win16_dialog_probe_bytes() -> Result<Vec<u8>, ProbeBuildError> {
     // The zero resource terminator occupies 0x8e..0x90. Resident names,
     // module USER name offset, and the entry table terminator are also zero.
     image[NE + 0x93..NE + 0x98].copy_from_slice(b"\x04USER");
-    image[CODE..CODE + code.len()].copy_from_slice(&code);
+    image[CODE..CODE + code.len()].copy_from_slice(code);
     word(&mut image, CODE + code.len(), fixups.len() as u16);
     for (index, fixup) in fixups.iter().enumerate() {
         let offset = CODE + code.len() + 2 + index * 8;
@@ -96,7 +104,7 @@ fn dword(bytes: &mut [u8], offset: usize, value: u32) {
     bytes[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
 }
 
-fn imported_call(code: &mut CodeBuilder, fixups: &mut Vec<[u8; 8]>, ordinal: u16) {
+pub(super) fn imported_call(code: &mut CodeBuilder, fixups: &mut Vec<[u8; 8]>, ordinal: u16) {
     code.emit(&[0x9a]); // CALL FAR ptr16:16, resolved by an ordinal NE fixup
     let source = code.position() as u16;
     code.emit(&[0xff, 0xff, 0, 0]); // non-additive chain terminator

@@ -558,9 +558,10 @@ jobs:
         timeout-minutes: 25
         run: .\scripts\build.ps1 -Architecture $env:BUILD_ARCHITECTURE -NonInteractive
 
-      - name: Run generated Win16 dialog acceptance
-        # A real generated NE guest exercises the staged runtime and returns
-        # during WM_INITDIALOG. No ShowWindow, WS_VISIBLE, or input automation.
+      - name: Run generated modal and modeless Win16 acceptance
+        # Independent generated NE guests exercise modal completion and two
+        # modeless create/destroy cycles with shared-icon identity survival.
+        # No ShowWindow, WS_VISIBLE, DestroyIcon, or input automation.
         if: ${{ !cancelled() && steps.native_release.outcome == 'success' }}
         timeout-minutes: 5
         run: .\scripts\test-win16-dialog.ps1 -Architecture $env:BUILD_ARCHITECTURE
