@@ -2,7 +2,7 @@
 
 use super::super::{
     messages::MessageOutput,
-    windows::{WindowProcedure, WindowReturn},
+    windows::WindowReturn,
 };
 use super::*;
 use crate::Win16HostMdiChildCreation;
@@ -502,12 +502,12 @@ impl Win16State {
             // Their exact claim is represented by an absent procedure entry.
             !self.window_procedures.contains_key(&guest)
         } else {
-            self.window_procedures.get(&guest).copied()
-                == Some(WindowProcedure {
-                    class: plan.mdi.class,
-                    address: plan.child_procedure,
-                    instance: plan.child_instance,
-                })
+            // Class procedure replacement changes this child's live FAR,
+            // not its immutable creation ownership or the saved plan FAR.
+            self.window_procedures.get(&guest).is_some_and(|procedure|
+                procedure.class == plan.mdi.class
+                    && procedure.instance == plan.child_instance)
+                && self.window_host_class(guest) == Some(plan.mdi.class)
         };
         if !self.mdi_children.contains(&guest)
             || self.window_creations.get(&guest) != Some(&plan.creation)

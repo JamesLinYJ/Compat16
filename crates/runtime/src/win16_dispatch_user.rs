@@ -35,7 +35,7 @@ impl Win16State {
                     (return_selector, return_offset, return_sp),
                 );
             }
-            Win16ApiRequest::ClassData(request) => self.access_class_data(request, host),
+            Win16ApiRequest::ClassData(request) => self.access_class_data(request, memory, host)?,
             Win16ApiRequest::WindowProperties(request) => {
                 return self.begin_window_properties(
                     registers,

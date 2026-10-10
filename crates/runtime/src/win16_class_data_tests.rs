@@ -1,5 +1,11 @@
 //! Host-independent USER.129–132 service-gate and class-lifetime coverage.
 
+#[path = "win16_class_procedure_tests.rs"]
+mod class_procedure_tests;
+
+#[path = "win16_creation_class_procedure_tests.rs"]
+mod creation_class_procedure_tests;
+
 #[path = "win16_unregister_class_tests.rs"]
 mod class_data_unregister_tests;
 
@@ -413,7 +419,9 @@ fn class_data_unsupported_negative_fields_and_widths_report_gaps_without_mutatio
     assert_eq!(call(&mut runtime, &mut host, 132, hwnd, 0, Some(0x7654_3210)), 0);
     for index in [-32, -26, -24, -20, -18, -16, -14, -12, -10, -8, -1, i16::MIN] {
         gap(&mut runtime, &mut host, 130, hwnd, index, Some(0xffff));
-        gap(&mut runtime, &mut host, 132, hwnd, index, Some(u32::MAX));
+        if index != -24 {
+            gap(&mut runtime, &mut host, 132, hwnd, index, Some(u32::MAX));
+        }
     }
     for index in [-32, -26, -20, -18, -14, -12, -10] {
         gap(&mut runtime, &mut host, 131, hwnd, index, None);

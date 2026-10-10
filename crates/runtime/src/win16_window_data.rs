@@ -49,6 +49,20 @@ pub(super) struct Win16WindowDataState {
 }
 
 impl Win16WindowDataState {
+    /// Borrow saved FAR roots only for this exact live class/instance owner.
+    /// Class replacement reserves this history and the registration history
+    /// before publishing either old address or changing either current FAR.
+    pub(super) fn procedure_roots_for_owner_mut(
+        &mut self,
+        native: Win16HostWindow,
+        class: Win16HostClass,
+        instance: u16,
+    ) -> Option<&mut Vec<u32>> {
+        (self.native_window == native
+            && self.class_root == WindowClassRoot::Class(class)
+            && self.instance == instance).then_some(&mut self.procedure_roots)
+    }
+
     fn new(
         native_window: Win16HostWindow,
         class_root: WindowClassRoot,

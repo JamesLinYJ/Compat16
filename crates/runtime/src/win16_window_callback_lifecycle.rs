@@ -44,8 +44,10 @@ impl Win16State {
                     return Err(RuntimeError::new(Kind::InternalInvariant,
                         "mapped MDI child callback has no exact guest WndProc"));
                 };
+                // The creation plan owns class/instance identity, while a
+                // setter during an earlier callback may change the live FAR.
                 if procedure.class != expected.class
-                    || procedure.address != expected.address
+                    || self.window_host_class(window) != Some(expected.class)
                     || procedure.instance != expected.instance
                     || !self.mdi_children.contains(&window)
                     || self.window_creations.get(&window) != Some(&creation_id)

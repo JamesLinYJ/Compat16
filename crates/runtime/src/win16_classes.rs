@@ -19,6 +19,9 @@ const LAST_SYSTEM_COLOR_INDEX: u16 = 30;
 #[path = "win16_unregister_class.rs"]
 mod unregister;
 
+#[path = "win16_class_procedure.rs"]
+mod procedure;
+
 struct GuestWindowClass {
     instance: u16,
     atom: u16,
@@ -31,6 +34,9 @@ struct GuestWindowClass {
     /// Guest cbClsExtra bytes belong to this registration, not its HWNDs.
     /// They never alias native superclass/private class storage.
     extra_bytes: Vec<u8>,
+    /// Old class FARs returned by SetClassLong remain callable until this
+    /// registration is removed, even after the selected HWND has retired.
+    procedure_roots: Vec<u32>,
 }
 
 pub(super) struct ResolvedWindowClass {
@@ -329,7 +335,7 @@ impl Win16State {
             instance: owner, atom: registered.atom,
             source_name_atom, name: class_name,
             host_class: registered.class,
-            lower_name, info, menu_name, extra_bytes,
+            lower_name, info, menu_name, extra_bytes, procedure_roots: Vec::new(),
         });
         Ok(registered.atom)
     }
@@ -471,7 +477,8 @@ impl Win16State {
     }
     pub(super) fn class_code_references(&self) -> Vec<u32> {
         self.window_classes.entries.iter()
-            .map(|class| class.info.lpfn_wnd_proc)
+            .flat_map(|class| std::iter::once(class.info.lpfn_wnd_proc)
+                .chain(class.procedure_roots.iter().copied()))
             .collect()
     }
 
