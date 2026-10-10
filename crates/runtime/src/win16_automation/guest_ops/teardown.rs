@@ -23,7 +23,7 @@ use super::super::{
 use super::variant::{
     element_type_from_descriptor, preflight_safe_array_release, validate_vartype_bits,
 };
-use super::{AutomationFailure, AutomationInterfaceAction as LeaseAction};
+use super::{AutomationFailure, AutomationInterfaceAction as LeaseAction, E_NOTIMPL};
 
 const MAX_TEARDOWN_VARIANT_DEPTH: usize = 64;
 
@@ -264,7 +264,7 @@ fn failure_to_runtime(error: AutomationFailure) -> RuntimeError {
         AutomationFailure::Runtime(error) => error,
         AutomationFailure::HResultRuntime { source, .. } => source,
         AutomationFailure::HResult(status) => RuntimeError::new(
-            if status == 0x8000_4001 {
+            if status == E_NOTIMPL {
                 Kind::CompatibilityGap
             } else {
                 Kind::InvalidInput
