@@ -113,6 +113,15 @@ fn empty_read_ignores_guest_sft_access_mode_tampering() {
         let mut host = TestHost::default();
         let mut memory = TestMemory::new();
         let (handle, file) = open_one_byte_file(&mut dos, &mut host, &mut memory, mode);
+        // Publishing an SFT requires host metadata, unlike an empty read.
+        host.file_for(file).unwrap().status = Some(DosFileStatus {
+            short_name: *b"READ    DAT",
+            size: 1,
+            position: 0,
+            attributes: 0,
+            write_time: 0,
+            write_date: ((2026 - 1980) << 9) | (10 << 5) | 11,
+        });
         // Install the normal PSP JFT descriptor before publishing the SFT.
         memory.put(0x10032, &[20, 0, 0x18, 0, 0, 0x10]);
         dos.initialize_system_tables(&mut memory).unwrap();

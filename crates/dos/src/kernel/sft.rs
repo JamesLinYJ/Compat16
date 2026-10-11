@@ -294,6 +294,35 @@ impl FileTable {
         self.handles.get(&guest_handle).copied()
     }
 
+    /// Select the lowest DOS handle for each live SFT once per refresh. The
+    /// caller supplies handles in ascending guest-handle order. Stop when all
+    /// live records have a representative, avoiding a scan of trailing aliases.
+    /// Missing mappings remain for refresh's existing checks.
+    fn representatives(
+        &self,
+        records: &[(u8, SftEntry)],
+        handles: impl IntoIterator<Item = (u16, Handle)>,
+    ) -> [Option<Handle>; SFT_ENTRY_COUNT] {
+        let mut representatives = [None; SFT_ENTRY_COUNT];
+        let mut needed = [false; SFT_ENTRY_COUNT];
+        for &(index, _) in records {
+            needed[usize::from(index)] = true;
+        }
+        let mut remaining = records.len();
+        if remaining == 0 { return representatives; }
+        for (guest, handle) in handles {
+            let Some(index) = self.index_for_handle(guest) else { continue; };
+            let Some(required) = needed.get_mut(usize::from(index)) else { continue; };
+            if *required {
+                representatives[usize::from(index)] = Some(handle);
+                *required = false;
+                remaining -= 1;
+                if remaining == 0 { break; }
+            }
+        }
+        representatives
+    }
+
     pub(super) fn live_handles(&self) -> impl ExactSizeIterator<Item = (u16, u8)> + '_ {
         self.handles.iter().map(|(&handle, &index)| (handle, index))
     }
@@ -373,11 +402,12 @@ impl DosKernel {
         memory.validate_write(sft_address, sft_len)?;
 
         let mut records = self.file_table.entries_snapshot();
+        let representatives = self.file_table.representatives(
+            &records,
+            self.handles.iter().map(|(&guest, &handle)| (guest, handle)),
+        );
         for (index, entry) in &mut records {
-            let current = self.handles.iter().find_map(|(&guest, &handle)| {
-                (self.file_table.index_for_handle(guest) == Some(*index)).then_some(handle)
-            });
-            let Some(current) = current else { continue; };
+            let Some(current) = representatives[usize::from(*index)] else { continue; };
             match (entry.kind, current) {
                 (SftKind::File, Handle::File(file)) => refresh_file_entry(entry, file, host)?,
                 (SftKind::Standard(kind), Handle::Standard(current_kind)) if kind == current_kind => {

@@ -37,8 +37,16 @@ struct FileState { bytes: Vec<u8>, cursor: u32, written: bool, status: Option<Do
 #[derive(Default)]
 struct TestDirectorySearch { entries: Vec<DosDirectoryEntry>, next: usize }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum SftQuery {
+    StandardInfo(DosIoctlStream),
+    FileInfo(DosHostFile),
+    FileStatus(DosHostFile),
+}
+
 #[derive(Default)]
 pub(super) struct TestHost {
+    sft_queries: std::cell::RefCell<Vec<SftQuery>>,
     input: VecDeque<u8>,
     stdout: Vec<u8>,
     stderr: Vec<u8>,
@@ -94,6 +102,18 @@ pub(super) struct TestHost {
 }
 
 impl TestHost {
+    pub(super) fn sft_queries(&self) -> Vec<SftQuery> {
+        self.sft_queries.borrow().clone()
+    }
+
+    pub(super) fn set_file_status(&mut self, file: DosHostFile, status: DosFileStatus) {
+        self.file_for(file).unwrap().status = Some(status);
+    }
+
+    pub(super) fn sft_status_calls(&self) -> &[DosHostFile] {
+        &self.file_status_calls
+    }
+
     pub(super) fn file_handle_activity(&self) -> (usize, usize, usize) {
         (self.file_duplicate_attempts, self.file_close_calls, self.handles.len())
     }
@@ -279,6 +299,7 @@ impl DosHost for TestHost {
     }
 
     fn file_status(&mut self, file: DosHostFile) -> Result<DosFileStatus, DosHostError> {
+        self.sft_queries.borrow_mut().push(SftQuery::FileStatus(file));
         self.file_status_calls.push(file);
         if let Some(error) = self.file_status_error {
             return Err(DosHostError::new(error));
@@ -313,6 +334,7 @@ impl DosHost for TestHost {
     }
 
     fn file_ioctl_info(&self, file: DosHostFile) -> Result<DosIoctlObjectInfo, DosHostError> {
+        self.sft_queries.borrow_mut().push(SftQuery::FileInfo(file));
         let file_id = self.handles.get(&file).copied()
             .ok_or(DosHostError::new(DosErrorCode::InvalidHandle))?;
         let state = self.files.get(&file_id)
@@ -321,6 +343,7 @@ impl DosHost for TestHost {
     }
 
     fn standard_ioctl_info(&self, stream: DosIoctlStream) -> Result<DosIoctlObjectInfo, DosHostError> {
+        self.sft_queries.borrow_mut().push(SftQuery::StandardInfo(stream));
         if let Some(info) = self.standard_info_override { return Ok(info); }
         if self.redirected_standard_streams {
             return Err(DosHostError::new(DosErrorCode::InvalidFunction));
