@@ -1,5 +1,8 @@
 //! Deferred DOS termination must not execute its ROM IRET before owner cleanup.
 
+#[path = "win16_execute_exit_callback_tests.rs"]
+mod callback_tests;
+
 use super::Kind;
 use crate::*;
 use devices::{keyboard::KeyStroke, video::ConsoleSnapshot};
@@ -20,6 +23,8 @@ struct ExitHost {
     retired: usize,
     exits: Vec<u16>,
     terminal_dos_calls: usize,
+    callback_markers: Vec<u16>,
+    markers_at_exit: Vec<Vec<u16>>,
 }
 
 impl DosHost for ExitHost {
@@ -127,6 +132,9 @@ impl RuntimeHost for ExitHost {
         &mut self, _instruction_count: u64,
         before: &guest_core::Registers, _after: &guest_core::Registers,
     ) {
+        if before.ah() == 0x30 {
+            self.callback_markers.push(before.bx());
+        }
         if before.ah() == 0x4c {
             self.terminal_dos_calls += 1;
         }
@@ -137,6 +145,7 @@ impl RuntimeHost for ExitHost {
             assert!(self.active.is_none());
             assert_eq!(self.retired as u64, self.begins);
             assert!(self.quiesces != 0);
+            self.markers_at_exit.push(self.callback_markers.clone());
             self.exits.push(*status);
         }
     }
