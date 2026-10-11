@@ -400,5 +400,98 @@ fn refresh_preserves_missing_mapping_error_order_and_guest_bytes() {
     assert_eq!(jft_after, jft_before);
 }
 
+#[test]
+fn refresh_small_and_indexed_boundaries_preserve_query_order() {
+    use super::Handle;
+    use super::super::tests::SftQuery::{FileInfo, FileStatus};
+    use crate::DosHost;
+
+    for record_count in [0u16, 1, 3, 4] {
+        let psp = 0x1000;
+        let mut dos = DosKernel::new(psp);
+        let mut memory = TestMemory::new();
+        let mut host = TestHost::default();
+        install_default_jft(&mut memory, psp);
+        dos.initialize_system_tables(&mut memory).unwrap();
+        dos.file_table.clear();
+        dos.handles.clear();
+        let mut expected = Vec::new();
+        for index in 0..record_count {
+            let file = host.file_create(&[b'A' + index as u8], 0).unwrap();
+            install_file_status(&mut host, file);
+            let guest = 9 - index; // Guest order is opposite to SFT order.
+            assert_eq!(dos.file_table.register_open(guest, 2), Some(index as u8));
+            dos.handles.insert(guest, Handle::File(file));
+            expected.extend([FileInfo(file), FileStatus(file)]);
+        }
+        assert_eq!(dos.file_table.entries_snapshot().len(), usize::from(record_count));
+        dos.refresh_sft(&mut memory, &mut host).unwrap();
+        assert_eq!(host.sft_queries(), expected, "record count {record_count}");
+    }
+}
+
+#[test]
+fn refresh_both_selection_paths_stop_on_first_host_error() {
+    use super::Handle;
+    use super::super::tests::SftQuery::FileInfo;
+    use crate::{DosError, DosErrorCode, DosHostFile};
+
+    for record_count in [3u16, 4] {
+        let psp = 0x1000;
+        let mut dos = DosKernel::new(psp);
+        let mut memory = TestMemory::new();
+        let mut host = TestHost::default();
+        install_default_jft(&mut memory, psp);
+        dos.initialize_system_tables(&mut memory).unwrap();
+        dos.file_table.clear();
+        dos.handles.clear();
+        // A lower unmapped handle cannot preempt the first host-query error.
+        dos.handles.insert(0, Handle::File(DosHostFile(99)));
+        for index in 0..record_count {
+            let guest = 9 - index;
+            assert_eq!(dos.file_table.register_open(guest, 2), Some(index as u8));
+            dos.handles.insert(guest, Handle::File(DosHostFile(100 + u64::from(index))));
+        }
+        let mut before = vec![0; DOS4_SFT_HEADER_BYTES + super::SFT_ENTRY_COUNT * DOS4_SFT_ENTRY_BYTES];
+        memory.read(real_address(SYSTEM_SEGMENT, SFT_OFFSET), &mut before).unwrap();
+        let mut jft_before = [0; DEFAULT_JFT_ENTRIES];
+        memory.read(real_address(psp, PSP_JFT_INLINE_OFFSET), &mut jft_before).unwrap();
+
+        assert!(matches!(dos.refresh_sft(&mut memory, &mut host),
+            Err(DosError::HostOperation(error)) if error.code == DosErrorCode::InvalidHandle));
+        assert_eq!(host.sft_queries(), vec![FileInfo(DosHostFile(100))]);
+        let mut after = vec![0; before.len()];
+        memory.read(real_address(SYSTEM_SEGMENT, SFT_OFFSET), &mut after).unwrap();
+        let mut jft_after = [0; DEFAULT_JFT_ENTRIES];
+        memory.read(real_address(psp, PSP_JFT_INLINE_OFFSET), &mut jft_after).unwrap();
+        assert_eq!(after, before);
+        assert_eq!(jft_after, jft_before);
+    }
+}
+
+#[test]
+fn direct_representatives_preserve_original_small_case_work() {
+    use super::Handle;
+    use crate::DosHostFile;
+    use std::collections::BTreeMap;
+
+    let mut table = FileTable::new();
+    table.handles.extend((3..1024u16).map(|guest| (guest, 0)));
+    let handles: BTreeMap<_, _> = (0..1024u16)
+        .map(|guest| (guest, Handle::File(DosHostFile(u64::from(guest)))))
+        .collect();
+    let records = table.entries_snapshot();
+    assert!(records.len() <= super::DIRECT_SFT_RECORD_LIMIT);
+    let mut visits = 0;
+    for (index, _) in records {
+        let actual = table.representative(index, handles.iter().map(|(&guest, &handle)| {
+            visits += 1;
+            (guest, handle)
+        }));
+        assert_eq!(actual, Some(Handle::File(DosHostFile(u64::from(index)))));
+    }
+    assert_eq!(visits, 1 + 2 + 3);
+}
+
 #[path = "sft_bench_tests.rs"]
 mod bench;

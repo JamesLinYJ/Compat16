@@ -11,6 +11,7 @@ use std::sync::Arc;
 mod arith;
 mod error;
 mod execute;
+mod execution_boundary;
 mod flags;
 mod guest_descriptor_lease;
 mod interrupt;

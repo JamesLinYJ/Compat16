@@ -738,3 +738,7 @@ fn module_name_leaf(name: &[u8]) -> Result<&[u8], RuntimeError> {
     }
     Ok(leaf)
 }
+
+#[cfg(test)]
+#[path = "win16_runtime_pe32_boundary_budget_tests.rs"]
+mod boundary_budget_tests;

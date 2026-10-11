@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
-use super::super::{FileTable, Handle, MAX_JFT_LEN, SFT_ENTRY_COUNT, SftEntry};
+use super::super::{DIRECT_SFT_RECORD_LIMIT, FileTable, Handle, MAX_JFT_LEN, SFT_ENTRY_COUNT, SftEntry};
 use crate::DosHostFile;
 
 struct Fixture {
@@ -60,6 +60,13 @@ impl Fixture {
             &self.records, self.handles.iter().map(|(&guest, &handle)| (guest, handle)),
         );
         assert_eq!(old, new);
+        if self.records.len() <= DIRECT_SFT_RECORD_LIMIT {
+            for &(index, _) in &self.records {
+                assert_eq!(old[usize::from(index)], self.table.representative(
+                    index, self.handles.iter().map(|(&guest, &handle)| (guest, handle)),
+                ));
+            }
+        }
     }
 }
 
@@ -70,14 +77,22 @@ fn old_selection(fixture: &Fixture) {
 }
 
 fn indexed_selection(fixture: &Fixture) {
-    // Array and live-target mask initialization belong inside the timing,
-    // including in small cases; both paths use the existing records snapshot.
-    let representatives = fixture.table.representatives(
-        &fixture.records,
-        fixture.handles.iter().map(|(&guest, &handle)| (guest, handle)),
-    );
-    for &(index, _) in &fixture.records {
-        let _ = black_box(representatives[usize::from(index)]);
+    // Time the production policy, including its threshold decision. The small
+    // path avoids array/mask setup; the larger path includes that fixed work.
+    if fixture.records.len() <= DIRECT_SFT_RECORD_LIMIT {
+        for &(index, _) in &fixture.records {
+            let _ = black_box(fixture.table.representative(
+                index, fixture.handles.iter().map(|(&guest, &handle)| (guest, handle)),
+            ));
+        }
+    } else {
+        let representatives = fixture.table.representatives(
+            &fixture.records,
+            fixture.handles.iter().map(|(&guest, &handle)| (guest, handle)),
+        );
+        for &(index, _) in &fixture.records {
+            let _ = black_box(representatives[usize::from(index)]);
+        }
     }
 }
 
@@ -99,9 +114,9 @@ fn median(samples: &mut [Duration]) -> Duration {
 fn representative_selection_microbenchmark() {
     const SAMPLES: usize = 5;
     const TARGET_SAMPLE: Duration = Duration::from_millis(3);
-    println!("Selection only; old/indexed ratio > 1 favors the index. No timing assertions.");
+    println!("Selection only; indexed uses direct search for at most three records. Old/indexed ratio > 1 favors the candidate. No timing assertions.");
     for (handle_count, sft_counts) in [
-        (20, &[3][..]),
+        (20, &[1, 3, 4][..]),
         (256, &[3, 32, 255][..]),
         (4096, &[3, 32, 255][..]),
         (MAX_JFT_LEN, &[3, 32, 255][..]),

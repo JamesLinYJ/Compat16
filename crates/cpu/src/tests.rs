@@ -10,6 +10,7 @@ mod float_vectors;
 mod x87_execution;
 mod transcendental_vectors;
 mod interrupt_shadow;
+mod execution_boundary;
 
 struct Ram {
     bytes: Vec<u8>,

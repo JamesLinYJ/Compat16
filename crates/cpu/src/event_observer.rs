@@ -124,7 +124,8 @@ impl CpuDeferredEvent {
 
 #[derive(Debug)]
 pub enum CpuObservedStepOutcome {
-    /// The instruction completed without an event being deferred.
+    /// The CPU boundary returned without an event being deferred. This alone
+    /// does not establish instruction completion (for example a REP yield).
     Executed(StepOutcome),
     /// An event is held until its observer continuation returns.
     EventDeferred(CpuDeferredEvent),

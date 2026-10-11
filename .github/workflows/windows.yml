@@ -158,6 +158,7 @@ jobs:
             '-p runtime --lib global_memory::fix_void_tests::',
             '-p runtime --lib firmware_rom_',
             '-p runtime --lib execute::exit_tests::',
+            '-p runtime --lib pe32_return_and_service_gates_preserve_boundary_budget',
             '-p runtime --lib character_classification',
             '-p host-services --lib character_classification',
             '-p runtime --lib any_popup',

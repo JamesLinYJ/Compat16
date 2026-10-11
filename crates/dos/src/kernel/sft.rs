@@ -17,6 +17,9 @@ use super::state::{DosKernel, Handle, StandardHandle};
 use super::system::{CON_HEADER_OFFSET, SFT_OFFSET, SFT_ENTRY_COUNT,
     SFT_ENTRY_BYTES as SFT_ENTRY_LEN, SFT_HEADER_BYTES as SFT_HEADER_LEN};
 
+// The ordinary three-standard-handle case avoids fixed index setup costs.
+const DIRECT_SFT_RECORD_LIMIT: usize = 3;
+
 pub(super) const DEFAULT_JFT_LEN: u16 = 20;
 pub(super) const MAX_JFT_LEN: u16 = 0xfffe;
 pub(super) const PSP_JFT_COUNT_OFFSET: u16 = 0x32;
@@ -294,6 +297,16 @@ impl FileTable {
         self.handles.get(&guest_handle).copied()
     }
 
+    fn representative(
+        &self,
+        index: u8,
+        handles: impl IntoIterator<Item = (u16, Handle)>,
+    ) -> Option<Handle> {
+        handles.into_iter().find_map(|(guest, handle)| {
+            (self.index_for_handle(guest) == Some(index)).then_some(handle)
+        })
+    }
+
     /// Select the lowest DOS handle for each live SFT once per refresh. The
     /// caller supplies handles in ascending guest-handle order. Stop when all
     /// live records have a representative, avoiding a scan of trailing aliases.
@@ -402,18 +415,20 @@ impl DosKernel {
         memory.validate_write(sft_address, sft_len)?;
 
         let mut records = self.file_table.entries_snapshot();
-        let representatives = self.file_table.representatives(
-            &records,
-            self.handles.iter().map(|(&guest, &handle)| (guest, handle)),
-        );
-        for (index, entry) in &mut records {
-            let Some(current) = representatives[usize::from(*index)] else { continue; };
-            match (entry.kind, current) {
-                (SftKind::File, Handle::File(file)) => refresh_file_entry(entry, file, host)?,
-                (SftKind::Standard(kind), Handle::Standard(current_kind)) if kind == current_kind => {
-                    refresh_standard_entry(entry, kind, host, system.segment)?;
-                }
-                _ => return Err(DosError::HostContractViolation("JFT handle kind disagrees with its SFT entry")),
+        if records.len() <= DIRECT_SFT_RECORD_LIMIT {
+            for (index, entry) in &mut records {
+                let current = self.file_table.representative(
+                    *index, self.handles.iter().map(|(&guest, &handle)| (guest, handle)),
+                );
+                refresh_entry(entry, current, host, system.segment)?;
+            }
+        } else {
+            let representatives = self.file_table.representatives(
+                &records,
+                self.handles.iter().map(|(&guest, &handle)| (guest, handle)),
+            );
+            for (index, entry) in &mut records {
+                refresh_entry(entry, representatives[usize::from(*index)], host, system.segment)?;
             }
         }
 
@@ -457,6 +472,22 @@ fn read_jft_pointer(
     let offset = memory.read_u16(real_address(psp_segment, PSP_JFT_POINTER_OFFSET))?;
     let segment = memory.read_u16(real_address(psp_segment, PSP_JFT_POINTER_OFFSET + 2))?;
     Ok((count, offset, segment))
+}
+
+fn refresh_entry(
+    entry: &mut SftEntry,
+    current: Option<Handle>,
+    host: &mut impl DosHost,
+    system_segment: u16,
+) -> Result<(), DosError> {
+    let Some(current) = current else { return Ok(()); };
+    match (entry.kind, current) {
+        (SftKind::File, Handle::File(file)) => refresh_file_entry(entry, file, host),
+        (SftKind::Standard(kind), Handle::Standard(current_kind)) if kind == current_kind => {
+            refresh_standard_entry(entry, kind, host, system_segment)
+        }
+        _ => Err(DosError::HostContractViolation("JFT handle kind disagrees with its SFT entry")),
+    }
 }
 
 fn refresh_file_entry(
