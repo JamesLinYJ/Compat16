@@ -339,6 +339,7 @@ pub(super) fn decode(
         | Win16ExportId::UserBringWindowToTop
         | Win16ExportId::UserGetParent
         | Win16ExportId::UserIsWindow
+        | Win16ExportId::UserGetWindowTask
         | Win16ExportId::UserIsWindowVisible
         | Win16ExportId::UserFindWindow
         | Win16ExportId::UserDestroyWindow

@@ -181,6 +181,10 @@ pub enum Win16UserWindowRequest {
     IsWindow {
         window: u16,
     },
+    /// Resolve a guest-tracked window to its live guest HTASK.
+    GetWindowTask {
+        window: u16,
+    },
 
     IsWindowVisible {
         window: u16,

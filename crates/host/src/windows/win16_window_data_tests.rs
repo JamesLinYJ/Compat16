@@ -405,3 +405,6 @@ mod get_clip_cursor_tests;
 
 #[path = "win16_get_cursor_tests.rs"]
 mod get_cursor_tests;
+
+#[path = "win16_get_window_task_tests.rs"]
+mod get_window_task_tests;

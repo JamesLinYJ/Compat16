@@ -84,6 +84,8 @@ mod kernel_instance;
 mod gdi_services;
 #[path = "win16_kernel_task.rs"]
 mod kernel_task;
+#[path = "win16_window_task.rs"]
+mod window_task;
 #[path = "win16_kernel_module.rs"]
 mod kernel_module;
 #[path = "win16_kernel_string.rs"]

@@ -359,7 +359,12 @@ decl = { args = ["word", "signed_word"] }
 [[exports]]
 ordinal = 224
 name = "GetWindowTask"
-decl = { args = ["word"] }
+binding = { rust_id = "UserGetWindowTask", id_value = 1220, constant = "USER_GET_WINDOW_TASK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
 ordinal = 226

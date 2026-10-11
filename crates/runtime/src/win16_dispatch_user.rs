@@ -37,6 +37,9 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::ClassData(request) => self.access_class_data(request, memory, host)?,
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::GetWindowTask { window },
+            )) => u32::from(self.get_window_task(window, memory, host)?),
             Win16ApiRequest::WindowProperties(request) => {
                 return self.begin_window_properties(
                     registers,

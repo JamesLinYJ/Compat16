@@ -232,6 +232,11 @@ pub(super) fn decode(
                 window: word_argument(arguments, 0)?,
             },
         )),
+        Win16ExportId::UserGetWindowTask => Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::GetWindowTask {
+                window: word_argument(arguments, 0)?,
+            },
+        )),
         Win16ExportId::UserIsWindowVisible => Win16ApiRequest::User(
             super::Win16UserRequest::Window(super::Win16UserWindowRequest::IsWindowVisible {
                 window: word_argument(arguments, 0)?,
@@ -453,6 +458,10 @@ mod set_parent_tests;
 #[cfg(test)]
 #[path = "call_open_icon_tests.rs"]
 mod open_icon_tests;
+
+#[cfg(test)]
+#[path = "call_get_window_task_tests.rs"]
+mod get_window_task_tests;
 
 #[cfg(test)]
 #[path = "call_close_window_tests.rs"]

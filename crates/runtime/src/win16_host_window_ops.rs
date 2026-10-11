@@ -215,9 +215,13 @@ pub enum Win16WindowEnumerationScope {
 pub enum Win16WindowEnumerationQuery {
     Snapshot(Win16WindowEnumerationScope),
     IsCurrent(Win16HostWindow),
+    /// Read the active immutable queue binding of an exact same-worker HWND.
+    /// Foreign, retired, or cookie-mismatched tokens have no guest task queue.
+    TaskQueue(Win16HostWindow),
 }
 #[derive(Clone, Debug)]
 pub enum Win16WindowEnumerationReply {
     Snapshot { success: bool, windows: Vec<Win16HostWindow> },
     IsCurrent(bool),
+    TaskQueue(Option<crate::Win16HostTaskQueue>),
 }
