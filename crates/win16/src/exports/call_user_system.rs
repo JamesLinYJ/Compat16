@@ -47,3 +47,7 @@ pub(super) fn decode(
         _ => return Err(Win16Error::InvalidRange),
     })
 }
+
+#[cfg(test)]
+#[path = "call_user_void_tests.rs"]
+mod void_tests;

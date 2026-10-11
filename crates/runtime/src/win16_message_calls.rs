@@ -191,7 +191,7 @@ impl Win16State {
                 host,
                 Win16MessageCall::WaitMessage,
                 Win16MessageCallContinuation::WaitMessage {
-                    return_kind: Win16ReturnKind::Word,
+                    return_kind: Win16ReturnKind::Void,
                 },
                 return_to,
             ),
@@ -313,7 +313,7 @@ impl Win16State {
                 host,
                 Win16MessageCall::ReleaseCapture,
                 Win16MessageCallContinuation::Boolean {
-                    return_kind: Win16ReturnKind::Word,
+                    return_kind: Win16ReturnKind::Void,
                 },
                 return_to,
             ),

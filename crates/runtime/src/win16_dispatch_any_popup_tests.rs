@@ -7,7 +7,8 @@ use dos_kernel::{DosDirectoryEntry, DosFileAccess, DosFileSharing, DosHost, DosH
 use guest_core::Selector;
 use win16_abi::{ExportLookupTarget, lookup_export};
 
-struct PopupHost { result: bool, calls: usize, fail: bool }
+#[derive(Default)]
+struct PopupHost { result: bool, calls: usize, fail: bool, scalar_calls: Vec<(u16, u32)> }
 impl DosHost for PopupHost {
     fn read_stdin(&mut self, _output: &mut [u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
     fn try_read_stdin(&mut self) -> Result<Option<u8>, DosHostError> { panic!("unexpected host call") }
@@ -41,7 +42,18 @@ impl DosHost for PopupHost {
 }
 
 
+impl PopupHost {
+    fn scalar(&mut self, ordinal: u16, value: u32) -> Result<bool, RuntimeError> {
+        self.scalar_calls.push((ordinal, value));
+        if self.fail { Err(RuntimeError::new(Kind::HostFailure, "mock scalar USER failure")) }
+        else { Ok(self.result) }
+    }
+}
 impl RuntimeHost for PopupHost {
+    fn win16_message_beep(&mut self, value: u32) -> Result<bool, RuntimeError> { self.scalar(104, value) }
+    fn win16_set_double_click_time(&mut self, value: u32) -> Result<bool, RuntimeError> { self.scalar(20, value) }
+    fn win16_set_caret_blink_time(&mut self, value: u32) -> Result<bool, RuntimeError> { self.scalar(168, value) }
+
     fn win16_any_popup(&mut self) -> Result<bool, RuntimeError> {
         self.calls += 1;
         if self.fail { Err(RuntimeError::new(Kind::HostFailure, "AnyPopup test failure")) }
@@ -89,7 +101,7 @@ fn stack_bytes(runtime: &Runtime, stack: u16) -> Vec<u8> {
 fn any_popup_dispatch_returns_canonical_bool_without_touching_dx_or_stack_bytes() {
     for result in [false, true] {
         let (mut runtime, return_to, bytes) = prepare();
-        let mut host = PopupHost { result, calls: 0, fail: false };
+        let mut host = PopupHost { result, calls: 0, fail: false, ..Default::default() };
         runtime.win16.as_mut().unwrap().dispatch(
             &mut runtime.cpu, &mut runtime.memory, &mut runtime.dos, &mut host, 0).unwrap();
         assert_eq!(runtime.cpu.regs.ax(), u16::from(result));
@@ -104,7 +116,7 @@ fn any_popup_dispatch_returns_canonical_bool_without_touching_dx_or_stack_bytes(
 fn any_popup_dispatch_propagates_host_failure_without_committing_guest_return() {
     let (mut runtime, return_to, bytes) = prepare();
     let before = (runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.sp());
-    let mut host = PopupHost { result: false, calls: 0, fail: true };
+    let mut host = PopupHost { result: false, calls: 0, fail: true, ..Default::default() };
     let error = runtime.win16.as_mut().unwrap().dispatch(
         &mut runtime.cpu, &mut runtime.memory, &mut runtime.dos, &mut host, 0).unwrap_err();
     assert_eq!(error.kind(), Kind::HostFailure);
@@ -126,3 +138,6 @@ fn any_popup_default_host_is_explicitly_unsupported_in_real_dispatch() {
     assert_eq!((runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.sp()), before);
     assert_eq!(stack_bytes(&runtime, return_to.2 - 4), bytes);
 }
+
+#[path = "win16_dispatch_scalar_void_tests.rs"]
+mod scalar_void_tests;

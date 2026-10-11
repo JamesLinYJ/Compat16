@@ -31,6 +31,10 @@ struct KeyboardHost {
     calls: usize,
     result: Option<Win16MessageCallResult>,
     snapshots: Vec<[u8; 256]>,
+    zero_arg_calls: Vec<u16>,
+    park_wait: bool,
+    wait_resumes: usize,
+    dde_polls: usize,
     fail_begin: bool,
     consumed: usize,
     fail_readback_once: bool,
@@ -81,12 +85,43 @@ impl DosHost for KeyboardHost {
 }
 
 impl RuntimeHost for KeyboardHost {
+    fn win16_window_resume(&mut self, reply: Option<crate::Win16WindowReply>) -> Result<Win16WindowStep, RuntimeError> {
+        assert!(self.park_wait && reply.is_none());
+        self.wait_resumes += 1;
+        assert_eq!(self.wait_resumes, 1, "resume the original wait exactly once");
+        Ok(Win16WindowStep::SourceRetired { proof: proof(), result: Box::new(
+            Win16WindowStep::Complete(Win16WindowResult::MessageCall(self.result.take().unwrap()))) })
+    }
+    fn win16_classic_dde_begin(&mut self, call: crate::Win16HostClassicDdeCall) -> Result<crate::Win16HostClassicDdeStep, RuntimeError> {
+        let crate::Win16HostClassicDdeCall::PollOwner { owner } = call else { panic!("unexpected DDE operation") };
+        self.dde_polls += 1;
+        let operation = crate::Win16ClassicDdeOperationIdentity {
+            owner, id: crate::Win16ClassicDdeOperationId(self.dde_polls as u64), worker_generation: 1,
+        };
+        Ok(crate::Win16HostClassicDdeStep::Started(operation))
+    }
+    fn win16_classic_dde_resume(&mut self, resume: crate::Win16HostClassicDdeResume) -> Result<crate::Win16HostClassicDdeStep, RuntimeError> {
+        assert!(resume.reply.is_none());
+        let operation = resume.operation;
+        assert_eq!(operation.id, crate::Win16ClassicDdeOperationId(self.dde_polls as u64));
+        Ok(crate::Win16HostClassicDdeStep::Complete { operation,
+            result: crate::Win16HostClassicDdeResult::Event(None),
+            source_retired: Arc::new(crate::Win16HostClassicDdeSourceRetiredProof { operation, callbacks: vec![] }),
+        })
+    }
+    fn win16_classic_dde_source_retirement_consumed(&mut self, _proof: &crate::Win16HostClassicDdeSourceRetiredProof) -> Result<(), RuntimeError> { Ok(()) }
+    fn win16_host_window_parent(&mut self, _window: crate::Win16HostWindow) -> Result<crate::Win16HostWindowParentObservation, RuntimeError> {
+        panic!("these USER calls must not observe child ancestry")
+    }
+
     fn win16_window_begin(&mut self, operation: Win16WindowOperation) -> Result<Win16WindowStep, RuntimeError> {
         match operation {
             Win16WindowOperation::MessageCall(Win16MessageCall::GetKeyboardState) => {}
             Win16WindowOperation::MessageCall(Win16MessageCall::SetKeyboardState { state }) => {
                 self.snapshots.push(state);
             }
+            Win16WindowOperation::MessageCall(Win16MessageCall::ReleaseCapture) => self.zero_arg_calls.push(19),
+            Win16WindowOperation::MessageCall(Win16MessageCall::WaitMessage) => self.zero_arg_calls.push(112),
             _ => panic!("unexpected host operation"),
         }
         self.calls += 1;
@@ -98,12 +133,15 @@ impl RuntimeHost for KeyboardHost {
             operation_id: proof.operation.operation_id,
             worker_generation: proof.worker_generation,
             kind: proof.operation.kind,
-            step: Box::new(Win16WindowStep::SourceRetired {
+            step: Box::new(if self.park_wait {
+                assert_eq!(self.zero_arg_calls, [112]);
+                Win16WindowStep::PendingGuestWork { operation_id: proof.operation.operation_id, generation: 1 }
+            } else { Win16WindowStep::SourceRetired {
                 proof,
                 result: Box::new(Win16WindowStep::Complete(Win16WindowResult::MessageCall(
                     self.result.take().expect("mock result"),
                 ))),
-            }),
+            } }),
         })
     }
     fn win16_window_source_retirement(
@@ -412,3 +450,6 @@ fn keyboard_state_host_errors_and_malformed_results_do_not_publish_success_or_ou
         }
     }
 }
+
+#[path = "win16_dispatch_message_void_tests.rs"]
+mod message_void_tests;
