@@ -406,6 +406,10 @@ impl<'a> Win16LegacyCpuBinding<'a> {
                     && start >= u64::from(base.0)
                     && u64::from(base.0).checked_add(u64::from(*image_size)).is_some_and(|image_end| end <= image_end)
             }
+            (SelectorBackingIdentity::FirmwareRom { primary, base, size: rom_size }, SelectorBackingLease::FirmwareRom { .. }) => {
+                root.reference == *primary && root.descriptor.base == *base && size == *rom_size
+                    && self.state.firmware_rom_identity_is_live(root.backing, self.memory)
+            }
             (SelectorBackingIdentity::RuntimeArena(arena), SelectorBackingLease::RuntimeArena { lease }) if *arena == lease.identity() => {
                 self.state.runtime_arena_backing.lease_is_live(
                     lease, root.reference, &self.state.selectors, self.memory,
@@ -579,3 +583,7 @@ fn validate_segment(slot: usize, descriptor: DescriptorInfo, registers: &Registe
 #[cfg(test)]
 #[path = "win16_legacy_cpu_binding_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "win16_firmware_cpu_binding_tests.rs"]
+mod firmware_tests;

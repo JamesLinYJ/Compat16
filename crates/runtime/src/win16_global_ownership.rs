@@ -146,7 +146,8 @@ impl Win16State {
                                 && current_start >= u64::from(base.0)
                                 && current_end <= u64::from(base.0) + u64::from(*size),
                             super::selector_ownership::SelectorBackingLease::Dos { .. } => false,
-                            super::selector_ownership::SelectorBackingLease::RuntimeArena { .. } => false,
+                            super::selector_ownership::SelectorBackingLease::RuntimeArena { .. }
+                            | super::selector_ownership::SelectorBackingLease::FirmwareRom { .. } => false,
                         }
                     }));
                 if current_ref == primary || owner_matches_backing { return Some(owner); }
