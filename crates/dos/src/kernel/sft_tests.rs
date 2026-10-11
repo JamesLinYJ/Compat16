@@ -406,7 +406,7 @@ fn refresh_small_and_indexed_boundaries_preserve_query_order() {
     use super::super::tests::SftQuery::{FileInfo, FileStatus};
     use crate::DosHost;
 
-    for record_count in [0u16, 1, 3, 4] {
+    for record_count in [0u16, 1, 3, 4, 5] {
         let psp = 0x1000;
         let mut dos = DosKernel::new(psp);
         let mut memory = TestMemory::new();
@@ -436,7 +436,7 @@ fn refresh_both_selection_paths_stop_on_first_host_error() {
     use super::super::tests::SftQuery::FileInfo;
     use crate::{DosError, DosErrorCode, DosHostFile};
 
-    for record_count in [3u16, 4] {
+    for record_count in [4u16, 5] {
         let psp = 0x1000;
         let mut dos = DosKernel::new(psp);
         let mut memory = TestMemory::new();

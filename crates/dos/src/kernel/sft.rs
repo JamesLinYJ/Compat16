@@ -17,8 +17,9 @@ use super::state::{DosKernel, Handle, StandardHandle};
 use super::system::{CON_HEADER_OFFSET, SFT_OFFSET, SFT_ENTRY_COUNT,
     SFT_ENTRY_BYTES as SFT_ENTRY_LEN, SFT_HEADER_BYTES as SFT_HEADER_LEN};
 
-// The ordinary three-standard-handle case avoids fixed index setup costs.
-const DIRECT_SFT_RECORD_LIMIT: usize = 3;
+// Small tables, including three standard handles plus one file, avoid the
+// fixed index setup cost measured in full-refresh benchmarks.
+const DIRECT_SFT_RECORD_LIMIT: usize = 4;
 
 pub(super) const DEFAULT_JFT_LEN: u16 = 20;
 pub(super) const MAX_JFT_LEN: u16 = 0xfffe;

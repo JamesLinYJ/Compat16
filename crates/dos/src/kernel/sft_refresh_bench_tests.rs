@@ -25,11 +25,18 @@ const fn files(handles: u16, records: u16, late_unique: bool) -> Case {
     Case { handles, records, late_unique, standards: false }
 }
 
-const CASES: [Case; 11] = [
+const CASES: [Case; 25] = [
     Case { handles: 3, records: 3, late_unique: false, standards: true },
     files(20, 3, false), files(20, 3, true),
     files(20, 4, false), files(20, 4, true),
+    files(20, 5, false), files(20, 5, true),
+    files(20, 8, false), files(20, 8, true),
+    files(20, 16, false), files(20, 16, true),
     files(256, 3, true), files(256, 32, false),
+    files(256, 4, false), files(256, 4, true),
+    files(256, 5, false), files(256, 5, true),
+    files(256, 8, false), files(256, 8, true),
+    files(256, 16, false), files(256, 16, true),
     files(4096, 255, true),
     files(MAX_JFT_LEN, 3, false), files(MAX_JFT_LEN, 3, true),
     files(MAX_JFT_LEN, 255, true),

@@ -114,10 +114,10 @@ fn median(samples: &mut [Duration]) -> Duration {
 fn representative_selection_microbenchmark() {
     const SAMPLES: usize = 5;
     const TARGET_SAMPLE: Duration = Duration::from_millis(3);
-    println!("Selection only; indexed uses direct search for at most three records. Old/indexed ratio > 1 favors the candidate. No timing assertions.");
+    println!("Selection only; indexed uses direct search for at most four records. Old/indexed ratio > 1 favors the candidate. No timing assertions.");
     for (handle_count, sft_counts) in [
-        (20, &[1, 3, 4][..]),
-        (256, &[3, 32, 255][..]),
+        (20, &[1, 3, 4, 5, 8, 16][..]),
+        (256, &[3, 4, 5, 8, 16, 32, 255][..]),
         (4096, &[3, 32, 255][..]),
         (MAX_JFT_LEN, &[3, 32, 255][..]),
     ] {
