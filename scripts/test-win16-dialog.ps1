@@ -59,14 +59,14 @@ function Assert-ProbeTrace {
     if ($Trace -cmatch '(?m)^@\d+ service-boundary stage=dispatch-error ') {
         throw 'The Win16 service trace contains a failed dispatch.'
     }
-    if ($Module -eq 'GDI') {
-        # There is no font-callback trace marker. The generated guest itself
-        # executes counter/LPARAM/layout/string/caller-state assertions and must
-        # exit zero; service traces separately prove the intended native route.
+    if ($Module -eq 'GDI' -or $InitializationCount -eq 0) {
+        # Font callbacks have no dedicated trace marker; headless USER queries
+        # have no callbacks. Guests assert results and caller state themselves.
+        # Exact total boundaries reject extra calls as well as missing calls.
         $expectedBoundaries = 2 * ($ServiceCounts.Values | Measure-Object -Sum).Sum
-        $actualBoundaries = [regex]::Matches($Trace, '(?m)^@\d+ service-boundary stage=dispatch-(?:enter|return) module=GDI ').Count
+        $actualBoundaries = [regex]::Matches($Trace, ('(?m)^@\d+ service-boundary stage=dispatch-(?:enter|return) module={0} ' -f $Module)).Count
         if ($actualBoundaries -ne $expectedBoundaries) {
-            throw "Expected exactly $expectedBoundaries GDI service boundaries; observed $actualBoundaries."
+            throw "Expected exactly $expectedBoundaries $Module service boundaries; observed $actualBoundaries."
         }
     }
     $callbackPattern = '(?m)^@\d+ window-callback phase={0} procedure=dlgproc callback=(\d+) window=([0-9A-F]{{4}}) message=0110 return=(\S+) dialog-msgresult=\S+\r?$'
@@ -208,6 +208,15 @@ function Invoke-ProbeCase {
     if ($failures.Count -gt 0) { throw ($failures -join '; ') }
     if ($Module -eq 'GDI') {
         Write-Host "PASS: generated $Name NE guest exited zero with exact GDI52/330/68 service counts and guest-executed font callback assertions; font callbacks have no dedicated trace marker."
+    } elseif ($Name -eq 'user-queries') {
+        $outputEvidence = $stdoutRead.GetAwaiter().GetResult()
+        foreach ($tag in @('P', 'C', 'R')) {
+            if ([regex]::Matches($outputEvidence, ('(?m)^{0}[01]\r?$' -f $tag)).Count -ne 1) {
+                throw "Missing unique $tag dynamic-query outcome in guest stdout."
+            }
+        }
+        Write-Host 'PASS: generated USER query NE guest exited zero with exact USER433/434/435/436/52/247/309 counts and guest ABI, ASCII classification, and RECT boundary assertions.'
+        Write-Host 'Dynamic evidence: P0/P1=AnyPopup false/true; C0/C1=NULL/borrowed non-NULL cursor; R0/R1=RECT unchanged/changed. These do not establish cursor ownership, native clipping success, or screen dimensions.'
     } else {
         Write-Host "PASS: generated $Name NE dialog/icon guest exited zero with exact USER service counts and $InitializationCount validated WM_INITDIALOG callback returns."
     }
@@ -274,6 +283,14 @@ try {
             ServiceCounts = [ordered]@{ '52' = 1; '330' = 2; '68' = 1 }
             InitializationCount = 0
             Module = 'GDI'
+        },
+        @{
+            Name = 'user-queries'
+            Generator = 'win16-user-queries-probe'
+            ProgramName = 'QUERIES.EXE'
+            ServiceCounts = [ordered]@{ '433' = 4; '434' = 4; '435' = 4; '436' = 4; '52' = 1; '247' = 1; '309' = 1 }
+            InitializationCount = 0
+            Module = 'USER'
         }
     )
     # Modal: GetDlgItem/STM_GETICON and EndDialog result 17. Modeless: two
