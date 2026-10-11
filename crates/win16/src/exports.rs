@@ -539,3 +539,7 @@ mod void_text_region_tests;
 #[cfg(test)]
 #[path = "exports/call_line_dda_global_void_tests.rs"]
 mod line_dda_global_void_tests;
+
+#[cfg(test)]
+#[path = "exports/abi_baseline_tests.rs"]
+mod abi_baseline_tests;

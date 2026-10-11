@@ -593,6 +593,7 @@ dependencies = [
  "abi-codegen",
  "abi-schema",
  "guest-core",
+ "serde_json",
  "zerocopy",
 ]
 

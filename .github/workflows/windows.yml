@@ -212,6 +212,49 @@ jobs:
             throw ('Compatibility tests failed: ' + ($failedSuites -join '; '))
           }
 
+      - name: Capture compiled ABI migration baseline
+        id: abi_baseline
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) { throw 'Visual Studio C++ tools unavailable.' }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) { throw 'Visual Studio developer script unavailable.' }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $directory = Join-Path $env:GITHUB_WORKSPACE 'target\abi-baseline'
+          New-Item -ItemType Directory -Path $directory -Force | Out-Null
+          $filter = 'exports::abi_baseline_tests::capture_compiled_abi_baseline'
+          foreach ($name in @('compiled-abi.json', 'compiled-abi-repeat.json')) {
+            $env:ABI_BASELINE_PATH = Join-Path $directory $name
+            if (Test-Path -LiteralPath $env:ABI_BASELINE_PATH) { Remove-Item -LiteralPath $env:ABI_BASELINE_PATH -Force }
+            $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p win16-abi --lib {4} -- --ignored --exact --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+            & $env:ComSpec /d /c $command
+            if ($LASTEXITCODE -ne 0) { throw "ABI baseline capture failed: $name" }
+            if (-not (Test-Path -LiteralPath $env:ABI_BASELINE_PATH -PathType Leaf)) { throw "ABI baseline was not produced: $name" }
+          }
+          $path = Join-Path $directory 'compiled-abi.json'
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash
+          $repeatHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $directory 'compiled-abi-repeat.json')).Hash
+          if ($hash -ne $repeatHash) { throw 'ABI baseline capture was not deterministic.' }
+          @{ commit = $env:GITHUB_SHA; architecture = $env:BUILD_ARCHITECTURE; sha256 = $hash } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $directory 'provenance.json') -Encoding utf8
+          Write-Host "ABI_BASELINE_SHA256=$hash"
+          # Retain a transport-safe copy in the exact job log as well as the artifact.
+          $encoded = [Convert]::ToBase64String([IO.File]::ReadAllBytes($path))
+          for ($offset = 0; $offset -lt $encoded.Length; $offset += 4096) {
+            Write-Host ('ABI_BASELINE_BASE64:' + $encoded.Substring($offset, [Math]::Min(4096, $encoded.Length - $offset)))
+          }
+
+      - name: Retain compiled ABI baseline
+        if: ${{ !cancelled() && steps.abi_baseline.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: abi-baseline-${{ matrix.architecture }}-${{ github.sha }}
+          path: target/abi-baseline/*.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Measure SFT representative selection
         # Selection-only microbenchmark; no timing pass/fail thresholds. Keep its
         # ignored test isolated from the ordinary noninteractive test filters.
