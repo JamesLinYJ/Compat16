@@ -204,6 +204,9 @@ pub trait DosHost {
     }
     fn file_read(&mut self, file: DosHostFile, output: &mut [u8]) -> Result<usize, DosHostError>;
     fn file_write(&mut self, file: DosHostFile, input: &[u8]) -> Result<usize, DosHostError>;
+    /// Seek using the DOS AH=42h CX:DX bit pattern carried in `offset`.
+    /// For Start, reinterpret it as an unsigned u32 absolute position before
+    /// widening; for Current and End, use a signed i32 displacement.
     fn file_seek(&mut self, file: DosHostFile, offset: i32, origin: DosSeekOrigin) -> Result<u32, DosHostError>;
     fn file_set_len(&mut self, file: DosHostFile, length: u32) -> Result<(), DosHostError>;
     fn file_status(&mut self, _file: DosHostFile) -> Result<DosFileStatus, DosHostError> {

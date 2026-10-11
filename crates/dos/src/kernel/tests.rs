@@ -254,7 +254,11 @@ impl DosHost for TestHost {
     fn file_seek(&mut self, file: DosHostFile, offset: i32, origin: DosSeekOrigin) -> Result<u32, DosHostError> {
         let state = self.file_for(file)?;
         let base = match origin { DosSeekOrigin::Start => 0i64, DosSeekOrigin::Current => i64::from(state.cursor), DosSeekOrigin::End => state.bytes.len() as i64 };
-        let position = base + i64::from(offset);
+        let displacement = match origin {
+            DosSeekOrigin::Start => i64::from(offset as u32),
+            DosSeekOrigin::Current | DosSeekOrigin::End => i64::from(offset),
+        };
+        let position = base + displacement;
         if !(0..=i64::from(u32::MAX)).contains(&position) { return Err(DosHostError::new(DosErrorCode::InvalidData)); }
         state.cursor = position as u32;
         Ok(state.cursor)
@@ -1341,3 +1345,6 @@ mod handle_capacity_lifecycle_tests;
 
 #[path = "search_exhaustion_tests.rs"]
 mod search_exhaustion_tests;
+
+#[path = "file_seek_tests.rs"]
+mod file_seek_tests;

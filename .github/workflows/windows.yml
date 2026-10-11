@@ -91,6 +91,7 @@ jobs:
             '-p x86-cpu',
             '-p text-codec',
             '-p dos-kernel',
+            '-p host-services --lib filesystem::tests::seek::',
             '-p formats',
             '-p graphics',
             '-p devices',

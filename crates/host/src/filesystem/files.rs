@@ -291,7 +291,12 @@ impl Filesystem {
             DosSeekOrigin::Current => i128::from(handle.file.stream_position().map_err(os_error)?),
             DosSeekOrigin::End => i128::from(handle.file.metadata().map_err(os_error)?.len()),
         };
-        let target = base + i128::from(offset);
+        // AH=42h treats CX:DX as unsigned for Start, signed for Current/End.
+        let displacement = match origin {
+            DosSeekOrigin::Start => i128::from(offset as u32),
+            DosSeekOrigin::Current | DosSeekOrigin::End => i128::from(offset),
+        };
+        let target = base + displacement;
         if !(0..=i128::from(u32::MAX)).contains(&target) {
             return Err(invalid(DosErrorCode::InvalidData));
         }
