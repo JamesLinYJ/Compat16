@@ -148,6 +148,7 @@ jobs:
             '-p runtime --lib dos_search_tests::',
             '-p runtime --lib get_char_width',
             '-p host-services --lib get_char_width',
+            '-p runtime --lib keyboard_state_tests',
             '-p runtime --lib set_window_text_tests',
             '-p runtime --lib set_rect_rgn_tests',
             '-p runtime --lib firmware_rom_',

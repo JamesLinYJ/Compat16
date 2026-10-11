@@ -569,10 +569,11 @@ pub(super) fn finish_message_call(
                     )?;
                     *phase = Phase::OutputCommitted;
                 }
-                (u32::from(*succeeded), Win16ReturnKind::Word)
+                // The native BOOL only gates the output copy; Win16 returns void.
+                (0, Win16ReturnKind::Void)
             }
-            (Call::SetKeyboardState, ResultValue::Boolean(succeeded)) =>
-                (u32::from(*succeeded), Win16ReturnKind::Word),
+            (Call::SetKeyboardState, ResultValue::Boolean(_succeeded)) =>
+                (0, Win16ReturnKind::Void),
             _ => return Err(RuntimeError::new(Kind::InternalInvariant,
                 "USER message result does not match its retained call owner")),
         };

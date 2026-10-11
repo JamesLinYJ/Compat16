@@ -712,3 +712,7 @@ mod get_cursor_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_character_classification_tests.rs"]
 mod character_classification_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_keyboard_state_tests.rs"]
+mod keyboard_state_tests;
