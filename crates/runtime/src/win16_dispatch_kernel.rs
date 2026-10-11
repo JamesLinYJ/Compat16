@@ -122,18 +122,7 @@ impl Win16State {
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
                 win16_abi::Win16KernelRuntimeRequest::PostEvent { task_handle },
             )) => {
-                if task_handle != 0 {
-                    return Err(RuntimeError::new(
-                        Kind::CompatibilityGap,
-                        format!(
-                            "Win16 PostEvent task handle 0x{task_handle:04X} has no task mapping"
-                        ),
-                    ));
-                }
-                self.tasks
-                    .post_current_event()
-                    .map_err(crate::runtime_error)?;
-                self.sync_task_event_count(memory)?;
+                self.post_task_event(task_handle, memory)?;
                 0
             }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Resources(
