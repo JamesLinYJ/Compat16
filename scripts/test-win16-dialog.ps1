@@ -151,6 +151,9 @@ function Invoke-ProbeCase {
         }
         $exitCode = $process.ExitCode
         Write-Host "Generated $Name guest exit code: $exitCode"
+        if ($Name -eq 'outline-metrics' -and $exitCode -eq 77) {
+            throw 'Outline metrics acceptance is unsupported: no TrueType font was enumerated (O0); no native outline measurement passed.'
+        }
         if ($exitCode -ne 0) { throw "The generated $Name guest failed (exit $exitCode)." }
         if (-not (Test-Path -LiteralPath $win16Trace -PathType Leaf)) {
             throw 'The guest exited without producing its Win16 service/callback trace.'
@@ -206,7 +209,19 @@ function Invoke-ProbeCase {
         }
     }
     if ($failures.Count -gt 0) { throw ($failures -join '; ') }
-    if ($Module -eq 'GDI') {
+    if ($Name -eq 'outline-metrics') {
+        $outputEvidence = $stdoutRead.GetAwaiter().GetResult()
+        if ([regex]::Matches($outputEvidence, '(?m)^O1\r?$').Count -ne 1 -or
+            $outputEvidence -cmatch '(?m)^O0\r?$') {
+            throw 'Missing unique measured-font O1 evidence from the outline metrics guest.'
+        }
+        $queryParity = [regex]::Matches($outputEvidence, '(?m)^Q([01])\r?$')
+        if ($queryParity.Count -ne 1) {
+            throw 'Missing unique outline query-size parity evidence.'
+        }
+        Write-Host ('Measured query size was ' + $(if ($queryParity[0].Groups[1].Value -eq '1') { 'odd (stored size rounded up by one).' } else { 'even (stored size unchanged); this font did not exercise an odd query.' }))
+        Write-Host 'PASS: generated outline metrics NE guest measured an owned selected TrueType font through GDI308 (NULL, partial, full), asserted packed114 layout, bounded relative names, rounded size and buffer/caller canaries, then restored/deleted its font and DC.'
+    } elseif ($Module -eq 'GDI') {
         Write-Host "PASS: generated $Name NE guest exited zero with exact GDI52/330/68 service counts and guest-executed font callback assertions; font callbacks have no dedicated trace marker."
     } elseif ($Name -eq 'user-queries') {
         $outputEvidence = $stdoutRead.GetAwaiter().GetResult()
@@ -281,6 +296,14 @@ try {
             Generator = 'win16-font-families-probe'
             ProgramName = 'FAMILIES.EXE'
             ServiceCounts = [ordered]@{ '52' = 1; '330' = 2; '68' = 1 }
+            InitializationCount = 0
+            Module = 'GDI'
+        },
+        @{
+            Name = 'outline-metrics'
+            Generator = 'win16-outline-metrics-probe'
+            ProgramName = 'OUTLINE.EXE'
+            ServiceCounts = [ordered]@{ '52' = 1; '330' = 1; '57' = 1; '45' = 2; '308' = 3; '69' = 1; '68' = 1 }
             InitializationCount = 0
             Module = 'GDI'
         },
