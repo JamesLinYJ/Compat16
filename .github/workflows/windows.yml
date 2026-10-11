@@ -184,7 +184,8 @@ jobs:
             '-p host-services --lib windows::win16_open_file::tests::',
             '-p host-services --lib windows::win16_gdi_services::dbcs_tests::',
             '-p runtime --lib gdi_services::wire_tests::',
-            '-p runtime --lib win16_runtime::task_state::tests::'
+            '-p runtime --lib win16_runtime::task_state::tests::',
+            '-p runtime --lib get_window_task_'
           )
           # Keep focused additions visible: a renamed filter must not silently
           # succeed after selecting zero tests.
@@ -196,6 +197,7 @@ jobs:
             '-p host-services --lib windows::win16_gdi_services::dbcs_tests::' = 5
             '-p runtime --lib gdi_services::wire_tests::' = 2
             '-p runtime --lib win16_runtime::task_state::tests::' = 7
+            '-p runtime --lib get_window_task_' = 6
           }
           $failedSuites = @()
           $runtimeCompileChecked = $false
@@ -673,7 +675,7 @@ jobs:
             throw 'BLOCKED: expected exactly 5 passing hidden child query contracts fixtures.'
           }
 
-      - name: Exercise hidden parent identity regressions
+      - name: Exercise hidden parent and task identity regressions
         # Dedicated CI runner only; native fixtures remain ignored by default.
         # Exact allowlist excludes minimizing/restoring fixtures handled separately below.
         if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
@@ -695,7 +697,9 @@ jobs:
             'windows::win16_windows::win16_window_data::tests::synchronous_reparent_callback_retires_previous_parent_without_readopting_it',
             'windows::win16_windows::win16_window_data::tests::synchronous_reparent_callback_retires_child_before_result_ancestry_query',
             'windows::win16_windows::win16_window_data::tests::reparent_never_projects_a_replacement_parent_identity_at_the_same_native_bits',
-            'windows::win16_windows::win16_window_data::tests::reparent_never_queries_a_replacement_child_identity_at_the_same_native_bits'
+            'windows::win16_windows::win16_window_data::tests::reparent_never_queries_a_replacement_child_identity_at_the_same_native_bits',
+            'windows::win16_windows::win16_window_data::tests::get_window_task_tests::get_window_task_native_queue_is_immutable_and_includes_borrowed_control_aliases',
+            'windows::win16_windows::win16_window_data::tests::get_window_task_tests::get_window_task_native_rejects_cookie_mismatch_retired_and_replaced_hwnd_tokens'
           )
           $failedSuites = @()
           foreach ($filter in $filters) {
@@ -824,3 +828,31 @@ jobs:
         if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
         timeout-minutes: 25
         run: .\scripts\build.ps1 -Architecture $env:BUILD_ARCHITECTURE -NonInteractive
+
+      - name: Diagnose real PFE Win16 startup prefix
+        id: real_win16_pfe
+        # Original public Win16 application, pinned and downloaded into the
+        # disposable runner only. Gaps/faults/timeouts remain step failures.
+        if: ${{ !cancelled() && steps.native_release.outcome == 'success' }}
+        timeout-minutes: 3
+        env:
+          NATIVE_RUNNER_LABEL: ${{ matrix.runner }}
+        run: .\scripts\test-real-win16-pfe.ps1 -Architecture $env:BUILD_ARCHITECTURE -RunnerLabel $env:NATIVE_RUNNER_LABEL
+
+      - name: Preserve real Win16 text evidence
+        if: ${{ always() && steps.real_win16_pfe.outputs.results-directory != '' }}
+        timeout-minutes: 3
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pfe-win16-prefix-${{ matrix.architecture }}-${{ github.run_attempt }}
+          # Exact text allowlist; never upload the parent fixture directory,
+          # downloaded archive, original package, guest image, or memory dump.
+          path: |
+            ${{ steps.real_win16_pfe.outputs.results-directory }}/result.json
+            ${{ steps.real_win16_pfe.outputs.results-directory }}/stdout.txt
+            ${{ steps.real_win16_pfe.outputs.results-directory }}/stderr.txt
+            ${{ steps.real_win16_pfe.outputs.results-directory }}/failure.txt
+            ${{ steps.real_win16_pfe.outputs.results-directory }}/services.txt
+          if-no-files-found: error
+          retention-days: 3
+          include-hidden-files: false
