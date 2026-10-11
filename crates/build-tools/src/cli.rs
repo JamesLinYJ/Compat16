@@ -8,6 +8,7 @@ use build_tools::{
     audit_win16_module, dos_probe_bytes, generate_rust, parse_spec, vga_probe_bytes,
     win16_dialog_probe_bytes, win16_font_families_probe_bytes, win16_modeless_probe_bytes,
     win16_user_queries_probe_bytes, win16_outline_metrics_probe_bytes,
+    win16_local_handle_delta_probe_bytes,
     ProbeFormat, SpecEntry, SpecModule, VGA_PROBE_FILE_NAME,
 };
 use win16_abi::exports::export_descriptors;
@@ -66,6 +67,10 @@ fn run_command() -> Result<ExitCode, String> {
         }
         "win16-outline-metrics-probe" => {
             run_win16_probe_command("win16-outline-metrics-probe", args)?;
+            Ok(ExitCode::SUCCESS)
+        }
+        "win16-local-handle-delta-probe" => {
+            run_win16_probe_command("win16-local-handle-delta-probe", args)?;
             Ok(ExitCode::SUCCESS)
         }
         "vga-probe" => {
@@ -248,6 +253,7 @@ fn run_win16_probe_command(
     })?;
     let output = output.ok_or_else(|| format!("{command} requires --output\n{}", usage()))?;
     let image = match command {
+        "win16-local-handle-delta-probe" => win16_local_handle_delta_probe_bytes(),
         "win16-user-queries-probe" => win16_user_queries_probe_bytes(),
         "win16-outline-metrics-probe" => win16_outline_metrics_probe_bytes(),
         "win16-modeless-probe" => win16_modeless_probe_bytes(),
@@ -361,5 +367,5 @@ fn usage() -> String {
     let command = std::env::current_exe().ok()
         .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
         .unwrap_or_else(|| "build-tools".to_owned());
-    format!("usage:\n  {command} inspect --input FILE --module ORIGINAL_NAME\n  {command} generate --input FILE --module ORIGINAL_NAME --output FILE\n  {command} audit-win16 --module USER --spec FILE\n  {command} probe --output FILE [--format com|mz]\n  {command} vga-probe --output FILE\n  {command} win16-dialog-probe --output FILE\n  {command} win16-modeless-probe --output FILE\n  {command} win16-font-families-probe --output FILE\n  {command} win16-outline-metrics-probe --output FILE\n  {command} win16-user-queries-probe --output FILE")
+    format!("usage:\n  {command} inspect --input FILE --module ORIGINAL_NAME\n  {command} generate --input FILE --module ORIGINAL_NAME --output FILE\n  {command} audit-win16 --module USER --spec FILE\n  {command} probe --output FILE [--format com|mz]\n  {command} vga-probe --output FILE\n  {command} win16-dialog-probe --output FILE\n  {command} win16-modeless-probe --output FILE\n  {command} win16-font-families-probe --output FILE\n  {command} win16-outline-metrics-probe --output FILE\n  {command} win16-user-queries-probe --output FILE\n  {command} win16-local-handle-delta-probe --output FILE")
 }

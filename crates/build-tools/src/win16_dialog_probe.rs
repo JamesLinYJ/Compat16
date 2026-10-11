@@ -38,7 +38,8 @@ pub(super) fn build_image_with_import(
     module: &[u8],
     resources: bool,
 ) -> Result<Vec<u8>, ProbeBuildError> {
-    if module.is_empty() || module.len() > 4 || code.len() > u16::MAX as usize
+    // Import-name bytes must end before the empty entry table at NE+0xa0.
+    if module.is_empty() || module.len() > 0xa0 - 0x94 || code.len() > u16::MAX as usize
         || data_length == 0 || data_length > 0x1000 || fixups.len() > u16::MAX as usize {
         return Err(build_error("invalid generated Win16 probe layout"));
     }

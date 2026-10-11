@@ -221,6 +221,12 @@ function Invoke-ProbeCase {
         }
         Write-Host ('Measured query size was ' + $(if ($queryParity[0].Groups[1].Value -eq '1') { 'odd (stored size rounded up by one).' } else { 'even (stored size unchanged); this font did not exercise an odd query.' }))
         Write-Host 'PASS: generated outline metrics NE guest measured an owned selected TrueType font through GDI308 (NULL, partial, full), asserted packed114 layout, bounded relative names, rounded size and buffer/caller canaries, then restored/deleted its font and DC.'
+    } elseif ($Name -eq 'local-handle-delta') {
+        $outputEvidence = $stdoutRead.GetAwaiter().GetResult()
+        if ([regex]::Matches($outputEvidence, '(?m)^L1\r?$').Count -ne 1) {
+            throw 'Missing unique L1 evidence from the local handle delta guest.'
+        }
+        Write-Host 'PASS: generated local heap NE guest verified KERNEL310 query/set, bounded small-heap allocation, movable handle expansion, payload access, unlock/free and caller canaries.'
     } elseif ($Module -eq 'GDI') {
         Write-Host "PASS: generated $Name NE guest exited zero with exact GDI52/330/68 service counts and guest-executed font callback assertions; font callbacks have no dedicated trace marker."
     } elseif ($Name -eq 'user-queries') {
@@ -275,6 +281,14 @@ try {
         throw 'Visual Studio developer command script was not found.'
     }
     $cases = @(
+        @{
+            Name = 'local-handle-delta'
+            Generator = 'win16-local-handle-delta-probe'
+            ProgramName = 'DELTA.EXE'
+            ServiceCounts = [ordered]@{ '4' = 1; '310' = 5; '5' = 4; '8' = 1; '9' = 1; '7' = 3 }
+            InitializationCount = 0
+            Module = 'KERNEL'
+        },
         @{
             Name = 'modal'
             Generator = 'win16-dialog-probe'
