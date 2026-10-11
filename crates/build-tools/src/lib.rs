@@ -3,12 +3,6 @@
 mod audit;
 mod probe;
 mod vga_probe;
-mod win16_dialog_probe;
-mod win16_modeless_probe;
-mod win16_font_families_probe;
-mod win16_user_queries_probe;
-mod win16_outline_metrics_probe;
-mod win16_local_handle_delta_probe;
 pub mod spec;
 
 pub use audit::{audit_win16_module, Win16AuditReport};
@@ -16,12 +10,6 @@ pub use probe::{
     dos_probe_bytes, probe_file_contents, probe_file_name, ProbeBuildError, ProbeFormat,
 };
 pub use vga_probe::{vga_probe_bytes, VGA_PROBE_FILE_CONTENTS, VGA_PROBE_FILE_NAME};
-pub use win16_dialog_probe::win16_dialog_probe_bytes;
-pub use win16_modeless_probe::win16_modeless_probe_bytes;
-pub use win16_font_families_probe::win16_font_families_probe_bytes;
-pub use win16_user_queries_probe::win16_user_queries_probe_bytes;
-pub use win16_outline_metrics_probe::win16_outline_metrics_probe_bytes;
-pub use win16_local_handle_delta_probe::win16_local_handle_delta_probe_bytes;
 pub use spec::{generate_rust, parse_spec, SpecEntry, SpecModule, SpecParseError};
 pub use abi_schema::ExportAttributes;
 

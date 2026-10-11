@@ -188,10 +188,6 @@ pub(super) struct CodeBuilder {
 }
 
 impl CodeBuilder {
-    pub(super) fn position(&self) -> usize {
-        self.bytes.len()
-    }
-
     pub(super) fn emit(&mut self, bytes: &[u8]) {
         self.bytes.extend_from_slice(bytes);
     }
