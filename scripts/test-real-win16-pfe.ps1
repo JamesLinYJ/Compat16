@@ -59,6 +59,8 @@ $result = [ordered]@{
     instructionLimit = $InstructionLimit; timeoutSeconds = $TimeoutSeconds
     sourceCommit = $env:GITHUB_SHA; exitCode = $null; elapsedMilliseconds = $null
     processTreeCleaned = $false; initTaskCrossing = $false; warnings = @(); error = $null
+    sourceOutcome = 'not-attempted'; sourceVerified = $false; sourceAttempts = @()
+    sourceDnsObservation = $null; executionAttempted = $false
 }
 function Protect-ResultText([string]$Text) {
     foreach ($pair in @(@($scratch, '<fixture>'), @($repositoryRoot, '<repository>'),
@@ -69,28 +71,122 @@ function Protect-ResultText([string]$Text) {
     }
     return $Text
 }
+function Get-SourceFailure([Exception]$Exception) {
+    $tls = $false; $timeout = $false; $dns = $false; $socketError = $null
+    # PowerShell's MethodInvocationException and Task's AggregateException can
+    # wrap HttpRequestException. Classification never matches localized text.
+    for ($cause = $Exception; $null -ne $cause; $cause = $cause.InnerException) {
+        if ($cause -is [Security.Authentication.AuthenticationException]) { $tls = $true }
+        if ($cause -is [TimeoutException] -or $cause -is [OperationCanceledException]) { $timeout = $true }
+        if ($cause -is [Net.Sockets.SocketException]) { $socketError = $cause.SocketErrorCode.ToString() }
+        $requestError = $cause.PSObject.Properties['HttpRequestError']
+        if ($null -ne $requestError) {
+            if ([string]$requestError.Value -eq 'SecureConnectionError') { $tls = $true }
+            if ([string]$requestError.Value -eq 'NameResolutionError') { $dns = $true }
+        }
+    }
+    $outcome = 'nonretryable-source-failure'; $retryable = $false
+    if ($tls) { $outcome = 'tls-rejected' }
+    elseif ($timeout -or $socketError -eq 'TimedOut') { $outcome = 'timeout'; $retryable = $true }
+    elseif ($socketError -in @('HostNotFound', 'TryAgain', 'NoData') -or ($dns -and $null -eq $socketError)) {
+        $outcome = 'dns-failure'; $retryable = $true
+    } elseif ($socketError -in @('NetworkDown', 'NetworkUnreachable', 'NetworkReset',
+            'ConnectionAborted', 'ConnectionReset', 'ConnectionRefused', 'HostDown', 'HostUnreachable')) {
+        $outcome = 'connection-failure'; $retryable = $true
+    }
+    $message = Protect-ResultText $Exception.Message
+    if ($message.Length -gt 1500) { $message = $message.Substring(0, 1500) }
+    return [pscustomobject]@{ outcome = $outcome; retryable = $retryable
+        exceptionType = $Exception.GetType().FullName; socketError = $socketError; error = $message }
+}
+function Get-SourceDnsObservation {
+    $observation = [ordered]@{ host = ([Uri]$source).DnsSafeHost; outcome = 'timeout'
+        ipv4Count = 0; ipv6Count = 0; error = $null }
+    try {
+        # Observe the same system resolver only; never select an address,
+        # change DNS/network settings, or use another host for the download.
+        $lookup = [Net.Dns]::GetHostAddressesAsync($observation.host)
+        if ($lookup.Wait(3000)) {
+            $addresses = @($lookup.GetAwaiter().GetResult())
+            $observation.outcome = if ($addresses.Count) { 'resolved' } else { 'no-addresses' }
+            $observation.ipv4Count = @($addresses | Where-Object AddressFamily -eq InterNetwork).Count
+            $observation.ipv6Count = @($addresses | Where-Object AddressFamily -eq InterNetworkV6).Count
+        }
+        # A timed-out observation does not claim the OS lookup was canceled.
+    } catch {
+        $failure = Get-SourceFailure $_.Exception
+        $observation.outcome = $failure.outcome
+        $observation.error = $failure.error
+    }
+    return $observation
+}
 
 try {
     # No redirects, credentials, alternate mirrors, certificate bypass, or
-    # unbounded response buffering. Hash drift/source outage fail before launch.
-    $handler = [Net.Http.HttpClientHandler]::new()
-    $handler.AllowAutoRedirect = $false
-    $handler.UseDefaultCredentials = $false
-    $client = [Net.Http.HttpClient]::new($handler)
-    $client.Timeout = [TimeSpan]::FromSeconds(45)
-    $client.MaxResponseContentBufferSize = 558157
-    try {
-        $response = $client.GetAsync($source).GetAwaiter().GetResult()
+    # unbounded response buffering. Only typed transport/DNS/timeouts retry.
+    # Three <=16s observed attempts + 2/4s delays + one <=3s DNS observation
+    # leave room for the default 30s guest run inside the 3-minute CI step.
+    $archiveBytes = $null
+    for ($number = 1; $number -le 3; $number++) {
+        $attempt = [ordered]@{ number = $number; source = $source
+            startedUtc = [DateTime]::UtcNow.ToString('o'); elapsedMilliseconds = $null
+            outcome = 'requesting'; retryable = $false; httpStatus = $null
+            exceptionType = $null; socketError = $null; error = $null }
+        $timer = [Diagnostics.Stopwatch]::StartNew()
+        $handler = [Net.Http.HttpClientHandler]::new()
+        $handler.AllowAutoRedirect = $false
+        $handler.UseDefaultCredentials = $false
+        $client = [Net.Http.HttpClient]::new($handler)
+        $client.Timeout = [TimeSpan]::FromSeconds(15)
+        $client.MaxResponseContentBufferSize = 558157
+        $response = $null
         try {
-            if ([int]$response.StatusCode -ne 200 -or $response.Content.Headers.ContentLength -ne 558157) {
+            # GetAsync buffers the complete bounded body. The outer timed wait
+            # also bounds the caller if a platform DNS cancellation is delayed.
+            $request = $client.GetAsync($source)
+            if (-not $request.Wait(16000)) { throw [TimeoutException]::new('Source request exceeded its observation deadline.') }
+            $response = $request.GetAwaiter().GetResult()
+            $attempt.httpStatus = [int]$response.StatusCode
+            if ($attempt.httpStatus -ne 200) {
+                $attempt.outcome = 'http-rejected'
+                throw [IO.InvalidDataException]::new('Source returned an unexpected HTTP status; no redirect or status retry is allowed.')
+            }
+            if ($response.Content.Headers.ContentLength -ne 558157) {
+                $attempt.outcome = 'size-rejected'
                 throw 'Source response is not the pinned 558157-byte archive.'
             }
             $archiveBytes = $response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult()
-        } finally { $response.Dispose() }
-    } finally { $client.Dispose() }
+            $attempt.outcome = 'downloaded'
+        } catch {
+            $archiveBytes = $null
+            $failure = Get-SourceFailure $_.Exception
+            if ($attempt.outcome -eq 'requesting') {
+                $attempt.outcome = $failure.outcome
+                $attempt.retryable = $failure.retryable
+            }
+            $attempt.exceptionType = $failure.exceptionType
+            $attempt.socketError = $failure.socketError
+            $attempt.error = $failure.error
+        } finally {
+            if ($null -ne $response) { $response.Dispose() }
+            $client.Dispose()
+            $attempt.elapsedMilliseconds = $timer.ElapsedMilliseconds
+            $result.sourceAttempts += [pscustomobject]$attempt
+            $result.sourceOutcome = $attempt.outcome
+            Write-Host ("PFE source attempt {0}/3: {1}" -f $number, $attempt.outcome)
+        }
+        if ($attempt.outcome -eq 'downloaded') { break }
+        if (-not $attempt.retryable -or $number -eq 3) {
+            $result.status = if ($attempt.retryable) { 'source-unavailable' } else { 'source-rejected' }
+            if ($attempt.retryable) { $result.sourceDnsObservation = Get-SourceDnsObservation }
+            throw "PFE source retrieval stopped before execution: $($attempt.outcome). $($attempt.error)"
+        }
+        Start-Sleep -Seconds (2 * $number)
+    }
     $archivePath = Join-Path $scratch 'pfe101.zip'
     [IO.File]::WriteAllBytes($archivePath, $archiveBytes)
     if ($archiveBytes.Length -ne 558157 -or (Get-FileHash -LiteralPath $archivePath).Hash -ine $archiveHash) {
+        $result.status = 'source-rejected'; $result.sourceOutcome = 'integrity-rejected'
         throw 'Archive identity mismatch; refusing extraction and execution.'
     }
     $members = @{
@@ -137,6 +233,8 @@ try {
     foreach ($name in $members.Keys) {
         [IO.File]::Copy((Join-Path $originalDirectory $name), (Join-Path $workingDirectory $name), $false)
     }
+    $result.sourceVerified = $true
+    $result.sourceOutcome = 'fixture-verified'
 
     # Atomic job assignment at creation also covers parent cancellation before
     # CreateProcess returns. The handle allowlist excludes the job/CI handles.
@@ -312,6 +410,8 @@ namespace Compat16.PfeProbe {
     )
     $arguments = @('--max-instructions', [string]$InstructionLimit, '--trace-file', $failureTrace,
         '--trace-win16-io', $serviceTrace, (Join-Path $workingDirectory 'PFE.EXE'))
+    # True means entering the launch attempt, not proof guest instructions ran.
+    $result.executionAttempted = $true
     $run = [Compat16.PfeProbe.ContainedProcess]::Run((Join-Path $runtimeDirectory 'compat16.exe'),
         $arguments, $workingDirectory, $childEnvironment, @($stdout, $stderr, $failureTrace, $serviceTrace), $TimeoutSeconds)
     $result.exitCode = $run.ExitCode
@@ -357,7 +457,7 @@ namespace Compat16.PfeProbe {
         } else { $result.status = 'runtime-failed-or-evidence-incomplete' }
     }
 } catch {
-    $result.status = 'harness-failed'
+    if ($result.status -notin @('source-unavailable', 'source-rejected')) { $result.status = 'harness-failed' }
     $result.error = Protect-ResultText $_.Exception.Message
 } finally {
     # Deliberate text-only allowlist. No ZIP, guest binary/help/license copy,

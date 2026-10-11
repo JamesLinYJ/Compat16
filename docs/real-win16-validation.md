@@ -20,6 +20,21 @@ The script downloads only the author's HTTPS URL, rejects redirects, and pins:
 
 These are independently observed hashes, not an author signature. Source outage,
 changed bytes or unexpected archive entries stop the probe before execution.
+The same exact HTTPS URL is tried at most three times, only after typed DNS,
+transient socket or timeout failures. Each request has a 15-second timeout and
+a 16-second outer observation deadline; retry delays are two and four seconds.
+TLS validation failures, HTTP statuses (including redirects), unexpected sizes
+and hash mismatches are not retried. There are no fallback mirrors, forced IPs,
+certificate overrides or DNS/network configuration changes.
+
+After transport retries are exhausted, one three-second DNS observation records
+whether the same system resolver resolves the same hostname, including address
+family counts or a failure/timeout. It does not select a download address or
+claim an OS lookup stopped when the observation timed out. Request disposal
+cancels unfinished HTTP work. The default download/retry/observation budget is
+under one minute, leaving room for the default runtime limit in the workflow's
+three-minute diagnostic step. A persistent source failure still fails the step.
+
 PFE.EXE is MZ/NE, with its NE header at `0x400`, Windows target 2, expected Windows
 version `0x030A`, 100 segments and startup entry segment 98, offset `0x001A`.
 Its first imported startup call is KERNEL.91 InitTask. Its 289 distinct imports
@@ -91,7 +106,7 @@ The parser follows the existing CLI and trace formats in
 failure, not an inferred pass. Uncalled-import warnings remain in the result and
 console. Their presence neither proves nor disproves the bounded prefix.
 
-`compatibility-gap`, `guest-fault`, `timeout`, `output-limit`,
+`source-unavailable`, `source-rejected`, `compatibility-gap`, `guest-fault`, `timeout`, `output-limit`,
 `early-exit-inconclusive`, missing evidence and harness failures all fail the
 diagnostic step. Do not turn them into a compatibility pass with
 `continue-on-error` or a baseline of arbitrary failure messages.
@@ -109,6 +124,11 @@ that directory on success or failure, provided the directory output exists,
 and retains it for three days. The allowlist contains `result.json`, stdout/stderr,
 the bounded failure trace and service trace. The result records architecture,
 source commit, hashes, outcome, limits, exit status, warnings and cleanup status.
+Source attempt receipts include the exact URL, time, typed failure classification
+and bounded error text. `sourceVerified` records completion of all fixture checks;
+`executionAttempted` stays false for source-only failures. A true execution-attempt
+flag means the harness entered its launch attempt, not that guest instructions
+ran. A source retrieval failure provides no evidence about Win16 compatibility.
 Artifacts are named by architecture and run attempt. Preflight failures before
 the output exists remain visible in the step log; no empty upload path is used.
 Never upload the parent directory, arbitrary app-created files, or guest-memory
