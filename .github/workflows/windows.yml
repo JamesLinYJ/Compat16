@@ -177,8 +177,26 @@ jobs:
             '-p runtime --lib terminal_ownerless_far_callback_requires_complete_return_and_exact_top',
             '-p host-services --lib enum_font_families',
             '-p runtime --lib scroll_dc',
-            '-p host-services --lib scroll_dc'
+            '-p host-services --lib scroll_dc',
+            '-p runtime --lib temp_drive::tests::',
+            '-p runtime --lib get_temp_drive_tests::',
+            '-p runtime --lib files::open_file_tests::',
+            '-p host-services --lib windows::win16_open_file::tests::',
+            '-p host-services --lib windows::win16_gdi_services::dbcs_tests::',
+            '-p runtime --lib gdi_services::wire_tests::',
+            '-p runtime --lib win16_runtime::task_state::tests::'
           )
+          # Keep focused additions visible: a renamed filter must not silently
+          # succeed after selecting zero tests.
+          $expectedPassCounts = @{
+            '-p runtime --lib temp_drive::tests::' = 6
+            '-p runtime --lib get_temp_drive_tests::' = 6
+            '-p runtime --lib files::open_file_tests::' = 7
+            '-p host-services --lib windows::win16_open_file::tests::' = 14
+            '-p host-services --lib windows::win16_gdi_services::dbcs_tests::' = 5
+            '-p runtime --lib gdi_services::wire_tests::' = 2
+            '-p runtime --lib win16_runtime::task_state::tests::' = 7
+          }
           $failedSuites = @()
           $runtimeCompileChecked = $false
           $runtimeCompileExitCode = 0
@@ -203,8 +221,18 @@ jobs:
             }
             Write-Host "::group::cargo test $suite"
             $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} {4}' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $suite
-            & $env:ComSpec /d /c $command
-            $testExitCode = $LASTEXITCODE
+            if ($expectedPassCounts.ContainsKey($suite)) {
+              $suiteOutput = @(& $env:ComSpec /d /c $command 2>&1)
+              $testExitCode = $LASTEXITCODE
+              $suiteOutput | ForEach-Object { Write-Host $_ }
+              $expected = $expectedPassCounts[$suite]
+              if (($suiteOutput -join "`n") -notmatch "test result: ok\. $expected passed; 0 failed; 0 ignored;") {
+                $failedSuites += "$suite (expected $expected executed tests)"
+              }
+            } else {
+              & $env:ComSpec /d /c $command
+              $testExitCode = $LASTEXITCODE
+            }
             Write-Host '::endgroup::'
             if ($testExitCode -ne 0) {
               $failedSuites += "$suite (exit $testExitCode)"
