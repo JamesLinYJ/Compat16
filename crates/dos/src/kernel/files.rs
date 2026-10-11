@@ -179,6 +179,23 @@ impl DosKernel {
                 return Ok(DosAction::Continue);
             }
         };
+        if let Handle::File(_) = target {
+            // DOS 4 checks the SFT access mode before its zero-count shortcut.
+            // https://github.com/microsoft/MS-DOS/blob/main/v4.0/src/DOS/DISK.ASM#L153-L165
+            // Use the owned mode, never the guest-writable SFT projection.
+            let error = match self.file_table.file_open_mode(handle_id) {
+                Some(mode) => match mode & u16::from(OPEN_ACCESS_MASK) {
+                    0 | 2 => None,
+                    1 => Some(DosErrorCode::AccessDenied),
+                    _ => Some(DosErrorCode::InvalidAccess),
+                },
+                None => Some(DosErrorCode::InvalidHandle),
+            };
+            if let Some(error) = error {
+                Self::failure(regs, DosHostError::new(error));
+                return Ok(DosAction::Continue);
+            }
+        }
         let pointer = if count == 0 {
             None
         } else {

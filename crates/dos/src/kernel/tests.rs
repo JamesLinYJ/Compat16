@@ -1356,3 +1356,6 @@ mod search_exhaustion_tests;
 
 #[path = "file_seek_tests.rs"]
 mod file_seek_tests;
+
+#[path = "file_read_access_tests.rs"]
+mod file_read_access_tests;
