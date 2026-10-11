@@ -12,9 +12,9 @@ impl Win16State {
         return_kind: Win16ReturnKind,
         text: Option<Vec<u8>>, return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
-        if return_kind != Win16ReturnKind::Word {
+        if return_kind != Win16ReturnKind::Void {
             return Err(RuntimeError::new(Kind::InternalInvariant,
-                "Win16 SetWindowText descriptor must return a WORD"));
+                "Win16 SetWindowText descriptor must return void"));
         }
         let Some(&window) = self.window_handles.get(&window) else {
             return self.complete_return(registers, return_to.0, return_to.1,

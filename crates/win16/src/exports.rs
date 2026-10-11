@@ -531,3 +531,7 @@ pub fn lookup_export(
             && descriptor.id.ordinal() == declaration.ordinal
     })
 }
+
+#[cfg(test)]
+#[path = "exports/call_void_text_region_tests.rs"]
+mod void_text_region_tests;

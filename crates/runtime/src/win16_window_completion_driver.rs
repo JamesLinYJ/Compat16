@@ -252,7 +252,9 @@ impl Win16State {
                                 *phase = super::operation_frame::WindowTextSetProjectionPhase::ReturnReady;
                             }
                             *phase = super::operation_frame::WindowTextSetProjectionPhase::Complete;
-                            Ok((u32::from(*succeeded), Win16ReturnKind::Word))
+                            // Native success remains in the retained host result; the
+                            // Win16 API has no guest-visible return value.
+                            Ok((u32::from(*succeeded), Win16ReturnKind::Void))
                         }
                         (
                             WindowReturn::GetWindowTextLength,

@@ -583,3 +583,7 @@ impl Win16State {
 #[cfg(test)]
 #[path = "win16_gdi_rectangle_predicate_tests.rs"]
 mod rectangle_predicate_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_set_rect_rgn_tests.rs"]
+mod set_rect_rgn_tests;
