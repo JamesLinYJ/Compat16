@@ -1,723 +1,143 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "NDDEAPI"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/nddeapi.spec", note = "spec" }
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 100
-declared_name = "NDdeShareAdd"
 name = "NDdeShareAdd"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "word", "pointer", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 101
-declared_name = "NDdeShareDel"
 name = "NDdeShareDel"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "string", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 3
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "string", "word"] }
+evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 102
-declared_name = "NDdeShareEnum"
 name = "NDdeShareEnum"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "string",
-  "word",
-  "pointer",
-  "long",
-  "pointer",
-  "pointer",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "word", "pointer", "long", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 103
-declared_name = "NDdeShareGetInfo"
 name = "NDdeShareGetInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "string",
-  "string",
-  "word",
-  "pointer",
-  "long",
-  "pointer",
-  "pointer",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "string", "word", "pointer", "long", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 104
-declared_name = "NDdeShareSetInfo"
 name = "NDdeShareSetInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "string",
-  "string",
-  "word",
-  "pointer",
-  "long",
-  "word",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "string", "word", "pointer", "long", "word"] }
+evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 105
-declared_name = "NDdeGetClientInfo"
 name = "NDdeGetClientInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "string",
-  "long",
-  "string",
-  "long",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "string", "long", "string", "long"] }
+evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 106
-declared_name = "NDdeGetNodeName"
 name = "NDdeGetNodeName"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "long"] }
+evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 107
-declared_name = "NDdeGetErrorString"
 name = "NDdeGetErrorString"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "string", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "string", "long"] }
+evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 108
-declared_name = "NDdeConnectionEnum"
 name = "NDdeConnectionEnum"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "string",
-  "string",
-  "long",
-  "word",
-  "pointer",
-  "long",
-  "pointer",
-  "pointer",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "string", "long", "word", "pointer", "long", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 109
-declared_name = "NDdeIsValidShareName"
 name = "NDdeIsValidShareName"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string"] }
+evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 110
-declared_name = "NDdeIsValidPassword"
 name = "NDdeIsValidPassword"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string"] }
+evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 111
-declared_name = "NDdeIsValidTopic"
 name = "NDdeIsValidTopic"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string"] }
+evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 112
-declared_name = "NDdeSessionEnum"
 name = "NDdeSessionEnum"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "string",
-  "word",
-  "pointer",
-  "long",
-  "pointer",
-  "pointer",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "word", "pointer", "long", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 113
-declared_name = "NDdeSessionClose"
 name = "NDdeSessionClose"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "string", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "string", "long"] }
+evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 114
-declared_name = "NDdeGetWindow"
 name = "NDdeGetWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 115
-declared_name = "NDDEISSHARINGALLOWED"
 name = "NDDEISSHARINGALLOWED"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [] }
+evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 200
-declared_name = "PASSWORDGETFROMUSERMODELESS"
 name = "PASSWORDGETFROMUSERMODELESS"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 18
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [] }
+evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 201
-declared_name = "PASSWORDGETFROMCACHE"
 name = "PASSWORDGETFROMCACHE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 19
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [] }
+evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 202
-declared_name = "PASSWORDADDTOCACHE"
 name = "PASSWORDADDTOCACHE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 20
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [] }
+evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 203
-declared_name = "GETCURRENTUSERDOMAINNAME"
 name = "GETCURRENTUSERDOMAINNAME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 21
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [] }
+evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 204
-declared_name = "PASSWDDLGWB"
 name = "PASSWDDLGWB"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 22
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [] }
+evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
-module = "NDDEAPI"
 ordinal = 205
-declared_name = "PASSWDDLGNT"
 name = "PASSWDDLGNT"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/nddeapi.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [] }
+evidence = [{ source = "spec", line = 23 }]

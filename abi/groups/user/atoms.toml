@@ -1,232 +1,52 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "USER"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/user.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "USER"
 ordinal = 268
-declared_name = "GlobalAddAtom"
 name = "GlobalAddAtom"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGlobalAddAtom"
-id_value = 247
-constant = "USER_GLOBAL_ADD_ATOM"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 273
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 324
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGlobalAddAtom", id_value = 247, constant = "USER_GLOBAL_ADD_ATOM" }
+evidence = [{ source = "spec", line = 273 }, { source = "binding", line = 324 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "atom_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "AtomName"
+params = [
+  { name = "atom_name", type = "AtomName" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 269
-declared_name = "GlobalDeleteAtom"
 name = "GlobalDeleteAtom"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGlobalDeleteAtom"
-id_value = 248
-constant = "USER_GLOBAL_DELETE_ATOM"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 274
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 325
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGlobalDeleteAtom", id_value = 248, constant = "USER_GLOBAL_DELETE_ATOM" }
+evidence = [{ source = "spec", line = 274 }, { source = "binding", line = 325 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "atom"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "atom", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 270
-declared_name = "GlobalFindAtom"
 name = "GlobalFindAtom"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGlobalFindAtom"
-id_value = 249
-constant = "USER_GLOBAL_FIND_ATOM"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 275
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 326
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGlobalFindAtom", id_value = 249, constant = "USER_GLOBAL_FIND_ATOM" }
+evidence = [{ source = "spec", line = 275 }, { source = "binding", line = 326 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "atom_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "AtomName"
+params = [
+  { name = "atom_name", type = "AtomName" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 271
-declared_name = "GlobalGetAtomName"
 name = "GlobalGetAtomName"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "signed_word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGlobalGetAtomName"
-id_value = 250
-constant = "USER_GLOBAL_GET_ATOM_NAME"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 276
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 327
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGlobalGetAtomName", id_value = 250, constant = "USER_GLOBAL_GET_ATOM_NAME" }
+evidence = [{ source = "spec", line = 276 }, { source = "binding", line = 327 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "atom"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "buffer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "capacity"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "atom", type = "U16" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16" },
+]

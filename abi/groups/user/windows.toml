@@ -1,5513 +1,1068 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "USER"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/user.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "USER"
 ordinal = 7
-declared_name = "ExitWindows"
 name = "ExitWindows"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserExitWindows"
-id_value = 575
-constant = "USER_EXIT_WINDOWS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 662
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserExitWindows", id_value = 575, constant = "USER_EXIT_WINDOWS" }
+evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 662 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "return_code"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "reserved"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "return_code", type = "U32" },
+  { name = "reserved", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 17
-declared_name = "GetCursorPos"
 name = "GetCursorPos"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetCursorPos"
-id_value = 518
-constant = "USER_GET_CURSOR_POS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 599
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetCursorPos", id_value = 518, constant = "USER_GET_CURSOR_POS" }
+evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 599 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "point"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "point", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 24
-declared_name = "RemoveProp"
 name = "RemoveProp"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserRemoveProp"
-id_value = 69
-constant = "USER_REMOVE_PROP"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 143
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserRemoveProp", id_value = 69, constant = "USER_REMOVE_PROP" }
+evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 143 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "AtomName"
+params = [
+  { name = "window", type = "U16" },
+  { name = "name", type = "AtomName", encoding = "pointer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 25
-declared_name = "GetProp"
 name = "GetProp"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetProp"
-id_value = 70
-constant = "USER_GET_PROP"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 24
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 144
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetProp", id_value = 70, constant = "USER_GET_PROP" }
+evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 144 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "AtomName"
+params = [
+  { name = "window", type = "U16" },
+  { name = "name", type = "AtomName" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 26
-declared_name = "SetProp"
 name = "SetProp"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "string", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetProp"
-id_value = 71
-constant = "USER_SET_PROP"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 25
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 145
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetProp", id_value = 71, constant = "USER_SET_PROP" }
+evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 145 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "AtomName"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "name", type = "AtomName" },
+  { name = "data", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 27
-declared_name = "EnumProps"
 name = "EnumProps"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserEnumProps"
-id_value = 75
-constant = "USER_ENUM_PROPS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 26
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 149
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserEnumProps", id_value = 75, constant = "USER_ENUM_PROPS" }
+evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 149 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "callback"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
+params = [
+  { name = "window", type = "U16" },
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 28
-declared_name = "ClientToScreen"
 name = "ClientToScreen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserClientToScreen"
-id_value = 516
-constant = "USER_CLIENT_TO_SCREEN"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 27
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 596
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserClientToScreen", id_value = 516, constant = "USER_CLIENT_TO_SCREEN" }
+evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 596 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "point"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "window", type = "U16" },
+  { name = "point", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 29
-declared_name = "ScreenToClient"
 name = "ScreenToClient"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserScreenToClient"
-id_value = 527
-constant = "USER_SCREEN_TO_CLIENT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 28
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 609
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserScreenToClient", id_value = 527, constant = "USER_SCREEN_TO_CLIENT" }
+evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 609 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "point"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "window", type = "U16" },
+  { name = "point", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 30
-declared_name = "WindowFromPoint"
 name = "WindowFromPoint"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserWindowFromPoint"
-id_value = 532
-constant = "USER_WINDOW_FROM_POINT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 29
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 615
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserWindowFromPoint", id_value = 532, constant = "USER_WINDOW_FROM_POINT" }
+evidence = [{ source = "spec", line = 29 }, { source = "binding", line = 615 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "point"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "point", type = "U32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 31
-declared_name = "IsIconic"
 name = "IsIconic"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserIsIconic"
-id_value = 533
-constant = "USER_IS_ICONIC"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 30
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 616
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserIsIconic", id_value = 533, constant = "USER_IS_ICONIC" }
+evidence = [{ source = "spec", line = 30 }, { source = "binding", line = 616 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 32
-declared_name = "GetWindowRect"
 name = "GetWindowRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetWindowRect"
-id_value = 534
-constant = "USER_GET_WINDOW_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 31
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 617
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetWindowRect", id_value = 534, constant = "USER_GET_WINDOW_RECT" }
+evidence = [{ source = "spec", line = 31 }, { source = "binding", line = 617 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "window", type = "U16" },
+  { name = "rect", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 33
-declared_name = "GetClientRect"
 name = "GetClientRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetClientRect"
-id_value = 535
-constant = "USER_GET_CLIENT_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 32
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 618
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetClientRect", id_value = 535, constant = "USER_GET_CLIENT_RECT" }
+evidence = [{ source = "spec", line = 32 }, { source = "binding", line = 618 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "window", type = "U16" },
+  { name = "rect", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 34
-declared_name = "EnableWindow"
 name = "EnableWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserEnableWindow"
-id_value = 536
-constant = "USER_ENABLE_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 33
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 619
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserEnableWindow", id_value = 536, constant = "USER_ENABLE_WINDOW" }
+evidence = [{ source = "spec", line = 33 }, { source = "binding", line = 619 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "enable"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "enable", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 35
-declared_name = "IsWindowEnabled"
 name = "IsWindowEnabled"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserIsWindowEnabled"
-id_value = 537
-constant = "USER_IS_WINDOW_ENABLED"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 34
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 620
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserIsWindowEnabled", id_value = 537, constant = "USER_IS_WINDOW_ENABLED" }
+evidence = [{ source = "spec", line = 34 }, { source = "binding", line = 620 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 36
-declared_name = "GetWindowText"
 name = "GetWindowText"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetWindowText"
-id_value = 477
-constant = "USER_GET_WINDOW_TEXT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 35
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 557
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetWindowText", id_value = 477, constant = "USER_GET_WINDOW_TEXT" }
+evidence = [{ source = "spec", line = 35 }, { source = "binding", line = 557 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "output", type = "FarOutputBuffer", encoding = "segmented_pointer" },
+  { name = "count", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 37
-declared_name = "SetWindowText"
 name = "SetWindowText"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetWindowText"
-id_value = 478
-constant = "USER_SET_WINDOW_TEXT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 36
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 558
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetWindowText", id_value = 478, constant = "USER_SET_WINDOW_TEXT" }
+evidence = [{ source = "spec", line = 36 }, { source = "binding", line = 558 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "text"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "NullableFarString"
+params = [
+  { name = "window", type = "U16" },
+  { name = "text", type = "NullableFarString", encoding = "segmented_string" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 38
-declared_name = "GetWindowTextLength"
 name = "GetWindowTextLength"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetWindowTextLength"
-id_value = 479
-constant = "USER_GET_WINDOW_TEXT_LENGTH"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 37
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 559
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetWindowTextLength", id_value = 479, constant = "USER_GET_WINDOW_TEXT_LENGTH" }
+evidence = [{ source = "spec", line = 37 }, { source = "binding", line = 559 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 41
-declared_name = "CreateWindow"
 name = "CreateWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "string",
-  "string",
-  "long",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "word",
-  "word",
-  "word",
-  "segmented_pointer",
-]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserCreateWindow"
-id_value = 230
-constant = "USER_CREATE_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 40
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 307
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserCreateWindow", id_value = 230, constant = "USER_CREATE_WINDOW" }
+evidence = [{ source = "spec", line = 40 }, { source = "binding", line = 307 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "class_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "ClassName"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "NullableFarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "style"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "x"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "y"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "width"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "height"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "menu"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parameter"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
+params = [
+  { name = "class_name", type = "ClassName" },
+  { name = "window_name", type = "NullableFarString" },
+  { name = "style", type = "U32" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "width", type = "I16" },
+  { name = "height", type = "I16" },
+  { name = "parent", type = "U16" },
+  { name = "menu", type = "U16" },
+  { name = "instance", type = "U16" },
+  { name = "parameter", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 42
-declared_name = "ShowWindow"
 name = "ShowWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserShowWindow"
-id_value = 232
-constant = "USER_SHOW_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 41
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 309
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserShowWindow", id_value = 232, constant = "USER_SHOW_WINDOW" }
+evidence = [{ source = "spec", line = 41 }, { source = "binding", line = 309 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "command"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "command", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 43
-declared_name = "CloseWindow"
 name = "CloseWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserCloseWindow"
-id_value = 538
-constant = "USER_CLOSE_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 43
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 622
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserCloseWindow", id_value = 538, constant = "USER_CLOSE_WINDOW" }
+evidence = [{ source = "spec", line = 43 }, { source = "binding", line = 622 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 44
-declared_name = "OpenIcon"
 name = "OpenIcon"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserOpenIcon"
-id_value = 539
-constant = "USER_OPEN_ICON"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 45
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 624
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserOpenIcon", id_value = 539, constant = "USER_OPEN_ICON" }
+evidence = [{ source = "spec", line = 45 }, { source = "binding", line = 624 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 45
-declared_name = "BringWindowToTop"
 name = "BringWindowToTop"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserBringWindowToTop"
-id_value = 541
-constant = "USER_BRING_WINDOW_TO_TOP"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 46
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 627
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserBringWindowToTop", id_value = 541, constant = "USER_BRING_WINDOW_TO_TOP" }
+evidence = [{ source = "spec", line = 46 }, { source = "binding", line = 627 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 46
-declared_name = "GetParent"
 name = "GetParent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetParent"
-id_value = 542
-constant = "USER_GET_PARENT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 47
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 628
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetParent", id_value = 542, constant = "USER_GET_PARENT" }
+evidence = [{ source = "spec", line = 47 }, { source = "binding", line = 628 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 47
-declared_name = "IsWindow"
 name = "IsWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserIsWindow"
-id_value = 543
-constant = "USER_IS_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 48
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 629
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserIsWindow", id_value = 543, constant = "USER_IS_WINDOW" }
+evidence = [{ source = "spec", line = 48 }, { source = "binding", line = 629 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 48
-declared_name = "IsChild"
 name = "IsChild"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserIsChild"
-id_value = 531
-constant = "USER_IS_CHILD"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 49
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 614
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserIsChild", id_value = 531, constant = "USER_IS_CHILD" }
+evidence = [{ source = "spec", line = 49 }, { source = "binding", line = 614 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "child"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "child", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 49
-declared_name = "IsWindowVisible"
 name = "IsWindowVisible"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserIsWindowVisible"
-id_value = 544
-constant = "USER_IS_WINDOW_VISIBLE"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 50
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 630
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserIsWindowVisible", id_value = 544, constant = "USER_IS_WINDOW_VISIBLE" }
+evidence = [{ source = "spec", line = 50 }, { source = "binding", line = 630 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 50
-declared_name = "FindWindow"
 name = "FindWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserFindWindow"
-id_value = 545
-constant = "USER_FIND_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 51
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 631
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserFindWindow", id_value = 545, constant = "USER_FIND_WINDOW" }
+evidence = [{ source = "spec", line = 51 }, { source = "binding", line = 631 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "class_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "ClassName"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "NullableFarString"
+params = [
+  { name = "class_name", type = "ClassName" },
+  { name = "window_name", type = "NullableFarString" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 53
-declared_name = "DestroyWindow"
 name = "DestroyWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserDestroyWindow"
-id_value = 547
-constant = "USER_DESTROY_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 54
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 633
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserDestroyWindow", id_value = 547, constant = "USER_DESTROY_WINDOW" }
+evidence = [{ source = "spec", line = 54 }, { source = "binding", line = 633 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 54
-declared_name = "EnumWindows"
 name = "EnumWindows"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserEnumWindows"
-id_value = 72
-constant = "USER_ENUM_WINDOWS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 55
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 146
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserEnumWindows", id_value = 72, constant = "USER_ENUM_WINDOWS" }
+evidence = [{ source = "spec", line = 55 }, { source = "binding", line = 146 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "callback"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "callback", type = "U32", encoding = "segmented_pointer" },
+  { name = "data", type = "U32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 55
-declared_name = "EnumChildWindows"
 name = "EnumChildWindows"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserEnumChildWindows"
-id_value = 73
-constant = "USER_ENUM_CHILD_WINDOWS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 56
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 147
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserEnumChildWindows", id_value = 73, constant = "USER_ENUM_CHILD_WINDOWS" }
+evidence = [{ source = "spec", line = 56 }, { source = "binding", line = 147 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "scope"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "callback"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "scope", type = "U16" },
+  { name = "callback", type = "U32", encoding = "segmented_pointer" },
+  { name = "data", type = "U32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 56
-declared_name = "MoveWindow"
 name = "MoveWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "word",
-  "word",
-  "word",
-  "word",
-]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserMoveWindow"
-id_value = 548
-constant = "USER_MOVE_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 57
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 634
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserMoveWindow", id_value = 548, constant = "USER_MOVE_WINDOW" }
+evidence = [{ source = "spec", line = 57 }, { source = "binding", line = 634 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "x"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "y"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "width"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "height"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "repaint"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "x", type = "I16", encoding = "word" },
+  { name = "y", type = "I16", encoding = "word" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+  { name = "repaint", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 57
-declared_name = "RegisterClass"
 name = "RegisterClass"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserRegisterClass"
-id_value = 228
-constant = "USER_REGISTER_CLASS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 58
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 305
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserRegisterClass", id_value = 228, constant = "USER_REGISTER_CLASS" }
+evidence = [{ source = "spec", line = 58 }, { source = "binding", line = 305 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window_class"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "window_class", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 58
-declared_name = "GetClassName"
 name = "GetClassName"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetClassName"
-id_value = 549
-constant = "USER_GET_CLASS_NAME"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 59
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 635
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetClassName", id_value = 549, constant = "USER_GET_CLASS_NAME" }
+evidence = [{ source = "spec", line = 59 }, { source = "binding", line = 635 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "capacity"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 59
-declared_name = "SetActiveWindow"
 name = "SetActiveWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetActiveWindow"
-id_value = 550
-constant = "USER_SET_ACTIVE_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 60
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 636
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetActiveWindow", id_value = 550, constant = "USER_SET_ACTIVE_WINDOW" }
+evidence = [{ source = "spec", line = 60 }, { source = "binding", line = 636 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 67
-declared_name = "GetWindowDC"
 name = "GetWindowDC"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetWindowDc"
-id_value = 244
-constant = "USER_GET_WINDOW_DC"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 68
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 321
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetWindowDc", id_value = 244, constant = "USER_GET_WINDOW_DC" }
+evidence = [{ source = "spec", line = 68 }, { source = "binding", line = 321 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 72
-declared_name = "SetRect"
 name = "SetRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "pointer",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetRect"
-id_value = 552
-constant = "USER_SET_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 73
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 638
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetRect", id_value = 552, constant = "USER_SET_RECT" }
+evidence = [{ source = "spec", line = 73 }, { source = "binding", line = 638 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "left"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "top"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "right"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bottom"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "rect", type = "FarOutputBuffer" },
+  { name = "left", type = "I16" },
+  { name = "top", type = "I16" },
+  { name = "right", type = "I16" },
+  { name = "bottom", type = "I16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 73
-declared_name = "SetRectEmpty"
 name = "SetRectEmpty"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetRectEmpty"
-id_value = 553
-constant = "USER_SET_RECT_EMPTY"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 74
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 639
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetRectEmpty", id_value = 553, constant = "USER_SET_RECT_EMPTY" }
+evidence = [{ source = "spec", line = 74 }, { source = "binding", line = 639 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "rect", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 74
-declared_name = "CopyRect"
 name = "CopyRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserCopyRect"
-id_value = 554
-constant = "USER_COPY_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 75
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 640
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserCopyRect", id_value = 554, constant = "USER_COPY_RECT" }
+evidence = [{ source = "spec", line = 75 }, { source = "binding", line = 640 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "source", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 75
-declared_name = "IsRectEmpty"
 name = "IsRectEmpty"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserIsRectEmpty"
-id_value = 555
-constant = "USER_IS_RECT_EMPTY"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 76
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 641
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserIsRectEmpty", id_value = 555, constant = "USER_IS_RECT_EMPTY" }
+evidence = [{ source = "spec", line = 76 }, { source = "binding", line = 641 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "rect", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 76
-declared_name = "PtInRect"
 name = "PtInRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserPtInRect"
-id_value = 556
-constant = "USER_PT_IN_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 77
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 642
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserPtInRect", id_value = 556, constant = "USER_PT_IN_RECT" }
+evidence = [{ source = "spec", line = 77 }, { source = "binding", line = 642 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "point"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "rect", type = "FarBuffer" },
+  { name = "point", type = "U32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 77
-declared_name = "OffsetRect"
 name = "OffsetRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "signed_word", "signed_word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserOffsetRect"
-id_value = 557
-constant = "USER_OFFSET_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 78
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 643
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserOffsetRect", id_value = 557, constant = "USER_OFFSET_RECT" }
+evidence = [{ source = "spec", line = 78 }, { source = "binding", line = 643 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "x"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "y"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "rect", type = "FarBuffer" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 78
-declared_name = "InflateRect"
 name = "InflateRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "signed_word", "signed_word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserInflateRect"
-id_value = 558
-constant = "USER_INFLATE_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 79
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 644
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserInflateRect", id_value = 558, constant = "USER_INFLATE_RECT" }
+evidence = [{ source = "spec", line = 79 }, { source = "binding", line = 644 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "x"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "y"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "rect", type = "FarBuffer" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 79
-declared_name = "IntersectRect"
 name = "IntersectRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserIntersectRect"
-id_value = 559
-constant = "USER_INTERSECT_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 80
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 645
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserIntersectRect", id_value = 559, constant = "USER_INTERSECT_RECT" }
+evidence = [{ source = "spec", line = 80 }, { source = "binding", line = 645 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source1"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source2"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "source1", type = "FarBuffer" },
+  { name = "source2", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 80
-declared_name = "UnionRect"
 name = "UnionRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserUnionRect"
-id_value = 560
-constant = "USER_UNION_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 81
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 646
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserUnionRect", id_value = 560, constant = "USER_UNION_RECT" }
+evidence = [{ source = "spec", line = 81 }, { source = "binding", line = 646 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source1"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source2"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "source1", type = "FarBuffer" },
+  { name = "source2", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 107
-declared_name = "DefWindowProc"
 name = "DefWindowProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "UserDefWindowProc"
-id_value = 217
-constant = "USER_DEF_WINDOW_PROC"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 108
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 294
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "UserDefWindowProc", id_value = 217, constant = "USER_DEF_WINDOW_PROC" }
+evidence = [{ source = "spec", line = 108 }, { source = "binding", line = 294 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "message"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "w_param"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "l_param"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I32"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 129
-declared_name = "GetClassWord"
 name = "GetClassWord"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "signed_word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetClassWord"
-id_value = 76
-constant = "USER_GET_CLASS_WORD"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 130
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 150
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetClassWord", id_value = 76, constant = "USER_GET_CLASS_WORD" }
+evidence = [{ source = "spec", line = 130 }, { source = "binding", line = 150 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "index"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "index", type = "I16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 130
-declared_name = "SetClassWord"
 name = "SetClassWord"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "signed_word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetClassWord"
-id_value = 77
-constant = "USER_SET_CLASS_WORD"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 131
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 151
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetClassWord", id_value = 77, constant = "USER_SET_CLASS_WORD" }
+evidence = [{ source = "spec", line = 131 }, { source = "binding", line = 151 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "index"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "index", type = "I16" },
+  { name = "value", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 131
-declared_name = "GetClassLong"
 name = "GetClassLong"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "signed_word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "UserGetClassLong"
-id_value = 78
-constant = "USER_GET_CLASS_LONG"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 132
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 152
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetClassLong", id_value = 78, constant = "USER_GET_CLASS_LONG" }
+evidence = [{ source = "spec", line = 132 }, { source = "binding", line = 152 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "index"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "index", type = "I16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 132
-declared_name = "SetClassLong"
 name = "SetClassLong"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "signed_word", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "UserSetClassLong"
-id_value = 79
-constant = "USER_SET_CLASS_LONG"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 133
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 153
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "UserSetClassLong", id_value = 79, constant = "USER_SET_CLASS_LONG" }
+evidence = [{ source = "spec", line = 133 }, { source = "binding", line = 153 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "index"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I32"
+params = [
+  { name = "window", type = "U16" },
+  { name = "index", type = "I16" },
+  { name = "value", type = "I32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 133
-declared_name = "GetWindowWord"
 name = "GetWindowWord"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "signed_word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetWindowWord"
-id_value = 81
-constant = "USER_GET_WINDOW_WORD"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 134
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 156
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetWindowWord", id_value = 81, constant = "USER_GET_WINDOW_WORD" }
+evidence = [{ source = "spec", line = 134 }, { source = "binding", line = 156 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "index"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "index", type = "I16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 134
-declared_name = "SetWindowWord"
 name = "SetWindowWord"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "signed_word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetWindowWord"
-id_value = 82
-constant = "USER_SET_WINDOW_WORD"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 135
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 157
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetWindowWord", id_value = 82, constant = "USER_SET_WINDOW_WORD" }
+evidence = [{ source = "spec", line = 135 }, { source = "binding", line = 157 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "index"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "index", type = "I16" },
+  { name = "value", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 135
-declared_name = "GetWindowLong"
 name = "GetWindowLong"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "signed_word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "UserGetWindowLong"
-id_value = 83
-constant = "USER_GET_WINDOW_LONG"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 136
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 158
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetWindowLong", id_value = 83, constant = "USER_GET_WINDOW_LONG" }
+evidence = [{ source = "spec", line = 136 }, { source = "binding", line = 158 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "index"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "index", type = "I16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 136
-declared_name = "SetWindowLong"
 name = "SetWindowLong"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "signed_word", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "UserSetWindowLong"
-id_value = 84
-constant = "USER_SET_WINDOW_LONG"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 137
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 159
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "UserSetWindowLong", id_value = 84, constant = "USER_SET_WINDOW_LONG" }
+evidence = [{ source = "spec", line = 137 }, { source = "binding", line = 159 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "index"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I32"
+params = [
+  { name = "window", type = "U16" },
+  { name = "index", type = "I16" },
+  { name = "value", type = "I32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 163
-declared_name = "CreateCaret"
 name = "CreateCaret"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserCreateCaret"
-id_value = 519
-constant = "USER_CREATE_CARET"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 164
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 601
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserCreateCaret", id_value = 519, constant = "USER_CREATE_CARET" }
+evidence = [{ source = "spec", line = 164 }, { source = "binding", line = 601 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "width"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "height"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "bitmap", type = "U16" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 165
-declared_name = "SetCaretPos"
 name = "SetCaretPos"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetCaretPos"
-id_value = 521
-constant = "USER_SET_CARET_POS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 166
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 603
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetCaretPos", id_value = 521, constant = "USER_SET_CARET_POS" }
+evidence = [{ source = "spec", line = 166 }, { source = "binding", line = 603 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "x"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "y"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "x", type = "I16", encoding = "word" },
+  { name = "y", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 166
-declared_name = "HideCaret"
 name = "HideCaret"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserHideCaret"
-id_value = 522
-constant = "USER_HIDE_CARET"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 167
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 604
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserHideCaret", id_value = 522, constant = "USER_HIDE_CARET" }
+evidence = [{ source = "spec", line = 167 }, { source = "binding", line = 604 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 167
-declared_name = "ShowCaret"
 name = "ShowCaret"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserShowCaret"
-id_value = 523
-constant = "USER_SHOW_CARET"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 168
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 605
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserShowCaret", id_value = 523, constant = "USER_SHOW_CARET" }
+evidence = [{ source = "spec", line = 168 }, { source = "binding", line = 605 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 170
-declared_name = "ArrangeIconicWindows"
 name = "ArrangeIconicWindows"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserArrangeIconicWindows"
-id_value = 540
-constant = "USER_ARRANGE_ICONIC_WINDOWS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 172
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 626
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserArrangeIconicWindows", id_value = 540, constant = "USER_ARRANGE_ICONIC_WINDOWS" }
+evidence = [{ source = "spec", line = 172 }, { source = "binding", line = 626 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 183
-declared_name = "GetCaretPos"
 name = "GetCaretPos"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetCaretPos"
-id_value = 524
-constant = "USER_GET_CARET_POS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 185
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 606
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetCaretPos", id_value = 524, constant = "USER_GET_CARET_POS" }
+evidence = [{ source = "spec", line = 185 }, { source = "binding", line = 606 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "point"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "point", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 191
-declared_name = "ChildWindowFromPoint"
 name = "ChildWindowFromPoint"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserChildWindowFromPoint"
-id_value = 529
-constant = "USER_CHILD_WINDOW_FROM_POINT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 193
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 612
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserChildWindowFromPoint", id_value = 529, constant = "USER_CHILD_WINDOW_FROM_POINT" }
+evidence = [{ source = "spec", line = 193 }, { source = "binding", line = 612 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "point"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "point", type = "U32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 225
-declared_name = "EnumTaskWindows"
 name = "EnumTaskWindows"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserEnumTaskWindows"
-id_value = 74
-constant = "USER_ENUM_TASK_WINDOWS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 229
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 148
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserEnumTaskWindows", id_value = 74, constant = "USER_ENUM_TASK_WINDOWS" }
+evidence = [{ source = "spec", line = 229 }, { source = "binding", line = 148 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "scope"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "callback"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "scope", type = "U16" },
+  { name = "callback", type = "U32", encoding = "segmented_pointer" },
+  { name = "data", type = "U32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 229
-declared_name = "GetTopWindow"
 name = "GetTopWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetTopWindow"
-id_value = 565
-constant = "USER_GET_TOP_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 233
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 651
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetTopWindow", id_value = 565, constant = "USER_GET_TOP_WINDOW" }
+evidence = [{ source = "spec", line = 233 }, { source = "binding", line = 651 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 230
-declared_name = "GetNextWindow"
 name = "GetNextWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetNextWindow"
-id_value = 566
-constant = "USER_GET_NEXT_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 234
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 652
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetNextWindow", id_value = 566, constant = "USER_GET_NEXT_WINDOW" }
+evidence = [{ source = "spec", line = 234 }, { source = "binding", line = 652 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "command"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "command", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 232
-declared_name = "SetWindowPos"
 name = "SetWindowPos"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "word",
-  "word",
-  "word",
-  "word",
-  "word",
-]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetWindowPos"
-id_value = 563
-constant = "USER_SET_WINDOW_POS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 236
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 649
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetWindowPos", id_value = 563, constant = "USER_SET_WINDOW_POS" }
+evidence = [{ source = "spec", line = 236 }, { source = "binding", line = 649 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "insert_after"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "x"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "y"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "width"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "height"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "flags"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "insert_after", type = "U16" },
+  { name = "x", type = "I16", encoding = "word" },
+  { name = "y", type = "I16", encoding = "word" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+  { name = "flags", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 233
-declared_name = "SetParent"
 name = "SetParent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetParent"
-id_value = 80
-constant = "USER_SET_PARENT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 238
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 155
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetParent", id_value = 80, constant = "USER_SET_PARENT" }
+evidence = [{ source = "spec", line = 238 }, { source = "binding", line = 155 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "parent", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 244
-declared_name = "EqualRect"
 name = "EqualRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserEqualRect"
-id_value = 561
-constant = "USER_EQUAL_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 249
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 647
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserEqualRect", id_value = 561, constant = "USER_EQUAL_RECT" }
+evidence = [{ source = "spec", line = 249 }, { source = "binding", line = 647 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source1"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source2"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "source1", type = "FarBuffer" },
+  { name = "source2", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 246
-declared_name = "ExitWindowsExec"
 name = "ExitWindowsExec"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserExitWindowsExec"
-id_value = 576
-constant = "USER_EXIT_WINDOWS_EXEC"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 251
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 663
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserExitWindowsExec", id_value = 576, constant = "USER_EXIT_WINDOWS_EXEC" }
+evidence = [{ source = "spec", line = 251 }, { source = "binding", line = 663 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "program"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parameters"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "NullableFarString"
+params = [
+  { name = "program", type = "FarString" },
+  { name = "parameters", type = "NullableFarString" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 258
-declared_name = "MapWindowPoints"
 name = "MapWindowPoints"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserMapWindowPoints"
-id_value = 528
-constant = "USER_MAP_WINDOW_POINTS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 263
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 611
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserMapWindowPoints", id_value = 528, constant = "USER_MAP_WINDOW_POINTS" }
+evidence = [{ source = "spec", line = 263 }, { source = "binding", line = 611 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "from"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "to"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "points"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "from", type = "U16" },
+  { name = "to", type = "U16" },
+  { name = "points", type = "FarBuffer" },
+  { name = "count", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 262
-declared_name = "GetWindow"
 name = "GetWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetWindow"
-id_value = 564
-constant = "USER_GET_WINDOW"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 267
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 650
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetWindow", id_value = 564, constant = "USER_GET_WINDOW" }
+evidence = [{ source = "spec", line = 267 }, { source = "binding", line = 650 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "command"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "command", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 265
-declared_name = "ShowOwnedPopups"
 name = "ShowOwnedPopups"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserShowOwnedPopups"
-id_value = 567
-constant = "USER_SHOW_OWNED_POPUPS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 270
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 653
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserShowOwnedPopups", id_value = 567, constant = "USER_SHOW_OWNED_POPUPS" }
+evidence = [{ source = "spec", line = 270 }, { source = "binding", line = 653 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "show"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "show", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 272
-declared_name = "IsZoomed"
 name = "IsZoomed"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserIsZoomed"
-id_value = 568
-constant = "USER_IS_ZOOMED"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 277
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 654
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserIsZoomed", id_value = 568, constant = "USER_IS_ZOOMED" }
+evidence = [{ source = "spec", line = 277 }, { source = "binding", line = 654 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 277
-declared_name = "GetDlgCtrlID"
 name = "GetDlgCtrlID"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetDlgCtrlID"
-id_value = 569
-constant = "USER_GET_DLG_CTRL_ID"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 282
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 655
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetDlgCtrlID", id_value = 569, constant = "USER_GET_DLG_CTRL_ID" }
+evidence = [{ source = "spec", line = 282 }, { source = "binding", line = 655 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 287
-declared_name = "GetLastActivePopup"
 name = "GetLastActivePopup"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetLastActivePopup"
-id_value = 571
-constant = "USER_GET_LAST_ACTIVE_POPUP"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 292
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 657
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetLastActivePopup", id_value = 571, constant = "USER_GET_LAST_ACTIVE_POPUP" }
+evidence = [{ source = "spec", line = 292 }, { source = "binding", line = 657 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 308
-declared_name = "DefDlgProc"
 name = "DefDlgProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "UserDefDlgProc"
-id_value = 218
-constant = "USER_DEF_DLG_PROC"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 309
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 295
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "UserDefDlgProc", id_value = 218, constant = "USER_DEF_DLG_PROC" }
+evidence = [{ source = "spec", line = 309 }, { source = "binding", line = 295 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "message"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "w_param"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "l_param"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I32"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 309
-declared_name = "GetClipCursor"
 name = "GetClipCursor"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetClipCursor"
-id_value = 517
-constant = "USER_GET_CLIP_CURSOR"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 310
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 598
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetClipCursor", id_value = 517, constant = "USER_GET_CLIP_CURSOR" }
+evidence = [{ source = "spec", line = 310 }, { source = "binding", line = 598 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "rect", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 370
-declared_name = "GetWindowPlacement"
 name = "GetWindowPlacement"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetWindowPlacement"
-id_value = 525
-constant = "USER_GET_WINDOW_PLACEMENT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 339
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 607
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetWindowPlacement", id_value = 525, constant = "USER_GET_WINDOW_PLACEMENT" }
+evidence = [{ source = "spec", line = 339 }, { source = "binding", line = 607 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "placement"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "window", type = "U16" },
+  { name = "placement", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 371
-declared_name = "SetWindowPlacement"
 name = "SetWindowPlacement"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSetWindowPlacement"
-id_value = 526
-constant = "USER_SET_WINDOW_PLACEMENT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 340
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 608
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSetWindowPlacement", id_value = 526, constant = "USER_SET_WINDOW_PLACEMENT" }
+evidence = [{ source = "spec", line = 340 }, { source = "binding", line = 608 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "placement"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "window", type = "U16" },
+  { name = "placement", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 373
-declared_name = "SubtractRect"
 name = "SubtractRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserSubtractRect"
-id_value = 562
-constant = "USER_SUBTRACT_RECT"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 342
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 648
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserSubtractRect", id_value = 562, constant = "USER_SUBTRACT_RECT" }
+evidence = [{ source = "spec", line = 342 }, { source = "binding", line = 648 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source1"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source2"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "source1", type = "FarBuffer" },
+  { name = "source2", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 399
-declared_name = "ChildWindowFromPointEx"
 name = "ChildWindowFromPointEx"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserChildWindowFromPointEx"
-id_value = 530
-constant = "USER_CHILD_WINDOW_FROM_POINT_EX"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 360
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 613
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserChildWindowFromPointEx", id_value = 530, constant = "USER_CHILD_WINDOW_FROM_POINT_EX" }
+evidence = [{ source = "spec", line = 360 }, { source = "binding", line = 613 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "point"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "flags"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "point", type = "U32" },
+  { name = "flags", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 403
-declared_name = "UnregisterClass"
 name = "UnregisterClass"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserUnregisterClass"
-id_value = 229
-constant = "USER_UNREGISTER_CLASS"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 363
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 306
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserUnregisterClass", id_value = 229, constant = "USER_UNREGISTER_CLASS" }
+evidence = [{ source = "spec", line = 363 }, { source = "binding", line = 306 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "class_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "ClassName"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "class_name", type = "ClassName" },
+  { name = "instance", type = "U16" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 404
-declared_name = "GetClassInfo"
 name = "GetClassInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_string", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserGetClassInfo"
-id_value = 233
-constant = "USER_GET_CLASS_INFO"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 364
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 310
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserGetClassInfo", id_value = 233, constant = "USER_GET_CLASS_INFO" }
+evidence = [{ source = "spec", line = 364 }, { source = "binding", line = 310 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "class_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "ClassName"
-
-[[exports.entry.abi.signature.parameters]]
-name = "class_info"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "class_name", type = "ClassName", encoding = "segmented_string" },
+  { name = "class_info", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 445
-declared_name = "DefFrameProc"
 name = "DefFrameProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "word",
-  "word",
-  "long",
-]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "UserDefFrameProc"
-id_value = 46
-constant = "USER_DEF_FRAME_PROC"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 396
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 120
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "UserDefFrameProc", id_value = 46, constant = "USER_DEF_FRAME_PROC" }
+evidence = [{ source = "spec", line = 396 }, { source = "binding", line = 120 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "frame"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "mdi_client"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "message"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "w_param"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "l_param"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I32"
+params = [
+  { name = "frame", type = "U16" },
+  { name = "mdi_client", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
+]
 
 [[exports]]
-module = "USER"
 ordinal = 447
-declared_name = "DefMDIChildProc"
 name = "DefMDIChildProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "UserDefMDIChildProc"
-id_value = 54
-constant = "USER_DEF_MDI_CHILD_PROC"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 398
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 128
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "UserDefMDIChildProc", id_value = 54, constant = "USER_DEF_MDI_CHILD_PROC" }
+evidence = [{ source = "spec", line = 398 }, { source = "binding", line = 128 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "message"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "w_param"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "l_param"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I32"
-
-[[exports]]
-module = "USER"
-ordinal = 451
-declared_name = "TranslateMDISysAccel"
-name = "TranslateMDISysAccel"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserTranslateMDISysAccel"
-id_value = 55
-constant = "USER_TRANSLATE_MDI_SYS_ACCEL"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 402
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 129
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "mdi_client"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "message"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports]]
-module = "USER"
-ordinal = 452
-declared_name = "CreateWindowEx"
-name = "CreateWindowEx"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "string",
-  "string",
-  "long",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "word",
-  "word",
-  "word",
-  "segmented_pointer",
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
 ]
-return_modifier = "ret16"
 
-[exports.binding]
-rust_id = "UserCreateWindowEx"
-id_value = 231
-constant = "USER_CREATE_WINDOW_EX"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 403
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 308
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+[[exports]]
+ordinal = 451
+name = "TranslateMDISysAccel"
+binding = { rust_id = "UserTranslateMDISysAccel", id_value = 55, constant = "USER_TRANSLATE_MDI_SYS_ACCEL" }
+evidence = [{ source = "spec", line = 402 }, { source = "binding", line = 129 }]
+[exports.call]
 returns = "word"
+params = [
+  { name = "mdi_client", type = "U16" },
+  { name = "message", type = "FarBuffer" },
+]
 
-[[exports.entry.abi.signature.parameters]]
-name = "ex_style"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "class_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "ClassName"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "NullableFarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "style"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "x"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "y"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "width"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "height"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "menu"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parameter"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
+[[exports]]
+ordinal = 452
+name = "CreateWindowEx"
+binding = { rust_id = "UserCreateWindowEx", id_value = 231, constant = "USER_CREATE_WINDOW_EX" }
+evidence = [{ source = "spec", line = 403 }, { source = "binding", line = 308 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "ex_style", type = "U32" },
+  { name = "class_name", type = "ClassName" },
+  { name = "window_name", type = "NullableFarString" },
+  { name = "style", type = "U32" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "width", type = "I16" },
+  { name = "height", type = "I16" },
+  { name = "parent", type = "U16" },
+  { name = "menu", type = "U16" },
+  { name = "instance", type = "U16" },
+  { name = "parameter", type = "FarPointer", encoding = "segmented_pointer" },
+]

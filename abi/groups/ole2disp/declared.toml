@@ -1,2126 +1,435 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "OLE2DISP"
 
-version = 1
+[sources]
+spec = { path = "specs/ole2disp.spec", note = "spec" }
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 1
-declared_name = "DLLGETCLASSOBJECT"
 name = "DLLGETCLASSOBJECT"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 13
-declared_name = "VARIANTTIMETODOSDATETIME"
 name = "VARIANTTIMETODOSDATETIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 14
-declared_name = "DOSDATETIMETOVARIANTTIME"
 name = "DOSDATETIMETOVARIANTTIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 28
-declared_name = "DispGetParam"
 name = "DispGetParam"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "pointer",
-  "word",
-  "word",
-  "pointer",
-  "pointer",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 29
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["pointer", "word", "word", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 29
-declared_name = "DispGetIDsOfNames"
 name = "DispGetIDsOfNames"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "segmented_pointer", "word", "segmented_pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 30
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "segmented_pointer", "word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 30
-declared_name = "DispInvoke"
 name = "DispInvoke"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "segmented_pointer",
-  "segmented_pointer",
-  "long",
-  "word",
-  "segmented_pointer",
-  "segmented_pointer",
-  "segmented_pointer",
-  "segmented_pointer",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 31
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "segmented_pointer", "long", "word", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 31
-declared_name = "CreateDispTypeInfo"
 name = "CreateDispTypeInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "long", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 32
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["pointer", "long", "pointer"] }
+evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 32
-declared_name = "CreateStdDispatch"
 name = "CreateStdDispatch"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 33
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
+evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 33
-declared_name = "_IID_IDispatch"
 name = "_IID_IDispatch"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "variable"
-attributes = []
-architecture_constraints = []
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 34
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "variable"
+evidence = [{ source = "spec", line = 34 }]
 values = [132096, 0, 192, 1174405120]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 34
-declared_name = "_IID_IEnumVARIANT"
 name = "_IID_IEnumVARIANT"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "variable"
-attributes = []
-architecture_constraints = []
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 35
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "variable"
+evidence = [{ source = "spec", line = 35 }]
 values = [132100, 0, 192, 1174405120]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 35
-declared_name = "RegisterActiveObject"
 name = "RegisterActiveObject"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "pointer", "long", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 36
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "pointer", "long", "pointer"] }
+evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 36
-declared_name = "RevokeActiveObject"
 name = "RevokeActiveObject"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "segmented_pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 37
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 37
-declared_name = "GetActiveObject"
 name = "GetActiveObject"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "segmented_pointer", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 38
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["pointer", "segmented_pointer", "pointer"] }
+evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 42
-declared_name = "SafeArrayRedim"
 name = "SafeArrayRedim"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 43
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["pointer", "pointer"] }
+evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 49
-declared_name = "VARI2FROMDISP"
 name = "VARI2FROMDISP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 50
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 51
-declared_name = "VARI4FROMI2"
 name = "VARI4FROMI2"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 52
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 52 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 52
-declared_name = "VARI4FROMR4"
 name = "VARI4FROMR4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 53
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 53 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 53
-declared_name = "VARI4FROMR8"
 name = "VARI4FROMR8"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 54
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 54
-declared_name = "VARI4FROMCY"
 name = "VARI4FROMCY"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 55
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 55 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 55
-declared_name = "VARI4FROMDATE"
 name = "VARI4FROMDATE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 56
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 56 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 57
-declared_name = "VARI4FROMDISP"
 name = "VARI4FROMDISP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 58
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 58 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 58
-declared_name = "VARI4FROMBOOL"
 name = "VARI4FROMBOOL"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 59
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 59 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 59
-declared_name = "VARR4FROMI2"
 name = "VARR4FROMI2"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 60
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 60 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 60
-declared_name = "VARR4FROMI4"
 name = "VARR4FROMI4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 61
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 61 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 62
-declared_name = "VARR4FROMCY"
 name = "VARR4FROMCY"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 63
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 63 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 63
-declared_name = "VARR4FROMDATE"
 name = "VARR4FROMDATE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 64
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 64 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 65
-declared_name = "VARR4FROMDISP"
 name = "VARR4FROMDISP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 66
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 66 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 66
-declared_name = "VARR4FROMBOOL"
 name = "VARR4FROMBOOL"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 67
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 67 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 67
-declared_name = "VARR8FROMI2"
 name = "VARR8FROMI2"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 68
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 68 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 68
-declared_name = "VARR8FROMI4"
 name = "VARR8FROMI4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 69
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 69 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 69
-declared_name = "VARR8FROMR4"
 name = "VARR8FROMR4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 70
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 70 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 70
-declared_name = "VARR8FROMCY"
 name = "VARR8FROMCY"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 71
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 71 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 71
-declared_name = "VARR8FROMDATE"
 name = "VARR8FROMDATE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 72
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 72 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 73
-declared_name = "VARR8FROMDISP"
 name = "VARR8FROMDISP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 74
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 74 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 74
-declared_name = "VARR8FROMBOOL"
 name = "VARR8FROMBOOL"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 75
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 75 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 75
-declared_name = "VARDATEFROMI2"
 name = "VARDATEFROMI2"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 76
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 76 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 76
-declared_name = "VARDATEFROMI4"
 name = "VARDATEFROMI4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 77
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 77 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 77
-declared_name = "VARDATEFROMR4"
 name = "VARDATEFROMR4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 78
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 78 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 78
-declared_name = "VARDATEFROMR8"
 name = "VARDATEFROMR8"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 79
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 79 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 79
-declared_name = "VARDATEFROMCY"
 name = "VARDATEFROMCY"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 80
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 80 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 81
-declared_name = "VARDATEFROMDISP"
 name = "VARDATEFROMDISP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 82
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 82 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 82
-declared_name = "VARDATEFROMBOOL"
 name = "VARDATEFROMBOOL"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 83
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 83 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 83
-declared_name = "VARCYFROMI2"
 name = "VARCYFROMI2"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 84
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 84 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 84
-declared_name = "VARCYFROMI4"
 name = "VARCYFROMI4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 85
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 85 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 85
-declared_name = "VARCYFROMR4"
 name = "VARCYFROMR4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 86
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 86 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 86
-declared_name = "VARCYFROMR8"
 name = "VARCYFROMR8"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 87
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 87 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 87
-declared_name = "VARCYFROMDATE"
 name = "VARCYFROMDATE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 88
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 88 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 89
-declared_name = "VARCYFROMDISP"
 name = "VARCYFROMDISP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 90
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 90 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 90
-declared_name = "VARCYFROMBOOL"
 name = "VARCYFROMBOOL"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 91
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 91 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 99
-declared_name = "VARBOOLFROMI2"
 name = "VARBOOLFROMI2"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 100
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 100 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 100
-declared_name = "VARBOOLFROMI4"
 name = "VARBOOLFROMI4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 101
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 101 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 101
-declared_name = "VARBOOLFROMR4"
 name = "VARBOOLFROMR4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 102
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 102 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 102
-declared_name = "VARBOOLFROMR8"
 name = "VARBOOLFROMR8"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 103
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 103 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 103
-declared_name = "VARBOOLFROMDATE"
 name = "VARBOOLFROMDATE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 104
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 104 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 104
-declared_name = "VARBOOLFROMCY"
 name = "VARBOOLFROMCY"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 105
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 105 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 105
-declared_name = "VARBOOLFROMSTR"
 name = "VARBOOLFROMSTR"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 106
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 106 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 106
-declared_name = "VARBOOLFROMDISP"
 name = "VARBOOLFROMDISP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 107
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 107 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 107
-declared_name = "DOINVOKEMETHOD"
 name = "DOINVOKEMETHOD"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 108
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 108 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 110
-declared_name = "SetErrorInfo"
 name = "SetErrorInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "segmented_pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 111
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 111 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 111
-declared_name = "GetErrorInfo"
 name = "GetErrorInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 112
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "pointer"] }
+evidence = [{ source = "spec", line = 112 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 112
-declared_name = "CreateErrorInfo"
 name = "CreateErrorInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 113
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["pointer"] }
+evidence = [{ source = "spec", line = 113 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 113
-declared_name = "_IID_IErrorInfo"
 name = "_IID_IErrorInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "variable"
-attributes = []
-architecture_constraints = []
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 114
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "variable"
+evidence = [{ source = "spec", line = 114 }]
 values = [485667104, 270226557, 550286, 433138475]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 114
-declared_name = "_IID_ICreateErrorInfo"
 name = "_IID_ICreateErrorInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "variable"
-attributes = []
-architecture_constraints = []
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 115
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "variable"
+evidence = [{ source = "spec", line = 115 }]
 values = [586167104, 270226557, 550286, 433138475]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 115
-declared_name = "_IID_ISupportErrorInfo"
 name = "_IID_ISupportErrorInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "variable"
-attributes = []
-architecture_constraints = []
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 116
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "variable"
+evidence = [{ source = "spec", line = 116 }]
 values = [3742055776, 270226575, 550286, 433138475]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 126
-declared_name = "VARI4FROMUI1"
 name = "VARI4FROMUI1"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 127
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 127 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 127
-declared_name = "VARR4FROMUI1"
 name = "VARR4FROMUI1"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 128
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 128 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 128
-declared_name = "VARR8FROMUI1"
 name = "VARR8FROMUI1"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 129
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 129 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 129
-declared_name = "VARDATEFROMUI1"
 name = "VARDATEFROMUI1"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 130
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 130 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 130
-declared_name = "VARCYFROMUI1"
 name = "VARCYFROMUI1"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 131
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 131 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 132
-declared_name = "VARBOOLFROMUI1"
 name = "VARBOOLFROMUI1"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 133
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 133 }]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 133
-declared_name = "DLLCANUNLOADNOW"
 name = "DLLCANUNLOADNOW"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 134
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 134 }]

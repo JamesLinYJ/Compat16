@@ -1,96 +1,22 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "WING"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/wing.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "WING"
 ordinal = 1001
-declared_name = "WinGCreateDC"
 name = "WinGCreateDC"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "WingCreateDc"
-id_value = 708
-constant = "WING_CREATE_DC"
-
-[[exports.evidence]]
-source = "specs/wing.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 805
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "WingCreateDc", id_value = 708, constant = "WING_CREATE_DC" }
+evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 805 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "WING"
 ordinal = 1007
-declared_name = "WinGCreateHalfTonePalette"
 name = "WinGCreateHalfTonePalette"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "WingCreateHalfTonePalette"
-id_value = 714
-constant = "WING_CREATE_HALF_TONE_PALETTE"
-
-[[exports.evidence]]
-source = "specs/wing.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 811
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "WingCreateHalfTonePalette", id_value = 714, constant = "WING_CREATE_HALF_TONE_PALETTE" }
+evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 811 }]
+[exports.call]
 returns = "word"

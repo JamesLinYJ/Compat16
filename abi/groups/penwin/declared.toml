@@ -1,1636 +1,309 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "PENWIN"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/penwin.spec", note = "spec" }
 
 [[exports]]
-module = "PENWIN"
 ordinal = 10
-declared_name = "InitRC"
 name = "InitRC"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 11
-declared_name = "Recognize"
 name = "Recognize"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer"] }
+evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 12
-declared_name = "RecognizeData"
 name = "RecognizeData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "word"] }
+evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 13
-declared_name = "BoundingRectFromPoints"
 name = "BoundingRectFromPoints"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "signed_word", "segmented_pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [], args = ["segmented_pointer", "signed_word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 14
-declared_name = "InstallRecognizer"
 name = "InstallRecognizer"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string"] }
+evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 15
-declared_name = "UninstallRecognizer"
 name = "UninstallRecognizer"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 16
-declared_name = "TrainInk"
 name = "TrainInk"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "word", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 17
-declared_name = "TrainContext"
 name = "TrainContext"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "segmented_pointer",
-  "segmented_pointer",
-  "signed_word",
-  "segmented_pointer",
-  "signed_word",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer", "signed_word"] }
+evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 101
-declared_name = "PostVirtualMouseEvent"
 name = "PostVirtualMouseEvent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "signed_word", "signed_word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [], args = ["word", "signed_word", "signed_word"] }
+evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 102
-declared_name = "PostVirtualKeyEvent"
 name = "PostVirtualKeyEvent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [], args = ["word", "word"] }
+evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 104
-declared_name = "AtomicVirtualEvent"
 name = "AtomicVirtualEvent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [], args = ["word"] }
+evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 110
-declared_name = "IsPenAware"
 name = "IsPenAware"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 111
-declared_name = "RegisterPenApp"
 name = "RegisterPenApp"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [], args = ["word", "word"] }
+evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 114
-declared_name = "SetRecogHook"
 name = "SetRecogHook"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 18
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word"] }
+evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 115
-declared_name = "SetPenHook"
 name = "SetPenHook"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 19
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 121
-declared_name = "GetSymbolMaxLength"
 name = "GetSymbolMaxLength"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 20
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer"] }
+evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 122
-declared_name = "GetSymbolCount"
 name = "GetSymbolCount"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 21
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer"] }
+evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 123
-declared_name = "FirstSymbolFromGraph"
 name = "FirstSymbolFromGraph"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 22
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [], args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 124
-declared_name = "EnumSymbols"
 name = "EnumSymbols"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "word", "segmented_pointer", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "word", "segmented_pointer", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 125
-declared_name = "SymbolToCharacter"
 name = "SymbolToCharacter"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "signed_word", "segmented_pointer", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 24
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "signed_word", "segmented_pointer", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 126
-declared_name = "CharacterToSymbol"
 name = "CharacterToSymbol"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "signed_word", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 25
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "signed_word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 131
-declared_name = "DPtoTP"
 name = "DPtoTP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "signed_word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 26
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "signed_word"] }
+evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 132
-declared_name = "TPtoDP"
 name = "TPtoDP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "signed_word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 27
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "signed_word"] }
+evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 135
-declared_name = "IsPenEvent"
 name = "IsPenEvent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 28
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "long"] }
+evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 137
-declared_name = "EndPenCollection"
 name = "EndPenCollection"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["signed_word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 29
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["signed_word"] }
+evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 138
-declared_name = "GetPenHwData"
 name = "GetPenHwData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "segmented_pointer",
-  "segmented_pointer",
-  "signed_word",
-  "word",
-  "segmented_pointer",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 30
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 139
-declared_name = "GetPenHwEventData"
 name = "GetPenHwEventData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "segmented_pointer",
-  "segmented_pointer",
-  "signed_word",
-  "segmented_pointer",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 31
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 144
-declared_name = "GetPenAsyncState"
 name = "GetPenAsyncState"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 32
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 150
-declared_name = "SetGlobalRC"
 name = "SetGlobalRC"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "string", "string"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 33
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "string", "string"] }
+evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 151
-declared_name = "GetGlobalRC"
 name = "GetGlobalRC"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "signed_word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 34
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "signed_word"] }
+evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 170
-declared_name = "ProcessWriting"
 name = "ProcessWriting"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 35
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 172
-declared_name = "CorrectWriting"
 name = "CorrectWriting"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "segmented_pointer",
-  "word",
-  "segmented_pointer",
-  "long",
-  "long",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 36
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "segmented_pointer", "word", "segmented_pointer", "long", "long"] }
+evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 173
-declared_name = "EmulatePen"
 name = "EmulatePen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 37
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [], args = ["word"] }
+evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 207
-declared_name = "UpdatePenInfo"
 name = "UpdatePenInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 38
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [], args = ["segmented_pointer"] }
+evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 210
-declared_name = "CreatePenData"
 name = "CreatePenData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "signed_word", "word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 39
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "signed_word", "word", "word"] }
+evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 211
-declared_name = "GetPenDataInfo"
 name = "GetPenDataInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer", "segmented_pointer", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 40
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "segmented_pointer", "segmented_pointer", "long"] }
+evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 212
-declared_name = "AddPointsPenData"
 name = "AddPointsPenData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer", "segmented_pointer", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 41
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 213
-declared_name = "BeginEnumStrokes"
 name = "BeginEnumStrokes"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 42
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [], args = ["word"] }
+evidence = [{ source = "spec", line = 42 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 214
-declared_name = "DrawPenData"
 name = "DrawPenData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 43
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = [], args = ["word", "segmented_pointer", "word"] }
+evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 215
-declared_name = "MetricScalePenData"
 name = "MetricScalePenData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 44
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word"] }
+evidence = [{ source = "spec", line = 44 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 216
-declared_name = "OffsetPenData"
 name = "OffsetPenData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "signed_word", "signed_word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 45
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "signed_word", "signed_word"] }
+evidence = [{ source = "spec", line = 45 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 218
-declared_name = "DuplicatePenData"
 name = "DuplicatePenData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 46
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word"] }
+evidence = [{ source = "spec", line = 46 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 219
-declared_name = "GetPenDataStroke"
 name = "GetPenDataStroke"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "segmented_pointer",
-  "word",
-  "segmented_pointer",
-  "segmented_pointer",
-  "segmented_pointer",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 47
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "word", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 221
-declared_name = "GetPointsFromPenData"
 name = "GetPointsFromPenData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "word",
-  "word",
-  "segmented_pointer",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 48
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 48 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 222
-declared_name = "ResizePenData"
 name = "ResizePenData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 49
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 49 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 223
-declared_name = "CompactPenData"
 name = "CompactPenData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 50
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word"] }
+evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 242
-declared_name = "RedisplayPenData"
 name = "RedisplayPenData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "segmented_pointer",
-  "segmented_pointer",
-  "signed_word",
-  "long",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 51
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "long"] }
+evidence = [{ source = "spec", line = 51 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 250
-declared_name = "ShowKeyboard"
 name = "ShowKeyboard"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "segmented_pointer", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 52
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 52 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 402
-declared_name = "GetVersionPenWin"
 name = "GetVersionPenWin"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 53
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 53 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 418
-declared_name = "ExecuteGesture"
 name = "ExecuteGesture"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 54
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "long", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
-module = "PENWIN"
 ordinal = 420
-declared_name = "DictionarySearch"
 name = "DictionarySearch"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "segmented_pointer",
-  "segmented_pointer",
-  "signed_word",
-  "segmented_pointer",
-  "signed_word",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/penwin.spec"
-line = 55
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer", "signed_word"] }
+evidence = [{ source = "spec", line = 55 }]

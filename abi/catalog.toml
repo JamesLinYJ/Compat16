@@ -1,7 +1,5 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
-
-version = 1
+# Compact authoring schema v2; normalized by abi-schema before code generation.
+version = 2
 groups = [
   "groups/avifile/declared.toml",
   "groups/comm/declared.toml",
@@ -128,62 +126,62 @@ groups = [
   "groups/winspool/declared.toml",
   "groups/winspool/printer.toml",
 ]
-types = ["types/runtime.toml"]
+types = [
+  "types/runtime.toml",
+]
+
+[defaults]
+architecture = "win16"
+ordinal_source = "explicit"
+
+[source_notes]
+spec = "Historical declaration provenance; original licensing and notices remain applicable."
+binding = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+types = "Preserves compiled runtime parameter kind and role without new semantic claims."
 
 [[modules]]
 id = "AVIFILE"
 source_module = "avifile.DLL"
-aliases = []
 
 [[modules]]
 id = "COMM"
 source_module = "comm.DRV"
-aliases = []
 
 [[modules]]
 id = "COMMCTRL"
 source_module = "commctrl.DLL"
-aliases = []
 
 [[modules]]
 id = "COMMDLG"
 source_module = "commdlg.DLL"
-aliases = []
 
 [[modules]]
 id = "COMPOBJ"
 source_module = "compobj.DLL"
-aliases = []
 
 [[modules]]
 id = "CTL3D"
 source_module = "ctl3d.DLL"
-aliases = []
 
 [[modules]]
 id = "CTL3DV2"
 source_module = "ctl3dv2.DLL"
-aliases = []
 
 [[modules]]
 id = "DDEML"
 source_module = "ddeml.DLL"
-aliases = []
 
 [[modules]]
 id = "DISPDIB"
 source_module = "dispdib.DLL"
-aliases = []
 
 [[modules]]
 id = "DISPLAY"
 source_module = "display.DRV"
-aliases = []
 
 [[modules]]
 id = "GDI"
 source_module = "gdi.EXE"
-aliases = []
 
 [[modules]]
 id = "KERNEL"
@@ -193,182 +191,146 @@ aliases = ["krnl386"]
 [[modules]]
 id = "KEYBOARD"
 source_module = "keyboard.DRV"
-aliases = []
 
 [[modules]]
 id = "LZEXPAND"
 source_module = "lzexpand.DLL"
-aliases = []
 
 [[modules]]
 id = "MMSYSTEM"
 source_module = "mmsystem.DLL"
-aliases = []
 
 [[modules]]
 id = "MOUSE"
 source_module = "mouse.DRV"
-aliases = []
 
 [[modules]]
 id = "MSACM"
 source_module = "msacm.DLL"
-aliases = []
 
 [[modules]]
 id = "MSVIDEO"
 source_module = "msvideo.DLL"
-aliases = []
 
 [[modules]]
 id = "NDDEAPI"
 source_module = "nddeapi.DLL"
-aliases = []
 
 [[modules]]
 id = "NETAPI"
 source_module = "netapi.DLL"
-aliases = []
 
 [[modules]]
 id = "OLE2"
 source_module = "ole2.DLL"
-aliases = []
 
 [[modules]]
 id = "OLE2CONV"
 source_module = "ole2conv.DLL"
-aliases = []
 
 [[modules]]
 id = "OLE2DISP"
 source_module = "ole2disp.DLL"
-aliases = []
 
 [[modules]]
 id = "OLE2NLS"
 source_module = "ole2nls.DLL"
-aliases = []
 
 [[modules]]
 id = "OLE2PROX"
 source_module = "ole2prox.DLL"
-aliases = []
 
 [[modules]]
 id = "OLE2THK"
 source_module = "ole2thk.DLL"
-aliases = []
 
 [[modules]]
 id = "OLECLI"
 source_module = "olecli.DLL"
-aliases = []
 
 [[modules]]
 id = "OLESVR"
 source_module = "olesvr.DLL"
-aliases = []
 
 [[modules]]
 id = "PENWIN"
 source_module = "PENWIN.DLL"
-aliases = []
 
 [[modules]]
 id = "RMPATCH"
 source_module = "rmpatch.DLL"
-aliases = []
 
 [[modules]]
 id = "SHELL"
 source_module = "shell.DLL"
-aliases = []
 
 [[modules]]
 id = "SOUND"
 source_module = "sound.DRV"
-aliases = []
 
 [[modules]]
 id = "STORAGE"
 source_module = "storage.DLL"
-aliases = []
 
 [[modules]]
 id = "STRESS"
 source_module = "stress.DLL"
-aliases = []
 
 [[modules]]
 id = "SYSTEM"
 source_module = "system.DRV"
-aliases = []
 
 [[modules]]
 id = "TIMER"
 source_module = "timer.DRV"
-aliases = []
 
 [[modules]]
 id = "TOOLHELP"
 source_module = "toolhelp.DLL"
-aliases = []
 
 [[modules]]
 id = "TYPELIB"
 source_module = "typelib.DLL"
-aliases = []
 
 [[modules]]
 id = "USER"
 source_module = "user.EXE"
-aliases = []
 
 [[modules]]
 id = "VER"
 source_module = "ver.DLL"
-aliases = []
 
 [[modules]]
 id = "WIFEMAN"
 source_module = "wifeman.DLL"
-aliases = []
 
 [[modules]]
 id = "WIN87EM"
 source_module = "win87em.DLL"
-aliases = []
 
 [[modules]]
 id = "WING"
 source_module = "wing.DLL"
-aliases = []
 
 [[modules]]
 id = "WINMEM32"
 source_module = "winmem32.DLL"
-aliases = []
 
 [[modules]]
 id = "WINNLS"
 source_module = "winnls.DLL"
-aliases = []
 
 [[modules]]
 id = "WINOLDAP"
 source_module = "winoldap.MOD"
-aliases = []
 
 [[modules]]
 id = "WINSOCK"
 source_module = "winsock.DLL"
-aliases = []
 
 [[modules]]
 id = "WINSPOOL"
 source_module = "winspool.DRV"
-aliases = []
 
 [[name_resolutions]]
 module = "USER"

@@ -1,1237 +1,260 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "KERNEL"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/kernel.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "KERNEL"
 ordinal = 27
-declared_name = "GetModuleName"
 name = "GetModuleName"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelGetModuleName"
-id_value = 85
-constant = "KERNEL_GET_MODULE_NAME"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 28
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 160
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelGetModuleName", id_value = 85, constant = "KERNEL_GET_MODULE_NAME" }
+evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 160 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "module"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "capacity"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "module", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 77
-declared_name = "Reserved1"
 name = "Reserved1"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelReserved1"
-id_value = 88
-constant = "KERNEL_RESERVED1"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 78
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 163
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelReserved1", id_value = 88, constant = "KERNEL_RESERVED1" }
+evidence = [{ source = "spec", line = 78 }, { source = "binding", line = 163 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "pointer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "pointer", type = "U32", encoding = "segmented_pointer" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 78
-declared_name = "Reserved2"
 name = "Reserved2"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "segmented_pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelReserved2"
-id_value = 89
-constant = "KERNEL_RESERVED2"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 79
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 164
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelReserved2", id_value = 89, constant = "KERNEL_RESERVED2" }
+evidence = [{ source = "spec", line = 79 }, { source = "binding", line = 164 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "start"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "current"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "start", type = "U32", encoding = "segmented_pointer" },
+  { name = "current", type = "U32", encoding = "segmented_pointer" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 79
-declared_name = "Reserved3"
 name = "Reserved3"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_string"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelReserved3"
-id_value = 90
-constant = "KERNEL_RESERVED3"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 80
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 165
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelReserved3", id_value = 90, constant = "KERNEL_RESERVED3" }
+evidence = [{ source = "spec", line = 80 }, { source = "binding", line = 165 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "string_or_char"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarStringOrChar"
+params = [
+  { name = "string_or_char", type = "FarStringOrChar" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 80
-declared_name = "Reserved4"
 name = "Reserved4"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_string"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelReserved4"
-id_value = 91
-constant = "KERNEL_RESERVED4"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 81
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 166
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelReserved4", id_value = 91, constant = "KERNEL_RESERVED4" }
+evidence = [{ source = "spec", line = 81 }, { source = "binding", line = 166 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "string_or_char"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarStringOrChar"
+params = [
+  { name = "string_or_char", type = "FarStringOrChar" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 87
-declared_name = "Reserved5"
 name = "Reserved5"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelReserved5"
-id_value = 284
-constant = "KERNEL_RESERVED5"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 88
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 362
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelReserved5", id_value = 284, constant = "KERNEL_RESERVED5" }
+evidence = [{ source = "spec", line = 88 }, { source = "binding", line = 362 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "left"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "right"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
+params = [
+  { name = "left", type = "FarString" },
+  { name = "right", type = "FarString" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 88
-declared_name = "lstrcpy"
 name = "lstrcpy"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "string"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelLstrcpy"
-id_value = 285
-constant = "KERNEL_LSTRCPY"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 89
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 363
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLstrcpy", id_value = 285, constant = "KERNEL_LSTRCPY" }
+evidence = [{ source = "spec", line = 89 }, { source = "binding", line = 363 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "NullableFarString"
+params = [
+  { name = "destination", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "source", type = "NullableFarString" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 89
-declared_name = "lstrcat"
 name = "lstrcat"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_string", "string"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelLstrcat"
-id_value = 286
-constant = "KERNEL_LSTRCAT"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 90
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 364
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLstrcat", id_value = 286, constant = "KERNEL_LSTRCAT" }
+evidence = [{ source = "spec", line = 90 }, { source = "binding", line = 364 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
+params = [
+  { name = "destination", type = "FarBuffer", encoding = "segmented_string" },
+  { name = "source", type = "FarString" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 90
-declared_name = "lstrlen"
 name = "lstrlen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelLstrlen"
-id_value = 287
-constant = "KERNEL_LSTRLEN"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 91
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 365
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelLstrlen", id_value = 287, constant = "KERNEL_LSTRLEN" }
+evidence = [{ source = "spec", line = 91 }, { source = "binding", line = 365 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "text"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "NullableFarString"
+params = [
+  { name = "text", type = "NullableFarString" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 107
-declared_name = "SetErrorMode"
 name = "SetErrorMode"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelSetErrorMode"
-id_value = 155
-constant = "KERNEL_SET_ERROR_MODE"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 108
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 231
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelSetErrorMode", id_value = 155, constant = "KERNEL_SET_ERROR_MODE" }
+evidence = [{ source = "spec", line = 108 }, { source = "binding", line = 231 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "mode"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "mode", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 133
-declared_name = "GetExePtr"
 name = "GetExePtr"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelGetExePtr"
-id_value = 93
-constant = "KERNEL_GET_EXE_PTR"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 134
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 168
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelGetExePtr", id_value = 93, constant = "KERNEL_GET_EXE_PTR" }
+evidence = [{ source = "spec", line = 134 }, { source = "binding", line = 168 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "handle"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "handle", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 167
-declared_name = "GetExpWinVer"
 name = "GetExpWinVer"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelGetExpWinVer"
-id_value = 96
-constant = "KERNEL_GET_EXP_WIN_VER"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 167
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 171
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelGetExpWinVer", id_value = 96, constant = "KERNEL_GET_EXP_WIN_VER" }
+evidence = [{ source = "spec", line = 167 }, { source = "binding", line = 171 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "module"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "module", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 320
-declared_name = "IsTask"
 name = "IsTask"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelIsTask"
-id_value = 97
-constant = "KERNEL_IS_TASK"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 248
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 172
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelIsTask", id_value = 97, constant = "KERNEL_IS_TASK" }
+evidence = [{ source = "spec", line = 248 }, { source = "binding", line = 172 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "task"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "task", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 334
-declared_name = "IsBadReadPtr"
 name = "IsBadReadPtr"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelIsBadReadPtr"
-id_value = 98
-constant = "KERNEL_IS_BAD_READ_PTR"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 257
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 173
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelIsBadReadPtr", id_value = 98, constant = "KERNEL_IS_BAD_READ_PTR" }
+evidence = [{ source = "spec", line = 257 }, { source = "binding", line = 173 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "pointer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "length"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "length", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 335
-declared_name = "IsBadWritePtr"
 name = "IsBadWritePtr"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelIsBadWritePtr"
-id_value = 99
-constant = "KERNEL_IS_BAD_WRITE_PTR"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 258
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 174
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelIsBadWritePtr", id_value = 99, constant = "KERNEL_IS_BAD_WRITE_PTR" }
+evidence = [{ source = "spec", line = 258 }, { source = "binding", line = 174 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "pointer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "length"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "length", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 336
-declared_name = "IsBadCodePtr"
 name = "IsBadCodePtr"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelIsBadCodePtr"
-id_value = 100
-constant = "KERNEL_IS_BAD_CODE_PTR"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 259
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 175
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelIsBadCodePtr", id_value = 100, constant = "KERNEL_IS_BAD_CODE_PTR" }
+evidence = [{ source = "spec", line = 259 }, { source = "binding", line = 175 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "pointer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 337
-declared_name = "IsBadStringPtr"
 name = "IsBadStringPtr"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelIsBadStringPtr"
-id_value = 101
-constant = "KERNEL_IS_BAD_STRING_PTR"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 260
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 176
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelIsBadStringPtr", id_value = 101, constant = "KERNEL_IS_BAD_STRING_PTR" }
+evidence = [{ source = "spec", line = 260 }, { source = "binding", line = 176 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "pointer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "maximum"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "maximum", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 346
-declared_name = "IsBadHugeReadPtr"
 name = "IsBadHugeReadPtr"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelIsBadHugeReadPtr"
-id_value = 102
-constant = "KERNEL_IS_BAD_HUGE_READ_PTR"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 269
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 177
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelIsBadHugeReadPtr", id_value = 102, constant = "KERNEL_IS_BAD_HUGE_READ_PTR" }
+evidence = [{ source = "spec", line = 269 }, { source = "binding", line = 177 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "pointer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "length"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "length", type = "U32" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 347
-declared_name = "IsBadHugeWritePtr"
 name = "IsBadHugeWritePtr"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelIsBadHugeWritePtr"
-id_value = 103
-constant = "KERNEL_IS_BAD_HUGE_WRITE_PTR"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 270
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 178
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelIsBadHugeWritePtr", id_value = 103, constant = "KERNEL_IS_BAD_HUGE_WRITE_PTR" }
+evidence = [{ source = "spec", line = 270 }, { source = "binding", line = 178 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "pointer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "length"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "length", type = "U32" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 352
-declared_name = "lstrcatn"
 name = "lstrcatn"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_string", "string", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelLstrcatn"
-id_value = 104
-constant = "KERNEL_LSTRCATN"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 275
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 179
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLstrcatn", id_value = 104, constant = "KERNEL_LSTRCATN" }
+evidence = [{ source = "spec", line = 275 }, { source = "binding", line = 179 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "limit"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "destination", type = "FarPointer", encoding = "segmented_string" },
+  { name = "source", type = "FarString" },
+  { name = "limit", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 353
-declared_name = "lstrcpyn"
 name = "lstrcpyn"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "string", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelLstrcpyn"
-id_value = 105
-constant = "KERNEL_LSTRCPYN"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 276
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 180
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLstrcpyn", id_value = 105, constant = "KERNEL_LSTRCPYN" }
+evidence = [{ source = "spec", line = 276 }, { source = "binding", line = 180 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "limit"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "destination", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "source", type = "FarString" },
+  { name = "limit", type = "I16", encoding = "word" },
+]

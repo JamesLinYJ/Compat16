@@ -1,676 +1,136 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "WINNLS"
 
-version = 1
+[sources]
+spec = { path = "specs/winnls.spec", note = "spec" }
 
 [[exports]]
-module = "WINNLS"
 ordinal = 1
-declared_name = "WINNLSINQUIRE"
 name = "WINNLSINQUIRE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 2
-declared_name = "HOOKKEYBOARDMESSAGE"
 name = "HOOKKEYBOARDMESSAGE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 3
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 4
-declared_name = "ENUMGETFONTTYPE"
 name = "ENUMGETFONTTYPE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 5
-declared_name = "ENUMFACENOTTT"
 name = "ENUMFACENOTTT"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 6
-declared_name = "SendIMEMessage"
 name = "SendIMEMessage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "long"] }
+evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 7
-declared_name = "SendIMEMessageEx"
 name = "SendIMEMessageEx"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "long"] }
+evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 9
-declared_name = "SENDIMEMESSAGEINTERNAL"
 name = "SENDIMEMESSAGEINTERNAL"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 10
-declared_name = "WINNLSSETKEYBOARDHOOK"
 name = "WINNLSSETKEYBOARDHOOK"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 11
-declared_name = "WINNLSSetIMEHandle"
 name = "WINNLSSetIMEHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["segmented_pointer", "word"] }
+evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 12
-declared_name = "WINNLSSetIMEStatus"
 name = "WINNLSSetIMEStatus"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 14
-declared_name = "WINNLSSetIMEHotkey"
 name = "WINNLSSetIMEHotkey"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 15
-declared_name = "WINNLSGETIMEHOTKEY"
 name = "WINNLSGETIMEHOTKEY"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 16
-declared_name = "WINNLSEnableIME"
 name = "WINNLSEnableIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 17
-declared_name = "WINNLSGETKEYSTATE"
 name = "WINNLSGETKEYSTATE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 18
-declared_name = "WINNLSGetEnableStatus"
 name = "WINNLSGetEnableStatus"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word"] }
+evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 19
-declared_name = "WINNLSSetKeyState"
 name = "WINNLSSetKeyState"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word"] }
+evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 20
-declared_name = "IMPADDIME"
 name = "IMPADDIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 18
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 21
-declared_name = "IMPDELETEIME"
 name = "IMPDELETEIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 19
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 30
-declared_name = "WINNLSSendString"
 name = "WINNLSSendString"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 26
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word", "pointer"] }
+evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 31
-declared_name = "WINNLSPostAppMessage"
 name = "WINNLSPostAppMessage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 27
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 32
-declared_name = "WINNLSSendAppMessage"
 name = "WINNLSSendAppMessage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 28
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 33
-declared_name = "WINNLSSendControl"
 name = "WINNLSSendControl"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 29
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+evidence = [{ source = "spec", line = 29 }]

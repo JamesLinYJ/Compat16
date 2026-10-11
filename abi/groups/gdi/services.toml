@@ -1,851 +1,171 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "GDI"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/gdi.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "GDI"
 ordinal = 119
-declared_name = "AddFontResource"
 name = "AddFontResource"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "GdiAddFontResource"
-id_value = 39
-constant = "GDI_ADD_FONT_RESOURCE"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 109
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 113
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "GdiAddFontResource", id_value = 39, constant = "GDI_ADD_FONT_RESOURCE" }
+evidence = [{ source = "spec", line = 109 }, { source = "binding", line = 113 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "filename_or_module"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports]]
-module = "GDI"
-ordinal = 136
-declared_name = "RemoveFontResource"
-name = "RemoveFontResource"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "GdiRemoveFontResource"
-id_value = 40
-constant = "GDI_REMOVE_FONT_RESOURCE"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 126
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 114
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "filename_or_module"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports]]
-module = "GDI"
-ordinal = 193
-declared_name = "SetBoundsRect"
-name = "SetBoundsRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "GdiSetBoundsRect"
-id_value = 33
-constant = "GDI_SET_BOUNDS_RECT"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 177
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 107
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dc"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bounds_rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "flags"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports]]
-module = "GDI"
-ordinal = 194
-declared_name = "GetBoundsRect"
-name = "GetBoundsRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "GdiGetBoundsRect"
-id_value = 34
-constant = "GDI_GET_BOUNDS_RECT"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 178
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 108
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dc"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bounds_rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "flags"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports]]
-module = "GDI"
-ordinal = 307
-declared_name = "GetCharABCWidths"
-name = "GetCharABCWidths"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "GdiGetCharABCWidths"
-id_value = 42
-constant = "GDI_GET_CHAR_ABC_WIDTHS"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 234
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 116
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dc"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first_character"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "last_character"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "widths"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports]]
-module = "GDI"
-ordinal = 311
-declared_name = "GetFontData"
-name = "GetFontData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "long",
-  "long",
-  "pointer",
-  "long",
+params = [
+  { name = "filename_or_module", type = "FarString" },
 ]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "GdiGetFontData"
-id_value = 43
-constant = "GDI_GET_FONT_DATA"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 238
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 117
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dc"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "table"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "offset"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "buffer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "byte_count"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
 
 [[exports]]
-module = "GDI"
+ordinal = 136
+name = "RemoveFontResource"
+binding = { rust_id = "GdiRemoveFontResource", id_value = 40, constant = "GDI_REMOVE_FONT_RESOURCE" }
+evidence = [{ source = "spec", line = 126 }, { source = "binding", line = 114 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "filename_or_module", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 193
+name = "SetBoundsRect"
+binding = { rust_id = "GdiSetBoundsRect", id_value = 33, constant = "GDI_SET_BOUNDS_RECT" }
+evidence = [{ source = "spec", line = 177 }, { source = "binding", line = 107 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "bounds_rect", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 194
+name = "GetBoundsRect"
+binding = { rust_id = "GdiGetBoundsRect", id_value = 34, constant = "GDI_GET_BOUNDS_RECT" }
+evidence = [{ source = "spec", line = 178 }, { source = "binding", line = 108 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "bounds_rect", type = "FarOutputBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 307
+name = "GetCharABCWidths"
+binding = { rust_id = "GdiGetCharABCWidths", id_value = 42, constant = "GDI_GET_CHAR_ABC_WIDTHS" }
+evidence = [{ source = "spec", line = 234 }, { source = "binding", line = 116 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "first_character", type = "U16" },
+  { name = "last_character", type = "U16" },
+  { name = "widths", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 311
+name = "GetFontData"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetFontData", id_value = 43, constant = "GDI_GET_FONT_DATA" }
+evidence = [{ source = "spec", line = 238 }, { source = "binding", line = 117 }]
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "table", type = "U32" },
+  { name = "offset", type = "U32" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "byte_count", type = "U32" },
+]
+
+[[exports]]
 ordinal = 313
-declared_name = "GetRasterizerCaps"
 name = "GetRasterizerCaps"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "GdiGetRasterizerCaps"
-id_value = 44
-constant = "GDI_GET_RASTERIZER_CAPS"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 240
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 118
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "GdiGetRasterizerCaps", id_value = 44, constant = "GDI_GET_RASTERIZER_CAPS" }
+evidence = [{ source = "spec", line = 240 }, { source = "binding", line = 118 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "status"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "byte_count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "status", type = "FarOutputBuffer" },
+  { name = "byte_count", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "GDI"
 ordinal = 332
-declared_name = "GetKerningPairs"
 name = "GetKerningPairs"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "GdiGetKerningPairs"
-id_value = 45
-constant = "GDI_GET_KERNING_PAIRS"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 246
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 119
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "GdiGetKerningPairs", id_value = 45, constant = "GDI_GET_KERNING_PAIRS" }
+evidence = [{ source = "spec", line = 246 }, { source = "binding", line = 119 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dc"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "pair_count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "pairs"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "pair_count", type = "I16", encoding = "word" },
+  { name = "pairs", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "GDI"
 ordinal = 349
-declared_name = "SetMapperFlags"
 name = "SetMapperFlags"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "GdiSetMapperFlags"
-id_value = 35
-constant = "GDI_SET_MAPPER_FLAGS"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 251
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 109
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "GdiSetMapperFlags", id_value = 35, constant = "GDI_SET_MAPPER_FLAGS" }
+evidence = [{ source = "spec", line = 251 }, { source = "binding", line = 109 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dc"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "flags"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "flags", type = "U32" },
+]
 
 [[exports]]
-module = "GDI"
 ordinal = 350
-declared_name = "GetCharWidth"
 name = "GetCharWidth"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "GdiGetCharWidth"
-id_value = 41
-constant = "GDI_GET_CHAR_WIDTH"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 253
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 115
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "GdiGetCharWidth", id_value = 41, constant = "GDI_GET_CHAR_WIDTH" }
+evidence = [{ source = "spec", line = 253 }, { source = "binding", line = 115 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dc"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first_character"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "last_character"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "widths"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "first_character", type = "U16" },
+  { name = "last_character", type = "U16" },
+  { name = "widths", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "GDI"
 ordinal = 353
-declared_name = "GetAspectRatioFilter"
 name = "GetAspectRatioFilter"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "GdiGetAspectRatioFilter"
-id_value = 36
-constant = "GDI_GET_ASPECT_RATIO_FILTER"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 256
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 110
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetAspectRatioFilter", id_value = 36, constant = "GDI_GET_ASPECT_RATIO_FILTER" }
+evidence = [{ source = "spec", line = 256 }, { source = "binding", line = 110 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dc"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "dc", type = "U16" },
+]
 
 [[exports]]
-module = "GDI"
 ordinal = 462
-declared_name = "IsGDIObject"
 name = "IsGDIObject"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "GdiIsGdiObject"
-id_value = 38
-constant = "GDI_IS_GDI_OBJECT"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 306
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 112
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "GdiIsGdiObject", id_value = 38, constant = "GDI_IS_GDI_OBJECT" }
+evidence = [{ source = "spec", line = 306 }, { source = "binding", line = 112 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "object"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "object", type = "U16" },
+]
 
 [[exports]]
-module = "GDI"
 ordinal = 486
-declared_name = "GetAspectRatioFilterEx"
 name = "GetAspectRatioFilterEx"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "GdiGetAspectRatioFilterEx"
-id_value = 37
-constant = "GDI_GET_ASPECT_RATIO_FILTER_EX"
-
-[[exports.evidence]]
-source = "specs/gdi.spec"
-line = 330
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 111
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "GdiGetAspectRatioFilterEx", id_value = 37, constant = "GDI_GET_ASPECT_RATIO_FILTER_EX" }
+evidence = [{ source = "spec", line = 330 }, { source = "binding", line = 111 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dc"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "aspect_ratio"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "aspect_ratio", type = "FarOutputBuffer" },
+]

@@ -1,64 +1,16 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "SOUND"
 
-version = 1
+[sources]
+spec = { path = "specs/sound.spec", note = "spec" }
 
 [[exports]]
-module = "SOUND"
 ordinal = 17
-declared_name = "DoBeep"
 name = "DoBeep"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 19
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
-module = "SOUND"
 ordinal = 18
-declared_name = "MYOPENSOUND"
 name = "MYOPENSOUND"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 20
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 20 }]

@@ -1,1901 +1,356 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "MMSYSTEM"
 
-version = 1
+[sources]
+spec = { path = "specs/mmsystem.spec", note = "spec" }
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1
-declared_name = "WEP"
 name = "WEP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "pointer"] }
+evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 4
-declared_name = "DllEntryPoint"
 name = "DllEntryPoint"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "word",
-  "word",
-  "word",
-  "long",
-  "word",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "word", "word", "word", "long", "word"] }
+evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 5
-declared_name = "mmsystemGetVersion"
 name = "mmsystemGetVersion"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 6
-declared_name = "DriverProc"
 name = "DriverProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "word",
-  "word",
-  "long",
-  "long",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "word", "word", "long", "long"] }
+evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 8
-declared_name = "WMMMidiRunOnce"
 name = "WMMMidiRunOnce"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 30
-declared_name = "OutputDebugStr"
 name = "OutputDebugStr"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["string"] }
+evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 31
-declared_name = "DriverCallback"
 name = "DriverCallback"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "word",
-  "word",
-  "word",
-  "long",
-  "long",
-  "long",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "word", "word", "word", "long", "long", "long"] }
+evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 32
-declared_name = "StackEnter"
 name = "StackEnter"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 33
-declared_name = "StackLeave"
 name = "StackLeave"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 34
-declared_name = "MMDRVINSTALL"
 name = "MMDRVINSTALL"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 101
-declared_name = "joyGetNumDevs"
 name = "joyGetNumDevs"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 102
-declared_name = "joyGetDevCaps"
 name = "joyGetDevCaps"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "word"] }
+evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 103
-declared_name = "joyGetPos"
 name = "joyGetPos"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer"] }
+evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 104
-declared_name = "joyGetThreshold"
 name = "joyGetThreshold"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer"] }
+evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 105
-declared_name = "joyReleaseCapture"
 name = "joyReleaseCapture"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 18
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 106
-declared_name = "joySetCapture"
 name = "joySetCapture"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 19
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "word"] }
+evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 107
-declared_name = "joySetThreshold"
 name = "joySetThreshold"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 20
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word"] }
+evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 109
-declared_name = "joySetCalibration"
 name = "joySetCalibration"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 21
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 110
-declared_name = "joyGetPosEx"
 name = "joyGetPosEx"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 22
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer"] }
+evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 111
-declared_name = "JOYCONFIGCHANGED"
 name = "JOYCONFIGCHANGED"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 350
-declared_name = "auxGetNumDevs"
 name = "auxGetNumDevs"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 61
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 61 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 351
-declared_name = "auxGetDevCaps"
 name = "auxGetDevCaps"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 62
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "word"] }
+evidence = [{ source = "spec", line = 62 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 352
-declared_name = "auxGetVolume"
 name = "auxGetVolume"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 63
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer"] }
+evidence = [{ source = "spec", line = 63 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 353
-declared_name = "auxSetVolume"
 name = "auxSetVolume"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 64
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "long"] }
+evidence = [{ source = "spec", line = 64 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 354
-declared_name = "auxOutMessage"
 name = "auxOutMessage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 65
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "long", "long"] }
+evidence = [{ source = "spec", line = 65 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 602
-declared_name = "timeSetEvent"
 name = "timeSetEvent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "segmented_pointer",
-  "long",
-  "word",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 102
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "segmented_pointer", "long", "word"] }
+evidence = [{ source = "spec", line = 102 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 603
-declared_name = "timeKillEvent"
 name = "timeKillEvent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 103
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 103 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 800
-declared_name = "mixerGetNumDevs"
 name = "mixerGetNumDevs"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 123
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 123 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 801
-declared_name = "mixerGetDevCaps"
 name = "mixerGetDevCaps"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 124
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "word"] }
+evidence = [{ source = "spec", line = 124 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 802
-declared_name = "mixerOpen"
 name = "mixerOpen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "pointer",
-  "word",
-  "long",
-  "long",
-  "long",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 125
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["pointer", "word", "long", "long", "long"] }
+evidence = [{ source = "spec", line = 125 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 803
-declared_name = "mixerClose"
 name = "mixerClose"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 126
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 126 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 804
-declared_name = "mixerMessage"
 name = "mixerMessage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 127
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "long", "long"] }
+evidence = [{ source = "spec", line = 127 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 805
-declared_name = "mixerGetLineInfo"
 name = "mixerGetLineInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 128
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 128 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 806
-declared_name = "mixerGetID"
 name = "mixerGetID"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 129
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 129 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 807
-declared_name = "mixerGetLineControls"
 name = "mixerGetLineControls"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 130
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 130 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 808
-declared_name = "mixerGetControlDetails"
 name = "mixerGetControlDetails"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 131
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 131 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 809
-declared_name = "mixerSetControlDetails"
 name = "mixerSetControlDetails"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 132
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 132 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 900
-declared_name = "mmTaskCreate"
 name = "mmTaskCreate"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 133
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "pointer", "long"] }
+evidence = [{ source = "spec", line = 133 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 902
-declared_name = "mmTaskBlock"
 name = "mmTaskBlock"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 134
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 134 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 903
-declared_name = "mmTaskSignal"
 name = "mmTaskSignal"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 135
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 135 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 904
-declared_name = "mmGetCurrentTask"
 name = "mmGetCurrentTask"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 136
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"] }
+evidence = [{ source = "spec", line = 136 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 905
-declared_name = "mmTaskYield"
 name = "mmTaskYield"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 137
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 137 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1100
-declared_name = "DrvOpen"
 name = "DrvOpen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "string", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 138
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "string", "long"] }
+evidence = [{ source = "spec", line = 138 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1101
-declared_name = "DrvClose"
 name = "DrvClose"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 139
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "long", "long"] }
+evidence = [{ source = "spec", line = 139 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1102
-declared_name = "DrvSendMessage"
 name = "DrvSendMessage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 140
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "long", "long"] }
+evidence = [{ source = "spec", line = 140 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1103
-declared_name = "DrvGetModuleHandle"
 name = "DrvGetModuleHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 141
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 141 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1104
-declared_name = "DrvDefDriverProc"
 name = "DrvDefDriverProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "word",
-  "word",
-  "long",
-  "long",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 142
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "word", "word", "long", "long"] }
+evidence = [{ source = "spec", line = 142 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1120
-declared_name = "mmThreadCreate"
 name = "mmThreadCreate"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "pointer", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 143
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["segmented_pointer", "pointer", "long", "long"] }
+evidence = [{ source = "spec", line = 143 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1121
-declared_name = "mmThreadSignal"
 name = "mmThreadSignal"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 144
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 144 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1122
-declared_name = "mmThreadBlock"
 name = "mmThreadBlock"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 145
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 145 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1123
-declared_name = "mmThreadIsCurrent"
 name = "mmThreadIsCurrent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 146
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 146 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1124
-declared_name = "mmThreadIsValid"
 name = "mmThreadIsValid"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 147
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 147 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1125
-declared_name = "mmThreadGetTask"
 name = "mmThreadGetTask"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 148
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 148 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1150
-declared_name = "mmShowMMCPLPropertySheet"
 name = "mmShowMMCPLPropertySheet"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "string", "string", "string"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 149
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "string", "string", "string"] }
+evidence = [{ source = "spec", line = 149 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1215
-declared_name = "mmioGetInfo"
 name = "mmioGetInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 155
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "word"] }
+evidence = [{ source = "spec", line = 155 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1216
-declared_name = "mmioSetInfo"
 name = "mmioSetInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 156
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "word"] }
+evidence = [{ source = "spec", line = 156 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1217
-declared_name = "mmioSetBuffer"
 name = "mmioSetBuffer"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer", "long", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 157
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "segmented_pointer", "long", "word"] }
+evidence = [{ source = "spec", line = 157 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1219
-declared_name = "mmioAdvance"
 name = "mmioAdvance"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 159
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "word"] }
+evidence = [{ source = "spec", line = 159 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1221
-declared_name = "mmioInstallIOProc"
 name = "mmioInstallIOProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "segmented_pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 161
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "segmented_pointer", "long"] }
+evidence = [{ source = "spec", line = 161 }]
 
 [[exports]]
-module = "MMSYSTEM"
 ordinal = 1222
-declared_name = "mmioSendMessage"
 name = "mmioSendMessage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/mmsystem.spec"
-line = 162
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "long", "long"] }
+evidence = [{ source = "spec", line = 162 }]

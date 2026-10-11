@@ -1,989 +1,169 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "COMMCTRL"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/commctrl.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/common_controls_records.inc.rs", note = "binding" }
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 2
-declared_name = "MenuHelp"
 name = "MenuHelp"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "long",
-  "word",
-  "word",
-  "word",
-  "pointer",
-]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlMenuHelp"
-id_value = 1208
-constant = "COMMCTRL_MENU_HELP"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 10
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "CommctrlMenuHelp", id_value = 1208, constant = "COMMCTRL_MENU_HELP" }
+evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 10 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "message"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "w_param"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "l_param"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "menu"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "status_bar"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "help_id_table"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+  { name = "menu", type = "U16" },
+  { name = "instance", type = "U16" },
+  { name = "status_bar", type = "U16" },
+  { name = "help_id_table", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 4
-declared_name = "GetEffectiveClientRect"
 name = "GetEffectiveClientRect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlGetEffectiveClientRect"
-id_value = 1209
-constant = "COMMCTRL_GET_EFFECTIVE_CLIENT_RECT"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 12
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "CommctrlGetEffectiveClientRect", id_value = 1209, constant = "COMMCTRL_GET_EFFECTIVE_CLIENT_RECT" }
+evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 12 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "rect"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "control_ids"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "window", type = "U16" },
+  { name = "rect", type = "FarOutputBuffer" },
+  { name = "control_ids", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 6
-declared_name = "CreateStatusWindow"
 name = "CreateStatusWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "string", "word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlCreateStatusWindow"
-id_value = 1210
-constant = "COMMCTRL_CREATE_STATUS_WINDOW"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 13
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "CommctrlCreateStatusWindow", id_value = 1210, constant = "COMMCTRL_CREATE_STATUS_WINDOW" }
+evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 13 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "style"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "text"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "control_id"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "style", type = "U32" },
+  { name = "text", type = "FarString" },
+  { name = "parent", type = "U16" },
+  { name = "control_id", type = "U16" },
+]
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 7
-declared_name = "CreateToolbar"
 name = "CreateToolbar"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "long",
-  "word",
-  "word",
-  "word",
-  "word",
-  "pointer",
-  "word",
-]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlCreateToolbar"
-id_value = 1211
-constant = "COMMCTRL_CREATE_TOOLBAR"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 14
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "CommctrlCreateToolbar", id_value = 1211, constant = "COMMCTRL_CREATE_TOOLBAR" }
+evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 14 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "style"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "control_id"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap_count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap_instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap_resource"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "buttons"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "button_count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "style", type = "U32" },
+  { name = "control_id", type = "U16" },
+  { name = "bitmap_count", type = "U16" },
+  { name = "bitmap_instance", type = "U16" },
+  { name = "bitmap_resource", type = "U16" },
+  { name = "buttons", type = "FarBuffer" },
+  { name = "button_count", type = "U16" },
+]
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 8
-declared_name = "CreateMappedBitmap"
 name = "CreateMappedBitmap"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "word",
-  "pointer",
-  "word",
-]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlCreateMappedBitmap"
-id_value = 1212
-constant = "COMMCTRL_CREATE_MAPPED_BITMAP"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 15
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "CommctrlCreateMappedBitmap", id_value = 1212, constant = "COMMCTRL_CREATE_MAPPED_BITMAP" }
+evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 15 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap_resource"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "flags"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "color_map"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "color_map_count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "bitmap_resource", type = "U16" },
+  { name = "flags", type = "U16" },
+  { name = "color_map", type = "FarBuffer" },
+  { name = "color_map_count", type = "U16" },
+]
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 9
-declared_name = "CreateHeaderWindow"
 name = "CreateHeaderWindow"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "string", "word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlCreateHeaderWindow"
-id_value = 1213
-constant = "COMMCTRL_CREATE_HEADER_WINDOW"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 16
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "CommctrlCreateHeaderWindow", id_value = 1213, constant = "COMMCTRL_CREATE_HEADER_WINDOW" }
+evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 16 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "style"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "text"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "control_id"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "style", type = "U32" },
+  { name = "text", type = "FarString" },
+  { name = "parent", type = "U16" },
+  { name = "control_id", type = "U16" },
+]
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 10
-declared_name = "WritePrivateProfileStruct"
 name = "WritePrivateProfileStruct"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "string",
-  "string",
-  "pointer",
-  "word",
-  "string",
-]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlWritePrivateProfileStruct"
-id_value = 1214
-constant = "COMMCTRL_WRITE_PRIVATE_PROFILE_STRUCT"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 17
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "CommctrlWritePrivateProfileStruct", id_value = 1214, constant = "COMMCTRL_WRITE_PRIVATE_PROFILE_STRUCT" }
+evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 17 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "section"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "key"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data_size"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "file_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
+params = [
+  { name = "section", type = "FarString" },
+  { name = "key", type = "FarString" },
+  { name = "data", type = "FarBuffer" },
+  { name = "data_size", type = "U16" },
+  { name = "file_name", type = "FarString" },
+]
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 11
-declared_name = "GetPrivateProfileStruct"
 name = "GetPrivateProfileStruct"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "string",
-  "string",
-  "pointer",
-  "word",
-  "string",
+binding = { rust_id = "CommctrlGetPrivateProfileStruct", id_value = 1215, constant = "COMMCTRL_GET_PRIVATE_PROFILE_STRUCT" }
+evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 18 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "FarString" },
+  { name = "key", type = "FarString" },
+  { name = "data", type = "FarBuffer" },
+  { name = "data_size", type = "U16" },
+  { name = "file_name", type = "FarString" },
 ]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlGetPrivateProfileStruct"
-id_value = 1215
-constant = "COMMCTRL_GET_PRIVATE_PROFILE_STRUCT"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 18
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "section"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "key"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data_size"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "file_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 13
-declared_name = "MakeDragList"
 name = "MakeDragList"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlMakeDragList"
-id_value = 1216
-constant = "COMMCTRL_MAKE_DRAG_LIST"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 19
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "CommctrlMakeDragList", id_value = 1216, constant = "COMMCTRL_MAKE_DRAG_LIST" }
+evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 19 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "list_box"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "list_box", type = "U16" },
+]
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 17
-declared_name = "InitCommonControls"
 name = "InitCommonControls"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlInitCommonControls"
-id_value = 1217
-constant = "COMMCTRL_INIT_COMMON_CONTROLS"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 21
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "CommctrlInitCommonControls", id_value = 1217, constant = "COMMCTRL_INIT_COMMON_CONTROLS" }
+evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 21 }]
+[exports.call]
 returns = "void"
 
 [[exports]]
-module = "COMMCTRL"
 ordinal = 20
-declared_name = "CreateToolbarEx"
 name = "CreateToolbarEx"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "long",
-  "word",
-  "word",
-  "word",
-  "word",
-  "pointer",
-  "word",
-  "word",
-  "word",
-  "word",
-  "word",
-  "word",
-]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "CommctrlCreateToolbarEx"
-id_value = 1218
-constant = "COMMCTRL_CREATE_TOOLBAR_EX"
-
-[[exports.evidence]]
-source = "specs/commctrl.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/common_controls_records.inc.rs"
-line = 22
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "CommctrlCreateToolbarEx", id_value = 1218, constant = "COMMCTRL_CREATE_TOOLBAR_EX" }
+evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 22 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "style"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "control_id"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap_count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap_instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap_resource"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "buttons"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "button_count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "button_width"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "button_height"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap_width"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap_height"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "button_struct_size"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "style", type = "U32" },
+  { name = "control_id", type = "U16" },
+  { name = "bitmap_count", type = "U16" },
+  { name = "bitmap_instance", type = "U16" },
+  { name = "bitmap_resource", type = "U16" },
+  { name = "buttons", type = "FarBuffer" },
+  { name = "button_count", type = "U16" },
+  { name = "button_width", type = "U16" },
+  { name = "button_height", type = "U16" },
+  { name = "bitmap_width", type = "U16" },
+  { name = "bitmap_height", type = "U16" },
+  { name = "button_struct_size", type = "U16" },
+]

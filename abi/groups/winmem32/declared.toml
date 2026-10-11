@@ -1,258 +1,52 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "WINMEM32"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/winmem32.spec", note = "spec" }
 
 [[exports]]
-module = "WINMEM32"
 ordinal = 1
-declared_name = "GetWinMem32Version"
 name = "GetWinMem32Version"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winmem32.spec"
-line = 3
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
-module = "WINMEM32"
 ordinal = 2
-declared_name = "Global32Alloc"
 name = "Global32Alloc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer", "long", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winmem32.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "pointer", "long", "word"] }
+evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
-module = "WINMEM32"
 ordinal = 3
-declared_name = "Global32Realloc"
 name = "Global32Realloc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winmem32.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "long", "word"] }
+evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
-module = "WINMEM32"
 ordinal = 4
-declared_name = "Global32Free"
 name = "Global32Free"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winmem32.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word"] }
+evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
-module = "WINMEM32"
 ordinal = 5
-declared_name = "Global16PointerAlloc"
 name = "Global16PointerAlloc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "long",
-  "pointer",
-  "long",
-  "word",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winmem32.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "long", "pointer", "long", "word"] }
+evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
-module = "WINMEM32"
 ordinal = 6
-declared_name = "Global16PointerFree"
 name = "Global16PointerFree"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winmem32.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "long", "word"] }
+evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
-module = "WINMEM32"
 ordinal = 7
-declared_name = "Global32CodeAlias"
 name = "Global32CodeAlias"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winmem32.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "word"] }
+evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
-module = "WINMEM32"
 ordinal = 8
-declared_name = "Global32CodeAliasFree"
 name = "Global32CodeAliasFree"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/winmem32.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word"] }
+evidence = [{ source = "spec", line = 10 }]

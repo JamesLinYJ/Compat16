@@ -249,5 +249,5 @@ fn usage() -> String {
     let command = std::env::current_exe().ok()
         .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
         .unwrap_or_else(|| "build-tools".to_owned());
-    format!("usage:\n  {command} inspect --catalog DIR [--module NAME]\n  {command} generate --catalog DIR --output OUT_DIR\n  {command} audit-win16 --catalog DIR --module NAME\n  {command} probe --output FILE [--format com|mz]\n  {command} vga-probe --output FILE\n\nDIR must contain catalog.toml; indexed groups and shared types are TOML files.")
+    format!("usage:\n  {command} inspect --catalog DIR [--module NAME]\n  {command} generate --catalog DIR --output OUT_DIR\n  {command} audit-win16 --catalog DIR --module NAME\n  {command} probe --output FILE [--format com|mz]\n  {command} vga-probe --output FILE\n\nDIR must contain catalog.toml (compact TOML v2); indexed groups and shared types are TOML files.")
 }

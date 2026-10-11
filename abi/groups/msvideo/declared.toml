@@ -1,2183 +1,404 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "MSVIDEO"
 
-version = 1
+[sources]
+spec = { path = "specs/msvideo.spec", note = "spec" }
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 2
-declared_name = "VideoForWindowsVersion"
 name = "VideoForWindowsVersion"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 3
-declared_name = "DllEntryPoint"
 name = "DllEntryPoint"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "word",
-  "word",
-  "word",
-  "long",
-  "word",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 3
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "word", "word", "word", "long", "word"] }
+evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 20
-declared_name = "videoGetNumDevs"
 name = "videoGetNumDevs"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 21
-declared_name = "videoGetErrorText"
 name = "videoGetErrorText"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "string", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "string", "word"] }
+evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 22
-declared_name = "VideoCapDriverDescAndVer"
 name = "VideoCapDriverDescAndVer"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "pointer",
-  "word",
-  "pointer",
-  "word",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "word", "pointer", "word"] }
+evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 28
-declared_name = "videoOpen"
 name = "videoOpen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["pointer", "long", "long"] }
+evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 29
-declared_name = "videoClose"
 name = "videoClose"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 30
-declared_name = "videoDialog"
 name = "videoDialog"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "long"] }
+evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 31
-declared_name = "videoFrame"
 name = "videoFrame"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer"] }
+evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 32
-declared_name = "videoConfigure"
 name = "videoConfigure"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "long",
-  "pointer",
-  "pointer",
-  "long",
-  "pointer",
-  "long",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "long", "pointer", "pointer", "long", "pointer", "long"] }
+evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 33
-declared_name = "videoConfigureStorage"
 name = "videoConfigureStorage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "string", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "string", "long"] }
+evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 34
-declared_name = "videoGetChannelCaps"
 name = "videoGetChannelCaps"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 35
-declared_name = "videoUpdate"
 name = "videoUpdate"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word"] }
+evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 40
-declared_name = "videoStreamAddBuffer"
 name = "videoStreamAddBuffer"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 41
-declared_name = "videoStreamFini"
 name = "videoStreamFini"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 42
-declared_name = "videoStreamGetError"
 name = "videoStreamGetError"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 43
-declared_name = "videoStreamGetPosition"
 name = "videoStreamGetPosition"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 18
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 44
-declared_name = "videoStreamInit"
 name = "videoStreamInit"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "long",
-  "long",
-  "long",
-  "long",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 19
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "long", "long", "long", "long"] }
+evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 46
-declared_name = "videoStreamPrepareHeader"
 name = "videoStreamPrepareHeader"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 20
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 47
-declared_name = "videoStreamReset"
 name = "videoStreamReset"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 21
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 49
-declared_name = "videoStreamStart"
 name = "videoStreamStart"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 22
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 50
-declared_name = "videoStreamStop"
 name = "videoStreamStop"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 51
-declared_name = "videoStreamUnprepareHeader"
 name = "videoStreamUnprepareHeader"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 24
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 52
-declared_name = "videoStreamAllocHdrAndBuffer"
 name = "videoStreamAllocHdrAndBuffer"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 25
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer", "long"] }
+evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 53
-declared_name = "videoStreamFreeHdrAndBuffer"
 name = "videoStreamFreeHdrAndBuffer"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 26
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer"] }
+evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 60
-declared_name = "videoMessage"
 name = "videoMessage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 27
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "long", "long"] }
+evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 102
-declared_name = "DrawDibOpen"
 name = "DrawDibOpen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 28
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"] }
+evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 103
-declared_name = "DrawDibClose"
 name = "DrawDibClose"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 29
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word"] }
+evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 104
-declared_name = "DrawDibBegin"
 name = "DrawDibBegin"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "signed_word",
-  "signed_word",
-  "pointer",
-  "signed_word",
-  "signed_word",
-  "word",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 30
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word", "signed_word", "signed_word", "pointer", "signed_word", "signed_word", "word"] }
+evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 105
-declared_name = "DrawDibEnd"
 name = "DrawDibEnd"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 31
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word"] }
+evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 106
-declared_name = "DrawDibDraw"
 name = "DrawDibDraw"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "pointer",
-  "pointer",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "word",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 32
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word", "signed_word", "signed_word", "signed_word", "signed_word", "pointer", "pointer", "signed_word", "signed_word", "signed_word", "signed_word", "word"] }
+evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 108
-declared_name = "DrawDibGetPalette"
 name = "DrawDibGetPalette"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 33
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word"] }
+evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 110
-declared_name = "DrawDibSetPalette"
 name = "DrawDibSetPalette"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 34
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 111
-declared_name = "DRAWDIBCHANGEPALETTE"
 name = "DRAWDIBCHANGEPALETTE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 35
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 112
-declared_name = "DrawDibRealize"
 name = "DrawDibRealize"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 36
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
+evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 113
-declared_name = "DRAWDIBTIME"
 name = "DRAWDIBTIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 37
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 114
-declared_name = "DrawDibProfileDisplay"
 name = "DrawDibProfileDisplay"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 38
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 115
-declared_name = "STRETCHDIB"
 name = "STRETCHDIB"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 39
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 118
-declared_name = "DrawDibStart"
 name = "DrawDibStart"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 40
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "long"] }
+evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 119
-declared_name = "DrawDibStop"
 name = "DrawDibStop"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 41
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word"] }
+evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 120
-declared_name = "DRAWDIBGETBUFFER"
 name = "DRAWDIBGETBUFFER"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 42
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 42 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 200
-declared_name = "ICInfo"
 name = "ICInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 43
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["long", "long", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 201
-declared_name = "ICInstall"
 name = "ICInstall"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "long",
-  "long",
-  "pointer",
-  "word",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 44
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["long", "long", "long", "pointer", "word"] }
+evidence = [{ source = "spec", line = 44 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 202
-declared_name = "ICRemove"
 name = "ICRemove"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 45
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["long", "long", "word"] }
+evidence = [{ source = "spec", line = 45 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 203
-declared_name = "ICOpen"
 name = "ICOpen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 46
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["long", "long", "word"] }
+evidence = [{ source = "spec", line = 46 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 204
-declared_name = "ICClose"
 name = "ICClose"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 47
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word"] }
+evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 205
-declared_name = "ICSendMessage"
 name = "ICSendMessage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 48
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "long", "long"] }
+evidence = [{ source = "spec", line = 48 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 206
-declared_name = "ICOpenFunction"
 name = "ICOpenFunction"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "word", "segmented_pointer"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 49
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["long", "long", "word", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 49 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 207
-declared_name = "_ICMessage"
 name = "_ICMessage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "varargs"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "varargs"
-knowledge = "known"
-arguments = ["word", "word", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 50
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { type = "varargs", args = ["word", "word", "word"] }
+evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 212
-declared_name = "ICGetInfo"
 name = "ICGetInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 51
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "segmented_pointer", "long"] }
+evidence = [{ source = "spec", line = 51 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 213
-declared_name = "ICLocate"
 name = "ICLocate"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "long",
-  "pointer",
-  "pointer",
-  "word",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 52
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["long", "long", "pointer", "pointer", "word"] }
+evidence = [{ source = "spec", line = 52 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 224
-declared_name = "_ICCompress"
 name = "_ICCompress"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "cdecl"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "cdecl"
-knowledge = "known"
-arguments = [
-  "word",
-  "long",
-  "segmented_pointer",
-  "segmented_pointer",
-  "segmented_pointer",
-  "segmented_pointer",
-  "segmented_pointer",
-  "segmented_pointer",
-  "long",
-  "long",
-  "long",
-  "segmented_pointer",
-  "segmented_pointer",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 53
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "long", "long", "long", "segmented_pointer", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 53 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 230
-declared_name = "_ICDecompress"
 name = "_ICDecompress"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "cdecl"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "cdecl"
-knowledge = "known"
-arguments = [
-  "word",
-  "long",
-  "segmented_pointer",
-  "segmented_pointer",
-  "segmented_pointer",
-  "segmented_pointer",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 54
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 232
-declared_name = "_ICDrawBegin"
 name = "_ICDrawBegin"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "cdecl"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "cdecl"
-knowledge = "known"
-arguments = [
-  "word",
-  "long",
-  "word",
-  "word",
-  "word",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "segmented_pointer",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-  "long",
-  "long",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 55
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { type = "cdecl", args = ["word", "long", "word", "word", "word", "signed_word", "signed_word", "signed_word", "signed_word", "segmented_pointer", "signed_word", "signed_word", "signed_word", "signed_word", "long", "long"] }
+evidence = [{ source = "spec", line = 55 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 234
-declared_name = "_ICDraw"
 name = "_ICDraw"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "cdecl"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "cdecl"
-knowledge = "known"
-arguments = [
-  "word",
-  "long",
-  "segmented_pointer",
-  "segmented_pointer",
-  "long",
-  "long",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 56
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "long", "long"] }
+evidence = [{ source = "spec", line = 56 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 239
-declared_name = "ICGetDisplayFormat"
 name = "ICGetDisplayFormat"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "pointer",
-  "pointer",
-  "signed_word",
-  "signed_word",
-  "signed_word",
-]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 57
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "pointer", "pointer", "signed_word", "signed_word", "signed_word"] }
+evidence = [{ source = "spec", line = 57 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 240
-declared_name = "ICIMAGECOMPRESS"
 name = "ICIMAGECOMPRESS"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 58
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 58 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 241
-declared_name = "ICIMAGEDECOMPRESS"
 name = "ICIMAGEDECOMPRESS"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 59
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 59 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 242
-declared_name = "ICCOMPRESSORCHOOSE"
 name = "ICCOMPRESSORCHOOSE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 60
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 60 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 243
-declared_name = "ICCOMPRESSORFREE"
 name = "ICCOMPRESSORFREE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 61
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 61 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 244
-declared_name = "ICSEQCOMPRESSFRAMESTART"
 name = "ICSEQCOMPRESSFRAMESTART"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 62
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 62 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 245
-declared_name = "ICSEQCOMPRESSFRAMEEND"
 name = "ICSEQCOMPRESSFRAMEEND"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 63
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 63 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 246
-declared_name = "ICSEQCOMPRESSFRAME"
 name = "ICSEQCOMPRESSFRAME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 64
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 64 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 250
-declared_name = "_MCIWndCreate"
 name = "_MCIWndCreate"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "cdecl"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "cdecl"
-knowledge = "known"
-arguments = ["word", "word", "long", "string"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 65
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { type = "cdecl", args = ["word", "word", "long", "string"] }
+evidence = [{ source = "spec", line = 65 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 251
-declared_name = "_MCIWndRegisterClass"
 name = "_MCIWndRegisterClass"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "cdecl"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "cdecl"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 66
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { type = "cdecl" }
+evidence = [{ source = "spec", line = 66 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 252
-declared_name = "GETOPENFILENAMEPREVIEW"
 name = "GETOPENFILENAMEPREVIEW"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 67
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 67 }]
 
 [[exports]]
-module = "MSVIDEO"
 ordinal = 253
-declared_name = "GETSAVEFILENAMEPREVIEW"
 name = "GETSAVEFILENAMEPREVIEW"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/msvideo.spec"
-line = 68
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 68 }]

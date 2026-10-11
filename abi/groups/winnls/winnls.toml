@@ -1,346 +1,75 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "WINNLS"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/winnls.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "WINNLS"
 ordinal = 22
-declared_name = "IMPQueryIME"
 name = "IMPQueryIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "WinnlsQueryIme"
-id_value = 62
-constant = "WINNLS_QUERY_IME"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 20
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 136
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "WinnlsQueryIme", id_value = 62, constant = "WINNLS_QUERY_IME" }
+evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 136 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "profile"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "profile", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 23
-declared_name = "IMPGetIME"
 name = "IMPGetIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "WinnlsGetIme"
-id_value = 63
-constant = "WINNLS_GET_IME"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 21
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 137
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "WinnlsGetIme", id_value = 63, constant = "WINNLS_GET_IME" }
+evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 137 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "profile"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "window", type = "U16" },
+  { name = "profile", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 24
-declared_name = "IMPSetIME"
 name = "IMPSetIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "WinnlsSetIme"
-id_value = 64
-constant = "WINNLS_SET_IME"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 22
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 138
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "WinnlsSetIme", id_value = 64, constant = "WINNLS_SET_IME" }
+evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 138 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "profile"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "window", type = "U16" },
+  { name = "profile", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 25
-declared_name = "IMPModifyIME"
 name = "IMPModifyIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "WinnlsModifyIme"
-id_value = 65
-constant = "WINNLS_MODIFY_IME"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 139
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "WinnlsModifyIme", id_value = 65, constant = "WINNLS_MODIFY_IME" }
+evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 139 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "profile"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "name", type = "FarString" },
+  { name = "profile", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 26
-declared_name = "IMPGetDefaultIME"
 name = "IMPGetDefaultIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "WinnlsGetDefaultIme"
-id_value = 66
-constant = "WINNLS_GET_DEFAULT_IME"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 24
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 140
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "WinnlsGetDefaultIme", id_value = 66, constant = "WINNLS_GET_DEFAULT_IME" }
+evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 140 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "profile"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "profile", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "WINNLS"
 ordinal = 27
-declared_name = "IMPSetDefaultIME"
 name = "IMPSetDefaultIME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "WinnlsSetDefaultIme"
-id_value = 67
-constant = "WINNLS_SET_DEFAULT_IME"
-
-[[exports.evidence]]
-source = "specs/winnls.spec"
-line = 25
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 141
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "WinnlsSetDefaultIme", id_value = 67, constant = "WINNLS_SET_DEFAULT_IME" }
+evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 141 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "profile"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "profile", type = "FarBuffer" },
+]

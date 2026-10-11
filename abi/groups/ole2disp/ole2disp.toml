@@ -1,1656 +1,336 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "OLE2DISP"
 
-version = 1
+[sources]
+spec = { path = "specs/ole2disp.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs", note = "binding" }
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 2
-declared_name = "SysAllocString"
 name = "SysAllocString"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSysAllocString"
-id_value = 913
-constant = "OLE2DISP_SYS_ALLOC_STRING"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 3
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 10
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSysAllocString", id_value = 913, constant = "OLE2DISP_SYS_ALLOC_STRING" }
+evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 10 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "string"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
+params = [
+  { name = "string", type = "FarString" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 3
-declared_name = "SysReallocString"
 name = "SysReallocString"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "string"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSysReallocString"
-id_value = 914
-constant = "OLE2DISP_SYS_REALLOC_STRING"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 12
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSysReallocString", id_value = 914, constant = "OLE2DISP_SYS_REALLOC_STRING" }
+evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 12 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "string"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "string", type = "FarString" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 4
-declared_name = "SysAllocStringLen"
 name = "SysAllocStringLen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_string", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSysAllocStringLen"
-id_value = 915
-constant = "OLE2DISP_SYS_ALLOC_STRING_LEN"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 14
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSysAllocStringLen", id_value = 915, constant = "OLE2DISP_SYS_ALLOC_STRING_LEN" }
+evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 14 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "string"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "length"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "string", type = "FarBuffer", encoding = "segmented_string" },
+  { name = "length", type = "U16" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 5
-declared_name = "SysReAllocStringLen"
 name = "SysReAllocStringLen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "segmented_string", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSysReAllocStringLen"
-id_value = 916
-constant = "OLE2DISP_SYS_REALLOC_STRING_LEN"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 16
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSysReAllocStringLen", id_value = 916, constant = "OLE2DISP_SYS_REALLOC_STRING_LEN" }
+evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 16 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "string"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "length"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "string", type = "FarBuffer", encoding = "segmented_string" },
+  { name = "length", type = "U16" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 6
-declared_name = "SysFreeString"
 name = "SysFreeString"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_string"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSysFreeString"
-id_value = 917
-constant = "OLE2DISP_SYS_FREE_STRING"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 21
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSysFreeString", id_value = 917, constant = "OLE2DISP_SYS_FREE_STRING" }
+evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 21 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "string"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "string", type = "FarBuffer", encoding = "segmented_string" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 7
-declared_name = "SysStringLen"
 name = "SysStringLen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_string"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSysStringLen"
-id_value = 918
-constant = "OLE2DISP_SYS_STRING_LEN"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 23
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSysStringLen", id_value = 918, constant = "OLE2DISP_SYS_STRING_LEN" }
+evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 23 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "string"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "string", type = "FarBuffer", encoding = "segmented_string" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 8
-declared_name = "VariantInit"
 name = "VariantInit"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispVariantInit"
-id_value = 919
-constant = "OLE2DISP_VARIANT_INIT"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 28
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispVariantInit", id_value = 919, constant = "OLE2DISP_VARIANT_INIT" }
+evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 28 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "value", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 9
-declared_name = "VariantClear"
 name = "VariantClear"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispVariantClear"
-id_value = 920
-constant = "OLE2DISP_VARIANT_CLEAR"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 30
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispVariantClear", id_value = 920, constant = "OLE2DISP_VARIANT_CLEAR" }
+evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 30 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "value", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 10
-declared_name = "VariantCopy"
 name = "VariantCopy"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispVariantCopy"
-id_value = 921
-constant = "OLE2DISP_VARIANT_COPY"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 32
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispVariantCopy", id_value = 921, constant = "OLE2DISP_VARIANT_COPY" }
+evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 32 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "source", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 11
-declared_name = "VariantCopyInd"
 name = "VariantCopyInd"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispVariantCopyInd"
-id_value = 922
-constant = "OLE2DISP_VARIANT_COPY_IND"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 34
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispVariantCopyInd", id_value = 922, constant = "OLE2DISP_VARIANT_COPY_IND" }
+evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 34 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "source", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 15
-declared_name = "SafeArrayCreate"
 name = "SafeArrayCreate"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayCreate"
-id_value = 923
-constant = "OLE2DISP_SAFE_ARRAY_CREATE"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 36
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayCreate", id_value = 923, constant = "OLE2DISP_SAFE_ARRAY_CREATE" }
+evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 36 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "element_type"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dimensions"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bounds"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "element_type", type = "U16" },
+  { name = "dimensions", type = "U16" },
+  { name = "bounds", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 16
-declared_name = "SafeArrayDestroy"
 name = "SafeArrayDestroy"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayDestroy"
-id_value = 924
-constant = "OLE2DISP_SAFE_ARRAY_DESTROY"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 38
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayDestroy", id_value = 924, constant = "OLE2DISP_SAFE_ARRAY_DESTROY" }
+evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 38 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "array", type = "FarBuffer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 17
-declared_name = "SafeArrayGetDim"
 name = "SafeArrayGetDim"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayGetDim"
-id_value = 925
-constant = "OLE2DISP_SAFE_ARRAY_GET_DIM"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 18
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 41
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "Ole2DispSafeArrayGetDim", id_value = 925, constant = "OLE2DISP_SAFE_ARRAY_GET_DIM" }
+evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 41 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 18
-declared_name = "SafeArrayGetElemsize"
 name = "SafeArrayGetElemsize"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayGetElemsize"
-id_value = 926
-constant = "OLE2DISP_SAFE_ARRAY_GET_ELEMSIZE"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 19
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 43
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "Ole2DispSafeArrayGetElemsize", id_value = 926, constant = "OLE2DISP_SAFE_ARRAY_GET_ELEMSIZE" }
+evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 43 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 19
-declared_name = "SafeArrayGetUBound"
 name = "SafeArrayGetUBound"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "word", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayGetUBound"
-id_value = 927
-constant = "OLE2DISP_SAFE_ARRAY_GET_UBOUND"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 20
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 45
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayGetUBound", id_value = 927, constant = "OLE2DISP_SAFE_ARRAY_GET_UBOUND" }
+evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 45 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dimension"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bound"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "array", type = "FarBuffer" },
+  { name = "dimension", type = "U16" },
+  { name = "bound", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 20
-declared_name = "SafeArrayGetLBound"
 name = "SafeArrayGetLBound"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "word", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayGetLBound"
-id_value = 928
-constant = "OLE2DISP_SAFE_ARRAY_GET_LBOUND"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 21
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 47
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayGetLBound", id_value = 928, constant = "OLE2DISP_SAFE_ARRAY_GET_LBOUND" }
+evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 47 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dimension"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bound"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "array", type = "FarBuffer" },
+  { name = "dimension", type = "U16" },
+  { name = "bound", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 21
-declared_name = "SafeArrayLock"
 name = "SafeArrayLock"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayLock"
-id_value = 929
-constant = "OLE2DISP_SAFE_ARRAY_LOCK"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 22
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 49
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayLock", id_value = 929, constant = "OLE2DISP_SAFE_ARRAY_LOCK" }
+evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 49 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 22
-declared_name = "SafeArrayUnlock"
 name = "SafeArrayUnlock"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayUnlock"
-id_value = 930
-constant = "OLE2DISP_SAFE_ARRAY_UNLOCK"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 51
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayUnlock", id_value = 930, constant = "OLE2DISP_SAFE_ARRAY_UNLOCK" }
+evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 51 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 23
-declared_name = "SafeArrayAccessData"
 name = "SafeArrayAccessData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayAccessData"
-id_value = 931
-constant = "OLE2DISP_SAFE_ARRAY_ACCESS_DATA"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 24
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 53
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayAccessData", id_value = 931, constant = "OLE2DISP_SAFE_ARRAY_ACCESS_DATA" }
+evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 53 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "array", type = "FarBuffer" },
+  { name = "data", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 24
-declared_name = "SafeArrayUnaccessData"
 name = "SafeArrayUnaccessData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayUnaccessData"
-id_value = 932
-constant = "OLE2DISP_SAFE_ARRAY_UNACCESS_DATA"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 25
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 55
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayUnaccessData", id_value = 932, constant = "OLE2DISP_SAFE_ARRAY_UNACCESS_DATA" }
+evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 55 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 25
-declared_name = "SafeArrayGetElement"
 name = "SafeArrayGetElement"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "pointer", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayGetElement"
-id_value = 933
-constant = "OLE2DISP_SAFE_ARRAY_GET_ELEMENT"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 26
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 57
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayGetElement", id_value = 933, constant = "OLE2DISP_SAFE_ARRAY_GET_ELEMENT" }
+evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 57 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "indices"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "array", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "indices", type = "FarBuffer" },
+  { name = "value", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 26
-declared_name = "SafeArrayPutElement"
 name = "SafeArrayPutElement"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "pointer", "segmented_pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayPutElement"
-id_value = 934
-constant = "OLE2DISP_SAFE_ARRAY_PUT_ELEMENT"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 27
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 59
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayPutElement", id_value = 934, constant = "OLE2DISP_SAFE_ARRAY_PUT_ELEMENT" }
+evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 59 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "indices"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "array", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "indices", type = "FarBuffer" },
+  { name = "value", type = "FarBuffer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 27
-declared_name = "SafeArrayCopy"
 name = "SafeArrayCopy"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayCopy"
-id_value = 936
-constant = "OLE2DISP_SAFE_ARRAY_COPY"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 28
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 63
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayCopy", id_value = 936, constant = "OLE2DISP_SAFE_ARRAY_COPY" }
+evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 63 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "source", type = "FarBuffer" },
+  { name = "destination", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 38
-declared_name = "SafeArrayAllocDescriptor"
 name = "SafeArrayAllocDescriptor"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayAllocDescriptor"
-id_value = 937
-constant = "OLE2DISP_SAFE_ARRAY_ALLOC_DESCRIPTOR"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 39
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 65
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayAllocDescriptor", id_value = 937, constant = "OLE2DISP_SAFE_ARRAY_ALLOC_DESCRIPTOR" }
+evidence = [{ source = "spec", line = 39 }, { source = "binding", line = 65 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dimensions"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "descriptor"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "dimensions", type = "U16" },
+  { name = "descriptor", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 39
-declared_name = "SafeArrayAllocData"
 name = "SafeArrayAllocData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayAllocData"
-id_value = 938
-constant = "OLE2DISP_SAFE_ARRAY_ALLOC_DATA"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 40
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 67
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayAllocData", id_value = 938, constant = "OLE2DISP_SAFE_ARRAY_ALLOC_DATA" }
+evidence = [{ source = "spec", line = 40 }, { source = "binding", line = 67 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 40
-declared_name = "SafeArrayDestroyDescriptor"
 name = "SafeArrayDestroyDescriptor"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayDestroyDescriptor"
-id_value = 939
-constant = "OLE2DISP_SAFE_ARRAY_DESTROY_DESCRIPTOR"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 41
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 69
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayDestroyDescriptor", id_value = 939, constant = "OLE2DISP_SAFE_ARRAY_DESTROY_DESCRIPTOR" }
+evidence = [{ source = "spec", line = 41 }, { source = "binding", line = 69 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "array", type = "FarBuffer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 41
-declared_name = "SafeArrayDestroyData"
 name = "SafeArrayDestroyData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayDestroyData"
-id_value = 940
-constant = "OLE2DISP_SAFE_ARRAY_DESTROY_DATA"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 42
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 71
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayDestroyData", id_value = 940, constant = "OLE2DISP_SAFE_ARRAY_DESTROY_DATA" }
+evidence = [{ source = "spec", line = 42 }, { source = "binding", line = 71 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "OLE2DISP"
 ordinal = 109
-declared_name = "SafeArrayPtrOfIndex"
 name = "SafeArrayPtrOfIndex"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "pointer", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ole2DispSafeArrayPtrOfIndex"
-id_value = 935
-constant = "OLE2DISP_SAFE_ARRAY_PTR_OF_INDEX"
-
-[[exports.evidence]]
-source = "specs/ole2disp.spec"
-line = 110
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs"
-line = 61
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ole2DispSafeArrayPtrOfIndex", id_value = 935, constant = "OLE2DISP_SAFE_ARRAY_PTR_OF_INDEX" }
+evidence = [{ source = "spec", line = 110 }, { source = "binding", line = 61 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "array"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "indices"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "array", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "indices", type = "FarBuffer" },
+  { name = "value", type = "FarOutputBuffer" },
+]

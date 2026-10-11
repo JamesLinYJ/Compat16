@@ -1,169 +1,54 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+[defaults]
+evidence = [{ source = "compiled-abi-baseline", note_ref = "types" }]
 
-version = 1
+[types.AtomName]
+value = { kind = "far16_16", role = "atom_name" }
+declaration_encoding = "string"
 
-[[types]]
-name = "AtomName"
+[types.ClassName]
+value = { kind = "far16_16", role = "class_name" }
+declaration_encoding = "string"
 
-[types.value]
-kind = "far16_16"
-role = "atom_name"
-direction = "unknown"
-nullability = "unknown"
+[types.FarBuffer]
+value = { kind = "far16_16", role = "far_buffer" }
+declaration_encoding = "pointer"
 
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
+[types.FarOutputBuffer]
+value = { kind = "far16_16", role = "far_output_buffer" }
+declaration_encoding = "pointer"
 
-[[types]]
-name = "ClassName"
+[types.FarPointer]
+value = { kind = "far16_16", role = "far_pointer" }
+declaration_encoding = "pointer"
 
-[types.value]
-kind = "far16_16"
-role = "class_name"
-direction = "unknown"
-nullability = "unknown"
+[types.FarString]
+value = { kind = "far16_16", role = "far_string" }
+declaration_encoding = "string"
 
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
+[types.FarStringOrChar]
+value = { kind = "far16_16", role = "far_string_or_char" }
+declaration_encoding = "segmented_string"
 
-[[types]]
-name = "FarBuffer"
+[types.I16]
+value = { kind = "integer", bits = 16, signedness = "signed" }
+declaration_encoding = "signed_word"
 
-[types.value]
-kind = "far16_16"
-role = "far_buffer"
-direction = "unknown"
-nullability = "unknown"
+[types.I32]
+value = { kind = "integer", bits = 32, signedness = "signed" }
+declaration_encoding = "long"
 
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
+[types.NullableFarString]
+value = { kind = "far16_16", role = "nullable_far_string" }
+declaration_encoding = "string"
 
-[[types]]
-name = "FarOutputBuffer"
+[types.ResourceName]
+value = { kind = "far16_16", role = "resource_name" }
+declaration_encoding = "string"
 
-[types.value]
-kind = "far16_16"
-role = "far_output_buffer"
-direction = "unknown"
-nullability = "unknown"
+[types.U16]
+value = { kind = "integer", bits = 16, signedness = "unsigned" }
+declaration_encoding = "word"
 
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
-
-[[types]]
-name = "FarPointer"
-
-[types.value]
-kind = "far16_16"
-role = "far_pointer"
-direction = "unknown"
-nullability = "unknown"
-
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
-
-[[types]]
-name = "FarString"
-
-[types.value]
-kind = "far16_16"
-role = "far_string"
-direction = "unknown"
-nullability = "unknown"
-
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
-
-[[types]]
-name = "FarStringOrChar"
-
-[types.value]
-kind = "far16_16"
-role = "far_string_or_char"
-direction = "unknown"
-nullability = "unknown"
-
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
-
-[[types]]
-name = "I16"
-
-[types.value]
-kind = "integer"
-bits = 16
-signedness = "signed"
-
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
-
-[[types]]
-name = "I32"
-
-[types.value]
-kind = "integer"
-bits = 32
-signedness = "signed"
-
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
-
-[[types]]
-name = "NullableFarString"
-
-[types.value]
-kind = "far16_16"
-role = "nullable_far_string"
-direction = "unknown"
-nullability = "unknown"
-
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
-
-[[types]]
-name = "ResourceName"
-
-[types.value]
-kind = "far16_16"
-role = "resource_name"
-direction = "unknown"
-nullability = "unknown"
-
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
-
-[[types]]
-name = "U16"
-
-[types.value]
-kind = "integer"
-bits = 16
-signedness = "unsigned"
-
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
-
-[[types]]
-name = "U32"
-
-[types.value]
-kind = "integer"
-bits = 32
-signedness = "unsigned"
-
-[[types.evidence]]
-source = "compiled-abi-baseline"
-note = "Preserves compiled runtime parameter kind and role without new semantic claims."
+[types.U32]
+value = { kind = "integer", bits = 32, signedness = "unsigned" }
+declaration_encoding = "long"

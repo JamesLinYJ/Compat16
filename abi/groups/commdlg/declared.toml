@@ -1,314 +1,64 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "COMMDLG"
 
-version = 1
+[sources]
+spec = { path = "specs/commdlg.spec", note = "spec" }
 
 [[exports]]
-module = "COMMDLG"
 ordinal = 6
-declared_name = "FileOpenDlgProc"
 name = "FileOpenDlgProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/commdlg.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
-module = "COMMDLG"
 ordinal = 7
-declared_name = "FileSaveDlgProc"
 name = "FileSaveDlgProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/commdlg.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
-module = "COMMDLG"
 ordinal = 8
-declared_name = "ColorDlgProc"
 name = "ColorDlgProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/commdlg.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
-module = "COMMDLG"
 ordinal = 13
-declared_name = "FindTextDlgProc"
 name = "FindTextDlgProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/commdlg.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
-module = "COMMDLG"
 ordinal = 14
-declared_name = "ReplaceTextDlgProc"
 name = "ReplaceTextDlgProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/commdlg.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
-module = "COMMDLG"
 ordinal = 16
-declared_name = "FormatCharDlgProc"
 name = "FormatCharDlgProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/commdlg.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
-module = "COMMDLG"
 ordinal = 18
-declared_name = "FontStyleEnumProc"
 name = "FontStyleEnumProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer", "word", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/commdlg.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word", "long"] }
+evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
-module = "COMMDLG"
 ordinal = 19
-declared_name = "FontFamilyEnumProc"
 name = "FontFamilyEnumProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer", "word", "long"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/commdlg.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word", "long"] }
+evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
-module = "COMMDLG"
 ordinal = 21
-declared_name = "PrintDlgProc"
 name = "PrintDlgProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/commdlg.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
-module = "COMMDLG"
 ordinal = 22
-declared_name = "PrintSetupDlgProc"
 name = "PrintSetupDlgProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/commdlg.spec"
-line = 18
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 18 }]

@@ -1,221 +1,46 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "CTL3D"
 
-version = 1
+[sources]
+spec = { path = "specs/ctl3d.spec", note = "spec" }
 
 [[exports]]
-module = "CTL3D"
 ordinal = 7
-declared_name = "BtnWndProc3d"
 name = "BtnWndProc3d"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ctl3d.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
-module = "CTL3D"
 ordinal = 8
-declared_name = "EditWndProc3d"
 name = "EditWndProc3d"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ctl3d.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
-module = "CTL3D"
 ordinal = 9
-declared_name = "ListWndProc3d"
 name = "ListWndProc3d"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ctl3d.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
-module = "CTL3D"
 ordinal = 10
-declared_name = "ComboWndProc3d"
 name = "ComboWndProc3d"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ctl3d.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
-module = "CTL3D"
 ordinal = 11
-declared_name = "StaticWndProc3d"
 name = "StaticWndProc3d"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ctl3d.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
-module = "CTL3D"
 ordinal = 17
-declared_name = "Ctl3dDlgProc"
 name = "Ctl3dDlgProc"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/ctl3d.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "word", "word", "long"] }
+evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
-module = "CTL3D"
 ordinal = 19
-declared_name = "Ctl3dSetStyle"
 name = "Ctl3dSetStyle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long", "word"]
-return_modifier = "ret16"
-
-[[exports.evidence]]
-source = "specs/ctl3d.spec"
-line = 18
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { attributes = ["ret16"], args = ["word", "long", "word"] }
+evidence = [{ source = "spec", line = 18 }]

@@ -1,1765 +1,355 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "AVIFILE"
 
-version = 1
+[sources]
+spec = { path = "specs/avifile.spec", note = "spec" }
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 2
-declared_name = "DLLGETCLASSOBJECT"
 name = "DLLGETCLASSOBJECT"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 3
-declared_name = "DLLCANUNLOADNOW"
 name = "DLLCANUNLOADNOW"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 3
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 4
-declared_name = "___EXPORTEDSTUB"
 name = "___EXPORTEDSTUB"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 10
-declared_name = "_IID_IAVIStream"
 name = "_IID_IAVIStream"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "variable"
-attributes = []
-architecture_constraints = []
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "variable"
+evidence = [{ source = "spec", line = 5 }]
 values = [131105, 0, 192, 1174405120]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 11
-declared_name = "_IID_IAVIFile"
 name = "_IID_IAVIFile"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "variable"
-attributes = []
-architecture_constraints = []
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "variable"
+evidence = [{ source = "spec", line = 6 }]
 values = [131104, 0, 192, 1174405120]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 12
-declared_name = "_IID_IAVIEditStream"
 name = "_IID_IAVIEditStream"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "variable"
-attributes = []
-architecture_constraints = []
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "variable"
+evidence = [{ source = "spec", line = 7 }]
 values = [131108, 0, 192, 1174405120]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 13
-declared_name = "_IID_IGetFrame"
 name = "_IID_IGetFrame"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "variable"
-attributes = []
-architecture_constraints = []
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "variable"
+evidence = [{ source = "spec", line = 8 }]
 values = [131107, 0, 192, 1174405120]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 14
-declared_name = "_CLSID_AVISimpleUnMarshal"
 name = "_CLSID_AVISimpleUnMarshal"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "variable"
-attributes = []
-architecture_constraints = []
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "variable"
+evidence = [{ source = "spec", line = 9 }]
 values = [131081, 0, 192, 1174405120]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 100
-declared_name = "AVIFileInit"
 name = "AVIFileInit"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 101
-declared_name = "AVIFileExit"
 name = "AVIFileExit"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 102
-declared_name = "AVIFileOpen"
 name = "AVIFileOpen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "string", "word", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["pointer", "string", "word", "pointer"] }
+evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 103
-declared_name = "AVIStreamOpenFromFile"
 name = "AVIStreamOpenFromFile"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "pointer",
-  "string",
-  "long",
-  "long",
-  "word",
-  "pointer",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["pointer", "string", "long", "long", "word", "pointer"] }
+evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 104
-declared_name = "AVIStreamCreate"
 name = "AVIStreamCreate"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "long", "long", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["pointer", "long", "long", "pointer"] }
+evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 105
-declared_name = "AVIMAKECOMPRESSEDSTREAM"
 name = "AVIMAKECOMPRESSEDSTREAM"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 106
-declared_name = "AVIMAKEFILEFROMSTREAMS"
 name = "AVIMAKEFILEFROMSTREAMS"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 107
-declared_name = "AVIMAKESTREAMFROMCLIPBOARD"
 name = "AVIMAKESTREAMFROMCLIPBOARD"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 110
-declared_name = "AVIStreamGetFrame"
 name = "AVIStreamGetFrame"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 18
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long"] }
+evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 111
-declared_name = "AVIStreamGetFrameClose"
 name = "AVIStreamGetFrameClose"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 19
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long"] }
+evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 112
-declared_name = "AVIStreamGetFrameOpen"
 name = "AVIStreamGetFrameOpen"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 20
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "pointer"] }
+evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 120
-declared_name = "_AVISAVE"
 name = "_AVISAVE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 21
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 121
-declared_name = "AVISAVEV"
 name = "AVISAVEV"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 22
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 122
-declared_name = "AVISAVEOPTIONS"
 name = "AVISAVEOPTIONS"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 123
-declared_name = "AVIBuildFilter"
 name = "AVIBuildFilter"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "long", "word"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 24
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["string", "long", "word"] }
+evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 124
-declared_name = "AVISaveOptionsFree"
 name = "AVISaveOptionsFree"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 25
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["word", "pointer"] }
+evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 130
-declared_name = "AVIStreamStart"
 name = "AVIStreamStart"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 26
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long"] }
+evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 131
-declared_name = "AVIStreamLength"
 name = "AVIStreamLength"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 27
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long"] }
+evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 132
-declared_name = "AVIStreamTimeToSample"
 name = "AVIStreamTimeToSample"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 28
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long"] }
+evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 133
-declared_name = "AVIStreamSampleToTime"
 name = "AVIStreamSampleToTime"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 29
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long"] }
+evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 140
-declared_name = "AVIFileAddRef"
 name = "AVIFileAddRef"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 30
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long"] }
+evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 141
-declared_name = "AVIFileRelease"
 name = "AVIFileRelease"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 31
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long"] }
+evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 142
-declared_name = "AVIFileInfo"
 name = "AVIFileInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 32
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "pointer", "long"] }
+evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 143
-declared_name = "AVIFileGetStream"
 name = "AVIFileGetStream"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 33
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "pointer", "long", "long"] }
+evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 144
-declared_name = "AVIFileCreateStream"
 name = "AVIFileCreateStream"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 34
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 146
-declared_name = "AVIFileWriteData"
 name = "AVIFileWriteData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 35
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long", "pointer", "long"] }
+evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 147
-declared_name = "AVIFileReadData"
 name = "AVIFileReadData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "pointer", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 36
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 148
-declared_name = "AVIFileEndRecord"
 name = "AVIFileEndRecord"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 37
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long"] }
+evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 160
-declared_name = "AVIStreamAddRef"
 name = "AVIStreamAddRef"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 38
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long"] }
+evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 161
-declared_name = "AVIStreamRelease"
 name = "AVIStreamRelease"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 39
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long"] }
+evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 162
-declared_name = "AVIStreamInfo"
 name = "AVIStreamInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 40
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "pointer", "long"] }
+evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 163
-declared_name = "AVIStreamFindSample"
 name = "AVIStreamFindSample"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 41
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long", "long"] }
+evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 164
-declared_name = "AVIStreamReadFormat"
 name = "AVIStreamReadFormat"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "pointer", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 42
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 42 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 165
-declared_name = "AVIStreamReadData"
 name = "AVIStreamReadData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "pointer", "pointer"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 43
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 166
-declared_name = "AVIStreamWriteData"
 name = "AVIStreamWriteData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 44
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long", "pointer", "long"] }
+evidence = [{ source = "spec", line = 44 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 167
-declared_name = "AVIStreamRead"
 name = "AVIStreamRead"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "long",
-  "long",
-  "pointer",
-  "long",
-  "pointer",
-  "pointer",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 45
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long", "long", "pointer", "long", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 45 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 168
-declared_name = "AVIStreamWrite"
 name = "AVIStreamWrite"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "long",
-  "long",
-  "pointer",
-  "long",
-  "long",
-  "pointer",
-  "pointer",
-]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 46
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long", "long", "pointer", "long", "long", "pointer", "pointer"] }
+evidence = [{ source = "spec", line = 46 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 169
-declared_name = "AVIStreamSetFormat"
 name = "AVIStreamSetFormat"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "pointer", "long"]
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 47
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "unknown"
+decl = { args = ["long", "long", "pointer", "long"] }
+evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 180
-declared_name = "EDITSTREAMCOPY"
 name = "EDITSTREAMCOPY"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 48
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 48 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 181
-declared_name = "EDITSTREAMCUT"
 name = "EDITSTREAMCUT"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 49
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 49 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 182
-declared_name = "EDITSTREAMPASTE"
 name = "EDITSTREAMPASTE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 50
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 184
-declared_name = "CREATEEDITABLESTREAM"
 name = "CREATEEDITABLESTREAM"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 51
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 51 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 185
-declared_name = "AVIPUTFILEONCLIPBOARD"
 name = "AVIPUTFILEONCLIPBOARD"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 52
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 52 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 187
-declared_name = "AVIGETFROMCLIPBOARD"
 name = "AVIGETFROMCLIPBOARD"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 53
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 53 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 188
-declared_name = "AVICLEARCLIPBOARD"
 name = "AVICLEARCLIPBOARD"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 54
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 190
-declared_name = "EDITSTREAMCLONE"
 name = "EDITSTREAMCLONE"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 55
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 55 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 191
-declared_name = "EDITSTREAMSETNAME"
 name = "EDITSTREAMSETNAME"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 56
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 56 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 192
-declared_name = "EDITSTREAMSETINFO"
 name = "EDITSTREAMSETINFO"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 57
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 57 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 200
-declared_name = "AVISTREAMBEGINSTREAMING"
 name = "AVISTREAMBEGINSTREAMING"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 58
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 58 }]
 
 [[exports]]
-module = "AVIFILE"
 ordinal = 201
-declared_name = "AVISTREAMENDSTREAMING"
 name = "AVISTREAMENDSTREAMING"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "stub"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-knowledge = "unknown"
-arguments = []
-return_modifier = "unspecified"
-
-[[exports.evidence]]
-source = "specs/avifile.spec"
-line = 59
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[exports.entry]
 kind = "stub"
-
-[exports.entry.abi]
-kind = "unknown"
+evidence = [{ source = "spec", line = 59 }]

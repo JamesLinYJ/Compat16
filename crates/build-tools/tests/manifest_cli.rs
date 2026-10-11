@@ -3,7 +3,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use build_tools::{compile_catalog, manifest::load_catalog};
+use build_tools::{
+    compile_catalog,
+    manifest::{Abi, ArgumentEncoding, Attribute, ReturnValue, load_catalog},
+};
 
 static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
 
@@ -65,16 +68,32 @@ fn inspect_and_audit_accept_shared_module_aliases() {
 
 #[test]
 fn generate_uses_the_shared_generator_for_both_fragments() {
-    let directory = TestDirectory::new();
-    let root = root();
-    let generated = compile_catalog(&load_catalog(&root).unwrap());
-    let output = Command::new(env!("CARGO_BIN_EXE_build-tools"))
-        .arg("generate").arg("--catalog").arg(&root)
-        .arg("--output").arg(directory.0.join("generated"))
-        .output().expect("run generator");
-    succeeded(&output);
-    assert_eq!(fs::read_to_string(directory.0.join("generated/win16_exports.rs")).unwrap(), generated.metadata);
-    assert_eq!(fs::read_to_string(directory.0.join("generated/win16_bindings.rs")).unwrap(), generated.bindings);
+    let compact = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/compact-catalog");
+    let catalog = load_catalog(&compact).unwrap();
+    let exports = catalog.exports().map(|(_, export)| export).collect::<Vec<_>>();
+    assert_eq!(exports.len(), 2);
+    assert_eq!(exports[0].declaration.attributes, [Attribute::Ret16]);
+    assert_eq!(exports[0].declaration.abi.as_ref().unwrap().arguments, [ArgumentEncoding::Word]);
+    let abi = exports[0].entry.abi().unwrap();
+    assert_eq!(abi.fixed_stack_bytes(), Some(2));
+    // A retained declaration flag must not replace an explicit semantic return.
+    assert_eq!(abi.signature().unwrap().returns, ReturnValue::Void);
+    assert!(matches!(exports[1].entry.abi(), Some(Abi::Unknown)));
+    assert!(exports[1].binding.is_none());
+
+    // Exercise a small hand-authored compact document and the entire production
+    // catalog through the same public loader and shared generator.
+    for root in [compact, root()] {
+        let directory = TestDirectory::new();
+        let generated = compile_catalog(&load_catalog(&root).unwrap());
+        let output = Command::new(env!("CARGO_BIN_EXE_build-tools"))
+            .arg("generate").arg("--catalog").arg(&root)
+            .arg("--output").arg(directory.0.join("generated"))
+            .output().expect("run generator");
+        succeeded(&output);
+        assert_eq!(fs::read_to_string(directory.0.join("generated/win16_exports.rs")).unwrap(), generated.metadata);
+        assert_eq!(fs::read_to_string(directory.0.join("generated/win16_bindings.rs")).unwrap(), generated.bindings);
+    }
 }
 
 #[test]
@@ -86,6 +105,10 @@ modules = []
 name_resolutions = []
 groups = []
 types = []
+
+[defaults]
+architecture = "win16"
+ordinal_source = "explicit"
 "#).unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_build-tools"))
         .arg("generate").arg("--catalog").arg(&directory.0)

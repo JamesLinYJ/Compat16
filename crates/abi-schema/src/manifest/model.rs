@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ExportAttributes;
 
+/// Normalized semantic IR version, independent of the TOML authoring version.
 pub const SCHEMA_VERSION: u32 = 1;
 
 /// Paths are relative to the directory containing `catalog.toml`.
@@ -115,11 +116,19 @@ pub struct Binding {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Entry {
-    Function { abi: Abi },
+    Function {
+        abi: Abi,
+    },
     /// Historical declaration classification; a verified binding may exist.
-    Stub { abi: Abi },
-    Variable { values: Vec<u32> },
-    Equate { value: i32 },
+    Stub {
+        abi: Abi,
+    },
+    Variable {
+        values: Vec<u32>,
+    },
+    Equate {
+        value: i32,
+    },
     Extern,
     Forward,
 }
@@ -148,7 +157,8 @@ impl Abi {
     pub fn signature(&self) -> Option<&Signature> {
         match self {
             Self::Unknown => None,
-            Self::FixedStack { signature } | Self::VariableStack { signature }
+            Self::FixedStack { signature }
+            | Self::VariableStack { signature }
             | Self::RegisterContext { signature } => Some(signature),
         }
     }
@@ -156,9 +166,10 @@ impl Abi {
     /// The total fixed argument area, not including any return address.
     pub fn fixed_stack_bytes(&self) -> Option<u16> {
         match self {
-            Self::FixedStack { signature } => signature.parameters.iter().try_fold(0u16, |n, p| {
-                n.checked_add(p.slot_bytes)
-            }),
+            Self::FixedStack { signature } => signature
+                .parameters
+                .iter()
+                .try_fold(0u16, |n, p| n.checked_add(p.slot_bytes)),
             Self::RegisterContext { .. } => Some(0),
             Self::Unknown | Self::VariableStack { .. } => None,
         }
@@ -168,11 +179,20 @@ impl Abi {
     pub fn cleanup(&self) -> Option<StackCleanup> {
         let bytes = self.fixed_stack_bytes()?;
         if matches!(self, Self::RegisterContext { .. }) {
-            return Some(StackCleanup { callee_pop_bytes: 0, caller_pop_bytes: 0 });
+            return Some(StackCleanup {
+                callee_pop_bytes: 0,
+                caller_pop_bytes: 0,
+            });
         }
         match self.signature()?.calling_convention {
-            CallingConvention::Pascal => Some(StackCleanup { callee_pop_bytes: bytes, caller_pop_bytes: 0 }),
-            CallingConvention::Cdecl => Some(StackCleanup { callee_pop_bytes: 0, caller_pop_bytes: bytes }),
+            CallingConvention::Pascal => Some(StackCleanup {
+                callee_pop_bytes: bytes,
+                caller_pop_bytes: 0,
+            }),
+            CallingConvention::Cdecl => Some(StackCleanup {
+                callee_pop_bytes: 0,
+                caller_pop_bytes: bytes,
+            }),
             _ => None,
         }
     }
@@ -205,12 +225,28 @@ pub struct Parameter {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ValueType {
     Unknown,
-    Integer { bits: u16, signedness: Signedness },
-    Float { bits: u16 },
-    Far16_16 { role: FarPointerRole, direction: Direction, nullability: Nullability },
+    Integer {
+        bits: u16,
+        signedness: Signedness,
+    },
+    Float {
+        bits: u16,
+    },
+    Far16_16 {
+        role: FarPointerRole,
+        direction: Direction,
+        nullability: Nullability,
+    },
     /// A declaration-level linear pointer whose pointed-to contract is unknown.
-    LinearPointer { bits: u16, role: LinearPointerRole, direction: Direction, nullability: Nullability },
-    Named { name: String },
+    LinearPointer {
+        bits: u16,
+        role: LinearPointerRole,
+        direction: Direction,
+        nullability: Nullability,
+    },
+    Named {
+        name: String,
+    },
 }
 
 macro_rules! enums {
@@ -259,7 +295,11 @@ impl Attribute {
 
 impl DeclarationEvidence {
     pub fn attribute_bits(&self) -> ExportAttributes {
-        self.attributes.iter().fold(ExportAttributes::empty(), |bits, attribute| bits | attribute.flag())
+        self.attributes
+            .iter()
+            .fold(ExportAttributes::empty(), |bits, attribute| {
+                bits | attribute.flag()
+            })
     }
 }
 
@@ -270,7 +310,9 @@ impl ValueType {
         match self {
             Self::Integer { bits: 8, .. } => Some(RuntimeArgumentKind::Byte),
             Self::Integer { bits: 16, .. } => Some(RuntimeArgumentKind::Word),
-            Self::Integer { bits: 32, .. } | Self::Far16_16 { .. } => Some(RuntimeArgumentKind::Dword),
+            Self::Integer { bits: 32, .. } | Self::Far16_16 { .. } => {
+                Some(RuntimeArgumentKind::Dword)
+            }
             _ => None,
         }
     }

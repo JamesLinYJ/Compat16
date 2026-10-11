@@ -1,134 +1,31 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "TOOLHELP"
 
-version = 1
+[sources]
+spec = { path = "specs/toolhelp.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/toolhelp_limited_records.inc.rs", note = "binding" }
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 81
-declared_name = "TaskSetCSIP"
 name = "TaskSetCSIP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "ToolhelpTaskSetCsip"
-id_value = 725
-constant = "TOOLHELP_TASK_SET_CSIP"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 33
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/toolhelp_limited_records.inc.rs"
-line = 6
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpTaskSetCsip", id_value = 725, constant = "TOOLHELP_TASK_SET_CSIP" }
+evidence = [{ source = "spec", line = 33 }, { source = "binding", line = 6 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "task"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "code_segment"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instruction_pointer"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "task", type = "U16" },
+  { name = "code_segment", type = "U16" },
+  { name = "instruction_pointer", type = "U16" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 83
-declared_name = "TaskSwitch"
 name = "TaskSwitch"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "segmented_pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpTaskSwitch"
-id_value = 726
-constant = "TOOLHELP_TASK_SWITCH"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 35
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/toolhelp_limited_records.inc.rs"
-line = 8
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "ToolhelpTaskSwitch", id_value = 726, constant = "TOOLHELP_TASK_SWITCH" }
+evidence = [{ source = "spec", line = 35 }, { source = "binding", line = 8 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "task"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "new_cs_ip"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "task", type = "U16" },
+  { name = "new_cs_ip", type = "U32", encoding = "segmented_pointer" },
+]

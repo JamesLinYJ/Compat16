@@ -1,1001 +1,208 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "TOOLHELP"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/toolhelp.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 56
-declared_name = "LocalInfo"
 name = "LocalInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpLocalInfo"
-id_value = 106
-constant = "TOOLHELP_LOCAL_INFO"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 181
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpLocalInfo", id_value = 106, constant = "TOOLHELP_LOCAL_INFO" }
+evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 181 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "heap"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "heap", type = "U16" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 57
-declared_name = "LocalFirst"
 name = "LocalFirst"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpLocalFirst"
-id_value = 107
-constant = "TOOLHELP_LOCAL_FIRST"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 182
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpLocalFirst", id_value = 107, constant = "TOOLHELP_LOCAL_FIRST" }
+evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 182 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "heap"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "heap", type = "U16" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 58
-declared_name = "LocalNext"
 name = "LocalNext"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpLocalNext"
-id_value = 108
-constant = "TOOLHELP_LOCAL_NEXT"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 183
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpLocalNext", id_value = 108, constant = "TOOLHELP_LOCAL_NEXT" }
+evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 183 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 59
-declared_name = "ModuleFirst"
 name = "ModuleFirst"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpModuleFirst"
-id_value = 109
-constant = "TOOLHELP_MODULE_FIRST"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 184
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpModuleFirst", id_value = 109, constant = "TOOLHELP_MODULE_FIRST" }
+evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 184 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 60
-declared_name = "ModuleNext"
 name = "ModuleNext"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpModuleNext"
-id_value = 110
-constant = "TOOLHELP_MODULE_NEXT"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 185
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpModuleNext", id_value = 110, constant = "TOOLHELP_MODULE_NEXT" }
+evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 185 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 61
-declared_name = "ModuleFindName"
 name = "ModuleFindName"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpModuleFindName"
-id_value = 111
-constant = "TOOLHELP_MODULE_FIND_NAME"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 186
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpModuleFindName", id_value = 111, constant = "TOOLHELP_MODULE_FIND_NAME" }
+evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 186 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "name", type = "FarString", encoding = "pointer" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 62
-declared_name = "ModuleFindHandle"
 name = "ModuleFindHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpModuleFindHandle"
-id_value = 112
-constant = "TOOLHELP_MODULE_FIND_HANDLE"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 187
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpModuleFindHandle", id_value = 112, constant = "TOOLHELP_MODULE_FIND_HANDLE" }
+evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 187 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "handle"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "handle", type = "U16" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 63
-declared_name = "TaskFirst"
 name = "TaskFirst"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpTaskFirst"
-id_value = 113
-constant = "TOOLHELP_TASK_FIRST"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 188
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpTaskFirst", id_value = 113, constant = "TOOLHELP_TASK_FIRST" }
+evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 188 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 64
-declared_name = "TaskNext"
 name = "TaskNext"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpTaskNext"
-id_value = 114
-constant = "TOOLHELP_TASK_NEXT"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 189
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpTaskNext", id_value = 114, constant = "TOOLHELP_TASK_NEXT" }
+evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 189 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 65
-declared_name = "TaskFindHandle"
 name = "TaskFindHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpTaskFindHandle"
-id_value = 115
-constant = "TOOLHELP_TASK_FIND_HANDLE"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 190
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpTaskFindHandle", id_value = 115, constant = "TOOLHELP_TASK_FIND_HANDLE" }
+evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 190 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "handle"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "handle", type = "U16" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 69
-declared_name = "ClassFirst"
 name = "ClassFirst"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpClassFirst"
-id_value = 119
-constant = "TOOLHELP_CLASS_FIRST"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 21
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 194
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpClassFirst", id_value = 119, constant = "TOOLHELP_CLASS_FIRST" }
+evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 194 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 70
-declared_name = "ClassNext"
 name = "ClassNext"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpClassNext"
-id_value = 120
-constant = "TOOLHELP_CLASS_NEXT"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 22
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 195
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpClassNext", id_value = 120, constant = "TOOLHELP_CLASS_NEXT" }
+evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 195 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 77
-declared_name = "TerminateApp"
 name = "TerminateApp"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpTerminateApp"
-id_value = 121
-constant = "TOOLHELP_TERMINATE_APP"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 29
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 197
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpTerminateApp", id_value = 121, constant = "TOOLHELP_TERMINATE_APP" }
+evidence = [{ source = "spec", line = 29 }, { source = "binding", line = 197 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "task"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "exit_code"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "task", type = "U16" },
+  { name = "exit_code", type = "U16" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 78
-declared_name = "MemoryRead"
 name = "MemoryRead"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long", "pointer", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "ToolhelpMemoryRead"
-id_value = 122
-constant = "TOOLHELP_MEMORY_READ"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 30
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 198
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "ToolhelpMemoryRead", id_value = 122, constant = "TOOLHELP_MEMORY_READ" }
+evidence = [{ source = "spec", line = 30 }, { source = "binding", line = 198 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "selector"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "offset"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "buffer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "count"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "offset", type = "U32" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "count", type = "U32" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 79
-declared_name = "MemoryWrite"
 name = "MemoryWrite"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long", "pointer", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "ToolhelpMemoryWrite"
-id_value = 123
-constant = "TOOLHELP_MEMORY_WRITE"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 31
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 199
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "ToolhelpMemoryWrite", id_value = 123, constant = "TOOLHELP_MEMORY_WRITE" }
+evidence = [{ source = "spec", line = 31 }, { source = "binding", line = 199 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "selector"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "offset"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "buffer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "count"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "offset", type = "U32" },
+  { name = "buffer", type = "FarBuffer" },
+  { name = "count", type = "U32" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 80
-declared_name = "TimerCount"
 name = "TimerCount"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ToolhelpTimerCount"
-id_value = 124
-constant = "TOOLHELP_TIMER_COUNT"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 32
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 200
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ToolhelpTimerCount", id_value = 124, constant = "TOOLHELP_TIMER_COUNT" }
+evidence = [{ source = "spec", line = 32 }, { source = "binding", line = 200 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "TOOLHELP"
 ordinal = 82
-declared_name = "TaskGetCSIP"
 name = "TaskGetCSIP"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "ToolhelpTaskGetCsip"
-id_value = 125
-constant = "TOOLHELP_TASK_GET_CSIP"
-
-[[exports.evidence]]
-source = "specs/toolhelp.spec"
-line = 34
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 201
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "ToolhelpTaskGetCsip", id_value = 125, constant = "TOOLHELP_TASK_GET_CSIP" }
+evidence = [{ source = "spec", line = 34 }, { source = "binding", line = 201 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "task"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "task", type = "U16" },
+]

@@ -1,1888 +1,368 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "DDEML"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/ddeml.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/dde_records.inc.rs", note = "binding" }
 
 [[exports]]
-module = "DDEML"
 ordinal = 2
-declared_name = "DdeInitialize"
 name = "DdeInitialize"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["pointer", "segmented_pointer", "long", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeInitialize"
-id_value = 846
-constant = "DDEML_INITIALIZE"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 6
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdeInitialize", id_value = 846, constant = "DDEML_INITIALIZE" }
+evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 6 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "callback"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "flags"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "reserved"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "instance", type = "FarOutputBuffer" },
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "flags", type = "U32" },
+  { name = "reserved", type = "U32" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 3
-declared_name = "DdeUninitialize"
 name = "DdeUninitialize"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeUninitialize"
-id_value = 847
-constant = "DDEML_UNINITIALIZE"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 3
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 7
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdeUninitialize", id_value = 847, constant = "DDEML_UNINITIALIZE" }
+evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 7 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "value", type = "U32" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 4
-declared_name = "DdeConnectList"
 name = "DdeConnectList"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "long",
-  "long",
-  "long",
-  "pointer",
-]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeConnectList"
-id_value = 848
-constant = "DDEML_CONNECT_LIST"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 8
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "DdeConnectList", id_value = 848, constant = "DDEML_CONNECT_LIST" }
+evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 8 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "service"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "topic"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "list"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "context"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "instance", type = "U32" },
+  { name = "service", type = "U32" },
+  { name = "topic", type = "U32" },
+  { name = "list", type = "U32" },
+  { name = "context", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 5
-declared_name = "DdeQueryNextServer"
 name = "DdeQueryNextServer"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeQueryNextServer"
-id_value = 849
-constant = "DDEML_QUERY_NEXT_SERVER"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 9
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "DdeQueryNextServer", id_value = 849, constant = "DDEML_QUERY_NEXT_SERVER" }
+evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 9 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "first", type = "U32" },
+  { name = "second", type = "U32" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 6
-declared_name = "DdeDisconnectList"
 name = "DdeDisconnectList"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeDisconnectList"
-id_value = 850
-constant = "DDEML_DISCONNECT_LIST"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 10
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdeDisconnectList", id_value = 850, constant = "DDEML_DISCONNECT_LIST" }
+evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 10 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "value", type = "U32" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 7
-declared_name = "DdeConnect"
 name = "DdeConnect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "long", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeConnect"
-id_value = 851
-constant = "DDEML_CONNECT"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 11
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "DdeConnect", id_value = 851, constant = "DDEML_CONNECT" }
+evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 11 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "service"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "topic"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "context"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "instance", type = "U32" },
+  { name = "service", type = "U32" },
+  { name = "topic", type = "U32" },
+  { name = "context", type = "FarBuffer" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 8
-declared_name = "DdeDisconnect"
 name = "DdeDisconnect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeDisconnect"
-id_value = 852
-constant = "DDEML_DISCONNECT"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 12
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdeDisconnect", id_value = 852, constant = "DDEML_DISCONNECT" }
+evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 12 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "value", type = "U32" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 9
-declared_name = "DdeQueryConvInfo"
 name = "DdeQueryConvInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeQueryConvInfo"
-id_value = 853
-constant = "DDEML_QUERY_CONV_INFO"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 13
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdeQueryConvInfo", id_value = 853, constant = "DDEML_QUERY_CONV_INFO" }
+evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 13 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "conversation"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "transaction"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "info"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "conversation", type = "U32" },
+  { name = "transaction", type = "U32" },
+  { name = "info", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 10
-declared_name = "DdeSetUserHandle"
 name = "DdeSetUserHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeSetUserHandle"
-id_value = 854
-constant = "DDEML_SET_USER_HANDLE"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 14
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdeSetUserHandle", id_value = 854, constant = "DDEML_SET_USER_HANDLE" }
+evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 14 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "third"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "first", type = "U32" },
+  { name = "second", type = "U32" },
+  { name = "third", type = "U32" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 11
-declared_name = "DdeClientTransaction"
 name = "DdeClientTransaction"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "long",
-  "long",
-  "long",
-  "word",
-  "word",
-  "long",
-  "pointer",
-]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeClientTransaction"
-id_value = 855
-constant = "DDEML_CLIENT_TRANSACTION"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 15
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "DdeClientTransaction", id_value = 855, constant = "DDEML_CLIENT_TRANSACTION" }
+evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 15 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data_length"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "conversation"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "item"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "format"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "transaction_type"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "timeout"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "result"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "data", type = "FarBuffer", encoding = "long" },
+  { name = "data_length", type = "U32" },
+  { name = "conversation", type = "U32" },
+  { name = "item", type = "U32" },
+  { name = "format", type = "U16" },
+  { name = "transaction_type", type = "U16" },
+  { name = "timeout", type = "U32" },
+  { name = "result", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 12
-declared_name = "DdeAbandonTransaction"
 name = "DdeAbandonTransaction"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeAbandonTransaction"
-id_value = 856
-constant = "DDEML_ABANDON_TRANSACTION"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 16
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdeAbandonTransaction", id_value = 856, constant = "DDEML_ABANDON_TRANSACTION" }
+evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 16 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "third"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "first", type = "U32" },
+  { name = "second", type = "U32" },
+  { name = "third", type = "U32" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 13
-declared_name = "DdePostAdvise"
 name = "DdePostAdvise"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdePostAdvise"
-id_value = 857
-constant = "DDEML_POST_ADVISE"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 17
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdePostAdvise", id_value = 857, constant = "DDEML_POST_ADVISE" }
+evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 17 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "third"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "first", type = "U32" },
+  { name = "second", type = "U32" },
+  { name = "third", type = "U32" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 14
-declared_name = "DdeCreateDataHandle"
 name = "DdeCreateDataHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "pointer",
-  "long",
-  "long",
-  "long",
-  "word",
-  "word",
-]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeCreateDataHandle"
-id_value = 858
-constant = "DDEML_CREATE_DATA_HANDLE"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 18
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "DdeCreateDataHandle", id_value = 858, constant = "DDEML_CREATE_DATA_HANDLE" }
+evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 18 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data_length"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "offset"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "item"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "format"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "flags"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "instance", type = "U32" },
+  { name = "data", type = "FarBuffer" },
+  { name = "data_length", type = "U32" },
+  { name = "offset", type = "U32" },
+  { name = "item", type = "U32" },
+  { name = "format", type = "U16" },
+  { name = "flags", type = "U16" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 15
-declared_name = "DdeAddData"
 name = "DdeAddData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer", "long", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeAddData"
-id_value = 859
-constant = "DDEML_ADD_DATA"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 19
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "DdeAddData", id_value = 859, constant = "DDEML_ADD_DATA" }
+evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 19 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data_length"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "offset"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports]]
-module = "DDEML"
-ordinal = 16
-declared_name = "DdeGetData"
-name = "DdeGetData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer", "long", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeGetData"
-id_value = 860
-constant = "DDEML_GET_DATA"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 20
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "capacity"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "offset"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports]]
-module = "DDEML"
-ordinal = 17
-declared_name = "DdeAccessData"
-name = "DdeAccessData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeAccessData"
-id_value = 861
-constant = "DDEML_ACCESS_DATA"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 21
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "data"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "size"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports]]
-module = "DDEML"
-ordinal = 18
-declared_name = "DdeUnaccessData"
-name = "DdeUnaccessData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeUnaccessData"
-id_value = 862
-constant = "DDEML_UNACCESS_DATA"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 18
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 22
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports]]
-module = "DDEML"
-ordinal = 19
-declared_name = "DdeFreeDataHandle"
-name = "DdeFreeDataHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeFreeDataHandle"
-id_value = 863
-constant = "DDEML_FREE_DATA_HANDLE"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 19
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 23
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports]]
-module = "DDEML"
-ordinal = 20
-declared_name = "DdeGetLastError"
-name = "DdeGetLastError"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeGetLastError"
-id_value = 864
-constant = "DDEML_GET_LAST_ERROR"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 20
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 24
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports]]
-module = "DDEML"
-ordinal = 21
-declared_name = "DdeCreateStringHandle"
-name = "DdeCreateStringHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "string", "signed_word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeCreateStringHandle"
-id_value = 865
-constant = "DDEML_CREATE_STRING_HANDLE"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 21
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 25
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "code_page"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports]]
-module = "DDEML"
-ordinal = 22
-declared_name = "DdeFreeStringHandle"
-name = "DdeFreeStringHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeFreeStringHandle"
-id_value = 866
-constant = "DDEML_FREE_STRING_HANDLE"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 22
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 26
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports]]
-module = "DDEML"
-ordinal = 23
-declared_name = "DdeQueryString"
-name = "DdeQueryString"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "long",
-  "long",
-  "pointer",
-  "long",
-  "signed_word",
+params = [
+  { name = "data", type = "U32" },
+  { name = "source", type = "FarBuffer" },
+  { name = "data_length", type = "U32" },
+  { name = "offset", type = "U32" },
 ]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeQueryString"
-id_value = 867
-constant = "DDEML_QUERY_STRING"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 27
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "string"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "capacity"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "code_page"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
 
 [[exports]]
-module = "DDEML"
+ordinal = 16
+name = "DdeGetData"
+decl = { attributes = [] }
+binding = { rust_id = "DdeGetData", id_value = 860, constant = "DDEML_GET_DATA" }
+evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 20 }]
+[exports.call]
+returns = "dword"
+params = [
+  { name = "data", type = "U32" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U32" },
+  { name = "offset", type = "U32" },
+]
+
+[[exports]]
+ordinal = 17
+name = "DdeAccessData"
+decl = { attributes = [] }
+binding = { rust_id = "DdeAccessData", id_value = 861, constant = "DDEML_ACCESS_DATA" }
+evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 21 }]
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "data", type = "U32" },
+  { name = "size", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 18
+name = "DdeUnaccessData"
+binding = { rust_id = "DdeUnaccessData", id_value = 862, constant = "DDEML_UNACCESS_DATA" }
+evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 22 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U32" },
+]
+
+[[exports]]
+ordinal = 19
+name = "DdeFreeDataHandle"
+binding = { rust_id = "DdeFreeDataHandle", id_value = 863, constant = "DDEML_FREE_DATA_HANDLE" }
+evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 23 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U32" },
+]
+
+[[exports]]
+ordinal = 20
+name = "DdeGetLastError"
+binding = { rust_id = "DdeGetLastError", id_value = 864, constant = "DDEML_GET_LAST_ERROR" }
+evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 24 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U32" },
+]
+
+[[exports]]
+ordinal = 21
+name = "DdeCreateStringHandle"
+decl = { attributes = [] }
+binding = { rust_id = "DdeCreateStringHandle", id_value = 865, constant = "DDEML_CREATE_STRING_HANDLE" }
+evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 25 }]
+[exports.call]
+returns = "dword"
+params = [
+  { name = "instance", type = "U32" },
+  { name = "value", type = "FarString" },
+  { name = "code_page", type = "I16" },
+]
+
+[[exports]]
+ordinal = 22
+name = "DdeFreeStringHandle"
+binding = { rust_id = "DdeFreeStringHandle", id_value = 866, constant = "DDEML_FREE_STRING_HANDLE" }
+evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 26 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U32" },
+  { name = "second", type = "U32" },
+]
+
+[[exports]]
+ordinal = 23
+name = "DdeQueryString"
+decl = { attributes = [] }
+binding = { rust_id = "DdeQueryString", id_value = 867, constant = "DDEML_QUERY_STRING" }
+evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 27 }]
+[exports.call]
+returns = "dword"
+params = [
+  { name = "instance", type = "U32" },
+  { name = "string", type = "U32" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U32" },
+  { name = "code_page", type = "I16" },
+]
+
+[[exports]]
 ordinal = 24
-declared_name = "DdeKeepStringHandle"
 name = "DdeKeepStringHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeKeepStringHandle"
-id_value = 868
-constant = "DDEML_KEEP_STRING_HANDLE"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 24
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 28
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdeKeepStringHandle", id_value = 868, constant = "DDEML_KEEP_STRING_HANDLE" }
+evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 28 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "first", type = "U32" },
+  { name = "second", type = "U32" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 26
-declared_name = "DdeEnableCallback"
 name = "DdeEnableCallback"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeEnableCallback"
-id_value = 869
-constant = "DDEML_ENABLE_CALLBACK"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 25
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 29
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdeEnableCallback", id_value = 869, constant = "DDEML_ENABLE_CALLBACK" }
+evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 29 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "conversation"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "command"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "instance", type = "U32" },
+  { name = "conversation", type = "U32" },
+  { name = "command", type = "U16" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 27
-declared_name = "DdeNameService"
 name = "DdeNameService"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long", "long", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeNameService"
-id_value = 870
-constant = "DDEML_NAME_SERVICE"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 26
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 30
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "DdeNameService", id_value = 870, constant = "DDEML_NAME_SERVICE" }
+evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 30 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "service"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "reserved"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "command"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "instance", type = "U32" },
+  { name = "service", type = "U32" },
+  { name = "reserved", type = "U32" },
+  { name = "command", type = "U16" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 36
-declared_name = "DdeCmpStringHandles"
 name = "DdeCmpStringHandles"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "DdeCmpStringHandles"
-id_value = 871
-constant = "DDEML_CMP_STRING_HANDLES"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 27
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 31
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "DdeCmpStringHandles", id_value = 871, constant = "DDEML_CMP_STRING_HANDLES" }
+evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 31 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "first", type = "U32" },
+  { name = "second", type = "U32" },
+]
 
 [[exports]]
-module = "DDEML"
 ordinal = 37
-declared_name = "DdeReconnect"
 name = "DdeReconnect"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "DdeReconnect"
-id_value = 872
-constant = "DDEML_RECONNECT"
-
-[[exports.evidence]]
-source = "specs/ddeml.spec"
-line = 28
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/dde_records.inc.rs"
-line = 32
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "DdeReconnect", id_value = 872, constant = "DDEML_RECONNECT" }
+evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 32 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "value", type = "U32" },
+]

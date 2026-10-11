@@ -1,333 +1,70 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "SHELL"
 
-version = 1
+[sources]
+spec = { path = "specs/shell.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "SHELL"
 ordinal = 9
-declared_name = "DragAcceptFiles"
 name = "DragAcceptFiles"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "ShellDragAcceptFiles"
-id_value = 663
-constant = "SHELL_DRAG_ACCEPT_FILES"
-
-[[exports.evidence]]
-source = "specs/shell.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 760
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ShellDragAcceptFiles", id_value = 663, constant = "SHELL_DRAG_ACCEPT_FILES" }
+evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 760 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "accept"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+  { name = "accept", type = "U16" },
+]
 
 [[exports]]
-module = "SHELL"
 ordinal = 11
-declared_name = "DragQueryFile"
 name = "DragQueryFile"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ShellDragQueryFile"
-id_value = 664
-constant = "SHELL_DRAG_QUERY_FILE"
-
-[[exports.evidence]]
-source = "specs/shell.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 761
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "ShellDragQueryFile", id_value = 664, constant = "SHELL_DRAG_QUERY_FILE" }
+evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 761 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "drop"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "index"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "file_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "capacity"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "drop", type = "U16" },
+  { name = "index", type = "U16" },
+  { name = "file_name", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
 
 [[exports]]
-module = "SHELL"
 ordinal = 12
-declared_name = "DragFinish"
 name = "DragFinish"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "ShellDragFinish"
-id_value = 665
-constant = "SHELL_DRAG_FINISH"
-
-[[exports.evidence]]
-source = "specs/shell.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 762
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ShellDragFinish", id_value = 665, constant = "SHELL_DRAG_FINISH" }
+evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 762 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "drop"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "drop", type = "U16" },
+]
 
 [[exports]]
-module = "SHELL"
 ordinal = 13
-declared_name = "DragQueryPoint"
 name = "DragQueryPoint"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "ShellDragQueryPoint"
-id_value = 666
-constant = "SHELL_DRAG_QUERY_POINT"
-
-[[exports.evidence]]
-source = "specs/shell.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 763
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "ShellDragQueryPoint", id_value = 666, constant = "SHELL_DRAG_QUERY_POINT" }
+evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 763 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "drop"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "point"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "drop", type = "U16" },
+  { name = "point", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "SHELL"
 ordinal = 400
-declared_name = "SHFormatDrive"
 name = "SHFormatDrive"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "ShellFormatDrive"
-id_value = 668
-constant = "SHELL_FORMAT_DRIVE"
-
-[[exports.evidence]]
-source = "specs/shell.spec"
-line = 28
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 765
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "ShellFormatDrive", id_value = 668, constant = "SHELL_FORMAT_DRIVE" }
+evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 765 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "owner"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "drive"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "format_id"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "options"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "owner", type = "U16" },
+  { name = "drive", type = "U16" },
+  { name = "format_id", type = "U16" },
+  { name = "options", type = "U16" },
+]

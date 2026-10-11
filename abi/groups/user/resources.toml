@@ -1,312 +1,61 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "USER"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/user.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "USER"
 ordinal = 174
-declared_name = "LoadIcon"
 name = "LoadIcon"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserLoadIcon"
-id_value = 238
-constant = "USER_LOAD_ICON"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 176
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 315
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "UserLoadIcon", id_value = 238, constant = "USER_LOAD_ICON" }
+evidence = [{ source = "spec", line = 176 }, { source = "binding", line = 315 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "icon_name_or_id"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "ResourceName"
-
-[[exports]]
-module = "USER"
-ordinal = 175
-declared_name = "LoadBitmap"
-name = "LoadBitmap"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserLoadBitmap"
-id_value = 239
-constant = "USER_LOAD_BITMAP"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 177
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 316
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bitmap_name_or_id"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "ResourceName"
-
-[[exports]]
-module = "USER"
-ordinal = 176
-declared_name = "LoadString"
-name = "LoadString"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "pointer", "signed_word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "UserLoadString"
-id_value = 236
-constant = "USER_LOAD_STRING"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 178
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 313
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "string_id"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "buffer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "capacity"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports]]
-module = "USER"
-ordinal = 407
-declared_name = "CreateIcon"
-name = "CreateIcon"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "word",
-  "word",
-  "word",
-  "pointer",
-  "pointer",
+params = [
+  { name = "instance", type = "U16" },
+  { name = "icon_name_or_id", type = "ResourceName" },
 ]
-return_modifier = "ret16"
 
-[exports.binding]
-rust_id = "UserCreateIcon"
-id_value = 241
-constant = "USER_CREATE_ICON"
-
-[[exports.evidence]]
-source = "specs/user.spec"
-line = 366
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 318
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+[[exports]]
+ordinal = 175
+name = "LoadBitmap"
+binding = { rust_id = "UserLoadBitmap", id_value = 239, constant = "USER_LOAD_BITMAP" }
+evidence = [{ source = "spec", line = 177 }, { source = "binding", line = 316 }]
+[exports.call]
 returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "bitmap_name_or_id", type = "ResourceName" },
+]
 
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
+[[exports]]
+ordinal = 176
+name = "LoadString"
+binding = { rust_id = "UserLoadString", id_value = 236, constant = "USER_LOAD_STRING" }
+evidence = [{ source = "spec", line = 178 }, { source = "binding", line = 313 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "string_id", type = "U16" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16" },
+]
 
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "width"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "height"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "planes"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "bits_per_pixel"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "and_mask"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "xor_mask"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+[[exports]]
+ordinal = 407
+name = "CreateIcon"
+binding = { rust_id = "UserCreateIcon", id_value = 241, constant = "USER_CREATE_ICON" }
+evidence = [{ source = "spec", line = 366 }, { source = "binding", line = 318 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+  { name = "planes", type = "U16" },
+  { name = "bits_per_pixel", type = "U16" },
+  { name = "and_mask", type = "FarBuffer" },
+  { name = "xor_mask", type = "FarBuffer" },
+]

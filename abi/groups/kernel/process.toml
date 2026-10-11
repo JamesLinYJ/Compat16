@@ -1,863 +1,185 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "KERNEL"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/kernel.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "KERNEL"
 ordinal = 30
-declared_name = "WaitEvent"
 name = "WaitEvent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelWaitEvent"
-id_value = 183
-constant = "KERNEL_WAIT_EVENT"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 31
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 260
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelWaitEvent", id_value = 183, constant = "KERNEL_WAIT_EVENT" }
+evidence = [{ source = "spec", line = 31 }, { source = "binding", line = 260 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "task_handle"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "task_handle", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 31
-declared_name = "PostEvent"
 name = "PostEvent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelPostEvent"
-id_value = 184
-constant = "KERNEL_POST_EVENT"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 32
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 261
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelPostEvent", id_value = 184, constant = "KERNEL_POST_EVENT" }
+evidence = [{ source = "spec", line = 32 }, { source = "binding", line = 261 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "task_handle"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "task_handle", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 47
-declared_name = "GetModuleHandle"
 name = "GetModuleHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_string"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelGetModuleHandle"
-id_value = 159
-constant = "KERNEL_GET_MODULE_HANDLE"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 48
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 235
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetModuleHandle", id_value = 159, constant = "KERNEL_GET_MODULE_HANDLE" }
+evidence = [{ source = "spec", line = 48 }, { source = "binding", line = 235 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "module_or_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "module_or_name", type = "U32", encoding = "segmented_string" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 48
-declared_name = "GetModuleUsage"
 name = "GetModuleUsage"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelGetModuleUsage"
-id_value = 160
-constant = "KERNEL_GET_MODULE_USAGE"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 49
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 236
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelGetModuleUsage", id_value = 160, constant = "KERNEL_GET_MODULE_USAGE" }
+evidence = [{ source = "spec", line = 49 }, { source = "binding", line = 236 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "module"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "module", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 49
-declared_name = "GetModuleFileName"
 name = "GetModuleFileName"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "signed_word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelGetModuleFileName"
-id_value = 157
-constant = "KERNEL_GET_MODULE_FILE_NAME"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 50
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 233
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelGetModuleFileName", id_value = 157, constant = "KERNEL_GET_MODULE_FILE_NAME" }
+evidence = [{ source = "spec", line = 50 }, { source = "binding", line = 233 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "module"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output_buffer"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "capacity"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "module", type = "U16" },
+  { name = "output_buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 50
-declared_name = "GetProcAddress"
 name = "GetProcAddress"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "string"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelGetProcAddress"
-id_value = 164
-constant = "KERNEL_GET_PROC_ADDRESS"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 51
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 240
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetProcAddress", id_value = 164, constant = "KERNEL_GET_PROC_ADDRESS" }
+evidence = [{ source = "spec", line = 51 }, { source = "binding", line = 240 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "module"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "procedure_name_or_ordinal"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "module", type = "U16" },
+  { name = "procedure_name_or_ordinal", type = "U32", encoding = "string" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 51
-declared_name = "MakeProcInstance"
 name = "MakeProcInstance"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelMakeProcInstance"
-id_value = 185
-constant = "KERNEL_MAKE_PROC_INSTANCE"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 52
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 262
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelMakeProcInstance", id_value = 185, constant = "KERNEL_MAKE_PROC_INSTANCE" }
+evidence = [{ source = "spec", line = 52 }, { source = "binding", line = 262 }]
+[exports.call]
 returns = "far_pointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "procedure"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "instance", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 52
-declared_name = "FreeProcInstance"
 name = "FreeProcInstance"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelFreeProcInstance"
-id_value = 186
-constant = "KERNEL_FREE_PROC_INSTANCE"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 53
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 263
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelFreeProcInstance", id_value = 186, constant = "KERNEL_FREE_PROC_INSTANCE" }
+evidence = [{ source = "spec", line = 53 }, { source = "binding", line = 263 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "procedure"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
+params = [
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 54
-declared_name = "GetInstanceData"
 name = "GetInstanceData"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelGetInstanceData"
-id_value = 161
-constant = "KERNEL_GET_INSTANCE_DATA"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 55
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 237
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelGetInstanceData", id_value = 161, constant = "KERNEL_GET_INSTANCE_DATA" }
+evidence = [{ source = "spec", line = 55 }, { source = "binding", line = 237 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "previous_instance"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "current_instance_buffer_offset"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "byte_count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "previous_instance", type = "U16" },
+  { name = "current_instance_buffer_offset", type = "U16" },
+  { name = "byte_count", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 93
-declared_name = "GetCodeHandle"
 name = "GetCodeHandle"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelGetCodeHandle"
-id_value = 162
-constant = "KERNEL_GET_CODE_HANDLE"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 94
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 238
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetCodeHandle", id_value = 162, constant = "KERNEL_GET_CODE_HANDLE" }
+evidence = [{ source = "spec", line = 94 }, { source = "binding", line = 238 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "procedure"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarPointer"
+params = [
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 95
-declared_name = "LoadLibrary"
 name = "LoadLibrary"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16", "stack_prolog"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelLoadLibrary"
-id_value = 165
-constant = "KERNEL_LOAD_LIBRARY"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 96
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 241
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = ["ret16", "stack_prolog"] }
+binding = { rust_id = "KernelLoadLibrary", id_value = 165, constant = "KERNEL_LOAD_LIBRARY" }
+evidence = [{ source = "spec", line = 96 }, { source = "binding", line = 241 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "library_name"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
+params = [
+  { name = "library_name", type = "FarString" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 96
-declared_name = "FreeLibrary"
 name = "FreeLibrary"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "KernelFreeLibrary"
-id_value = 166
-constant = "KERNEL_FREE_LIBRARY"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 97
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 242
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "KernelFreeLibrary", id_value = 166, constant = "KERNEL_FREE_LIBRARY" }
+evidence = [{ source = "spec", line = 97 }, { source = "binding", line = 242 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "module"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "module", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 104
-declared_name = "GetCodeInfo"
 name = "GetCodeInfo"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["segmented_pointer", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelGetCodeInfo"
-id_value = 163
-constant = "KERNEL_GET_CODE_INFO"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 105
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 239
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelGetCodeInfo", id_value = 163, constant = "KERNEL_GET_CODE_INFO" }
+evidence = [{ source = "spec", line = 105 }, { source = "binding", line = 239 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "procedure_or_module_segment"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "procedure_or_module_segment", type = "U32", encoding = "segmented_pointer" },
+  { name = "output", type = "FarOutputBuffer" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 166
-declared_name = "WinExec"
 name = "WinExec"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelWinExec"
-id_value = 189
-constant = "KERNEL_WIN_EXEC"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 166
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 266
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelWinExec", id_value = 189, constant = "KERNEL_WIN_EXEC" }
+evidence = [{ source = "spec", line = 166 }, { source = "binding", line = 266 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "command_line"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "show"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "command_line", type = "FarString" },
+  { name = "show", type = "U16" },
+]
 
 [[exports]]
-module = "KERNEL"
 ordinal = 466
-declared_name = "ExitProcess"
 name = "ExitProcess"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "KernelExitProcess"
-id_value = 207
-constant = "KERNEL_EXIT_PROCESS"
-
-[[exports.evidence]]
-source = "specs/kernel.spec"
-line = 341
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 284
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "KernelExitProcess", id_value = 207, constant = "KERNEL_EXIT_PROCESS" }
+evidence = [{ source = "spec", line = 341 }, { source = "binding", line = 284 }]
+[exports.call]
 returns = "void"
-
-[[exports.entry.abi.signature.parameters]]
-name = "status"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "status", type = "U16" },
+]

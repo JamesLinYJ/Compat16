@@ -1,921 +1,177 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "SOUND"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/sound.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/sound_records.inc.rs", note = "binding" }
 
 [[exports]]
-module = "SOUND"
 ordinal = 1
-declared_name = "OpenSound"
 name = "OpenSound"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundOpen"
-id_value = 1061
-constant = "SOUND_OPEN"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 10
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "SoundOpen", id_value = 1061, constant = "SOUND_OPEN" }
+evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 10 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "SOUND"
 ordinal = 2
-declared_name = "CloseSound"
 name = "CloseSound"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "SoundClose"
-id_value = 1062
-constant = "SOUND_CLOSE"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 3
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 11
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+decl = { attributes = [] }
+binding = { rust_id = "SoundClose", id_value = 1062, constant = "SOUND_CLOSE" }
+evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 11 }]
+[exports.call]
 returns = "void"
 
 [[exports]]
-module = "SOUND"
 ordinal = 3
-declared_name = "SetVoiceQueueSize"
 name = "SetVoiceQueueSize"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundSetVoiceQueueSize"
-id_value = 1063
-constant = "SOUND_SET_VOICE_QUEUE_SIZE"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 12
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "SoundSetVoiceQueueSize", id_value = 1063, constant = "SOUND_SET_VOICE_QUEUE_SIZE" }
+evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 12 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports]]
-module = "SOUND"
-ordinal = 4
-declared_name = "SetVoiceNote"
-name = "SetVoiceNote"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundSetVoiceNote"
-id_value = 1064
-constant = "SOUND_SET_VOICE_NOTE"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 14
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "third"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "fourth"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports]]
-module = "SOUND"
-ordinal = 5
-declared_name = "SetVoiceAccent"
-name = "SetVoiceAccent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "word",
-  "word",
-  "word",
-  "word",
-  "word",
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
 ]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundSetVoiceAccent"
-id_value = 1065
-constant = "SOUND_SET_VOICE_ACCENT"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 16
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "third"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "fourth"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "fifth"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
 
 [[exports]]
-module = "SOUND"
+ordinal = 4
+name = "SetVoiceNote"
+binding = { rust_id = "SoundSetVoiceNote", id_value = 1064, constant = "SOUND_SET_VOICE_NOTE" }
+evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 14 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+  { name = "third", type = "U16" },
+  { name = "fourth", type = "U16" },
+]
+
+[[exports]]
+ordinal = 5
+name = "SetVoiceAccent"
+binding = { rust_id = "SoundSetVoiceAccent", id_value = 1065, constant = "SOUND_SET_VOICE_ACCENT" }
+evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 16 }]
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+  { name = "third", type = "U16" },
+  { name = "fourth", type = "U16" },
+  { name = "fifth", type = "U16" },
+]
+
+[[exports]]
 ordinal = 6
-declared_name = "SetVoiceEnvelope"
 name = "SetVoiceEnvelope"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundSetVoiceEnvelope"
-id_value = 1066
-constant = "SOUND_SET_VOICE_ENVELOPE"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 18
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "SoundSetVoiceEnvelope", id_value = 1066, constant = "SOUND_SET_VOICE_ENVELOPE" }
+evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 18 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "third"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+  { name = "third", type = "U16" },
+]
 
 [[exports]]
-module = "SOUND"
 ordinal = 7
-declared_name = "SetSoundNoise"
 name = "SetSoundNoise"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundSetSoundNoise"
-id_value = 1067
-constant = "SOUND_SET_SOUND_NOISE"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 8
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 20
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "SoundSetSoundNoise", id_value = 1067, constant = "SOUND_SET_SOUND_NOISE" }
+evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 20 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+]
 
 [[exports]]
-module = "SOUND"
 ordinal = 8
-declared_name = "SetVoiceSound"
 name = "SetVoiceSound"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundSetVoiceSound"
-id_value = 1068
-constant = "SOUND_SET_VOICE_SOUND"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 22
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "SoundSetVoiceSound", id_value = 1068, constant = "SOUND_SET_VOICE_SOUND" }
+evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 22 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "voice"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "frequency"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "duration"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "voice", type = "U16" },
+  { name = "frequency", type = "U32" },
+  { name = "duration", type = "U16" },
+]
 
 [[exports]]
-module = "SOUND"
 ordinal = 9
-declared_name = "StartSound"
 name = "StartSound"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundStart"
-id_value = 1069
-constant = "SOUND_START"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 10
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 24
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "SoundStart", id_value = 1069, constant = "SOUND_START" }
+evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 24 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "SOUND"
 ordinal = 10
-declared_name = "StopSound"
 name = "StopSound"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundStop"
-id_value = 1070
-constant = "SOUND_STOP"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 25
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "SoundStop", id_value = 1070, constant = "SOUND_STOP" }
+evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 25 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "SOUND"
 ordinal = 11
-declared_name = "WaitSoundState"
 name = "WaitSoundState"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundWaitState"
-id_value = 1071
-constant = "SOUND_WAIT_STATE"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 12
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 26
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "SoundWaitState", id_value = 1071, constant = "SOUND_WAIT_STATE" }
+evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 26 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "value", type = "U16" },
+]
 
 [[exports]]
-module = "SOUND"
 ordinal = 12
-declared_name = "SyncAllVoices"
 name = "SyncAllVoices"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundSyncAllVoices"
-id_value = 1072
-constant = "SOUND_SYNC_ALL_VOICES"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 28
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "SoundSyncAllVoices", id_value = 1072, constant = "SOUND_SYNC_ALL_VOICES" }
+evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 28 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "SOUND"
 ordinal = 13
-declared_name = "CountVoiceNotes"
 name = "CountVoiceNotes"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundCountVoiceNotes"
-id_value = 1073
-constant = "SOUND_COUNT_VOICE_NOTES"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 30
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "SoundCountVoiceNotes", id_value = 1073, constant = "SOUND_COUNT_VOICE_NOTES" }
+evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 30 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "value"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "value", type = "U16" },
+]
 
 [[exports]]
-module = "SOUND"
 ordinal = 14
-declared_name = "GetThresholdEvent"
 name = "GetThresholdEvent"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "SoundGetThresholdEvent"
-id_value = 1074
-constant = "SOUND_GET_THRESHOLD_EVENT"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 32
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+decl = { attributes = [] }
+binding = { rust_id = "SoundGetThresholdEvent", id_value = 1074, constant = "SOUND_GET_THRESHOLD_EVENT" }
+evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 32 }]
+[exports.call]
 returns = "far_pointer"
 
 [[exports]]
-module = "SOUND"
 ordinal = 15
-declared_name = "GetThresholdStatus"
 name = "GetThresholdStatus"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundGetThresholdStatus"
-id_value = 1075
-constant = "SOUND_GET_THRESHOLD_STATUS"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 16
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 34
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "SoundGetThresholdStatus", id_value = 1075, constant = "SOUND_GET_THRESHOLD_STATUS" }
+evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 34 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "SOUND"
 ordinal = 16
-declared_name = "SetVoiceThreshold"
 name = "SetVoiceThreshold"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "SoundSetVoiceThreshold"
-id_value = 1076
-constant = "SOUND_SET_VOICE_THRESHOLD"
-
-[[exports.evidence]]
-source = "specs/sound.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/sound_records.inc.rs"
-line = 36
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "SoundSetVoiceThreshold", id_value = 1076, constant = "SOUND_SET_VOICE_THRESHOLD" }
+evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 36 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+]

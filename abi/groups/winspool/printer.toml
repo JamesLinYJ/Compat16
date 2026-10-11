@@ -1,95 +1,20 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "WINSPOOL"
 
-version = 1
+[sources]
+spec = { path = "specs/winspool.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "WINSPOOL"
 ordinal = 91
-declared_name = "DeviceCapabilities"
 name = "DeviceCapabilities"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = [
-  "string",
-  "string",
-  "word",
-  "pointer",
-  "pointer",
-]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "WinspoolDeviceCapabilities"
-id_value = 724
-constant = "WINSPOOL_DEVICE_CAPABILITIES"
-
-[[exports.evidence]]
-source = "specs/winspool.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 822
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "WinspoolDeviceCapabilities", id_value = 724, constant = "WINSPOOL_DEVICE_CAPABILITIES" }
+evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 822 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "device"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "NullableFarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "port"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "NullableFarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "index"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "devmode"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "device", type = "NullableFarString" },
+  { name = "port", type = "NullableFarString" },
+  { name = "index", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "devmode", type = "FarBuffer" },
+]

@@ -1,996 +1,197 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "CTL3DV2"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/ctl3dv2.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs", note = "binding" }
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 1
-declared_name = "Ctl3dGetVer"
 name = "Ctl3dGetVer"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2GetVersion"
-id_value = 1181
-constant = "CTL3DV2_GET_VERSION"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 45
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "Ctl3dV2GetVersion", id_value = 1181, constant = "CTL3DV2_GET_VERSION" }
+evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 45 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 2
-declared_name = "Ctl3dSubclassDlg"
 name = "Ctl3dSubclassDlg"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2SubclassDialog"
-id_value = 1182
-constant = "CTL3DV2_SUBCLASS_DIALOG"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 3
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 46
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2SubclassDialog", id_value = 1182, constant = "CTL3DV2_SUBCLASS_DIALOG" }
+evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 46 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "first"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "second"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 3
-declared_name = "Ctl3dSubclassCtl"
 name = "Ctl3dSubclassCtl"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2SubclassControl"
-id_value = 1183
-constant = "CTL3DV2_SUBCLASS_CONTROL"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 48
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2SubclassControl", id_value = 1183, constant = "CTL3DV2_SUBCLASS_CONTROL" }
+evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 48 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 4
-declared_name = "Ctl3dCtlColor"
 name = "Ctl3dCtlColor"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2ControlColor"
-id_value = 1184
-constant = "CTL3DV2_CONTROL_COLOR"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 50
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2ControlColor", id_value = 1184, constant = "CTL3DV2_CONTROL_COLOR" }
+evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 50 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "control"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "message"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "control", type = "U16" },
+  { name = "message", type = "U32" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 5
-declared_name = "Ctl3dEnabled"
 name = "Ctl3dEnabled"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2IsEnabled"
-id_value = 1185
-constant = "CTL3DV2_IS_ENABLED"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 52
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "Ctl3dV2IsEnabled", id_value = 1185, constant = "CTL3DV2_IS_ENABLED" }
+evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 52 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 6
-declared_name = "Ctl3dColorChange"
 name = "Ctl3dColorChange"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2ColorChange"
-id_value = 1186
-constant = "CTL3DV2_COLOR_CHANGE"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 53
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "Ctl3dV2ColorChange", id_value = 1186, constant = "CTL3DV2_COLOR_CHANGE" }
+evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 53 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 12
-declared_name = "Ctl3dRegister"
 name = "Ctl3dRegister"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2Register"
-id_value = 1187
-constant = "CTL3DV2_REGISTER"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 13
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 54
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2Register", id_value = 1187, constant = "CTL3DV2_REGISTER" }
+evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 54 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 13
-declared_name = "Ctl3dUnregister"
 name = "Ctl3dUnregister"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2Unregister"
-id_value = 1188
-constant = "CTL3DV2_UNREGISTER"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 14
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 56
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2Unregister", id_value = 1188, constant = "CTL3DV2_UNREGISTER" }
+evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 56 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 16
-declared_name = "Ctl3dAutoSubclass"
 name = "Ctl3dAutoSubclass"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2AutoSubclass"
-id_value = 1189
-constant = "CTL3DV2_AUTO_SUBCLASS"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 15
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 58
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2AutoSubclass", id_value = 1189, constant = "CTL3DV2_AUTO_SUBCLASS" }
+evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 58 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 18
-declared_name = "Ctl3dCtlColorEx"
 name = "Ctl3dCtlColorEx"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2ControlColorEx"
-id_value = 1190
-constant = "CTL3DV2_CONTROL_COLOR_EX"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 17
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 60
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2ControlColorEx", id_value = 1190, constant = "CTL3DV2_CONTROL_COLOR_EX" }
+evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 60 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "control"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "message"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "l_param"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarBuffer"
+params = [
+  { name = "control", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "l_param", type = "FarBuffer", encoding = "long" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 20
-declared_name = "Ctl3dDlgFramePaint"
 name = "Ctl3dDlgFramePaint"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word", "word", "long"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "Ctl3dV2DlgFramePaint"
-id_value = 1191
-constant = "CTL3DV2_DLG_FRAME_PAINT"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 19
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 65
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "Ctl3dV2DlgFramePaint", id_value = 1191, constant = "CTL3DV2_DLG_FRAME_PAINT" }
+evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 65 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "message"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "w_param"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "l_param"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 21
-declared_name = "Ctl3dSubclassDlgEx"
 name = "Ctl3dSubclassDlgEx"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2SubclassDialogEx"
-id_value = 1192
-constant = "CTL3DV2_SUBCLASS_DIALOG_EX"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 20
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 67
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2SubclassDialogEx", id_value = 1192, constant = "CTL3DV2_SUBCLASS_DIALOG_EX" }
+evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 67 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "dialog"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "flags"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "flags", type = "U32" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 22
-declared_name = "Ctl3dWinIniChange"
 name = "Ctl3dWinIniChange"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2WinIniChange"
-id_value = 1193
-constant = "CTL3DV2_WIN_INI_CHANGE"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 21
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 70
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "Ctl3dV2WinIniChange", id_value = 1193, constant = "CTL3DV2_WIN_INI_CHANGE" }
+evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 70 }]
+[exports.call]
 returns = "void"
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 23
-declared_name = "Ctl3dIsAutoSubclass"
 name = "Ctl3dIsAutoSubclass"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2IsAutoSubclass"
-id_value = 1194
-constant = "CTL3DV2_IS_AUTO_SUBCLASS"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 22
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 71
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "Ctl3dV2IsAutoSubclass", id_value = 1194, constant = "CTL3DV2_IS_AUTO_SUBCLASS" }
+evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 71 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 24
-declared_name = "Ctl3dUnAutoSubclass"
 name = "Ctl3dUnAutoSubclass"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = []
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2UnAutoSubclass"
-id_value = 1195
-constant = "CTL3DV2_UN_AUTO_SUBCLASS"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 23
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 72
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
-parameters = []
+binding = { rust_id = "Ctl3dV2UnAutoSubclass", id_value = 1195, constant = "CTL3DV2_UN_AUTO_SUBCLASS" }
+evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 72 }]
+[exports.call]
 returns = "word"
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 25
-declared_name = "Ctl3dSubclassCtlEx"
 name = "Ctl3dSubclassCtlEx"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2SubclassControlEx"
-id_value = 1196
-constant = "CTL3DV2_SUBCLASS_CONTROL_EX"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 24
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 73
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2SubclassControlEx", id_value = 1196, constant = "CTL3DV2_SUBCLASS_CONTROL_EX" }
+evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 73 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "control"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "style"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "control", type = "U16" },
+  { name = "style", type = "U16" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 26
-declared_name = "Ctl3dUnsubclassCtl"
 name = "Ctl3dUnsubclassCtl"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2UnsubclassControl"
-id_value = 1197
-constant = "CTL3DV2_UNSUBCLASS_CONTROL"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 25
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 75
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2UnsubclassControl", id_value = 1197, constant = "CTL3DV2_UNSUBCLASS_CONTROL" }
+evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 75 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "window"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
-module = "CTL3DV2"
 ordinal = 27
-declared_name = "Ctl3dAutoSubclassEx"
 name = "Ctl3dAutoSubclassEx"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "Ctl3dV2AutoSubclassEx"
-id_value = 1198
-constant = "CTL3DV2_AUTO_SUBCLASS_EX"
-
-[[exports.evidence]]
-source = "specs/ctl3dv2.spec"
-line = 26
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/ctl3d_records.inc.rs"
-line = 77
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "Ctl3dV2AutoSubclassEx", id_value = 1198, constant = "CTL3DV2_AUTO_SUBCLASS_EX" }
+evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 77 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "parent"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "flags"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U32"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "flags", type = "U32" },
+]

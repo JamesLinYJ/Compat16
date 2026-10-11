@@ -1,500 +1,106 @@
-# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
-# Historical evidence does not override the canonical runtime signature.
+module = "LZEXPAND"
+defaults = { attributes = ["ret16"] }
 
-version = 1
+[sources]
+spec = { path = "specs/lzexpand.spec", note = "spec" }
+binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
 
 [[exports]]
-module = "LZEXPAND"
 ordinal = 1
-declared_name = "LZCopy"
 name = "LZCopy"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "LzexpandLzCopy"
-id_value = 600
-constant = "LZEXPAND_LZ_COPY"
-
-[[exports.evidence]]
-source = "specs/lzexpand.spec"
-line = 2
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 696
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "LzexpandLzCopy", id_value = 600, constant = "LZEXPAND_LZ_COPY" }
+evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 696 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "source", type = "I16", encoding = "word" },
+  { name = "destination", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "LZEXPAND"
 ordinal = 2
-declared_name = "LZOpenFile"
 name = "LZOpenFile"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "LzexpandLzOpenFile"
-id_value = 601
-constant = "LZEXPAND_LZ_OPEN_FILE"
-
-[[exports.evidence]]
-source = "specs/lzexpand.spec"
-line = 3
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 697
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "LzexpandLzOpenFile", id_value = 601, constant = "LZEXPAND_LZ_OPEN_FILE" }
+evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 697 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "path"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "ofstruct"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "style"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "ofstruct", type = "FarOutputBuffer" },
+  { name = "style", type = "U16" },
+]
 
 [[exports]]
-module = "LZEXPAND"
 ordinal = 3
-declared_name = "LZInit"
 name = "LZInit"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "LzexpandLzInit"
-id_value = 602
-constant = "LZEXPAND_LZ_INIT"
-
-[[exports.evidence]]
-source = "specs/lzexpand.spec"
-line = 4
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 698
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "LzexpandLzInit", id_value = 602, constant = "LZEXPAND_LZ_INIT" }
+evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 698 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "file"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "file", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "LZEXPAND"
 ordinal = 4
-declared_name = "LZSeek"
 name = "LZSeek"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "long", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "LzexpandLzSeek"
-id_value = 603
-constant = "LZEXPAND_LZ_SEEK"
-
-[[exports.evidence]]
-source = "specs/lzexpand.spec"
-line = 5
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 699
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "LzexpandLzSeek", id_value = 603, constant = "LZEXPAND_LZ_SEEK" }
+evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 699 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "file"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "offset"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I32"
-
-[[exports.entry.abi.signature.parameters]]
-name = "origin"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "file", type = "I16", encoding = "word" },
+  { name = "offset", type = "I32" },
+  { name = "origin", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "LZEXPAND"
 ordinal = 5
-declared_name = "LZRead"
 name = "LZRead"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "pointer", "word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "LzexpandLzRead"
-id_value = 604
-constant = "LZEXPAND_LZ_READ"
-
-[[exports.evidence]]
-source = "specs/lzexpand.spec"
-line = 6
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 700
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "LzexpandLzRead", id_value = 604, constant = "LZEXPAND_LZ_READ" }
+evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 700 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "file"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
-
-[[exports.entry.abi.signature.parameters]]
-name = "count"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "U16"
+params = [
+  { name = "file", type = "I16", encoding = "word" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "count", type = "U16" },
+]
 
 [[exports]]
-module = "LZEXPAND"
 ordinal = 6
-declared_name = "LZClose"
 name = "LZClose"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "LzexpandLzClose"
-id_value = 605
-constant = "LZEXPAND_LZ_CLOSE"
-
-[[exports.evidence]]
-source = "specs/lzexpand.spec"
-line = 7
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 701
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "LzexpandLzClose", id_value = 605, constant = "LZEXPAND_LZ_CLOSE" }
+evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 701 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "file"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "file", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "LZEXPAND"
 ordinal = 8
-declared_name = "CopyLZFile"
 name = "CopyLZFile"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = []
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["word", "word"]
-return_modifier = "unspecified"
-
-[exports.binding]
-rust_id = "LzexpandCopyLzFile"
-id_value = 607
-constant = "LZEXPAND_COPY_LZ_FILE"
-
-[[exports.evidence]]
-source = "specs/lzexpand.spec"
-line = 9
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 703
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+decl = { attributes = [] }
+binding = { rust_id = "LzexpandCopyLzFile", id_value = 607, constant = "LZEXPAND_COPY_LZ_FILE" }
+evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 703 }]
+[exports.call]
 returns = "dword"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
-
-[[exports.entry.abi.signature.parameters]]
-name = "destination"
-slot_bytes = 2
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "I16"
+params = [
+  { name = "source", type = "I16", encoding = "word" },
+  { name = "destination", type = "I16", encoding = "word" },
+]
 
 [[exports]]
-module = "LZEXPAND"
 ordinal = 10
-declared_name = "GetExpandedName"
 name = "GetExpandedName"
-ordinal_source = "explicit"
-architecture = "win16"
-aliases = []
-
-[exports.declaration]
-declaration_type = "pascal"
-attributes = ["ret16"]
-architecture_constraints = []
-
-[exports.declaration.abi]
-calling_convention = "pascal"
-knowledge = "known"
-arguments = ["string", "pointer"]
-return_modifier = "ret16"
-
-[exports.binding]
-rust_id = "LzexpandGetExpandedName"
-id_value = 609
-constant = "LZEXPAND_GET_EXPANDED_NAME"
-
-[[exports.evidence]]
-source = "specs/lzexpand.spec"
-line = 11
-note = "Historical declaration provenance; original licensing and notices remain applicable."
-
-[[exports.evidence]]
-source = "crates/win16/src/exports/catalog/declarations.rs"
-line = 705
-note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-
-[exports.entry]
-kind = "function"
-
-[exports.entry.abi]
-kind = "fixed_stack"
-
-[exports.entry.abi.signature]
-calling_convention = "pascal"
+binding = { rust_id = "LzexpandGetExpandedName", id_value = 609, constant = "LZEXPAND_GET_EXPANDED_NAME" }
+evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 705 }]
+[exports.call]
 returns = "word"
-
-[[exports.entry.abi.signature.parameters]]
-name = "source"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarString"
-
-[[exports.entry.abi.signature.parameters]]
-name = "output"
-slot_bytes = 4
-
-[exports.entry.abi.signature.parameters.value]
-kind = "named"
-name = "FarOutputBuffer"
+params = [
+  { name = "source", type = "FarString" },
+  { name = "output", type = "FarOutputBuffer" },
+]
