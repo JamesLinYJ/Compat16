@@ -266,6 +266,15 @@ impl Win16DdeContinuation {
         self.instance
     }
 
+    /// The native request owner, distinct from Initialize's provisional output.
+    pub(in crate::win16_runtime) fn native_input_guest_instance(&self) -> Option<u32> {
+        match self.request {
+            Win16DdeRequest::Initialize { initial_instance: 0, .. } => None,
+            Win16DdeRequest::Initialize { initial_instance, .. } => Some(initial_instance),
+            _ => self.instance,
+        }
+    }
+
     pub(in crate::win16_runtime) fn operation_retirement_proof(
         &self,
     ) -> Option<&crate::Win16DdeOperationRetirementProof> {
@@ -510,3 +519,7 @@ mod completion;
 pub(in crate::win16_runtime) use completion::finish_dde_operation;
 #[path = "win16_runtime_dde_huge.rs"]
 mod huge;
+
+#[cfg(test)]
+#[path = "win16_runtime_dde_initialization_tests.rs"]
+mod initialization_tests;

@@ -20,6 +20,9 @@ use super::{PendingWaitKind, Win16Objects, Win16Windows, WorkerCommand, worker_s
 mod completion;
 #[path = "win16_windows_dde_retirement.rs"]
 mod retirement;
+#[cfg(test)]
+#[path = "win16_windows_dde_completion_tests.rs"]
+mod dde_completion_tests;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum PendingSource {
@@ -330,20 +333,35 @@ impl Win16Windows {
         operation: Win16HostDdeOperation,
         step: Win16HostDdeStep,
     ) -> Result<Win16WindowStep, RuntimeError> {
-        self.require_source(
-            PendingSource::Dde { operation },
-            "DDE step does not match the top pending source",
-        )?;
         match step {
             Win16HostDdeStep::Complete(result) => {
-                Ok(Win16WindowStep::Complete(runtime::Win16WindowResult::Dde(
-                    result,
-                )))
+                // Direct Begin/resume completions have no guest callback to
+                // retire their parent source. The exact native result must
+                // cross the same checked source boundary before publication.
+                let retired = match self.retire_completed_dde_source_inner(operation, &result) {
+                    Ok(retired) => retired,
+                    Err(error) => {
+                        let cause = Arc::new(error);
+                        if let Some(failure) = self.dde_host_mut()?.source_retirement_failure(
+                            operation, Arc::clone(&cause),
+                        ) {
+                            return self.dde_started_failure_step(failure);
+                        }
+                        return Err(RuntimeError::with_source(cause.kind(),
+                            "DDE source retirement failed without an exact native completion record",
+                            SharedRuntimeFailure(cause)));
+                    }
+                };
+                self.dde_window_step(operation, retired)
             }
             Win16HostDdeStep::SourceRetired { proof, result } => {
                 completion::source_retired_window_step(self, operation, proof, result)
             }
             Win16HostDdeStep::Callback(callback) => {
+                self.require_source(
+                    PendingSource::Dde { operation },
+                    "DDE callback does not match the top pending source",
+                )?;
                 if callback.parent.is_some_and(|parent| parent != operation) {
                     return Err(RuntimeError::new(
                         Kind::InternalInvariant,

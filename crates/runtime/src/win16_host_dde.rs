@@ -320,7 +320,14 @@ impl Win16DdeOperationRetirementProof {
                         .as_ref()
                         .is_some_and(|cause| Arc::ptr_eq(cause, &failure.cause))
             }
-            Win16DdeOperationRequestPhase::NativeCompleteReturned => false,
+            // The native API returned normally, but the adapter failed before it
+            // could publish a normal source-retirement carrier. That adapter
+            // error is separate from the exact native cancellation record.
+            Win16DdeOperationRequestPhase::NativeCompleteReturned => {
+                self.cancellation.status
+                    == Win16DdeOperationCancellationStatus::NativeCompleteReturned
+                    && self.cancellation.failure.is_none()
+            }
         }
     }
 }

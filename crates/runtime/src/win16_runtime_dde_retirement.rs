@@ -153,7 +153,28 @@ fn exact_operation_proof(
             "DDE operation cancellation is duplicated or lacks terminal proof",
         ));
     }
-    match continuation.guest_instance() {
+    // Initialize's staged guest instance is an output owner, not the native
+    // instance supplied to this operation. Match the original input even if
+    // initialization has not yet projected its new instance into guest state.
+    if let win16_abi::Win16DdeRequest::Initialize { initial_instance, callback, .. }
+        = continuation.request
+    {
+        let candidate = continuation.callback_candidate.ok_or_else(|| {
+            invariant("DDE initialization retirement lost its exact staged callback owner")
+        })?;
+        if continuation.guest_instance() != Some(candidate.guest_instance)
+            || candidate.reinitializing != (initial_instance != 0)
+            || (initial_instance != 0 && candidate.guest_instance != initial_instance)
+            || candidate.callback != callback
+            || dde.instance_for_route(candidate.route) != Some(candidate.guest_instance)
+            || dde.callback_for_route(candidate.route) != Some(callback)
+        {
+            return Err(invariant(
+                "DDE initialization retirement changed its staged callback or input owner",
+            ));
+        }
+    }
+    match continuation.native_input_guest_instance() {
         Some(guest_instance) => {
             let expected_instance = dde.host_instance(guest_instance).ok_or_else(|| {
                 invariant("DDE continuation guest instance lost its exact host identity")

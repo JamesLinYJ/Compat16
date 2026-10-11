@@ -38,10 +38,13 @@ impl Win16State {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
                     "DDE source-retired result does not match the exact top DDE continuation"));
             };
-            if continuation.host_operation() != Some(proof.operation) {
+            if continuation.host_operation().is_some_and(|operation| operation != proof.operation) {
                 return Err(RuntimeError::new(Kind::HostFailure,
                     "DDE source proof operation differs from the exact continuation owner"));
             }
+            // An immediate Begin completion has no earlier callback carrier
+            // to bind its native identity. Its checked source proof performs
+            // that first binding; an existing different owner is rejected.
             // The DDE continuation is the canonical owner of native result,
             // normal source proof, and DDE output leases. The central frame
             // keeps the same continuation in place while it drives phases.

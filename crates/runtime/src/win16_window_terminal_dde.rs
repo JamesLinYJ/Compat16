@@ -50,7 +50,7 @@ impl Win16State {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
                     "DDE continuation has a zero native operation identity"));
             }
-            Ok((operation, continuation.guest_instance(),
+            Ok((operation, continuation.native_input_guest_instance(),
                 continuation.operation_retirement_proof().cloned()))
         })();
         let (expected_operation, expected_guest_instance, cached_proof) = match identities {

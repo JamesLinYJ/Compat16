@@ -32,11 +32,7 @@ pub(super) fn validate_source_retired_step(
 ) -> Result<(), RuntimeError> {
     if proof.operation != operation
         || !proof.has_valid_identity()
-        || !host.dde_sources.retired_operations.iter().any(|entry| {
-            matches!(entry, RetiredDdeOperationSource::Normal(cached)
-                if cached.as_ref() == proof)
-        })
-        || !host.dde_host_mut()?.normal_completed_operation_matches(&proof)?
+        || !host.dde_source_retirement_inner(proof)?
         || host.dde_host_mut()?.normal_completion_result(operation).as_ref() != Some(&result)
     {
         return Err(RuntimeError::new(

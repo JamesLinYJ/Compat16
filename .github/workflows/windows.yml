@@ -190,6 +190,8 @@ jobs:
             '-p runtime --lib win16_runtime::catch_throw::tests::'
             '-p runtime --lib escape_'
             '-p host-services --lib escape_'
+            '-p host-services --lib dde_completion_'
+            '-p runtime --lib initialization_tests::'
           )
           # Keep focused additions visible: a renamed filter must not silently
           # succeed after selecting zero tests.
@@ -206,6 +208,8 @@ jobs:
             '-p runtime --lib win16_runtime::catch_throw::tests::' = 15
             '-p runtime --lib escape_' = 7
             '-p host-services --lib escape_' = 3
+            '-p host-services --lib dde_completion_' = 3
+            '-p runtime --lib initialization_tests::' = 7
           }
           $failedSuites = @()
           $runtimeCompileChecked = $false
