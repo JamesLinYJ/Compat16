@@ -3,6 +3,57 @@ use super::*;
 use super::super::{ImportBinding, test_support::{NoHost, tiny_ne_executable}};
 use crate::Runtime;
 use win16_abi::{ExportLookupTarget, lookup_export};
+use dos_kernel::{DosDirectoryEntry, DosFileAccess, DosFileSharing, DosHost, DosHostError,
+    DosHostFile, DosHostSearch, DosIoctlObjectInfo, DosIoctlStream, DosSeekOrigin};
+
+// Only the real INT21 resize's read-only system-table queries are allowed.
+// Keep NoHost strict for every Win16 call and all other fixture operations.
+#[derive(Default)]
+struct DosResizeHost {
+    drive_queries: std::cell::Cell<usize>,
+    stream_queries: std::cell::RefCell<Vec<DosIoctlStream>>,
+}
+
+impl DosHost for DosResizeHost {
+    fn read_stdin(&mut self, _output: &mut [u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
+    fn try_read_stdin(&mut self) -> Result<Option<u8>, DosHostError> { panic!("unexpected host call") }
+    fn write_stdout(&mut self, _input: &[u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
+    fn write_stderr(&mut self, _input: &[u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
+    fn flush_stdin(&mut self) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn file_create(&mut self, _path: &[u8], _attributes: u8) -> Result<DosHostFile, DosHostError> { panic!("unexpected host call") }
+    fn file_open(&mut self, _path: &[u8], _access: DosFileAccess) -> Result<DosHostFile, DosHostError> { panic!("unexpected host call") }
+    fn file_open_with_sharing(&mut self, _path: &[u8], _access: DosFileAccess, _sharing: DosFileSharing) -> Result<DosHostFile, DosHostError> { panic!("unexpected host call") }
+    fn file_duplicate(&mut self, _file: DosHostFile) -> Result<DosHostFile, DosHostError> { panic!("unexpected host call") }
+    fn file_close(&mut self, _file: DosHostFile) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn file_read(&mut self, _file: DosHostFile, _output: &mut [u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
+    fn file_write(&mut self, _file: DosHostFile, _input: &[u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
+    fn file_seek(&mut self, _file: DosHostFile, _offset: i32, _origin: DosSeekOrigin) -> Result<u32, DosHostError> { panic!("unexpected host call") }
+    fn file_set_len(&mut self, _file: DosHostFile, _length: u32) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn file_delete(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn directory_create(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn directory_remove(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn directory_set_current(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn directory_get_current(&mut self, _drive: u8, _output: &mut [u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
+    fn file_rename(&mut self, _old_path: &[u8], _new_path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn file_get_attributes(&mut self, _path: &[u8]) -> Result<u8, DosHostError> { panic!("unexpected host call") }
+    fn file_set_attributes(&mut self, _path: &[u8], _attributes: u8) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn directory_search_open(&mut self, _directory: &[u8]) -> Result<DosHostSearch, DosHostError> { panic!("unexpected host call") }
+    fn directory_search_next(&mut self, _search: DosHostSearch) -> Result<Option<DosDirectoryEntry>, DosHostError> { panic!("unexpected host call") }
+    fn directory_search_close(&mut self, _search: DosHostSearch) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn guest_code_page(&self) -> text_codec::CodePage { panic!("unexpected host call") }
+    fn current_drive(&self) -> u8 { panic!("unexpected host call") }
+    fn select_drive(&mut self, _drive: u8) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn logical_drive_count(&self) -> u8 {
+        self.drive_queries.set(self.drive_queries.get() + 1);
+        3
+    }
+    fn standard_ioctl_info(&self, stream: DosIoctlStream) -> Result<DosIoctlObjectInfo, DosHostError> {
+        self.stream_queries.borrow_mut().push(stream);
+        // This mock GUI process has no native standard streams. DOS refresh
+        // explicitly accepts this classification without inventing CON devices.
+        Err(DosHostError::new(dos_kernel::DosErrorCode::InvalidHandle))
+    }
+}
 
 fn fixture() -> Runtime {
     Runtime::load(&tiny_ne_executable(), &[], br"C:\GLOBALFIX.NE").unwrap()
@@ -108,9 +159,13 @@ fn global_fix_unfix_void_dos_blocks_retain_pins_and_handle_count_saturation() {
             let mut regs = guest_core::Registers { es: runtime.dos.psp_segment(), ..Default::default() };
             regs.set_ax(0x4a00);
             regs.set_bx(0x100);
-            assert_eq!(runtime.dos.interrupt(0x21, &mut regs, &mut runtime.memory.bus(), &mut NoHost).unwrap(),
+            let mut host = DosResizeHost::default();
+            assert_eq!(runtime.dos.interrupt(0x21, &mut regs, &mut runtime.memory.bus(), &mut host).unwrap(),
                 dos_kernel::DosAction::Continue);
             assert!(!regs.carry());
+            assert_eq!(host.drive_queries.get(), 1);
+            assert_eq!(*host.stream_queries.borrow(),
+                [DosIoctlStream::Input, DosIoctlStream::Output, DosIoctlStream::Error]);
         }
         let handle = runtime.win16.as_mut().unwrap()
             .kernel_global_dos_alloc(if protected_overlap { 32 } else { 0x10000 },
