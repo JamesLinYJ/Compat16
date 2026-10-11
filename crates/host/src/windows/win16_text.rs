@@ -3,9 +3,11 @@
 use super::guest_text::{GuestTextBuffer, GuestTextCodec};
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::Globalization::{lstrcmpW, lstrcmpiW};
+// windows-sys places only this IsChar*W predicate in Controls.
+use windows_sys::Win32::UI::Controls::IsCharLowerW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CharLowerBuffW, CharLowerW, CharUpperBuffW, CharUpperW,
-    IsCharAlphaW, IsCharAlphaNumericW, IsCharUpperW, IsCharLowerW,
+    IsCharAlphaW, IsCharAlphaNumericW, IsCharUpperW,
 };
 
 /// Use the configured guest code page and modern Windows NLS semantics. These
