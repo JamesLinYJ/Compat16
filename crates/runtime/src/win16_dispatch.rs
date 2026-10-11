@@ -16,6 +16,7 @@ impl Win16State {
         host: &mut impl RuntimeHost,
         pe32_step_limit: u64,
     ) -> Result<Option<u8>, RuntimeError> {
+        self.prune_catch_scopes();
         let registers = &cpu.regs;
         let slot = usize::from(registers.ip()) / 2;
         if registers.ip() & 1 != 0 {
@@ -70,6 +71,17 @@ impl Win16State {
             memory,
         )
         .map_err(crate::runtime_error)?;
+        match decoded.request {
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Catch { buffer }) => {
+                self.catch_guest(cpu, memory, dos, buffer)?;
+                return Ok(None);
+            }
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Throw { buffer, value }) => {
+                self.throw_guest(cpu, memory, dos, buffer, value)?;
+                return Ok(None);
+            }
+            _ => {}
+        }
         if descriptor.abi_kind == Win16ExportAbiKind::RegisterContext {
             return match decoded.request {
                 Win16ApiRequest::InitTask { context } => {

@@ -187,6 +187,7 @@ jobs:
             '-p runtime --lib win16_runtime::task_state::tests::',
             '-p runtime --lib get_window_task_'
             '-p runtime --lib flash_window_'
+            '-p runtime --lib win16_runtime::catch_throw::tests::'
           )
           # Keep focused additions visible: a renamed filter must not silently
           # succeed after selecting zero tests.
@@ -200,6 +201,7 @@ jobs:
             '-p runtime --lib win16_runtime::task_state::tests::' = 7
             '-p runtime --lib get_window_task_' = 6
             '-p runtime --lib flash_window_' = 6
+            '-p runtime --lib win16_runtime::catch_throw::tests::' = 15
           }
           $failedSuites = @()
           $runtimeCompileChecked = $false

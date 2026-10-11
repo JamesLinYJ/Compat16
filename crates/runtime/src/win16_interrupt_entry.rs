@@ -19,6 +19,7 @@ const FLAGS_BYTE_OFFSET: usize = 4;
 /// The saved SP distinguishes nested returns to the same instruction.
 #[derive(Clone, Copy)]
 pub(super) struct InterruptResume {
+    pub(super) id: u64,
     pub(super) code: SelectorRef,
     pub(super) stack: SelectorRef,
     offset: u16,
@@ -55,7 +56,13 @@ impl Win16State {
         let reference = |raw| self.selectors.reference(Selector(raw)).map_err(|error|
             RuntimeError::with_source(Kind::GuestFault,
                 "Win16 interrupt resume selector is not allocated", error));
+        let id = self.next_interrupt_id;
+        let next = id.checked_add(1).ok_or_else(|| RuntimeError::new(
+            Kind::ResourceExhausted, "Win16 interrupt identities exhausted"))?;
+        self.interrupt_returns.try_reserve(1).map_err(|error| RuntimeError::with_source(
+            Kind::ResourceExhausted, "reserve Win16 interrupt observation", error))?;
         let resume = InterruptResume {
+            id,
             code: reference(cpu.regs.cs)?,
             stack: reference(cpu.regs.ss)?,
             offset: cpu.regs.ip(),
@@ -66,6 +73,7 @@ impl Win16State {
         // FLAGS, CS and IP. Only successful entry creates an ownership record.
         cpu.enter_interrupt16(target.selector().raw().0, target.offset(), memory, &context)
             .map_err(runtime_error)?;
+        self.next_interrupt_id = next;
         self.interrupt_returns.push(resume);
         Ok(())
     }

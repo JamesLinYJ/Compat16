@@ -364,3 +364,7 @@ mod line_dda_global_void_tests;
 #[cfg(test)]
 #[path = "exports/abi_baseline_tests.rs"]
 mod abi_baseline_tests;
+
+#[cfg(test)]
+#[path = "exports/call_catch_throw_tests.rs"]
+mod catch_throw_tests;

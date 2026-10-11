@@ -266,6 +266,8 @@ mod resources;
 mod resource_calls;
 #[path = "win16_code_lifetime.rs"]
 mod code_lifetime;
+#[path = "win16_catch_throw.rs"]
+mod catch_throw;
 #[path = "win16_keyboard.rs"]
 mod keyboard;
 #[path = "win16_text.rs"]
@@ -694,6 +696,9 @@ pub(crate) struct Win16State {
     resource_handlers: BTreeMap<(u16, usize), u32>,
     resource_callbacks: Vec<resource_calls::ResourceCallFrame>,
     far_returns: Vec<code_lifetime::FarCallResume>,
+    next_far_call_id: u64,
+    next_interrupt_id: u64,
+    catch_records: catch_throw::CatchRecords,
     interrupt_returns: Vec<interrupt_entry::InterruptResume>,
     module_reap_pending: bool,
     user_queue: Option<MessageQueue>,

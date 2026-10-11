@@ -16,7 +16,7 @@ use super::{
 use crate::{DiagnosticKind, RuntimeError};
 
 pub(super) struct Win16LegacyCpuFrame {
-    id: u64,
+    pub(super) id: u64,
     saved_registers: Registers,
     saved_context: CpuContext,
     pub(in crate::win16_runtime) owner: Win16LegacyCpuBindingOwner,

@@ -154,6 +154,9 @@ pub enum Win16UserRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16KernelRequest {
+    /// Far Pascal arguments; completion requires a checked CPU transfer.
+    Catch { buffer: u32 },
+    Throw { buffer: u32, value: u16 },
     Instance(Win16KernelInstanceRequest),
     Runtime(Win16KernelRuntimeRequest),
     Strings(Win16KernelStringsRequest),

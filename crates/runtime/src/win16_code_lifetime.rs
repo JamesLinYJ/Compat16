@@ -9,11 +9,12 @@ use crate::{DiagnosticKind, RuntimeError};
 const MAX_OBSERVED_FAR_CALLS: usize = 65_536;
 
 pub(super) struct FarCallResume {
+    pub(super) id: u64,
     pub(super) selector: u16,
-    offset: u32,
-    stack: u16,
+    pub(super) offset: u32,
+    pub(super) stack: u16,
     /// SS:SP immediately after CALL wrote the return-address frame.
-    frame_sp: u16,
+    pub(super) frame_sp: u16,
 }
 
 impl Win16State {
@@ -26,12 +27,27 @@ impl Win16State {
                     return Err(RuntimeError::new(DiagnosticKind::ResourceExhausted,
                         "Win16 active FAR call observation limit reached"));
                 }
+                let id = self.next_far_call_id;
+                let next = id.checked_add(1).ok_or_else(|| RuntimeError::new(
+                    DiagnosticKind::ResourceExhausted, "Win16 FAR activation identities exhausted"))?;
+                self.far_returns.try_reserve(1).map_err(|error| RuntimeError::with_source(
+                    DiagnosticKind::ResourceExhausted, "reserve Win16 FAR observation", error))?;
+                self.next_far_call_id = next;
                 self.far_returns.push(FarCallResume {
+                    id,
                     selector: return_selector, offset: return_offset,
                     stack: stack_selector, frame_sp: registers.sp(),
                 });
             }
-            Some(ControlTransfer::FarReturn | ControlTransfer::AdapterReturn) => self.retire_far_return(
+            Some(ControlTransfer::FarReturn) => {
+                if let Some(index) = self.far_returns.iter().rposition(|entry|
+                    entry.selector == registers.cs && entry.offset == u32::from(registers.ip())
+                        && entry.stack == registers.ss && entry.stack == stack_selector
+                        && entry.frame_sp == frame_sp) {
+                    self.far_returns.truncate(index);
+                }
+            }
+            Some(ControlTransfer::AdapterReturn) => self.retire_far_return(
                 registers.cs, u32::from(registers.ip()), registers.ss),
             Some(ControlTransfer::InterruptReturn) => {
                 self.retire_interrupt_return(registers)?;
@@ -47,6 +63,7 @@ impl Win16State {
             }
             None => {}
         }
+        if transfer.is_some() { self.prune_catch_scopes(); }
         Ok(())
     }
 
@@ -55,6 +72,7 @@ impl Win16State {
             entry.selector == selector && entry.offset == offset && entry.stack == stack) {
             self.far_returns.truncate(index);
         }
+        self.prune_catch_scopes();
         // A nonlocal guest transfer may not match an observed CALL. Keep such
         // code alive conservatively; arbitrary stack bytes are never guessed
         // to be return addresses and no guest memory is rewritten here.

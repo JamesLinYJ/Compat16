@@ -151,6 +151,10 @@ pub use call_continuation::{
     CpuEventObserverCompletionError, CpuEventObserverContinuation,
     CpuParkedContinuation, PreparedCallResume, PreparedParkedResume,
 };
+mod legacy_checkpoint;
+pub use legacy_checkpoint::{
+    LegacyCheckpointRegisters, LegacyCpuCheckpointStamp, PreparedLegacyCheckpointTransfer,
+};
 mod legacy_continuation;
 pub use legacy_continuation::{
     LegacyBindingTransfer, LegacyCpuBinding, LegacyCpuCallContinuation,

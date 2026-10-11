@@ -110,11 +110,19 @@ kind = "stub"
 ordinal = 55
 name = "Catch"
 decl = { attributes = ["register"], args = ["segmented_pointer"] }
+binding = { rust_id = "KernelCatch", id_value = 1222, constant = "KERNEL_CATCH" }
+[exports.call]
+returns = "word"
+params = [{ name = "buffer", type = "FarOutputBuffer", encoding = "segmented_pointer" }]
 
 [[exports]]
 ordinal = 56
 name = "Throw"
 decl = { attributes = ["register"], args = ["pointer", "word"] }
+binding = { rust_id = "KernelThrow", id_value = 1223, constant = "KERNEL_THROW" }
+[exports.call]
+returns = "void"
+params = [{ name = "buffer", type = "FarBuffer" }, { name = "value", type = "U16" }]
 
 [[exports]]
 ordinal = 75

@@ -421,7 +421,7 @@ impl Cpu {
             .ok_or(CpuCallResumeError::StaleContinuation)
     }
 
-    fn check_legacy_boundary(&self) -> Result<(), CpuCallResumeError> {
+    pub(super) fn check_legacy_boundary(&self) -> Result<(), CpuCallResumeError> {
         if self.call_boundary_sequence_exhausted {
             return Err(CpuCallResumeError::BoundarySequenceExhausted);
         }
@@ -440,7 +440,7 @@ impl Cpu {
     }
 }
 
-fn validate_legacy_context(context: &CpuContext) -> Result<(), CpuCallResumeError> {
+pub(super) fn validate_legacy_context(context: &CpuContext) -> Result<(), CpuCallResumeError> {
     if context.system.architectural_context_initialized {
         return Err(CpuCallResumeError::LegacyContextAlreadyInitialized);
     }

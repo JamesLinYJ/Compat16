@@ -9,6 +9,11 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Option<Win16ApiRequest>, Win16Error> {
     let request = match descriptor.id {
+        Win16ExportId::KernelCatch => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::Catch { buffer: dword_argument(arguments, 0)? }),
+        Win16ExportId::KernelThrow => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::Throw { buffer: dword_argument(arguments, 0)?,
+                value: word_argument(arguments, 1)? }),
         Win16ExportId::KernelInitAtomTable
         | Win16ExportId::KernelFindAtom
         | Win16ExportId::KernelAddAtom

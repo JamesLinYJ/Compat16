@@ -207,6 +207,10 @@ impl Pe32ThunkDispatcher {
         ))
     }
 
+    pub(super) fn checkpoint_scope(&self) -> impl ExactSizeIterator<Item = Pe32CallNonce> + '_ {
+        self.active.iter().map(|entry| entry.nonce)
+    }
+
     pub(super) const fn has_active_call(&self) -> bool {
         !self.active.is_empty()
     }
