@@ -1,0 +1,2418 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 201
+declared_name = "midiOutGetNumDevs"
+name = "midiOutGetNumDevs"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutGetNumDevs"
+id_value = 941
+constant = "MMSYSTEM_MIDI_OUT_GET_NUM_DEVS"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 24
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 7
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+parameters = []
+returns = "word"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 202
+declared_name = "midiOutGetDevCaps"
+name = "midiOutGetDevCaps"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutGetDevCaps"
+id_value = 942
+constant = "MMSYSTEM_MIDI_OUT_GET_DEV_CAPS"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 25
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 8
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "caps"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 203
+declared_name = "midiOutGetErrorText"
+name = "midiOutGetErrorText"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutGetErrorText"
+id_value = 943
+constant = "MMSYSTEM_MIDI_OUT_GET_ERROR_TEXT"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 26
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 9
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "error"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "text"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 204
+declared_name = "midiOutOpen"
+name = "midiOutOpen"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "word",
+  "long",
+  "long",
+  "long",
+]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutOpen"
+id_value = 944
+constant = "MMSYSTEM_MIDI_OUT_OPEN"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 27
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 10
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "handle"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "callback"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "instance"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 205
+declared_name = "midiOutClose"
+name = "midiOutClose"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutClose"
+id_value = 945
+constant = "MMSYSTEM_MIDI_OUT_CLOSE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 28
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 11
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 206
+declared_name = "midiOutPrepareHeader"
+name = "midiOutPrepareHeader"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutPrepareHeader"
+id_value = 946
+constant = "MMSYSTEM_MIDI_OUT_PREPARE_HEADER"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 29
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 12
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "header"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 207
+declared_name = "midiOutUnprepareHeader"
+name = "midiOutUnprepareHeader"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutUnprepareHeader"
+id_value = 947
+constant = "MMSYSTEM_MIDI_OUT_UNPREPARE_HEADER"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 30
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 13
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "header"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 208
+declared_name = "midiOutShortMsg"
+name = "midiOutShortMsg"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutShortMsg"
+id_value = 948
+constant = "MMSYSTEM_MIDI_OUT_SHORT_MESSAGE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 31
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 14
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "message"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 209
+declared_name = "midiOutLongMsg"
+name = "midiOutLongMsg"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutLongMsg"
+id_value = 949
+constant = "MMSYSTEM_MIDI_OUT_LONG_MESSAGE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 32
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 15
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "header"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 210
+declared_name = "midiOutReset"
+name = "midiOutReset"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutReset"
+id_value = 950
+constant = "MMSYSTEM_MIDI_OUT_RESET"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 33
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 16
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 211
+declared_name = "midiOutGetVolume"
+name = "midiOutGetVolume"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutGetVolume"
+id_value = 951
+constant = "MMSYSTEM_MIDI_OUT_GET_VOLUME"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 34
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 17
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "volume"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 212
+declared_name = "midiOutSetVolume"
+name = "midiOutSetVolume"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutSetVolume"
+id_value = 952
+constant = "MMSYSTEM_MIDI_OUT_SET_VOLUME"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 35
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 18
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "volume"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 213
+declared_name = "midiOutCachePatches"
+name = "midiOutCachePatches"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutCachePatches"
+id_value = 953
+constant = "MMSYSTEM_MIDI_OUT_CACHE_PATCHES"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 36
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 19
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "bank"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "patches"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 214
+declared_name = "midiOutCacheDrumPatches"
+name = "midiOutCacheDrumPatches"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutCacheDrumPatches"
+id_value = 954
+constant = "MMSYSTEM_MIDI_OUT_CACHE_DRUM_PATCHES"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 37
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 20
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "patch"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "keys"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 215
+declared_name = "midiOutGetID"
+name = "midiOutGetID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutGetId"
+id_value = 955
+constant = "MMSYSTEM_MIDI_OUT_GET_ID"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 38
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 21
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 216
+declared_name = "midiOutMessage"
+name = "midiOutMessage"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "long", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiOutMessage"
+id_value = 956
+constant = "MMSYSTEM_MIDI_OUT_MESSAGE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 39
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 22
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "message"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "parameter1"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "parameter2"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 250
+declared_name = "midiStreamProperty"
+name = "midiStreamProperty"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiStreamProperty"
+id_value = 957
+constant = "MMSYSTEM_MIDI_STREAM_PROPERTY"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 40
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 23
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "stream"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "property"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 251
+declared_name = "midiStreamOpen"
+name = "midiStreamOpen"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "pointer",
+  "long",
+  "long",
+  "long",
+  "long",
+]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiStreamOpen"
+id_value = 958
+constant = "MMSYSTEM_MIDI_STREAM_OPEN"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 41
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 24
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "stream"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "devices"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "count"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "callback"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "instance"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 252
+declared_name = "midiStreamClose"
+name = "midiStreamClose"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiStreamClose"
+id_value = 959
+constant = "MMSYSTEM_MIDI_STREAM_CLOSE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 42
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 25
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 253
+declared_name = "midiStreamPosition"
+name = "midiStreamPosition"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiStreamPosition"
+id_value = 960
+constant = "MMSYSTEM_MIDI_STREAM_POSITION"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 43
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 26
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "stream"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "time"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 254
+declared_name = "midiStreamOut"
+name = "midiStreamOut"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiStreamOut"
+id_value = 961
+constant = "MMSYSTEM_MIDI_STREAM_OUT"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 44
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 27
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "stream"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "header"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 255
+declared_name = "midiStreamPause"
+name = "midiStreamPause"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiStreamPause"
+id_value = 962
+constant = "MMSYSTEM_MIDI_STREAM_PAUSE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 45
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 28
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 256
+declared_name = "midiStreamRestart"
+name = "midiStreamRestart"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiStreamRestart"
+id_value = 963
+constant = "MMSYSTEM_MIDI_STREAM_RESTART"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 46
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 29
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 257
+declared_name = "midiStreamStop"
+name = "midiStreamStop"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiStreamStop"
+id_value = 964
+constant = "MMSYSTEM_MIDI_STREAM_STOP"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 47
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 30
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 301
+declared_name = "midiInGetNumDevs"
+name = "midiInGetNumDevs"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInGetNumDevs"
+id_value = 965
+constant = "MMSYSTEM_MIDI_IN_GET_NUM_DEVS"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 48
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 31
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+parameters = []
+returns = "word"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 302
+declared_name = "midiInGetDevCaps"
+name = "midiInGetDevCaps"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInGetDevCaps"
+id_value = 966
+constant = "MMSYSTEM_MIDI_IN_GET_DEV_CAPS"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 49
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 32
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "caps"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 303
+declared_name = "midiInGetErrorText"
+name = "midiInGetErrorText"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInGetErrorText"
+id_value = 967
+constant = "MMSYSTEM_MIDI_IN_GET_ERROR_TEXT"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 50
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 33
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "error"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "text"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 304
+declared_name = "midiInOpen"
+name = "midiInOpen"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "word",
+  "long",
+  "long",
+  "long",
+]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInOpen"
+id_value = 968
+constant = "MMSYSTEM_MIDI_IN_OPEN"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 51
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 34
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "handle"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "callback"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "instance"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 305
+declared_name = "midiInClose"
+name = "midiInClose"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInClose"
+id_value = 969
+constant = "MMSYSTEM_MIDI_IN_CLOSE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 52
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 35
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 306
+declared_name = "midiInPrepareHeader"
+name = "midiInPrepareHeader"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInPrepareHeader"
+id_value = 970
+constant = "MMSYSTEM_MIDI_IN_PREPARE_HEADER"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 53
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 36
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "header"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 307
+declared_name = "midiInUnprepareHeader"
+name = "midiInUnprepareHeader"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInUnprepareHeader"
+id_value = 971
+constant = "MMSYSTEM_MIDI_IN_UNPREPARE_HEADER"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 54
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 37
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "header"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 308
+declared_name = "midiInAddBuffer"
+name = "midiInAddBuffer"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInAddBuffer"
+id_value = 972
+constant = "MMSYSTEM_MIDI_IN_ADD_BUFFER"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 55
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 38
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "header"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "size"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 309
+declared_name = "midiInStart"
+name = "midiInStart"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInStart"
+id_value = 973
+constant = "MMSYSTEM_MIDI_IN_START"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 56
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 39
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 310
+declared_name = "midiInStop"
+name = "midiInStop"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInStop"
+id_value = 974
+constant = "MMSYSTEM_MIDI_IN_STOP"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 57
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 40
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 311
+declared_name = "midiInReset"
+name = "midiInReset"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInReset"
+id_value = 975
+constant = "MMSYSTEM_MIDI_IN_RESET"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 58
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 41
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 312
+declared_name = "midiInGetID"
+name = "midiInGetID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInGetId"
+id_value = 976
+constant = "MMSYSTEM_MIDI_IN_GET_ID"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 59
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 42
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 313
+declared_name = "midiInMessage"
+name = "midiInMessage"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "long", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MidiInMessage"
+id_value = 977
+constant = "MMSYSTEM_MIDI_IN_MESSAGE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 60
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/midi_records.inc.rs"
+line = 43
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "message"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "parameter1"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "parameter2"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"

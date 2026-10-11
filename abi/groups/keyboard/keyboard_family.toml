@@ -1,0 +1,689 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 4
+declared_name = "ToAscii"
+name = "ToAscii"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "word",
+  "word",
+  "pointer",
+  "pointer",
+  "word",
+]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "KeyboardToAscii"
+id_value = 132
+constant = "KEYBOARD_TO_ASCII"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 5
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 208
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "virtual_key"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "scan_code"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "key_state"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "output"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 5
+declared_name = "AnsiToOem"
+name = "AnsiToOem"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "pointer"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "KeyboardAnsiToOem"
+id_value = 133
+constant = "KEYBOARD_ANSI_TO_OEM"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 6
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 209
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports.entry.abi.signature.parameters]]
+name = "destination"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 7
+declared_name = "SetSpeed"
+name = "SetSpeed"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "KeyboardSetSpeed"
+id_value = 134
+constant = "KEYBOARD_SET_SPEED"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 8
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 210
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "speed"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 100
+declared_name = "ScreenSwitchEnable"
+name = "ScreenSwitchEnable"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "KeyboardScreenSwitchEnable"
+id_value = 135
+constant = "KEYBOARD_SCREEN_SWITCH_ENABLE"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 15
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 211
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "void"
+
+[[exports.entry.abi.signature.parameters]]
+name = "enable"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 128
+declared_name = "OemKeyScan"
+name = "OemKeyScan"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "KeyboardOemKeyScan"
+id_value = 136
+constant = "KEYBOARD_OEM_KEY_SCAN"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 16
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 212
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "value"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 129
+declared_name = "VkKeyScan"
+name = "VkKeyScan"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "KeyboardVkKeyScan"
+id_value = 137
+constant = "KEYBOARD_VK_KEY_SCAN"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 17
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 213
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "value"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 130
+declared_name = "GetKeyboardType"
+name = "GetKeyboardType"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "KeyboardGetKeyboardType"
+id_value = 138
+constant = "KEYBOARD_GET_KEYBOARD_TYPE"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 18
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 214
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "value"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 131
+declared_name = "MapVirtualKey"
+name = "MapVirtualKey"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "KeyboardMapVirtualKey"
+id_value = 139
+constant = "KEYBOARD_MAP_VIRTUAL_KEY"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 19
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 215
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "code"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "map_type"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 133
+declared_name = "GetKeyNameText"
+name = "GetKeyNameText"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "pointer", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "KeyboardGetKeyNameText"
+id_value = 141
+constant = "KEYBOARD_GET_KEY_NAME_TEXT"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 21
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 217
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "parameter"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "output"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "capacity"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 134
+declared_name = "AnsiToOemBuff"
+name = "AnsiToOemBuff"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "KeyboardAnsiToOemBuff"
+id_value = 142
+constant = "KEYBOARD_ANSI_TO_OEM_BUFF"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 22
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 218
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "destination"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "byte_count"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "KEYBOARD"
+ordinal = 135
+declared_name = "OemToAnsiBuff"
+name = "OemToAnsiBuff"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "KeyboardOemToAnsiBuff"
+id_value = 143
+constant = "KEYBOARD_OEM_TO_ANSI_BUFF"
+
+[[exports.evidence]]
+source = "specs/keyboard.spec"
+line = 23
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 219
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "destination"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "byte_count"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"

@@ -1,0 +1,1514 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "USER"
+ordinal = 39
+declared_name = "BeginPaint"
+name = "BeginPaint"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserBeginPaint"
+id_value = 457
+constant = "USER_BEGIN_PAINT"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 38
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 537
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "paint"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "USER"
+ordinal = 40
+declared_name = "EndPaint"
+name = "EndPaint"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserEndPaint"
+id_value = 458
+constant = "USER_END_PAINT"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 39
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 538
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "void"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "paint"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports]]
+module = "USER"
+ordinal = 61
+declared_name = "ScrollWindow"
+name = "ScrollWindow"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "word",
+  "signed_word",
+  "signed_word",
+  "pointer",
+  "pointer",
+]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserScrollWindow"
+id_value = 459
+constant = "USER_SCROLL_WINDOW"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 62
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 539
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "void"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dx"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dy"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "scroll_rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "clip_rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports]]
+module = "USER"
+ordinal = 81
+declared_name = "FillRect"
+name = "FillRect"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserFillRect"
+id_value = 472
+constant = "USER_FILL_RECT"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 82
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 552
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dc"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "brush"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 82
+declared_name = "InvertRect"
+name = "InvertRect"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserInvertRect"
+id_value = 1149
+constant = "USER_INVERT_RECT"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 83
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/user_drawing_objects_records.inc.rs"
+line = 7
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "void"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dc"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports]]
+module = "USER"
+ordinal = 83
+declared_name = "FrameRect"
+name = "FrameRect"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserFrameRect"
+id_value = 1150
+constant = "USER_FRAME_RECT"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 84
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/user_drawing_objects_records.inc.rs"
+line = 9
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dc"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "brush"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 84
+declared_name = "DrawIcon"
+name = "DrawIcon"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "signed_word", "signed_word", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserDrawIcon"
+id_value = 1151
+constant = "USER_DRAW_ICON"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 85
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/user_drawing_objects_records.inc.rs"
+line = 11
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dc"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "x"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "y"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "icon"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 85
+declared_name = "DrawText"
+name = "DrawText"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "word",
+  "string",
+  "signed_word",
+  "pointer",
+  "word",
+]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserDrawText"
+id_value = 473
+constant = "USER_DRAW_TEXT"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 86
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 553
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dc"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "text"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "count"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 124
+declared_name = "UpdateWindow"
+name = "UpdateWindow"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserUpdateWindow"
+id_value = 460
+constant = "USER_UPDATE_WINDOW"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 125
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 540
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "void"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 125
+declared_name = "InvalidateRect"
+name = "InvalidateRect"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserInvalidateRect"
+id_value = 461
+constant = "USER_INVALIDATE_RECT"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 126
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 541
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "void"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "erase"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 126
+declared_name = "InvalidateRgn"
+name = "InvalidateRgn"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserInvalidateRgn"
+id_value = 462
+constant = "USER_INVALIDATE_RGN"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 127
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 542
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "void"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "region"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "erase"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 127
+declared_name = "ValidateRect"
+name = "ValidateRect"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserValidateRect"
+id_value = 463
+constant = "USER_VALIDATE_RECT"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 128
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 543
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "void"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports]]
+module = "USER"
+ordinal = 128
+declared_name = "ValidateRgn"
+name = "ValidateRgn"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserValidateRgn"
+id_value = 464
+constant = "USER_VALIDATE_RGN"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 129
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 544
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "void"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "region"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 190
+declared_name = "GetUpdateRect"
+name = "GetUpdateRect"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserGetUpdateRect"
+id_value = 465
+constant = "USER_GET_UPDATE_RECT"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 192
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 545
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "erase"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 221
+declared_name = "ScrollDC"
+name = "ScrollDC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "word",
+  "signed_word",
+  "signed_word",
+  "pointer",
+  "pointer",
+  "word",
+  "pointer",
+]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserScrollDC"
+id_value = 470
+constant = "USER_SCROLL_DC"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 225
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 550
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dc"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dx"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dy"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "scroll_rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "clip_rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "update_region"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "update_rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "USER"
+ordinal = 237
+declared_name = "GetUpdateRgn"
+name = "GetUpdateRgn"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserGetUpdateRgn"
+id_value = 466
+constant = "USER_GET_UPDATE_RGN"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 242
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 546
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "region"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "erase"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 238
+declared_name = "ExcludeUpdateRgn"
+name = "ExcludeUpdateRgn"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserExcludeUpdateRgn"
+id_value = 467
+constant = "USER_EXCLUDE_UPDATE_RGN"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 243
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 547
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dc"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 290
+declared_name = "RedrawWindow"
+name = "RedrawWindow"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "word", "word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserRedrawWindow"
+id_value = 468
+constant = "USER_REDRAW_WINDOW"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 295
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 548
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "region"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 294
+declared_name = "LockWindowUpdate"
+name = "LockWindowUpdate"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserLockWindowUpdate"
+id_value = 469
+constant = "USER_LOCK_WINDOW_UPDATE"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 299
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 549
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 319
+declared_name = "ScrollWindowEx"
+name = "ScrollWindowEx"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "word",
+  "signed_word",
+  "signed_word",
+  "pointer",
+  "pointer",
+  "word",
+  "pointer",
+  "word",
+]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserScrollWindowEx"
+id_value = 471
+constant = "USER_SCROLL_WINDOW_EX"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 312
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 551
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dx"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dy"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "scroll_rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "clip_rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "update_region"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "update_rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "USER"
+ordinal = 466
+declared_name = "DrawFocusRect"
+name = "DrawFocusRect"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "UserDrawFocusRect"
+id_value = 1152
+constant = "USER_DRAW_FOCUS_RECT"
+
+[[exports.evidence]]
+source = "specs/user.spec"
+line = 416
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/user_drawing_objects_records.inc.rs"
+line = 14
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "void"
+
+[[exports.entry.abi.signature.parameters]]
+name = "dc"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "rect"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"

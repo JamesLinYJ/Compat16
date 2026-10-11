@@ -1,0 +1,2486 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 12
+declared_name = "VariantChangeType"
+name = "VariantChangeType"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer", "word", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVariantChangeType"
+id_value = 879
+constant = "OLE2DISP_VARIANT_CHANGE_TYPE"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 13
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 8
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "destination"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "target_vartype"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 43
+declared_name = "VarI2FromI4"
+name = "VarI2FromI4"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarI2FromI4"
+id_value = 880
+constant = "OLE2DISP_VAR_I2_FROM_I4"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 44
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 10
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 44
+declared_name = "VarI2FromR4"
+name = "VarI2FromR4"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["float", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarI2FromR4"
+id_value = 881
+constant = "OLE2DISP_VAR_I2_FROM_R4"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 45
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 12
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_bits"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 45
+declared_name = "VarI2FromR8"
+name = "VarI2FromR8"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarI2FromR8"
+id_value = 882
+constant = "OLE2DISP_VAR_I2_FROM_R8"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 46
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 14
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_high"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_low"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 46
+declared_name = "VarI2FromCy"
+name = "VarI2FromCy"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarI2FromCy"
+id_value = 883
+constant = "OLE2DISP_VAR_I2_FROM_CY"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 47
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 16
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_high"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_low"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 47
+declared_name = "VarI2FromDate"
+name = "VarI2FromDate"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarI2FromDate"
+id_value = 884
+constant = "OLE2DISP_VAR_I2_FROM_DATE"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 48
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 18
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_high"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_low"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 48
+declared_name = "VarI2FromStr"
+name = "VarI2FromStr"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarI2FromStr"
+id_value = 885
+constant = "OLE2DISP_VAR_I2_FROM_STR"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 49
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 20
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 50
+declared_name = "VarI2FromBool"
+name = "VarI2FromBool"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarI2FromBool"
+id_value = 886
+constant = "OLE2DISP_VAR_I2_FROM_BOOL"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 51
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 22
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 56
+declared_name = "VarI4FromStr"
+name = "VarI4FromStr"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarI4FromStr"
+id_value = 887
+constant = "OLE2DISP_VAR_I4_FROM_STR"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 57
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 24
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 61
+declared_name = "VarR4FromR8"
+name = "VarR4FromR8"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarR4FromR8"
+id_value = 888
+constant = "OLE2DISP_VAR_R4_FROM_R8"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 62
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 26
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_high"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_low"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 64
+declared_name = "VarR4FromStr"
+name = "VarR4FromStr"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarR4FromStr"
+id_value = 889
+constant = "OLE2DISP_VAR_R4_FROM_STR"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 65
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 28
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 72
+declared_name = "VarR8FromStr"
+name = "VarR8FromStr"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarR8FromStr"
+id_value = 890
+constant = "OLE2DISP_VAR_R8_FROM_STR"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 73
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 30
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 80
+declared_name = "VarDateFromStr"
+name = "VarDateFromStr"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarDateFromStr"
+id_value = 891
+constant = "OLE2DISP_VAR_DATE_FROM_STR"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 81
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 32
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 88
+declared_name = "VarCyFromStr"
+name = "VarCyFromStr"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarCyFromStr"
+id_value = 892
+constant = "OLE2DISP_VAR_CY_FROM_STR"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 89
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 34
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 91
+declared_name = "VarBstrFromI2"
+name = "VarBstrFromI2"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["signed_word", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarBstrFromI2"
+id_value = 893
+constant = "OLE2DISP_VAR_BSTR_FROM_I2"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 92
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 36
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 92
+declared_name = "VarBstrFromI4"
+name = "VarBstrFromI4"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarBstrFromI4"
+id_value = 894
+constant = "OLE2DISP_VAR_BSTR_FROM_I4"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 93
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 38
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 93
+declared_name = "VarBstrFromR4"
+name = "VarBstrFromR4"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarBstrFromR4"
+id_value = 895
+constant = "OLE2DISP_VAR_BSTR_FROM_R4"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 94
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 40
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_bits"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 94
+declared_name = "VarBstrFromR8"
+name = "VarBstrFromR8"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "long",
+  "long",
+  "long",
+  "long",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarBstrFromR8"
+id_value = 896
+constant = "OLE2DISP_VAR_BSTR_FROM_R8"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 95
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 42
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_high"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_low"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 95
+declared_name = "VarBstrFromCy"
+name = "VarBstrFromCy"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "long",
+  "long",
+  "long",
+  "long",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarBstrFromCy"
+id_value = 897
+constant = "OLE2DISP_VAR_BSTR_FROM_CY"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 96
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 44
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_high"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_low"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 96
+declared_name = "VarBstrFromDate"
+name = "VarBstrFromDate"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "long",
+  "long",
+  "long",
+  "long",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarBstrFromDate"
+id_value = 898
+constant = "OLE2DISP_VAR_BSTR_FROM_DATE"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 97
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 46
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_high"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_low"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 97
+declared_name = "VarBstrFromDisp"
+name = "VarBstrFromDisp"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarBstrFromDisp"
+id_value = 899
+constant = "OLE2DISP_VAR_BSTR_FROM_DISP"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 98
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 48
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarPointer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 98
+declared_name = "VarBstrFromBool"
+name = "VarBstrFromBool"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarBstrFromBool"
+id_value = 900
+constant = "OLE2DISP_VAR_BSTR_FROM_BOOL"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 99
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 50
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 108
+declared_name = "VariantChangeTypeEx"
+name = "VariantChangeTypeEx"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "pointer",
+  "long",
+  "word",
+  "word",
+]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVariantChangeTypeEx"
+id_value = 901
+constant = "OLE2DISP_VARIANT_CHANGE_TYPE_EX"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 109
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 52
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "destination"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "target_vartype"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 116
+declared_name = "VarUI1FromI2"
+name = "VarUI1FromI2"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarUI1FromI2"
+id_value = 902
+constant = "OLE2DISP_VAR_UI1_FROM_I2"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 117
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 54
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 117
+declared_name = "VarUI1FromI4"
+name = "VarUI1FromI4"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarUI1FromI4"
+id_value = 903
+constant = "OLE2DISP_VAR_UI1_FROM_I4"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 118
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 56
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 118
+declared_name = "VarUI1FromR4"
+name = "VarUI1FromR4"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarUI1FromR4"
+id_value = 904
+constant = "OLE2DISP_VAR_UI1_FROM_R4"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 119
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 58
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_bits"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 119
+declared_name = "VarUI1FromR8"
+name = "VarUI1FromR8"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarUI1FromR8"
+id_value = 905
+constant = "OLE2DISP_VAR_UI1_FROM_R8"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 120
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 60
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_high"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_low"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 120
+declared_name = "VarUI1FromCy"
+name = "VarUI1FromCy"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarUI1FromCy"
+id_value = 906
+constant = "OLE2DISP_VAR_UI1_FROM_CY"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 121
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 62
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_high"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_low"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 121
+declared_name = "VarUI1FromDate"
+name = "VarUI1FromDate"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarUI1FromDate"
+id_value = 907
+constant = "OLE2DISP_VAR_UI1_FROM_DATE"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 122
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 64
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_high"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_low"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 122
+declared_name = "VarUI1FromStr"
+name = "VarUI1FromStr"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarUI1FromStr"
+id_value = 908
+constant = "OLE2DISP_VAR_UI1_FROM_STR"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 123
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 66
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 123
+declared_name = "VarUI1FromDisp"
+name = "VarUI1FromDisp"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarUI1FromDisp"
+id_value = 909
+constant = "OLE2DISP_VAR_UI1_FROM_DISP"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 124
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 68
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarPointer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 124
+declared_name = "VarUI1FromBool"
+name = "VarUI1FromBool"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarUI1FromBool"
+id_value = 910
+constant = "OLE2DISP_VAR_UI1_FROM_BOOL"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 125
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 70
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 125
+declared_name = "VarI2FromUI1"
+name = "VarI2FromUI1"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarI2FromUI1"
+id_value = 911
+constant = "OLE2DISP_VAR_I2_FROM_UI1"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 126
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 72
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2DISP"
+ordinal = 131
+declared_name = "VarBstrFromUI1"
+name = "VarBstrFromUI1"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2DispVarBstrFromUI1"
+id_value = 912
+constant = "OLE2DISP_VAR_BSTR_FROM_UI1"
+
+[[exports.evidence]]
+source = "specs/ole2disp.spec"
+line = 132
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs"
+line = 74
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "lcid"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "result"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"

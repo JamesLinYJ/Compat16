@@ -1,0 +1,935 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 701
+declared_name = "mciSendCommand"
+name = "mciSendCommand"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "long", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciSendCommand"
+id_value = 827
+constant = "MMSYSTEM_MCI_SEND_COMMAND"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 108
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 8
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "message"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "parameters"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 702
+declared_name = "mciSendString"
+name = "mciSendString"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "pointer", "word", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciSendString"
+id_value = 828
+constant = "MMSYSTEM_MCI_SEND_STRING"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 109
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 10
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "command"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports.entry.abi.signature.parameters]]
+name = "output"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "capacity"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "callback"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 703
+declared_name = "mciGetDeviceID"
+name = "mciGetDeviceID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciGetDeviceId"
+id_value = 829
+constant = "MMSYSTEM_MCI_GET_DEVICE_ID"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 110
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 12
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "name"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 705
+declared_name = "mciLoadCommandResource"
+name = "mciLoadCommandResource"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "string", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciLoadCommandResource"
+id_value = 830
+constant = "MMSYSTEM_MCI_LOAD_COMMAND_RESOURCE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 111
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 14
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "instance"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "resource"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "ResourceName"
+
+[[exports.entry.abi.signature.parameters]]
+name = "resource_type"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 706
+declared_name = "mciGetErrorString"
+name = "mciGetErrorString"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciGetErrorString"
+id_value = 831
+constant = "MMSYSTEM_MCI_GET_ERROR_STRING"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 112
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 16
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "error"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "buffer"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "capacity"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 707
+declared_name = "mciSetDriverData"
+name = "mciSetDriverData"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciSetDriverData"
+id_value = 832
+constant = "MMSYSTEM_MCI_SET_DRIVER_DATA"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 113
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 18
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "data"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 708
+declared_name = "mciGetDriverData"
+name = "mciGetDriverData"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciGetDriverData"
+id_value = 833
+constant = "MMSYSTEM_MCI_GET_DRIVER_DATA"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 114
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 20
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 710
+declared_name = "mciDriverYield"
+name = "mciDriverYield"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciDriverYield"
+id_value = 834
+constant = "MMSYSTEM_MCI_DRIVER_YIELD"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 115
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 22
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 711
+declared_name = "mciDriverNotify"
+name = "mciDriverNotify"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciDriverNotify"
+id_value = 835
+constant = "MMSYSTEM_MCI_DRIVER_NOTIFY"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 116
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 24
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "window"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "status"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 712
+declared_name = "mciExecute"
+name = "mciExecute"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciExecute"
+id_value = 836
+constant = "MMSYSTEM_MCI_EXECUTE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 117
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 26
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "command"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 713
+declared_name = "mciFreeCommandResource"
+name = "mciFreeCommandResource"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciFreeCommandResource"
+id_value = 837
+constant = "MMSYSTEM_MCI_FREE_COMMAND_RESOURCE"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 118
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 28
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 714
+declared_name = "mciSetYieldProc"
+name = "mciSetYieldProc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciSetYieldProc"
+id_value = 838
+constant = "MMSYSTEM_MCI_SET_YIELD_PROC"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 119
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 30
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "procedure"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarPointer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "data"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 715
+declared_name = "mciGetDeviceIDFromElementID"
+name = "mciGetDeviceIDFromElementID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciGetDeviceIdFromElement"
+id_value = 839
+constant = "MMSYSTEM_MCI_GET_DEVICE_ID_FROM_ELEMENT"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 120
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 32
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "element_id"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_type"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 716
+declared_name = "mciGetYieldProc"
+name = "mciGetYieldProc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciGetYieldProc"
+id_value = 840
+constant = "MMSYSTEM_MCI_GET_YIELD_PROC"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 121
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 34
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "far_pointer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "data"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "MMSYSTEM"
+ordinal = 717
+declared_name = "mciGetCreatorTask"
+name = "mciGetCreatorTask"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "MciGetCreatorTask"
+id_value = 841
+constant = "MMSYSTEM_MCI_GET_CREATOR_TASK"
+
+[[exports.evidence]]
+source = "specs/mmsystem.spec"
+line = 122
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/mci_records.inc.rs"
+line = 36
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "device_id"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"

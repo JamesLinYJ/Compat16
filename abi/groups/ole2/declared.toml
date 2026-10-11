@@ -1,0 +1,5002 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "OLE2"
+ordinal = 1
+declared_name = "OleBuildVersion"
+name = "OleBuildVersion"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 2
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 2
+declared_name = "OleInitialize"
+name = "OleInitialize"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 3
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 3
+declared_name = "OleUninitialize"
+name = "OleUninitialize"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 4
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 4
+declared_name = "DllGetClassObject"
+name = "DllGetClassObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 5
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 5
+declared_name = "WEP"
+name = "WEP"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 6
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 6
+declared_name = "OleQueryLinkFromData"
+name = "OleQueryLinkFromData"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 7
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 7
+declared_name = "OleQueryCreateFromData"
+name = "OleQueryCreateFromData"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 8
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 8
+declared_name = "OleCreateFromData"
+name = "OleCreateFromData"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "segmented_pointer",
+  "pointer",
+  "long",
+  "pointer",
+  "segmented_pointer",
+  "segmented_pointer",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 9
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 9
+declared_name = "OleCreateLinkFromData"
+name = "OleCreateLinkFromData"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "segmented_pointer",
+  "pointer",
+  "long",
+  "pointer",
+  "segmented_pointer",
+  "segmented_pointer",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 10
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 10
+declared_name = "OleCreate"
+name = "OleCreate"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "pointer",
+  "long",
+  "pointer",
+  "segmented_pointer",
+  "segmented_pointer",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 11
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 11
+declared_name = "OLECREATELINK"
+name = "OLECREATELINK"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 12
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 12
+declared_name = "OleLoad"
+name = "OleLoad"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer", "segmented_pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 13
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 13
+declared_name = "OleSave"
+name = "OleSave"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 14
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 14
+declared_name = "OleRun"
+name = "OleRun"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 15
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 16
+declared_name = "OleIsRunning"
+name = "OleIsRunning"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 16
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 17
+declared_name = "OleLockRunning"
+name = "OleLockRunning"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "word", "word"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 17
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 18
+declared_name = "ReadClassStg"
+name = "ReadClassStg"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 18
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 19
+declared_name = "WriteClassStg"
+name = "WriteClassStg"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 19
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 20
+declared_name = "ReadClassStm"
+name = "ReadClassStm"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 20
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 21
+declared_name = "WriteClassStm"
+name = "WriteClassStm"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 21
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 22
+declared_name = "BindMoniker"
+name = "BindMoniker"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "long", "pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 22
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 23
+declared_name = "MkParseDisplayName"
+name = "MkParseDisplayName"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "string", "pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 23
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 24
+declared_name = "OleSaveToStream"
+name = "OleSaveToStream"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 24
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 25
+declared_name = "OleLoadFromStream"
+name = "OleLoadFromStream"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "segmented_pointer", "segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 25
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 26
+declared_name = "CreateBindCtx"
+name = "CreateBindCtx"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 26
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 27
+declared_name = "CreateItemMoniker"
+name = "CreateItemMoniker"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "string", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 27
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 28
+declared_name = "CreateFileMoniker"
+name = "CreateFileMoniker"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 28
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 29
+declared_name = "CreateGenericComposite"
+name = "CreateGenericComposite"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "segmented_pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 29
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 30
+declared_name = "GetRunningObjectTable"
+name = "GetRunningObjectTable"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 30
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 31
+declared_name = "OLEGETMALLOC"
+name = "OLEGETMALLOC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 31
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 32
+declared_name = "ReleaseStgMedium"
+name = "ReleaseStgMedium"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 32
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 33
+declared_name = "READSTRINGSTREAM"
+name = "READSTRINGSTREAM"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 33
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 34
+declared_name = "WRITESTRINGSTREAM"
+name = "WRITESTRINGSTREAM"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 34
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 35
+declared_name = "RegisterDragDrop"
+name = "RegisterDragDrop"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 35
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 36
+declared_name = "RevokeDragDrop"
+name = "RevokeDragDrop"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 36
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 37
+declared_name = "DoDragDrop"
+name = "DoDragDrop"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "segmented_pointer", "long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 37
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 38
+declared_name = "CreateOleAdviseHolder"
+name = "CreateOleAdviseHolder"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 38
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 39
+declared_name = "CreateDataAdviseHolder"
+name = "CreateDataAdviseHolder"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 39
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 40
+declared_name = "OleCreateMenuDescriptor"
+name = "OleCreateMenuDescriptor"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 40
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 41
+declared_name = "OleSetMenuDescriptor"
+name = "OleSetMenuDescriptor"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "word",
+  "word",
+  "word",
+  "segmented_pointer",
+  "segmented_pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 41
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 42
+declared_name = "OleDestroyMenuDescriptor"
+name = "OleDestroyMenuDescriptor"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 42
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 43
+declared_name = "OPENORCREATESTREAM"
+name = "OPENORCREATESTREAM"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 43
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 44
+declared_name = "CREATEANTIMONIKER"
+name = "CREATEANTIMONIKER"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 44
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 45
+declared_name = "CREATEPOINTERMONIKER"
+name = "CREATEPOINTERMONIKER"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 45
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 46
+declared_name = "MONIKERRELATIVEPATHTO"
+name = "MONIKERRELATIVEPATHTO"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 46
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 47
+declared_name = "MONIKERCOMMONPREFIXWITH"
+name = "MONIKERCOMMONPREFIXWITH"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 47
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 48
+declared_name = "ISACCELERATOR"
+name = "ISACCELERATOR"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 48
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 49
+declared_name = "OleSetClipboard"
+name = "OleSetClipboard"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 49
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 50
+declared_name = "OleGetClipboard"
+name = "OleGetClipboard"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 50
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 51
+declared_name = "OleDuplicateData"
+name = "OleDuplicateData"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 51
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 52
+declared_name = "OleGetIconOfFile"
+name = "OleGetIconOfFile"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 52
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 53
+declared_name = "OleGetIconOfClass"
+name = "OleGetIconOfClass"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "string", "word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 53
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 54
+declared_name = "CreateILockBytesOnHGlobal"
+name = "CreateILockBytesOnHGlobal"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 54
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 55
+declared_name = "GetHGlobalFromILockBytes"
+name = "GetHGlobalFromILockBytes"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 55
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 56
+declared_name = "OleMetafilePictFromIconAndLabel"
+name = "OleMetafilePictFromIconAndLabel"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "string", "string", "word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 56
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 57
+declared_name = "GetClassFile"
+name = "GetClassFile"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 57
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 58
+declared_name = "OleDraw"
+name = "OleDraw"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "long", "word", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 58
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 59
+declared_name = "OleCreateDefaultHandler"
+name = "OleCreateDefaultHandler"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "segmented_pointer", "pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 59
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 60
+declared_name = "OleCreateEmbeddingHelper"
+name = "OleCreateEmbeddingHelper"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "segmented_pointer",
+  "long",
+  "segmented_pointer",
+  "pointer",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 60
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 61
+declared_name = "OleConvertIStorageToOLESTREAMEx"
+name = "OleConvertIStorageToOLESTREAMEx"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "segmented_pointer",
+  "word",
+  "long",
+  "long",
+  "long",
+  "pointer",
+  "segmented_pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 61
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 62
+declared_name = "OleConvertOLESTREAMToIStorageEx"
+name = "OleConvertOLESTREAMToIStorageEx"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "segmented_pointer",
+  "segmented_pointer",
+  "pointer",
+  "pointer",
+  "pointer",
+  "pointer",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 62
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 63
+declared_name = "SETDOCUMENTBITSTG"
+name = "SETDOCUMENTBITSTG"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 63
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 64
+declared_name = "GETDOCUMENTBITSTG"
+name = "GETDOCUMENTBITSTG"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 64
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 65
+declared_name = "WRITEOLESTG"
+name = "WRITEOLESTG"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 65
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 66
+declared_name = "READOLESTG"
+name = "READOLESTG"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 66
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 67
+declared_name = "OLECREATEFROMFILE"
+name = "OLECREATEFROMFILE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 67
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 68
+declared_name = "OleCreateLinkToFile"
+name = "OleCreateLinkToFile"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "string",
+  "pointer",
+  "long",
+  "pointer",
+  "segmented_pointer",
+  "segmented_pointer",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 68
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 69
+declared_name = "CREATEDATACACHE"
+name = "CREATEDATACACHE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 69
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 70
+declared_name = "OleConvertIStorageToOLESTREAM"
+name = "OleConvertIStorageToOLESTREAM"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 70
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 71
+declared_name = "OleConvertOLESTREAMToIStorage"
+name = "OleConvertOLESTREAMToIStorage"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "segmented_pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 71
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 74
+declared_name = "ReadFmtUserTypeStg"
+name = "ReadFmtUserTypeStg"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 72
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 75
+declared_name = "WriteFmtUserTypeStg"
+name = "WriteFmtUserTypeStg"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "word", "string"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 73
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 76
+declared_name = "OleFlushClipboard"
+name = "OleFlushClipboard"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 74
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 77
+declared_name = "OleIsCurrentClipboard"
+name = "OleIsCurrentClipboard"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 75
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 78
+declared_name = "OleTranslateAccelerator"
+name = "OleTranslateAccelerator"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 76
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 79
+declared_name = "OleDoAutoConvert"
+name = "OleDoAutoConvert"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 77
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 80
+declared_name = "OleGetAutoConvert"
+name = "OleGetAutoConvert"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 78
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 81
+declared_name = "OleSetAutoConvert"
+name = "OleSetAutoConvert"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 79
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 82
+declared_name = "GetConvertStg"
+name = "GetConvertStg"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 80
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 83
+declared_name = "SetConvertStg"
+name = "SetConvertStg"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 81
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 84
+declared_name = "CreateStreamOnHGlobal"
+name = "CreateStreamOnHGlobal"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 82
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 85
+declared_name = "GetHGlobalFromStream"
+name = "GetHGlobalFromStream"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 83
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 86
+declared_name = "OleSetContainedObject"
+name = "OleSetContainedObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 84
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 87
+declared_name = "OleNoteObjectVisible"
+name = "OleNoteObjectVisible"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 85
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 88
+declared_name = "OleCreateStaticFromData"
+name = "OleCreateStaticFromData"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "segmented_pointer",
+  "pointer",
+  "long",
+  "pointer",
+  "segmented_pointer",
+  "segmented_pointer",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 86
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 89
+declared_name = "OleRegGetUserType"
+name = "OleRegGetUserType"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 87
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 90
+declared_name = "OleRegGetMiscStatus"
+name = "OleRegGetMiscStatus"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 88
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 91
+declared_name = "OleRegEnumFormatEtc"
+name = "OleRegEnumFormatEtc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 89
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 92
+declared_name = "OleRegEnumVerbs"
+name = "OleRegEnumVerbs"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 90
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 93
+declared_name = "OLEGETENUMFORMATETC"
+name = "OLEGETENUMFORMATETC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 91
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 100
+declared_name = "MAKEDEBUGSTREAM"
+name = "MAKEDEBUGSTREAM"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 92
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 104
+declared_name = "DBGLOGOPEN"
+name = "DBGLOGOPEN"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 93
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 105
+declared_name = "DBGLOGCLOSE"
+name = "DBGLOGCLOSE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 94
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 106
+declared_name = "DBGLOGOUTPUTDEBUGSTRING"
+name = "DBGLOGOUTPUTDEBUGSTRING"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 95
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 107
+declared_name = "DBGLOGWRITE"
+name = "DBGLOGWRITE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 96
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 108
+declared_name = "DBGLOGTIMESTAMP"
+name = "DBGLOGTIMESTAMP"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 97
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 109
+declared_name = "DBGLOGWRITEBANNER"
+name = "DBGLOGWRITEBANNER"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 98
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 110
+declared_name = "DBGDUMPOBJECT"
+name = "DBGDUMPOBJECT"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 99
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 111
+declared_name = "DBGISOBJECTVALID"
+name = "DBGISOBJECTVALID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 100
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 112
+declared_name = "DUMPALLOBJECTS"
+name = "DUMPALLOBJECTS"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 101
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 113
+declared_name = "VALIDATEALLOBJECTS"
+name = "VALIDATEALLOBJECTS"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 102
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 114
+declared_name = "DBGDUMPCLASSNAME"
+name = "DBGDUMPCLASSNAME"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 103
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 115
+declared_name = "DBGDUMPEXTERNALOBJECT"
+name = "DBGDUMPEXTERNALOBJECT"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 104
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 120
+declared_name = "_IID_IEnumUnknown"
+name = "_IID_IEnumUnknown"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 105
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [256, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 121
+declared_name = "_IID_IEnumString"
+name = "_IID_IEnumString"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 106
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [257, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 122
+declared_name = "_IID_IEnumMoniker"
+name = "_IID_IEnumMoniker"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 107
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [258, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 123
+declared_name = "_IID_IEnumFORMATETC"
+name = "_IID_IEnumFORMATETC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 108
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [259, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 124
+declared_name = "_IID_IEnumOLEVERB"
+name = "_IID_IEnumOLEVERB"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 109
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [260, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 125
+declared_name = "_IID_IEnumSTATDATA"
+name = "_IID_IEnumSTATDATA"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 110
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [261, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 126
+declared_name = "_IID_IEnumGeneric"
+name = "_IID_IEnumGeneric"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 111
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [262, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 127
+declared_name = "_IID_IEnumHolder"
+name = "_IID_IEnumHolder"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 112
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [263, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 128
+declared_name = "_IID_IEnumCallback"
+name = "_IID_IEnumCallback"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 113
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [264, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 129
+declared_name = "_IID_IPersistStream"
+name = "_IID_IPersistStream"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 114
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [265, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 130
+declared_name = "_IID_IPersistStorage"
+name = "_IID_IPersistStorage"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 115
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [266, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 131
+declared_name = "_IID_IPersistFile"
+name = "_IID_IPersistFile"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 116
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [267, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 132
+declared_name = "_IID_IPersist"
+name = "_IID_IPersist"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 117
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [268, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 133
+declared_name = "_IID_IViewObject"
+name = "_IID_IViewObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 118
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [269, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 134
+declared_name = "_IID_IDataObject"
+name = "_IID_IDataObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 119
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [270, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 135
+declared_name = "_IID_IAdviseSink"
+name = "_IID_IAdviseSink"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 120
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [271, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 136
+declared_name = "_IID_IDataAdviseHolder"
+name = "_IID_IDataAdviseHolder"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 121
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [272, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 137
+declared_name = "_IID_IOleAdviseHolder"
+name = "_IID_IOleAdviseHolder"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 122
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [273, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 138
+declared_name = "_IID_IOleObject"
+name = "_IID_IOleObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 123
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [274, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 139
+declared_name = "_IID_IOleInPlaceObject"
+name = "_IID_IOleInPlaceObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 124
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [275, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 140
+declared_name = "_IID_IOleWindow"
+name = "_IID_IOleWindow"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 125
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [276, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 141
+declared_name = "_IID_IOleInPlaceUIWindow"
+name = "_IID_IOleInPlaceUIWindow"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 126
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [277, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 142
+declared_name = "_IID_IOleInPlaceFrame"
+name = "_IID_IOleInPlaceFrame"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 127
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [278, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 143
+declared_name = "_IID_IOleInPlaceActiveObject"
+name = "_IID_IOleInPlaceActiveObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 128
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [279, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 144
+declared_name = "_IID_IOleClientSite"
+name = "_IID_IOleClientSite"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 129
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [280, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 145
+declared_name = "_IID_IOleInPlaceSite"
+name = "_IID_IOleInPlaceSite"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 130
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [281, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 146
+declared_name = "_IID_IParseDisplayName"
+name = "_IID_IParseDisplayName"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 131
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [282, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 147
+declared_name = "_IID_IOleContainer"
+name = "_IID_IOleContainer"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 132
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [283, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 148
+declared_name = "_IID_IOleItemContainer"
+name = "_IID_IOleItemContainer"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 133
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [284, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 149
+declared_name = "_IID_IOleLink"
+name = "_IID_IOleLink"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 134
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [285, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 150
+declared_name = "_IID_IOleCache"
+name = "_IID_IOleCache"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 135
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [286, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 151
+declared_name = "_IID_IOleManager"
+name = "_IID_IOleManager"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 136
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [287, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 152
+declared_name = "_IID_IOlePresObj"
+name = "_IID_IOlePresObj"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 137
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [288, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 153
+declared_name = "_IID_IDropSource"
+name = "_IID_IDropSource"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 138
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [289, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 154
+declared_name = "_IID_IDropTarget"
+name = "_IID_IDropTarget"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 139
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [290, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 155
+declared_name = "_IID_IDebug"
+name = "_IID_IDebug"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 140
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [291, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 156
+declared_name = "_IID_IDebugStream"
+name = "_IID_IDebugStream"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 141
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [292, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 157
+declared_name = "_IID_IAdviseSink2"
+name = "_IID_IAdviseSink2"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 142
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [293, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 158
+declared_name = "_IID_IViewObject2"
+name = "_IID_IViewObject2"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 143
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [295, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 159
+declared_name = "_IID_IOleCache2"
+name = "_IID_IOleCache2"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 144
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [296, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 160
+declared_name = "_IID_IOleCacheControl"
+name = "_IID_IOleCacheControl"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 145
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [297, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 161
+declared_name = "_IID_IRunnableObject"
+name = "_IID_IRunnableObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 146
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [294, 0, 192, 1174405120]
+
+[[exports]]
+module = "OLE2"
+ordinal = 500
+declared_name = "HGLOBALLockBytesImpl16_QueryInterface"
+name = "HGLOBALLockBytesImpl16_QueryInterface"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 147
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 501
+declared_name = "HGLOBALLockBytesImpl16_AddRef"
+name = "HGLOBALLockBytesImpl16_AddRef"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 148
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 502
+declared_name = "HGLOBALLockBytesImpl16_Release"
+name = "HGLOBALLockBytesImpl16_Release"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 149
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 503
+declared_name = "HGLOBALLockBytesImpl16_ReadAt"
+name = "HGLOBALLockBytesImpl16_ReadAt"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "int64",
+  "pointer",
+  "long",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 150
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 504
+declared_name = "HGLOBALLockBytesImpl16_WriteAt"
+name = "HGLOBALLockBytesImpl16_WriteAt"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "int64",
+  "pointer",
+  "long",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 151
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 505
+declared_name = "HGLOBALLockBytesImpl16_Flush"
+name = "HGLOBALLockBytesImpl16_Flush"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 152
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 506
+declared_name = "HGLOBALLockBytesImpl16_SetSize"
+name = "HGLOBALLockBytesImpl16_SetSize"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "int64"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 153
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 507
+declared_name = "HGLOBALLockBytesImpl16_LockRegion"
+name = "HGLOBALLockBytesImpl16_LockRegion"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "int64", "int64", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 154
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 508
+declared_name = "HGLOBALLockBytesImpl16_UnlockRegion"
+name = "HGLOBALLockBytesImpl16_UnlockRegion"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "int64", "int64", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 155
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 509
+declared_name = "HGLOBALLockBytesImpl16_Stat"
+name = "HGLOBALLockBytesImpl16_Stat"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "pointer", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 156
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 510
+declared_name = "HGLOBALStreamImpl16_QueryInterface"
+name = "HGLOBALStreamImpl16_QueryInterface"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 157
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 511
+declared_name = "HGLOBALStreamImpl16_AddRef"
+name = "HGLOBALStreamImpl16_AddRef"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 158
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 512
+declared_name = "HGLOBALStreamImpl16_Release"
+name = "HGLOBALStreamImpl16_Release"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 159
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 513
+declared_name = "HGLOBALStreamImpl16_Read"
+name = "HGLOBALStreamImpl16_Read"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "pointer", "long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 160
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 514
+declared_name = "HGLOBALStreamImpl16_Write"
+name = "HGLOBALStreamImpl16_Write"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "pointer", "long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 161
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 515
+declared_name = "HGLOBALStreamImpl16_Seek"
+name = "HGLOBALStreamImpl16_Seek"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "int64", "long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 162
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 516
+declared_name = "HGLOBALStreamImpl16_SetSize"
+name = "HGLOBALStreamImpl16_SetSize"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "int64"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 163
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 517
+declared_name = "HGLOBALStreamImpl16_CopyTo"
+name = "HGLOBALStreamImpl16_CopyTo"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "segmented_pointer",
+  "int64",
+  "pointer",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 164
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 518
+declared_name = "HGLOBALStreamImpl16_Commit"
+name = "HGLOBALStreamImpl16_Commit"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 165
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 519
+declared_name = "HGLOBALStreamImpl16_Revert"
+name = "HGLOBALStreamImpl16_Revert"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 166
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 520
+declared_name = "HGLOBALStreamImpl16_LockRegion"
+name = "HGLOBALStreamImpl16_LockRegion"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "int64", "int64", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 167
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 521
+declared_name = "HGLOBALStreamImpl16_UnlockRegion"
+name = "HGLOBALStreamImpl16_UnlockRegion"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "int64", "int64", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 168
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 522
+declared_name = "HGLOBALStreamImpl16_Stat"
+name = "HGLOBALStreamImpl16_Stat"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "pointer", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 169
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 523
+declared_name = "HGLOBALStreamImpl16_Clone"
+name = "HGLOBALStreamImpl16_Clone"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 170
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2"
+ordinal = 524
+declared_name = "DllEntryPoint"
+name = "DllEntryPoint"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "long",
+  "word",
+  "word",
+  "word",
+  "long",
+  "word",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2.spec"
+line = 171
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"

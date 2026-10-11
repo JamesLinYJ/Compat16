@@ -1,0 +1,95 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 9
+declared_name = "RegisterNLSInfoChanged"
+name = "RegisterNLSInfoChanged"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 10
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 11
+declared_name = "LIBMAIN"
+name = "LIBMAIN"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 11
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 12
+declared_name = "NOTIFYWINDOWPROC"
+name = "NOTIFYWINDOWPROC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 12
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"

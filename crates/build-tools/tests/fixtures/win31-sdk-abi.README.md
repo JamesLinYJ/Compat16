@@ -55,9 +55,11 @@ about incidental register values left by the original binaries.
 Every row must resolve uniquely by name and ordinal to the same descriptor;
 missing, duplicate, or unsupported rows fail rather than being skipped. There
 are no contract exceptions. `TabbedTextOut` and `GetTabbedTextExtent` are not
-included because this sample asserts implemented descriptors only. The existing
-`audit-win16` command remains a separate specification-metadata check; its
-non-authoritative treatment of specification return flags is unchanged.
+included because this sample asserts implemented descriptors only. The
+`audit-win16` command separately checks the validated canonical manifest against
+compiled descriptors, including semantic return classes and stack cleanup.
+That same-source consistency check does not replace these independent SDK facts;
+historical declaration return flags remain provenance only.
 
 ## Provenance and limits
 

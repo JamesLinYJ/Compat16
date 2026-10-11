@@ -1,0 +1,265 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "STORAGE"
+ordinal = 1
+declared_name = "StgCreateDocFileA"
+name = "StgCreateDocFileA"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/storage.spec"
+line = 2
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STORAGE"
+ordinal = 2
+declared_name = "StgCreateDocfileOnILockBytes"
+name = "StgCreateDocfileOnILockBytes"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "long", "long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/storage.spec"
+line = 3
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STORAGE"
+ordinal = 3
+declared_name = "StgOpenStorage"
+name = "StgOpenStorage"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "string",
+  "segmented_pointer",
+  "long",
+  "pointer",
+  "long",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/storage.spec"
+line = 4
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STORAGE"
+ordinal = 4
+declared_name = "StgOpenStorageOnILockBytes"
+name = "StgOpenStorageOnILockBytes"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "segmented_pointer",
+  "segmented_pointer",
+  "long",
+  "pointer",
+  "long",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/storage.spec"
+line = 5
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STORAGE"
+ordinal = 5
+declared_name = "StgIsStorageFile"
+name = "StgIsStorageFile"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/storage.spec"
+line = 6
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STORAGE"
+ordinal = 6
+declared_name = "StgIsStorageILockBytes"
+name = "StgIsStorageILockBytes"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/storage.spec"
+line = 7
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STORAGE"
+ordinal = 7
+declared_name = "StgSetTimes"
+name = "StgSetTimes"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "pointer", "pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/storage.spec"
+line = 8
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STORAGE"
+ordinal = 103
+declared_name = "DllGetClassObject"
+name = "DllGetClassObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/storage.spec"
+line = 9
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"

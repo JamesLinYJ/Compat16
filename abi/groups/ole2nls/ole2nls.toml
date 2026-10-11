@@ -1,0 +1,556 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 1
+declared_name = "GetUserDefaultLCID"
+name = "GetUserDefaultLCID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2NlsGetUserDefaultLcid"
+id_value = 1126
+constant = "OLE2NLS_GET_USER_DEFAULT_LCID"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 2
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2nls_records.inc.rs"
+line = 7
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+parameters = []
+returns = "dword"
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 2
+declared_name = "GetSystemDefaultLCID"
+name = "GetSystemDefaultLCID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2NlsGetSystemDefaultLcid"
+id_value = 1127
+constant = "OLE2NLS_GET_SYSTEM_DEFAULT_LCID"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 3
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2nls_records.inc.rs"
+line = 9
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+parameters = []
+returns = "dword"
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 3
+declared_name = "GetUserDefaultLangID"
+name = "GetUserDefaultLangID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "Ole2NlsGetUserDefaultLangId"
+id_value = 1128
+constant = "OLE2NLS_GET_USER_DEFAULT_LANG_ID"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 4
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2nls_records.inc.rs"
+line = 11
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+parameters = []
+returns = "word"
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 4
+declared_name = "GetSystemDefaultLangID"
+name = "GetSystemDefaultLangID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "Ole2NlsGetSystemDefaultLangId"
+id_value = 1129
+constant = "OLE2NLS_GET_SYSTEM_DEFAULT_LANG_ID"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 5
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2nls_records.inc.rs"
+line = 13
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+parameters = []
+returns = "word"
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 5
+declared_name = "GetLocaleInfoA"
+name = "GetLocaleInfoA"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "Ole2NlsGetLocaleInfoA"
+id_value = 1130
+constant = "OLE2NLS_GET_LOCALE_INFO_A"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 6
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2nls_records.inc.rs"
+line = 17
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "locale"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "info_type"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "data"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "capacity"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 6
+declared_name = "LCMapStringA"
+name = "LCMapStringA"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "long",
+  "long",
+  "pointer",
+  "word",
+  "pointer",
+  "word",
+]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "Ole2NlsLcMapStringA"
+id_value = 1131
+constant = "OLE2NLS_LC_MAP_STRING_A"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 7
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2nls_records.inc.rs"
+line = 19
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "locale"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_count"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "destination"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "destination_capacity"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 7
+declared_name = "GetStringTypeA"
+name = "GetStringTypeA"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "long",
+  "long",
+  "string",
+  "word",
+  "pointer",
+]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "Ole2NlsGetStringTypeA"
+id_value = 1132
+constant = "OLE2NLS_GET_STRING_TYPE_A"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 8
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2nls_records.inc.rs"
+line = 21
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "locale"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "info_type"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "source_count"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "character_types"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarOutputBuffer"
+
+[[exports]]
+module = "OLE2NLS"
+ordinal = 8
+declared_name = "CompareStringA"
+name = "CompareStringA"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "long",
+  "long",
+  "string",
+  "word",
+  "string",
+  "word",
+]
+return_modifier = "ret16"
+
+[exports.binding]
+rust_id = "Ole2NlsCompareStringA"
+id_value = 1133
+constant = "OLE2NLS_COMPARE_STRING_A"
+
+[[exports.evidence]]
+source = "specs/ole2nls.spec"
+line = 9
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/ole2nls_records.inc.rs"
+line = 23
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "word"
+
+[[exports.entry.abi.signature.parameters]]
+name = "locale"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "left"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "left_count"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"
+
+[[exports.entry.abi.signature.parameters]]
+name = "right"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarBuffer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "right_count"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "I16"

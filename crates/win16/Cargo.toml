@@ -15,6 +15,7 @@ guest-core = { path = "../guest" }
 serde_json.workspace = true
 
 [build-dependencies]
+abi-schema = { path = "../abi-schema" }
 abi-codegen = { path = "../abi-codegen" }
 
 [lints]

@@ -1,0 +1,184 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "OLE2THK"
+ordinal = 2
+declared_name = "ROT16_ISRUNNING16"
+name = "ROT16_ISRUNNING16"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2thk.spec"
+line = 2
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2THK"
+ordinal = 3
+declared_name = "ISWIN32SHANDLE"
+name = "ISWIN32SHANDLE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2thk.spec"
+line = 3
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2THK"
+ordinal = 4
+declared_name = "___EXPORTEDSTUB"
+name = "___EXPORTEDSTUB"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2thk.spec"
+line = 4
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2THK"
+ordinal = 5
+declared_name = "COTHKCOMMON"
+name = "COTHKCOMMON"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2thk.spec"
+line = 5
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2THK"
+ordinal = 6
+declared_name = "ROT16_GETTIMEOFLASTCHANGE16"
+name = "ROT16_GETTIMEOFLASTCHANGE16"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2thk.spec"
+line = 6
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLE2THK"
+ordinal = 7
+declared_name = "ROT16_GETOBJECT16"
+name = "ROT16_GETOBJECT16"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ole2thk.spec"
+line = 7
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"

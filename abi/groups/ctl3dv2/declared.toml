@@ -1,0 +1,221 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "CTL3DV2"
+ordinal = 7
+declared_name = "BtnWndProc3d"
+name = "BtnWndProc3d"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ctl3dv2.spec"
+line = 8
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "CTL3DV2"
+ordinal = 8
+declared_name = "EditWndProc3d"
+name = "EditWndProc3d"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ctl3dv2.spec"
+line = 9
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "CTL3DV2"
+ordinal = 9
+declared_name = "ListWndProc3d"
+name = "ListWndProc3d"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ctl3dv2.spec"
+line = 10
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "CTL3DV2"
+ordinal = 10
+declared_name = "ComboWndProc3d"
+name = "ComboWndProc3d"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ctl3dv2.spec"
+line = 11
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "CTL3DV2"
+ordinal = 11
+declared_name = "StaticWndProc3d"
+name = "StaticWndProc3d"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ctl3dv2.spec"
+line = 12
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "CTL3DV2"
+ordinal = 17
+declared_name = "Ctl3dDlgProc"
+name = "Ctl3dDlgProc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "word", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/ctl3dv2.spec"
+line = 16
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "CTL3DV2"
+ordinal = 19
+declared_name = "Ctl3dSetStyle"
+name = "Ctl3dSetStyle"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "long", "word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/ctl3dv2.spec"
+line = 18
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"

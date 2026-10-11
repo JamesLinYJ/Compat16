@@ -1,0 +1,342 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "OLESVR"
+ordinal = 21
+declared_name = "SRVRWNDPROC"
+name = "SRVRWNDPROC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 13
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLESVR"
+ordinal = 22
+declared_name = "DOCWNDPROC"
+name = "DOCWNDPROC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 14
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLESVR"
+ordinal = 23
+declared_name = "ITEMWNDPROC"
+name = "ITEMWNDPROC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 15
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLESVR"
+ordinal = 24
+declared_name = "SENDDATAMSG"
+name = "SENDDATAMSG"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 16
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLESVR"
+ordinal = 25
+declared_name = "FINDITEMWND"
+name = "FINDITEMWND"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 17
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLESVR"
+ordinal = 27
+declared_name = "TERMINATECLIENTS"
+name = "TERMINATECLIENTS"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 19
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLESVR"
+ordinal = 28
+declared_name = "TERMINATEDOCCLIENTS"
+name = "TERMINATEDOCCLIENTS"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 20
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLESVR"
+ordinal = 29
+declared_name = "DELETECLIENTINFO"
+name = "DELETECLIENTINFO"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 21
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLESVR"
+ordinal = 30
+declared_name = "SENDRENAMEMSG"
+name = "SENDRENAMEMSG"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 22
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLESVR"
+ordinal = 31
+declared_name = "ENUMFORTERMINATE"
+name = "ENUMFORTERMINATE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 23
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "OLESVR"
+ordinal = 32
+declared_name = "DllEntryPoint"
+name = "DllEntryPoint"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "long",
+  "word",
+  "word",
+  "word",
+  "long",
+  "word",
+]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/olesvr.spec"
+line = 24
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"

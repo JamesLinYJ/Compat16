@@ -1,0 +1,345 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "STRESS"
+ordinal = 2
+declared_name = "AllocMem"
+name = "AllocMem"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 3
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STRESS"
+ordinal = 3
+declared_name = "FreeAllMem"
+name = "FreeAllMem"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 4
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STRESS"
+ordinal = 6
+declared_name = "AllocFileHandles"
+name = "AllocFileHandles"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 5
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STRESS"
+ordinal = 7
+declared_name = "UnAllocFileHandles"
+name = "UnAllocFileHandles"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 6
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STRESS"
+ordinal = 8
+declared_name = "GetFreeFileHandles"
+name = "GetFreeFileHandles"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 7
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STRESS"
+ordinal = 10
+declared_name = "AllocDiskSpace"
+name = "AllocDiskSpace"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 8
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STRESS"
+ordinal = 11
+declared_name = "UnAllocDiskSpace"
+name = "UnAllocDiskSpace"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 9
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STRESS"
+ordinal = 12
+declared_name = "AllocUserMem"
+name = "AllocUserMem"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 10
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STRESS"
+ordinal = 13
+declared_name = "FreeAllUserMem"
+name = "FreeAllUserMem"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 11
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STRESS"
+ordinal = 14
+declared_name = "AllocGDIMem"
+name = "AllocGDIMem"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 12
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "STRESS"
+ordinal = 15
+declared_name = "FreeAllGDIMem"
+name = "FreeAllGDIMem"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/stress.spec"
+line = 13
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"

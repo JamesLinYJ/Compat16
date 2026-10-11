@@ -1,0 +1,386 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "KERNEL"
+ordinal = 513
+declared_name = "LoadLibraryEx32W"
+name = "LoadLibraryEx32W"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "long", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "KernelLoadLibraryEx32W"
+id_value = 718
+constant = "KERNEL_LOAD_LIBRARY_EX_32W"
+
+[[exports.evidence]]
+source = "specs/kernel.spec"
+line = 382
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 815
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "library_name"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports.entry.abi.signature.parameters]]
+name = "reserved_hfile"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "flags"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "KERNEL"
+ordinal = 514
+declared_name = "FreeLibrary32W"
+name = "FreeLibrary32W"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "KernelFreeLibrary32W"
+id_value = 719
+constant = "KERNEL_FREE_LIBRARY_32W"
+
+[[exports.evidence]]
+source = "specs/kernel.spec"
+line = 383
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 816
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "module_handle"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "KERNEL"
+ordinal = 515
+declared_name = "GetProcAddress32W"
+name = "GetProcAddress32W"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "string"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "KernelGetProcAddress32W"
+id_value = 720
+constant = "KERNEL_GET_PROC_ADDRESS_32W"
+
+[[exports.evidence]]
+source = "specs/kernel.spec"
+line = 384
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 817
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "module_handle"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "procedure_name"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarString"
+
+[[exports]]
+module = "KERNEL"
+ordinal = 516
+declared_name = "GetVDMPointer32W"
+name = "GetVDMPointer32W"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "word"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "KernelGetVDMPointer32W"
+id_value = 721
+constant = "KERNEL_GET_VDM_POINTER_32W"
+
+[[exports.evidence]]
+source = "specs/kernel.spec"
+line = 385
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 818
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "fixed_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "pascal"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "address"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "FarPointer"
+
+[[exports.entry.abi.signature.parameters]]
+name = "mode"
+slot_bytes = 2
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U16"
+
+[[exports]]
+module = "KERNEL"
+ordinal = 517
+declared_name = "CallProc32W"
+name = "CallProc32W"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "varargs"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "varargs"
+knowledge = "known"
+arguments = ["long", "long", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "KernelCallProc32W"
+id_value = 722
+constant = "KERNEL_CALL_PROC_32W"
+
+[[exports.evidence]]
+source = "specs/kernel.spec"
+line = 386
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 819
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "variable_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "varargs"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "procedure"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "pointer_mask"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "encoded_parameter_count"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports]]
+module = "KERNEL"
+ordinal = 518
+declared_name = "_CallProcEx32W"
+name = "_CallProcEx32W"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "varargs"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "varargs"
+knowledge = "known"
+arguments = ["long", "long", "long"]
+return_modifier = "unspecified"
+
+[exports.binding]
+rust_id = "KernelCallProcEx32W"
+id_value = 723
+constant = "KERNEL_CALL_PROC_EX_32W"
+
+[[exports.evidence]]
+source = "specs/kernel.spec"
+line = 387
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[[exports.evidence]]
+source = "crates/win16/src/exports/catalog/declarations.rs"
+line = 821
+note = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "variable_stack"
+
+[exports.entry.abi.signature]
+calling_convention = "varargs"
+returns = "dword"
+
+[[exports.entry.abi.signature.parameters]]
+name = "encoded_parameter_count"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "pointer_mask"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"
+
+[[exports.entry.abi.signature.parameters]]
+name = "procedure"
+slot_bytes = 4
+
+[exports.entry.abi.signature.parameters.value]
+kind = "named"
+name = "U32"

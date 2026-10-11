@@ -1,0 +1,348 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 2
+declared_name = "CreateTypeLib"
+name = "CreateTypeLib"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "string", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 2
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 3
+declared_name = "LoadTypeLib"
+name = "LoadTypeLib"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 3
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 4
+declared_name = "LHashValOfNameSys"
+name = "LHashValOfNameSys"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "long", "string"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 4
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 5
+declared_name = "_IID_ICreateTypeInfo"
+name = "_IID_ICreateTypeInfo"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 5
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [132101, 0, 192, 1174405120]
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 6
+declared_name = "_IID_ICreateTypeLib"
+name = "_IID_ICreateTypeLib"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 6
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [132102, 0, 192, 1174405120]
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 7
+declared_name = "_IID_ITypeComp"
+name = "_IID_ITypeComp"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 7
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [132099, 0, 192, 1174405120]
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 8
+declared_name = "_IID_ITypeInfo"
+name = "_IID_ITypeInfo"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 8
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [132097, 0, 192, 1174405120]
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 9
+declared_name = "_IID_ITypeLib"
+name = "_IID_ITypeLib"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 9
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [132098, 0, 192, 1174405120]
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 10
+declared_name = "RegisterTypeLib"
+name = "RegisterTypeLib"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "string", "string"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 10
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 11
+declared_name = "LoadRegTypeLib"
+name = "LoadRegTypeLib"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "word",
+  "word",
+  "long",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 11
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 14
+declared_name = "QueryPathOfRegTypeLib"
+name = "QueryPathOfRegTypeLib"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "word",
+  "word",
+  "long",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 12
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "TYPELIB"
+ordinal = 15
+declared_name = "OaBuildVersion"
+name = "OaBuildVersion"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/typelib.spec"
+line = 13
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"

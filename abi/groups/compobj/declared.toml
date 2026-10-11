@@ -1,0 +1,6275 @@
+# Typed Win16 ABI manifest. See abi/README.md and abi-schema for the contract.
+# Historical evidence does not override the canonical runtime signature.
+
+version = 1
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 1
+declared_name = "CoBuildVersion"
+name = "CoBuildVersion"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 2
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 2
+declared_name = "CoInitialize"
+name = "CoInitialize"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 3
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 3
+declared_name = "CoUninitialize"
+name = "CoUninitialize"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 4
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 4
+declared_name = "CoGetMalloc"
+name = "CoGetMalloc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 5
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 5
+declared_name = "CoRegisterClassObject"
+name = "CoRegisterClassObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "pointer",
+  "segmented_pointer",
+  "long",
+  "long",
+  "pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 6
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 6
+declared_name = "CoRevokeClassObject"
+name = "CoRevokeClassObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 7
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 7
+declared_name = "CoGetClassObject"
+name = "CoGetClassObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "segmented_pointer",
+  "long",
+  "pointer",
+  "segmented_pointer",
+  "segmented_pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 8
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 8
+declared_name = "COMARSHALINTERFACE"
+name = "COMARSHALINTERFACE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 9
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 9
+declared_name = "COUNMARSHALINTERFACE"
+name = "COUNMARSHALINTERFACE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 10
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 10
+declared_name = "COLOADLIBRARY"
+name = "COLOADLIBRARY"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 11
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 11
+declared_name = "COFREELIBRARY"
+name = "COFREELIBRARY"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 12
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 12
+declared_name = "COFREEALLLIBRARIES"
+name = "COFREEALLLIBRARIES"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 13
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 13
+declared_name = "CoCreateInstance"
+name = "CoCreateInstance"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "segmented_pointer",
+  "segmented_pointer",
+  "long",
+  "segmented_pointer",
+  "segmented_pointer",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 14
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 14
+declared_name = "StringFromIID"
+name = "StringFromIID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 15
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 15
+declared_name = "CoDisconnectObject"
+name = "CoDisconnectObject"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 16
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 16
+declared_name = "CORELEASEMARSHALDATA"
+name = "CORELEASEMARSHALDATA"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 17
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 17
+declared_name = "CoFreeUnusedLibraries"
+name = "CoFreeUnusedLibraries"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 18
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 19
+declared_name = "StringFromCLSID"
+name = "StringFromCLSID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 20
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 20
+declared_name = "CLSIDFromString"
+name = "CLSIDFromString"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 21
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 21
+declared_name = "ISVALIDPTRIN"
+name = "ISVALIDPTRIN"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 22
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 22
+declared_name = "ISVALIDPTROUT"
+name = "ISVALIDPTROUT"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 23
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 23
+declared_name = "IsValidInterface"
+name = "IsValidInterface"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 24
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 24
+declared_name = "ISVALIDIID"
+name = "ISVALIDIID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 25
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 25
+declared_name = "RESULTFROMSCODE"
+name = "RESULTFROMSCODE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 26
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 26
+declared_name = "GETSCODE"
+name = "GETSCODE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 27
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 27
+declared_name = "CoRegisterMessageFilter"
+name = "CoRegisterMessageFilter"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 28
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 28
+declared_name = "COISHANDLERCONNECTED"
+name = "COISHANDLERCONNECTED"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 29
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 29
+declared_name = "SHRADDREF"
+name = "SHRADDREF"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 30
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 30
+declared_name = "CoFileTimeToDosDateTime"
+name = "CoFileTimeToDosDateTime"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer", "pointer"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 31
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 31
+declared_name = "CoDosDateTimeToFileTime"
+name = "CoDosDateTimeToFileTime"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "word", "pointer"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 32
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 32
+declared_name = "COMARSHALHRESULT"
+name = "COMARSHALHRESULT"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 33
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 33
+declared_name = "COUNMARSHALHRESULT"
+name = "COUNMARSHALHRESULT"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 34
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 34
+declared_name = "CoGetCurrentProcess"
+name = "CoGetCurrentProcess"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 35
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 35
+declared_name = "SHRCREATE"
+name = "SHRCREATE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 36
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 36
+declared_name = "CoIsOle1Class"
+name = "CoIsOle1Class"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 37
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 37
+declared_name = "_GUID_NULL"
+name = "_GUID_NULL"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 38
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [0, 0, 0, 0]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 38
+declared_name = "_IID_IUnknown"
+name = "_IID_IUnknown"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 39
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [0, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 39
+declared_name = "_IID_IClassFactory"
+name = "_IID_IClassFactory"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 40
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [1, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 40
+declared_name = "_IID_IMalloc"
+name = "_IID_IMalloc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 41
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [2, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 41
+declared_name = "_IID_IMarshal"
+name = "_IID_IMarshal"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 42
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [3, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 42
+declared_name = "_IID_IRpcChannel"
+name = "_IID_IRpcChannel"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 43
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [4, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 43
+declared_name = "_IID_IRpcStub"
+name = "_IID_IRpcStub"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 44
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [5, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 44
+declared_name = "_IID_IStubManager"
+name = "_IID_IStubManager"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 45
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [6, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 45
+declared_name = "_IID_IRpcProxy"
+name = "_IID_IRpcProxy"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 46
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [7, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 46
+declared_name = "_IID_IProxyManager"
+name = "_IID_IProxyManager"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 47
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [8, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 47
+declared_name = "_IID_IPSFactory"
+name = "_IID_IPSFactory"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 48
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [9, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 48
+declared_name = "_IID_ILockBytes"
+name = "_IID_ILockBytes"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 49
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [10, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 49
+declared_name = "_IID_IStorage"
+name = "_IID_IStorage"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 50
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [11, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 50
+declared_name = "_IID_IStream"
+name = "_IID_IStream"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 51
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [12, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 51
+declared_name = "_IID_IEnumSTATSTG"
+name = "_IID_IEnumSTATSTG"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 52
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [13, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 52
+declared_name = "_IID_IBindCtx"
+name = "_IID_IBindCtx"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 53
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [14, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 53
+declared_name = "_IID_IMoniker"
+name = "_IID_IMoniker"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 54
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [15, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 54
+declared_name = "_IID_IRunningObjectTable"
+name = "_IID_IRunningObjectTable"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 55
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [16, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 55
+declared_name = "_IID_IInternalMoniker"
+name = "_IID_IInternalMoniker"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 56
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [17, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 56
+declared_name = "_IID_IRootStorage"
+name = "_IID_IRootStorage"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 57
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [18, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 57
+declared_name = "_IID_IDfReserved1"
+name = "_IID_IDfReserved1"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 58
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [19, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 58
+declared_name = "_IID_IDfReserved2"
+name = "_IID_IDfReserved2"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 59
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [20, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 59
+declared_name = "_IID_IDfReserved3"
+name = "_IID_IDfReserved3"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 60
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [21, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 60
+declared_name = "_IID_IMessageFilter"
+name = "_IID_IMessageFilter"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 61
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [22, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 61
+declared_name = "CLSIDFromProgID"
+name = "CLSIDFromProgID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 62
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 62
+declared_name = "ProgIDFromCLSID"
+name = "ProgIDFromCLSID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 63
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 63
+declared_name = "CoLockObjectExternal"
+name = "CoLockObjectExternal"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["segmented_pointer", "word", "word"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 64
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 64
+declared_name = "_CLSID_StdMarshal"
+name = "_CLSID_StdMarshal"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 65
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [23, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 65
+declared_name = "CoGetTreatAsClass"
+name = "CoGetTreatAsClass"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 66
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 66
+declared_name = "CoTreatAsClass"
+name = "CoTreatAsClass"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 67
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 67
+declared_name = "COGETSTANDARDMARSHAL"
+name = "COGETSTANDARDMARSHAL"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 68
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 68
+declared_name = "PROPAGATERESULT"
+name = "PROPAGATERESULT"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 69
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 69
+declared_name = "IIDFromString"
+name = "IIDFromString"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 70
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 70
+declared_name = "_IID_IStdMarshalInfo"
+name = "_IID_IStdMarshalInfo"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 71
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [24, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 71
+declared_name = "CoCreateStandardMalloc"
+name = "CoCreateStandardMalloc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 72
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 72
+declared_name = "_IID_IExternalConnection"
+name = "_IID_IExternalConnection"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "variable"
+attributes = []
+architecture_constraints = []
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 73
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "variable"
+values = [25, 0, 192, 1174405120]
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 73
+declared_name = "CoCreateGuid"
+name = "CoCreateGuid"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 74
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 75
+declared_name = "FnAssert"
+name = "FnAssert"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["string", "string", "string", "word"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 75
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 76
+declared_name = "StringFromGUID2"
+name = "StringFromGUID2"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer", "word"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 76
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 77
+declared_name = "COGETCLASSEXT"
+name = "COGETCLASSEXT"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 77
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 78
+declared_name = "OLE1CLASSFROMCLSID2"
+name = "OLE1CLASSFROMCLSID2"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 78
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 79
+declared_name = "CLSIDFROMOLE1CLASS"
+name = "CLSIDFROMOLE1CLASS"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 79
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 80
+declared_name = "COOPENCLASSKEY"
+name = "COOPENCLASSKEY"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 80
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 81
+declared_name = "GUIDFROMSTRING"
+name = "GUIDFROMSTRING"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 81
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 82
+declared_name = "CoFileTimeNow"
+name = "CoFileTimeNow"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 82
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 83
+declared_name = "REMALLOCOID"
+name = "REMALLOCOID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 83
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 84
+declared_name = "REMFREEOID"
+name = "REMFREEOID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 84
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 85
+declared_name = "REMCREATEREMOTEHANDLER"
+name = "REMCREATEREMOTEHANDLER"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 85
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 86
+declared_name = "REMCONNECTTOOBJECT"
+name = "REMCONNECTTOOBJECT"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 86
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 87
+declared_name = "REMGETINFOFORCID"
+name = "REMGETINFOFORCID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 87
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 88
+declared_name = "LRPCCALL"
+name = "LRPCCALL"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 88
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 89
+declared_name = "LRPCDISPATCH"
+name = "LRPCDISPATCH"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 89
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 90
+declared_name = "LRPCREGISTERMONITOR"
+name = "LRPCREGISTERMONITOR"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 90
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 91
+declared_name = "LRPCREVOKEMONITOR"
+name = "LRPCREVOKEMONITOR"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 91
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 92
+declared_name = "LRPCGETTHREADWINDOW"
+name = "LRPCGETTHREADWINDOW"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 92
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 93
+declared_name = "TIMERCALLBACKPROC"
+name = "TIMERCALLBACKPROC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 93
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 94
+declared_name = "LookupETask"
+name = "LookupETask"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 94
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 95
+declared_name = "SetETask"
+name = "SetETask"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = ["ret16"]
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["word", "pointer"]
+return_modifier = "ret16"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 95
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 96
+declared_name = "LRPCFREEMONITORDATA"
+name = "LRPCFREEMONITORDATA"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 96
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 97
+declared_name = "REMLOOKUPSHUNK"
+name = "REMLOOKUPSHUNK"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 97
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 98
+declared_name = "SHRGETSIZE"
+name = "SHRGETSIZE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 98
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 99
+declared_name = "CALLTHKMGRUNINITIALIZE"
+name = "CALLTHKMGRUNINITIALIZE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 99
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 100
+declared_name = "??0CARRAYFVALUE@@REC@KI@Z"
+name = "??0CARRAYFVALUE@@REC@KI@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 100
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 101
+declared_name = "??1CARRAYFVALUE@@REC@XZ"
+name = "??1CARRAYFVALUE@@REC@XZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 101
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 102
+declared_name = "?ASSERTVALID@CARRAYFVALUE@@RFCXXZ"
+name = "?ASSERTVALID@CARRAYFVALUE@@RFCXXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 102
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 103
+declared_name = "?FREEEXTRA@CARRAYFVALUE@@RECXXZ"
+name = "?FREEEXTRA@CARRAYFVALUE@@RECXXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 103
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 104
+declared_name = "?_GETAT@CARRAYFVALUE@@RFCPEXH@Z"
+name = "?_GETAT@CARRAYFVALUE@@RFCPEXH@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 104
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 105
+declared_name = "?GETSIZE@CARRAYFVALUE@@RFCHXZ"
+name = "?GETSIZE@CARRAYFVALUE@@RFCHXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 105
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 106
+declared_name = "?REMOVEALL@CARRAYFVALUE@@RECXXZ"
+name = "?REMOVEALL@CARRAYFVALUE@@RECXXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 106
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 107
+declared_name = "SHRDESTROY"
+name = "SHRDESTROY"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 107
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 108
+declared_name = "?INDEXOF@CARRAYFVALUE@@RECHPEXII@Z"
+name = "?INDEXOF@CARRAYFVALUE@@RECHPEXII@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 108
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 109
+declared_name = "?INSERTAT@CARRAYFVALUE@@RECHHPEXH@Z"
+name = "?INSERTAT@CARRAYFVALUE@@RECHHPEXH@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 109
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 110
+declared_name = "COSETSTATE"
+name = "COSETSTATE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 110
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 111
+declared_name = "?REMOVEAT@CARRAYFVALUE@@RECXHH@Z"
+name = "?REMOVEAT@CARRAYFVALUE@@RECXHH@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 111
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 112
+declared_name = "?SETAT@CARRAYFVALUE@@RECXHPEX@Z"
+name = "?SETAT@CARRAYFVALUE@@RECXHPEX@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 112
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 113
+declared_name = "?SETATGROW@CARRAYFVALUE@@RECHHPEX@Z"
+name = "?SETATGROW@CARRAYFVALUE@@RECHHPEX@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 113
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 114
+declared_name = "?SETSIZE@CARRAYFVALUE@@RECHHH@Z"
+name = "?SETSIZE@CARRAYFVALUE@@RECHHH@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 114
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 115
+declared_name = "CoGetState"
+name = "CoGetState"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 115
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 116
+declared_name = "DllEntryPoint"
+name = "DllEntryPoint"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = [
+  "long",
+  "word",
+  "word",
+  "word",
+  "long",
+  "word",
+]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 116
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 117
+declared_name = "?RELEASE@CSTDMALLOC@@VEAKXZ"
+name = "?RELEASE@CSTDMALLOC@@VEAKXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 117
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 118
+declared_name = "?ALLOC@CSTDMALLOC@@VEAPEXK@Z"
+name = "?ALLOC@CSTDMALLOC@@VEAPEXK@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 118
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 119
+declared_name = "SHRRELEASE"
+name = "SHRRELEASE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 119
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 120
+declared_name = "?GETASSOCAT@CMAPKEYTOVALUE@@BFCPEUCASSOC@1@PEXIAEI@Z"
+name = "?GETASSOCAT@CMAPKEYTOVALUE@@BFCPEUCASSOC@1@PEXIAEI@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 120
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 121
+declared_name = "?SETASSOCKEY@CMAPKEYTOVALUE@@BFCHPEUCASSOC@1@PEXI@Z"
+name = "?SETASSOCKEY@CMAPKEYTOVALUE@@BFCHPEUCASSOC@1@PEXI@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 121
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 122
+declared_name = "??1CMAPKEYTOVALUE@@REC@XZ"
+name = "??1CMAPKEYTOVALUE@@REC@XZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 122
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 123
+declared_name = "?GETASSOCKEYPTR@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEPEXPEI@Z"
+name = "?GETASSOCKEYPTR@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEPEXPEI@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 123
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 124
+declared_name = "?NEWASSOC@CMAPKEYTOVALUE@@BECPEUCASSOC@1@IPEXI0@Z"
+name = "?NEWASSOC@CMAPKEYTOVALUE@@BECPEUCASSOC@1@IPEXI0@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 124
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 125
+declared_name = "?SIZEASSOC@CMAPKEYTOVALUE@@BFCIXZ"
+name = "?SIZEASSOC@CMAPKEYTOVALUE@@BFCIXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 125
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 126
+declared_name = "?FREEASSOC@CMAPKEYTOVALUE@@BECXPEUCASSOC@1@@Z"
+name = "?FREEASSOC@CMAPKEYTOVALUE@@BECXPEUCASSOC@1@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 126
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 127
+declared_name = "?GETSTARTPOSITION@CMAPKEYTOVALUE@@RFCPEXXZ"
+name = "?GETSTARTPOSITION@CMAPKEYTOVALUE@@RFCPEXXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 127
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 128
+declared_name = "?GETNEXTASSOC@CMAPKEYTOVALUE@@RFCXPEPEXPEXPEI1@Z"
+name = "?GETNEXTASSOC@CMAPKEYTOVALUE@@RFCXPEPEXPEXPEI1@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 128
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 129
+declared_name = "?COMPAREASSOCKEY@CMAPKEYTOVALUE@@BFCHPEUCASSOC@1@PEXI@Z"
+name = "?COMPAREASSOCKEY@CMAPKEYTOVALUE@@BFCHPEUCASSOC@1@PEXI@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 129
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 130
+declared_name = "?REMOVEHKEY@CMAPKEYTOVALUE@@RECHK@Z"
+name = "?REMOVEHKEY@CMAPKEYTOVALUE@@RECHK@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 130
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 131
+declared_name = "?GETHKEY@CMAPKEYTOVALUE@@RFCKPEXI@Z"
+name = "?GETHKEY@CMAPKEYTOVALUE@@RFCKPEXI@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 131
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 132
+declared_name = "?GETCOUNT@CMAPKEYTOVALUE@@RFCHXZ"
+name = "?GETCOUNT@CMAPKEYTOVALUE@@RFCHXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 132
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 133
+declared_name = "?LOOKUP@CMAPKEYTOVALUE@@RFCHPEXI0@Z"
+name = "?LOOKUP@CMAPKEYTOVALUE@@RFCHPEXI0@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 133
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 134
+declared_name = "?GETASSOCVALUE@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEX@Z"
+name = "?GETASSOCVALUE@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEX@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 134
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 135
+declared_name = "?REMOVEKEY@CMAPKEYTOVALUE@@RECHPEXI@Z"
+name = "?REMOVEKEY@CMAPKEYTOVALUE@@RECHPEXI@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 135
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 136
+declared_name = "?REMOVEALL@CMAPKEYTOVALUE@@RECXXZ"
+name = "?REMOVEALL@CMAPKEYTOVALUE@@RECXXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 136
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 137
+declared_name = "SHRALLOC"
+name = "SHRALLOC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 137
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 138
+declared_name = "?FREEASSOCKEY@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@@Z"
+name = "?FREEASSOCKEY@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 138
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 139
+declared_name = "?SETAT@CMAPKEYTOVALUE@@RECHPEXI0@Z"
+name = "?SETAT@CMAPKEYTOVALUE@@RECHPEXI0@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 139
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 140
+declared_name = "?LOOKUPHKEY@CMAPKEYTOVALUE@@RFCHKPEX@Z"
+name = "?LOOKUPHKEY@CMAPKEYTOVALUE@@RFCHKPEX@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 140
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 141
+declared_name = "?ASSERTVALID@CMAPKEYTOVALUE@@RFCXXZ"
+name = "?ASSERTVALID@CMAPKEYTOVALUE@@RFCXXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 141
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 142
+declared_name = "?SETASSOCVALUE@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEX@Z"
+name = "?SETASSOCVALUE@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEX@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 142
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 143
+declared_name = "?SETATHKEY@CMAPKEYTOVALUE@@RECHKPEX@Z"
+name = "?SETATHKEY@CMAPKEYTOVALUE@@RECHKPEX@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 143
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 144
+declared_name = "??0CMAPKEYTOVALUE@@REC@KIIHP7CIPEXI@ZI@Z"
+name = "??0CMAPKEYTOVALUE@@REC@KIIHP7CIPEXI@ZI@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 144
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 145
+declared_name = "?INITHASHTABLE@CMAPKEYTOVALUE@@BECHXZ"
+name = "?INITHASHTABLE@CMAPKEYTOVALUE@@BECHXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 145
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 146
+declared_name = "?GETASSOCVALUEPTR@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEPEX@Z"
+name = "?GETASSOCVALUEPTR@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEPEX@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 146
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 147
+declared_name = "?LOOKUPADD@CMAPKEYTOVALUE@@RFCHPEXI0@Z"
+name = "?LOOKUPADD@CMAPKEYTOVALUE@@RFCHPEXI0@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 147
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 148
+declared_name = "MKVDEFAULTHASHKEY"
+name = "MKVDEFAULTHASHKEY"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 148
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 149
+declared_name = "DELETE16"
+name = "DELETE16"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 149
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 150
+declared_name = "COMEMCTXOF"
+name = "COMEMCTXOF"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 150
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 151
+declared_name = "CoMemAlloc"
+name = "CoMemAlloc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["long", "long", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 151
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 152
+declared_name = "COMEMFREE"
+name = "COMEMFREE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 152
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 153
+declared_name = "SHRREALLOC"
+name = "SHRREALLOC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 153
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 154
+declared_name = "___EXPORTEDSTUB"
+name = "___EXPORTEDSTUB"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 154
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 155
+declared_name = "LRPCREGISTERWIN32SMONITOR"
+name = "LRPCREGISTERWIN32SMONITOR"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 155
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 156
+declared_name = "MYREMGETINFOFORCID"
+name = "MYREMGETINFOFORCID"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 156
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 157
+declared_name = "SHRFREE"
+name = "SHRFREE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 157
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 158
+declared_name = "OPNEW16"
+name = "OPNEW16"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 158
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 159
+declared_name = "ADDCOINFO"
+name = "ADDCOINFO"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 159
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 160
+declared_name = "CORUNMODALLOOP"
+name = "CORUNMODALLOOP"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 160
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 161
+declared_name = "COHANDLEINCOMINGCALL"
+name = "COHANDLEINCOMINGCALL"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 161
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 162
+declared_name = "COSETACKSTATE"
+name = "COSETACKSTATE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 162
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 163
+declared_name = "SHRDIDALLOC"
+name = "SHRDIDALLOC"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 163
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 164
+declared_name = "?GETAT@CARRAYFVALUE@@RFCPEXH@Z"
+name = "?GETAT@CARRAYFVALUE@@RFCPEXH@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 164
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 165
+declared_name = "?GETUPPERBOUND@CARRAYFVALUE@@RFCHXZ"
+name = "?GETUPPERBOUND@CARRAYFVALUE@@RFCHXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 165
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 166
+declared_name = "OPDELETE16"
+name = "OPDELETE16"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 166
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 167
+declared_name = "?GETSIZEVALUE@CARRAYFVALUE@@RFCHXZ"
+name = "?GETSIZEVALUE@CARRAYFVALUE@@RFCHXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 167
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 168
+declared_name = "?PROXY1632ADDREF@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632ADDREF@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 168
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 169
+declared_name = "REMLOOKUPSHUNK_dup"
+name = "REMLOOKUPSHUNK_dup"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 169
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 170
+declared_name = "?ISEMPTY@CMAPKEYTOVALUE@@RFCHXZ"
+name = "?ISEMPTY@CMAPKEYTOVALUE@@RFCHXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 170
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 171
+declared_name = "?FREE@CSTDMALLOC@@VEAXPEX@Z"
+name = "?FREE@CSTDMALLOC@@VEAXPEX@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 171
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 172
+declared_name = "CALLTHKMGRINITIALIZE"
+name = "CALLTHKMGRINITIALIZE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 172
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 173
+declared_name = "?REALLOC@CSTDMALLOC@@VEAPEXPEXK@Z"
+name = "?REALLOC@CSTDMALLOC@@VEAPEXPEXK@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 173
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 174
+declared_name = "?SM16RHQI@@ZAPEXPEVCSM16RELEASEHANDLER@@AFUGUID@@PEPEX@Z"
+name = "?SM16RHQI@@ZAPEXPEVCSM16RELEASEHANDLER@@AFUGUID@@PEPEX@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 174
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 175
+declared_name = "?PROXY1632METHOD10@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD10@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 175
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 176
+declared_name = "___EXPORTEDSTUB_dup"
+name = "___EXPORTEDSTUB_dup"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 176
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 177
+declared_name = "?PROXY1632METHOD20@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD20@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 177
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 178
+declared_name = "?PROXY1632METHOD11@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD11@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 178
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 179
+declared_name = "?PROXY1632METHOD30@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD30@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 179
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 180
+declared_name = "?PROXY1632METHOD21@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD21@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 180
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 181
+declared_name = "?PROXY1632METHOD12@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD12@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 181
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 182
+declared_name = "?PROXY1632METHOD31@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD31@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 182
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 183
+declared_name = "?PROXY1632METHOD22@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD22@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 183
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 184
+declared_name = "?PROXY1632METHOD13@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD13@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 184
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 185
+declared_name = "?GETSIZE@CSTDMALLOC@@VEAKPEX@Z"
+name = "?GETSIZE@CSTDMALLOC@@VEAKPEX@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 185
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 186
+declared_name = "?PROXY1632METHOD23@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD23@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 186
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 187
+declared_name = "?PROXY1632METHOD14@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD14@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 187
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 188
+declared_name = "?PROXY1632METHOD24@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD24@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 188
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 189
+declared_name = "?PROXY1632METHOD15@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD15@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 189
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 190
+declared_name = "?PROXY1632METHOD25@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD25@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 190
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 191
+declared_name = "?PROXY1632METHOD16@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD16@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 191
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 192
+declared_name = "?PROXY1632METHOD26@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD26@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 192
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 193
+declared_name = "?PROXY1632METHOD17@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD17@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 193
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 194
+declared_name = "?PROXY1632METHOD27@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD27@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 194
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 195
+declared_name = "?PROXY1632METHOD18@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD18@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 195
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 196
+declared_name = "?PROXY1632METHOD28@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD28@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 196
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 197
+declared_name = "?ADDREF@CSTDMALLOC@@VEAKXZ"
+name = "?ADDREF@CSTDMALLOC@@VEAKXZ"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 197
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 198
+declared_name = "?PROXY1632METHOD19@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD19@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 198
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 199
+declared_name = "?PROXY1632METHOD29@@ZAKPEVCPROXY1632@@@Z"
+name = "?PROXY1632METHOD29@@ZAKPEVCPROXY1632@@@Z"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 199
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 200
+declared_name = "CALL32INITIALIZE"
+name = "CALL32INITIALIZE"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 200
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 201
+declared_name = "CALLOBJECTINWOW"
+name = "CALLOBJECTINWOW"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "pascal"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "pascal"
+knowledge = "known"
+arguments = ["pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 201
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 203
+declared_name = "CALLOBJECTINWOWCHECKINIT"
+name = "CALLOBJECTINWOWCHECKINIT"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 202
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 204
+declared_name = "CALLOBJECTINWOWCHECKTHKMGR"
+name = "CALLOBJECTINWOWCHECKTHKMGR"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 203
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 205
+declared_name = "CONVERTHR1632"
+name = "CONVERTHR1632"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 204
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 206
+declared_name = "CONVERTHR3216"
+name = "CONVERTHR3216"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 205
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 207
+declared_name = "ADDAPPCOMPATFLAG"
+name = "ADDAPPCOMPATFLAG"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "stub"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+knowledge = "unknown"
+arguments = []
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 206
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "stub"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 500
+declared_name = "IMalloc16_QueryInterface"
+name = "IMalloc16_QueryInterface"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "pointer", "pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 207
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 501
+declared_name = "IMalloc16_AddRef"
+name = "IMalloc16_AddRef"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 208
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 502
+declared_name = "IMalloc16_Release"
+name = "IMalloc16_Release"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 209
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 503
+declared_name = "IMalloc16_Alloc"
+name = "IMalloc16_Alloc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 210
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 504
+declared_name = "IMalloc16_Realloc"
+name = "IMalloc16_Realloc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "segmented_pointer", "long"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 211
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 505
+declared_name = "IMalloc16_Free"
+name = "IMalloc16_Free"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 212
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 506
+declared_name = "IMalloc16_GetSize"
+name = "IMalloc16_GetSize"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 213
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 507
+declared_name = "IMalloc16_DidAlloc"
+name = "IMalloc16_DidAlloc"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer", "segmented_pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 214
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"
+
+[[exports]]
+module = "COMPOBJ"
+ordinal = 508
+declared_name = "IMalloc16_HeapMinimize"
+name = "IMalloc16_HeapMinimize"
+ordinal_source = "explicit"
+architecture = "win16"
+aliases = []
+
+[exports.declaration]
+declaration_type = "cdecl"
+attributes = []
+architecture_constraints = []
+
+[exports.declaration.abi]
+calling_convention = "cdecl"
+knowledge = "known"
+arguments = ["pointer"]
+return_modifier = "unspecified"
+
+[[exports.evidence]]
+source = "specs/compobj.spec"
+line = 215
+note = "Historical declaration provenance; original licensing and notices remain applicable."
+
+[exports.entry]
+kind = "function"
+
+[exports.entry.abi]
+kind = "unknown"

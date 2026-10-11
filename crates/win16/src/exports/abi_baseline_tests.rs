@@ -150,17 +150,65 @@ fn module_spellings(declaration: &ExportMetadata) -> BTreeSet<String> {
     spellings
 }
 
-fn first_named_declaration(module: &str, name: &str) -> Option<&'static ExportMetadata> {
-    // Preserve the first match in compiled source order, including names
-    // shadowed by another ordinal. Compatibility aliases are checked below.
+fn expected_named_declaration(module: &str, name: &str) -> Option<&'static ExportMetadata> {
+    let selected = declarations::NAME_RESOLUTIONS.iter()
+        .find(|&&(candidate, alias, _)| candidate == module && alias.eq_ignore_ascii_case(name))
+        .map(|&(_, _, ordinal)| ordinal);
     WIN16_EXPORTS.iter().flat_map(|group| group.iter()).find(|candidate| {
         candidate.architecture == ExportArchitecture::Win16
             && candidate.module == module
-            && candidate.name.is_some_and(|candidate_name| candidate_name.eq_ignore_ascii_case(name))
+            && match selected {
+                Some(ordinal) => candidate.ordinal == ordinal,
+                None => candidate.name.is_some_and(|candidate_name| candidate_name.eq_ignore_ascii_case(name)),
+            }
     })
 }
 
+// Normalize only container order and the two intentional provenance changes.
+// All semantic fields, including enum discriminants, remain in the comparison.
+fn comparable_baseline(mut document: Value) -> Value {
+    let declarations = document["declarations"].as_array_mut()
+        .expect("baseline declarations must be an array");
+    for declaration in declarations.iter_mut() {
+        let source = declaration["source"].as_object_mut()
+            .expect("baseline declaration source must be an object");
+        source.remove("spec_path");
+        source.remove("line");
+    }
+    declarations.sort_by_cached_key(Value::to_string);
+    document["descriptors"].as_array_mut()
+        .expect("baseline descriptors must be an array")
+        .sort_by_cached_key(Value::to_string);
+    document
+}
+
+#[test]
+fn baseline_comparison_ignores_only_provenance_and_top_level_order() {
+    let original = json!({
+        "declarations": [
+            {"ordinal": 2, "source": {"spec_path": "old.spec", "line": 3}, "flags": 4},
+            {"ordinal": 1, "source": {"spec_path": "old.spec", "line": 2}, "flags": 0},
+        ],
+        "descriptors": [{"id_value": 1, "parameters": ["first", "second"]}, {"id_value": 2}],
+        "counts": {"declarations": 2},
+    });
+    let mut reordered = original.clone();
+    reordered["declarations"].as_array_mut().unwrap().reverse();
+    reordered["descriptors"].as_array_mut().unwrap().reverse();
+    reordered["declarations"][0]["source"] = json!({"spec_path": "groups/new.toml", "line": 0});
+    assert_eq!(comparable_baseline(original.clone()), comparable_baseline(reordered));
+    for changed in [
+        { let mut value = original.clone(); value["declarations"][0]["flags"] = json!(0); value },
+        { let mut value = original.clone(); value["descriptors"][0]["id_value"] = json!(3); value },
+        { let mut value = original.clone(); value["descriptors"][0]["parameters"].as_array_mut().unwrap().reverse(); value },
+        { let mut value = original.clone(); value["counts"]["declarations"] = json!(3); value },
+    ] {
+        assert_ne!(comparable_baseline(original.clone()), comparable_baseline(changed));
+    }
+}
+
 /// Run explicitly with ABI_BASELINE_PATH pointing to a retained JSON artifact.
+/// Set ABI_BASELINE_REFERENCE to compare a retained pre-migration artifact.
 /// No timestamps, host paths, or native addresses are included. Sorting fixes
 /// traversal order; JSON numbers and null preserve widths/absence unambiguously.
 #[test]
@@ -177,7 +225,7 @@ fn capture_compiled_abi_baseline() {
     for descriptor in &descriptors {
         assert!(identities.insert((descriptor.module(), descriptor.ordinal())), "duplicate descriptor identity");
         assert_eq!(lookup_export(descriptor.module().as_bytes(), ExportLookupTarget::Ordinal(descriptor.ordinal())), Some(*descriptor));
-        let named_declaration = first_named_declaration(descriptor.module(), descriptor.name());
+        let named_declaration = expected_named_declaration(descriptor.module(), descriptor.name());
         let named_descriptor = named_declaration.and_then(|declaration| {
             export_descriptors().iter().find(|candidate| {
                 candidate.module() == declaration.module && candidate.ordinal() == declaration.ordinal
@@ -196,10 +244,10 @@ fn capture_compiled_abi_baseline() {
             let expected = export_descriptors().iter().find(|descriptor| {
                 descriptor.module() == declaration.module && descriptor.ordinal() == declaration.ordinal
             });
-            // Name lookup is first-match in the original compiled declaration
-            // order, not in the sorted artifact order. Preserve shadowing.
+            // Name collisions use the catalog's explicit choice, independently
+            // of physical TOML grouping and sorted artifact order.
             let named_declaration = declaration.name.map(|name| {
-                first_named_declaration(declaration.module, name)
+                expected_named_declaration(declaration.module, name)
                     .expect("named declaration must occur in the public catalog")
             });
             // All rows exercise canonical ordinal/name resolution. Module
@@ -261,6 +309,12 @@ fn capture_compiled_abi_baseline() {
         "declarations": declarations.into_iter().map(declaration_value).collect::<Vec<_>>(),
         "descriptors": descriptors.into_iter().map(descriptor_value).collect::<Vec<_>>(),
     });
+    if let Some(reference) = std::env::var_os("ABI_BASELINE_REFERENCE") {
+        let reference = std::fs::File::open(reference).expect("open retained ABI baseline");
+        let expected: Value = serde_json::from_reader(reference).expect("read retained ABI baseline");
+        assert_eq!(comparable_baseline(document.clone()), comparable_baseline(expected),
+            "compiled ABI changed beyond catalog provenance and collection order");
+    }
     let path = std::path::PathBuf::from(output);
     if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
         std::fs::create_dir_all(parent).expect("create baseline artifact directory");

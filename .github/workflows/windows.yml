@@ -87,6 +87,8 @@ jobs:
           # isolated filesystem tests, and owned-memory GDI fixtures. These
           # filters do not exercise redirected native stdin or open UI.
           $suites = @(
+            '-p abi-schema',
+            '-p abi-codegen',
             '-p build-tools',
             '-p x86-cpu',
             '-p text-codec',
