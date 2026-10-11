@@ -1,310 +1,256 @@
 module = "DISPLAY"
 
-[sources]
-spec = { path = "specs/display.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "BitBlt"
 kind = "stub"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "ColorInfo"
 kind = "stub"
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "Control"
 kind = "stub"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 4
 name = "Disable"
 kind = "stub"
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 5
 name = "Enable"
 kind = "stub"
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 6
 name = "EnumFonts"
 kind = "stub"
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 7
 name = "EnumObj"
 kind = "stub"
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 8
 name = "Output"
 kind = "stub"
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 9
 name = "Pixel"
 kind = "stub"
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 10
 name = "RealizeObject"
 kind = "stub"
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 11
 name = "StrBlt"
 kind = "stub"
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 12
 name = "ScanLR"
 kind = "stub"
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 13
 name = "DeviceMode"
 kind = "stub"
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 14
 name = "ExtTextOut"
 kind = "stub"
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 15
 name = "GetCharWidth"
 kind = "stub"
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 16
 name = "DeviceBitmap"
 kind = "stub"
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 17
 name = "FastBorder"
 kind = "stub"
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 18
 name = "SetAttribute"
 kind = "stub"
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 19
 name = "DeviceBitmapBits"
 kind = "stub"
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 20
 name = "CreateBitmap"
 kind = "stub"
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 21
 name = "DIBScreenBlt"
 kind = "stub"
-evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
 ordinal = 22
 name = "SetPalette"
 kind = "stub"
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 23
 name = "GetPalette"
 kind = "stub"
-evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
 ordinal = 24
 name = "SetPaletteTranslate"
 decl = { attributes = ["ret16"], args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
 ordinal = 25
 name = "GetPaletteTranslate"
 kind = "stub"
-evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
 ordinal = 26
 name = "UpdateColors"
 kind = "stub"
-evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
 ordinal = 27
 name = "StretchBlt"
 kind = "stub"
-evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
 ordinal = 28
 name = "StretchDIBits"
 kind = "stub"
-evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
 ordinal = 29
 name = "SelectBitmap"
 kind = "stub"
-evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
 ordinal = 30
 name = "BitmapBits"
 kind = "stub"
-evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
 ordinal = 31
 name = "ReEnable"
 kind = "stub"
-evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
 ordinal = 39
 name = "DIBBlt"
 kind = "stub"
-evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
 ordinal = 40
 name = "CreateDIBitmap"
 kind = "stub"
-evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
 ordinal = 41
 name = "DIBToDevice"
 kind = "stub"
-evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
 ordinal = 90
 name = "Do_Polylines"
 kind = "stub"
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 91
 name = "Do_Scanlines"
 kind = "stub"
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 92
 name = "SaveScreenBitmap"
 kind = "stub"
-evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
 ordinal = 101
 name = "Inquire"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
 ordinal = 102
 name = "SetCursor"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
 ordinal = 103
 name = "MoveCursor"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
 ordinal = 104
 name = "CheckCursor"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 42 }]
 
 [[exports]]
 ordinal = 400
 name = "PExtTextOut"
 kind = "stub"
-evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
 ordinal = 401
 name = "PStrBlt"
 kind = "stub"
-evidence = [{ source = "spec", line = 44 }]
 
 [[exports]]
 ordinal = 402
 name = "RExtTextOut"
 kind = "stub"
-evidence = [{ source = "spec", line = 45 }]
 
 [[exports]]
 ordinal = 403
 name = "RStrBlt"
 kind = "stub"
-evidence = [{ source = "spec", line = 46 }]
 
 [[exports]]
 ordinal = 450
 name = "GetDriverResourceID"
 decl = { args = ["word", "string"] }
-evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
 ordinal = 500
 name = "UserRepaintDisable"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 48 }]
 
 [[exports]]
 ordinal = 501
 name = "ORDINAL_ONLY1"
 kind = "stub"
-evidence = [{ source = "spec", line = 49 }]
 
 [[exports]]
 ordinal = 502
 name = "ORDINAL_ONLY2"
 kind = "stub"
-evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
 ordinal = 600
 name = "InkReady"
 kind = "stub"
-evidence = [{ source = "spec", line = 51 }]
 
 [[exports]]
 ordinal = 601
 name = "GetLPDevice"
 kind = "stub"
-evidence = [{ source = "spec", line = 52 }]

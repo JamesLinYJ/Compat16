@@ -18,7 +18,7 @@ const GMEM_FIXED_ZERO_INIT: u16 = 0x0040;
 // The native API uses MAX_PATH (260) bytes, as documented by Microsoft in
 // Maximum Path Length Limitation. This bounds only the copied host string;
 // guest write spans use the returned string length, not a guessed capacity.
-// SHELL.36's Win16 stack slots come from specs/shell.spec; the historical
+// SHELL.36's Win16 stack slots are defined in abi/groups/shell/shell_icons.toml; the historical
 // private ordinal is listed in Schulman, Undocumented Windows (1992), ch. 2.
 const SHELL_NATIVE_MAX_PATH: usize = 260;
 

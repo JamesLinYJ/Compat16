@@ -1,43 +1,34 @@
 module = "MOUSE"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/mouse.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "Inquire"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "Enable"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "Disable"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 4
 name = "MOUSEGETINTVECT"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 5
 name = "GETSETMOUSEDATA"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 7
 name = "POWEREVENTPROC"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 7 }]

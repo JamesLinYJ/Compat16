@@ -1,14 +1,9 @@
 module = "MMSYSTEM"
 
-[sources]
-spec = { path = "specs/mmsystem.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/wave_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 401
 name = "waveOutGetNumDevs"
 binding = { rust_id = "MmsystemWaveOutGetNumDevs", id_value = 978, constant = "MMSYSTEM_WAVE_OUT_GET_NUM_DEVS" }
-evidence = [{ source = "spec", line = 66 }, { source = "binding", line = 7 }]
 [exports.call]
 returns = "word"
 
@@ -16,7 +11,6 @@ returns = "word"
 ordinal = 402
 name = "waveOutGetDevCaps"
 binding = { rust_id = "MmsystemWaveOutGetDevCaps", id_value = 979, constant = "MMSYSTEM_WAVE_OUT_GET_DEV_CAPS" }
-evidence = [{ source = "spec", line = 67 }, { source = "binding", line = 9 }]
 [exports.call]
 returns = "word"
 params = [
@@ -29,7 +23,6 @@ params = [
 ordinal = 403
 name = "waveOutGetErrorText"
 binding = { rust_id = "MmsystemWaveOutGetErrorText", id_value = 980, constant = "MMSYSTEM_WAVE_OUT_GET_ERROR_TEXT" }
-evidence = [{ source = "spec", line = 68 }, { source = "binding", line = 11 }]
 [exports.call]
 returns = "word"
 params = [
@@ -42,7 +35,6 @@ params = [
 ordinal = 404
 name = "waveOutOpen"
 binding = { rust_id = "MmsystemWaveOutOpen", id_value = 981, constant = "MMSYSTEM_WAVE_OUT_OPEN" }
-evidence = [{ source = "spec", line = 69 }, { source = "binding", line = 13 }]
 [exports.call]
 returns = "word"
 params = [
@@ -58,7 +50,6 @@ params = [
 ordinal = 405
 name = "waveOutClose"
 binding = { rust_id = "MmsystemWaveOutClose", id_value = 982, constant = "MMSYSTEM_WAVE_OUT_CLOSE" }
-evidence = [{ source = "spec", line = 70 }, { source = "binding", line = 15 }]
 [exports.call]
 returns = "word"
 params = [
@@ -69,7 +60,6 @@ params = [
 ordinal = 406
 name = "waveOutPrepareHeader"
 binding = { rust_id = "MmsystemWaveOutPrepareHeader", id_value = 983, constant = "MMSYSTEM_WAVE_OUT_PREPARE_HEADER" }
-evidence = [{ source = "spec", line = 71 }, { source = "binding", line = 17 }]
 [exports.call]
 returns = "word"
 params = [
@@ -82,7 +72,6 @@ params = [
 ordinal = 407
 name = "waveOutUnprepareHeader"
 binding = { rust_id = "MmsystemWaveOutUnprepareHeader", id_value = 984, constant = "MMSYSTEM_WAVE_OUT_UNPREPARE_HEADER" }
-evidence = [{ source = "spec", line = 72 }, { source = "binding", line = 19 }]
 [exports.call]
 returns = "word"
 params = [
@@ -95,7 +84,6 @@ params = [
 ordinal = 408
 name = "waveOutWrite"
 binding = { rust_id = "MmsystemWaveOutWrite", id_value = 985, constant = "MMSYSTEM_WAVE_OUT_WRITE" }
-evidence = [{ source = "spec", line = 73 }, { source = "binding", line = 21 }]
 [exports.call]
 returns = "word"
 params = [
@@ -108,7 +96,6 @@ params = [
 ordinal = 409
 name = "waveOutPause"
 binding = { rust_id = "MmsystemWaveOutPause", id_value = 986, constant = "MMSYSTEM_WAVE_OUT_PAUSE" }
-evidence = [{ source = "spec", line = 74 }, { source = "binding", line = 23 }]
 [exports.call]
 returns = "word"
 params = [
@@ -119,7 +106,6 @@ params = [
 ordinal = 410
 name = "waveOutRestart"
 binding = { rust_id = "MmsystemWaveOutRestart", id_value = 987, constant = "MMSYSTEM_WAVE_OUT_RESTART" }
-evidence = [{ source = "spec", line = 75 }, { source = "binding", line = 25 }]
 [exports.call]
 returns = "word"
 params = [
@@ -130,7 +116,6 @@ params = [
 ordinal = 411
 name = "waveOutReset"
 binding = { rust_id = "MmsystemWaveOutReset", id_value = 988, constant = "MMSYSTEM_WAVE_OUT_RESET" }
-evidence = [{ source = "spec", line = 76 }, { source = "binding", line = 27 }]
 [exports.call]
 returns = "word"
 params = [
@@ -141,7 +126,6 @@ params = [
 ordinal = 412
 name = "waveOutGetPosition"
 binding = { rust_id = "MmsystemWaveOutGetPosition", id_value = 989, constant = "MMSYSTEM_WAVE_OUT_GET_POSITION" }
-evidence = [{ source = "spec", line = 77 }, { source = "binding", line = 29 }]
 [exports.call]
 returns = "word"
 params = [
@@ -154,7 +138,6 @@ params = [
 ordinal = 413
 name = "waveOutGetPitch"
 binding = { rust_id = "MmsystemWaveOutGetPitch", id_value = 990, constant = "MMSYSTEM_WAVE_OUT_GET_PITCH" }
-evidence = [{ source = "spec", line = 78 }, { source = "binding", line = 31 }]
 [exports.call]
 returns = "word"
 params = [
@@ -166,7 +149,6 @@ params = [
 ordinal = 414
 name = "waveOutSetPitch"
 binding = { rust_id = "MmsystemWaveOutSetPitch", id_value = 991, constant = "MMSYSTEM_WAVE_OUT_SET_PITCH" }
-evidence = [{ source = "spec", line = 79 }, { source = "binding", line = 33 }]
 [exports.call]
 returns = "word"
 params = [
@@ -178,7 +160,6 @@ params = [
 ordinal = 415
 name = "waveOutGetVolume"
 binding = { rust_id = "MmsystemWaveOutGetVolume", id_value = 992, constant = "MMSYSTEM_WAVE_OUT_GET_VOLUME" }
-evidence = [{ source = "spec", line = 80 }, { source = "binding", line = 35 }]
 [exports.call]
 returns = "word"
 params = [
@@ -190,7 +171,6 @@ params = [
 ordinal = 416
 name = "waveOutSetVolume"
 binding = { rust_id = "MmsystemWaveOutSetVolume", id_value = 993, constant = "MMSYSTEM_WAVE_OUT_SET_VOLUME" }
-evidence = [{ source = "spec", line = 81 }, { source = "binding", line = 37 }]
 [exports.call]
 returns = "word"
 params = [
@@ -202,7 +182,6 @@ params = [
 ordinal = 417
 name = "waveOutGetPlaybackRate"
 binding = { rust_id = "MmsystemWaveOutGetPlaybackRate", id_value = 994, constant = "MMSYSTEM_WAVE_OUT_GET_PLAYBACK_RATE" }
-evidence = [{ source = "spec", line = 82 }, { source = "binding", line = 39 }]
 [exports.call]
 returns = "word"
 params = [
@@ -214,7 +193,6 @@ params = [
 ordinal = 418
 name = "waveOutSetPlaybackRate"
 binding = { rust_id = "MmsystemWaveOutSetPlaybackRate", id_value = 995, constant = "MMSYSTEM_WAVE_OUT_SET_PLAYBACK_RATE" }
-evidence = [{ source = "spec", line = 83 }, { source = "binding", line = 41 }]
 [exports.call]
 returns = "word"
 params = [
@@ -226,7 +204,6 @@ params = [
 ordinal = 419
 name = "waveOutBreakLoop"
 binding = { rust_id = "MmsystemWaveOutBreakLoop", id_value = 996, constant = "MMSYSTEM_WAVE_OUT_BREAK_LOOP" }
-evidence = [{ source = "spec", line = 84 }, { source = "binding", line = 43 }]
 [exports.call]
 returns = "word"
 params = [
@@ -237,7 +214,6 @@ params = [
 ordinal = 420
 name = "waveOutGetID"
 binding = { rust_id = "MmsystemWaveOutGetID", id_value = 997, constant = "MMSYSTEM_WAVE_OUT_GET_ID" }
-evidence = [{ source = "spec", line = 85 }, { source = "binding", line = 45 }]
 [exports.call]
 returns = "word"
 params = [
@@ -249,7 +225,6 @@ params = [
 ordinal = 421
 name = "waveOutMessage"
 binding = { rust_id = "MmsystemWaveOutMessage", id_value = 998, constant = "MMSYSTEM_WAVE_OUT_MESSAGE" }
-evidence = [{ source = "spec", line = 86 }, { source = "binding", line = 47 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -263,7 +238,6 @@ params = [
 ordinal = 501
 name = "waveInGetNumDevs"
 binding = { rust_id = "MmsystemWaveInGetNumDevs", id_value = 999, constant = "MMSYSTEM_WAVE_IN_GET_NUM_DEVS" }
-evidence = [{ source = "spec", line = 87 }, { source = "binding", line = 49 }]
 [exports.call]
 returns = "word"
 
@@ -271,7 +245,6 @@ returns = "word"
 ordinal = 502
 name = "waveInGetDevCaps"
 binding = { rust_id = "MmsystemWaveInGetDevCaps", id_value = 1000, constant = "MMSYSTEM_WAVE_IN_GET_DEV_CAPS" }
-evidence = [{ source = "spec", line = 88 }, { source = "binding", line = 51 }]
 [exports.call]
 returns = "word"
 params = [
@@ -284,7 +257,6 @@ params = [
 ordinal = 503
 name = "waveInGetErrorText"
 binding = { rust_id = "MmsystemWaveInGetErrorText", id_value = 1001, constant = "MMSYSTEM_WAVE_IN_GET_ERROR_TEXT" }
-evidence = [{ source = "spec", line = 89 }, { source = "binding", line = 53 }]
 [exports.call]
 returns = "word"
 params = [
@@ -297,7 +269,6 @@ params = [
 ordinal = 504
 name = "waveInOpen"
 binding = { rust_id = "MmsystemWaveInOpen", id_value = 1002, constant = "MMSYSTEM_WAVE_IN_OPEN" }
-evidence = [{ source = "spec", line = 90 }, { source = "binding", line = 55 }]
 [exports.call]
 returns = "word"
 params = [
@@ -313,7 +284,6 @@ params = [
 ordinal = 505
 name = "waveInClose"
 binding = { rust_id = "MmsystemWaveInClose", id_value = 1003, constant = "MMSYSTEM_WAVE_IN_CLOSE" }
-evidence = [{ source = "spec", line = 91 }, { source = "binding", line = 57 }]
 [exports.call]
 returns = "word"
 params = [
@@ -324,7 +294,6 @@ params = [
 ordinal = 506
 name = "waveInPrepareHeader"
 binding = { rust_id = "MmsystemWaveInPrepareHeader", id_value = 1004, constant = "MMSYSTEM_WAVE_IN_PREPARE_HEADER" }
-evidence = [{ source = "spec", line = 92 }, { source = "binding", line = 59 }]
 [exports.call]
 returns = "word"
 params = [
@@ -337,7 +306,6 @@ params = [
 ordinal = 507
 name = "waveInUnprepareHeader"
 binding = { rust_id = "MmsystemWaveInUnprepareHeader", id_value = 1005, constant = "MMSYSTEM_WAVE_IN_UNPREPARE_HEADER" }
-evidence = [{ source = "spec", line = 93 }, { source = "binding", line = 61 }]
 [exports.call]
 returns = "word"
 params = [
@@ -350,7 +318,6 @@ params = [
 ordinal = 508
 name = "waveInAddBuffer"
 binding = { rust_id = "MmsystemWaveInAddBuffer", id_value = 1006, constant = "MMSYSTEM_WAVE_IN_ADD_BUFFER" }
-evidence = [{ source = "spec", line = 94 }, { source = "binding", line = 63 }]
 [exports.call]
 returns = "word"
 params = [
@@ -363,7 +330,6 @@ params = [
 ordinal = 509
 name = "waveInStart"
 binding = { rust_id = "MmsystemWaveInStart", id_value = 1007, constant = "MMSYSTEM_WAVE_IN_START" }
-evidence = [{ source = "spec", line = 95 }, { source = "binding", line = 65 }]
 [exports.call]
 returns = "word"
 params = [
@@ -374,7 +340,6 @@ params = [
 ordinal = 510
 name = "waveInStop"
 binding = { rust_id = "MmsystemWaveInStop", id_value = 1008, constant = "MMSYSTEM_WAVE_IN_STOP" }
-evidence = [{ source = "spec", line = 96 }, { source = "binding", line = 67 }]
 [exports.call]
 returns = "word"
 params = [
@@ -385,7 +350,6 @@ params = [
 ordinal = 511
 name = "waveInReset"
 binding = { rust_id = "MmsystemWaveInReset", id_value = 1009, constant = "MMSYSTEM_WAVE_IN_RESET" }
-evidence = [{ source = "spec", line = 97 }, { source = "binding", line = 69 }]
 [exports.call]
 returns = "word"
 params = [
@@ -396,7 +360,6 @@ params = [
 ordinal = 512
 name = "waveInGetPosition"
 binding = { rust_id = "MmsystemWaveInGetPosition", id_value = 1010, constant = "MMSYSTEM_WAVE_IN_GET_POSITION" }
-evidence = [{ source = "spec", line = 98 }, { source = "binding", line = 71 }]
 [exports.call]
 returns = "word"
 params = [
@@ -409,7 +372,6 @@ params = [
 ordinal = 513
 name = "waveInGetID"
 binding = { rust_id = "MmsystemWaveInGetID", id_value = 1011, constant = "MMSYSTEM_WAVE_IN_GET_ID" }
-evidence = [{ source = "spec", line = 99 }, { source = "binding", line = 73 }]
 [exports.call]
 returns = "word"
 params = [
@@ -421,7 +383,6 @@ params = [
 ordinal = 514
 name = "waveInMessage"
 binding = { rust_id = "MmsystemWaveInMessage", id_value = 1012, constant = "MMSYSTEM_WAVE_IN_MESSAGE" }
-evidence = [{ source = "spec", line = 100 }, { source = "binding", line = 75 }]
 [exports.call]
 returns = "dword"
 params = [

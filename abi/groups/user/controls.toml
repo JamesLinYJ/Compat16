@@ -1,16 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/user_scroll_bar_records.inc.rs", note = "binding" }
-binding_2 = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 62
 name = "SetScrollPos"
 binding = { rust_id = "UserSetScrollPos", id_value = 1153, constant = "USER_SET_SCROLL_POS" }
-evidence = [{ source = "spec", line = 63 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -24,7 +18,6 @@ params = [
 ordinal = 63
 name = "GetScrollPos"
 binding = { rust_id = "UserGetScrollPos", id_value = 1154, constant = "USER_GET_SCROLL_POS" }
-evidence = [{ source = "spec", line = 64 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -36,7 +29,6 @@ params = [
 ordinal = 64
 name = "SetScrollRange"
 binding = { rust_id = "UserSetScrollRange", id_value = 1155, constant = "USER_SET_SCROLL_RANGE" }
-evidence = [{ source = "spec", line = 65 }, { source = "binding", line = 13 }]
 [exports.call]
 returns = "void"
 params = [
@@ -51,7 +43,6 @@ params = [
 ordinal = 65
 name = "GetScrollRange"
 binding = { rust_id = "UserGetScrollRange", id_value = 1156, constant = "USER_GET_SCROLL_RANGE" }
-evidence = [{ source = "spec", line = 66 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "void"
 params = [
@@ -65,7 +56,6 @@ params = [
 ordinal = 87
 name = "DialogBox"
 binding = { rust_id = "UserDialogBox", id_value = 612, constant = "USER_DIALOG_BOX" }
-evidence = [{ source = "spec", line = 88 }, { source = "binding_2", line = 709 }]
 [exports.call]
 returns = "word"
 params = [
@@ -79,7 +69,6 @@ params = [
 ordinal = 88
 name = "EndDialog"
 binding = { rust_id = "UserEndDialog", id_value = 613, constant = "USER_END_DIALOG" }
-evidence = [{ source = "spec", line = 89 }, { source = "binding_2", line = 710 }]
 [exports.call]
 returns = "void"
 params = [
@@ -91,7 +80,6 @@ params = [
 ordinal = 89
 name = "CreateDialog"
 binding = { rust_id = "UserCreateDialog", id_value = 614, constant = "USER_CREATE_DIALOG" }
-evidence = [{ source = "spec", line = 90 }, { source = "binding_2", line = 711 }]
 [exports.call]
 returns = "word"
 params = [
@@ -105,7 +93,6 @@ params = [
 ordinal = 90
 name = "IsDialogMessage"
 binding = { rust_id = "UserIsDialogMessage", id_value = 615, constant = "USER_IS_DIALOG_MESSAGE" }
-evidence = [{ source = "spec", line = 91 }, { source = "binding_2", line = 712 }]
 [exports.call]
 returns = "word"
 params = [
@@ -117,7 +104,6 @@ params = [
 ordinal = 91
 name = "GetDlgItem"
 binding = { rust_id = "UserGetDlgItem", id_value = 616, constant = "USER_GET_DLG_ITEM" }
-evidence = [{ source = "spec", line = 92 }, { source = "binding_2", line = 713 }]
 [exports.call]
 returns = "word"
 params = [
@@ -129,7 +115,6 @@ params = [
 ordinal = 92
 name = "SetDlgItemText"
 binding = { rust_id = "UserSetDlgItemText", id_value = 617, constant = "USER_SET_DLG_ITEM_TEXT" }
-evidence = [{ source = "spec", line = 93 }, { source = "binding_2", line = 714 }]
 [exports.call]
 returns = "void"
 params = [
@@ -142,7 +127,6 @@ params = [
 ordinal = 93
 name = "GetDlgItemText"
 binding = { rust_id = "UserGetDlgItemText", id_value = 618, constant = "USER_GET_DLG_ITEM_TEXT" }
-evidence = [{ source = "spec", line = 94 }, { source = "binding_2", line = 715 }]
 [exports.call]
 returns = "word"
 params = [
@@ -156,7 +140,6 @@ params = [
 ordinal = 94
 name = "SetDlgItemInt"
 binding = { rust_id = "UserSetDlgItemInt", id_value = 619, constant = "USER_SET_DLG_ITEM_INT" }
-evidence = [{ source = "spec", line = 95 }, { source = "binding_2", line = 716 }]
 [exports.call]
 returns = "void"
 params = [
@@ -170,7 +153,6 @@ params = [
 ordinal = 95
 name = "GetDlgItemInt"
 binding = { rust_id = "UserGetDlgItemInt", id_value = 620, constant = "USER_GET_DLG_ITEM_INT" }
-evidence = [{ source = "spec", line = 96 }, { source = "binding_2", line = 717 }]
 [exports.call]
 returns = "word"
 params = [
@@ -184,7 +166,6 @@ params = [
 ordinal = 96
 name = "CheckRadioButton"
 binding = { rust_id = "UserCheckRadioButton", id_value = 621, constant = "USER_CHECK_RADIO_BUTTON" }
-evidence = [{ source = "spec", line = 97 }, { source = "binding_2", line = 718 }]
 [exports.call]
 returns = "void"
 params = [
@@ -198,7 +179,6 @@ params = [
 ordinal = 97
 name = "CheckDlgButton"
 binding = { rust_id = "UserCheckDlgButton", id_value = 622, constant = "USER_CHECK_DLG_BUTTON" }
-evidence = [{ source = "spec", line = 98 }, { source = "binding_2", line = 719 }]
 [exports.call]
 returns = "void"
 params = [
@@ -211,7 +191,6 @@ params = [
 ordinal = 98
 name = "IsDlgButtonChecked"
 binding = { rust_id = "UserIsDlgButtonChecked", id_value = 623, constant = "USER_IS_DLG_BUTTON_CHECKED" }
-evidence = [{ source = "spec", line = 99 }, { source = "binding_2", line = 720 }]
 [exports.call]
 returns = "word"
 params = [
@@ -223,7 +202,6 @@ params = [
 ordinal = 99
 name = "DlgDirSelect"
 binding = { rust_id = "UserDlgDirSelect", id_value = 624, constant = "USER_DLG_DIR_SELECT" }
-evidence = [{ source = "spec", line = 100 }, { source = "binding_2", line = 721 }]
 [exports.call]
 returns = "word"
 params = [
@@ -236,7 +214,6 @@ params = [
 ordinal = 100
 name = "DlgDirList"
 binding = { rust_id = "UserDlgDirList", id_value = 625, constant = "USER_DLG_DIR_LIST" }
-evidence = [{ source = "spec", line = 101 }, { source = "binding_2", line = 722 }]
 [exports.call]
 returns = "word"
 params = [
@@ -251,7 +228,6 @@ params = [
 ordinal = 102
 name = "AdjustWindowRect"
 binding = { rust_id = "UserAdjustWindowRect", id_value = 626, constant = "USER_ADJUST_WINDOW_RECT" }
-evidence = [{ source = "spec", line = 103 }, { source = "binding_2", line = 723 }]
 [exports.call]
 returns = "void"
 params = [
@@ -264,7 +240,6 @@ params = [
 ordinal = 103
 name = "MapDialogRect"
 binding = { rust_id = "UserMapDialogRect", id_value = 627, constant = "USER_MAP_DIALOG_RECT" }
-evidence = [{ source = "spec", line = 104 }, { source = "binding_2", line = 724 }]
 [exports.call]
 returns = "void"
 params = [
@@ -276,7 +251,6 @@ params = [
 ordinal = 137
 name = "OpenClipboard"
 binding = { rust_id = "UserOpenClipboard", id_value = 628, constant = "USER_OPEN_CLIPBOARD" }
-evidence = [{ source = "spec", line = 138 }, { source = "binding_2", line = 725 }]
 [exports.call]
 returns = "word"
 params = [
@@ -287,7 +261,6 @@ params = [
 ordinal = 141
 name = "SetClipboardData"
 binding = { rust_id = "UserSetClipboardData", id_value = 632, constant = "USER_SET_CLIPBOARD_DATA" }
-evidence = [{ source = "spec", line = 142 }, { source = "binding_2", line = 729 }]
 [exports.call]
 returns = "word"
 params = [
@@ -299,7 +272,6 @@ params = [
 ordinal = 142
 name = "GetClipboardData"
 binding = { rust_id = "UserGetClipboardData", id_value = 633, constant = "USER_GET_CLIPBOARD_DATA" }
-evidence = [{ source = "spec", line = 143 }, { source = "binding_2", line = 730 }]
 [exports.call]
 returns = "word"
 params = [
@@ -310,7 +282,6 @@ params = [
 ordinal = 144
 name = "EnumClipboardFormats"
 binding = { rust_id = "UserEnumClipboardFormats", id_value = 635, constant = "USER_ENUM_CLIPBOARD_FORMATS" }
-evidence = [{ source = "spec", line = 145 }, { source = "binding_2", line = 732 }]
 [exports.call]
 returns = "word"
 params = [
@@ -321,7 +292,6 @@ params = [
 ordinal = 147
 name = "SetClipboardViewer"
 binding = { rust_id = "UserSetClipboardViewer", id_value = 636, constant = "USER_SET_CLIPBOARD_VIEWER" }
-evidence = [{ source = "spec", line = 148 }, { source = "binding_2", line = 733 }]
 [exports.call]
 returns = "word"
 params = [
@@ -332,7 +302,6 @@ params = [
 ordinal = 149
 name = "ChangeClipboardChain"
 binding = { rust_id = "UserChangeClipboardChain", id_value = 638, constant = "USER_CHANGE_CLIPBOARD_CHAIN" }
-evidence = [{ source = "spec", line = 150 }, { source = "binding_2", line = 735 }]
 [exports.call]
 returns = "word"
 params = [
@@ -344,7 +313,6 @@ params = [
 ordinal = 193
 name = "IsClipboardFormatAvailable"
 binding = { rust_id = "UserIsClipboardFormatAvailable", id_value = 639, constant = "USER_IS_CLIPBOARD_FORMAT_AVAILABLE" }
-evidence = [{ source = "spec", line = 195 }, { source = "binding_2", line = 736 }]
 [exports.call]
 returns = "word"
 params = [
@@ -355,7 +323,6 @@ params = [
 ordinal = 194
 name = "DlgDirSelectComboBox"
 binding = { rust_id = "UserDlgDirSelectComboBox", id_value = 640, constant = "USER_DLG_DIR_SELECT_COMBO_BOX" }
-evidence = [{ source = "spec", line = 196 }, { source = "binding_2", line = 737 }]
 [exports.call]
 returns = "word"
 params = [
@@ -368,7 +335,6 @@ params = [
 ordinal = 195
 name = "DlgDirListComboBox"
 binding = { rust_id = "UserDlgDirListComboBox", id_value = 641, constant = "USER_DLG_DIR_LIST_COMBO_BOX" }
-evidence = [{ source = "spec", line = 197 }, { source = "binding_2", line = 738 }]
 [exports.call]
 returns = "word"
 params = [
@@ -383,7 +349,6 @@ params = [
 ordinal = 218
 name = "DialogBoxIndirect"
 binding = { rust_id = "UserDialogBoxIndirect", id_value = 642, constant = "USER_DIALOG_BOX_INDIRECT" }
-evidence = [{ source = "spec", line = 222 }, { source = "binding_2", line = 739 }]
 [exports.call]
 returns = "word"
 params = [
@@ -397,7 +362,6 @@ params = [
 ordinal = 219
 name = "CreateDialogIndirect"
 binding = { rust_id = "UserCreateDialogIndirect", id_value = 643, constant = "USER_CREATE_DIALOG_INDIRECT" }
-evidence = [{ source = "spec", line = 223 }, { source = "binding_2", line = 740 }]
 [exports.call]
 returns = "word"
 params = [
@@ -411,7 +375,6 @@ params = [
 ordinal = 227
 name = "GetNextDlgGroupItem"
 binding = { rust_id = "UserGetNextDlgGroupItem", id_value = 644, constant = "USER_GET_NEXT_DLG_GROUP_ITEM" }
-evidence = [{ source = "spec", line = 231 }, { source = "binding_2", line = 741 }]
 [exports.call]
 returns = "word"
 params = [
@@ -424,7 +387,6 @@ params = [
 ordinal = 228
 name = "GetNextDlgTabItem"
 binding = { rust_id = "UserGetNextDlgTabItem", id_value = 645, constant = "USER_GET_NEXT_DLG_TAB_ITEM" }
-evidence = [{ source = "spec", line = 232 }, { source = "binding_2", line = 742 }]
 [exports.call]
 returns = "word"
 params = [
@@ -437,7 +399,6 @@ params = [
 ordinal = 239
 name = "DialogBoxParam"
 binding = { rust_id = "UserDialogBoxParam", id_value = 646, constant = "USER_DIALOG_BOX_PARAM" }
-evidence = [{ source = "spec", line = 244 }, { source = "binding_2", line = 743 }]
 [exports.call]
 returns = "word"
 params = [
@@ -452,7 +413,6 @@ params = [
 ordinal = 240
 name = "DialogBoxIndirectParam"
 binding = { rust_id = "UserDialogBoxIndirectParam", id_value = 647, constant = "USER_DIALOG_BOX_INDIRECT_PARAM" }
-evidence = [{ source = "spec", line = 245 }, { source = "binding_2", line = 744 }]
 [exports.call]
 returns = "word"
 params = [
@@ -467,7 +427,6 @@ params = [
 ordinal = 241
 name = "CreateDialogParam"
 binding = { rust_id = "UserCreateDialogParam", id_value = 648, constant = "USER_CREATE_DIALOG_PARAM" }
-evidence = [{ source = "spec", line = 246 }, { source = "binding_2", line = 745 }]
 [exports.call]
 returns = "word"
 params = [
@@ -482,7 +441,6 @@ params = [
 ordinal = 242
 name = "CreateDialogIndirectParam"
 binding = { rust_id = "UserCreateDialogIndirectParam", id_value = 649, constant = "USER_CREATE_DIALOG_INDIRECT_PARAM" }
-evidence = [{ source = "spec", line = 247 }, { source = "binding_2", line = 746 }]
 [exports.call]
 returns = "word"
 params = [
@@ -497,7 +455,6 @@ params = [
 ordinal = 267
 name = "ShowScrollBar"
 binding = { rust_id = "UserShowScrollBar", id_value = 1157, constant = "USER_SHOW_SCROLL_BAR" }
-evidence = [{ source = "spec", line = 272 }, { source = "binding", line = 19 }]
 [exports.call]
 returns = "void"
 params = [
@@ -510,7 +467,6 @@ params = [
 ordinal = 402
 name = "GetPriorityClipboardFormat"
 binding = { rust_id = "UserGetPriorityClipboardFormat", id_value = 651, constant = "USER_GET_PRIORITY_CLIPBOARD_FORMAT" }
-evidence = [{ source = "spec", line = 362 }, { source = "binding_2", line = 748 }]
 [exports.call]
 returns = "word"
 params = [
@@ -522,7 +478,6 @@ params = [
 ordinal = 422
 name = "DlgDirSelectEx"
 binding = { rust_id = "UserDlgDirSelectEx", id_value = 652, constant = "USER_DLG_DIR_SELECT_EX" }
-evidence = [{ source = "spec", line = 380 }, { source = "binding_2", line = 749 }]
 [exports.call]
 returns = "word"
 params = [
@@ -536,7 +491,6 @@ params = [
 ordinal = 423
 name = "DlgDirSelectComboBoxEx"
 binding = { rust_id = "UserDlgDirSelectComboBoxEx", id_value = 653, constant = "USER_DLG_DIR_SELECT_COMBO_BOX_EX" }
-evidence = [{ source = "spec", line = 381 }, { source = "binding_2", line = 750 }]
 [exports.call]
 returns = "word"
 params = [
@@ -550,7 +504,6 @@ params = [
 ordinal = 454
 name = "AdjustWindowRectEx"
 binding = { rust_id = "UserAdjustWindowRectEx", id_value = 654, constant = "USER_ADJUST_WINDOW_RECT_EX" }
-evidence = [{ source = "spec", line = 404 }, { source = "binding_2", line = 751 }]
 [exports.call]
 returns = "void"
 params = [
@@ -564,7 +517,6 @@ params = [
 ordinal = 482
 name = "EnableScrollBar"
 binding = { rust_id = "UserEnableScrollBar", id_value = 1158, constant = "USER_ENABLE_SCROLL_BAR" }
-evidence = [{ source = "spec", line = 427 }, { source = "binding", line = 21 }]
 [exports.call]
 returns = "word"
 params = [
@@ -577,7 +529,6 @@ params = [
 ordinal = 483
 name = "SystemParametersInfo"
 binding = { rust_id = "UserSystemParametersInfo", id_value = 655, constant = "USER_SYSTEM_PARAMETERS_INFO" }
-evidence = [{ source = "spec", line = 428 }, { source = "binding_2", line = 752 }]
 [exports.call]
 returns = "word"
 params = [

@@ -1,356 +1,293 @@
 module = "MMSYSTEM"
 
-[sources]
-spec = { path = "specs/mmsystem.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "WEP"
 decl = { args = ["word", "word", "word", "pointer"] }
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 4
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 5
 name = "mmsystemGetVersion"
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 6
 name = "DriverProc"
 decl = { args = ["long", "word", "word", "long", "long"] }
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 8
 name = "WMMMidiRunOnce"
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 30
 name = "OutputDebugStr"
 decl = { attributes = ["ret16"], args = ["string"] }
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 31
 name = "DriverCallback"
 decl = { args = ["long", "word", "word", "word", "long", "long", "long"] }
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 32
 name = "StackEnter"
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 33
 name = "StackLeave"
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 34
 name = "MMDRVINSTALL"
 kind = "stub"
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 101
 name = "joyGetNumDevs"
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 102
 name = "joyGetDevCaps"
 decl = { args = ["word", "pointer", "word"] }
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 103
 name = "joyGetPos"
 decl = { args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 104
 name = "joyGetThreshold"
 decl = { args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 105
 name = "joyReleaseCapture"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 106
 name = "joySetCapture"
 decl = { args = ["word", "word", "word", "word"] }
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 107
 name = "joySetThreshold"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 109
 name = "joySetCalibration"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 110
 name = "joyGetPosEx"
 decl = { args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
 ordinal = 111
 name = "JOYCONFIGCHANGED"
 kind = "stub"
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 350
 name = "auxGetNumDevs"
-evidence = [{ source = "spec", line = 61 }]
 
 [[exports]]
 ordinal = 351
 name = "auxGetDevCaps"
 decl = { args = ["word", "pointer", "word"] }
-evidence = [{ source = "spec", line = 62 }]
 
 [[exports]]
 ordinal = 352
 name = "auxGetVolume"
 decl = { args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 63 }]
 
 [[exports]]
 ordinal = 353
 name = "auxSetVolume"
 decl = { args = ["word", "long"] }
-evidence = [{ source = "spec", line = 64 }]
 
 [[exports]]
 ordinal = 354
 name = "auxOutMessage"
 decl = { args = ["word", "word", "long", "long"] }
-evidence = [{ source = "spec", line = 65 }]
 
 [[exports]]
 ordinal = 602
 name = "timeSetEvent"
 decl = { args = ["word", "word", "segmented_pointer", "long", "word"] }
-evidence = [{ source = "spec", line = 102 }]
 
 [[exports]]
 ordinal = 603
 name = "timeKillEvent"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 103 }]
 
 [[exports]]
 ordinal = 800
 name = "mixerGetNumDevs"
-evidence = [{ source = "spec", line = 123 }]
 
 [[exports]]
 ordinal = 801
 name = "mixerGetDevCaps"
 decl = { args = ["word", "pointer", "word"] }
-evidence = [{ source = "spec", line = 124 }]
 
 [[exports]]
 ordinal = 802
 name = "mixerOpen"
 decl = { args = ["pointer", "word", "long", "long", "long"] }
-evidence = [{ source = "spec", line = 125 }]
 
 [[exports]]
 ordinal = 803
 name = "mixerClose"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 126 }]
 
 [[exports]]
 ordinal = 804
 name = "mixerMessage"
 decl = { args = ["word", "word", "long", "long"] }
-evidence = [{ source = "spec", line = 127 }]
 
 [[exports]]
 ordinal = 805
 name = "mixerGetLineInfo"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 128 }]
 
 [[exports]]
 ordinal = 806
 name = "mixerGetID"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 129 }]
 
 [[exports]]
 ordinal = 807
 name = "mixerGetLineControls"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 130 }]
 
 [[exports]]
 ordinal = 808
 name = "mixerGetControlDetails"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 131 }]
 
 [[exports]]
 ordinal = 809
 name = "mixerSetControlDetails"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 132 }]
 
 [[exports]]
 ordinal = 900
 name = "mmTaskCreate"
 decl = { args = ["long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 133 }]
 
 [[exports]]
 ordinal = 902
 name = "mmTaskBlock"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 134 }]
 
 [[exports]]
 ordinal = 903
 name = "mmTaskSignal"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 135 }]
 
 [[exports]]
 ordinal = 904
 name = "mmGetCurrentTask"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 136 }]
 
 [[exports]]
 ordinal = 905
 name = "mmTaskYield"
-evidence = [{ source = "spec", line = 137 }]
 
 [[exports]]
 ordinal = 1100
 name = "DrvOpen"
 decl = { args = ["string", "string", "long"] }
-evidence = [{ source = "spec", line = 138 }]
 
 [[exports]]
 ordinal = 1101
 name = "DrvClose"
 decl = { args = ["word", "long", "long"] }
-evidence = [{ source = "spec", line = 139 }]
 
 [[exports]]
 ordinal = 1102
 name = "DrvSendMessage"
 decl = { args = ["word", "word", "long", "long"] }
-evidence = [{ source = "spec", line = 140 }]
 
 [[exports]]
 ordinal = 1103
 name = "DrvGetModuleHandle"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 141 }]
 
 [[exports]]
 ordinal = 1104
 name = "DrvDefDriverProc"
 decl = { args = ["long", "word", "word", "long", "long"] }
-evidence = [{ source = "spec", line = 142 }]
 
 [[exports]]
 ordinal = 1120
 name = "mmThreadCreate"
 decl = { args = ["segmented_pointer", "pointer", "long", "long"] }
-evidence = [{ source = "spec", line = 143 }]
 
 [[exports]]
 ordinal = 1121
 name = "mmThreadSignal"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 144 }]
 
 [[exports]]
 ordinal = 1122
 name = "mmThreadBlock"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 145 }]
 
 [[exports]]
 ordinal = 1123
 name = "mmThreadIsCurrent"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 146 }]
 
 [[exports]]
 ordinal = 1124
 name = "mmThreadIsValid"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 147 }]
 
 [[exports]]
 ordinal = 1125
 name = "mmThreadGetTask"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 148 }]
 
 [[exports]]
 ordinal = 1150
 name = "mmShowMMCPLPropertySheet"
 decl = { args = ["word", "string", "string", "string"] }
-evidence = [{ source = "spec", line = 149 }]
 
 [[exports]]
 ordinal = 1215
 name = "mmioGetInfo"
 decl = { args = ["word", "pointer", "word"] }
-evidence = [{ source = "spec", line = 155 }]
 
 [[exports]]
 ordinal = 1216
 name = "mmioSetInfo"
 decl = { args = ["word", "pointer", "word"] }
-evidence = [{ source = "spec", line = 156 }]
 
 [[exports]]
 ordinal = 1217
 name = "mmioSetBuffer"
 decl = { args = ["word", "segmented_pointer", "long", "word"] }
-evidence = [{ source = "spec", line = 157 }]
 
 [[exports]]
 ordinal = 1219
 name = "mmioAdvance"
 decl = { args = ["word", "pointer", "word"] }
-evidence = [{ source = "spec", line = 159 }]
 
 [[exports]]
 ordinal = 1221
 name = "mmioInstallIOProc"
 decl = { args = ["long", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 161 }]
 
 [[exports]]
 ordinal = 1222
 name = "mmioSendMessage"
 decl = { args = ["word", "word", "long", "long"] }
-evidence = [{ source = "spec", line = 162 }]

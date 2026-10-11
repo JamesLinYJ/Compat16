@@ -1,15 +1,10 @@
 module = "WINSOCK"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/winsock.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/winsock_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "accept"
 binding = { rust_id = "WinsockAccept", id_value = 1077, constant = "WINSOCK_ACCEPT" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 7 }]
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 2
 name = "bind"
 binding = { rust_id = "WinsockBind", id_value = 1078, constant = "WINSOCK_BIND" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -35,7 +29,6 @@ params = [
 ordinal = 3
 name = "closesocket"
 binding = { rust_id = "WinsockCloseSocket", id_value = 1079, constant = "WINSOCK_CLOSE_SOCKET" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 9 }]
 [exports.call]
 returns = "word"
 params = [
@@ -46,7 +39,6 @@ params = [
 ordinal = 4
 name = "connect"
 binding = { rust_id = "WinsockConnect", id_value = 1080, constant = "WINSOCK_CONNECT" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -59,7 +51,6 @@ params = [
 ordinal = 5
 name = "getpeername"
 binding = { rust_id = "WinsockGetPeerName", id_value = 1081, constant = "WINSOCK_GET_PEER_NAME" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 11 }]
 [exports.call]
 returns = "word"
 params = [
@@ -72,7 +63,6 @@ params = [
 ordinal = 6
 name = "getsockname"
 binding = { rust_id = "WinsockGetSocketName", id_value = 1082, constant = "WINSOCK_GET_SOCKET_NAME" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "word"
 params = [
@@ -85,7 +75,6 @@ params = [
 ordinal = 7
 name = "getsockopt"
 binding = { rust_id = "WinsockGetSocketOption", id_value = 1083, constant = "WINSOCK_GET_SOCKET_OPTION" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 13 }]
 [exports.call]
 returns = "word"
 params = [
@@ -101,7 +90,6 @@ ordinal = 8
 name = "htonl"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockHostToNetworkLong", id_value = 1084, constant = "WINSOCK_HOST_TO_NETWORK_LONG" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 14 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -112,7 +100,6 @@ params = [
 ordinal = 9
 name = "htons"
 binding = { rust_id = "WinsockHostToNetworkShort", id_value = 1085, constant = "WINSOCK_HOST_TO_NETWORK_SHORT" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 15 }]
 [exports.call]
 returns = "word"
 params = [
@@ -124,7 +111,6 @@ ordinal = 10
 name = "inet_addr"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockInetAddress", id_value = 1086, constant = "WINSOCK_INET_ADDRESS" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -136,7 +122,6 @@ ordinal = 11
 name = "inet_ntoa"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockInetName", id_value = 1087, constant = "WINSOCK_INET_NAME" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 17 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -147,7 +132,6 @@ params = [
 ordinal = 12
 name = "ioctlsocket"
 binding = { rust_id = "WinsockIoctlSocket", id_value = 1088, constant = "WINSOCK_IOCTL_SOCKET" }
-evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 18 }]
 [exports.call]
 returns = "word"
 params = [
@@ -160,7 +144,6 @@ params = [
 ordinal = 13
 name = "listen"
 binding = { rust_id = "WinsockListen", id_value = 1089, constant = "WINSOCK_LISTEN" }
-evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 19 }]
 [exports.call]
 returns = "word"
 params = [
@@ -173,7 +156,6 @@ ordinal = 14
 name = "ntohl"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockNetworkToHostLong", id_value = 1090, constant = "WINSOCK_NETWORK_TO_HOST_LONG" }
-evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 20 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -184,7 +166,6 @@ params = [
 ordinal = 15
 name = "ntohs"
 binding = { rust_id = "WinsockNetworkToHostShort", id_value = 1091, constant = "WINSOCK_NETWORK_TO_HOST_SHORT" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 21 }]
 [exports.call]
 returns = "word"
 params = [
@@ -195,7 +176,6 @@ params = [
 ordinal = 16
 name = "recv"
 binding = { rust_id = "WinsockReceive", id_value = 1092, constant = "WINSOCK_RECEIVE" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 22 }]
 [exports.call]
 returns = "word"
 params = [
@@ -209,7 +189,6 @@ params = [
 ordinal = 17
 name = "recvfrom"
 binding = { rust_id = "WinsockReceiveFrom", id_value = 1093, constant = "WINSOCK_RECEIVE_FROM" }
-evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 23 }]
 [exports.call]
 returns = "word"
 params = [
@@ -225,7 +204,6 @@ params = [
 ordinal = 18
 name = "select"
 binding = { rust_id = "WinsockSelect", id_value = 1094, constant = "WINSOCK_SELECT" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 24 }]
 [exports.call]
 returns = "word"
 params = [
@@ -240,7 +218,6 @@ params = [
 ordinal = 19
 name = "send"
 binding = { rust_id = "WinsockSend", id_value = 1095, constant = "WINSOCK_SEND" }
-evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 25 }]
 [exports.call]
 returns = "word"
 params = [
@@ -254,7 +231,6 @@ params = [
 ordinal = 20
 name = "sendto"
 binding = { rust_id = "WinsockSendTo", id_value = 1096, constant = "WINSOCK_SEND_TO" }
-evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 26 }]
 [exports.call]
 returns = "word"
 params = [
@@ -270,7 +246,6 @@ params = [
 ordinal = 21
 name = "setsockopt"
 binding = { rust_id = "WinsockSetSocketOption", id_value = 1097, constant = "WINSOCK_SET_SOCKET_OPTION" }
-evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 27 }]
 [exports.call]
 returns = "word"
 params = [
@@ -285,7 +260,6 @@ params = [
 ordinal = 22
 name = "shutdown"
 binding = { rust_id = "WinsockShutdown", id_value = 1098, constant = "WINSOCK_SHUTDOWN" }
-evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 28 }]
 [exports.call]
 returns = "word"
 params = [
@@ -297,7 +271,6 @@ params = [
 ordinal = 23
 name = "socket"
 binding = { rust_id = "WinsockCreateSocket", id_value = 1099, constant = "WINSOCK_CREATE_SOCKET" }
-evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 29 }]
 [exports.call]
 returns = "word"
 params = [
@@ -311,7 +284,6 @@ ordinal = 51
 name = "gethostbyaddr"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockGetHostByAddress", id_value = 1100, constant = "WINSOCK_GET_HOST_BY_ADDRESS" }
-evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 30 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -325,7 +297,6 @@ ordinal = 52
 name = "gethostbyname"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockGetHostByName", id_value = 1101, constant = "WINSOCK_GET_HOST_BY_NAME" }
-evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 31 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -337,7 +308,6 @@ ordinal = 53
 name = "getprotobyname"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockGetProtocolByName", id_value = 1102, constant = "WINSOCK_GET_PROTOCOL_BY_NAME" }
-evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 32 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -349,7 +319,6 @@ ordinal = 54
 name = "getprotobynumber"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockGetProtocolByNumber", id_value = 1103, constant = "WINSOCK_GET_PROTOCOL_BY_NUMBER" }
-evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 33 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -361,7 +330,6 @@ ordinal = 55
 name = "getservbyname"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockGetServiceByName", id_value = 1104, constant = "WINSOCK_GET_SERVICE_BY_NAME" }
-evidence = [{ source = "spec", line = 29 }, { source = "binding", line = 34 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -374,7 +342,6 @@ ordinal = 56
 name = "getservbyport"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockGetServiceByPort", id_value = 1105, constant = "WINSOCK_GET_SERVICE_BY_PORT" }
-evidence = [{ source = "spec", line = 30 }, { source = "binding", line = 35 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -387,7 +354,6 @@ ordinal = 57
 name = "gethostname"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockGetHostName", id_value = 1106, constant = "WINSOCK_GET_HOST_NAME" }
-evidence = [{ source = "spec", line = 31 }, { source = "binding", line = 36 }]
 [exports.call]
 returns = "word"
 params = [
@@ -399,7 +365,6 @@ params = [
 ordinal = 101
 name = "WSAAsyncSelect"
 binding = { rust_id = "WinsockAsyncSelect", id_value = 1107, constant = "WINSOCK_ASYNC_SELECT" }
-evidence = [{ source = "spec", line = 32 }, { source = "binding", line = 37 }]
 [exports.call]
 returns = "word"
 params = [
@@ -413,7 +378,6 @@ params = [
 ordinal = 102
 name = "WSAAsyncGetHostByAddr"
 binding = { rust_id = "WinsockAsyncGetHostByAddress", id_value = 1108, constant = "WINSOCK_ASYNC_GET_HOST_BY_ADDRESS" }
-evidence = [{ source = "spec", line = 33 }, { source = "binding", line = 38 }]
 [exports.call]
 returns = "word"
 params = [
@@ -430,7 +394,6 @@ params = [
 ordinal = 103
 name = "WSAAsyncGetHostByName"
 binding = { rust_id = "WinsockAsyncGetHostByName", id_value = 1109, constant = "WINSOCK_ASYNC_GET_HOST_BY_NAME" }
-evidence = [{ source = "spec", line = 34 }, { source = "binding", line = 39 }]
 [exports.call]
 returns = "word"
 params = [
@@ -445,7 +408,6 @@ params = [
 ordinal = 104
 name = "WSAAsyncGetProtoByNumber"
 binding = { rust_id = "WinsockAsyncGetProtocolByNumber", id_value = 1110, constant = "WINSOCK_ASYNC_GET_PROTOCOL_BY_NUMBER" }
-evidence = [{ source = "spec", line = 35 }, { source = "binding", line = 40 }]
 [exports.call]
 returns = "word"
 params = [
@@ -460,7 +422,6 @@ params = [
 ordinal = 105
 name = "WSAAsyncGetProtoByName"
 binding = { rust_id = "WinsockAsyncGetProtocolByName", id_value = 1111, constant = "WINSOCK_ASYNC_GET_PROTOCOL_BY_NAME" }
-evidence = [{ source = "spec", line = 36 }, { source = "binding", line = 41 }]
 [exports.call]
 returns = "word"
 params = [
@@ -475,7 +436,6 @@ params = [
 ordinal = 106
 name = "WSAAsyncGetServByPort"
 binding = { rust_id = "WinsockAsyncGetServiceByPort", id_value = 1112, constant = "WINSOCK_ASYNC_GET_SERVICE_BY_PORT" }
-evidence = [{ source = "spec", line = 37 }, { source = "binding", line = 42 }]
 [exports.call]
 returns = "word"
 params = [
@@ -491,7 +451,6 @@ params = [
 ordinal = 107
 name = "WSAAsyncGetServByName"
 binding = { rust_id = "WinsockAsyncGetServiceByName", id_value = 1113, constant = "WINSOCK_ASYNC_GET_SERVICE_BY_NAME" }
-evidence = [{ source = "spec", line = 38 }, { source = "binding", line = 43 }]
 [exports.call]
 returns = "word"
 params = [
@@ -507,7 +466,6 @@ params = [
 ordinal = 108
 name = "WSACancelAsyncRequest"
 binding = { rust_id = "WinsockCancelAsyncRequest", id_value = 1114, constant = "WINSOCK_CANCEL_ASYNC_REQUEST" }
-evidence = [{ source = "spec", line = 39 }, { source = "binding", line = 44 }]
 [exports.call]
 returns = "word"
 params = [
@@ -519,7 +477,6 @@ ordinal = 109
 name = "WSASetBlockingHook"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockSetBlockingHook", id_value = 1115, constant = "WINSOCK_SET_BLOCKING_HOOK" }
-evidence = [{ source = "spec", line = 42 }, { source = "binding", line = 45 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -530,7 +487,6 @@ params = [
 ordinal = 110
 name = "WSAUnhookBlockingHook"
 binding = { rust_id = "WinsockUnhookBlockingHook", id_value = 1116, constant = "WINSOCK_UNHOOK_BLOCKING_HOOK" }
-evidence = [{ source = "spec", line = 43 }, { source = "binding", line = 46 }]
 [exports.call]
 returns = "word"
 
@@ -538,7 +494,6 @@ returns = "word"
 ordinal = 111
 name = "WSAGetLastError"
 binding = { rust_id = "WinsockGetLastError", id_value = 1117, constant = "WINSOCK_GET_LAST_ERROR" }
-evidence = [{ source = "spec", line = 44 }, { source = "binding", line = 47 }]
 [exports.call]
 returns = "word"
 
@@ -547,7 +502,6 @@ ordinal = 112
 name = "WSASetLastError"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockSetLastError", id_value = 1118, constant = "WINSOCK_SET_LAST_ERROR" }
-evidence = [{ source = "spec", line = 45 }, { source = "binding", line = 48 }]
 [exports.call]
 returns = "void"
 params = [
@@ -558,7 +512,6 @@ params = [
 ordinal = 113
 name = "WSACancelBlockingCall"
 binding = { rust_id = "WinsockCancelBlockingCall", id_value = 1119, constant = "WINSOCK_CANCEL_BLOCKING_CALL" }
-evidence = [{ source = "spec", line = 46 }, { source = "binding", line = 49 }]
 [exports.call]
 returns = "word"
 
@@ -566,7 +519,6 @@ returns = "word"
 ordinal = 114
 name = "WSAIsBlocking"
 binding = { rust_id = "WinsockIsBlocking", id_value = 1120, constant = "WINSOCK_IS_BLOCKING" }
-evidence = [{ source = "spec", line = 47 }, { source = "binding", line = 50 }]
 [exports.call]
 returns = "word"
 
@@ -575,7 +527,6 @@ ordinal = 115
 name = "WSAStartup"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockStartup", id_value = 1121, constant = "WINSOCK_STARTUP" }
-evidence = [{ source = "spec", line = 48 }, { source = "binding", line = 51 }]
 [exports.call]
 returns = "word"
 params = [
@@ -588,7 +539,6 @@ ordinal = 116
 name = "WSACleanup"
 decl = { attributes = [] }
 binding = { rust_id = "WinsockCleanup", id_value = 1122, constant = "WINSOCK_CLEANUP" }
-evidence = [{ source = "spec", line = 49 }, { source = "binding", line = 52 }]
 [exports.call]
 returns = "word"
 
@@ -596,7 +546,6 @@ returns = "word"
 ordinal = 151
 name = "__WSAFDIsSet"
 binding = { rust_id = "WinsockFdIsSet", id_value = 1123, constant = "WINSOCK_FD_IS_SET" }
-evidence = [{ source = "spec", line = 50 }, { source = "binding", line = 53 }]
 [exports.call]
 returns = "word"
 params = [
@@ -608,7 +557,6 @@ params = [
 ordinal = 1107
 name = "WSARecvEx"
 binding = { rust_id = "WinsockReceiveEx", id_value = 1124, constant = "WINSOCK_RECEIVE_EX" }
-evidence = [{ source = "spec", line = 51 }, { source = "binding", line = 54 }]
 [exports.call]
 returns = "word"
 params = [
@@ -622,6 +570,5 @@ params = [
 ordinal = 2000
 name = "default_hook"
 binding = { rust_id = "WinsockDefaultHook", id_value = 1125, constant = "WINSOCK_DEFAULT_HOOK" }
-evidence = [{ source = "spec", line = 52 }, { source = "binding", line = 55 }]
 [exports.call]
 returns = "word"

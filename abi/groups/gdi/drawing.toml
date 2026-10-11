@@ -1,16 +1,11 @@
 module = "GDI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/gdi.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "SetBkColor"
 decl = { attributes = [] }
 binding = { rust_id = "GdiSetBkColor", id_value = 299, constant = "GDI_SET_BK_COLOR" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 377 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 2
 name = "SetBkMode"
 binding = { rust_id = "GdiSetBkMode", id_value = 300, constant = "GDI_SET_BK_MODE" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 378 }]
 [exports.call]
 returns = "word"
 params = [
@@ -34,7 +28,6 @@ params = [
 ordinal = 4
 name = "SetROP2"
 binding = { rust_id = "GdiSetRop2", id_value = 302, constant = "GDI_SET_ROP2" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 380 }]
 [exports.call]
 returns = "word"
 params = [
@@ -46,7 +39,6 @@ params = [
 ordinal = 6
 name = "SetPolyFillMode"
 binding = { rust_id = "GdiSetPolyFillMode", id_value = 382, constant = "GDI_SET_POLY_FILL_MODE" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 462 }]
 [exports.call]
 returns = "word"
 params = [
@@ -58,7 +50,6 @@ params = [
 ordinal = 19
 name = "LineTo"
 binding = { rust_id = "GdiLineTo", id_value = 304, constant = "GDI_LINE_TO" }
-evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 382 }]
 [exports.call]
 returns = "word"
 params = [
@@ -72,7 +63,6 @@ ordinal = 20
 name = "MoveTo"
 decl = { attributes = [] }
 binding = { rust_id = "GdiMoveTo", id_value = 305, constant = "GDI_MOVE_TO" }
-evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 383 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -85,7 +75,6 @@ params = [
 ordinal = 23
 name = "Arc"
 binding = { rust_id = "GdiArc", id_value = 391, constant = "GDI_ARC" }
-evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 471 }]
 [exports.call]
 returns = "word"
 params = [
@@ -104,7 +93,6 @@ params = [
 ordinal = 24
 name = "Ellipse"
 binding = { rust_id = "GdiEllipse", id_value = 392, constant = "GDI_ELLIPSE" }
-evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 472 }]
 [exports.call]
 returns = "word"
 params = [
@@ -119,7 +107,6 @@ params = [
 ordinal = 25
 name = "FloodFill"
 binding = { rust_id = "GdiFloodFill", id_value = 393, constant = "GDI_FLOOD_FILL" }
-evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 473 }]
 [exports.call]
 returns = "word"
 params = [
@@ -133,7 +120,6 @@ params = [
 ordinal = 26
 name = "Pie"
 binding = { rust_id = "GdiPie", id_value = 394, constant = "GDI_PIE" }
-evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 474 }]
 [exports.call]
 returns = "word"
 params = [
@@ -152,7 +138,6 @@ params = [
 ordinal = 27
 name = "Rectangle"
 binding = { rust_id = "GdiRectangle", id_value = 306, constant = "GDI_RECTANGLE" }
-evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 384 }]
 [exports.call]
 returns = "word"
 params = [
@@ -167,7 +152,6 @@ params = [
 ordinal = 28
 name = "RoundRect"
 binding = { rust_id = "GdiRoundRect", id_value = 395, constant = "GDI_ROUND_RECT" }
-evidence = [{ source = "spec", line = 29 }, { source = "binding", line = 475 }]
 [exports.call]
 returns = "word"
 params = [
@@ -184,7 +168,6 @@ params = [
 ordinal = 36
 name = "Polygon"
 binding = { rust_id = "GdiPolygon", id_value = 397, constant = "GDI_POLYGON" }
-evidence = [{ source = "spec", line = 37 }, { source = "binding", line = 477 }]
 [exports.call]
 returns = "word"
 params = [
@@ -197,7 +180,6 @@ params = [
 ordinal = 37
 name = "Polyline"
 binding = { rust_id = "GdiPolyline", id_value = 343, constant = "GDI_POLYLINE" }
-evidence = [{ source = "spec", line = 38 }, { source = "binding", line = 421 }]
 [exports.call]
 returns = "word"
 params = [
@@ -211,7 +193,6 @@ ordinal = 75
 name = "GetBkColor"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetBkColor", id_value = 377, constant = "GDI_GET_BK_COLOR" }
-evidence = [{ source = "spec", line = 75 }, { source = "binding", line = 457 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -222,7 +203,6 @@ params = [
 ordinal = 76
 name = "GetBkMode"
 binding = { rust_id = "GdiGetBkMode", id_value = 379, constant = "GDI_GET_BK_MODE" }
-evidence = [{ source = "spec", line = 76 }, { source = "binding", line = 459 }]
 [exports.call]
 returns = "word"
 params = [
@@ -234,7 +214,6 @@ ordinal = 78
 name = "GetCurrentPosition"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetCurrentPosition", id_value = 347, constant = "GDI_GET_CURRENT_POSITION" }
-evidence = [{ source = "spec", line = 78 }, { source = "binding", line = 425 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -245,7 +224,6 @@ params = [
 ordinal = 84
 name = "GetPolyFillMode"
 binding = { rust_id = "GdiGetPolyFillMode", id_value = 383, constant = "GDI_GET_POLY_FILL_MODE" }
-evidence = [{ source = "spec", line = 84 }, { source = "binding", line = 463 }]
 [exports.call]
 returns = "word"
 params = [
@@ -256,7 +234,6 @@ params = [
 ordinal = 85
 name = "GetROP2"
 binding = { rust_id = "GdiGetRop2", id_value = 384, constant = "GDI_GET_ROP2" }
-evidence = [{ source = "spec", line = 85 }, { source = "binding", line = 464 }]
 [exports.call]
 returns = "word"
 params = [
@@ -267,7 +244,6 @@ params = [
 ordinal = 100
 name = "LineDDA"
 binding = { rust_id = "GdiLineDda", id_value = 268, constant = "GDI_LINE_DDA" }
-evidence = [{ source = "spec", line = 100 }, { source = "binding", line = 346 }]
 [exports.call]
 returns = "void"
 params = [
@@ -283,7 +259,6 @@ params = [
 ordinal = 128
 name = "MulDiv"
 binding = { rust_id = "GdiMulDiv", id_value = 269, constant = "GDI_MUL_DIV" }
-evidence = [{ source = "spec", line = 118 }, { source = "binding", line = 347 }]
 [exports.call]
 returns = "word"
 params = [
@@ -297,7 +272,6 @@ ordinal = 154
 name = "GetNearestColor"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetNearestColor", id_value = 378, constant = "GDI_GET_NEAREST_COLOR" }
-evidence = [{ source = "spec", line = 144 }, { source = "binding", line = 458 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -309,7 +283,6 @@ params = [
 ordinal = 348
 name = "Chord"
 binding = { rust_id = "GdiChord", id_value = 418, constant = "GDI_CHORD" }
-evidence = [{ source = "spec", line = 250 }, { source = "binding", line = 498 }]
 [exports.call]
 returns = "word"
 params = [
@@ -328,7 +301,6 @@ params = [
 ordinal = 372
 name = "ExtFloodFill"
 binding = { rust_id = "GdiExtFloodFill", id_value = 419, constant = "GDI_EXT_FLOOD_FILL" }
-evidence = [{ source = "spec", line = 269 }, { source = "binding", line = 499 }]
 [exports.call]
 returns = "word"
 params = [
@@ -343,7 +315,6 @@ params = [
 ordinal = 450
 name = "PolyPolygon"
 binding = { rust_id = "GdiPolyPolygon", id_value = 420, constant = "GDI_POLY_POLYGON" }
-evidence = [{ source = "spec", line = 301 }, { source = "binding", line = 500 }]
 [exports.call]
 returns = "word"
 params = [
@@ -357,7 +328,6 @@ params = [
 ordinal = 470
 name = "GetCurrentPositionEx"
 binding = { rust_id = "GdiGetCurrentPositionEx", id_value = 359, constant = "GDI_GET_CURRENT_POSITION_EX" }
-evidence = [{ source = "spec", line = 314 }, { source = "binding", line = 439 }]
 [exports.call]
 returns = "word"
 params = [
@@ -369,7 +339,6 @@ params = [
 ordinal = 483
 name = "MoveToEx"
 binding = { rust_id = "GdiMoveToEx", id_value = 371, constant = "GDI_MOVE_TO_EX" }
-evidence = [{ source = "spec", line = 327 }, { source = "binding", line = 451 }]
 [exports.call]
 returns = "word"
 params = [
@@ -383,7 +352,6 @@ params = [
 ordinal = 502
 name = "PolyBezier"
 binding = { rust_id = "GdiPolyBezier", id_value = 423, constant = "GDI_POLY_BEZIER" }
-evidence = [{ source = "spec", line = 343 }, { source = "binding", line = 503 }]
 [exports.call]
 returns = "word"
 params = [
@@ -396,7 +364,6 @@ params = [
 ordinal = 503
 name = "PolyBezierTo"
 binding = { rust_id = "GdiPolyBezierTo", id_value = 424, constant = "GDI_POLY_BEZIER_TO" }
-evidence = [{ source = "spec", line = 344 }, { source = "binding", line = 504 }]
 [exports.call]
 returns = "word"
 params = [
@@ -409,7 +376,6 @@ params = [
 ordinal = 524
 name = "GetArcDirection"
 binding = { rust_id = "GdiGetArcDirection", id_value = 387, constant = "GDI_GET_ARC_DIRECTION" }
-evidence = [{ source = "spec", line = 362 }, { source = "binding", line = 467 }]
 [exports.call]
 returns = "word"
 params = [
@@ -420,7 +386,6 @@ params = [
 ordinal = 525
 name = "SetArcDirection"
 binding = { rust_id = "GdiSetArcDirection", id_value = 386, constant = "GDI_SET_ARC_DIRECTION" }
-evidence = [{ source = "spec", line = 363 }, { source = "binding", line = 466 }]
 [exports.call]
 returns = "word"
 params = [

@@ -1,16 +1,11 @@
 module = "SOUND"
 
-[sources]
-spec = { path = "specs/sound.spec", note = "spec" }
-
 [[exports]]
 ordinal = 17
 name = "DoBeep"
 kind = "stub"
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 18
 name = "MYOPENSOUND"
 kind = "stub"
-evidence = [{ source = "spec", line = 20 }]

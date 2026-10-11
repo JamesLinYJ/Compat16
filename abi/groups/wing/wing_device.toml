@@ -1,15 +1,10 @@
 module = "WING"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/wing.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1002
 name = "WinGRecommendDIBFormat"
 binding = { rust_id = "WingRecommendDibFormat", id_value = 709, constant = "WING_RECOMMEND_DIB_FORMAT" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 806 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 1003
 name = "WinGCreateBitmap"
 binding = { rust_id = "WingCreateBitmap", id_value = 710, constant = "WING_CREATE_BITMAP" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 807 }]
 [exports.call]
 returns = "word"
 params = [
@@ -34,7 +28,6 @@ ordinal = 1004
 name = "WinGGetDIBPointer"
 decl = { attributes = [] }
 binding = { rust_id = "WingGetDibPointer", id_value = 711, constant = "WING_GET_DIB_POINTER" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 808 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -46,7 +39,6 @@ params = [
 ordinal = 1008
 name = "WinGCreateHalfToneBrush"
 binding = { rust_id = "WingCreateHalfToneBrush", id_value = 715, constant = "WING_CREATE_HALF_TONE_BRUSH" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 812 }]
 [exports.call]
 returns = "word"
 params = [
@@ -59,7 +51,6 @@ params = [
 ordinal = 1009
 name = "WinGStretchBlt"
 binding = { rust_id = "WingStretchBlt", id_value = 716, constant = "WING_STRETCH_BLT" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 813 }]
 [exports.call]
 returns = "word"
 params = [
@@ -79,7 +70,6 @@ params = [
 ordinal = 1010
 name = "WinGBitBlt"
 binding = { rust_id = "WingBitBlt", id_value = 717, constant = "WING_BIT_BLT" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 814 }]
 [exports.call]
 returns = "word"
 params = [

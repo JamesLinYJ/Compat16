@@ -1,16 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-binding_2 = { path = "crates/win16/src/exports/catalog/user_cursor_accelerator_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 20
 name = "SetDoubleClickTime"
 binding = { rust_id = "UserSetDoubleClickTime", id_value = 572, constant = "USER_SET_DOUBLE_CLICK_TIME" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 659 }]
 [exports.call]
 returns = "void"
 params = [
@@ -21,7 +15,6 @@ params = [
 ordinal = 69
 name = "SetCursor"
 binding = { rust_id = "UserSetCursor", id_value = 874, constant = "USER_SET_CURSOR" }
-evidence = [{ source = "spec", line = 70 }, { source = "binding_2", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -32,7 +25,6 @@ params = [
 ordinal = 71
 name = "ShowCursor"
 binding = { rust_id = "UserShowCursor", id_value = 875, constant = "USER_SHOW_CURSOR" }
-evidence = [{ source = "spec", line = 72 }, { source = "binding_2", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -43,7 +35,6 @@ params = [
 ordinal = 106
 name = "GetKeyState"
 binding = { rust_id = "UserGetKeyState", id_value = 225, constant = "USER_GET_KEY_STATE" }
-evidence = [{ source = "spec", line = 107 }, { source = "binding", line = 302 }]
 [exports.call]
 returns = "word"
 params = [
@@ -54,7 +45,6 @@ params = [
 ordinal = 168
 name = "SetCaretBlinkTime"
 binding = { rust_id = "UserSetCaretBlinkTime", id_value = 577, constant = "USER_SET_CARET_BLINK_TIME" }
-evidence = [{ source = "spec", line = 169 }, { source = "binding", line = 665 }]
 [exports.call]
 returns = "void"
 params = [
@@ -65,7 +55,6 @@ params = [
 ordinal = 171
 name = "WinHelp"
 binding = { rust_id = "UserWinHelp", id_value = 876, constant = "USER_WIN_HELP" }
-evidence = [{ source = "spec", line = 173 }, { source = "binding_2", line = 12 }]
 [exports.call]
 returns = "word"
 params = [
@@ -79,7 +68,6 @@ params = [
 ordinal = 173
 name = "LoadCursor"
 binding = { rust_id = "UserLoadCursor", id_value = 237, constant = "USER_LOAD_CURSOR" }
-evidence = [{ source = "spec", line = 175 }, { source = "binding", line = 314 }]
 [exports.call]
 returns = "word"
 params = [
@@ -91,7 +79,6 @@ params = [
 ordinal = 177
 name = "LoadAccelerators"
 binding = { rust_id = "UserLoadAccelerators", id_value = 877, constant = "USER_LOAD_ACCELERATORS" }
-evidence = [{ source = "spec", line = 179 }, { source = "binding_2", line = 14 }]
 [exports.call]
 returns = "word"
 params = [
@@ -103,7 +90,6 @@ params = [
 ordinal = 178
 name = "TranslateAccelerator"
 binding = { rust_id = "UserTranslateAccelerator", id_value = 878, constant = "USER_TRANSLATE_ACCELERATOR" }
-evidence = [{ source = "spec", line = 180 }, { source = "binding_2", line = 16 }]
 [exports.call]
 returns = "word"
 params = [
@@ -116,7 +102,6 @@ params = [
 ordinal = 247
 name = "GetCursor"
 binding = { rust_id = "UserGetCursor", id_value = 873, constant = "USER_GET_CURSOR" }
-evidence = [{ source = "spec", line = 252 }, { source = "binding_2", line = 6 }]
 [exports.call]
 returns = "word"
 
@@ -124,7 +109,6 @@ returns = "word"
 ordinal = 249
 name = "GetAsyncKeyState"
 binding = { rust_id = "UserGetAsyncKeyState", id_value = 227, constant = "USER_GET_ASYNC_KEY_STATE" }
-evidence = [{ source = "spec", line = 254 }, { source = "binding", line = 304 }]
 [exports.call]
 returns = "word"
 params = [
@@ -135,7 +119,6 @@ params = [
 ordinal = 406
 name = "CreateCursor"
 binding = { rust_id = "UserCreateCursor", id_value = 242, constant = "USER_CREATE_CURSOR" }
-evidence = [{ source = "spec", line = 365 }, { source = "binding", line = 319 }]
 [exports.call]
 returns = "word"
 params = [

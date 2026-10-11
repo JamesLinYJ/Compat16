@@ -1,15 +1,10 @@
 module = "KERNEL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 59
 name = "WriteProfileString"
 binding = { rust_id = "KernelWriteProfileString", id_value = 129, constant = "KERNEL_WRITE_PROFILE_STRING" }
-evidence = [{ source = "spec", line = 60 }, { source = "binding", line = 205 }]
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 142
 name = "GetProfileSectionNames"
 binding = { rust_id = "KernelGetProfileSectionNames", id_value = 130, constant = "KERNEL_GET_PROFILE_SECTION_NAMES" }
-evidence = [{ source = "spec", line = 143 }, { source = "binding", line = 206 }]
 [exports.call]
 returns = "word"
 params = [
@@ -34,7 +28,6 @@ params = [
 ordinal = 143
 name = "GetPrivateProfileSectionNames"
 binding = { rust_id = "KernelGetPrivateProfileSectionNames", id_value = 131, constant = "KERNEL_GET_PRIVATE_PROFILE_SECTION_NAMES" }
-evidence = [{ source = "spec", line = 144 }, { source = "binding", line = 207 }]
 [exports.call]
 returns = "word"
 params = [

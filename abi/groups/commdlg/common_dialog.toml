@@ -1,15 +1,10 @@
 module = "COMMDLG"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/commdlg.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/common_dialog_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "GetOpenFileName"
 binding = { rust_id = "CommdlgGetOpenFileName", id_value = 1199, constant = "COMMDLG_GET_OPEN_FILE_NAME" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 6 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 2
 name = "GetSaveFileName"
 binding = { rust_id = "CommdlgGetSaveFileName", id_value = 1200, constant = "COMMDLG_GET_SAVE_FILE_NAME" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -31,7 +25,6 @@ params = [
 ordinal = 5
 name = "ChooseColor"
 binding = { rust_id = "CommdlgChooseColor", id_value = 1201, constant = "COMMDLG_CHOOSE_COLOR" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -42,7 +35,6 @@ params = [
 ordinal = 11
 name = "FindText"
 binding = { rust_id = "CommdlgFindText", id_value = 1202, constant = "COMMDLG_FIND_TEXT" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "word"
 params = [
@@ -53,7 +45,6 @@ params = [
 ordinal = 12
 name = "ReplaceText"
 binding = { rust_id = "CommdlgReplaceText", id_value = 1203, constant = "COMMDLG_REPLACE_TEXT" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 14 }]
 [exports.call]
 returns = "word"
 params = [
@@ -64,7 +55,6 @@ params = [
 ordinal = 15
 name = "ChooseFont"
 binding = { rust_id = "CommdlgChooseFont", id_value = 1204, constant = "COMMDLG_CHOOSE_FONT" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "word"
 params = [
@@ -75,7 +65,6 @@ params = [
 ordinal = 20
 name = "PrintDlg"
 binding = { rust_id = "CommdlgPrintDlg", id_value = 1205, constant = "COMMDLG_PRINT_DLG" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 18 }]
 [exports.call]
 returns = "word"
 params = [
@@ -87,7 +76,6 @@ ordinal = 26
 name = "CommDlgExtendedError"
 decl = { attributes = [] }
 binding = { rust_id = "CommdlgExtendedError", id_value = 1207, constant = "COMMDLG_EXTENDED_ERROR" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 23 }]
 [exports.call]
 returns = "dword"
 
@@ -95,7 +83,6 @@ returns = "dword"
 ordinal = 27
 name = "GetFileTitle"
 binding = { rust_id = "CommdlgGetFileTitle", id_value = 1206, constant = "COMMDLG_GET_FILE_TITLE" }
-evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 20 }]
 [exports.call]
 returns = "word"
 params = [

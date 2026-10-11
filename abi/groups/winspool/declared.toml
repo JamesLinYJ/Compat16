@@ -1,142 +1,116 @@
 module = "WINSPOOL"
 
-[sources]
-spec = { path = "specs/winspool.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "DEVBITBLT"
 kind = "stub"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "COLORINFO"
 kind = "stub"
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "CONTROL"
 kind = "stub"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 4
 name = "DISABLE"
 kind = "stub"
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 5
 name = "ENABLE"
 kind = "stub"
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 6
 name = "ENUMDFONTS"
 kind = "stub"
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 7
 name = "ENUMOBJ"
 kind = "stub"
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 8
 name = "OUTPUT"
 kind = "stub"
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 9
 name = "PIXEL"
 kind = "stub"
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 10
 name = "REALIZEOBJECT"
 kind = "stub"
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 11
 name = "STRBLT"
 kind = "stub"
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 12
 name = "SCANLR"
 kind = "stub"
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 13
 name = "DeviceMode"
 decl = { args = ["word", "word", "string", "string"] }
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 14
 name = "DEVEXTTEXTOUT"
 kind = "stub"
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 15
 name = "DEVGETCHARWIDTH"
 kind = "stub"
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 19
 name = "DEVICEBITMAPBITS"
 kind = "stub"
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 20
 name = "CREATEDIBITMAP"
 kind = "stub"
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 21
 name = "SETDIBITSTODEVICE"
 kind = "stub"
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 28
 name = "STRETCHDIB"
 kind = "stub"
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 90
 name = "ExtDeviceMode"
 decl = { args = ["word", "word", "pointer", "string", "string", "pointer", "string", "word"] }
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 92
 name = "QUERYDEVICENAMES"
 kind = "stub"
-evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
 ordinal = 94
 name = "DEVINSTALL"
 kind = "stub"
-evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
 ordinal = 1000
 name = "ADVANCEDSETUPDIALOG"
 kind = "stub"
-evidence = [{ source = "spec", line = 26 }]

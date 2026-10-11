@@ -1,1306 +1,1090 @@
 module = "COMPOBJ"
 
-[sources]
-spec = { path = "specs/compobj.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "CoBuildVersion"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "CoInitialize"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "CoUninitialize"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 4
 name = "CoGetMalloc"
 decl = { args = ["long", "pointer"] }
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 5
 name = "CoRegisterClassObject"
 decl = { args = ["pointer", "segmented_pointer", "long", "long", "pointer"] }
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 6
 name = "CoRevokeClassObject"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 7
 name = "CoGetClassObject"
 decl = { args = ["segmented_pointer", "long", "pointer", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 8
 name = "COMARSHALINTERFACE"
 kind = "stub"
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 9
 name = "COUNMARSHALINTERFACE"
 kind = "stub"
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 10
 name = "COLOADLIBRARY"
 kind = "stub"
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 11
 name = "COFREELIBRARY"
 kind = "stub"
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 12
 name = "COFREEALLLIBRARIES"
 kind = "stub"
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 13
 name = "CoCreateInstance"
 decl = { args = ["segmented_pointer", "segmented_pointer", "long", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 14
 name = "StringFromIID"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 15
 name = "CoDisconnectObject"
 decl = { args = ["segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 16
 name = "CORELEASEMARSHALDATA"
 kind = "stub"
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 17
 name = "CoFreeUnusedLibraries"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 19
 name = "StringFromCLSID"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 20
 name = "CLSIDFromString"
 decl = { args = ["string", "pointer"] }
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 21
 name = "ISVALIDPTRIN"
 kind = "stub"
-evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
 ordinal = 22
 name = "ISVALIDPTROUT"
 kind = "stub"
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 23
 name = "IsValidInterface"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
 ordinal = 24
 name = "ISVALIDIID"
 kind = "stub"
-evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
 ordinal = 25
 name = "RESULTFROMSCODE"
 kind = "stub"
-evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
 ordinal = 26
 name = "GETSCODE"
 kind = "stub"
-evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
 ordinal = 27
 name = "CoRegisterMessageFilter"
 decl = { args = ["segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
 ordinal = 28
 name = "COISHANDLERCONNECTED"
 kind = "stub"
-evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
 ordinal = 29
 name = "SHRADDREF"
 kind = "stub"
-evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
 ordinal = 30
 name = "CoFileTimeToDosDateTime"
 decl = { attributes = ["ret16"], args = ["pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
 ordinal = 31
 name = "CoDosDateTimeToFileTime"
 decl = { attributes = ["ret16"], args = ["word", "word", "pointer"] }
-evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
 ordinal = 32
 name = "COMARSHALHRESULT"
 kind = "stub"
-evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
 ordinal = 33
 name = "COUNMARSHALHRESULT"
 kind = "stub"
-evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
 ordinal = 34
 name = "CoGetCurrentProcess"
-evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
 ordinal = 35
 name = "SHRCREATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 36
 name = "CoIsOle1Class"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 37
 name = "_GUID_NULL"
 kind = "variable"
-evidence = [{ source = "spec", line = 38 }]
 values = [0, 0, 0, 0]
 
 [[exports]]
 ordinal = 38
 name = "_IID_IUnknown"
 kind = "variable"
-evidence = [{ source = "spec", line = 39 }]
 values = [0, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 39
 name = "_IID_IClassFactory"
 kind = "variable"
-evidence = [{ source = "spec", line = 40 }]
 values = [1, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 40
 name = "_IID_IMalloc"
 kind = "variable"
-evidence = [{ source = "spec", line = 41 }]
 values = [2, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 41
 name = "_IID_IMarshal"
 kind = "variable"
-evidence = [{ source = "spec", line = 42 }]
 values = [3, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 42
 name = "_IID_IRpcChannel"
 kind = "variable"
-evidence = [{ source = "spec", line = 43 }]
 values = [4, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 43
 name = "_IID_IRpcStub"
 kind = "variable"
-evidence = [{ source = "spec", line = 44 }]
 values = [5, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 44
 name = "_IID_IStubManager"
 kind = "variable"
-evidence = [{ source = "spec", line = 45 }]
 values = [6, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 45
 name = "_IID_IRpcProxy"
 kind = "variable"
-evidence = [{ source = "spec", line = 46 }]
 values = [7, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 46
 name = "_IID_IProxyManager"
 kind = "variable"
-evidence = [{ source = "spec", line = 47 }]
 values = [8, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 47
 name = "_IID_IPSFactory"
 kind = "variable"
-evidence = [{ source = "spec", line = 48 }]
 values = [9, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 48
 name = "_IID_ILockBytes"
 kind = "variable"
-evidence = [{ source = "spec", line = 49 }]
 values = [10, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 49
 name = "_IID_IStorage"
 kind = "variable"
-evidence = [{ source = "spec", line = 50 }]
 values = [11, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 50
 name = "_IID_IStream"
 kind = "variable"
-evidence = [{ source = "spec", line = 51 }]
 values = [12, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 51
 name = "_IID_IEnumSTATSTG"
 kind = "variable"
-evidence = [{ source = "spec", line = 52 }]
 values = [13, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 52
 name = "_IID_IBindCtx"
 kind = "variable"
-evidence = [{ source = "spec", line = 53 }]
 values = [14, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 53
 name = "_IID_IMoniker"
 kind = "variable"
-evidence = [{ source = "spec", line = 54 }]
 values = [15, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 54
 name = "_IID_IRunningObjectTable"
 kind = "variable"
-evidence = [{ source = "spec", line = 55 }]
 values = [16, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 55
 name = "_IID_IInternalMoniker"
 kind = "variable"
-evidence = [{ source = "spec", line = 56 }]
 values = [17, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 56
 name = "_IID_IRootStorage"
 kind = "variable"
-evidence = [{ source = "spec", line = 57 }]
 values = [18, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 57
 name = "_IID_IDfReserved1"
 kind = "variable"
-evidence = [{ source = "spec", line = 58 }]
 values = [19, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 58
 name = "_IID_IDfReserved2"
 kind = "variable"
-evidence = [{ source = "spec", line = 59 }]
 values = [20, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 59
 name = "_IID_IDfReserved3"
 kind = "variable"
-evidence = [{ source = "spec", line = 60 }]
 values = [21, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 60
 name = "_IID_IMessageFilter"
 kind = "variable"
-evidence = [{ source = "spec", line = 61 }]
 values = [22, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 61
 name = "CLSIDFromProgID"
 decl = { args = ["string", "pointer"] }
-evidence = [{ source = "spec", line = 62 }]
 
 [[exports]]
 ordinal = 62
 name = "ProgIDFromCLSID"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 63 }]
 
 [[exports]]
 ordinal = 63
 name = "CoLockObjectExternal"
 decl = { args = ["segmented_pointer", "word", "word"] }
-evidence = [{ source = "spec", line = 64 }]
 
 [[exports]]
 ordinal = 64
 name = "_CLSID_StdMarshal"
 kind = "variable"
-evidence = [{ source = "spec", line = 65 }]
 values = [23, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 65
 name = "CoGetTreatAsClass"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 66 }]
 
 [[exports]]
 ordinal = 66
 name = "CoTreatAsClass"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 67 }]
 
 [[exports]]
 ordinal = 67
 name = "COGETSTANDARDMARSHAL"
 kind = "stub"
-evidence = [{ source = "spec", line = 68 }]
 
 [[exports]]
 ordinal = 68
 name = "PROPAGATERESULT"
 kind = "stub"
-evidence = [{ source = "spec", line = 69 }]
 
 [[exports]]
 ordinal = 69
 name = "IIDFromString"
 decl = { args = ["string", "pointer"] }
-evidence = [{ source = "spec", line = 70 }]
 
 [[exports]]
 ordinal = 70
 name = "_IID_IStdMarshalInfo"
 kind = "variable"
-evidence = [{ source = "spec", line = 71 }]
 values = [24, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 71
 name = "CoCreateStandardMalloc"
 decl = { args = ["long", "pointer"] }
-evidence = [{ source = "spec", line = 72 }]
 
 [[exports]]
 ordinal = 72
 name = "_IID_IExternalConnection"
 kind = "variable"
-evidence = [{ source = "spec", line = 73 }]
 values = [25, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 73
 name = "CoCreateGuid"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 74 }]
 
 [[exports]]
 ordinal = 75
 name = "FnAssert"
 decl = { args = ["string", "string", "string", "word"] }
-evidence = [{ source = "spec", line = 75 }]
 
 [[exports]]
 ordinal = 76
 name = "StringFromGUID2"
 decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word"] }
-evidence = [{ source = "spec", line = 76 }]
 
 [[exports]]
 ordinal = 77
 name = "COGETCLASSEXT"
 kind = "stub"
-evidence = [{ source = "spec", line = 77 }]
 
 [[exports]]
 ordinal = 78
 name = "OLE1CLASSFROMCLSID2"
 kind = "stub"
-evidence = [{ source = "spec", line = 78 }]
 
 [[exports]]
 ordinal = 79
 name = "CLSIDFROMOLE1CLASS"
 kind = "stub"
-evidence = [{ source = "spec", line = 79 }]
 
 [[exports]]
 ordinal = 80
 name = "COOPENCLASSKEY"
 kind = "stub"
-evidence = [{ source = "spec", line = 80 }]
 
 [[exports]]
 ordinal = 81
 name = "GUIDFROMSTRING"
 kind = "stub"
-evidence = [{ source = "spec", line = 81 }]
 
 [[exports]]
 ordinal = 82
 name = "CoFileTimeNow"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 82 }]
 
 [[exports]]
 ordinal = 83
 name = "REMALLOCOID"
 kind = "stub"
-evidence = [{ source = "spec", line = 83 }]
 
 [[exports]]
 ordinal = 84
 name = "REMFREEOID"
 kind = "stub"
-evidence = [{ source = "spec", line = 84 }]
 
 [[exports]]
 ordinal = 85
 name = "REMCREATEREMOTEHANDLER"
 kind = "stub"
-evidence = [{ source = "spec", line = 85 }]
 
 [[exports]]
 ordinal = 86
 name = "REMCONNECTTOOBJECT"
 kind = "stub"
-evidence = [{ source = "spec", line = 86 }]
 
 [[exports]]
 ordinal = 87
 name = "REMGETINFOFORCID"
 kind = "stub"
-evidence = [{ source = "spec", line = 87 }]
 
 [[exports]]
 ordinal = 88
 name = "LRPCCALL"
 kind = "stub"
-evidence = [{ source = "spec", line = 88 }]
 
 [[exports]]
 ordinal = 89
 name = "LRPCDISPATCH"
 kind = "stub"
-evidence = [{ source = "spec", line = 89 }]
 
 [[exports]]
 ordinal = 90
 name = "LRPCREGISTERMONITOR"
 kind = "stub"
-evidence = [{ source = "spec", line = 90 }]
 
 [[exports]]
 ordinal = 91
 name = "LRPCREVOKEMONITOR"
 kind = "stub"
-evidence = [{ source = "spec", line = 91 }]
 
 [[exports]]
 ordinal = 92
 name = "LRPCGETTHREADWINDOW"
 kind = "stub"
-evidence = [{ source = "spec", line = 92 }]
 
 [[exports]]
 ordinal = 93
 name = "TIMERCALLBACKPROC"
 kind = "stub"
-evidence = [{ source = "spec", line = 93 }]
 
 [[exports]]
 ordinal = 94
 name = "LookupETask"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 94 }]
 
 [[exports]]
 ordinal = 95
 name = "SetETask"
 decl = { attributes = ["ret16"], args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 95 }]
 
 [[exports]]
 ordinal = 96
 name = "LRPCFREEMONITORDATA"
 kind = "stub"
-evidence = [{ source = "spec", line = 96 }]
 
 [[exports]]
 ordinal = 97
 name = "REMLOOKUPSHUNK"
 kind = "stub"
-evidence = [{ source = "spec", line = 97 }]
 
 [[exports]]
 ordinal = 98
 name = "SHRGETSIZE"
 kind = "stub"
-evidence = [{ source = "spec", line = 98 }]
 
 [[exports]]
 ordinal = 99
 name = "CALLTHKMGRUNINITIALIZE"
 kind = "stub"
-evidence = [{ source = "spec", line = 99 }]
 
 [[exports]]
 ordinal = 100
 name = "??0CARRAYFVALUE@@REC@KI@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 100 }]
 
 [[exports]]
 ordinal = 101
 name = "??1CARRAYFVALUE@@REC@XZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 101 }]
 
 [[exports]]
 ordinal = 102
 name = "?ASSERTVALID@CARRAYFVALUE@@RFCXXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 102 }]
 
 [[exports]]
 ordinal = 103
 name = "?FREEEXTRA@CARRAYFVALUE@@RECXXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 103 }]
 
 [[exports]]
 ordinal = 104
 name = "?_GETAT@CARRAYFVALUE@@RFCPEXH@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 104 }]
 
 [[exports]]
 ordinal = 105
 name = "?GETSIZE@CARRAYFVALUE@@RFCHXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 105 }]
 
 [[exports]]
 ordinal = 106
 name = "?REMOVEALL@CARRAYFVALUE@@RECXXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 106 }]
 
 [[exports]]
 ordinal = 107
 name = "SHRDESTROY"
 kind = "stub"
-evidence = [{ source = "spec", line = 107 }]
 
 [[exports]]
 ordinal = 108
 name = "?INDEXOF@CARRAYFVALUE@@RECHPEXII@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 108 }]
 
 [[exports]]
 ordinal = 109
 name = "?INSERTAT@CARRAYFVALUE@@RECHHPEXH@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 109 }]
 
 [[exports]]
 ordinal = 110
 name = "COSETSTATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 110 }]
 
 [[exports]]
 ordinal = 111
 name = "?REMOVEAT@CARRAYFVALUE@@RECXHH@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 111 }]
 
 [[exports]]
 ordinal = 112
 name = "?SETAT@CARRAYFVALUE@@RECXHPEX@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 112 }]
 
 [[exports]]
 ordinal = 113
 name = "?SETATGROW@CARRAYFVALUE@@RECHHPEX@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 113 }]
 
 [[exports]]
 ordinal = 114
 name = "?SETSIZE@CARRAYFVALUE@@RECHHH@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 114 }]
 
 [[exports]]
 ordinal = 115
 name = "CoGetState"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 115 }]
 
 [[exports]]
 ordinal = 116
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
-evidence = [{ source = "spec", line = 116 }]
 
 [[exports]]
 ordinal = 117
 name = "?RELEASE@CSTDMALLOC@@VEAKXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 117 }]
 
 [[exports]]
 ordinal = 118
 name = "?ALLOC@CSTDMALLOC@@VEAPEXK@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 118 }]
 
 [[exports]]
 ordinal = 119
 name = "SHRRELEASE"
 kind = "stub"
-evidence = [{ source = "spec", line = 119 }]
 
 [[exports]]
 ordinal = 120
 name = "?GETASSOCAT@CMAPKEYTOVALUE@@BFCPEUCASSOC@1@PEXIAEI@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 120 }]
 
 [[exports]]
 ordinal = 121
 name = "?SETASSOCKEY@CMAPKEYTOVALUE@@BFCHPEUCASSOC@1@PEXI@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 121 }]
 
 [[exports]]
 ordinal = 122
 name = "??1CMAPKEYTOVALUE@@REC@XZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 122 }]
 
 [[exports]]
 ordinal = 123
 name = "?GETASSOCKEYPTR@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEPEXPEI@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 123 }]
 
 [[exports]]
 ordinal = 124
 name = "?NEWASSOC@CMAPKEYTOVALUE@@BECPEUCASSOC@1@IPEXI0@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 124 }]
 
 [[exports]]
 ordinal = 125
 name = "?SIZEASSOC@CMAPKEYTOVALUE@@BFCIXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 125 }]
 
 [[exports]]
 ordinal = 126
 name = "?FREEASSOC@CMAPKEYTOVALUE@@BECXPEUCASSOC@1@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 126 }]
 
 [[exports]]
 ordinal = 127
 name = "?GETSTARTPOSITION@CMAPKEYTOVALUE@@RFCPEXXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 127 }]
 
 [[exports]]
 ordinal = 128
 name = "?GETNEXTASSOC@CMAPKEYTOVALUE@@RFCXPEPEXPEXPEI1@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 128 }]
 
 [[exports]]
 ordinal = 129
 name = "?COMPAREASSOCKEY@CMAPKEYTOVALUE@@BFCHPEUCASSOC@1@PEXI@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 129 }]
 
 [[exports]]
 ordinal = 130
 name = "?REMOVEHKEY@CMAPKEYTOVALUE@@RECHK@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 130 }]
 
 [[exports]]
 ordinal = 131
 name = "?GETHKEY@CMAPKEYTOVALUE@@RFCKPEXI@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 131 }]
 
 [[exports]]
 ordinal = 132
 name = "?GETCOUNT@CMAPKEYTOVALUE@@RFCHXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 132 }]
 
 [[exports]]
 ordinal = 133
 name = "?LOOKUP@CMAPKEYTOVALUE@@RFCHPEXI0@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 133 }]
 
 [[exports]]
 ordinal = 134
 name = "?GETASSOCVALUE@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEX@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 134 }]
 
 [[exports]]
 ordinal = 135
 name = "?REMOVEKEY@CMAPKEYTOVALUE@@RECHPEXI@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 135 }]
 
 [[exports]]
 ordinal = 136
 name = "?REMOVEALL@CMAPKEYTOVALUE@@RECXXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 136 }]
 
 [[exports]]
 ordinal = 137
 name = "SHRALLOC"
 kind = "stub"
-evidence = [{ source = "spec", line = 137 }]
 
 [[exports]]
 ordinal = 138
 name = "?FREEASSOCKEY@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 138 }]
 
 [[exports]]
 ordinal = 139
 name = "?SETAT@CMAPKEYTOVALUE@@RECHPEXI0@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 139 }]
 
 [[exports]]
 ordinal = 140
 name = "?LOOKUPHKEY@CMAPKEYTOVALUE@@RFCHKPEX@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 140 }]
 
 [[exports]]
 ordinal = 141
 name = "?ASSERTVALID@CMAPKEYTOVALUE@@RFCXXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 141 }]
 
 [[exports]]
 ordinal = 142
 name = "?SETASSOCVALUE@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEX@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 142 }]
 
 [[exports]]
 ordinal = 143
 name = "?SETATHKEY@CMAPKEYTOVALUE@@RECHKPEX@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 143 }]
 
 [[exports]]
 ordinal = 144
 name = "??0CMAPKEYTOVALUE@@REC@KIIHP7CIPEXI@ZI@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 144 }]
 
 [[exports]]
 ordinal = 145
 name = "?INITHASHTABLE@CMAPKEYTOVALUE@@BECHXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 145 }]
 
 [[exports]]
 ordinal = 146
 name = "?GETASSOCVALUEPTR@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEPEX@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 146 }]
 
 [[exports]]
 ordinal = 147
 name = "?LOOKUPADD@CMAPKEYTOVALUE@@RFCHPEXI0@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 147 }]
 
 [[exports]]
 ordinal = 148
 name = "MKVDEFAULTHASHKEY"
 kind = "stub"
-evidence = [{ source = "spec", line = 148 }]
 
 [[exports]]
 ordinal = 149
 name = "DELETE16"
 kind = "stub"
-evidence = [{ source = "spec", line = 149 }]
 
 [[exports]]
 ordinal = 150
 name = "COMEMCTXOF"
 kind = "stub"
-evidence = [{ source = "spec", line = 150 }]
 
 [[exports]]
 ordinal = 151
 name = "CoMemAlloc"
 decl = { args = ["long", "long", "long"] }
-evidence = [{ source = "spec", line = 151 }]
 
 [[exports]]
 ordinal = 152
 name = "COMEMFREE"
 kind = "stub"
-evidence = [{ source = "spec", line = 152 }]
 
 [[exports]]
 ordinal = 153
 name = "SHRREALLOC"
 kind = "stub"
-evidence = [{ source = "spec", line = 153 }]
 
 [[exports]]
 ordinal = 154
 name = "___EXPORTEDSTUB"
 kind = "stub"
-evidence = [{ source = "spec", line = 154 }]
 
 [[exports]]
 ordinal = 155
 name = "LRPCREGISTERWIN32SMONITOR"
 kind = "stub"
-evidence = [{ source = "spec", line = 155 }]
 
 [[exports]]
 ordinal = 156
 name = "MYREMGETINFOFORCID"
 kind = "stub"
-evidence = [{ source = "spec", line = 156 }]
 
 [[exports]]
 ordinal = 157
 name = "SHRFREE"
 kind = "stub"
-evidence = [{ source = "spec", line = 157 }]
 
 [[exports]]
 ordinal = 158
 name = "OPNEW16"
 kind = "stub"
-evidence = [{ source = "spec", line = 158 }]
 
 [[exports]]
 ordinal = 159
 name = "ADDCOINFO"
 kind = "stub"
-evidence = [{ source = "spec", line = 159 }]
 
 [[exports]]
 ordinal = 160
 name = "CORUNMODALLOOP"
 kind = "stub"
-evidence = [{ source = "spec", line = 160 }]
 
 [[exports]]
 ordinal = 161
 name = "COHANDLEINCOMINGCALL"
 kind = "stub"
-evidence = [{ source = "spec", line = 161 }]
 
 [[exports]]
 ordinal = 162
 name = "COSETACKSTATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 162 }]
 
 [[exports]]
 ordinal = 163
 name = "SHRDIDALLOC"
 kind = "stub"
-evidence = [{ source = "spec", line = 163 }]
 
 [[exports]]
 ordinal = 164
 name = "?GETAT@CARRAYFVALUE@@RFCPEXH@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 164 }]
 
 [[exports]]
 ordinal = 165
 name = "?GETUPPERBOUND@CARRAYFVALUE@@RFCHXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 165 }]
 
 [[exports]]
 ordinal = 166
 name = "OPDELETE16"
 kind = "stub"
-evidence = [{ source = "spec", line = 166 }]
 
 [[exports]]
 ordinal = 167
 name = "?GETSIZEVALUE@CARRAYFVALUE@@RFCHXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 167 }]
 
 [[exports]]
 ordinal = 168
 name = "?PROXY1632ADDREF@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 168 }]
 
 [[exports]]
 ordinal = 169
 name = "REMLOOKUPSHUNK_dup"
 kind = "stub"
-evidence = [{ source = "spec", line = 169 }]
 
 [[exports]]
 ordinal = 170
 name = "?ISEMPTY@CMAPKEYTOVALUE@@RFCHXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 170 }]
 
 [[exports]]
 ordinal = 171
 name = "?FREE@CSTDMALLOC@@VEAXPEX@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 171 }]
 
 [[exports]]
 ordinal = 172
 name = "CALLTHKMGRINITIALIZE"
 kind = "stub"
-evidence = [{ source = "spec", line = 172 }]
 
 [[exports]]
 ordinal = 173
 name = "?REALLOC@CSTDMALLOC@@VEAPEXPEXK@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 173 }]
 
 [[exports]]
 ordinal = 174
 name = "?SM16RHQI@@ZAPEXPEVCSM16RELEASEHANDLER@@AFUGUID@@PEPEX@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 174 }]
 
 [[exports]]
 ordinal = 175
 name = "?PROXY1632METHOD10@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 175 }]
 
 [[exports]]
 ordinal = 176
 name = "___EXPORTEDSTUB_dup"
 kind = "stub"
-evidence = [{ source = "spec", line = 176 }]
 
 [[exports]]
 ordinal = 177
 name = "?PROXY1632METHOD20@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 177 }]
 
 [[exports]]
 ordinal = 178
 name = "?PROXY1632METHOD11@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 178 }]
 
 [[exports]]
 ordinal = 179
 name = "?PROXY1632METHOD30@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 179 }]
 
 [[exports]]
 ordinal = 180
 name = "?PROXY1632METHOD21@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 180 }]
 
 [[exports]]
 ordinal = 181
 name = "?PROXY1632METHOD12@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 181 }]
 
 [[exports]]
 ordinal = 182
 name = "?PROXY1632METHOD31@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 182 }]
 
 [[exports]]
 ordinal = 183
 name = "?PROXY1632METHOD22@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 183 }]
 
 [[exports]]
 ordinal = 184
 name = "?PROXY1632METHOD13@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 184 }]
 
 [[exports]]
 ordinal = 185
 name = "?GETSIZE@CSTDMALLOC@@VEAKPEX@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 185 }]
 
 [[exports]]
 ordinal = 186
 name = "?PROXY1632METHOD23@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 186 }]
 
 [[exports]]
 ordinal = 187
 name = "?PROXY1632METHOD14@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 187 }]
 
 [[exports]]
 ordinal = 188
 name = "?PROXY1632METHOD24@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 188 }]
 
 [[exports]]
 ordinal = 189
 name = "?PROXY1632METHOD15@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 189 }]
 
 [[exports]]
 ordinal = 190
 name = "?PROXY1632METHOD25@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 190 }]
 
 [[exports]]
 ordinal = 191
 name = "?PROXY1632METHOD16@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 191 }]
 
 [[exports]]
 ordinal = 192
 name = "?PROXY1632METHOD26@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 192 }]
 
 [[exports]]
 ordinal = 193
 name = "?PROXY1632METHOD17@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 193 }]
 
 [[exports]]
 ordinal = 194
 name = "?PROXY1632METHOD27@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 194 }]
 
 [[exports]]
 ordinal = 195
 name = "?PROXY1632METHOD18@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 195 }]
 
 [[exports]]
 ordinal = 196
 name = "?PROXY1632METHOD28@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 196 }]
 
 [[exports]]
 ordinal = 197
 name = "?ADDREF@CSTDMALLOC@@VEAKXZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 197 }]
 
 [[exports]]
 ordinal = 198
 name = "?PROXY1632METHOD19@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 198 }]
 
 [[exports]]
 ordinal = 199
 name = "?PROXY1632METHOD29@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-evidence = [{ source = "spec", line = 199 }]
 
 [[exports]]
 ordinal = 200
 name = "CALL32INITIALIZE"
 kind = "stub"
-evidence = [{ source = "spec", line = 200 }]
 
 [[exports]]
 ordinal = 201
 name = "CALLOBJECTINWOW"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 201 }]
 
 [[exports]]
 ordinal = 203
 name = "CALLOBJECTINWOWCHECKINIT"
 kind = "stub"
-evidence = [{ source = "spec", line = 202 }]
 
 [[exports]]
 ordinal = 204
 name = "CALLOBJECTINWOWCHECKTHKMGR"
 kind = "stub"
-evidence = [{ source = "spec", line = 203 }]
 
 [[exports]]
 ordinal = 205
 name = "CONVERTHR1632"
 kind = "stub"
-evidence = [{ source = "spec", line = 204 }]
 
 [[exports]]
 ordinal = 206
 name = "CONVERTHR3216"
 kind = "stub"
-evidence = [{ source = "spec", line = 205 }]
 
 [[exports]]
 ordinal = 207
 name = "ADDAPPCOMPATFLAG"
 kind = "stub"
-evidence = [{ source = "spec", line = 206 }]
 
 [[exports]]
 ordinal = 500
 name = "IMalloc16_QueryInterface"
 decl = { type = "cdecl", args = ["pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 207 }]
 
 [[exports]]
 ordinal = 501
 name = "IMalloc16_AddRef"
 decl = { type = "cdecl", args = ["pointer"] }
-evidence = [{ source = "spec", line = 208 }]
 
 [[exports]]
 ordinal = 502
 name = "IMalloc16_Release"
 decl = { type = "cdecl", args = ["pointer"] }
-evidence = [{ source = "spec", line = 209 }]
 
 [[exports]]
 ordinal = 503
 name = "IMalloc16_Alloc"
 decl = { type = "cdecl", args = ["pointer", "long"] }
-evidence = [{ source = "spec", line = 210 }]
 
 [[exports]]
 ordinal = 504
 name = "IMalloc16_Realloc"
 decl = { type = "cdecl", args = ["pointer", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 211 }]
 
 [[exports]]
 ordinal = 505
 name = "IMalloc16_Free"
 decl = { type = "cdecl", args = ["pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 212 }]
 
 [[exports]]
 ordinal = 506
 name = "IMalloc16_GetSize"
 decl = { type = "cdecl", args = ["pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 213 }]
 
 [[exports]]
 ordinal = 507
 name = "IMalloc16_DidAlloc"
 decl = { type = "cdecl", args = ["pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 214 }]
 
 [[exports]]
 ordinal = 508
 name = "IMalloc16_HeapMinimize"
 decl = { type = "cdecl", args = ["pointer"] }
-evidence = [{ source = "spec", line = 215 }]

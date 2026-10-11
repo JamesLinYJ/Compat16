@@ -1,15 +1,10 @@
 module = "TOOLHELP"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/toolhelp.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/toolhelp_notify_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 73
 name = "NotifyRegister"
 binding = { rust_id = "ToolhelpNotifyRegister", id_value = 729, constant = "TOOLHELP_NOTIFY_REGISTER" }
-evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 7 }]
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 74
 name = "NotifyUnRegister"
 binding = { rust_id = "ToolhelpNotifyUnregister", id_value = 730, constant = "TOOLHELP_NOTIFY_UNREGISTER" }
-evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 9 }]
 [exports.call]
 returns = "word"
 params = [

@@ -1,14 +1,9 @@
 module = "USER"
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 121
 name = "SetWindowsHook"
 binding = { rust_id = "UserSetWindowsHook", id_value = 47, constant = "USER_SET_WINDOWS_HOOK" }
-evidence = [{ source = "spec", line = 122 }, { source = "binding", line = 121 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -21,7 +16,6 @@ ordinal = 123
 name = "CallMsgFilter"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "UserCallMsgFilter", id_value = 48, constant = "USER_CALL_MSG_FILTER" }
-evidence = [{ source = "spec", line = 124 }, { source = "binding", line = 122 }]
 [exports.call]
 returns = "word"
 params = [
@@ -34,7 +28,6 @@ ordinal = 234
 name = "UnhookWindowsHook"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "UserUnhookWindowsHook", id_value = 49, constant = "USER_UNHOOK_WINDOWS_HOOK" }
-evidence = [{ source = "spec", line = 239 }, { source = "binding", line = 123 }]
 [exports.call]
 returns = "word"
 params = [
@@ -46,7 +39,6 @@ params = [
 ordinal = 235
 name = "DefHookProc"
 binding = { rust_id = "UserDefHookProc", id_value = 50, constant = "USER_DEF_HOOK_PROC" }
-evidence = [{ source = "spec", line = 240 }, { source = "binding", line = 124 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -60,7 +52,6 @@ params = [
 ordinal = 291
 name = "SetWindowsHookEx"
 binding = { rust_id = "UserSetWindowsHookEx", id_value = 51, constant = "USER_SET_WINDOWS_HOOK_EX" }
-evidence = [{ source = "spec", line = 296 }, { source = "binding", line = 125 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -75,7 +66,6 @@ ordinal = 292
 name = "UnhookWindowsHookEx"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "UserUnhookWindowsHookEx", id_value = 52, constant = "USER_UNHOOK_WINDOWS_HOOK_EX" }
-evidence = [{ source = "spec", line = 297 }, { source = "binding", line = 126 }]
 [exports.call]
 returns = "word"
 params = [
@@ -86,7 +76,6 @@ params = [
 ordinal = 293
 name = "CallNextHookEx"
 binding = { rust_id = "UserCallNextHookEx", id_value = 53, constant = "USER_CALL_NEXT_HOOK_EX" }
-evidence = [{ source = "spec", line = 298 }, { source = "binding", line = 127 }]
 [exports.call]
 returns = "dword"
 params = [

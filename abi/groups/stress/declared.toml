@@ -1,70 +1,56 @@
 module = "STRESS"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/stress.spec", note = "spec" }
-
 [[exports]]
 ordinal = 2
 name = "AllocMem"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "FreeAllMem"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 6
 name = "AllocFileHandles"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 7
 name = "UnAllocFileHandles"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 8
 name = "GetFreeFileHandles"
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 10
 name = "AllocDiskSpace"
 decl = { args = ["long", "word"] }
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 11
 name = "UnAllocDiskSpace"
 decl = { attributes = [], args = ["word"] }
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 12
 name = "AllocUserMem"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 13
 name = "FreeAllUserMem"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 14
 name = "AllocGDIMem"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 15
 name = "FreeAllGDIMem"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 13 }]

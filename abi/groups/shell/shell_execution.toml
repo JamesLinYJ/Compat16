@@ -1,15 +1,10 @@
 module = "SHELL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/shell.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 20
 name = "ShellExecute"
 binding = { rust_id = "ShellExecute", id_value = 657, constant = "SHELL_EXECUTE" }
-evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 754 }]
 [exports.call]
 returns = "word"
 params = [
@@ -25,7 +20,6 @@ params = [
 ordinal = 21
 name = "FindExecutable"
 binding = { rust_id = "ShellFindExecutable", id_value = 658, constant = "SHELL_FIND_EXECUTABLE" }
-evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 755 }]
 [exports.call]
 returns = "word"
 params = [
@@ -38,7 +32,6 @@ params = [
 ordinal = 22
 name = "ShellAbout"
 binding = { rust_id = "ShellAbout", id_value = 659, constant = "SHELL_ABOUT" }
-evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 756 }]
 [exports.call]
 returns = "word"
 params = [

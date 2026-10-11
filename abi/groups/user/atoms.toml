@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 268
 name = "GlobalAddAtom"
 binding = { rust_id = "UserGlobalAddAtom", id_value = 247, constant = "USER_GLOBAL_ADD_ATOM" }
-evidence = [{ source = "spec", line = 273 }, { source = "binding", line = 324 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 269
 name = "GlobalDeleteAtom"
 binding = { rust_id = "UserGlobalDeleteAtom", id_value = 248, constant = "USER_GLOBAL_DELETE_ATOM" }
-evidence = [{ source = "spec", line = 274 }, { source = "binding", line = 325 }]
 [exports.call]
 returns = "word"
 params = [
@@ -31,7 +25,6 @@ params = [
 ordinal = 270
 name = "GlobalFindAtom"
 binding = { rust_id = "UserGlobalFindAtom", id_value = 249, constant = "USER_GLOBAL_FIND_ATOM" }
-evidence = [{ source = "spec", line = 275 }, { source = "binding", line = 326 }]
 [exports.call]
 returns = "word"
 params = [
@@ -42,7 +35,6 @@ params = [
 ordinal = 271
 name = "GlobalGetAtomName"
 binding = { rust_id = "UserGlobalGetAtomName", id_value = 250, constant = "USER_GLOBAL_GET_ATOM_NAME" }
-evidence = [{ source = "spec", line = 276 }, { source = "binding", line = 327 }]
 [exports.call]
 returns = "word"
 params = [

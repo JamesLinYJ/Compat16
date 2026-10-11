@@ -1,14 +1,9 @@
 module = "MMSYSTEM"
 
-[sources]
-spec = { path = "specs/mmsystem.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/mci_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 701
 name = "mciSendCommand"
 binding = { rust_id = "MciSendCommand", id_value = 827, constant = "MMSYSTEM_MCI_SEND_COMMAND" }
-evidence = [{ source = "spec", line = 108 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 702
 name = "mciSendString"
 binding = { rust_id = "MciSendString", id_value = 828, constant = "MMSYSTEM_MCI_SEND_STRING" }
-evidence = [{ source = "spec", line = 109 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -36,7 +30,6 @@ params = [
 ordinal = 703
 name = "mciGetDeviceID"
 binding = { rust_id = "MciGetDeviceId", id_value = 829, constant = "MMSYSTEM_MCI_GET_DEVICE_ID" }
-evidence = [{ source = "spec", line = 110 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "word"
 params = [
@@ -47,7 +40,6 @@ params = [
 ordinal = 705
 name = "mciLoadCommandResource"
 binding = { rust_id = "MciLoadCommandResource", id_value = 830, constant = "MMSYSTEM_MCI_LOAD_COMMAND_RESOURCE" }
-evidence = [{ source = "spec", line = 111 }, { source = "binding", line = 14 }]
 [exports.call]
 returns = "word"
 params = [
@@ -60,7 +52,6 @@ params = [
 ordinal = 706
 name = "mciGetErrorString"
 binding = { rust_id = "MciGetErrorString", id_value = 831, constant = "MMSYSTEM_MCI_GET_ERROR_STRING" }
-evidence = [{ source = "spec", line = 112 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "word"
 params = [
@@ -73,7 +64,6 @@ params = [
 ordinal = 707
 name = "mciSetDriverData"
 binding = { rust_id = "MciSetDriverData", id_value = 832, constant = "MMSYSTEM_MCI_SET_DRIVER_DATA" }
-evidence = [{ source = "spec", line = 113 }, { source = "binding", line = 18 }]
 [exports.call]
 returns = "word"
 params = [
@@ -85,7 +75,6 @@ params = [
 ordinal = 708
 name = "mciGetDriverData"
 binding = { rust_id = "MciGetDriverData", id_value = 833, constant = "MMSYSTEM_MCI_GET_DRIVER_DATA" }
-evidence = [{ source = "spec", line = 114 }, { source = "binding", line = 20 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -96,7 +85,6 @@ params = [
 ordinal = 710
 name = "mciDriverYield"
 binding = { rust_id = "MciDriverYield", id_value = 834, constant = "MMSYSTEM_MCI_DRIVER_YIELD" }
-evidence = [{ source = "spec", line = 115 }, { source = "binding", line = 22 }]
 [exports.call]
 returns = "word"
 params = [
@@ -107,7 +95,6 @@ params = [
 ordinal = 711
 name = "mciDriverNotify"
 binding = { rust_id = "MciDriverNotify", id_value = 835, constant = "MMSYSTEM_MCI_DRIVER_NOTIFY" }
-evidence = [{ source = "spec", line = 116 }, { source = "binding", line = 24 }]
 [exports.call]
 returns = "word"
 params = [
@@ -120,7 +107,6 @@ params = [
 ordinal = 712
 name = "mciExecute"
 binding = { rust_id = "MciExecute", id_value = 836, constant = "MMSYSTEM_MCI_EXECUTE" }
-evidence = [{ source = "spec", line = 117 }, { source = "binding", line = 26 }]
 [exports.call]
 returns = "word"
 params = [
@@ -131,7 +117,6 @@ params = [
 ordinal = 713
 name = "mciFreeCommandResource"
 binding = { rust_id = "MciFreeCommandResource", id_value = 837, constant = "MMSYSTEM_MCI_FREE_COMMAND_RESOURCE" }
-evidence = [{ source = "spec", line = 118 }, { source = "binding", line = 28 }]
 [exports.call]
 returns = "word"
 params = [
@@ -142,7 +127,6 @@ params = [
 ordinal = 714
 name = "mciSetYieldProc"
 binding = { rust_id = "MciSetYieldProc", id_value = 838, constant = "MMSYSTEM_MCI_SET_YIELD_PROC" }
-evidence = [{ source = "spec", line = 119 }, { source = "binding", line = 30 }]
 [exports.call]
 returns = "word"
 params = [
@@ -155,7 +139,6 @@ params = [
 ordinal = 715
 name = "mciGetDeviceIDFromElementID"
 binding = { rust_id = "MciGetDeviceIdFromElement", id_value = 839, constant = "MMSYSTEM_MCI_GET_DEVICE_ID_FROM_ELEMENT" }
-evidence = [{ source = "spec", line = 120 }, { source = "binding", line = 32 }]
 [exports.call]
 returns = "word"
 params = [
@@ -167,7 +150,6 @@ params = [
 ordinal = 716
 name = "mciGetYieldProc"
 binding = { rust_id = "MciGetYieldProc", id_value = 840, constant = "MMSYSTEM_MCI_GET_YIELD_PROC" }
-evidence = [{ source = "spec", line = 121 }, { source = "binding", line = 34 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -179,7 +161,6 @@ params = [
 ordinal = 717
 name = "mciGetCreatorTask"
 binding = { rust_id = "MciGetCreatorTask", id_value = 841, constant = "MMSYSTEM_MCI_GET_CREATOR_TASK" }
-evidence = [{ source = "spec", line = 122 }, { source = "binding", line = 36 }]
 [exports.call]
 returns = "word"
 params = [

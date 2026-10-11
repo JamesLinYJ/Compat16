@@ -1,14 +1,9 @@
 module = "MMSYSTEM"
 
-[sources]
-spec = { path = "specs/mmsystem.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/midi_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 201
 name = "midiOutGetNumDevs"
 binding = { rust_id = "MidiOutGetNumDevs", id_value = 941, constant = "MMSYSTEM_MIDI_OUT_GET_NUM_DEVS" }
-evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 7 }]
 [exports.call]
 returns = "word"
 
@@ -16,7 +11,6 @@ returns = "word"
 ordinal = 202
 name = "midiOutGetDevCaps"
 binding = { rust_id = "MidiOutGetDevCaps", id_value = 942, constant = "MMSYSTEM_MIDI_OUT_GET_DEV_CAPS" }
-evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -29,7 +23,6 @@ params = [
 ordinal = 203
 name = "midiOutGetErrorText"
 binding = { rust_id = "MidiOutGetErrorText", id_value = 943, constant = "MMSYSTEM_MIDI_OUT_GET_ERROR_TEXT" }
-evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 9 }]
 [exports.call]
 returns = "word"
 params = [
@@ -42,7 +35,6 @@ params = [
 ordinal = 204
 name = "midiOutOpen"
 binding = { rust_id = "MidiOutOpen", id_value = 944, constant = "MMSYSTEM_MIDI_OUT_OPEN" }
-evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -57,7 +49,6 @@ params = [
 ordinal = 205
 name = "midiOutClose"
 binding = { rust_id = "MidiOutClose", id_value = 945, constant = "MMSYSTEM_MIDI_OUT_CLOSE" }
-evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 11 }]
 [exports.call]
 returns = "word"
 params = [
@@ -68,7 +59,6 @@ params = [
 ordinal = 206
 name = "midiOutPrepareHeader"
 binding = { rust_id = "MidiOutPrepareHeader", id_value = 946, constant = "MMSYSTEM_MIDI_OUT_PREPARE_HEADER" }
-evidence = [{ source = "spec", line = 29 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "word"
 params = [
@@ -81,7 +71,6 @@ params = [
 ordinal = 207
 name = "midiOutUnprepareHeader"
 binding = { rust_id = "MidiOutUnprepareHeader", id_value = 947, constant = "MMSYSTEM_MIDI_OUT_UNPREPARE_HEADER" }
-evidence = [{ source = "spec", line = 30 }, { source = "binding", line = 13 }]
 [exports.call]
 returns = "word"
 params = [
@@ -94,7 +83,6 @@ params = [
 ordinal = 208
 name = "midiOutShortMsg"
 binding = { rust_id = "MidiOutShortMsg", id_value = 948, constant = "MMSYSTEM_MIDI_OUT_SHORT_MESSAGE" }
-evidence = [{ source = "spec", line = 31 }, { source = "binding", line = 14 }]
 [exports.call]
 returns = "word"
 params = [
@@ -106,7 +94,6 @@ params = [
 ordinal = 209
 name = "midiOutLongMsg"
 binding = { rust_id = "MidiOutLongMsg", id_value = 949, constant = "MMSYSTEM_MIDI_OUT_LONG_MESSAGE" }
-evidence = [{ source = "spec", line = 32 }, { source = "binding", line = 15 }]
 [exports.call]
 returns = "word"
 params = [
@@ -119,7 +106,6 @@ params = [
 ordinal = 210
 name = "midiOutReset"
 binding = { rust_id = "MidiOutReset", id_value = 950, constant = "MMSYSTEM_MIDI_OUT_RESET" }
-evidence = [{ source = "spec", line = 33 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "word"
 params = [
@@ -130,7 +116,6 @@ params = [
 ordinal = 211
 name = "midiOutGetVolume"
 binding = { rust_id = "MidiOutGetVolume", id_value = 951, constant = "MMSYSTEM_MIDI_OUT_GET_VOLUME" }
-evidence = [{ source = "spec", line = 34 }, { source = "binding", line = 17 }]
 [exports.call]
 returns = "word"
 params = [
@@ -142,7 +127,6 @@ params = [
 ordinal = 212
 name = "midiOutSetVolume"
 binding = { rust_id = "MidiOutSetVolume", id_value = 952, constant = "MMSYSTEM_MIDI_OUT_SET_VOLUME" }
-evidence = [{ source = "spec", line = 35 }, { source = "binding", line = 18 }]
 [exports.call]
 returns = "word"
 params = [
@@ -154,7 +138,6 @@ params = [
 ordinal = 213
 name = "midiOutCachePatches"
 binding = { rust_id = "MidiOutCachePatches", id_value = 953, constant = "MMSYSTEM_MIDI_OUT_CACHE_PATCHES" }
-evidence = [{ source = "spec", line = 36 }, { source = "binding", line = 19 }]
 [exports.call]
 returns = "word"
 params = [
@@ -168,7 +151,6 @@ params = [
 ordinal = 214
 name = "midiOutCacheDrumPatches"
 binding = { rust_id = "MidiOutCacheDrumPatches", id_value = 954, constant = "MMSYSTEM_MIDI_OUT_CACHE_DRUM_PATCHES" }
-evidence = [{ source = "spec", line = 37 }, { source = "binding", line = 20 }]
 [exports.call]
 returns = "word"
 params = [
@@ -182,7 +164,6 @@ params = [
 ordinal = 215
 name = "midiOutGetID"
 binding = { rust_id = "MidiOutGetId", id_value = 955, constant = "MMSYSTEM_MIDI_OUT_GET_ID" }
-evidence = [{ source = "spec", line = 38 }, { source = "binding", line = 21 }]
 [exports.call]
 returns = "word"
 params = [
@@ -194,7 +175,6 @@ params = [
 ordinal = 216
 name = "midiOutMessage"
 binding = { rust_id = "MidiOutMessage", id_value = 956, constant = "MMSYSTEM_MIDI_OUT_MESSAGE" }
-evidence = [{ source = "spec", line = 39 }, { source = "binding", line = 22 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -208,7 +188,6 @@ params = [
 ordinal = 250
 name = "midiStreamProperty"
 binding = { rust_id = "MidiStreamProperty", id_value = 957, constant = "MMSYSTEM_MIDI_STREAM_PROPERTY" }
-evidence = [{ source = "spec", line = 40 }, { source = "binding", line = 23 }]
 [exports.call]
 returns = "word"
 params = [
@@ -221,7 +200,6 @@ params = [
 ordinal = 251
 name = "midiStreamOpen"
 binding = { rust_id = "MidiStreamOpen", id_value = 958, constant = "MMSYSTEM_MIDI_STREAM_OPEN" }
-evidence = [{ source = "spec", line = 41 }, { source = "binding", line = 24 }]
 [exports.call]
 returns = "word"
 params = [
@@ -237,7 +215,6 @@ params = [
 ordinal = 252
 name = "midiStreamClose"
 binding = { rust_id = "MidiStreamClose", id_value = 959, constant = "MMSYSTEM_MIDI_STREAM_CLOSE" }
-evidence = [{ source = "spec", line = 42 }, { source = "binding", line = 25 }]
 [exports.call]
 returns = "word"
 params = [
@@ -248,7 +225,6 @@ params = [
 ordinal = 253
 name = "midiStreamPosition"
 binding = { rust_id = "MidiStreamPosition", id_value = 960, constant = "MMSYSTEM_MIDI_STREAM_POSITION" }
-evidence = [{ source = "spec", line = 43 }, { source = "binding", line = 26 }]
 [exports.call]
 returns = "word"
 params = [
@@ -261,7 +237,6 @@ params = [
 ordinal = 254
 name = "midiStreamOut"
 binding = { rust_id = "MidiStreamOut", id_value = 961, constant = "MMSYSTEM_MIDI_STREAM_OUT" }
-evidence = [{ source = "spec", line = 44 }, { source = "binding", line = 27 }]
 [exports.call]
 returns = "word"
 params = [
@@ -274,7 +249,6 @@ params = [
 ordinal = 255
 name = "midiStreamPause"
 binding = { rust_id = "MidiStreamPause", id_value = 962, constant = "MMSYSTEM_MIDI_STREAM_PAUSE" }
-evidence = [{ source = "spec", line = 45 }, { source = "binding", line = 28 }]
 [exports.call]
 returns = "word"
 params = [
@@ -285,7 +259,6 @@ params = [
 ordinal = 256
 name = "midiStreamRestart"
 binding = { rust_id = "MidiStreamRestart", id_value = 963, constant = "MMSYSTEM_MIDI_STREAM_RESTART" }
-evidence = [{ source = "spec", line = 46 }, { source = "binding", line = 29 }]
 [exports.call]
 returns = "word"
 params = [
@@ -296,7 +269,6 @@ params = [
 ordinal = 257
 name = "midiStreamStop"
 binding = { rust_id = "MidiStreamStop", id_value = 964, constant = "MMSYSTEM_MIDI_STREAM_STOP" }
-evidence = [{ source = "spec", line = 47 }, { source = "binding", line = 30 }]
 [exports.call]
 returns = "word"
 params = [
@@ -307,7 +279,6 @@ params = [
 ordinal = 301
 name = "midiInGetNumDevs"
 binding = { rust_id = "MidiInGetNumDevs", id_value = 965, constant = "MMSYSTEM_MIDI_IN_GET_NUM_DEVS" }
-evidence = [{ source = "spec", line = 48 }, { source = "binding", line = 31 }]
 [exports.call]
 returns = "word"
 
@@ -315,7 +286,6 @@ returns = "word"
 ordinal = 302
 name = "midiInGetDevCaps"
 binding = { rust_id = "MidiInGetDevCaps", id_value = 966, constant = "MMSYSTEM_MIDI_IN_GET_DEV_CAPS" }
-evidence = [{ source = "spec", line = 49 }, { source = "binding", line = 32 }]
 [exports.call]
 returns = "word"
 params = [
@@ -328,7 +298,6 @@ params = [
 ordinal = 303
 name = "midiInGetErrorText"
 binding = { rust_id = "MidiInGetErrorText", id_value = 967, constant = "MMSYSTEM_MIDI_IN_GET_ERROR_TEXT" }
-evidence = [{ source = "spec", line = 50 }, { source = "binding", line = 33 }]
 [exports.call]
 returns = "word"
 params = [
@@ -341,7 +310,6 @@ params = [
 ordinal = 304
 name = "midiInOpen"
 binding = { rust_id = "MidiInOpen", id_value = 968, constant = "MMSYSTEM_MIDI_IN_OPEN" }
-evidence = [{ source = "spec", line = 51 }, { source = "binding", line = 34 }]
 [exports.call]
 returns = "word"
 params = [
@@ -356,7 +324,6 @@ params = [
 ordinal = 305
 name = "midiInClose"
 binding = { rust_id = "MidiInClose", id_value = 969, constant = "MMSYSTEM_MIDI_IN_CLOSE" }
-evidence = [{ source = "spec", line = 52 }, { source = "binding", line = 35 }]
 [exports.call]
 returns = "word"
 params = [
@@ -367,7 +334,6 @@ params = [
 ordinal = 306
 name = "midiInPrepareHeader"
 binding = { rust_id = "MidiInPrepareHeader", id_value = 970, constant = "MMSYSTEM_MIDI_IN_PREPARE_HEADER" }
-evidence = [{ source = "spec", line = 53 }, { source = "binding", line = 36 }]
 [exports.call]
 returns = "word"
 params = [
@@ -380,7 +346,6 @@ params = [
 ordinal = 307
 name = "midiInUnprepareHeader"
 binding = { rust_id = "MidiInUnprepareHeader", id_value = 971, constant = "MMSYSTEM_MIDI_IN_UNPREPARE_HEADER" }
-evidence = [{ source = "spec", line = 54 }, { source = "binding", line = 37 }]
 [exports.call]
 returns = "word"
 params = [
@@ -393,7 +358,6 @@ params = [
 ordinal = 308
 name = "midiInAddBuffer"
 binding = { rust_id = "MidiInAddBuffer", id_value = 972, constant = "MMSYSTEM_MIDI_IN_ADD_BUFFER" }
-evidence = [{ source = "spec", line = 55 }, { source = "binding", line = 38 }]
 [exports.call]
 returns = "word"
 params = [
@@ -406,7 +370,6 @@ params = [
 ordinal = 309
 name = "midiInStart"
 binding = { rust_id = "MidiInStart", id_value = 973, constant = "MMSYSTEM_MIDI_IN_START" }
-evidence = [{ source = "spec", line = 56 }, { source = "binding", line = 39 }]
 [exports.call]
 returns = "word"
 params = [
@@ -417,7 +380,6 @@ params = [
 ordinal = 310
 name = "midiInStop"
 binding = { rust_id = "MidiInStop", id_value = 974, constant = "MMSYSTEM_MIDI_IN_STOP" }
-evidence = [{ source = "spec", line = 57 }, { source = "binding", line = 40 }]
 [exports.call]
 returns = "word"
 params = [
@@ -428,7 +390,6 @@ params = [
 ordinal = 311
 name = "midiInReset"
 binding = { rust_id = "MidiInReset", id_value = 975, constant = "MMSYSTEM_MIDI_IN_RESET" }
-evidence = [{ source = "spec", line = 58 }, { source = "binding", line = 41 }]
 [exports.call]
 returns = "word"
 params = [
@@ -439,7 +400,6 @@ params = [
 ordinal = 312
 name = "midiInGetID"
 binding = { rust_id = "MidiInGetId", id_value = 976, constant = "MMSYSTEM_MIDI_IN_GET_ID" }
-evidence = [{ source = "spec", line = 59 }, { source = "binding", line = 42 }]
 [exports.call]
 returns = "word"
 params = [
@@ -451,7 +411,6 @@ params = [
 ordinal = 313
 name = "midiInMessage"
 binding = { rust_id = "MidiInMessage", id_value = 977, constant = "MMSYSTEM_MIDI_IN_MESSAGE" }
-evidence = [{ source = "spec", line = 60 }, { source = "binding", line = 43 }]
 [exports.call]
 returns = "dword"
 params = [

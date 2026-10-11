@@ -1,15 +1,10 @@
 module = "TOOLHELP"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/toolhelp.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 66
 name = "StackTraceFirst"
 binding = { rust_id = "ToolhelpStackTraceFirst", id_value = 116, constant = "TOOLHELP_STACK_TRACE_FIRST" }
-evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 191 }]
 [exports.call]
 returns = "word"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 67
 name = "StackTraceCSIPFirst"
 binding = { rust_id = "ToolhelpStackTraceCsipFirst", id_value = 117, constant = "TOOLHELP_STACK_TRACE_CSIP_FIRST" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 192 }]
 [exports.call]
 returns = "word"
 params = [
@@ -36,7 +30,6 @@ params = [
 ordinal = 68
 name = "StackTraceNext"
 binding = { rust_id = "ToolhelpStackTraceNext", id_value = 118, constant = "TOOLHELP_STACK_TRACE_NEXT" }
-evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 193 }]
 [exports.call]
 returns = "word"
 params = [

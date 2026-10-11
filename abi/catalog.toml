@@ -134,11 +134,6 @@ types = [
 architecture = "win16"
 ordinal_source = "explicit"
 
-[source_notes]
-spec = "Historical declaration provenance; original licensing and notices remain applicable."
-binding = "Stable dispatch identity and family provenance at f8ab8e0393c8df86ab5a54ef462d73cc89fa596d"
-types = "Preserves compiled runtime parameter kind and role without new semantic claims."
-
 [[modules]]
 id = "AVIFILE"
 source_module = "avifile.DLL"

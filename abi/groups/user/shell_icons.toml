@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 457
 name = "DestroyIcon"
 binding = { rust_id = "UserDestroyIcon", id_value = 669, constant = "USER_DESTROY_ICON" }
-evidence = [{ source = "spec", line = 407 }, { source = "binding", line = 766 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 458
 name = "DestroyCursor"
 binding = { rust_id = "UserDestroyCursor", id_value = 670, constant = "USER_DESTROY_CURSOR" }
-evidence = [{ source = "spec", line = 408 }, { source = "binding", line = 767 }]
 [exports.call]
 returns = "word"
 params = [

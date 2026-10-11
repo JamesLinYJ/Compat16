@@ -1,14 +1,9 @@
 module = "SHELL"
 
-[sources]
-spec = { path = "specs/shell.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 37
 name = "DoEnvironmentSubst"
 binding = { rust_id = "ShellDoEnvironmentSubst", id_value = 610, constant = "SHELL_DO_ENVIRONMENT_SUBST" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 707 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 38
 name = "FindEnvironmentString"
 binding = { rust_id = "ShellFindEnvironmentString", id_value = 611, constant = "SHELL_FIND_ENVIRONMENT_STRING" }
-evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 708 }]
 [exports.call]
 returns = "dword"
 params = [

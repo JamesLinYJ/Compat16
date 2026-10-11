@@ -1,58 +1,46 @@
 module = "MSACM"
 
-[sources]
-spec = { path = "specs/msacm.spec", note = "spec" }
-
 [[exports]]
 ordinal = 2
 name = "DRIVERPROC"
 kind = "stub"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 4
 name = "___EXPORTEDSTUB"
 kind = "stub"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 150
 name = "ACMAPPLICATIONEXIT"
 kind = "stub"
-evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
 ordinal = 175
 name = "ACMHUGEPAGELOCK"
 kind = "stub"
-evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
 ordinal = 176
 name = "ACMHUGEPAGEUNLOCK"
 kind = "stub"
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 200
 name = "ACMOPENCONVERSION"
 kind = "stub"
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 201
 name = "ACMCLOSECONVERSION"
 kind = "stub"
-evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
 ordinal = 202
 name = "ACMCONVERT"
 kind = "stub"
-evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
 ordinal = 203
 name = "ACMCHOOSEFORMAT"
 kind = "stub"
-evidence = [{ source = "spec", line = 40 }]

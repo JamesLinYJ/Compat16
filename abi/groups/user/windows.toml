@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 7
 name = "ExitWindows"
 binding = { rust_id = "UserExitWindows", id_value = 575, constant = "USER_EXIT_WINDOWS" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 662 }]
 [exports.call]
 returns = "word"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 17
 name = "GetCursorPos"
 binding = { rust_id = "UserGetCursorPos", id_value = 518, constant = "USER_GET_CURSOR_POS" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 599 }]
 [exports.call]
 returns = "void"
 params = [
@@ -32,7 +26,6 @@ params = [
 ordinal = 24
 name = "RemoveProp"
 binding = { rust_id = "UserRemoveProp", id_value = 69, constant = "USER_REMOVE_PROP" }
-evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 143 }]
 [exports.call]
 returns = "word"
 params = [
@@ -44,7 +37,6 @@ params = [
 ordinal = 25
 name = "GetProp"
 binding = { rust_id = "UserGetProp", id_value = 70, constant = "USER_GET_PROP" }
-evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 144 }]
 [exports.call]
 returns = "word"
 params = [
@@ -56,7 +48,6 @@ params = [
 ordinal = 26
 name = "SetProp"
 binding = { rust_id = "UserSetProp", id_value = 71, constant = "USER_SET_PROP" }
-evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 145 }]
 [exports.call]
 returns = "word"
 params = [
@@ -69,7 +60,6 @@ params = [
 ordinal = 27
 name = "EnumProps"
 binding = { rust_id = "UserEnumProps", id_value = 75, constant = "USER_ENUM_PROPS" }
-evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 149 }]
 [exports.call]
 returns = "word"
 params = [
@@ -81,7 +71,6 @@ params = [
 ordinal = 28
 name = "ClientToScreen"
 binding = { rust_id = "UserClientToScreen", id_value = 516, constant = "USER_CLIENT_TO_SCREEN" }
-evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 596 }]
 [exports.call]
 returns = "void"
 params = [
@@ -93,7 +82,6 @@ params = [
 ordinal = 29
 name = "ScreenToClient"
 binding = { rust_id = "UserScreenToClient", id_value = 527, constant = "USER_SCREEN_TO_CLIENT" }
-evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 609 }]
 [exports.call]
 returns = "void"
 params = [
@@ -105,7 +93,6 @@ params = [
 ordinal = 30
 name = "WindowFromPoint"
 binding = { rust_id = "UserWindowFromPoint", id_value = 532, constant = "USER_WINDOW_FROM_POINT" }
-evidence = [{ source = "spec", line = 29 }, { source = "binding", line = 615 }]
 [exports.call]
 returns = "word"
 params = [
@@ -116,7 +103,6 @@ params = [
 ordinal = 31
 name = "IsIconic"
 binding = { rust_id = "UserIsIconic", id_value = 533, constant = "USER_IS_ICONIC" }
-evidence = [{ source = "spec", line = 30 }, { source = "binding", line = 616 }]
 [exports.call]
 returns = "word"
 params = [
@@ -127,7 +113,6 @@ params = [
 ordinal = 32
 name = "GetWindowRect"
 binding = { rust_id = "UserGetWindowRect", id_value = 534, constant = "USER_GET_WINDOW_RECT" }
-evidence = [{ source = "spec", line = 31 }, { source = "binding", line = 617 }]
 [exports.call]
 returns = "void"
 params = [
@@ -139,7 +124,6 @@ params = [
 ordinal = 33
 name = "GetClientRect"
 binding = { rust_id = "UserGetClientRect", id_value = 535, constant = "USER_GET_CLIENT_RECT" }
-evidence = [{ source = "spec", line = 32 }, { source = "binding", line = 618 }]
 [exports.call]
 returns = "void"
 params = [
@@ -151,7 +135,6 @@ params = [
 ordinal = 34
 name = "EnableWindow"
 binding = { rust_id = "UserEnableWindow", id_value = 536, constant = "USER_ENABLE_WINDOW" }
-evidence = [{ source = "spec", line = 33 }, { source = "binding", line = 619 }]
 [exports.call]
 returns = "word"
 params = [
@@ -163,7 +146,6 @@ params = [
 ordinal = 35
 name = "IsWindowEnabled"
 binding = { rust_id = "UserIsWindowEnabled", id_value = 537, constant = "USER_IS_WINDOW_ENABLED" }
-evidence = [{ source = "spec", line = 34 }, { source = "binding", line = 620 }]
 [exports.call]
 returns = "word"
 params = [
@@ -174,7 +156,6 @@ params = [
 ordinal = 36
 name = "GetWindowText"
 binding = { rust_id = "UserGetWindowText", id_value = 477, constant = "USER_GET_WINDOW_TEXT" }
-evidence = [{ source = "spec", line = 35 }, { source = "binding", line = 557 }]
 [exports.call]
 returns = "word"
 params = [
@@ -187,7 +168,6 @@ params = [
 ordinal = 37
 name = "SetWindowText"
 binding = { rust_id = "UserSetWindowText", id_value = 478, constant = "USER_SET_WINDOW_TEXT" }
-evidence = [{ source = "spec", line = 36 }, { source = "binding", line = 558 }]
 [exports.call]
 returns = "void"
 params = [
@@ -199,7 +179,6 @@ params = [
 ordinal = 38
 name = "GetWindowTextLength"
 binding = { rust_id = "UserGetWindowTextLength", id_value = 479, constant = "USER_GET_WINDOW_TEXT_LENGTH" }
-evidence = [{ source = "spec", line = 37 }, { source = "binding", line = 559 }]
 [exports.call]
 returns = "word"
 params = [
@@ -210,7 +189,6 @@ params = [
 ordinal = 41
 name = "CreateWindow"
 binding = { rust_id = "UserCreateWindow", id_value = 230, constant = "USER_CREATE_WINDOW" }
-evidence = [{ source = "spec", line = 40 }, { source = "binding", line = 307 }]
 [exports.call]
 returns = "word"
 params = [
@@ -231,7 +209,6 @@ params = [
 ordinal = 42
 name = "ShowWindow"
 binding = { rust_id = "UserShowWindow", id_value = 232, constant = "USER_SHOW_WINDOW" }
-evidence = [{ source = "spec", line = 41 }, { source = "binding", line = 309 }]
 [exports.call]
 returns = "word"
 params = [
@@ -243,7 +220,6 @@ params = [
 ordinal = 43
 name = "CloseWindow"
 binding = { rust_id = "UserCloseWindow", id_value = 538, constant = "USER_CLOSE_WINDOW" }
-evidence = [{ source = "spec", line = 43 }, { source = "binding", line = 622 }]
 [exports.call]
 returns = "void"
 params = [
@@ -254,7 +230,6 @@ params = [
 ordinal = 44
 name = "OpenIcon"
 binding = { rust_id = "UserOpenIcon", id_value = 539, constant = "USER_OPEN_ICON" }
-evidence = [{ source = "spec", line = 45 }, { source = "binding", line = 624 }]
 [exports.call]
 returns = "word"
 params = [
@@ -265,7 +240,6 @@ params = [
 ordinal = 45
 name = "BringWindowToTop"
 binding = { rust_id = "UserBringWindowToTop", id_value = 541, constant = "USER_BRING_WINDOW_TO_TOP" }
-evidence = [{ source = "spec", line = 46 }, { source = "binding", line = 627 }]
 [exports.call]
 returns = "word"
 params = [
@@ -276,7 +250,6 @@ params = [
 ordinal = 46
 name = "GetParent"
 binding = { rust_id = "UserGetParent", id_value = 542, constant = "USER_GET_PARENT" }
-evidence = [{ source = "spec", line = 47 }, { source = "binding", line = 628 }]
 [exports.call]
 returns = "word"
 params = [
@@ -287,7 +260,6 @@ params = [
 ordinal = 47
 name = "IsWindow"
 binding = { rust_id = "UserIsWindow", id_value = 543, constant = "USER_IS_WINDOW" }
-evidence = [{ source = "spec", line = 48 }, { source = "binding", line = 629 }]
 [exports.call]
 returns = "word"
 params = [
@@ -298,7 +270,6 @@ params = [
 ordinal = 48
 name = "IsChild"
 binding = { rust_id = "UserIsChild", id_value = 531, constant = "USER_IS_CHILD" }
-evidence = [{ source = "spec", line = 49 }, { source = "binding", line = 614 }]
 [exports.call]
 returns = "word"
 params = [
@@ -310,7 +281,6 @@ params = [
 ordinal = 49
 name = "IsWindowVisible"
 binding = { rust_id = "UserIsWindowVisible", id_value = 544, constant = "USER_IS_WINDOW_VISIBLE" }
-evidence = [{ source = "spec", line = 50 }, { source = "binding", line = 630 }]
 [exports.call]
 returns = "word"
 params = [
@@ -321,7 +291,6 @@ params = [
 ordinal = 50
 name = "FindWindow"
 binding = { rust_id = "UserFindWindow", id_value = 545, constant = "USER_FIND_WINDOW" }
-evidence = [{ source = "spec", line = 51 }, { source = "binding", line = 631 }]
 [exports.call]
 returns = "word"
 params = [
@@ -333,7 +302,6 @@ params = [
 ordinal = 53
 name = "DestroyWindow"
 binding = { rust_id = "UserDestroyWindow", id_value = 547, constant = "USER_DESTROY_WINDOW" }
-evidence = [{ source = "spec", line = 54 }, { source = "binding", line = 633 }]
 [exports.call]
 returns = "word"
 params = [
@@ -344,7 +312,6 @@ params = [
 ordinal = 54
 name = "EnumWindows"
 binding = { rust_id = "UserEnumWindows", id_value = 72, constant = "USER_ENUM_WINDOWS" }
-evidence = [{ source = "spec", line = 55 }, { source = "binding", line = 146 }]
 [exports.call]
 returns = "word"
 params = [
@@ -356,7 +323,6 @@ params = [
 ordinal = 55
 name = "EnumChildWindows"
 binding = { rust_id = "UserEnumChildWindows", id_value = 73, constant = "USER_ENUM_CHILD_WINDOWS" }
-evidence = [{ source = "spec", line = 56 }, { source = "binding", line = 147 }]
 [exports.call]
 returns = "word"
 params = [
@@ -369,7 +335,6 @@ params = [
 ordinal = 56
 name = "MoveWindow"
 binding = { rust_id = "UserMoveWindow", id_value = 548, constant = "USER_MOVE_WINDOW" }
-evidence = [{ source = "spec", line = 57 }, { source = "binding", line = 634 }]
 [exports.call]
 returns = "word"
 params = [
@@ -385,7 +350,6 @@ params = [
 ordinal = 57
 name = "RegisterClass"
 binding = { rust_id = "UserRegisterClass", id_value = 228, constant = "USER_REGISTER_CLASS" }
-evidence = [{ source = "spec", line = 58 }, { source = "binding", line = 305 }]
 [exports.call]
 returns = "word"
 params = [
@@ -396,7 +360,6 @@ params = [
 ordinal = 58
 name = "GetClassName"
 binding = { rust_id = "UserGetClassName", id_value = 549, constant = "USER_GET_CLASS_NAME" }
-evidence = [{ source = "spec", line = 59 }, { source = "binding", line = 635 }]
 [exports.call]
 returns = "word"
 params = [
@@ -409,7 +372,6 @@ params = [
 ordinal = 59
 name = "SetActiveWindow"
 binding = { rust_id = "UserSetActiveWindow", id_value = 550, constant = "USER_SET_ACTIVE_WINDOW" }
-evidence = [{ source = "spec", line = 60 }, { source = "binding", line = 636 }]
 [exports.call]
 returns = "word"
 params = [
@@ -420,7 +382,6 @@ params = [
 ordinal = 67
 name = "GetWindowDC"
 binding = { rust_id = "UserGetWindowDc", id_value = 244, constant = "USER_GET_WINDOW_DC" }
-evidence = [{ source = "spec", line = 68 }, { source = "binding", line = 321 }]
 [exports.call]
 returns = "word"
 params = [
@@ -431,7 +392,6 @@ params = [
 ordinal = 72
 name = "SetRect"
 binding = { rust_id = "UserSetRect", id_value = 552, constant = "USER_SET_RECT" }
-evidence = [{ source = "spec", line = 73 }, { source = "binding", line = 638 }]
 [exports.call]
 returns = "void"
 params = [
@@ -446,7 +406,6 @@ params = [
 ordinal = 73
 name = "SetRectEmpty"
 binding = { rust_id = "UserSetRectEmpty", id_value = 553, constant = "USER_SET_RECT_EMPTY" }
-evidence = [{ source = "spec", line = 74 }, { source = "binding", line = 639 }]
 [exports.call]
 returns = "void"
 params = [
@@ -457,7 +416,6 @@ params = [
 ordinal = 74
 name = "CopyRect"
 binding = { rust_id = "UserCopyRect", id_value = 554, constant = "USER_COPY_RECT" }
-evidence = [{ source = "spec", line = 75 }, { source = "binding", line = 640 }]
 [exports.call]
 returns = "void"
 params = [
@@ -469,7 +427,6 @@ params = [
 ordinal = 75
 name = "IsRectEmpty"
 binding = { rust_id = "UserIsRectEmpty", id_value = 555, constant = "USER_IS_RECT_EMPTY" }
-evidence = [{ source = "spec", line = 76 }, { source = "binding", line = 641 }]
 [exports.call]
 returns = "word"
 params = [
@@ -480,7 +437,6 @@ params = [
 ordinal = 76
 name = "PtInRect"
 binding = { rust_id = "UserPtInRect", id_value = 556, constant = "USER_PT_IN_RECT" }
-evidence = [{ source = "spec", line = 77 }, { source = "binding", line = 642 }]
 [exports.call]
 returns = "word"
 params = [
@@ -492,7 +448,6 @@ params = [
 ordinal = 77
 name = "OffsetRect"
 binding = { rust_id = "UserOffsetRect", id_value = 557, constant = "USER_OFFSET_RECT" }
-evidence = [{ source = "spec", line = 78 }, { source = "binding", line = 643 }]
 [exports.call]
 returns = "void"
 params = [
@@ -505,7 +460,6 @@ params = [
 ordinal = 78
 name = "InflateRect"
 binding = { rust_id = "UserInflateRect", id_value = 558, constant = "USER_INFLATE_RECT" }
-evidence = [{ source = "spec", line = 79 }, { source = "binding", line = 644 }]
 [exports.call]
 returns = "void"
 params = [
@@ -518,7 +472,6 @@ params = [
 ordinal = 79
 name = "IntersectRect"
 binding = { rust_id = "UserIntersectRect", id_value = 559, constant = "USER_INTERSECT_RECT" }
-evidence = [{ source = "spec", line = 80 }, { source = "binding", line = 645 }]
 [exports.call]
 returns = "word"
 params = [
@@ -531,7 +484,6 @@ params = [
 ordinal = 80
 name = "UnionRect"
 binding = { rust_id = "UserUnionRect", id_value = 560, constant = "USER_UNION_RECT" }
-evidence = [{ source = "spec", line = 81 }, { source = "binding", line = 646 }]
 [exports.call]
 returns = "word"
 params = [
@@ -545,7 +497,6 @@ ordinal = 107
 name = "DefWindowProc"
 decl = { attributes = [] }
 binding = { rust_id = "UserDefWindowProc", id_value = 217, constant = "USER_DEF_WINDOW_PROC" }
-evidence = [{ source = "spec", line = 108 }, { source = "binding", line = 294 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -559,7 +510,6 @@ params = [
 ordinal = 129
 name = "GetClassWord"
 binding = { rust_id = "UserGetClassWord", id_value = 76, constant = "USER_GET_CLASS_WORD" }
-evidence = [{ source = "spec", line = 130 }, { source = "binding", line = 150 }]
 [exports.call]
 returns = "word"
 params = [
@@ -571,7 +521,6 @@ params = [
 ordinal = 130
 name = "SetClassWord"
 binding = { rust_id = "UserSetClassWord", id_value = 77, constant = "USER_SET_CLASS_WORD" }
-evidence = [{ source = "spec", line = 131 }, { source = "binding", line = 151 }]
 [exports.call]
 returns = "word"
 params = [
@@ -585,7 +534,6 @@ ordinal = 131
 name = "GetClassLong"
 decl = { attributes = [] }
 binding = { rust_id = "UserGetClassLong", id_value = 78, constant = "USER_GET_CLASS_LONG" }
-evidence = [{ source = "spec", line = 132 }, { source = "binding", line = 152 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -598,7 +546,6 @@ ordinal = 132
 name = "SetClassLong"
 decl = { attributes = [] }
 binding = { rust_id = "UserSetClassLong", id_value = 79, constant = "USER_SET_CLASS_LONG" }
-evidence = [{ source = "spec", line = 133 }, { source = "binding", line = 153 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -611,7 +558,6 @@ params = [
 ordinal = 133
 name = "GetWindowWord"
 binding = { rust_id = "UserGetWindowWord", id_value = 81, constant = "USER_GET_WINDOW_WORD" }
-evidence = [{ source = "spec", line = 134 }, { source = "binding", line = 156 }]
 [exports.call]
 returns = "word"
 params = [
@@ -623,7 +569,6 @@ params = [
 ordinal = 134
 name = "SetWindowWord"
 binding = { rust_id = "UserSetWindowWord", id_value = 82, constant = "USER_SET_WINDOW_WORD" }
-evidence = [{ source = "spec", line = 135 }, { source = "binding", line = 157 }]
 [exports.call]
 returns = "word"
 params = [
@@ -637,7 +582,6 @@ ordinal = 135
 name = "GetWindowLong"
 decl = { attributes = [] }
 binding = { rust_id = "UserGetWindowLong", id_value = 83, constant = "USER_GET_WINDOW_LONG" }
-evidence = [{ source = "spec", line = 136 }, { source = "binding", line = 158 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -650,7 +594,6 @@ ordinal = 136
 name = "SetWindowLong"
 decl = { attributes = [] }
 binding = { rust_id = "UserSetWindowLong", id_value = 84, constant = "USER_SET_WINDOW_LONG" }
-evidence = [{ source = "spec", line = 137 }, { source = "binding", line = 159 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -663,7 +606,6 @@ params = [
 ordinal = 163
 name = "CreateCaret"
 binding = { rust_id = "UserCreateCaret", id_value = 519, constant = "USER_CREATE_CARET" }
-evidence = [{ source = "spec", line = 164 }, { source = "binding", line = 601 }]
 [exports.call]
 returns = "void"
 params = [
@@ -677,7 +619,6 @@ params = [
 ordinal = 165
 name = "SetCaretPos"
 binding = { rust_id = "UserSetCaretPos", id_value = 521, constant = "USER_SET_CARET_POS" }
-evidence = [{ source = "spec", line = 166 }, { source = "binding", line = 603 }]
 [exports.call]
 returns = "void"
 params = [
@@ -689,7 +630,6 @@ params = [
 ordinal = 166
 name = "HideCaret"
 binding = { rust_id = "UserHideCaret", id_value = 522, constant = "USER_HIDE_CARET" }
-evidence = [{ source = "spec", line = 167 }, { source = "binding", line = 604 }]
 [exports.call]
 returns = "void"
 params = [
@@ -700,7 +640,6 @@ params = [
 ordinal = 167
 name = "ShowCaret"
 binding = { rust_id = "UserShowCaret", id_value = 523, constant = "USER_SHOW_CARET" }
-evidence = [{ source = "spec", line = 168 }, { source = "binding", line = 605 }]
 [exports.call]
 returns = "void"
 params = [
@@ -711,7 +650,6 @@ params = [
 ordinal = 170
 name = "ArrangeIconicWindows"
 binding = { rust_id = "UserArrangeIconicWindows", id_value = 540, constant = "USER_ARRANGE_ICONIC_WINDOWS" }
-evidence = [{ source = "spec", line = 172 }, { source = "binding", line = 626 }]
 [exports.call]
 returns = "word"
 params = [
@@ -722,7 +660,6 @@ params = [
 ordinal = 183
 name = "GetCaretPos"
 binding = { rust_id = "UserGetCaretPos", id_value = 524, constant = "USER_GET_CARET_POS" }
-evidence = [{ source = "spec", line = 185 }, { source = "binding", line = 606 }]
 [exports.call]
 returns = "void"
 params = [
@@ -733,7 +670,6 @@ params = [
 ordinal = 191
 name = "ChildWindowFromPoint"
 binding = { rust_id = "UserChildWindowFromPoint", id_value = 529, constant = "USER_CHILD_WINDOW_FROM_POINT" }
-evidence = [{ source = "spec", line = 193 }, { source = "binding", line = 612 }]
 [exports.call]
 returns = "word"
 params = [
@@ -745,7 +681,6 @@ params = [
 ordinal = 225
 name = "EnumTaskWindows"
 binding = { rust_id = "UserEnumTaskWindows", id_value = 74, constant = "USER_ENUM_TASK_WINDOWS" }
-evidence = [{ source = "spec", line = 229 }, { source = "binding", line = 148 }]
 [exports.call]
 returns = "word"
 params = [
@@ -758,7 +693,6 @@ params = [
 ordinal = 229
 name = "GetTopWindow"
 binding = { rust_id = "UserGetTopWindow", id_value = 565, constant = "USER_GET_TOP_WINDOW" }
-evidence = [{ source = "spec", line = 233 }, { source = "binding", line = 651 }]
 [exports.call]
 returns = "word"
 params = [
@@ -769,7 +703,6 @@ params = [
 ordinal = 230
 name = "GetNextWindow"
 binding = { rust_id = "UserGetNextWindow", id_value = 566, constant = "USER_GET_NEXT_WINDOW" }
-evidence = [{ source = "spec", line = 234 }, { source = "binding", line = 652 }]
 [exports.call]
 returns = "word"
 params = [
@@ -781,7 +714,6 @@ params = [
 ordinal = 232
 name = "SetWindowPos"
 binding = { rust_id = "UserSetWindowPos", id_value = 563, constant = "USER_SET_WINDOW_POS" }
-evidence = [{ source = "spec", line = 236 }, { source = "binding", line = 649 }]
 [exports.call]
 returns = "word"
 params = [
@@ -798,7 +730,6 @@ params = [
 ordinal = 233
 name = "SetParent"
 binding = { rust_id = "UserSetParent", id_value = 80, constant = "USER_SET_PARENT" }
-evidence = [{ source = "spec", line = 238 }, { source = "binding", line = 155 }]
 [exports.call]
 returns = "word"
 params = [
@@ -810,7 +741,6 @@ params = [
 ordinal = 244
 name = "EqualRect"
 binding = { rust_id = "UserEqualRect", id_value = 561, constant = "USER_EQUAL_RECT" }
-evidence = [{ source = "spec", line = 249 }, { source = "binding", line = 647 }]
 [exports.call]
 returns = "word"
 params = [
@@ -822,7 +752,6 @@ params = [
 ordinal = 246
 name = "ExitWindowsExec"
 binding = { rust_id = "UserExitWindowsExec", id_value = 576, constant = "USER_EXIT_WINDOWS_EXEC" }
-evidence = [{ source = "spec", line = 251 }, { source = "binding", line = 663 }]
 [exports.call]
 returns = "word"
 params = [
@@ -834,7 +763,6 @@ params = [
 ordinal = 258
 name = "MapWindowPoints"
 binding = { rust_id = "UserMapWindowPoints", id_value = 528, constant = "USER_MAP_WINDOW_POINTS" }
-evidence = [{ source = "spec", line = 263 }, { source = "binding", line = 611 }]
 [exports.call]
 returns = "void"
 params = [
@@ -848,7 +776,6 @@ params = [
 ordinal = 262
 name = "GetWindow"
 binding = { rust_id = "UserGetWindow", id_value = 564, constant = "USER_GET_WINDOW" }
-evidence = [{ source = "spec", line = 267 }, { source = "binding", line = 650 }]
 [exports.call]
 returns = "word"
 params = [
@@ -860,7 +787,6 @@ params = [
 ordinal = 265
 name = "ShowOwnedPopups"
 binding = { rust_id = "UserShowOwnedPopups", id_value = 567, constant = "USER_SHOW_OWNED_POPUPS" }
-evidence = [{ source = "spec", line = 270 }, { source = "binding", line = 653 }]
 [exports.call]
 returns = "void"
 params = [
@@ -872,7 +798,6 @@ params = [
 ordinal = 272
 name = "IsZoomed"
 binding = { rust_id = "UserIsZoomed", id_value = 568, constant = "USER_IS_ZOOMED" }
-evidence = [{ source = "spec", line = 277 }, { source = "binding", line = 654 }]
 [exports.call]
 returns = "word"
 params = [
@@ -883,7 +808,6 @@ params = [
 ordinal = 277
 name = "GetDlgCtrlID"
 binding = { rust_id = "UserGetDlgCtrlID", id_value = 569, constant = "USER_GET_DLG_CTRL_ID" }
-evidence = [{ source = "spec", line = 282 }, { source = "binding", line = 655 }]
 [exports.call]
 returns = "word"
 params = [
@@ -894,7 +818,6 @@ params = [
 ordinal = 287
 name = "GetLastActivePopup"
 binding = { rust_id = "UserGetLastActivePopup", id_value = 571, constant = "USER_GET_LAST_ACTIVE_POPUP" }
-evidence = [{ source = "spec", line = 292 }, { source = "binding", line = 657 }]
 [exports.call]
 returns = "word"
 params = [
@@ -906,7 +829,6 @@ ordinal = 308
 name = "DefDlgProc"
 decl = { attributes = [] }
 binding = { rust_id = "UserDefDlgProc", id_value = 218, constant = "USER_DEF_DLG_PROC" }
-evidence = [{ source = "spec", line = 309 }, { source = "binding", line = 295 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -920,7 +842,6 @@ params = [
 ordinal = 309
 name = "GetClipCursor"
 binding = { rust_id = "UserGetClipCursor", id_value = 517, constant = "USER_GET_CLIP_CURSOR" }
-evidence = [{ source = "spec", line = 310 }, { source = "binding", line = 598 }]
 [exports.call]
 returns = "void"
 params = [
@@ -931,7 +852,6 @@ params = [
 ordinal = 370
 name = "GetWindowPlacement"
 binding = { rust_id = "UserGetWindowPlacement", id_value = 525, constant = "USER_GET_WINDOW_PLACEMENT" }
-evidence = [{ source = "spec", line = 339 }, { source = "binding", line = 607 }]
 [exports.call]
 returns = "word"
 params = [
@@ -943,7 +863,6 @@ params = [
 ordinal = 371
 name = "SetWindowPlacement"
 binding = { rust_id = "UserSetWindowPlacement", id_value = 526, constant = "USER_SET_WINDOW_PLACEMENT" }
-evidence = [{ source = "spec", line = 340 }, { source = "binding", line = 608 }]
 [exports.call]
 returns = "word"
 params = [
@@ -955,7 +874,6 @@ params = [
 ordinal = 373
 name = "SubtractRect"
 binding = { rust_id = "UserSubtractRect", id_value = 562, constant = "USER_SUBTRACT_RECT" }
-evidence = [{ source = "spec", line = 342 }, { source = "binding", line = 648 }]
 [exports.call]
 returns = "word"
 params = [
@@ -968,7 +886,6 @@ params = [
 ordinal = 399
 name = "ChildWindowFromPointEx"
 binding = { rust_id = "UserChildWindowFromPointEx", id_value = 530, constant = "USER_CHILD_WINDOW_FROM_POINT_EX" }
-evidence = [{ source = "spec", line = 360 }, { source = "binding", line = 613 }]
 [exports.call]
 returns = "word"
 params = [
@@ -981,7 +898,6 @@ params = [
 ordinal = 403
 name = "UnregisterClass"
 binding = { rust_id = "UserUnregisterClass", id_value = 229, constant = "USER_UNREGISTER_CLASS" }
-evidence = [{ source = "spec", line = 363 }, { source = "binding", line = 306 }]
 [exports.call]
 returns = "word"
 params = [
@@ -993,7 +909,6 @@ params = [
 ordinal = 404
 name = "GetClassInfo"
 binding = { rust_id = "UserGetClassInfo", id_value = 233, constant = "USER_GET_CLASS_INFO" }
-evidence = [{ source = "spec", line = 364 }, { source = "binding", line = 310 }]
 [exports.call]
 returns = "word"
 params = [
@@ -1007,7 +922,6 @@ ordinal = 445
 name = "DefFrameProc"
 decl = { attributes = [] }
 binding = { rust_id = "UserDefFrameProc", id_value = 46, constant = "USER_DEF_FRAME_PROC" }
-evidence = [{ source = "spec", line = 396 }, { source = "binding", line = 120 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -1023,7 +937,6 @@ ordinal = 447
 name = "DefMDIChildProc"
 decl = { attributes = [] }
 binding = { rust_id = "UserDefMDIChildProc", id_value = 54, constant = "USER_DEF_MDI_CHILD_PROC" }
-evidence = [{ source = "spec", line = 398 }, { source = "binding", line = 128 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -1037,7 +950,6 @@ params = [
 ordinal = 451
 name = "TranslateMDISysAccel"
 binding = { rust_id = "UserTranslateMDISysAccel", id_value = 55, constant = "USER_TRANSLATE_MDI_SYS_ACCEL" }
-evidence = [{ source = "spec", line = 402 }, { source = "binding", line = 129 }]
 [exports.call]
 returns = "word"
 params = [
@@ -1049,7 +961,6 @@ params = [
 ordinal = 452
 name = "CreateWindowEx"
 binding = { rust_id = "UserCreateWindowEx", id_value = 231, constant = "USER_CREATE_WINDOW_EX" }
-evidence = [{ source = "spec", line = 403 }, { source = "binding", line = 308 }]
 [exports.call]
 returns = "word"
 params = [

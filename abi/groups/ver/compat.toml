@@ -1,14 +1,9 @@
 module = "VER"
 
-[sources]
-spec = { path = "specs/ver.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 2
 name = "GetFileResourceSize"
 binding = { rust_id = "VerGetFileResourceSize", id_value = 592, constant = "VER_GET_FILE_RESOURCE_SIZE" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 687 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 3
 name = "GetFileResource"
 binding = { rust_id = "VerGetFileResource", id_value = 593, constant = "VER_GET_FILE_RESOURCE" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 688 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -38,7 +32,6 @@ params = [
 ordinal = 6
 name = "GetFileVersionInfoSize"
 binding = { rust_id = "VerGetFileVersionInfoSize", id_value = 594, constant = "VER_GET_FILE_VERSION_INFO_SIZE" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 689 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -50,7 +43,6 @@ params = [
 ordinal = 7
 name = "GetFileVersionInfo"
 binding = { rust_id = "VerGetFileVersionInfo", id_value = 595, constant = "VER_GET_FILE_VERSION_INFO" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 690 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -64,7 +56,6 @@ params = [
 ordinal = 8
 name = "VerFindFile"
 binding = { rust_id = "VerFindFile", id_value = 596, constant = "VER_FIND_FILE" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 691 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -82,7 +73,6 @@ params = [
 ordinal = 9
 name = "VerInstallFile"
 binding = { rust_id = "VerInstallFile", id_value = 597, constant = "VER_INSTALL_FILE" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 692 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -100,7 +90,6 @@ params = [
 ordinal = 10
 name = "VerLanguageName"
 binding = { rust_id = "VerLanguageName", id_value = 598, constant = "VER_LANGUAGE_NAME" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 693 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -113,7 +102,6 @@ params = [
 ordinal = 11
 name = "VerQueryValue"
 binding = { rust_id = "VerQueryValue", id_value = 599, constant = "VER_QUERY_VALUE" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 694 }]
 [exports.call]
 returns = "dword"
 params = [

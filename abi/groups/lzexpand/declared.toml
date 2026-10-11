@@ -1,15 +1,10 @@
 module = "LZEXPAND"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/lzexpand.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 7
 name = "LZStart"
 binding = { rust_id = "LzexpandLzStart", id_value = 606, constant = "LZEXPAND_LZ_START" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 702 }]
 [exports.call]
 returns = "word"
 
@@ -17,6 +12,5 @@ returns = "word"
 ordinal = 9
 name = "LZDone"
 binding = { rust_id = "LzexpandLzDone", id_value = 608, constant = "LZEXPAND_LZ_DONE" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 704 }]
 [exports.call]
 returns = "word"

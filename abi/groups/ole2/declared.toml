@@ -1,1064 +1,891 @@
 module = "OLE2"
 
-[sources]
-spec = { path = "specs/ole2.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "OleBuildVersion"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "OleInitialize"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "OleUninitialize"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 4
 name = "DllGetClassObject"
 decl = { args = ["pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 5
 name = "WEP"
 decl = { args = ["word", "word", "word", "pointer"] }
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 6
 name = "OleQueryLinkFromData"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 7
 name = "OleQueryCreateFromData"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 8
 name = "OleCreateFromData"
 decl = { args = ["segmented_pointer", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 9
 name = "OleCreateLinkFromData"
 decl = { args = ["segmented_pointer", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 10
 name = "OleCreate"
 decl = { args = ["pointer", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 11
 name = "OLECREATELINK"
 kind = "stub"
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 12
 name = "OleLoad"
 decl = { args = ["segmented_pointer", "pointer", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 13
 name = "OleSave"
 decl = { args = ["segmented_pointer", "segmented_pointer", "word"] }
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 14
 name = "OleRun"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 16
 name = "OleIsRunning"
 decl = { attributes = ["ret16"], args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 17
 name = "OleLockRunning"
 decl = { args = ["segmented_pointer", "word", "word"] }
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 18
 name = "ReadClassStg"
 decl = { args = ["segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 19
 name = "WriteClassStg"
 decl = { args = ["segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 20
 name = "ReadClassStm"
 decl = { args = ["segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 21
 name = "WriteClassStm"
 decl = { args = ["segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 22
 name = "BindMoniker"
 decl = { args = ["segmented_pointer", "long", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
 ordinal = 23
 name = "MkParseDisplayName"
 decl = { args = ["segmented_pointer", "string", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 24
 name = "OleSaveToStream"
 decl = { args = ["segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
 ordinal = 25
 name = "OleLoadFromStream"
 decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
 ordinal = 26
 name = "CreateBindCtx"
 decl = { args = ["long", "pointer"] }
-evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
 ordinal = 27
 name = "CreateItemMoniker"
 decl = { args = ["string", "string", "pointer"] }
-evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
 ordinal = 28
 name = "CreateFileMoniker"
 decl = { args = ["string", "pointer"] }
-evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
 ordinal = 29
 name = "CreateGenericComposite"
 decl = { args = ["segmented_pointer", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
 ordinal = 30
 name = "GetRunningObjectTable"
 decl = { args = ["long", "pointer"] }
-evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
 ordinal = 31
 name = "OLEGETMALLOC"
 kind = "stub"
-evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
 ordinal = 32
 name = "ReleaseStgMedium"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
 ordinal = 33
 name = "READSTRINGSTREAM"
 kind = "stub"
-evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
 ordinal = 34
 name = "WRITESTRINGSTREAM"
 kind = "stub"
-evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
 ordinal = 35
 name = "RegisterDragDrop"
 decl = { args = ["word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
 ordinal = 36
 name = "RevokeDragDrop"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 37
 name = "DoDragDrop"
 decl = { args = ["segmented_pointer", "segmented_pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 38
 name = "CreateOleAdviseHolder"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
 ordinal = 39
 name = "CreateDataAdviseHolder"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
 ordinal = 40
 name = "OleCreateMenuDescriptor"
 decl = { attributes = ["ret16"], args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
 ordinal = 41
 name = "OleSetMenuDescriptor"
 decl = { args = ["word", "word", "word", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
 ordinal = 42
 name = "OleDestroyMenuDescriptor"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 42 }]
 
 [[exports]]
 ordinal = 43
 name = "OPENORCREATESTREAM"
 kind = "stub"
-evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
 ordinal = 44
 name = "CREATEANTIMONIKER"
 kind = "stub"
-evidence = [{ source = "spec", line = 44 }]
 
 [[exports]]
 ordinal = 45
 name = "CREATEPOINTERMONIKER"
 kind = "stub"
-evidence = [{ source = "spec", line = 45 }]
 
 [[exports]]
 ordinal = 46
 name = "MONIKERRELATIVEPATHTO"
 kind = "stub"
-evidence = [{ source = "spec", line = 46 }]
 
 [[exports]]
 ordinal = 47
 name = "MONIKERCOMMONPREFIXWITH"
 kind = "stub"
-evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
 ordinal = 48
 name = "ISACCELERATOR"
 kind = "stub"
-evidence = [{ source = "spec", line = 48 }]
 
 [[exports]]
 ordinal = 49
 name = "OleSetClipboard"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 49 }]
 
 [[exports]]
 ordinal = 50
 name = "OleGetClipboard"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
 ordinal = 51
 name = "OleDuplicateData"
 decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 51 }]
 
 [[exports]]
 ordinal = 52
 name = "OleGetIconOfFile"
 decl = { attributes = ["ret16"], args = ["string", "word"] }
-evidence = [{ source = "spec", line = 52 }]
 
 [[exports]]
 ordinal = 53
 name = "OleGetIconOfClass"
 decl = { attributes = ["ret16"], args = ["pointer", "string", "word"] }
-evidence = [{ source = "spec", line = 53 }]
 
 [[exports]]
 ordinal = 54
 name = "CreateILockBytesOnHGlobal"
 decl = { args = ["word", "word", "pointer"] }
-evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
 ordinal = 55
 name = "GetHGlobalFromILockBytes"
 decl = { args = ["segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 55 }]
 
 [[exports]]
 ordinal = 56
 name = "OleMetafilePictFromIconAndLabel"
 decl = { attributes = ["ret16"], args = ["word", "string", "string", "word"] }
-evidence = [{ source = "spec", line = 56 }]
 
 [[exports]]
 ordinal = 57
 name = "GetClassFile"
 decl = { args = ["string", "pointer"] }
-evidence = [{ source = "spec", line = 57 }]
 
 [[exports]]
 ordinal = 58
 name = "OleDraw"
 decl = { args = ["segmented_pointer", "long", "word", "pointer"] }
-evidence = [{ source = "spec", line = 58 }]
 
 [[exports]]
 ordinal = 59
 name = "OleCreateDefaultHandler"
 decl = { args = ["pointer", "segmented_pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 59 }]
 
 [[exports]]
 ordinal = 60
 name = "OleCreateEmbeddingHelper"
 decl = { args = ["pointer", "segmented_pointer", "long", "segmented_pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 60 }]
 
 [[exports]]
 ordinal = 61
 name = "OleConvertIStorageToOLESTREAMEx"
 decl = { args = ["segmented_pointer", "word", "long", "long", "long", "pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 61 }]
 
 [[exports]]
 ordinal = 62
 name = "OleConvertOLESTREAMToIStorageEx"
 decl = { args = ["segmented_pointer", "segmented_pointer", "pointer", "pointer", "pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 62 }]
 
 [[exports]]
 ordinal = 63
 name = "SETDOCUMENTBITSTG"
 kind = "stub"
-evidence = [{ source = "spec", line = 63 }]
 
 [[exports]]
 ordinal = 64
 name = "GETDOCUMENTBITSTG"
 kind = "stub"
-evidence = [{ source = "spec", line = 64 }]
 
 [[exports]]
 ordinal = 65
 name = "WRITEOLESTG"
 kind = "stub"
-evidence = [{ source = "spec", line = 65 }]
 
 [[exports]]
 ordinal = 66
 name = "READOLESTG"
 kind = "stub"
-evidence = [{ source = "spec", line = 66 }]
 
 [[exports]]
 ordinal = 67
 name = "OLECREATEFROMFILE"
 kind = "stub"
-evidence = [{ source = "spec", line = 67 }]
 
 [[exports]]
 ordinal = 68
 name = "OleCreateLinkToFile"
 decl = { args = ["string", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 68 }]
 
 [[exports]]
 ordinal = 69
 name = "CREATEDATACACHE"
 kind = "stub"
-evidence = [{ source = "spec", line = 69 }]
 
 [[exports]]
 ordinal = 70
 name = "OleConvertIStorageToOLESTREAM"
 decl = { args = ["segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 70 }]
 
 [[exports]]
 ordinal = 71
 name = "OleConvertOLESTREAMToIStorage"
 decl = { args = ["segmented_pointer", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 71 }]
 
 [[exports]]
 ordinal = 74
 name = "ReadFmtUserTypeStg"
 decl = { args = ["segmented_pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 72 }]
 
 [[exports]]
 ordinal = 75
 name = "WriteFmtUserTypeStg"
 decl = { args = ["segmented_pointer", "word", "string"] }
-evidence = [{ source = "spec", line = 73 }]
 
 [[exports]]
 ordinal = 76
 name = "OleFlushClipboard"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 74 }]
 
 [[exports]]
 ordinal = 77
 name = "OleIsCurrentClipboard"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 75 }]
 
 [[exports]]
 ordinal = 78
 name = "OleTranslateAccelerator"
 decl = { args = ["segmented_pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 76 }]
 
 [[exports]]
 ordinal = 79
 name = "OleDoAutoConvert"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 77 }]
 
 [[exports]]
 ordinal = 80
 name = "OleGetAutoConvert"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 78 }]
 
 [[exports]]
 ordinal = 81
 name = "OleSetAutoConvert"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 79 }]
 
 [[exports]]
 ordinal = 82
 name = "GetConvertStg"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 80 }]
 
 [[exports]]
 ordinal = 83
 name = "SetConvertStg"
 decl = { args = ["segmented_pointer", "word"] }
-evidence = [{ source = "spec", line = 81 }]
 
 [[exports]]
 ordinal = 84
 name = "CreateStreamOnHGlobal"
 decl = { args = ["word", "word", "pointer"] }
-evidence = [{ source = "spec", line = 82 }]
 
 [[exports]]
 ordinal = 85
 name = "GetHGlobalFromStream"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 83 }]
 
 [[exports]]
 ordinal = 86
 name = "OleSetContainedObject"
 decl = { args = ["segmented_pointer", "word"] }
-evidence = [{ source = "spec", line = 84 }]
 
 [[exports]]
 ordinal = 87
 name = "OleNoteObjectVisible"
 decl = { args = ["segmented_pointer", "word"] }
-evidence = [{ source = "spec", line = 85 }]
 
 [[exports]]
 ordinal = 88
 name = "OleCreateStaticFromData"
 decl = { args = ["segmented_pointer", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 86 }]
 
 [[exports]]
 ordinal = 89
 name = "OleRegGetUserType"
 decl = { args = ["pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 87 }]
 
 [[exports]]
 ordinal = 90
 name = "OleRegGetMiscStatus"
 decl = { args = ["pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 88 }]
 
 [[exports]]
 ordinal = 91
 name = "OleRegEnumFormatEtc"
 decl = { args = ["pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 89 }]
 
 [[exports]]
 ordinal = 92
 name = "OleRegEnumVerbs"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 90 }]
 
 [[exports]]
 ordinal = 93
 name = "OLEGETENUMFORMATETC"
 kind = "stub"
-evidence = [{ source = "spec", line = 91 }]
 
 [[exports]]
 ordinal = 100
 name = "MAKEDEBUGSTREAM"
 kind = "stub"
-evidence = [{ source = "spec", line = 92 }]
 
 [[exports]]
 ordinal = 104
 name = "DBGLOGOPEN"
 kind = "stub"
-evidence = [{ source = "spec", line = 93 }]
 
 [[exports]]
 ordinal = 105
 name = "DBGLOGCLOSE"
 kind = "stub"
-evidence = [{ source = "spec", line = 94 }]
 
 [[exports]]
 ordinal = 106
 name = "DBGLOGOUTPUTDEBUGSTRING"
 kind = "stub"
-evidence = [{ source = "spec", line = 95 }]
 
 [[exports]]
 ordinal = 107
 name = "DBGLOGWRITE"
 kind = "stub"
-evidence = [{ source = "spec", line = 96 }]
 
 [[exports]]
 ordinal = 108
 name = "DBGLOGTIMESTAMP"
 kind = "stub"
-evidence = [{ source = "spec", line = 97 }]
 
 [[exports]]
 ordinal = 109
 name = "DBGLOGWRITEBANNER"
 kind = "stub"
-evidence = [{ source = "spec", line = 98 }]
 
 [[exports]]
 ordinal = 110
 name = "DBGDUMPOBJECT"
 kind = "stub"
-evidence = [{ source = "spec", line = 99 }]
 
 [[exports]]
 ordinal = 111
 name = "DBGISOBJECTVALID"
 kind = "stub"
-evidence = [{ source = "spec", line = 100 }]
 
 [[exports]]
 ordinal = 112
 name = "DUMPALLOBJECTS"
 kind = "stub"
-evidence = [{ source = "spec", line = 101 }]
 
 [[exports]]
 ordinal = 113
 name = "VALIDATEALLOBJECTS"
 kind = "stub"
-evidence = [{ source = "spec", line = 102 }]
 
 [[exports]]
 ordinal = 114
 name = "DBGDUMPCLASSNAME"
 kind = "stub"
-evidence = [{ source = "spec", line = 103 }]
 
 [[exports]]
 ordinal = 115
 name = "DBGDUMPEXTERNALOBJECT"
 kind = "stub"
-evidence = [{ source = "spec", line = 104 }]
 
 [[exports]]
 ordinal = 120
 name = "_IID_IEnumUnknown"
 kind = "variable"
-evidence = [{ source = "spec", line = 105 }]
 values = [256, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 121
 name = "_IID_IEnumString"
 kind = "variable"
-evidence = [{ source = "spec", line = 106 }]
 values = [257, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 122
 name = "_IID_IEnumMoniker"
 kind = "variable"
-evidence = [{ source = "spec", line = 107 }]
 values = [258, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 123
 name = "_IID_IEnumFORMATETC"
 kind = "variable"
-evidence = [{ source = "spec", line = 108 }]
 values = [259, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 124
 name = "_IID_IEnumOLEVERB"
 kind = "variable"
-evidence = [{ source = "spec", line = 109 }]
 values = [260, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 125
 name = "_IID_IEnumSTATDATA"
 kind = "variable"
-evidence = [{ source = "spec", line = 110 }]
 values = [261, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 126
 name = "_IID_IEnumGeneric"
 kind = "variable"
-evidence = [{ source = "spec", line = 111 }]
 values = [262, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 127
 name = "_IID_IEnumHolder"
 kind = "variable"
-evidence = [{ source = "spec", line = 112 }]
 values = [263, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 128
 name = "_IID_IEnumCallback"
 kind = "variable"
-evidence = [{ source = "spec", line = 113 }]
 values = [264, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 129
 name = "_IID_IPersistStream"
 kind = "variable"
-evidence = [{ source = "spec", line = 114 }]
 values = [265, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 130
 name = "_IID_IPersistStorage"
 kind = "variable"
-evidence = [{ source = "spec", line = 115 }]
 values = [266, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 131
 name = "_IID_IPersistFile"
 kind = "variable"
-evidence = [{ source = "spec", line = 116 }]
 values = [267, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 132
 name = "_IID_IPersist"
 kind = "variable"
-evidence = [{ source = "spec", line = 117 }]
 values = [268, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 133
 name = "_IID_IViewObject"
 kind = "variable"
-evidence = [{ source = "spec", line = 118 }]
 values = [269, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 134
 name = "_IID_IDataObject"
 kind = "variable"
-evidence = [{ source = "spec", line = 119 }]
 values = [270, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 135
 name = "_IID_IAdviseSink"
 kind = "variable"
-evidence = [{ source = "spec", line = 120 }]
 values = [271, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 136
 name = "_IID_IDataAdviseHolder"
 kind = "variable"
-evidence = [{ source = "spec", line = 121 }]
 values = [272, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 137
 name = "_IID_IOleAdviseHolder"
 kind = "variable"
-evidence = [{ source = "spec", line = 122 }]
 values = [273, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 138
 name = "_IID_IOleObject"
 kind = "variable"
-evidence = [{ source = "spec", line = 123 }]
 values = [274, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 139
 name = "_IID_IOleInPlaceObject"
 kind = "variable"
-evidence = [{ source = "spec", line = 124 }]
 values = [275, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 140
 name = "_IID_IOleWindow"
 kind = "variable"
-evidence = [{ source = "spec", line = 125 }]
 values = [276, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 141
 name = "_IID_IOleInPlaceUIWindow"
 kind = "variable"
-evidence = [{ source = "spec", line = 126 }]
 values = [277, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 142
 name = "_IID_IOleInPlaceFrame"
 kind = "variable"
-evidence = [{ source = "spec", line = 127 }]
 values = [278, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 143
 name = "_IID_IOleInPlaceActiveObject"
 kind = "variable"
-evidence = [{ source = "spec", line = 128 }]
 values = [279, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 144
 name = "_IID_IOleClientSite"
 kind = "variable"
-evidence = [{ source = "spec", line = 129 }]
 values = [280, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 145
 name = "_IID_IOleInPlaceSite"
 kind = "variable"
-evidence = [{ source = "spec", line = 130 }]
 values = [281, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 146
 name = "_IID_IParseDisplayName"
 kind = "variable"
-evidence = [{ source = "spec", line = 131 }]
 values = [282, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 147
 name = "_IID_IOleContainer"
 kind = "variable"
-evidence = [{ source = "spec", line = 132 }]
 values = [283, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 148
 name = "_IID_IOleItemContainer"
 kind = "variable"
-evidence = [{ source = "spec", line = 133 }]
 values = [284, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 149
 name = "_IID_IOleLink"
 kind = "variable"
-evidence = [{ source = "spec", line = 134 }]
 values = [285, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 150
 name = "_IID_IOleCache"
 kind = "variable"
-evidence = [{ source = "spec", line = 135 }]
 values = [286, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 151
 name = "_IID_IOleManager"
 kind = "variable"
-evidence = [{ source = "spec", line = 136 }]
 values = [287, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 152
 name = "_IID_IOlePresObj"
 kind = "variable"
-evidence = [{ source = "spec", line = 137 }]
 values = [288, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 153
 name = "_IID_IDropSource"
 kind = "variable"
-evidence = [{ source = "spec", line = 138 }]
 values = [289, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 154
 name = "_IID_IDropTarget"
 kind = "variable"
-evidence = [{ source = "spec", line = 139 }]
 values = [290, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 155
 name = "_IID_IDebug"
 kind = "variable"
-evidence = [{ source = "spec", line = 140 }]
 values = [291, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 156
 name = "_IID_IDebugStream"
 kind = "variable"
-evidence = [{ source = "spec", line = 141 }]
 values = [292, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 157
 name = "_IID_IAdviseSink2"
 kind = "variable"
-evidence = [{ source = "spec", line = 142 }]
 values = [293, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 158
 name = "_IID_IViewObject2"
 kind = "variable"
-evidence = [{ source = "spec", line = 143 }]
 values = [295, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 159
 name = "_IID_IOleCache2"
 kind = "variable"
-evidence = [{ source = "spec", line = 144 }]
 values = [296, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 160
 name = "_IID_IOleCacheControl"
 kind = "variable"
-evidence = [{ source = "spec", line = 145 }]
 values = [297, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 161
 name = "_IID_IRunnableObject"
 kind = "variable"
-evidence = [{ source = "spec", line = 146 }]
 values = [294, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 500
 name = "HGLOBALLockBytesImpl16_QueryInterface"
 decl = { type = "cdecl", args = ["segmented_pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 147 }]
 
 [[exports]]
 ordinal = 501
 name = "HGLOBALLockBytesImpl16_AddRef"
 decl = { type = "cdecl", args = ["pointer"] }
-evidence = [{ source = "spec", line = 148 }]
 
 [[exports]]
 ordinal = 502
 name = "HGLOBALLockBytesImpl16_Release"
 decl = { type = "cdecl", args = ["pointer"] }
-evidence = [{ source = "spec", line = 149 }]
 
 [[exports]]
 ordinal = 503
 name = "HGLOBALLockBytesImpl16_ReadAt"
 decl = { type = "cdecl", args = ["pointer", "int64", "pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 150 }]
 
 [[exports]]
 ordinal = 504
 name = "HGLOBALLockBytesImpl16_WriteAt"
 decl = { type = "cdecl", args = ["pointer", "int64", "pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 151 }]
 
 [[exports]]
 ordinal = 505
 name = "HGLOBALLockBytesImpl16_Flush"
 decl = { type = "cdecl", args = ["pointer"] }
-evidence = [{ source = "spec", line = 152 }]
 
 [[exports]]
 ordinal = 506
 name = "HGLOBALLockBytesImpl16_SetSize"
 decl = { type = "cdecl", args = ["pointer", "int64"] }
-evidence = [{ source = "spec", line = 153 }]
 
 [[exports]]
 ordinal = 507
 name = "HGLOBALLockBytesImpl16_LockRegion"
 decl = { type = "cdecl", args = ["pointer", "int64", "int64", "long"] }
-evidence = [{ source = "spec", line = 154 }]
 
 [[exports]]
 ordinal = 508
 name = "HGLOBALLockBytesImpl16_UnlockRegion"
 decl = { type = "cdecl", args = ["pointer", "int64", "int64", "long"] }
-evidence = [{ source = "spec", line = 155 }]
 
 [[exports]]
 ordinal = 509
 name = "HGLOBALLockBytesImpl16_Stat"
 decl = { type = "cdecl", args = ["pointer", "pointer", "long"] }
-evidence = [{ source = "spec", line = 156 }]
 
 [[exports]]
 ordinal = 510
 name = "HGLOBALStreamImpl16_QueryInterface"
 decl = { type = "cdecl", args = ["segmented_pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 157 }]
 
 [[exports]]
 ordinal = 511
 name = "HGLOBALStreamImpl16_AddRef"
 decl = { type = "cdecl", args = ["pointer"] }
-evidence = [{ source = "spec", line = 158 }]
 
 [[exports]]
 ordinal = 512
 name = "HGLOBALStreamImpl16_Release"
 decl = { type = "cdecl", args = ["pointer"] }
-evidence = [{ source = "spec", line = 159 }]
 
 [[exports]]
 ordinal = 513
 name = "HGLOBALStreamImpl16_Read"
 decl = { type = "cdecl", args = ["pointer", "pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 160 }]
 
 [[exports]]
 ordinal = 514
 name = "HGLOBALStreamImpl16_Write"
 decl = { type = "cdecl", args = ["pointer", "pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 161 }]
 
 [[exports]]
 ordinal = 515
 name = "HGLOBALStreamImpl16_Seek"
 decl = { type = "cdecl", args = ["pointer", "int64", "long", "pointer"] }
-evidence = [{ source = "spec", line = 162 }]
 
 [[exports]]
 ordinal = 516
 name = "HGLOBALStreamImpl16_SetSize"
 decl = { type = "cdecl", args = ["pointer", "int64"] }
-evidence = [{ source = "spec", line = 163 }]
 
 [[exports]]
 ordinal = 517
 name = "HGLOBALStreamImpl16_CopyTo"
 decl = { type = "cdecl", args = ["pointer", "segmented_pointer", "int64", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 164 }]
 
 [[exports]]
 ordinal = 518
 name = "HGLOBALStreamImpl16_Commit"
 decl = { type = "cdecl", args = ["pointer", "long"] }
-evidence = [{ source = "spec", line = 165 }]
 
 [[exports]]
 ordinal = 519
 name = "HGLOBALStreamImpl16_Revert"
 decl = { type = "cdecl", args = ["pointer"] }
-evidence = [{ source = "spec", line = 166 }]
 
 [[exports]]
 ordinal = 520
 name = "HGLOBALStreamImpl16_LockRegion"
 decl = { type = "cdecl", args = ["pointer", "int64", "int64", "long"] }
-evidence = [{ source = "spec", line = 167 }]
 
 [[exports]]
 ordinal = 521
 name = "HGLOBALStreamImpl16_UnlockRegion"
 decl = { type = "cdecl", args = ["pointer", "int64", "int64", "long"] }
-evidence = [{ source = "spec", line = 168 }]
 
 [[exports]]
 ordinal = 522
 name = "HGLOBALStreamImpl16_Stat"
 decl = { type = "cdecl", args = ["pointer", "pointer", "long"] }
-evidence = [{ source = "spec", line = 169 }]
 
 [[exports]]
 ordinal = 523
 name = "HGLOBALStreamImpl16_Clone"
 decl = { type = "cdecl", args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 170 }]
 
 [[exports]]
 ordinal = 524
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
-evidence = [{ source = "spec", line = 171 }]

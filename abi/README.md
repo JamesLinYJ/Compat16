@@ -4,8 +4,8 @@ This directory contains the production ABI source in **compact TOML authoring sc
 
 ## Layout and identity
 
-- `catalog.toml` indexes logical modules, groups, shared types, defaults, source-note definitions, and explicit name-collision resolutions. Every production TOML file must be indexed.
-- `groups/<module>/<domain>.toml` groups exports by responsibility, such as KERNEL memory/files/process, USER windows/messages/controls, and GDI drawing/fonts/raster. Each file supplies its module, local defaults, and source references once.
+- `catalog.toml` indexes logical modules, groups, shared types, defaults and explicit name-collision resolutions. Every production TOML file must be indexed.
+- `groups/<module>/<domain>.toml` groups exports by responsibility, such as KERNEL memory/files/process, USER windows/messages/controls, and GDI drawing/fonts/raster. Each file supplies its module and local defaults once.
 - `types/runtime.toml` defines reusable guest value types and their explicit historical declaration-encoding defaults.
 
 A logical DLL/module is an import identity, not a physical file boundary. Moving an export between groups must preserve its module, ordinal, names, binding, and expanded defaults. Module source spellings, aliases, case-insensitive lookup, and conventional `.EXE`, `.DLL`, `.DRV`, and `.MOD` suffixes remain part of the lookup contract. `name_resolutions` preserves historical name collisions without deleting declarations.
@@ -34,7 +34,7 @@ The authoring defaults are deterministic: calls use fixed-stack Pascal unless ov
 
 A `binding` names an existing Rust dispatch variant with `rust_id`, stable numeric `id_value`, and descriptor `constant`. File order must not renumber identities. Bindings contain no arbitrary Rust expressions and establish decoder connection, not complete application compatibility. A declaration without `call` remains an unknown runtime ABI; a binding requires a known call. Variables and equates retain their declared values. Dynamic selector/profile data-export policy remains in runtime `data_exports.rs`.
 
-Evidence uses group-local source references and root-level shared notes. Expansion restores the original source paths, lines, and notes. Deduplication changes storage only; it must not discard provenance.
+Production TOML contains build/runtime metadata only. Runtime-relevant `source_module`, declaration attributes, and encoding metadata remain in the catalog.
 
 ## Editing and validation
 
@@ -54,4 +54,4 @@ Evidence uses group-local source references and root-level shared notes. Expansi
 
 ## Provenance and licensing
 
-Historical spec and catalog paths identify the migrated source, even when those files are no longer active build inputs. Retain these references when reorganizing the catalog. Replacing a format or parser does not establish clean-room authorship or remove source obligations. The repository [LICENSE](../LICENSE), [source/data notices](../LICENSES/NOTICE.txt), and applicable original notices continue to apply.
+The repository [LICENSE](../LICENSE), [source/data notices](../LICENSES/NOTICE.txt), and applicable original notices continue to apply. See also the retained [ABI source notes](../crates/win16/ABI_EVIDENCE.md). Replacing a format or parser does not change attribution or licensing obligations.

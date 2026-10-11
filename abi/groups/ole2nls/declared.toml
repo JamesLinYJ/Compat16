@@ -1,22 +1,16 @@
 module = "OLE2NLS"
 
-[sources]
-spec = { path = "specs/ole2nls.spec", note = "spec" }
-
 [[exports]]
 ordinal = 9
 name = "RegisterNLSInfoChanged"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 11
 name = "LIBMAIN"
 kind = "stub"
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 12
 name = "NOTIFYWINDOWPROC"
 kind = "stub"
-evidence = [{ source = "spec", line = 12 }]

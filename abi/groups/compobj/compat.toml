@@ -1,15 +1,10 @@
 module = "COMPOBJ"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/compobj.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 18
 name = "IsEqualGUID"
 binding = { rust_id = "CompobjIsEqualGuid", id_value = 591, constant = "COMPOBJ_IS_EQUAL_GUID" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 686 }]
 [exports.call]
 returns = "word"
 params = [

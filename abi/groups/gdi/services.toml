@@ -1,15 +1,10 @@
 module = "GDI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/gdi.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 119
 name = "AddFontResource"
 binding = { rust_id = "GdiAddFontResource", id_value = 39, constant = "GDI_ADD_FONT_RESOURCE" }
-evidence = [{ source = "spec", line = 109 }, { source = "binding", line = 113 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 136
 name = "RemoveFontResource"
 binding = { rust_id = "GdiRemoveFontResource", id_value = 40, constant = "GDI_REMOVE_FONT_RESOURCE" }
-evidence = [{ source = "spec", line = 126 }, { source = "binding", line = 114 }]
 [exports.call]
 returns = "word"
 params = [
@@ -31,7 +25,6 @@ params = [
 ordinal = 193
 name = "SetBoundsRect"
 binding = { rust_id = "GdiSetBoundsRect", id_value = 33, constant = "GDI_SET_BOUNDS_RECT" }
-evidence = [{ source = "spec", line = 177 }, { source = "binding", line = 107 }]
 [exports.call]
 returns = "word"
 params = [
@@ -44,7 +37,6 @@ params = [
 ordinal = 194
 name = "GetBoundsRect"
 binding = { rust_id = "GdiGetBoundsRect", id_value = 34, constant = "GDI_GET_BOUNDS_RECT" }
-evidence = [{ source = "spec", line = 178 }, { source = "binding", line = 108 }]
 [exports.call]
 returns = "word"
 params = [
@@ -57,7 +49,6 @@ params = [
 ordinal = 307
 name = "GetCharABCWidths"
 binding = { rust_id = "GdiGetCharABCWidths", id_value = 42, constant = "GDI_GET_CHAR_ABC_WIDTHS" }
-evidence = [{ source = "spec", line = 234 }, { source = "binding", line = 116 }]
 [exports.call]
 returns = "word"
 params = [
@@ -72,7 +63,6 @@ ordinal = 311
 name = "GetFontData"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetFontData", id_value = 43, constant = "GDI_GET_FONT_DATA" }
-evidence = [{ source = "spec", line = 238 }, { source = "binding", line = 117 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -87,7 +77,6 @@ params = [
 ordinal = 313
 name = "GetRasterizerCaps"
 binding = { rust_id = "GdiGetRasterizerCaps", id_value = 44, constant = "GDI_GET_RASTERIZER_CAPS" }
-evidence = [{ source = "spec", line = 240 }, { source = "binding", line = 118 }]
 [exports.call]
 returns = "word"
 params = [
@@ -99,7 +88,6 @@ params = [
 ordinal = 332
 name = "GetKerningPairs"
 binding = { rust_id = "GdiGetKerningPairs", id_value = 45, constant = "GDI_GET_KERNING_PAIRS" }
-evidence = [{ source = "spec", line = 246 }, { source = "binding", line = 119 }]
 [exports.call]
 returns = "word"
 params = [
@@ -113,7 +101,6 @@ ordinal = 349
 name = "SetMapperFlags"
 decl = { attributes = [] }
 binding = { rust_id = "GdiSetMapperFlags", id_value = 35, constant = "GDI_SET_MAPPER_FLAGS" }
-evidence = [{ source = "spec", line = 251 }, { source = "binding", line = 109 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -125,7 +112,6 @@ params = [
 ordinal = 350
 name = "GetCharWidth"
 binding = { rust_id = "GdiGetCharWidth", id_value = 41, constant = "GDI_GET_CHAR_WIDTH" }
-evidence = [{ source = "spec", line = 253 }, { source = "binding", line = 115 }]
 [exports.call]
 returns = "word"
 params = [
@@ -140,7 +126,6 @@ ordinal = 353
 name = "GetAspectRatioFilter"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetAspectRatioFilter", id_value = 36, constant = "GDI_GET_ASPECT_RATIO_FILTER" }
-evidence = [{ source = "spec", line = 256 }, { source = "binding", line = 110 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -151,7 +136,6 @@ params = [
 ordinal = 462
 name = "IsGDIObject"
 binding = { rust_id = "GdiIsGdiObject", id_value = 38, constant = "GDI_IS_GDI_OBJECT" }
-evidence = [{ source = "spec", line = 306 }, { source = "binding", line = 112 }]
 [exports.call]
 returns = "word"
 params = [
@@ -162,7 +146,6 @@ params = [
 ordinal = 486
 name = "GetAspectRatioFilterEx"
 binding = { rust_id = "GdiGetAspectRatioFilterEx", id_value = 37, constant = "GDI_GET_ASPECT_RATIO_FILTER_EX" }
-evidence = [{ source = "spec", line = 330 }, { source = "binding", line = 111 }]
 [exports.call]
 returns = "word"
 params = [

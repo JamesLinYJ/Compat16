@@ -1,136 +1,111 @@
 module = "WINNLS"
 
-[sources]
-spec = { path = "specs/winnls.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "WINNLSINQUIRE"
 kind = "stub"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "HOOKKEYBOARDMESSAGE"
 kind = "stub"
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 4
 name = "ENUMGETFONTTYPE"
 kind = "stub"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 5
 name = "ENUMFACENOTTT"
 kind = "stub"
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 6
 name = "SendIMEMessage"
 decl = { args = ["word", "long"] }
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 7
 name = "SendIMEMessageEx"
 decl = { args = ["word", "long"] }
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 9
 name = "SENDIMEMESSAGEINTERNAL"
 kind = "stub"
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 10
 name = "WINNLSSETKEYBOARDHOOK"
 kind = "stub"
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 11
 name = "WINNLSSetIMEHandle"
 decl = { attributes = ["ret16"], args = ["segmented_pointer", "word"] }
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 12
 name = "WINNLSSetIMEStatus"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 14
 name = "WINNLSSetIMEHotkey"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 15
 name = "WINNLSGETIMEHOTKEY"
 kind = "stub"
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 16
 name = "WINNLSEnableIME"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 17
 name = "WINNLSGETKEYSTATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 18
 name = "WINNLSGetEnableStatus"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 19
 name = "WINNLSSetKeyState"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 20
 name = "IMPADDIME"
 kind = "stub"
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 21
 name = "IMPDELETEIME"
 kind = "stub"
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 30
 name = "WINNLSSendString"
 decl = { attributes = ["ret16"], args = ["word", "word", "pointer"] }
-evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
 ordinal = 31
 name = "WINNLSPostAppMessage"
 decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
 ordinal = 32
 name = "WINNLSSendAppMessage"
 decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
 ordinal = 33
 name = "WINNLSSendControl"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 29 }]

@@ -1,16 +1,11 @@
 module = "WINOLDAP"
 
-[sources]
-spec = { path = "specs/winoldap.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "WndProc"
 decl = { args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "DialogProc"
 decl = { args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 3 }]

@@ -1,1457 +1,1223 @@
 module = "GDI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/gdi.spec", note = "spec" }
-
 [[exports]]
 ordinal = 5
 name = "SetRelAbs"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 38
 name = "Escape"
 decl = { attributes = [], args = ["word", "word", "word", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
 ordinal = 46
 name = "BITMAPBITS"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
 ordinal = 71
 name = "EnumObjects"
 decl = { args = ["word", "word", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 71 }]
 
 [[exports]]
 ordinal = 73
 name = "ExcludeVisRect"
 decl = { args = ["word", "signed_word", "signed_word", "signed_word", "signed_word"] }
-evidence = [{ source = "spec", line = 73 }]
 
 [[exports]]
 ordinal = 86
 name = "GetRelAbs"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 86 }]
 
 [[exports]]
 ordinal = 98
 name = "IntersectVisRect"
 decl = { args = ["word", "signed_word", "signed_word", "signed_word", "signed_word"] }
-evidence = [{ source = "spec", line = 98 }]
 
 [[exports]]
 ordinal = 102
 name = "OffsetVisRgn"
 decl = { args = ["word", "signed_word", "signed_word"] }
-evidence = [{ source = "spec", line = 102 }]
 
 [[exports]]
 ordinal = 105
 name = "SelectVisRgn"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 105 }]
 
 [[exports]]
 ordinal = 117
 name = "SetDCOrg"
 decl = { attributes = [], args = ["word", "signed_word", "signed_word"] }
-evidence = [{ source = "spec", line = 107 }]
 
 [[exports]]
 ordinal = 118
 name = "GetSystemIconFont"
-evidence = [{ source = "spec", line = 108 }]
 
 [[exports]]
 ordinal = 120
 name = "GetContinuingTextExtent"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 110 }]
 
 [[exports]]
 ordinal = 121
 name = "Death"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 111 }]
 
 [[exports]]
 ordinal = 122
 name = "Resurrection"
 decl = { args = ["word", "word", "word", "word", "word", "word", "word"] }
-evidence = [{ source = "spec", line = 112 }]
 
 [[exports]]
 ordinal = 123
 name = "PlayMetaFile"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 113 }]
 
 [[exports]]
 ordinal = 124
 name = "GetMetaFile"
 decl = { args = ["string"] }
-evidence = [{ source = "spec", line = 114 }]
 
 [[exports]]
 ordinal = 125
 name = "CreateMetaFile"
 decl = { args = ["string"] }
-evidence = [{ source = "spec", line = 115 }]
 
 [[exports]]
 ordinal = 126
 name = "CloseMetaFile"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 116 }]
 
 [[exports]]
 ordinal = 127
 name = "DeleteMetaFile"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 117 }]
 
 [[exports]]
 ordinal = 129
 name = "SaveVisRgn"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 119 }]
 
 [[exports]]
 ordinal = 130
 name = "RestoreVisRgn"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 120 }]
 
 [[exports]]
 ordinal = 131
 name = "InquireVisRgn"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 121 }]
 
 [[exports]]
 ordinal = 132
 name = "SetEnvironment"
 decl = { args = ["string", "string", "word"] }
-evidence = [{ source = "spec", line = 122 }]
 
 [[exports]]
 ordinal = 133
 name = "GetEnvironment"
 decl = { args = ["string", "string", "word"] }
-evidence = [{ source = "spec", line = 123 }]
 
 [[exports]]
 ordinal = 135
 name = "ScanLR"
 decl = { args = ["word", "word", "word", "long", "word"] }
-evidence = [{ source = "spec", line = 125 }]
 
 [[exports]]
 ordinal = 137
 name = "GSV"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 127 }]
 
 [[exports]]
 ordinal = 138
 name = "DPXlate"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 128 }]
 
 [[exports]]
 ordinal = 139
 name = "SetWinViewExt"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 129 }]
 
 [[exports]]
 ordinal = 140
 name = "ScaleExt"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 130 }]
 
 [[exports]]
 ordinal = 141
 name = "WordSet"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 131 }]
 
 [[exports]]
 ordinal = 142
 name = "RectStuff"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 132 }]
 
 [[exports]]
 ordinal = 143
 name = "OffsetOrg"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 133 }]
 
 [[exports]]
 ordinal = 144
 name = "LockDC"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 134 }]
 
 [[exports]]
 ordinal = 145
 name = "UnlockDC"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 135 }]
 
 [[exports]]
 ordinal = 146
 name = "LockUnlock"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 136 }]
 
 [[exports]]
 ordinal = 147
 name = "GDI_FarFrame"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 137 }]
 
 [[exports]]
 ordinal = 151
 name = "CopyMetaFile"
 decl = { args = ["word", "string"] }
-evidence = [{ source = "spec", line = 141 }]
 
 [[exports]]
 ordinal = 152
 name = "GDIInitApp"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 142 }]
 
 [[exports]]
 ordinal = 155
 name = "QueryAbort"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 145 }]
 
 [[exports]]
 ordinal = 157
 name = "CompatibleBitmap"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 147 }]
 
 [[exports]]
 ordinal = 158
 name = "EnumCallback"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 148 }]
 
 [[exports]]
 ordinal = 159
 name = "GetMetaFileBits"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 149 }]
 
 [[exports]]
 ordinal = 160
 name = "SetMetaFileBits"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 150 }]
 
 [[exports]]
 ordinal = 164
 name = "PixToLine"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 154 }]
 
 [[exports]]
 ordinal = 169
 name = "IsDCDirty"
 decl = { args = ["word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 155 }]
 
 [[exports]]
 ordinal = 170
 name = "SetDCStatus"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 156 }]
 
 [[exports]]
 ordinal = 171
 name = "LVBUNION"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 157 }]
 
 [[exports]]
 ordinal = 174
 name = "BLOAT"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 160 }]
 
 [[exports]]
 ordinal = 175
 name = "EnumMetaFile"
 decl = { args = ["word", "word", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 161 }]
 
 [[exports]]
 ordinal = 176
 name = "PlayMetaFileRecord"
 decl = { args = ["word", "pointer", "pointer", "word"] }
-evidence = [{ source = "spec", line = 162 }]
 
 [[exports]]
 ordinal = 177
 name = "RCOS"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 163 }]
 
 [[exports]]
 ordinal = 178
 name = "RSIN"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 164 }]
 
 [[exports]]
 ordinal = 179
 name = "GetDCState"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 165 }]
 
 [[exports]]
 ordinal = 180
 name = "SetDCState"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 166 }]
 
 [[exports]]
 ordinal = 182
 name = "REQUESTSEM"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 168 }]
 
 [[exports]]
 ordinal = 183
 name = "CLEARSEM"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 169 }]
 
 [[exports]]
 ordinal = 184
 name = "STUFFVISIBLE"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 170 }]
 
 [[exports]]
 ordinal = 185
 name = "STUFFINREGION"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 171 }]
 
 [[exports]]
 ordinal = 186
 name = "DELETEABOVELINEFONTS"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 172 }]
 
 [[exports]]
 ordinal = 188
 name = "GetTextExtentEx"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 173 }]
 
 [[exports]]
 ordinal = 190
 name = "SetDCHook"
 decl = { args = ["word", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 174 }]
 
 [[exports]]
 ordinal = 191
 name = "GetDCHook"
 decl = { attributes = [], args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 175 }]
 
 [[exports]]
 ordinal = 192
 name = "SetHookFlags"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 176 }]
 
 [[exports]]
 ordinal = 195
 name = "SelectBitmap"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 179 }]
 
 [[exports]]
 ordinal = 196
 name = "SetMetaFileBitsBetter"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 180 }]
 
 [[exports]]
 ordinal = 201
 name = "DMBITBLT"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 181 }]
 
 [[exports]]
 ordinal = 202
 name = "DMCOLORINFO"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 182 }]
 
 [[exports]]
 ordinal = 206
 name = "dmEnumDFonts"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 183 }]
 
 [[exports]]
 ordinal = 207
 name = "DMENUMOBJ"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 184 }]
 
 [[exports]]
 ordinal = 208
 name = "DMOUTPUT"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 185 }]
 
 [[exports]]
 ordinal = 209
 name = "DMPIXEL"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 186 }]
 
 [[exports]]
 ordinal = 210
 name = "dmRealizeObject"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 187 }]
 
 [[exports]]
 ordinal = 211
 name = "DMSTRBLT"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 188 }]
 
 [[exports]]
 ordinal = 212
 name = "DMSCANLR"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 189 }]
 
 [[exports]]
 ordinal = 213
 name = "BRUTE"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 190 }]
 
 [[exports]]
 ordinal = 214
 name = "DMEXTTEXTOUT"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 191 }]
 
 [[exports]]
 ordinal = 215
 name = "DMGETCHARWIDTH"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 192 }]
 
 [[exports]]
 ordinal = 216
 name = "DMSTRETCHBLT"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 193 }]
 
 [[exports]]
 ordinal = 217
 name = "DMDIBBITS"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 194 }]
 
 [[exports]]
 ordinal = 218
 name = "DMSTRETCHDIBITS"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 195 }]
 
 [[exports]]
 ordinal = 219
 name = "DMSETDIBTODEV"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 196 }]
 
 [[exports]]
 ordinal = 220
 name = "DMTRANSPOSE"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 197 }]
 
 [[exports]]
 ordinal = 240
 name = "OpenJob"
 decl = { args = ["string", "string", "word"] }
-evidence = [{ source = "spec", line = 204 }]
 
 [[exports]]
 ordinal = 241
 name = "WriteSpool"
 decl = { args = ["word", "pointer", "word"] }
-evidence = [{ source = "spec", line = 205 }]
 
 [[exports]]
 ordinal = 242
 name = "WriteDialog"
 decl = { args = ["word", "string", "word"] }
-evidence = [{ source = "spec", line = 206 }]
 
 [[exports]]
 ordinal = 243
 name = "CloseJob"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 207 }]
 
 [[exports]]
 ordinal = 244
 name = "DeleteJob"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 208 }]
 
 [[exports]]
 ordinal = 245
 name = "GetSpoolJob"
 decl = { attributes = [], args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 209 }]
 
 [[exports]]
 ordinal = 246
 name = "StartSpoolPage"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 210 }]
 
 [[exports]]
 ordinal = 247
 name = "EndSpoolPage"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 211 }]
 
 [[exports]]
 ordinal = 248
 name = "QueryJob"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 212 }]
 
 [[exports]]
 ordinal = 250
 name = "Copy"
 decl = { args = ["pointer", "pointer", "word"] }
-evidence = [{ source = "spec", line = 213 }]
 
 [[exports]]
 ordinal = 253
 name = "DeleteSpoolPage"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 214 }]
 
 [[exports]]
 ordinal = 254
 name = "SpoolFile"
 decl = { args = ["pointer", "pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 215 }]
 
 [[exports]]
 ordinal = 267
 name = "StartDocPrintEra"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 216 }]
 
 [[exports]]
 ordinal = 268
 name = "StartPagePrinter"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 217 }]
 
 [[exports]]
 ordinal = 269
 name = "WritePrinter"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 218 }]
 
 [[exports]]
 ordinal = 270
 name = "EndPagePrinter"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 219 }]
 
 [[exports]]
 ordinal = 271
 name = "AbortPrinter"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 220 }]
 
 [[exports]]
 ordinal = 272
 name = "EndDocPrinter"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 221 }]
 
 [[exports]]
 ordinal = 274
 name = "ClosePrinter"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 222 }]
 
 [[exports]]
 ordinal = 280
 name = "GetRealDriverInfo"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 223 }]
 
 [[exports]]
 ordinal = 281
 name = "DrvSetPrinterData"
 decl = { attributes = [], args = ["string", "string", "long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 224 }]
 
 [[exports]]
 ordinal = 282
 name = "DrvGetPrinterData"
 decl = { attributes = [], args = ["string", "string", "pointer", "pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 225 }]
 
 [[exports]]
 ordinal = 299
 name = "ENGINEGETCHARWIDTHEX"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 226 }]
 
 [[exports]]
 ordinal = 300
 name = "EngineEnumerateFont"
 decl = { attributes = [], args = ["string", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 227 }]
 
 [[exports]]
 ordinal = 301
 name = "EngineDeleteFont"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 228 }]
 
 [[exports]]
 ordinal = 302
 name = "EngineRealizeFont"
 decl = { attributes = [], args = ["pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 229 }]
 
 [[exports]]
 ordinal = 303
 name = "EngineGetCharWidth"
 decl = { args = ["pointer", "word", "word", "pointer"] }
-evidence = [{ source = "spec", line = 230 }]
 
 [[exports]]
 ordinal = 304
 name = "EngineSetFontContext"
 decl = { args = ["pointer", "word"] }
-evidence = [{ source = "spec", line = 231 }]
 
 [[exports]]
 ordinal = 305
 name = "EngineGetGlyphBMP"
 decl = { args = ["word", "pointer", "word", "word", "pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 232 }]
 
 [[exports]]
 ordinal = 306
 name = "EngineMakeFontDir"
 decl = { attributes = [], args = ["word", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 233 }]
 
 [[exports]]
 ordinal = 309
 name = "GetGlyphOutline"
 decl = { attributes = [], args = ["word", "word", "word", "pointer", "long", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 236 }]
 
 [[exports]]
 ordinal = 310
 name = "CreateScalableFontResource"
 decl = { args = ["word", "string", "string", "string"] }
-evidence = [{ source = "spec", line = 237 }]
 
 [[exports]]
 ordinal = 312
 name = "ConvertOutLineFontFile"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 239 }]
 
 [[exports]]
 ordinal = 314
 name = "EngineExtTextOut"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 241 }]
 
 [[exports]]
 ordinal = 315
 name = "EngineRealizeFontExt"
 decl = { attributes = [], args = ["long", "long", "long", "long"] }
-evidence = [{ source = "spec", line = 242 }]
 
 [[exports]]
 ordinal = 316
 name = "EngineGetCharWidthStr"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 243 }]
 
 [[exports]]
 ordinal = 317
 name = "EngineGetGlyphBmpExt"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 244 }]
 
 [[exports]]
 ordinal = 347
 name = "MFDRAWTEXT"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 249 }]
 
 [[exports]]
 ordinal = 352
 name = "GetPhysicalFontHandle"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 255 }]
 
 [[exports]]
 ordinal = 354
 name = "ShrinkGDIHeap"
-evidence = [{ source = "spec", line = 257 }]
 
 [[exports]]
 ordinal = 355
 name = "FTrapping0"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 258 }]
 
 [[exports]]
 ordinal = 400
 name = "FastWindowFrame"
 decl = { args = ["word", "pointer", "signed_word", "signed_word", "long"] }
-evidence = [{ source = "spec", line = 280 }]
 
 [[exports]]
 ordinal = 401
 name = "GdiMoveBitmap"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 281 }]
 
 [[exports]]
 ordinal = 402
 name = "GDIGETBITSGLOBAL"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 282 }]
 
 [[exports]]
 ordinal = 403
 name = "GdiInit2"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 283 }]
 
 [[exports]]
 ordinal = 404
 name = "GetTTGlyphIndexMap"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 284 }]
 
 [[exports]]
 ordinal = 405
 name = "FinalGdiInit"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 285 }]
 
 [[exports]]
 ordinal = 406
 name = "CREATEREALBITMAPINDIRECT"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 286 }]
 
 [[exports]]
 ordinal = 407
 name = "CreateUserBitmap"
 decl = { args = ["word", "word", "word", "word", "pointer"] }
-evidence = [{ source = "spec", line = 287 }]
 
 [[exports]]
 ordinal = 408
 name = "CREATEREALBITMAP"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 288 }]
 
 [[exports]]
 ordinal = 409
 name = "CreateUserDiscardableBitmap"
 decl = { args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 289 }]
 
 [[exports]]
 ordinal = 410
 name = "IsValidMetaFile"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 290 }]
 
 [[exports]]
 ordinal = 411
 name = "GetCurLogFont"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 291 }]
 
 [[exports]]
 ordinal = 412
 name = "IsDCCurrentPalette"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 292 }]
 
 [[exports]]
 ordinal = 449
 name = "DEVICECOLORMATCH"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 300 }]
 
 [[exports]]
 ordinal = 452
 name = "GdiSeeGdiDo"
 decl = { attributes = [], args = ["word", "word", "word", "word"] }
-evidence = [{ source = "spec", line = 303 }]
 
 [[exports]]
 ordinal = 460
 name = "GdiTaskTermination"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 304 }]
 
 [[exports]]
 ordinal = 461
 name = "SetObjectOwner"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 305 }]
 
 [[exports]]
 ordinal = 463
 name = "MakeObjectPrivate"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 307 }]
 
 [[exports]]
 ordinal = 464
 name = "FIXUPBOGUSPUBLISHERMETAFILE"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 308 }]
 
 [[exports]]
 ordinal = 467
 name = "UnicodeToAnsi"
 decl = { args = ["segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 311 }]
 
 [[exports]]
 ordinal = 488
 name = "GetFontAssocStatus"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 331 }]
 
 [[exports]]
 ordinal = 489
 name = "CreateDIBSection"
 decl = { args = ["word", "pointer", "word", "pointer", "long", "long"] }
-evidence = [{ source = "spec", line = 332 }]
 
 [[exports]]
 ordinal = 490
 name = "CloseEnhMetafile"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 333 }]
 
 [[exports]]
 ordinal = 491
 name = "CopyEnhMetafile"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 334 }]
 
 [[exports]]
 ordinal = 492
 name = "CreateEnhMetafile"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 335 }]
 
 [[exports]]
 ordinal = 493
 name = "DeleteEnhMetafile"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 336 }]
 
 [[exports]]
 ordinal = 495
 name = "GDIComment"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 337 }]
 
 [[exports]]
 ordinal = 496
 name = "GetEnhMetafile"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 338 }]
 
 [[exports]]
 ordinal = 497
 name = "GetEnhMetafileBits"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 339 }]
 
 [[exports]]
 ordinal = 498
 name = "GetEnhMetafileDescription"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 340 }]
 
 [[exports]]
 ordinal = 499
 name = "GetEnhMetafileHeader"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 341 }]
 
 [[exports]]
 ordinal = 501
 name = "GetEnhMetafilePaletteEntries"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 342 }]
 
 [[exports]]
 ordinal = 504
 name = "PlayEnhMetafileRecord"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 345 }]
 
 [[exports]]
 ordinal = 505
 name = "SetEnhMetafileBits"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 346 }]
 
 [[exports]]
 ordinal = 506
 name = "SetMetaRgn"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 347 }]
 
 [[exports]]
 ordinal = 523
 name = "ExtCreatePen"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 361 }]
 
 [[exports]]
 ordinal = 526
 name = "GetMiterLimit"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 364 }]
 
 [[exports]]
 ordinal = 527
 name = "SetMiterLimit"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 365 }]
 
 [[exports]]
 ordinal = 528
 name = "GDIParametersInfo"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 366 }]
 
 [[exports]]
 ordinal = 530
 name = "RawTextOut"
 decl = { args = ["word", "signed_word", "signed_word", "string", "word"] }
-evidence = [{ source = "spec", line = 368 }]
 
 [[exports]]
 ordinal = 531
 name = "RawExtTextOut"
 decl = { args = ["word", "signed_word", "signed_word", "word", "pointer", "string", "word", "pointer"] }
-evidence = [{ source = "spec", line = 369 }]
 
 [[exports]]
 ordinal = 532
 name = "RawGetTextExtent"
 decl = { args = ["word", "string", "word"] }
-evidence = [{ source = "spec", line = 370 }]
 
 [[exports]]
 ordinal = 533
 name = "RawGetTextExtentEx"
-evidence = [{ source = "spec", line = 371 }]
 
 [[exports]]
 ordinal = 536
 name = "BiDiLayout"
-evidence = [{ source = "spec", line = 372 }]
 
 [[exports]]
 ordinal = 537
 name = "BiDiCreateTabString"
-evidence = [{ source = "spec", line = 373 }]
 
 [[exports]]
 ordinal = 538
 name = "BiDiCreateString"
-evidence = [{ source = "spec", line = 374 }]
 
 [[exports]]
 ordinal = 539
 name = "BiDiStringOut"
-evidence = [{ source = "spec", line = 375 }]
 
 [[exports]]
 ordinal = 540
 name = "BiDiGlyphOut"
 decl = { args = ["word", "word", "word", "word", "string", "word", "word", "word"] }
-evidence = [{ source = "spec", line = 376 }]
 
 [[exports]]
 ordinal = 541
 name = "BiDiJustifyString"
-evidence = [{ source = "spec", line = 377 }]
 
 [[exports]]
 ordinal = 542
 name = "BiDiSetStringTabs"
-evidence = [{ source = "spec", line = 378 }]
 
 [[exports]]
 ordinal = 543
 name = "BiDiGetStringExtent"
-evidence = [{ source = "spec", line = 379 }]
 
 [[exports]]
 ordinal = 544
 name = "BiDiGetNextGlyph"
-evidence = [{ source = "spec", line = 380 }]
 
 [[exports]]
 ordinal = 545
 name = "BiDiGetPrevGlyph"
-evidence = [{ source = "spec", line = 381 }]
 
 [[exports]]
 ordinal = 546
 name = "BiDiIsStringRTL"
-evidence = [{ source = "spec", line = 382 }]
 
 [[exports]]
 ordinal = 547
 name = "BiDiGlyphLength"
-evidence = [{ source = "spec", line = 383 }]
 
 [[exports]]
 ordinal = 548
 name = "BiDiCaretStringToPel"
-evidence = [{ source = "spec", line = 384 }]
 
 [[exports]]
 ordinal = 549
 name = "BiDiCaretPelToString"
-evidence = [{ source = "spec", line = 385 }]
 
 [[exports]]
 ordinal = 550
 name = "BiDiStringToGlyph"
-evidence = [{ source = "spec", line = 386 }]
 
 [[exports]]
 ordinal = 551
 name = "BiDiGlyphToString"
-evidence = [{ source = "spec", line = 387 }]
 
 [[exports]]
 ordinal = 552
 name = "BiDiPelToGlyph"
-evidence = [{ source = "spec", line = 388 }]
 
 [[exports]]
 ordinal = 553
 name = "BiDiGlyphToPel"
-evidence = [{ source = "spec", line = 389 }]
 
 [[exports]]
 ordinal = 554
 name = "BiDiBounds"
-evidence = [{ source = "spec", line = 390 }]
 
 [[exports]]
 ordinal = 555
 name = "BiDiDeleteString"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 391 }]
 
 [[exports]]
 ordinal = 556
 name = "BiDiSetDefaults"
-evidence = [{ source = "spec", line = 392 }]
 
 [[exports]]
 ordinal = 558
 name = "BiDiGetDefaults"
-evidence = [{ source = "spec", line = 393 }]
 
 [[exports]]
 ordinal = 559
 name = "BiDiCalcString"
 decl = { args = ["word", "word", "pointer", "word", "word", "word", "word", "word"] }
-evidence = [{ source = "spec", line = 394 }]
 
 [[exports]]
 ordinal = 560
 name = "BiDiShape"
 decl = { args = ["word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word"] }
-evidence = [{ source = "spec", line = 395 }]
 
 [[exports]]
 ordinal = 561
 name = "BiDiFontComplement"
-evidence = [{ source = "spec", line = 396 }]
 
 [[exports]]
 ordinal = 563
 name = "BiDiCalcTabString"
-evidence = [{ source = "spec", line = 397 }]
 
 [[exports]]
 ordinal = 564
 name = "BiDiSetKashida"
-evidence = [{ source = "spec", line = 398 }]
 
 [[exports]]
 ordinal = 565
 name = "BiDiKExtTextOut"
-evidence = [{ source = "spec", line = 399 }]
 
 [[exports]]
 ordinal = 566
 name = "BiDiShapeEx"
-evidence = [{ source = "spec", line = 400 }]
 
 [[exports]]
 ordinal = 569
 name = "BiDiCreateStringEx"
 decl = { args = ["word", "word", "word", "pointer", "word", "word", "word", "word", "word"] }
-evidence = [{ source = "spec", line = 401 }]
 
 [[exports]]
 ordinal = 570
 name = "GetUnicodeMap"
-evidence = [{ source = "spec", line = 402 }]
 
 [[exports]]
 ordinal = 571
 name = "GetTextExtentRtoL"
-evidence = [{ source = "spec", line = 403 }]
 
 [[exports]]
 ordinal = 572
 name = "GetHDCCharSet"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 404 }]
 
 [[exports]]
 ordinal = 573
 name = "BiDiLayoutEx"
 decl = { args = ["pointer", "word", "word", "word", "pointer", "word", "word", "word", "word", "pointer", "pointer", "word", "word", "word"] }
-evidence = [{ source = "spec", line = 405 }]
 
 [[exports]]
 ordinal = 574
 name = "BiDiCreateTabStringEx"
-evidence = [{ source = "spec", line = 406 }]
 
 [[exports]]
 ordinal = 575
 name = "BiDiCalcTabStringEx"
-evidence = [{ source = "spec", line = 407 }]
 
 [[exports]]
 ordinal = 576
 name = "BiDiCalcStringEx"
-evidence = [{ source = "spec", line = 408 }]
 
 [[exports]]
 ordinal = 588
 name = "SetTextCodePage"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 409 }]
 
 [[exports]]
 ordinal = 589
 name = "GetTextCodePage"
-evidence = [{ source = "spec", line = 410 }]
 
 [[exports]]
 ordinal = 604
 name = "SetSolidBrush"
 decl = { args = ["word", "long"] }
-evidence = [{ source = "spec", line = 413 }]
 
 [[exports]]
 ordinal = 605
 name = "SysDeleteObject"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 414 }]
 
 [[exports]]
 ordinal = 606
 name = "SetMagicColors"
 decl = { args = ["word", "long", "word"] }
-evidence = [{ source = "spec", line = 415 }]
 
 [[exports]]
 ordinal = 607
 name = "GetRegionData"
 decl = { attributes = [], args = ["word", "long", "pointer"] }
-evidence = [{ source = "spec", line = 416 }]
 
 [[exports]]
 ordinal = 608
 name = "ExtCreateRegion"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 417 }]
 
 [[exports]]
 ordinal = 609
 name = "GdiFreeResources"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 418 }]
 
 [[exports]]
 ordinal = 610
 name = "GdiSignalProc32"
 decl = { args = ["long", "long", "long", "word"] }
-evidence = [{ source = "spec", line = 419 }]
 
 [[exports]]
 ordinal = 611
 name = "GetRandomRgn"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 420 }]
 
 [[exports]]
 ordinal = 612
 name = "GetTextCharset"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 421 }]
 
 [[exports]]
 ordinal = 613
 name = "EnumFontFamiliesEx"
 decl = { args = ["word", "pointer", "segmented_pointer", "long", "long"] }
-evidence = [{ source = "spec", line = 422 }]
 
 [[exports]]
 ordinal = 614
 name = "AddLpkToGDI"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 423 }]
 
 [[exports]]
 ordinal = 615
 name = "GetCharacterPlacement"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 424 }]
 
 [[exports]]
 ordinal = 616
 name = "GetFontLanguageInfo"
 decl = { attributes = [], args = ["word"] }
-evidence = [{ source = "spec", line = 425 }]
 
 [[exports]]
 ordinal = 650
 name = "BuildInverseTableDIB"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 426 }]
 
 [[exports]]
 ordinal = 701
 name = "GDITHKCONNECTIONDATALS"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 427 }]
 
 [[exports]]
 ordinal = 702
 name = "FT_GDIFTHKTHKCONNECTIONDATA"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 428 }]
 
 [[exports]]
 ordinal = 703
 name = "FDTHKCONNECTIONDATASL"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 429 }]
 
 [[exports]]
 ordinal = 704
 name = "ICMTHKCONNECTIONDATASL"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 430 }]
 
 [[exports]]
 ordinal = 820
 name = "ICMCreateTransform"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 431 }]
 
 [[exports]]
 ordinal = 821
 name = "ICMDeleteTransform"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 432 }]
 
 [[exports]]
 ordinal = 822
 name = "ICMTranslateRGB"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 433 }]
 
 [[exports]]
 ordinal = 823
 name = "ICMTranslateRGBs"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 434 }]
 
 [[exports]]
 ordinal = 824
 name = "ICMCheckColorsInGamut"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 435 }]
 
 [[exports]]
 ordinal = 1000
 name = "SetLayout"
 decl = { args = ["word", "long"] }
-evidence = [{ source = "spec", line = 436 }]
 
 [[exports]]
 ordinal = 1001
 name = "GetLayout"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 437 }]
 
 [[exports]]
 ordinal = 5000
 name = "DllEntryPoint"
 decl = { attributes = [], args = ["long", "word", "word", "word", "long", "word"] }
-evidence = [{ source = "spec", line = 438 }]

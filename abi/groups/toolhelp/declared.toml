@@ -1,28 +1,21 @@
 module = "TOOLHELP"
 
-[sources]
-spec = { path = "specs/toolhelp.spec", note = "spec" }
-
 [[exports]]
 ordinal = 84
 name = "Local32Info"
 kind = "stub"
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 85
 name = "Local32First"
 kind = "stub"
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 86
 name = "Local32Next"
 kind = "stub"
-evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
 ordinal = 100
 name = "next_intcb"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 39 }]

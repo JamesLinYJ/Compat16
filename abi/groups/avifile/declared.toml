@@ -1,355 +1,294 @@
 module = "AVIFILE"
 
-[sources]
-spec = { path = "specs/avifile.spec", note = "spec" }
-
 [[exports]]
 ordinal = 2
 name = "DLLGETCLASSOBJECT"
 kind = "stub"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 3
 name = "DLLCANUNLOADNOW"
 kind = "stub"
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 4
 name = "___EXPORTEDSTUB"
 kind = "stub"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 10
 name = "_IID_IAVIStream"
 kind = "variable"
-evidence = [{ source = "spec", line = 5 }]
 values = [131105, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 11
 name = "_IID_IAVIFile"
 kind = "variable"
-evidence = [{ source = "spec", line = 6 }]
 values = [131104, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 12
 name = "_IID_IAVIEditStream"
 kind = "variable"
-evidence = [{ source = "spec", line = 7 }]
 values = [131108, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 13
 name = "_IID_IGetFrame"
 kind = "variable"
-evidence = [{ source = "spec", line = 8 }]
 values = [131107, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 14
 name = "_CLSID_AVISimpleUnMarshal"
 kind = "variable"
-evidence = [{ source = "spec", line = 9 }]
 values = [131081, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 100
 name = "AVIFileInit"
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 101
 name = "AVIFileExit"
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 102
 name = "AVIFileOpen"
 decl = { args = ["pointer", "string", "word", "pointer"] }
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 103
 name = "AVIStreamOpenFromFile"
 decl = { args = ["pointer", "string", "long", "long", "word", "pointer"] }
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 104
 name = "AVIStreamCreate"
 decl = { args = ["pointer", "long", "long", "pointer"] }
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 105
 name = "AVIMAKECOMPRESSEDSTREAM"
 kind = "stub"
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 106
 name = "AVIMAKEFILEFROMSTREAMS"
 kind = "stub"
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 107
 name = "AVIMAKESTREAMFROMCLIPBOARD"
 kind = "stub"
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 110
 name = "AVIStreamGetFrame"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 111
 name = "AVIStreamGetFrameClose"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 112
 name = "AVIStreamGetFrameOpen"
 decl = { args = ["long", "pointer"] }
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 120
 name = "_AVISAVE"
 kind = "stub"
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 121
 name = "AVISAVEV"
 kind = "stub"
-evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
 ordinal = 122
 name = "AVISAVEOPTIONS"
 kind = "stub"
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 123
 name = "AVIBuildFilter"
 decl = { args = ["string", "long", "word"] }
-evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
 ordinal = 124
 name = "AVISaveOptionsFree"
 decl = { args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
 ordinal = 130
 name = "AVIStreamStart"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
 ordinal = 131
 name = "AVIStreamLength"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
 ordinal = 132
 name = "AVIStreamTimeToSample"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
 ordinal = 133
 name = "AVIStreamSampleToTime"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
 ordinal = 140
 name = "AVIFileAddRef"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
 ordinal = 141
 name = "AVIFileRelease"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
 ordinal = 142
 name = "AVIFileInfo"
 decl = { args = ["long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
 ordinal = 143
 name = "AVIFileGetStream"
 decl = { args = ["long", "pointer", "long", "long"] }
-evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
 ordinal = 144
 name = "AVIFileCreateStream"
 decl = { args = ["long", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
 ordinal = 146
 name = "AVIFileWriteData"
 decl = { args = ["long", "long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
 ordinal = 147
 name = "AVIFileReadData"
 decl = { args = ["long", "long", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 148
 name = "AVIFileEndRecord"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 160
 name = "AVIStreamAddRef"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
 ordinal = 161
 name = "AVIStreamRelease"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
 ordinal = 162
 name = "AVIStreamInfo"
 decl = { args = ["long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
 ordinal = 163
 name = "AVIStreamFindSample"
 decl = { args = ["long", "long", "long"] }
-evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
 ordinal = 164
 name = "AVIStreamReadFormat"
 decl = { args = ["long", "long", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 42 }]
 
 [[exports]]
 ordinal = 165
 name = "AVIStreamReadData"
 decl = { args = ["long", "long", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
 ordinal = 166
 name = "AVIStreamWriteData"
 decl = { args = ["long", "long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 44 }]
 
 [[exports]]
 ordinal = 167
 name = "AVIStreamRead"
 decl = { args = ["long", "long", "long", "pointer", "long", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 45 }]
 
 [[exports]]
 ordinal = 168
 name = "AVIStreamWrite"
 decl = { args = ["long", "long", "long", "pointer", "long", "long", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 46 }]
 
 [[exports]]
 ordinal = 169
 name = "AVIStreamSetFormat"
 decl = { args = ["long", "long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
 ordinal = 180
 name = "EDITSTREAMCOPY"
 kind = "stub"
-evidence = [{ source = "spec", line = 48 }]
 
 [[exports]]
 ordinal = 181
 name = "EDITSTREAMCUT"
 kind = "stub"
-evidence = [{ source = "spec", line = 49 }]
 
 [[exports]]
 ordinal = 182
 name = "EDITSTREAMPASTE"
 kind = "stub"
-evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
 ordinal = 184
 name = "CREATEEDITABLESTREAM"
 kind = "stub"
-evidence = [{ source = "spec", line = 51 }]
 
 [[exports]]
 ordinal = 185
 name = "AVIPUTFILEONCLIPBOARD"
 kind = "stub"
-evidence = [{ source = "spec", line = 52 }]
 
 [[exports]]
 ordinal = 187
 name = "AVIGETFROMCLIPBOARD"
 kind = "stub"
-evidence = [{ source = "spec", line = 53 }]
 
 [[exports]]
 ordinal = 188
 name = "AVICLEARCLIPBOARD"
 kind = "stub"
-evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
 ordinal = 190
 name = "EDITSTREAMCLONE"
 kind = "stub"
-evidence = [{ source = "spec", line = 55 }]
 
 [[exports]]
 ordinal = 191
 name = "EDITSTREAMSETNAME"
 kind = "stub"
-evidence = [{ source = "spec", line = 56 }]
 
 [[exports]]
 ordinal = 192
 name = "EDITSTREAMSETINFO"
 kind = "stub"
-evidence = [{ source = "spec", line = 57 }]
 
 [[exports]]
 ordinal = 200
 name = "AVISTREAMBEGINSTREAMING"
 kind = "stub"
-evidence = [{ source = "spec", line = 58 }]
 
 [[exports]]
 ordinal = 201
 name = "AVISTREAMENDSTREAMING"
 kind = "stub"
-evidence = [{ source = "spec", line = 59 }]

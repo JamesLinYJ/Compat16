@@ -1,10 +1,6 @@
 module = "TIMER"
 
-[sources]
-spec = { path = "specs/timer.spec", note = "spec" }
-
 [[exports]]
 ordinal = 2
 name = "DriverProc"
 decl = { args = ["long", "word", "word", "long", "long"] }
-evidence = [{ source = "spec", line = 2 }]

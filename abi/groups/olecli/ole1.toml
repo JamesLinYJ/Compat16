@@ -1,15 +1,10 @@
 module = "OLECLI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/olecli.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/ole1_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 2
 name = "OleDelete"
 binding = { rust_id = "Ole1Delete", id_value = 731, constant = "OLE1_DELETE" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 7 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 3
 name = "OleSaveToStream"
 binding = { rust_id = "Ole1SaveToStream", id_value = 732, constant = "OLE1_SAVE_TO_STREAM" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -32,7 +26,6 @@ params = [
 ordinal = 4
 name = "OleLoadFromStream"
 binding = { rust_id = "Ole1LoadFromStream", id_value = 733, constant = "OLE1_LOAD_FROM_STREAM" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 9 }]
 [exports.call]
 returns = "word"
 params = [
@@ -48,7 +41,6 @@ params = [
 ordinal = 6
 name = "OleClone"
 binding = { rust_id = "Ole1Clone", id_value = 734, constant = "OLE1_CLONE" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -63,7 +55,6 @@ params = [
 ordinal = 7
 name = "OLECOPYFROMLINK"
 binding = { rust_id = "Ole1CopyFromLink", id_value = 735, constant = "OLE1_COPY_FROM_LINK" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 11 }]
 [exports.call]
 returns = "word"
 params = [
@@ -79,7 +70,6 @@ params = [
 ordinal = 8
 name = "OleEqual"
 binding = { rust_id = "Ole1Equal", id_value = 736, constant = "OLE1_EQUAL" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "word"
 params = [
@@ -91,7 +81,6 @@ params = [
 ordinal = 9
 name = "OleQueryLinkFromClip"
 binding = { rust_id = "Ole1QueryLinkFromClip", id_value = 737, constant = "OLE1_QUERY_LINK_FROM_CLIP" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 13 }]
 [exports.call]
 returns = "word"
 params = [
@@ -104,7 +93,6 @@ params = [
 ordinal = 10
 name = "OleQueryCreateFromClip"
 binding = { rust_id = "Ole1QueryCreateFromClip", id_value = 738, constant = "OLE1_QUERY_CREATE_FROM_CLIP" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 14 }]
 [exports.call]
 returns = "word"
 params = [
@@ -117,7 +105,6 @@ params = [
 ordinal = 11
 name = "OleCreateLinkFromClip"
 binding = { rust_id = "Ole1CreateLinkFromClip", id_value = 739, constant = "OLE1_CREATE_LINK_FROM_CLIP" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 15 }]
 [exports.call]
 returns = "word"
 params = [
@@ -134,7 +121,6 @@ params = [
 ordinal = 12
 name = "OleCreateFromClip"
 binding = { rust_id = "Ole1CreateFromClip", id_value = 740, constant = "OLE1_CREATE_FROM_CLIP" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "word"
 params = [
@@ -151,7 +137,6 @@ params = [
 ordinal = 13
 name = "OleCopyToClipboard"
 binding = { rust_id = "Ole1CopyToClipboard", id_value = 741, constant = "OLE1_COPY_TO_CLIPBOARD" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 17 }]
 [exports.call]
 returns = "word"
 params = [
@@ -162,7 +147,6 @@ params = [
 ordinal = 14
 name = "OleQueryType"
 binding = { rust_id = "Ole1QueryType", id_value = 742, constant = "OLE1_QUERY_TYPE" }
-evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 18 }]
 [exports.call]
 returns = "word"
 params = [
@@ -174,7 +158,6 @@ params = [
 ordinal = 15
 name = "OleSetHostNames"
 binding = { rust_id = "Ole1SetHostNames", id_value = 743, constant = "OLE1_SET_HOST_NAMES" }
-evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 19 }]
 [exports.call]
 returns = "word"
 params = [
@@ -187,7 +170,6 @@ params = [
 ordinal = 16
 name = "OleSetTargetDevice"
 binding = { rust_id = "Ole1SetTargetDevice", id_value = 744, constant = "OLE1_SET_TARGET_DEVICE" }
-evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 20 }]
 [exports.call]
 returns = "word"
 params = [
@@ -199,7 +181,6 @@ params = [
 ordinal = 17
 name = "OleSetBounds"
 binding = { rust_id = "Ole1SetBounds", id_value = 745, constant = "OLE1_SET_BOUNDS" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 21 }]
 [exports.call]
 returns = "word"
 params = [
@@ -211,7 +192,6 @@ params = [
 ordinal = 18
 name = "OleQueryBounds"
 binding = { rust_id = "Ole1QueryBounds", id_value = 746, constant = "OLE1_QUERY_BOUNDS" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 22 }]
 [exports.call]
 returns = "word"
 params = [
@@ -223,7 +203,6 @@ params = [
 ordinal = 19
 name = "OleDraw"
 binding = { rust_id = "Ole1Draw", id_value = 747, constant = "OLE1_DRAW" }
-evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 23 }]
 [exports.call]
 returns = "word"
 params = [
@@ -238,7 +217,6 @@ params = [
 ordinal = 20
 name = "OleQueryOpen"
 binding = { rust_id = "Ole1QueryOpen", id_value = 748, constant = "OLE1_QUERY_OPEN" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 24 }]
 [exports.call]
 returns = "word"
 params = [
@@ -249,7 +227,6 @@ params = [
 ordinal = 21
 name = "OleActivate"
 binding = { rust_id = "Ole1Activate", id_value = 749, constant = "OLE1_ACTIVATE" }
-evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 25 }]
 [exports.call]
 returns = "word"
 params = [
@@ -265,7 +242,6 @@ params = [
 ordinal = 22
 name = "OleUpdate"
 binding = { rust_id = "Ole1Update", id_value = 750, constant = "OLE1_UPDATE" }
-evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 26 }]
 [exports.call]
 returns = "word"
 params = [
@@ -276,7 +252,6 @@ params = [
 ordinal = 23
 name = "OleReconnect"
 binding = { rust_id = "Ole1Reconnect", id_value = 751, constant = "OLE1_RECONNECT" }
-evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 27 }]
 [exports.call]
 returns = "word"
 params = [
@@ -287,7 +262,6 @@ params = [
 ordinal = 24
 name = "OleGetLinkUpdateOptions"
 binding = { rust_id = "Ole1GetLinkUpdateOptions", id_value = 752, constant = "OLE1_GET_LINK_UPDATE_OPTIONS" }
-evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 28 }]
 [exports.call]
 returns = "word"
 params = [
@@ -299,7 +273,6 @@ params = [
 ordinal = 25
 name = "OleSetLinkUpdateOptions"
 binding = { rust_id = "Ole1SetLinkUpdateOptions", id_value = 753, constant = "OLE1_SET_LINK_UPDATE_OPTIONS" }
-evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 29 }]
 [exports.call]
 returns = "word"
 params = [
@@ -311,7 +284,6 @@ params = [
 ordinal = 26
 name = "OleEnumFormats"
 binding = { rust_id = "Ole1EnumFormats", id_value = 754, constant = "OLE1_ENUM_FORMATS" }
-evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 30 }]
 [exports.call]
 returns = "word"
 params = [
@@ -323,7 +295,6 @@ params = [
 ordinal = 27
 name = "OleClose"
 binding = { rust_id = "Ole1Close", id_value = 755, constant = "OLE1_CLOSE" }
-evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 31 }]
 [exports.call]
 returns = "word"
 params = [
@@ -334,7 +305,6 @@ params = [
 ordinal = 28
 name = "OleGetData"
 binding = { rust_id = "Ole1GetData", id_value = 756, constant = "OLE1_GET_DATA" }
-evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 32 }]
 [exports.call]
 returns = "word"
 params = [
@@ -347,7 +317,6 @@ params = [
 ordinal = 29
 name = "OleSetData"
 binding = { rust_id = "Ole1SetData", id_value = 757, constant = "OLE1_SET_DATA" }
-evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 33 }]
 [exports.call]
 returns = "word"
 params = [
@@ -361,7 +330,6 @@ ordinal = 30
 name = "OLEQUERYPROTOCOL"
 decl = { attributes = [] }
 binding = { rust_id = "Ole1QueryProtocol", id_value = 758, constant = "OLE1_QUERY_PROTOCOL" }
-evidence = [{ source = "spec", line = 29 }, { source = "binding", line = 34 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -373,7 +341,6 @@ params = [
 ordinal = 31
 name = "OLEQUERYOUTOFDATE"
 binding = { rust_id = "Ole1QueryOutOfDate", id_value = 759, constant = "OLE1_QUERY_OUT_OF_DATE" }
-evidence = [{ source = "spec", line = 30 }, { source = "binding", line = 35 }]
 [exports.call]
 returns = "word"
 params = [
@@ -384,7 +351,6 @@ params = [
 ordinal = 32
 name = "OLEOBJECTCONVERT"
 binding = { rust_id = "Ole1ObjectConvert", id_value = 760, constant = "OLE1_OBJECT_CONVERT" }
-evidence = [{ source = "spec", line = 31 }, { source = "binding", line = 36 }]
 [exports.call]
 returns = "word"
 params = [
@@ -400,7 +366,6 @@ params = [
 ordinal = 33
 name = "OLECREATEFROMTEMPLATE"
 binding = { rust_id = "Ole1CreateFromTemplate", id_value = 761, constant = "OLE1_CREATE_FROM_TEMPLATE" }
-evidence = [{ source = "spec", line = 32 }, { source = "binding", line = 37 }]
 [exports.call]
 returns = "word"
 params = [
@@ -418,7 +383,6 @@ params = [
 ordinal = 34
 name = "OleCreate"
 binding = { rust_id = "Ole1Create", id_value = 762, constant = "OLE1_CREATE" }
-evidence = [{ source = "spec", line = 33 }, { source = "binding", line = 38 }]
 [exports.call]
 returns = "word"
 params = [
@@ -436,7 +400,6 @@ params = [
 ordinal = 35
 name = "OleQueryReleaseStatus"
 binding = { rust_id = "Ole1QueryReleaseStatus", id_value = 763, constant = "OLE1_QUERY_RELEASE_STATUS" }
-evidence = [{ source = "spec", line = 34 }, { source = "binding", line = 39 }]
 [exports.call]
 returns = "word"
 params = [
@@ -447,7 +410,6 @@ params = [
 ordinal = 36
 name = "OleQueryReleaseError"
 binding = { rust_id = "Ole1QueryReleaseError", id_value = 764, constant = "OLE1_QUERY_RELEASE_ERROR" }
-evidence = [{ source = "spec", line = 35 }, { source = "binding", line = 40 }]
 [exports.call]
 returns = "word"
 params = [
@@ -458,7 +420,6 @@ params = [
 ordinal = 37
 name = "OleQueryReleaseMethod"
 binding = { rust_id = "Ole1QueryReleaseMethod", id_value = 765, constant = "OLE1_QUERY_RELEASE_METHOD" }
-evidence = [{ source = "spec", line = 36 }, { source = "binding", line = 41 }]
 [exports.call]
 returns = "word"
 params = [
@@ -469,7 +430,6 @@ params = [
 ordinal = 38
 name = "OleCreateFromFile"
 binding = { rust_id = "Ole1CreateFromFile", id_value = 766, constant = "OLE1_CREATE_FROM_FILE" }
-evidence = [{ source = "spec", line = 37 }, { source = "binding", line = 42 }]
 [exports.call]
 returns = "word"
 params = [
@@ -488,7 +448,6 @@ params = [
 ordinal = 39
 name = "OLECREATELINKFROMFILE"
 binding = { rust_id = "Ole1CreateLinkFromFile", id_value = 767, constant = "OLE1_CREATE_LINK_FROM_FILE" }
-evidence = [{ source = "spec", line = 38 }, { source = "binding", line = 43 }]
 [exports.call]
 returns = "word"
 params = [
@@ -508,7 +467,6 @@ params = [
 ordinal = 40
 name = "OleRelease"
 binding = { rust_id = "Ole1Release", id_value = 768, constant = "OLE1_RELEASE" }
-evidence = [{ source = "spec", line = 39 }, { source = "binding", line = 44 }]
 [exports.call]
 returns = "word"
 params = [
@@ -519,7 +477,6 @@ params = [
 ordinal = 41
 name = "OleRegisterClientDoc"
 binding = { rust_id = "Ole1RegisterClientDoc", id_value = 769, constant = "OLE1_REGISTER_CLIENT_DOC" }
-evidence = [{ source = "spec", line = 40 }, { source = "binding", line = 45 }]
 [exports.call]
 returns = "word"
 params = [
@@ -533,7 +490,6 @@ params = [
 ordinal = 42
 name = "OleRevokeClientDoc"
 binding = { rust_id = "Ole1RevokeClientDoc", id_value = 770, constant = "OLE1_REVOKE_CLIENT_DOC" }
-evidence = [{ source = "spec", line = 41 }, { source = "binding", line = 46 }]
 [exports.call]
 returns = "word"
 params = [
@@ -544,7 +500,6 @@ params = [
 ordinal = 43
 name = "OleRenameClientDoc"
 binding = { rust_id = "Ole1RenameClientDoc", id_value = 771, constant = "OLE1_RENAME_CLIENT_DOC" }
-evidence = [{ source = "spec", line = 42 }, { source = "binding", line = 47 }]
 [exports.call]
 returns = "word"
 params = [
@@ -556,7 +511,6 @@ params = [
 ordinal = 44
 name = "OleRevertClientDoc"
 binding = { rust_id = "Ole1RevertClientDoc", id_value = 772, constant = "OLE1_REVERT_CLIENT_DOC" }
-evidence = [{ source = "spec", line = 43 }, { source = "binding", line = 48 }]
 [exports.call]
 returns = "word"
 params = [
@@ -567,7 +521,6 @@ params = [
 ordinal = 45
 name = "OleSavedClientDoc"
 binding = { rust_id = "Ole1SavedClientDoc", id_value = 773, constant = "OLE1_SAVED_CLIENT_DOC" }
-evidence = [{ source = "spec", line = 44 }, { source = "binding", line = 49 }]
 [exports.call]
 returns = "word"
 params = [
@@ -578,7 +531,6 @@ params = [
 ordinal = 46
 name = "OleRename"
 binding = { rust_id = "Ole1Rename", id_value = 774, constant = "OLE1_RENAME" }
-evidence = [{ source = "spec", line = 45 }, { source = "binding", line = 50 }]
 [exports.call]
 returns = "word"
 params = [
@@ -590,7 +542,6 @@ params = [
 ordinal = 47
 name = "OleEnumObjects"
 binding = { rust_id = "Ole1EnumObjects", id_value = 775, constant = "OLE1_ENUM_OBJECTS" }
-evidence = [{ source = "spec", line = 46 }, { source = "binding", line = 51 }]
 [exports.call]
 returns = "word"
 params = [
@@ -602,7 +553,6 @@ params = [
 ordinal = 48
 name = "OleQueryName"
 binding = { rust_id = "Ole1QueryName", id_value = 776, constant = "OLE1_QUERY_NAME" }
-evidence = [{ source = "spec", line = 47 }, { source = "binding", line = 52 }]
 [exports.call]
 returns = "word"
 params = [
@@ -615,7 +565,6 @@ params = [
 ordinal = 49
 name = "OleSetColorScheme"
 binding = { rust_id = "Ole1SetColorScheme", id_value = 777, constant = "OLE1_SET_COLOR_SCHEME" }
-evidence = [{ source = "spec", line = 48 }, { source = "binding", line = 53 }]
 [exports.call]
 returns = "word"
 params = [
@@ -627,7 +576,6 @@ params = [
 ordinal = 50
 name = "OLEREQUESTDATA"
 binding = { rust_id = "Ole1RequestData", id_value = 778, constant = "OLE1_REQUEST_DATA" }
-evidence = [{ source = "spec", line = 49 }, { source = "binding", line = 54 }]
 [exports.call]
 returns = "word"
 params = [
@@ -639,7 +587,6 @@ params = [
 ordinal = 54
 name = "OleLockServer"
 binding = { rust_id = "Ole1LockServer", id_value = 779, constant = "OLE1_LOCK_SERVER" }
-evidence = [{ source = "spec", line = 50 }, { source = "binding", line = 55 }]
 [exports.call]
 returns = "word"
 params = [
@@ -651,7 +598,6 @@ params = [
 ordinal = 55
 name = "OleUnlockServer"
 binding = { rust_id = "Ole1UnlockServer", id_value = 780, constant = "OLE1_UNLOCK_SERVER" }
-evidence = [{ source = "spec", line = 51 }, { source = "binding", line = 56 }]
 [exports.call]
 returns = "word"
 params = [
@@ -662,7 +608,6 @@ params = [
 ordinal = 56
 name = "OleQuerySize"
 binding = { rust_id = "Ole1QuerySize", id_value = 781, constant = "OLE1_QUERY_SIZE" }
-evidence = [{ source = "spec", line = 52 }, { source = "binding", line = 57 }]
 [exports.call]
 returns = "word"
 params = [
@@ -674,7 +619,6 @@ params = [
 ordinal = 57
 name = "OLEEXECUTE"
 binding = { rust_id = "Ole1Execute", id_value = 782, constant = "OLE1_EXECUTE" }
-evidence = [{ source = "spec", line = 53 }, { source = "binding", line = 58 }]
 [exports.call]
 returns = "word"
 params = [
@@ -687,7 +631,6 @@ params = [
 ordinal = 58
 name = "OleCreateInvisible"
 binding = { rust_id = "Ole1CreateInvisible", id_value = 783, constant = "OLE1_CREATE_INVISIBLE" }
-evidence = [{ source = "spec", line = 54 }, { source = "binding", line = 59 }]
 [exports.call]
 returns = "word"
 params = [
@@ -707,7 +650,6 @@ ordinal = 59
 name = "OleQueryClientVersion"
 decl = { attributes = [] }
 binding = { rust_id = "Ole1QueryClientVersion", id_value = 784, constant = "OLE1_QUERY_CLIENT_VERSION" }
-evidence = [{ source = "spec", line = 55 }, { source = "binding", line = 60 }]
 [exports.call]
 returns = "dword"
 
@@ -715,7 +657,6 @@ returns = "dword"
 ordinal = 60
 name = "OleIsDcMeta"
 binding = { rust_id = "Ole1IsDcMeta", id_value = 785, constant = "OLE1_IS_DC_META" }
-evidence = [{ source = "spec", line = 56 }, { source = "binding", line = 61 }]
 [exports.call]
 returns = "word"
 params = [

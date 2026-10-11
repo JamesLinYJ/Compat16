@@ -1,15 +1,10 @@
 module = "KERNEL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 207
 name = "IsDBCSLeadByte"
 binding = { rust_id = "KernelIsDbcsLeadByte", id_value = 68, constant = "KERNEL_IS_DBCS_LEAD_BYTE" }
-evidence = [{ source = "spec", line = 207 }, { source = "binding", line = 142 }]
 [exports.call]
 returns = "word"
 params = [

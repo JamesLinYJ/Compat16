@@ -1,68 +1,54 @@
 module = "KEYBOARD"
 
-[sources]
-spec = { path = "specs/keyboard.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "Inquire"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "Enable"
 decl = { attributes = ["ret16"], args = ["segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "Disable"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 9
 name = "INQUIREEX"
 kind = "stub"
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 10
 name = "TOASCIIEX"
 kind = "stub"
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 11
 name = "VKKEYSCANEX"
 kind = "stub"
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 12
 name = "MAPVIRTUALKEYEX"
 kind = "stub"
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 13
 name = "NEWTABLEEX"
 kind = "stub"
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 14
 name = "__EXPORTEDSTUB"
 kind = "stub"
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 132
 name = "GetKBCodePage"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "KeyboardGetKBCodePage", id_value = 140, constant = "KEYBOARD_GET_KB_CODE_PAGE" }
-evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 216 }]
 [exports.call]
 returns = "word"

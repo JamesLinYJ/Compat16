@@ -1,15 +1,10 @@
 module = "GDI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/gdi.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 230
 name = "CreatePQ"
 binding = { rust_id = "GdiCreatePq", id_value = 56, constant = "GDI_CREATE_PQ" }
-evidence = [{ source = "spec", line = 198 }, { source = "binding", line = 130 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 231
 name = "MinPQ"
 binding = { rust_id = "GdiMinPq", id_value = 57, constant = "GDI_MIN_PQ" }
-evidence = [{ source = "spec", line = 199 }, { source = "binding", line = 131 }]
 [exports.call]
 returns = "word"
 params = [
@@ -31,7 +25,6 @@ params = [
 ordinal = 232
 name = "ExtractPQ"
 binding = { rust_id = "GdiExtractPq", id_value = 58, constant = "GDI_EXTRACT_PQ" }
-evidence = [{ source = "spec", line = 200 }, { source = "binding", line = 132 }]
 [exports.call]
 returns = "word"
 params = [
@@ -42,7 +35,6 @@ params = [
 ordinal = 233
 name = "InsertPQ"
 binding = { rust_id = "GdiInsertPq", id_value = 59, constant = "GDI_INSERT_PQ" }
-evidence = [{ source = "spec", line = 201 }, { source = "binding", line = 133 }]
 [exports.call]
 returns = "word"
 params = [
@@ -55,7 +47,6 @@ params = [
 ordinal = 234
 name = "SizePQ"
 binding = { rust_id = "GdiSizePq", id_value = 60, constant = "GDI_SIZE_PQ" }
-evidence = [{ source = "spec", line = 202 }, { source = "binding", line = 134 }]
 [exports.call]
 returns = "word"
 params = [
@@ -67,7 +58,6 @@ params = [
 ordinal = 235
 name = "DeletePQ"
 binding = { rust_id = "GdiDeletePq", id_value = 61, constant = "GDI_DELETE_PQ" }
-evidence = [{ source = "spec", line = 203 }, { source = "binding", line = 135 }]
 [exports.call]
 returns = "void"
 params = [

@@ -1,46 +1,36 @@
 module = "OLE2CONV"
 
-[sources]
-spec = { path = "specs/ole2conv.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "GETFILTERINFO"
 kind = "stub"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "IMPORTGR"
 kind = "stub"
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "GETFILTERPREF"
 kind = "stub"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 4
 name = "IMPORTEMBEDDEDGR"
 kind = "stub"
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 5
 name = "QD2GDI"
 kind = "stub"
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 6
 name = "STATUSPROC"
 kind = "stub"
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 7
 name = "ENUMFONTFUNC"
 kind = "stub"
-evidence = [{ source = "spec", line = 8 }]

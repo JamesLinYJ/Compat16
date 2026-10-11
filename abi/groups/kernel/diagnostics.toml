@@ -1,16 +1,11 @@
 module = "KERNEL"
 defaults = { attributes = ["register"] }
 
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/kernel_diagnostics_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "FatalExit"
 decl = { attributes = [] }
 binding = { rust_id = "KernelFatalExit", id_value = 845, constant = "KERNEL_FATAL_EXIT" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 14 }]
 [exports.call]
 returns = "void"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 115
 name = "OutputDebugString"
 binding = { rust_id = "KernelOutputDebugString", id_value = 842, constant = "KERNEL_OUTPUT_DEBUG_STRING" }
-evidence = [{ source = "spec", line = 116 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "void"
 params = [
@@ -33,7 +27,6 @@ ordinal = 137
 name = "FatalAppExit"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "KernelFatalAppExit", id_value = 843, constant = "KERNEL_FATAL_APP_EXIT" }
-evidence = [{ source = "spec", line = 138 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "void"
 params = [
@@ -45,6 +38,5 @@ params = [
 ordinal = 203
 name = "DebugBreak"
 binding = { rust_id = "KernelDebugBreak", id_value = 844, constant = "KERNEL_DEBUG_BREAK" }
-evidence = [{ source = "spec", line = 203 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "void"

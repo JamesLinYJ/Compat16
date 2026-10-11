@@ -1,9 +1,10 @@
-[defaults]
-evidence = [{ source = "compiled-abi-baseline", note_ref = "types" }]
-
 [types.AtomName]
 value = { kind = "far16_16", role = "atom_name" }
 declaration_encoding = "string"
+
+[types.Char8]
+value = { kind = "integer", bits = 8, signedness = "unknown" }
+declaration_encoding = "word"
 
 [types.ClassName]
 value = { kind = "far16_16", role = "class_name" }

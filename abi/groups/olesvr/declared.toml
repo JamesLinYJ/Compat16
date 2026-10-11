@@ -1,70 +1,56 @@
 module = "OLESVR"
 
-[sources]
-spec = { path = "specs/olesvr.spec", note = "spec" }
-
 [[exports]]
 ordinal = 21
 name = "SRVRWNDPROC"
 kind = "stub"
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 22
 name = "DOCWNDPROC"
 kind = "stub"
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 23
 name = "ITEMWNDPROC"
 kind = "stub"
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 24
 name = "SENDDATAMSG"
 kind = "stub"
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 25
 name = "FINDITEMWND"
 kind = "stub"
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 27
 name = "TERMINATECLIENTS"
 kind = "stub"
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 28
 name = "TERMINATEDOCCLIENTS"
 kind = "stub"
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 29
 name = "DELETECLIENTINFO"
 kind = "stub"
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 30
 name = "SENDRENAMEMSG"
 kind = "stub"
-evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
 ordinal = 31
 name = "ENUMFORTERMINATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 32
 name = "DllEntryPoint"
 decl = { attributes = ["ret16"], args = ["long", "word", "word", "word", "long", "word"] }
-evidence = [{ source = "spec", line = 24 }]

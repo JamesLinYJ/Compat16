@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 150
 name = "LoadMenu"
 binding = { rust_id = "UserLoadMenu", id_value = 500, constant = "USER_LOAD_MENU" }
-evidence = [{ source = "spec", line = 151 }, { source = "binding", line = 580 }]
 [exports.call]
 returns = "word"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 152
 name = "DestroyMenu"
 binding = { rust_id = "UserDestroyMenu", id_value = 483, constant = "USER_DESTROY_MENU" }
-evidence = [{ source = "spec", line = 153 }, { source = "binding", line = 563 }]
 [exports.call]
 returns = "word"
 params = [
@@ -32,7 +26,6 @@ params = [
 ordinal = 153
 name = "ChangeMenu"
 binding = { rust_id = "UserChangeMenu", id_value = 501, constant = "USER_CHANGE_MENU" }
-evidence = [{ source = "spec", line = 154 }, { source = "binding", line = 581 }]
 [exports.call]
 returns = "word"
 params = [
@@ -47,7 +40,6 @@ params = [
 ordinal = 154
 name = "CheckMenuItem"
 binding = { rust_id = "UserCheckMenuItem", id_value = 484, constant = "USER_CHECK_MENU_ITEM" }
-evidence = [{ source = "spec", line = 155 }, { source = "binding", line = 564 }]
 [exports.call]
 returns = "word"
 params = [
@@ -60,7 +52,6 @@ params = [
 ordinal = 155
 name = "EnableMenuItem"
 binding = { rust_id = "UserEnableMenuItem", id_value = 485, constant = "USER_ENABLE_MENU_ITEM" }
-evidence = [{ source = "spec", line = 156 }, { source = "binding", line = 565 }]
 [exports.call]
 returns = "word"
 params = [
@@ -73,7 +64,6 @@ params = [
 ordinal = 156
 name = "GetSystemMenu"
 binding = { rust_id = "UserGetSystemMenu", id_value = 486, constant = "USER_GET_SYSTEM_MENU" }
-evidence = [{ source = "spec", line = 157 }, { source = "binding", line = 566 }]
 [exports.call]
 returns = "word"
 params = [
@@ -85,7 +75,6 @@ params = [
 ordinal = 157
 name = "GetMenu"
 binding = { rust_id = "UserGetMenu", id_value = 487, constant = "USER_GET_MENU" }
-evidence = [{ source = "spec", line = 158 }, { source = "binding", line = 567 }]
 [exports.call]
 returns = "word"
 params = [
@@ -96,7 +85,6 @@ params = [
 ordinal = 158
 name = "SetMenu"
 binding = { rust_id = "UserSetMenu", id_value = 488, constant = "USER_SET_MENU" }
-evidence = [{ source = "spec", line = 159 }, { source = "binding", line = 568 }]
 [exports.call]
 returns = "word"
 params = [
@@ -108,7 +96,6 @@ params = [
 ordinal = 159
 name = "GetSubMenu"
 binding = { rust_id = "UserGetSubMenu", id_value = 489, constant = "USER_GET_SUB_MENU" }
-evidence = [{ source = "spec", line = 160 }, { source = "binding", line = 569 }]
 [exports.call]
 returns = "word"
 params = [
@@ -120,7 +107,6 @@ params = [
 ordinal = 160
 name = "DrawMenuBar"
 binding = { rust_id = "UserDrawMenuBar", id_value = 490, constant = "USER_DRAW_MENU_BAR" }
-evidence = [{ source = "spec", line = 161 }, { source = "binding", line = 570 }]
 [exports.call]
 returns = "void"
 params = [
@@ -131,7 +117,6 @@ params = [
 ordinal = 161
 name = "GetMenuString"
 binding = { rust_id = "UserGetMenuString", id_value = 491, constant = "USER_GET_MENU_STRING" }
-evidence = [{ source = "spec", line = 162 }, { source = "binding", line = 571 }]
 [exports.call]
 returns = "word"
 params = [
@@ -146,7 +131,6 @@ params = [
 ordinal = 162
 name = "HiliteMenuItem"
 binding = { rust_id = "UserHiliteMenuItem", id_value = 502, constant = "USER_HILITE_MENU_ITEM" }
-evidence = [{ source = "spec", line = 163 }, { source = "binding", line = 582 }]
 [exports.call]
 returns = "word"
 params = [
@@ -160,7 +144,6 @@ params = [
 ordinal = 220
 name = "LoadMenuIndirect"
 binding = { rust_id = "UserLoadMenuIndirect", id_value = 504, constant = "USER_LOAD_MENU_INDIRECT" }
-evidence = [{ source = "spec", line = 224 }, { source = "binding", line = 584 }]
 [exports.call]
 returns = "word"
 params = [
@@ -171,7 +154,6 @@ params = [
 ordinal = 250
 name = "GetMenuState"
 binding = { rust_id = "UserGetMenuState", id_value = 492, constant = "USER_GET_MENU_STATE" }
-evidence = [{ source = "spec", line = 255 }, { source = "binding", line = 572 }]
 [exports.call]
 returns = "word"
 params = [
@@ -184,7 +166,6 @@ params = [
 ordinal = 263
 name = "GetMenuItemCount"
 binding = { rust_id = "UserGetMenuItemCount", id_value = 493, constant = "USER_GET_MENU_ITEM_COUNT" }
-evidence = [{ source = "spec", line = 268 }, { source = "binding", line = 573 }]
 [exports.call]
 returns = "word"
 params = [
@@ -195,7 +176,6 @@ params = [
 ordinal = 264
 name = "GetMenuItemID"
 binding = { rust_id = "UserGetMenuItemID", id_value = 505, constant = "USER_GET_MENU_ITEM_ID" }
-evidence = [{ source = "spec", line = 269 }, { source = "binding", line = 585 }]
 [exports.call]
 returns = "word"
 params = [
@@ -207,7 +187,6 @@ params = [
 ordinal = 280
 name = "SetSystemMenu"
 binding = { rust_id = "UserSetSystemMenu", id_value = 506, constant = "USER_SET_SYSTEM_MENU" }
-evidence = [{ source = "spec", line = 285 }, { source = "binding", line = 586 }]
 [exports.call]
 returns = "word"
 params = [
@@ -219,7 +198,6 @@ params = [
 ordinal = 358
 name = "IsMenu"
 binding = { rust_id = "UserIsMenu", id_value = 507, constant = "USER_IS_MENU" }
-evidence = [{ source = "spec", line = 333 }, { source = "binding", line = 587 }]
 [exports.call]
 returns = "word"
 params = [
@@ -230,7 +208,6 @@ params = [
 ordinal = 384
 name = "SetMenuContextHelpId"
 binding = { rust_id = "UserSetMenuContextHelpId", id_value = 508, constant = "USER_SET_MENU_CONTEXT_HELP_ID" }
-evidence = [{ source = "spec", line = 351 }, { source = "binding", line = 588 }]
 [exports.call]
 returns = "word"
 params = [
@@ -242,7 +219,6 @@ params = [
 ordinal = 385
 name = "GetMenuContextHelpId"
 binding = { rust_id = "UserGetMenuContextHelpId", id_value = 509, constant = "USER_GET_MENU_CONTEXT_HELP_ID" }
-evidence = [{ source = "spec", line = 352 }, { source = "binding", line = 589 }]
 [exports.call]
 returns = "word"
 params = [
@@ -253,7 +229,6 @@ params = [
 ordinal = 410
 name = "InsertMenu"
 binding = { rust_id = "UserInsertMenu", id_value = 494, constant = "USER_INSERT_MENU" }
-evidence = [{ source = "spec", line = 369 }, { source = "binding", line = 574 }]
 [exports.call]
 returns = "word"
 params = [
@@ -268,7 +243,6 @@ params = [
 ordinal = 411
 name = "AppendMenu"
 binding = { rust_id = "UserAppendMenu", id_value = 495, constant = "USER_APPEND_MENU" }
-evidence = [{ source = "spec", line = 370 }, { source = "binding", line = 575 }]
 [exports.call]
 returns = "word"
 params = [
@@ -282,7 +256,6 @@ params = [
 ordinal = 412
 name = "RemoveMenu"
 binding = { rust_id = "UserRemoveMenu", id_value = 496, constant = "USER_REMOVE_MENU" }
-evidence = [{ source = "spec", line = 371 }, { source = "binding", line = 576 }]
 [exports.call]
 returns = "word"
 params = [
@@ -295,7 +268,6 @@ params = [
 ordinal = 413
 name = "DeleteMenu"
 binding = { rust_id = "UserDeleteMenu", id_value = 497, constant = "USER_DELETE_MENU" }
-evidence = [{ source = "spec", line = 372 }, { source = "binding", line = 577 }]
 [exports.call]
 returns = "word"
 params = [
@@ -308,7 +280,6 @@ params = [
 ordinal = 414
 name = "ModifyMenu"
 binding = { rust_id = "UserModifyMenu", id_value = 510, constant = "USER_MODIFY_MENU" }
-evidence = [{ source = "spec", line = 373 }, { source = "binding", line = 590 }]
 [exports.call]
 returns = "word"
 params = [
@@ -323,7 +294,6 @@ params = [
 ordinal = 416
 name = "TrackPopupMenu"
 binding = { rust_id = "UserTrackPopupMenu", id_value = 499, constant = "USER_TRACK_POPUP_MENU" }
-evidence = [{ source = "spec", line = 375 }, { source = "binding", line = 579 }]
 [exports.call]
 returns = "word"
 params = [
@@ -340,7 +310,6 @@ params = [
 ordinal = 418
 name = "SetMenuItemBitmaps"
 binding = { rust_id = "UserSetMenuItemBitmaps", id_value = 512, constant = "USER_SET_MENU_ITEM_BITMAPS" }
-evidence = [{ source = "spec", line = 377 }, { source = "binding", line = 592 }]
 [exports.call]
 returns = "word"
 params = [
@@ -355,7 +324,6 @@ params = [
 ordinal = 485
 name = "MakeMenuRToL"
 binding = { rust_id = "UserMakeMenuRToL", id_value = 513, constant = "USER_MAKE_MENU_R_TO_L" }
-evidence = [{ source = "spec", line = 429 }, { source = "binding", line = 593 }]
 [exports.call]
 returns = "word"
 params = [
@@ -367,7 +335,6 @@ params = [
 ordinal = 665
 name = "GetMenuItemRect"
 binding = { rust_id = "UserGetMenuItemRect", id_value = 514, constant = "USER_GET_MENU_ITEM_RECT" }
-evidence = [{ source = "spec", line = 508 }, { source = "binding", line = 594 }]
 [exports.call]
 returns = "word"
 params = [
@@ -381,7 +348,6 @@ params = [
 ordinal = 666
 name = "CheckMenuRadioItem"
 binding = { rust_id = "UserCheckMenuRadioItem", id_value = 515, constant = "USER_CHECK_MENU_RADIO_ITEM" }
-evidence = [{ source = "spec", line = 509 }, { source = "binding", line = 595 }]
 [exports.call]
 returns = "word"
 params = [

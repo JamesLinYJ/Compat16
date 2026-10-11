@@ -1,17 +1,10 @@
 module = "KERNEL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-binding_2 = { path = "crates/win16/src/exports/catalog/kernel_path_info_records.inc.rs", note = "binding" }
-binding_3 = { path = "crates/win16/src/exports/catalog/kernel_file_system_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 74
 name = "OpenFile"
 binding = { rust_id = "KernelOpenFile", id_value = 188, constant = "KERNEL_OPEN_FILE" }
-evidence = [{ source = "spec", line = 75 }, { source = "binding", line = 265 }]
 [exports.call]
 returns = "word"
 params = [
@@ -24,7 +17,6 @@ params = [
 ordinal = 81
 name = "_lclose"
 binding = { rust_id = "KernelLclose", id_value = 198, constant = "KERNEL_LCLOSE" }
-evidence = [{ source = "spec", line = 82 }, { source = "binding", line = 275 }]
 [exports.call]
 returns = "word"
 params = [
@@ -35,7 +27,6 @@ params = [
 ordinal = 82
 name = "_lread"
 binding = { rust_id = "KernelLread", id_value = 190, constant = "KERNEL_LREAD" }
-evidence = [{ source = "spec", line = 83 }, { source = "binding", line = 267 }]
 [exports.call]
 returns = "word"
 params = [
@@ -48,7 +39,6 @@ params = [
 ordinal = 83
 name = "_lcreat"
 binding = { rust_id = "KernelLcreat", id_value = 199, constant = "KERNEL_LCREAT" }
-evidence = [{ source = "spec", line = 84 }, { source = "binding", line = 276 }]
 [exports.call]
 returns = "word"
 params = [
@@ -61,7 +51,6 @@ ordinal = 84
 name = "_llseek"
 decl = { attributes = [] }
 binding = { rust_id = "KernelLlseek", id_value = 191, constant = "KERNEL_LLSEEK" }
-evidence = [{ source = "spec", line = 85 }, { source = "binding", line = 268 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -74,7 +63,6 @@ params = [
 ordinal = 85
 name = "_lopen"
 binding = { rust_id = "KernelLopen", id_value = 187, constant = "KERNEL_LOPEN" }
-evidence = [{ source = "spec", line = 86 }, { source = "binding", line = 264 }]
 [exports.call]
 returns = "word"
 params = [
@@ -86,7 +74,6 @@ params = [
 ordinal = 86
 name = "_lwrite"
 binding = { rust_id = "KernelLwrite", id_value = 200, constant = "KERNEL_LWRITE" }
-evidence = [{ source = "spec", line = 87 }, { source = "binding", line = 277 }]
 [exports.call]
 returns = "word"
 params = [
@@ -99,7 +86,6 @@ params = [
 ordinal = 97
 name = "GetTempFileName"
 binding = { rust_id = "KernelGetTempFileName", id_value = 1146, constant = "KERNEL_GET_TEMP_FILE_NAME" }
-evidence = [{ source = "spec", line = 98 }, { source = "binding_2", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -114,7 +100,6 @@ ordinal = 130
 name = "FileCDR"
 decl = { attributes = [] }
 binding = { rust_id = "KernelFileCdr", id_value = 1134, constant = "KERNEL_FILE_CDR" }
-evidence = [{ source = "spec", line = 131 }, { source = "binding_3", line = 6 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -125,7 +110,6 @@ params = [
 ordinal = 134
 name = "GetWindowsDirectory"
 binding = { rust_id = "KernelGetWindowsDirectory", id_value = 1147, constant = "KERNEL_GET_WINDOWS_DIRECTORY" }
-evidence = [{ source = "spec", line = 135 }, { source = "binding_2", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -137,7 +121,6 @@ params = [
 ordinal = 135
 name = "GetSystemDirectory"
 binding = { rust_id = "KernelGetSystemDirectory", id_value = 1148, constant = "KERNEL_GET_SYSTEM_DIRECTORY" }
-evidence = [{ source = "spec", line = 136 }, { source = "binding_2", line = 12 }]
 [exports.call]
 returns = "word"
 params = [
@@ -149,7 +132,6 @@ params = [
 ordinal = 136
 name = "GetDriveType"
 binding = { rust_id = "KernelGetDriveType", id_value = 158, constant = "KERNEL_GET_DRIVE_TYPE" }
-evidence = [{ source = "spec", line = 137 }, { source = "binding", line = 234 }]
 [exports.call]
 returns = "word"
 params = [
@@ -160,7 +142,6 @@ params = [
 ordinal = 144
 name = "CreateDirectory"
 binding = { rust_id = "KernelCreateDirectory", id_value = 1135, constant = "KERNEL_CREATE_DIRECTORY" }
-evidence = [{ source = "spec", line = 145 }, { source = "binding_3", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -172,7 +153,6 @@ params = [
 ordinal = 145
 name = "RemoveDirectory"
 binding = { rust_id = "KernelRemoveDirectory", id_value = 1136, constant = "KERNEL_REMOVE_DIRECTORY" }
-evidence = [{ source = "spec", line = 146 }, { source = "binding_3", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -183,7 +163,6 @@ params = [
 ordinal = 146
 name = "DeleteFile"
 binding = { rust_id = "KernelDeleteFile", id_value = 1137, constant = "KERNEL_DELETE_FILE" }
-evidence = [{ source = "spec", line = 147 }, { source = "binding_3", line = 12 }]
 [exports.call]
 returns = "word"
 params = [
@@ -194,7 +173,6 @@ params = [
 ordinal = 199
 name = "SetHandleCount"
 binding = { rust_id = "KernelSetHandleCount", id_value = 154, constant = "KERNEL_SET_HANDLE_COUNT" }
-evidence = [{ source = "spec", line = 199 }, { source = "binding", line = 230 }]
 [exports.call]
 returns = "word"
 params = [
@@ -206,7 +184,6 @@ ordinal = 349
 name = "_hread"
 decl = { attributes = [] }
 binding = { rust_id = "KernelHread", id_value = 202, constant = "KERNEL_HREAD" }
-evidence = [{ source = "spec", line = 272 }, { source = "binding", line = 279 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -220,7 +197,6 @@ ordinal = 350
 name = "_hwrite"
 decl = { attributes = [] }
 binding = { rust_id = "KernelHwrite", id_value = 203, constant = "KERNEL_HWRITE" }
-evidence = [{ source = "spec", line = 273 }, { source = "binding", line = 280 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -234,7 +210,6 @@ ordinal = 411
 name = "GetCurrentDirectory"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGetCurrentDirectory", id_value = 1138, constant = "KERNEL_GET_CURRENT_DIRECTORY" }
-evidence = [{ source = "spec", line = 294 }, { source = "binding_3", line = 14 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -246,7 +221,6 @@ params = [
 ordinal = 412
 name = "SetCurrentDirectory"
 binding = { rust_id = "KernelSetCurrentDirectory", id_value = 1139, constant = "KERNEL_SET_CURRENT_DIRECTORY" }
-evidence = [{ source = "spec", line = 295 }, { source = "binding_3", line = 16 }]
 [exports.call]
 returns = "word"
 params = [
@@ -257,7 +231,6 @@ params = [
 ordinal = 413
 name = "FindFirstFile"
 binding = { rust_id = "KernelFindFirstFile", id_value = 1140, constant = "KERNEL_FIND_FIRST_FILE" }
-evidence = [{ source = "spec", line = 296 }, { source = "binding_3", line = 18 }]
 [exports.call]
 returns = "word"
 params = [
@@ -269,7 +242,6 @@ params = [
 ordinal = 414
 name = "FindNextFile"
 binding = { rust_id = "KernelFindNextFile", id_value = 1141, constant = "KERNEL_FIND_NEXT_FILE" }
-evidence = [{ source = "spec", line = 297 }, { source = "binding_3", line = 20 }]
 [exports.call]
 returns = "word"
 params = [
@@ -281,7 +253,6 @@ params = [
 ordinal = 415
 name = "FindClose"
 binding = { rust_id = "KernelFindClose", id_value = 1142, constant = "KERNEL_FIND_CLOSE" }
-evidence = [{ source = "spec", line = 298 }, { source = "binding_3", line = 22 }]
 [exports.call]
 returns = "word"
 params = [
@@ -293,7 +264,6 @@ ordinal = 420
 name = "GetFileAttributes"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGetFileAttributes", id_value = 1143, constant = "KERNEL_GET_FILE_ATTRIBUTES" }
-evidence = [{ source = "spec", line = 303 }, { source = "binding_3", line = 24 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -304,7 +274,6 @@ params = [
 ordinal = 421
 name = "SetFileAttributes"
 binding = { rust_id = "KernelSetFileAttributes", id_value = 1144, constant = "KERNEL_SET_FILE_ATTRIBUTES" }
-evidence = [{ source = "spec", line = 304 }, { source = "binding_3", line = 26 }]
 [exports.call]
 returns = "word"
 params = [
@@ -316,7 +285,6 @@ params = [
 ordinal = 422
 name = "GetDiskFreeSpace"
 binding = { rust_id = "KernelGetDiskFreeSpace", id_value = 1145, constant = "KERNEL_GET_DISK_FREE_SPACE" }
-evidence = [{ source = "spec", line = 305 }, { source = "binding_3", line = 28 }]
 [exports.call]
 returns = "word"
 params = [

@@ -1,404 +1,334 @@
 module = "MSVIDEO"
 
-[sources]
-spec = { path = "specs/msvideo.spec", note = "spec" }
-
 [[exports]]
 ordinal = 2
 name = "VideoForWindowsVersion"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 3
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 20
 name = "videoGetNumDevs"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 21
 name = "videoGetErrorText"
 decl = { args = ["word", "word", "string", "word"] }
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 22
 name = "VideoCapDriverDescAndVer"
 decl = { args = ["word", "pointer", "word", "pointer", "word"] }
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 28
 name = "videoOpen"
 decl = { args = ["pointer", "long", "long"] }
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 29
 name = "videoClose"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 30
 name = "videoDialog"
 decl = { args = ["word", "word", "long"] }
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 31
 name = "videoFrame"
 decl = { args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 32
 name = "videoConfigure"
 decl = { args = ["word", "word", "long", "pointer", "pointer", "long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 33
 name = "videoConfigureStorage"
 decl = { args = ["word", "string", "long"] }
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 34
 name = "videoGetChannelCaps"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 35
 name = "videoUpdate"
 decl = { args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 40
 name = "videoStreamAddBuffer"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 41
 name = "videoStreamFini"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 42
 name = "videoStreamGetError"
 decl = { args = ["word", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 43
 name = "videoStreamGetPosition"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 44
 name = "videoStreamInit"
 decl = { args = ["word", "long", "long", "long", "long"] }
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 46
 name = "videoStreamPrepareHeader"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 47
 name = "videoStreamReset"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 49
 name = "videoStreamStart"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
 ordinal = 50
 name = "videoStreamStop"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 51
 name = "videoStreamUnprepareHeader"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
 ordinal = 52
 name = "videoStreamAllocHdrAndBuffer"
 decl = { args = ["word", "pointer", "long"] }
-evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
 ordinal = 53
 name = "videoStreamFreeHdrAndBuffer"
 decl = { args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
 ordinal = 60
 name = "videoMessage"
 decl = { args = ["word", "word", "long", "long"] }
-evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
 ordinal = 102
 name = "DrawDibOpen"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
 ordinal = 103
 name = "DrawDibClose"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
 ordinal = 104
 name = "DrawDibBegin"
 decl = { attributes = ["ret16"], args = ["word", "word", "signed_word", "signed_word", "pointer", "signed_word", "signed_word", "word"] }
-evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
 ordinal = 105
 name = "DrawDibEnd"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
 ordinal = 106
 name = "DrawDibDraw"
 decl = { attributes = ["ret16"], args = ["word", "word", "signed_word", "signed_word", "signed_word", "signed_word", "pointer", "pointer", "signed_word", "signed_word", "signed_word", "signed_word", "word"] }
-evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
 ordinal = 108
 name = "DrawDibGetPalette"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
 ordinal = 110
 name = "DrawDibSetPalette"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
 ordinal = 111
 name = "DRAWDIBCHANGEPALETTE"
 kind = "stub"
-evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
 ordinal = 112
 name = "DrawDibRealize"
 decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 113
 name = "DRAWDIBTIME"
 kind = "stub"
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 114
 name = "DrawDibProfileDisplay"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
 ordinal = 115
 name = "STRETCHDIB"
 kind = "stub"
-evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
 ordinal = 118
 name = "DrawDibStart"
 decl = { attributes = ["ret16"], args = ["word", "long"] }
-evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
 ordinal = 119
 name = "DrawDibStop"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
 ordinal = 120
 name = "DRAWDIBGETBUFFER"
 kind = "stub"
-evidence = [{ source = "spec", line = 42 }]
 
 [[exports]]
 ordinal = 200
 name = "ICInfo"
 decl = { attributes = ["ret16"], args = ["long", "long", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
 ordinal = 201
 name = "ICInstall"
 decl = { attributes = ["ret16"], args = ["long", "long", "long", "pointer", "word"] }
-evidence = [{ source = "spec", line = 44 }]
 
 [[exports]]
 ordinal = 202
 name = "ICRemove"
 decl = { attributes = ["ret16"], args = ["long", "long", "word"] }
-evidence = [{ source = "spec", line = 45 }]
 
 [[exports]]
 ordinal = 203
 name = "ICOpen"
 decl = { attributes = ["ret16"], args = ["long", "long", "word"] }
-evidence = [{ source = "spec", line = 46 }]
 
 [[exports]]
 ordinal = 204
 name = "ICClose"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
 ordinal = 205
 name = "ICSendMessage"
 decl = { args = ["word", "word", "long", "long"] }
-evidence = [{ source = "spec", line = 48 }]
 
 [[exports]]
 ordinal = 206
 name = "ICOpenFunction"
 decl = { attributes = ["ret16"], args = ["long", "long", "word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 49 }]
 
 [[exports]]
 ordinal = 207
 name = "_ICMessage"
 decl = { type = "varargs", args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
 ordinal = 212
 name = "ICGetInfo"
 decl = { args = ["word", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 51 }]
 
 [[exports]]
 ordinal = 213
 name = "ICLocate"
 decl = { attributes = ["ret16"], args = ["long", "long", "pointer", "pointer", "word"] }
-evidence = [{ source = "spec", line = 52 }]
 
 [[exports]]
 ordinal = 224
 name = "_ICCompress"
 decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "long", "long", "long", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 53 }]
 
 [[exports]]
 ordinal = 230
 name = "_ICDecompress"
 decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
 ordinal = 232
 name = "_ICDrawBegin"
 decl = { type = "cdecl", args = ["word", "long", "word", "word", "word", "signed_word", "signed_word", "signed_word", "signed_word", "segmented_pointer", "signed_word", "signed_word", "signed_word", "signed_word", "long", "long"] }
-evidence = [{ source = "spec", line = 55 }]
 
 [[exports]]
 ordinal = 234
 name = "_ICDraw"
 decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "long", "long"] }
-evidence = [{ source = "spec", line = 56 }]
 
 [[exports]]
 ordinal = 239
 name = "ICGetDisplayFormat"
 decl = { attributes = ["ret16"], args = ["word", "pointer", "pointer", "signed_word", "signed_word", "signed_word"] }
-evidence = [{ source = "spec", line = 57 }]
 
 [[exports]]
 ordinal = 240
 name = "ICIMAGECOMPRESS"
 kind = "stub"
-evidence = [{ source = "spec", line = 58 }]
 
 [[exports]]
 ordinal = 241
 name = "ICIMAGEDECOMPRESS"
 kind = "stub"
-evidence = [{ source = "spec", line = 59 }]
 
 [[exports]]
 ordinal = 242
 name = "ICCOMPRESSORCHOOSE"
 kind = "stub"
-evidence = [{ source = "spec", line = 60 }]
 
 [[exports]]
 ordinal = 243
 name = "ICCOMPRESSORFREE"
 kind = "stub"
-evidence = [{ source = "spec", line = 61 }]
 
 [[exports]]
 ordinal = 244
 name = "ICSEQCOMPRESSFRAMESTART"
 kind = "stub"
-evidence = [{ source = "spec", line = 62 }]
 
 [[exports]]
 ordinal = 245
 name = "ICSEQCOMPRESSFRAMEEND"
 kind = "stub"
-evidence = [{ source = "spec", line = 63 }]
 
 [[exports]]
 ordinal = 246
 name = "ICSEQCOMPRESSFRAME"
 kind = "stub"
-evidence = [{ source = "spec", line = 64 }]
 
 [[exports]]
 ordinal = 250
 name = "_MCIWndCreate"
 decl = { type = "cdecl", args = ["word", "word", "long", "string"] }
-evidence = [{ source = "spec", line = 65 }]
 
 [[exports]]
 ordinal = 251
 name = "_MCIWndRegisterClass"
 decl = { type = "cdecl" }
-evidence = [{ source = "spec", line = 66 }]
 
 [[exports]]
 ordinal = 252
 name = "GETOPENFILENAMEPREVIEW"
 kind = "stub"
-evidence = [{ source = "spec", line = 67 }]
 
 [[exports]]
 ordinal = 253
 name = "GETSAVEFILENAMEPREVIEW"
 kind = "stub"
-evidence = [{ source = "spec", line = 68 }]

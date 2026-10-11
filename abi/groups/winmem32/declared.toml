@@ -1,52 +1,41 @@
 module = "WINMEM32"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/winmem32.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "GetWinMem32Version"
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 2
 name = "Global32Alloc"
 decl = { args = ["long", "pointer", "long", "word"] }
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 3
 name = "Global32Realloc"
 decl = { args = ["word", "long", "word"] }
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 4
 name = "Global32Free"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 5
 name = "Global16PointerAlloc"
 decl = { args = ["word", "long", "pointer", "long", "word"] }
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 6
 name = "Global16PointerFree"
 decl = { args = ["word", "long", "word"] }
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 7
 name = "Global32CodeAlias"
 decl = { args = ["word", "pointer", "word"] }
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 8
 name = "Global32CodeAliasFree"
 decl = { args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 10 }]

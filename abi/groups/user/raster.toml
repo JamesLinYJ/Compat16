@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 282
 name = "SelectPalette"
 binding = { rust_id = "UserSelectPalette", id_value = 682, constant = "USER_SELECT_PALETTE" }
-evidence = [{ source = "spec", line = 287 }, { source = "binding", line = 779 }]
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 283
 name = "RealizePalette"
 binding = { rust_id = "UserRealizePalette", id_value = 683, constant = "USER_REALIZE_PALETTE" }
-evidence = [{ source = "spec", line = 288 }, { source = "binding", line = 780 }]
 [exports.call]
 returns = "word"
 params = [

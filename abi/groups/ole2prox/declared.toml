@@ -1,10 +1,6 @@
 module = "OLE2PROX"
 
-[sources]
-spec = { path = "specs/ole2prox.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "DLLGETCLASSOBJECT"
 kind = "stub"
-evidence = [{ source = "spec", line = 2 }]

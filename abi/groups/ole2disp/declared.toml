@@ -1,435 +1,361 @@
 module = "OLE2DISP"
 
-[sources]
-spec = { path = "specs/ole2disp.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "DLLGETCLASSOBJECT"
 kind = "stub"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 13
 name = "VARIANTTIMETODOSDATETIME"
 kind = "stub"
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 14
 name = "DOSDATETIMETOVARIANTTIME"
 kind = "stub"
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 28
 name = "DispGetParam"
 decl = { args = ["pointer", "word", "word", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
 ordinal = 29
 name = "DispGetIDsOfNames"
 decl = { args = ["segmented_pointer", "segmented_pointer", "word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
 ordinal = 30
 name = "DispInvoke"
 decl = { args = ["segmented_pointer", "segmented_pointer", "long", "word", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
 ordinal = 31
 name = "CreateDispTypeInfo"
 decl = { args = ["pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
 ordinal = 32
 name = "CreateStdDispatch"
 decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
 ordinal = 33
 name = "_IID_IDispatch"
 kind = "variable"
-evidence = [{ source = "spec", line = 34 }]
 values = [132096, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 34
 name = "_IID_IEnumVARIANT"
 kind = "variable"
-evidence = [{ source = "spec", line = 35 }]
 values = [132100, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 35
 name = "RegisterActiveObject"
 decl = { args = ["segmented_pointer", "pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 36
 name = "RevokeActiveObject"
 decl = { args = ["long", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 37
 name = "GetActiveObject"
 decl = { args = ["pointer", "segmented_pointer", "pointer"] }
-evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
 ordinal = 42
 name = "SafeArrayRedim"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
 ordinal = 49
 name = "VARI2FROMDISP"
 kind = "stub"
-evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
 ordinal = 51
 name = "VARI4FROMI2"
 kind = "stub"
-evidence = [{ source = "spec", line = 52 }]
 
 [[exports]]
 ordinal = 52
 name = "VARI4FROMR4"
 kind = "stub"
-evidence = [{ source = "spec", line = 53 }]
 
 [[exports]]
 ordinal = 53
 name = "VARI4FROMR8"
 kind = "stub"
-evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
 ordinal = 54
 name = "VARI4FROMCY"
 kind = "stub"
-evidence = [{ source = "spec", line = 55 }]
 
 [[exports]]
 ordinal = 55
 name = "VARI4FROMDATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 56 }]
 
 [[exports]]
 ordinal = 57
 name = "VARI4FROMDISP"
 kind = "stub"
-evidence = [{ source = "spec", line = 58 }]
 
 [[exports]]
 ordinal = 58
 name = "VARI4FROMBOOL"
 kind = "stub"
-evidence = [{ source = "spec", line = 59 }]
 
 [[exports]]
 ordinal = 59
 name = "VARR4FROMI2"
 kind = "stub"
-evidence = [{ source = "spec", line = 60 }]
 
 [[exports]]
 ordinal = 60
 name = "VARR4FROMI4"
 kind = "stub"
-evidence = [{ source = "spec", line = 61 }]
 
 [[exports]]
 ordinal = 62
 name = "VARR4FROMCY"
 kind = "stub"
-evidence = [{ source = "spec", line = 63 }]
 
 [[exports]]
 ordinal = 63
 name = "VARR4FROMDATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 64 }]
 
 [[exports]]
 ordinal = 65
 name = "VARR4FROMDISP"
 kind = "stub"
-evidence = [{ source = "spec", line = 66 }]
 
 [[exports]]
 ordinal = 66
 name = "VARR4FROMBOOL"
 kind = "stub"
-evidence = [{ source = "spec", line = 67 }]
 
 [[exports]]
 ordinal = 67
 name = "VARR8FROMI2"
 kind = "stub"
-evidence = [{ source = "spec", line = 68 }]
 
 [[exports]]
 ordinal = 68
 name = "VARR8FROMI4"
 kind = "stub"
-evidence = [{ source = "spec", line = 69 }]
 
 [[exports]]
 ordinal = 69
 name = "VARR8FROMR4"
 kind = "stub"
-evidence = [{ source = "spec", line = 70 }]
 
 [[exports]]
 ordinal = 70
 name = "VARR8FROMCY"
 kind = "stub"
-evidence = [{ source = "spec", line = 71 }]
 
 [[exports]]
 ordinal = 71
 name = "VARR8FROMDATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 72 }]
 
 [[exports]]
 ordinal = 73
 name = "VARR8FROMDISP"
 kind = "stub"
-evidence = [{ source = "spec", line = 74 }]
 
 [[exports]]
 ordinal = 74
 name = "VARR8FROMBOOL"
 kind = "stub"
-evidence = [{ source = "spec", line = 75 }]
 
 [[exports]]
 ordinal = 75
 name = "VARDATEFROMI2"
 kind = "stub"
-evidence = [{ source = "spec", line = 76 }]
 
 [[exports]]
 ordinal = 76
 name = "VARDATEFROMI4"
 kind = "stub"
-evidence = [{ source = "spec", line = 77 }]
 
 [[exports]]
 ordinal = 77
 name = "VARDATEFROMR4"
 kind = "stub"
-evidence = [{ source = "spec", line = 78 }]
 
 [[exports]]
 ordinal = 78
 name = "VARDATEFROMR8"
 kind = "stub"
-evidence = [{ source = "spec", line = 79 }]
 
 [[exports]]
 ordinal = 79
 name = "VARDATEFROMCY"
 kind = "stub"
-evidence = [{ source = "spec", line = 80 }]
 
 [[exports]]
 ordinal = 81
 name = "VARDATEFROMDISP"
 kind = "stub"
-evidence = [{ source = "spec", line = 82 }]
 
 [[exports]]
 ordinal = 82
 name = "VARDATEFROMBOOL"
 kind = "stub"
-evidence = [{ source = "spec", line = 83 }]
 
 [[exports]]
 ordinal = 83
 name = "VARCYFROMI2"
 kind = "stub"
-evidence = [{ source = "spec", line = 84 }]
 
 [[exports]]
 ordinal = 84
 name = "VARCYFROMI4"
 kind = "stub"
-evidence = [{ source = "spec", line = 85 }]
 
 [[exports]]
 ordinal = 85
 name = "VARCYFROMR4"
 kind = "stub"
-evidence = [{ source = "spec", line = 86 }]
 
 [[exports]]
 ordinal = 86
 name = "VARCYFROMR8"
 kind = "stub"
-evidence = [{ source = "spec", line = 87 }]
 
 [[exports]]
 ordinal = 87
 name = "VARCYFROMDATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 88 }]
 
 [[exports]]
 ordinal = 89
 name = "VARCYFROMDISP"
 kind = "stub"
-evidence = [{ source = "spec", line = 90 }]
 
 [[exports]]
 ordinal = 90
 name = "VARCYFROMBOOL"
 kind = "stub"
-evidence = [{ source = "spec", line = 91 }]
 
 [[exports]]
 ordinal = 99
 name = "VARBOOLFROMI2"
 kind = "stub"
-evidence = [{ source = "spec", line = 100 }]
 
 [[exports]]
 ordinal = 100
 name = "VARBOOLFROMI4"
 kind = "stub"
-evidence = [{ source = "spec", line = 101 }]
 
 [[exports]]
 ordinal = 101
 name = "VARBOOLFROMR4"
 kind = "stub"
-evidence = [{ source = "spec", line = 102 }]
 
 [[exports]]
 ordinal = 102
 name = "VARBOOLFROMR8"
 kind = "stub"
-evidence = [{ source = "spec", line = 103 }]
 
 [[exports]]
 ordinal = 103
 name = "VARBOOLFROMDATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 104 }]
 
 [[exports]]
 ordinal = 104
 name = "VARBOOLFROMCY"
 kind = "stub"
-evidence = [{ source = "spec", line = 105 }]
 
 [[exports]]
 ordinal = 105
 name = "VARBOOLFROMSTR"
 kind = "stub"
-evidence = [{ source = "spec", line = 106 }]
 
 [[exports]]
 ordinal = 106
 name = "VARBOOLFROMDISP"
 kind = "stub"
-evidence = [{ source = "spec", line = 107 }]
 
 [[exports]]
 ordinal = 107
 name = "DOINVOKEMETHOD"
 kind = "stub"
-evidence = [{ source = "spec", line = 108 }]
 
 [[exports]]
 ordinal = 110
 name = "SetErrorInfo"
 decl = { args = ["long", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 111 }]
 
 [[exports]]
 ordinal = 111
 name = "GetErrorInfo"
 decl = { args = ["long", "pointer"] }
-evidence = [{ source = "spec", line = 112 }]
 
 [[exports]]
 ordinal = 112
 name = "CreateErrorInfo"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 113 }]
 
 [[exports]]
 ordinal = 113
 name = "_IID_IErrorInfo"
 kind = "variable"
-evidence = [{ source = "spec", line = 114 }]
 values = [485667104, 270226557, 550286, 433138475]
 
 [[exports]]
 ordinal = 114
 name = "_IID_ICreateErrorInfo"
 kind = "variable"
-evidence = [{ source = "spec", line = 115 }]
 values = [586167104, 270226557, 550286, 433138475]
 
 [[exports]]
 ordinal = 115
 name = "_IID_ISupportErrorInfo"
 kind = "variable"
-evidence = [{ source = "spec", line = 116 }]
 values = [3742055776, 270226575, 550286, 433138475]
 
 [[exports]]
 ordinal = 126
 name = "VARI4FROMUI1"
 kind = "stub"
-evidence = [{ source = "spec", line = 127 }]
 
 [[exports]]
 ordinal = 127
 name = "VARR4FROMUI1"
 kind = "stub"
-evidence = [{ source = "spec", line = 128 }]
 
 [[exports]]
 ordinal = 128
 name = "VARR8FROMUI1"
 kind = "stub"
-evidence = [{ source = "spec", line = 129 }]
 
 [[exports]]
 ordinal = 129
 name = "VARDATEFROMUI1"
 kind = "stub"
-evidence = [{ source = "spec", line = 130 }]
 
 [[exports]]
 ordinal = 130
 name = "VARCYFROMUI1"
 kind = "stub"
-evidence = [{ source = "spec", line = 131 }]
 
 [[exports]]
 ordinal = 132
 name = "VARBOOLFROMUI1"
 kind = "stub"
-evidence = [{ source = "spec", line = 133 }]
 
 [[exports]]
 ordinal = 133
 name = "DLLCANUNLOADNOW"
 kind = "stub"
-evidence = [{ source = "spec", line = 134 }]

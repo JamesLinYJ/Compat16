@@ -1,16 +1,11 @@
 module = "LZEXPAND"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/lzexpand.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "LZCopy"
 decl = { attributes = [] }
 binding = { rust_id = "LzexpandLzCopy", id_value = 600, constant = "LZEXPAND_LZ_COPY" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 696 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 2
 name = "LZOpenFile"
 binding = { rust_id = "LzexpandLzOpenFile", id_value = 601, constant = "LZEXPAND_LZ_OPEN_FILE" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 697 }]
 [exports.call]
 returns = "word"
 params = [
@@ -35,7 +29,6 @@ params = [
 ordinal = 3
 name = "LZInit"
 binding = { rust_id = "LzexpandLzInit", id_value = 602, constant = "LZEXPAND_LZ_INIT" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 698 }]
 [exports.call]
 returns = "word"
 params = [
@@ -47,7 +40,6 @@ ordinal = 4
 name = "LZSeek"
 decl = { attributes = [] }
 binding = { rust_id = "LzexpandLzSeek", id_value = 603, constant = "LZEXPAND_LZ_SEEK" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 699 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -60,7 +52,6 @@ params = [
 ordinal = 5
 name = "LZRead"
 binding = { rust_id = "LzexpandLzRead", id_value = 604, constant = "LZEXPAND_LZ_READ" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 700 }]
 [exports.call]
 returns = "word"
 params = [
@@ -73,7 +64,6 @@ params = [
 ordinal = 6
 name = "LZClose"
 binding = { rust_id = "LzexpandLzClose", id_value = 605, constant = "LZEXPAND_LZ_CLOSE" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 701 }]
 [exports.call]
 returns = "word"
 params = [
@@ -85,7 +75,6 @@ ordinal = 8
 name = "CopyLZFile"
 decl = { attributes = [] }
 binding = { rust_id = "LzexpandCopyLzFile", id_value = 607, constant = "LZEXPAND_COPY_LZ_FILE" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 703 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -97,7 +86,6 @@ params = [
 ordinal = 10
 name = "GetExpandedName"
 binding = { rust_id = "LzexpandGetExpandedName", id_value = 609, constant = "LZEXPAND_GET_EXPANDED_NAME" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 705 }]
 [exports.call]
 returns = "word"
 params = [

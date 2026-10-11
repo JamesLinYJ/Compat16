@@ -1,40 +1,31 @@
 module = "OLE2THK"
 
-[sources]
-spec = { path = "specs/ole2thk.spec", note = "spec" }
-
 [[exports]]
 ordinal = 2
 name = "ROT16_ISRUNNING16"
 kind = "stub"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 3
 name = "ISWIN32SHANDLE"
 kind = "stub"
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 4
 name = "___EXPORTEDSTUB"
 kind = "stub"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 5
 name = "COTHKCOMMON"
 kind = "stub"
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 6
 name = "ROT16_GETTIMEOFLASTCHANGE16"
 kind = "stub"
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 7
 name = "ROT16_GETOBJECT16"
 kind = "stub"
-evidence = [{ source = "spec", line = 7 }]

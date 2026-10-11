@@ -1,80 +1,65 @@
 module = "TYPELIB"
 
-[sources]
-spec = { path = "specs/typelib.spec", note = "spec" }
-
 [[exports]]
 ordinal = 2
 name = "CreateTypeLib"
 decl = { args = ["word", "string", "pointer"] }
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 3
 name = "LoadTypeLib"
 decl = { args = ["pointer", "pointer"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 4
 name = "LHashValOfNameSys"
 decl = { args = ["word", "long", "string"] }
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 5
 name = "_IID_ICreateTypeInfo"
 kind = "variable"
-evidence = [{ source = "spec", line = 5 }]
 values = [132101, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 6
 name = "_IID_ICreateTypeLib"
 kind = "variable"
-evidence = [{ source = "spec", line = 6 }]
 values = [132102, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 7
 name = "_IID_ITypeComp"
 kind = "variable"
-evidence = [{ source = "spec", line = 7 }]
 values = [132099, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 8
 name = "_IID_ITypeInfo"
 kind = "variable"
-evidence = [{ source = "spec", line = 8 }]
 values = [132097, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 9
 name = "_IID_ITypeLib"
 kind = "variable"
-evidence = [{ source = "spec", line = 9 }]
 values = [132098, 0, 192, 1174405120]
 
 [[exports]]
 ordinal = 10
 name = "RegisterTypeLib"
 decl = { args = ["segmented_pointer", "string", "string"] }
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 11
 name = "LoadRegTypeLib"
 decl = { args = ["pointer", "word", "word", "long", "pointer"] }
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 14
 name = "QueryPathOfRegTypeLib"
 decl = { args = ["pointer", "word", "word", "long", "pointer"] }
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 15
 name = "OaBuildVersion"
-evidence = [{ source = "spec", line = 13 }]

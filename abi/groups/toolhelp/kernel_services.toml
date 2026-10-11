@@ -1,15 +1,10 @@
 module = "TOOLHELP"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/toolhelp.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 56
 name = "LocalInfo"
 binding = { rust_id = "ToolhelpLocalInfo", id_value = 106, constant = "TOOLHELP_LOCAL_INFO" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 181 }]
 [exports.call]
 returns = "word"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 57
 name = "LocalFirst"
 binding = { rust_id = "ToolhelpLocalFirst", id_value = 107, constant = "TOOLHELP_LOCAL_FIRST" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 182 }]
 [exports.call]
 returns = "word"
 params = [
@@ -33,7 +27,6 @@ params = [
 ordinal = 58
 name = "LocalNext"
 binding = { rust_id = "ToolhelpLocalNext", id_value = 108, constant = "TOOLHELP_LOCAL_NEXT" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 183 }]
 [exports.call]
 returns = "word"
 params = [
@@ -44,7 +37,6 @@ params = [
 ordinal = 59
 name = "ModuleFirst"
 binding = { rust_id = "ToolhelpModuleFirst", id_value = 109, constant = "TOOLHELP_MODULE_FIRST" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 184 }]
 [exports.call]
 returns = "word"
 params = [
@@ -55,7 +47,6 @@ params = [
 ordinal = 60
 name = "ModuleNext"
 binding = { rust_id = "ToolhelpModuleNext", id_value = 110, constant = "TOOLHELP_MODULE_NEXT" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 185 }]
 [exports.call]
 returns = "word"
 params = [
@@ -66,7 +57,6 @@ params = [
 ordinal = 61
 name = "ModuleFindName"
 binding = { rust_id = "ToolhelpModuleFindName", id_value = 111, constant = "TOOLHELP_MODULE_FIND_NAME" }
-evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 186 }]
 [exports.call]
 returns = "word"
 params = [
@@ -78,7 +68,6 @@ params = [
 ordinal = 62
 name = "ModuleFindHandle"
 binding = { rust_id = "ToolhelpModuleFindHandle", id_value = 112, constant = "TOOLHELP_MODULE_FIND_HANDLE" }
-evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 187 }]
 [exports.call]
 returns = "word"
 params = [
@@ -90,7 +79,6 @@ params = [
 ordinal = 63
 name = "TaskFirst"
 binding = { rust_id = "ToolhelpTaskFirst", id_value = 113, constant = "TOOLHELP_TASK_FIRST" }
-evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 188 }]
 [exports.call]
 returns = "word"
 params = [
@@ -101,7 +89,6 @@ params = [
 ordinal = 64
 name = "TaskNext"
 binding = { rust_id = "ToolhelpTaskNext", id_value = 114, constant = "TOOLHELP_TASK_NEXT" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 189 }]
 [exports.call]
 returns = "word"
 params = [
@@ -112,7 +99,6 @@ params = [
 ordinal = 65
 name = "TaskFindHandle"
 binding = { rust_id = "ToolhelpTaskFindHandle", id_value = 115, constant = "TOOLHELP_TASK_FIND_HANDLE" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 190 }]
 [exports.call]
 returns = "word"
 params = [
@@ -124,7 +110,6 @@ params = [
 ordinal = 69
 name = "ClassFirst"
 binding = { rust_id = "ToolhelpClassFirst", id_value = 119, constant = "TOOLHELP_CLASS_FIRST" }
-evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 194 }]
 [exports.call]
 returns = "word"
 params = [
@@ -135,7 +120,6 @@ params = [
 ordinal = 70
 name = "ClassNext"
 binding = { rust_id = "ToolhelpClassNext", id_value = 120, constant = "TOOLHELP_CLASS_NEXT" }
-evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 195 }]
 [exports.call]
 returns = "word"
 params = [
@@ -146,7 +130,6 @@ params = [
 ordinal = 77
 name = "TerminateApp"
 binding = { rust_id = "ToolhelpTerminateApp", id_value = 121, constant = "TOOLHELP_TERMINATE_APP" }
-evidence = [{ source = "spec", line = 29 }, { source = "binding", line = 197 }]
 [exports.call]
 returns = "void"
 params = [
@@ -159,7 +142,6 @@ ordinal = 78
 name = "MemoryRead"
 decl = { attributes = [] }
 binding = { rust_id = "ToolhelpMemoryRead", id_value = 122, constant = "TOOLHELP_MEMORY_READ" }
-evidence = [{ source = "spec", line = 30 }, { source = "binding", line = 198 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -174,7 +156,6 @@ ordinal = 79
 name = "MemoryWrite"
 decl = { attributes = [] }
 binding = { rust_id = "ToolhelpMemoryWrite", id_value = 123, constant = "TOOLHELP_MEMORY_WRITE" }
-evidence = [{ source = "spec", line = 31 }, { source = "binding", line = 199 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -188,7 +169,6 @@ params = [
 ordinal = 80
 name = "TimerCount"
 binding = { rust_id = "ToolhelpTimerCount", id_value = 124, constant = "TOOLHELP_TIMER_COUNT" }
-evidence = [{ source = "spec", line = 32 }, { source = "binding", line = 200 }]
 [exports.call]
 returns = "word"
 params = [
@@ -200,7 +180,6 @@ ordinal = 82
 name = "TaskGetCSIP"
 decl = { attributes = [] }
 binding = { rust_id = "ToolhelpTaskGetCsip", id_value = 125, constant = "TOOLHELP_TASK_GET_CSIP" }
-evidence = [{ source = "spec", line = 34 }, { source = "binding", line = 201 }]
 [exports.call]
 returns = "dword"
 params = [

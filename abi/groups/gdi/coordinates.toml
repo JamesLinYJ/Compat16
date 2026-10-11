@@ -1,15 +1,10 @@
 module = "GDI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/gdi.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 3
 name = "SetMapMode"
 binding = { rust_id = "GdiSetMapMode", id_value = 301, constant = "GDI_SET_MAP_MODE" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 379 }]
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +17,6 @@ ordinal = 11
 name = "SetWindowOrg"
 decl = { attributes = [] }
 binding = { rust_id = "GdiSetWindowOrg", id_value = 332, constant = "GDI_SET_WINDOW_ORG" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 410 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -36,7 +30,6 @@ ordinal = 12
 name = "SetWindowExt"
 decl = { attributes = [] }
 binding = { rust_id = "GdiSetWindowExt", id_value = 374, constant = "GDI_SET_WINDOW_EXT" }
-evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 454 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -50,7 +43,6 @@ ordinal = 13
 name = "SetViewportOrg"
 decl = { attributes = [] }
 binding = { rust_id = "GdiSetViewportOrg", id_value = 375, constant = "GDI_SET_VIEWPORT_ORG" }
-evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 455 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -64,7 +56,6 @@ ordinal = 14
 name = "SetViewportExt"
 decl = { attributes = [] }
 binding = { rust_id = "GdiSetViewportExt", id_value = 376, constant = "GDI_SET_VIEWPORT_EXT" }
-evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 456 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -78,7 +69,6 @@ ordinal = 15
 name = "OffsetWindowOrg"
 decl = { attributes = [] }
 binding = { rust_id = "GdiOffsetWindowOrg", id_value = 333, constant = "GDI_OFFSET_WINDOW_ORG" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 411 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -92,7 +82,6 @@ ordinal = 16
 name = "ScaleWindowExt"
 decl = { attributes = [] }
 binding = { rust_id = "GdiScaleWindowExt", id_value = 334, constant = "GDI_SCALE_WINDOW_EXT" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 412 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -108,7 +97,6 @@ ordinal = 17
 name = "OffsetViewportOrg"
 decl = { attributes = [] }
 binding = { rust_id = "GdiOffsetViewportOrg", id_value = 335, constant = "GDI_OFFSET_VIEWPORT_ORG" }
-evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 413 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -122,7 +110,6 @@ ordinal = 18
 name = "ScaleViewportExt"
 decl = { attributes = [] }
 binding = { rust_id = "GdiScaleViewportExt", id_value = 336, constant = "GDI_SCALE_VIEWPORT_EXT" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 414 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -137,7 +124,6 @@ params = [
 ordinal = 67
 name = "DPtoLP"
 binding = { rust_id = "GdiDptoLp", id_value = 345, constant = "GDI_DP_TO_LP" }
-evidence = [{ source = "spec", line = 67 }, { source = "binding", line = 423 }]
 [exports.call]
 returns = "word"
 params = [
@@ -150,7 +136,6 @@ params = [
 ordinal = 81
 name = "GetMapMode"
 binding = { rust_id = "GdiGetMapMode", id_value = 381, constant = "GDI_GET_MAP_MODE" }
-evidence = [{ source = "spec", line = 81 }, { source = "binding", line = 461 }]
 [exports.call]
 returns = "word"
 params = [
@@ -162,7 +147,6 @@ ordinal = 94
 name = "GetViewportExt"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetViewportExt", id_value = 349, constant = "GDI_GET_VIEWPORT_EXT" }
-evidence = [{ source = "spec", line = 94 }, { source = "binding", line = 427 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -174,7 +158,6 @@ ordinal = 95
 name = "GetViewportOrg"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetViewportOrg", id_value = 350, constant = "GDI_GET_VIEWPORT_ORG" }
-evidence = [{ source = "spec", line = 95 }, { source = "binding", line = 428 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -186,7 +169,6 @@ ordinal = 96
 name = "GetWindowExt"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetWindowExt", id_value = 351, constant = "GDI_GET_WINDOW_EXT" }
-evidence = [{ source = "spec", line = 96 }, { source = "binding", line = 429 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -198,7 +180,6 @@ ordinal = 97
 name = "GetWindowOrg"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetWindowOrg", id_value = 352, constant = "GDI_GET_WINDOW_ORG" }
-evidence = [{ source = "spec", line = 97 }, { source = "binding", line = 430 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -209,7 +190,6 @@ params = [
 ordinal = 99
 name = "LPtoDP"
 binding = { rust_id = "GdiLptoDp", id_value = 353, constant = "GDI_LP_TO_DP" }
-evidence = [{ source = "spec", line = 99 }, { source = "binding", line = 431 }]
 [exports.call]
 returns = "word"
 params = [
@@ -222,7 +202,6 @@ params = [
 ordinal = 472
 name = "GetViewportExtEx"
 binding = { rust_id = "GdiGetViewportExtEx", id_value = 361, constant = "GDI_GET_VIEWPORT_EXT_EX" }
-evidence = [{ source = "spec", line = 316 }, { source = "binding", line = 441 }]
 [exports.call]
 returns = "word"
 params = [
@@ -234,7 +213,6 @@ params = [
 ordinal = 473
 name = "GetViewportOrgEx"
 binding = { rust_id = "GdiGetViewportOrgEx", id_value = 362, constant = "GDI_GET_VIEWPORT_ORG_EX" }
-evidence = [{ source = "spec", line = 317 }, { source = "binding", line = 442 }]
 [exports.call]
 returns = "word"
 params = [
@@ -246,7 +224,6 @@ params = [
 ordinal = 474
 name = "GetWindowExtEx"
 binding = { rust_id = "GdiGetWindowExtEx", id_value = 363, constant = "GDI_GET_WINDOW_EXT_EX" }
-evidence = [{ source = "spec", line = 318 }, { source = "binding", line = 443 }]
 [exports.call]
 returns = "word"
 params = [
@@ -258,7 +235,6 @@ params = [
 ordinal = 475
 name = "GetWindowOrgEx"
 binding = { rust_id = "GdiGetWindowOrgEx", id_value = 364, constant = "GDI_GET_WINDOW_ORG_EX" }
-evidence = [{ source = "spec", line = 319 }, { source = "binding", line = 444 }]
 [exports.call]
 returns = "word"
 params = [
@@ -270,7 +246,6 @@ params = [
 ordinal = 476
 name = "OffsetViewportOrgEx"
 binding = { rust_id = "GdiOffsetViewportOrgEx", id_value = 365, constant = "GDI_OFFSET_VIEWPORT_ORG_EX" }
-evidence = [{ source = "spec", line = 320 }, { source = "binding", line = 445 }]
 [exports.call]
 returns = "word"
 params = [
@@ -284,7 +259,6 @@ params = [
 ordinal = 477
 name = "OffsetWindowOrgEx"
 binding = { rust_id = "GdiOffsetWindowOrgEx", id_value = 366, constant = "GDI_OFFSET_WINDOW_ORG_EX" }
-evidence = [{ source = "spec", line = 321 }, { source = "binding", line = 446 }]
 [exports.call]
 returns = "word"
 params = [
@@ -298,7 +272,6 @@ params = [
 ordinal = 479
 name = "SetViewportExtEx"
 binding = { rust_id = "GdiSetViewportExtEx", id_value = 367, constant = "GDI_SET_VIEWPORT_EXT_EX" }
-evidence = [{ source = "spec", line = 323 }, { source = "binding", line = 447 }]
 [exports.call]
 returns = "word"
 params = [
@@ -312,7 +285,6 @@ params = [
 ordinal = 480
 name = "SetViewportOrgEx"
 binding = { rust_id = "GdiSetViewportOrgEx", id_value = 368, constant = "GDI_SET_VIEWPORT_ORG_EX" }
-evidence = [{ source = "spec", line = 324 }, { source = "binding", line = 448 }]
 [exports.call]
 returns = "word"
 params = [
@@ -326,7 +298,6 @@ params = [
 ordinal = 481
 name = "SetWindowExtEx"
 binding = { rust_id = "GdiSetWindowExtEx", id_value = 369, constant = "GDI_SET_WINDOW_EXT_EX" }
-evidence = [{ source = "spec", line = 325 }, { source = "binding", line = 449 }]
 [exports.call]
 returns = "word"
 params = [
@@ -340,7 +311,6 @@ params = [
 ordinal = 482
 name = "SetWindowOrgEx"
 binding = { rust_id = "GdiSetWindowOrgEx", id_value = 370, constant = "GDI_SET_WINDOW_ORG_EX" }
-evidence = [{ source = "spec", line = 326 }, { source = "binding", line = 450 }]
 [exports.call]
 returns = "word"
 params = [
@@ -354,7 +324,6 @@ params = [
 ordinal = 484
 name = "ScaleViewportExtEx"
 binding = { rust_id = "GdiScaleViewportExtEx", id_value = 372, constant = "GDI_SCALE_VIEWPORT_EXT_EX" }
-evidence = [{ source = "spec", line = 328 }, { source = "binding", line = 452 }]
 [exports.call]
 returns = "word"
 params = [
@@ -370,7 +339,6 @@ params = [
 ordinal = 485
 name = "ScaleWindowExtEx"
 binding = { rust_id = "GdiScaleWindowExtEx", id_value = 373, constant = "GDI_SCALE_WINDOW_EXT_EX" }
-evidence = [{ source = "spec", line = 329 }, { source = "binding", line = 453 }]
 [exports.call]
 returns = "word"
 params = [

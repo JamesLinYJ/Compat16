@@ -1,15 +1,10 @@
 module = "DDEML"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/ddeml.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/dde_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 2
 name = "DdeInitialize"
 binding = { rust_id = "DdeInitialize", id_value = 846, constant = "DDEML_INITIALIZE" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 6 }]
 [exports.call]
 returns = "word"
 params = [
@@ -23,7 +18,6 @@ params = [
 ordinal = 3
 name = "DdeUninitialize"
 binding = { rust_id = "DdeUninitialize", id_value = 847, constant = "DDEML_UNINITIALIZE" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 7 }]
 [exports.call]
 returns = "word"
 params = [
@@ -35,7 +29,6 @@ ordinal = 4
 name = "DdeConnectList"
 decl = { attributes = [] }
 binding = { rust_id = "DdeConnectList", id_value = 848, constant = "DDEML_CONNECT_LIST" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -51,7 +44,6 @@ ordinal = 5
 name = "DdeQueryNextServer"
 decl = { attributes = [] }
 binding = { rust_id = "DdeQueryNextServer", id_value = 849, constant = "DDEML_QUERY_NEXT_SERVER" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 9 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -63,7 +55,6 @@ params = [
 ordinal = 6
 name = "DdeDisconnectList"
 binding = { rust_id = "DdeDisconnectList", id_value = 850, constant = "DDEML_DISCONNECT_LIST" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -75,7 +66,6 @@ ordinal = 7
 name = "DdeConnect"
 decl = { attributes = [] }
 binding = { rust_id = "DdeConnect", id_value = 851, constant = "DDEML_CONNECT" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 11 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -89,7 +79,6 @@ params = [
 ordinal = 8
 name = "DdeDisconnect"
 binding = { rust_id = "DdeDisconnect", id_value = 852, constant = "DDEML_DISCONNECT" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "word"
 params = [
@@ -100,7 +89,6 @@ params = [
 ordinal = 9
 name = "DdeQueryConvInfo"
 binding = { rust_id = "DdeQueryConvInfo", id_value = 853, constant = "DDEML_QUERY_CONV_INFO" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 13 }]
 [exports.call]
 returns = "word"
 params = [
@@ -113,7 +101,6 @@ params = [
 ordinal = 10
 name = "DdeSetUserHandle"
 binding = { rust_id = "DdeSetUserHandle", id_value = 854, constant = "DDEML_SET_USER_HANDLE" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 14 }]
 [exports.call]
 returns = "word"
 params = [
@@ -127,7 +114,6 @@ ordinal = 11
 name = "DdeClientTransaction"
 decl = { attributes = [] }
 binding = { rust_id = "DdeClientTransaction", id_value = 855, constant = "DDEML_CLIENT_TRANSACTION" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 15 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -145,7 +131,6 @@ params = [
 ordinal = 12
 name = "DdeAbandonTransaction"
 binding = { rust_id = "DdeAbandonTransaction", id_value = 856, constant = "DDEML_ABANDON_TRANSACTION" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "word"
 params = [
@@ -158,7 +143,6 @@ params = [
 ordinal = 13
 name = "DdePostAdvise"
 binding = { rust_id = "DdePostAdvise", id_value = 857, constant = "DDEML_POST_ADVISE" }
-evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 17 }]
 [exports.call]
 returns = "word"
 params = [
@@ -172,7 +156,6 @@ ordinal = 14
 name = "DdeCreateDataHandle"
 decl = { attributes = [] }
 binding = { rust_id = "DdeCreateDataHandle", id_value = 858, constant = "DDEML_CREATE_DATA_HANDLE" }
-evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 18 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -190,7 +173,6 @@ ordinal = 15
 name = "DdeAddData"
 decl = { attributes = [] }
 binding = { rust_id = "DdeAddData", id_value = 859, constant = "DDEML_ADD_DATA" }
-evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 19 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -205,7 +187,6 @@ ordinal = 16
 name = "DdeGetData"
 decl = { attributes = [] }
 binding = { rust_id = "DdeGetData", id_value = 860, constant = "DDEML_GET_DATA" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 20 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -220,7 +201,6 @@ ordinal = 17
 name = "DdeAccessData"
 decl = { attributes = [] }
 binding = { rust_id = "DdeAccessData", id_value = 861, constant = "DDEML_ACCESS_DATA" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 21 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -232,7 +212,6 @@ params = [
 ordinal = 18
 name = "DdeUnaccessData"
 binding = { rust_id = "DdeUnaccessData", id_value = 862, constant = "DDEML_UNACCESS_DATA" }
-evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 22 }]
 [exports.call]
 returns = "word"
 params = [
@@ -243,7 +222,6 @@ params = [
 ordinal = 19
 name = "DdeFreeDataHandle"
 binding = { rust_id = "DdeFreeDataHandle", id_value = 863, constant = "DDEML_FREE_DATA_HANDLE" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 23 }]
 [exports.call]
 returns = "word"
 params = [
@@ -254,7 +232,6 @@ params = [
 ordinal = 20
 name = "DdeGetLastError"
 binding = { rust_id = "DdeGetLastError", id_value = 864, constant = "DDEML_GET_LAST_ERROR" }
-evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 24 }]
 [exports.call]
 returns = "word"
 params = [
@@ -266,7 +243,6 @@ ordinal = 21
 name = "DdeCreateStringHandle"
 decl = { attributes = [] }
 binding = { rust_id = "DdeCreateStringHandle", id_value = 865, constant = "DDEML_CREATE_STRING_HANDLE" }
-evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 25 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -279,7 +255,6 @@ params = [
 ordinal = 22
 name = "DdeFreeStringHandle"
 binding = { rust_id = "DdeFreeStringHandle", id_value = 866, constant = "DDEML_FREE_STRING_HANDLE" }
-evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 26 }]
 [exports.call]
 returns = "word"
 params = [
@@ -292,7 +267,6 @@ ordinal = 23
 name = "DdeQueryString"
 decl = { attributes = [] }
 binding = { rust_id = "DdeQueryString", id_value = 867, constant = "DDEML_QUERY_STRING" }
-evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 27 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -307,7 +281,6 @@ params = [
 ordinal = 24
 name = "DdeKeepStringHandle"
 binding = { rust_id = "DdeKeepStringHandle", id_value = 868, constant = "DDEML_KEEP_STRING_HANDLE" }
-evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 28 }]
 [exports.call]
 returns = "word"
 params = [
@@ -319,7 +292,6 @@ params = [
 ordinal = 26
 name = "DdeEnableCallback"
 binding = { rust_id = "DdeEnableCallback", id_value = 869, constant = "DDEML_ENABLE_CALLBACK" }
-evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 29 }]
 [exports.call]
 returns = "word"
 params = [
@@ -333,7 +305,6 @@ ordinal = 27
 name = "DdeNameService"
 decl = { attributes = [] }
 binding = { rust_id = "DdeNameService", id_value = 870, constant = "DDEML_NAME_SERVICE" }
-evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 30 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -347,7 +318,6 @@ params = [
 ordinal = 36
 name = "DdeCmpStringHandles"
 binding = { rust_id = "DdeCmpStringHandles", id_value = 871, constant = "DDEML_CMP_STRING_HANDLES" }
-evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 31 }]
 [exports.call]
 returns = "word"
 params = [
@@ -360,7 +330,6 @@ ordinal = 37
 name = "DdeReconnect"
 decl = { attributes = [] }
 binding = { rust_id = "DdeReconnect", id_value = 872, constant = "DDEML_RECONNECT" }
-evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 32 }]
 [exports.call]
 returns = "dword"
 params = [

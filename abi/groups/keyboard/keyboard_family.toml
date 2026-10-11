@@ -1,15 +1,10 @@
 module = "KEYBOARD"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/keyboard.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 4
 name = "ToAscii"
 binding = { rust_id = "KeyboardToAscii", id_value = 132, constant = "KEYBOARD_TO_ASCII" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 208 }]
 [exports.call]
 returns = "word"
 params = [
@@ -24,7 +19,6 @@ params = [
 ordinal = 5
 name = "AnsiToOem"
 binding = { rust_id = "KeyboardAnsiToOem", id_value = 133, constant = "KEYBOARD_ANSI_TO_OEM" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 209 }]
 [exports.call]
 returns = "word"
 params = [
@@ -36,7 +30,6 @@ params = [
 ordinal = 7
 name = "SetSpeed"
 binding = { rust_id = "KeyboardSetSpeed", id_value = 134, constant = "KEYBOARD_SET_SPEED" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 210 }]
 [exports.call]
 returns = "word"
 params = [
@@ -48,7 +41,6 @@ ordinal = 100
 name = "ScreenSwitchEnable"
 decl = { attributes = [] }
 binding = { rust_id = "KeyboardScreenSwitchEnable", id_value = 135, constant = "KEYBOARD_SCREEN_SWITCH_ENABLE" }
-evidence = [{ source = "spec", line = 15 }, { source = "binding", line = 211 }]
 [exports.call]
 returns = "void"
 params = [
@@ -60,7 +52,6 @@ ordinal = 128
 name = "OemKeyScan"
 decl = { attributes = [] }
 binding = { rust_id = "KeyboardOemKeyScan", id_value = 136, constant = "KEYBOARD_OEM_KEY_SCAN" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 212 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -71,7 +62,6 @@ params = [
 ordinal = 129
 name = "VkKeyScan"
 binding = { rust_id = "KeyboardVkKeyScan", id_value = 137, constant = "KEYBOARD_VK_KEY_SCAN" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 213 }]
 [exports.call]
 returns = "word"
 params = [
@@ -82,7 +72,6 @@ params = [
 ordinal = 130
 name = "GetKeyboardType"
 binding = { rust_id = "KeyboardGetKeyboardType", id_value = 138, constant = "KEYBOARD_GET_KEYBOARD_TYPE" }
-evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 214 }]
 [exports.call]
 returns = "word"
 params = [
@@ -93,7 +82,6 @@ params = [
 ordinal = 131
 name = "MapVirtualKey"
 binding = { rust_id = "KeyboardMapVirtualKey", id_value = 139, constant = "KEYBOARD_MAP_VIRTUAL_KEY" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 215 }]
 [exports.call]
 returns = "word"
 params = [
@@ -105,7 +93,6 @@ params = [
 ordinal = 133
 name = "GetKeyNameText"
 binding = { rust_id = "KeyboardGetKeyNameText", id_value = 141, constant = "KEYBOARD_GET_KEY_NAME_TEXT" }
-evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 217 }]
 [exports.call]
 returns = "word"
 params = [
@@ -118,7 +105,6 @@ params = [
 ordinal = 134
 name = "AnsiToOemBuff"
 binding = { rust_id = "KeyboardAnsiToOemBuff", id_value = 142, constant = "KEYBOARD_ANSI_TO_OEM_BUFF" }
-evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 218 }]
 [exports.call]
 returns = "word"
 params = [
@@ -131,7 +117,6 @@ params = [
 ordinal = 135
 name = "OemToAnsiBuff"
 binding = { rust_id = "KeyboardOemToAnsiBuff", id_value = 143, constant = "KEYBOARD_OEM_TO_ANSI_BUFF" }
-evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 219 }]
 [exports.call]
 returns = "word"
 params = [

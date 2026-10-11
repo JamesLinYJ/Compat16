@@ -1,15 +1,10 @@
 module = "COMMCTRL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/commctrl.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/common_controls_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 2
 name = "MenuHelp"
 binding = { rust_id = "CommctrlMenuHelp", id_value = 1208, constant = "COMMCTRL_MENU_HELP" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "void"
 params = [
@@ -26,7 +21,6 @@ params = [
 ordinal = 4
 name = "GetEffectiveClientRect"
 binding = { rust_id = "CommctrlGetEffectiveClientRect", id_value = 1209, constant = "COMMCTRL_GET_EFFECTIVE_CLIENT_RECT" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "void"
 params = [
@@ -39,7 +33,6 @@ params = [
 ordinal = 6
 name = "CreateStatusWindow"
 binding = { rust_id = "CommctrlCreateStatusWindow", id_value = 1210, constant = "COMMCTRL_CREATE_STATUS_WINDOW" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 13 }]
 [exports.call]
 returns = "word"
 params = [
@@ -53,7 +46,6 @@ params = [
 ordinal = 7
 name = "CreateToolbar"
 binding = { rust_id = "CommctrlCreateToolbar", id_value = 1211, constant = "COMMCTRL_CREATE_TOOLBAR" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 14 }]
 [exports.call]
 returns = "word"
 params = [
@@ -71,7 +63,6 @@ params = [
 ordinal = 8
 name = "CreateMappedBitmap"
 binding = { rust_id = "CommctrlCreateMappedBitmap", id_value = 1212, constant = "COMMCTRL_CREATE_MAPPED_BITMAP" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 15 }]
 [exports.call]
 returns = "word"
 params = [
@@ -86,7 +77,6 @@ params = [
 ordinal = 9
 name = "CreateHeaderWindow"
 binding = { rust_id = "CommctrlCreateHeaderWindow", id_value = 1213, constant = "COMMCTRL_CREATE_HEADER_WINDOW" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "word"
 params = [
@@ -100,7 +90,6 @@ params = [
 ordinal = 10
 name = "WritePrivateProfileStruct"
 binding = { rust_id = "CommctrlWritePrivateProfileStruct", id_value = 1214, constant = "COMMCTRL_WRITE_PRIVATE_PROFILE_STRUCT" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 17 }]
 [exports.call]
 returns = "word"
 params = [
@@ -115,7 +104,6 @@ params = [
 ordinal = 11
 name = "GetPrivateProfileStruct"
 binding = { rust_id = "CommctrlGetPrivateProfileStruct", id_value = 1215, constant = "COMMCTRL_GET_PRIVATE_PROFILE_STRUCT" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 18 }]
 [exports.call]
 returns = "word"
 params = [
@@ -130,7 +118,6 @@ params = [
 ordinal = 13
 name = "MakeDragList"
 binding = { rust_id = "CommctrlMakeDragList", id_value = 1216, constant = "COMMCTRL_MAKE_DRAG_LIST" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 19 }]
 [exports.call]
 returns = "word"
 params = [
@@ -141,7 +128,6 @@ params = [
 ordinal = 17
 name = "InitCommonControls"
 binding = { rust_id = "CommctrlInitCommonControls", id_value = 1217, constant = "COMMCTRL_INIT_COMMON_CONTROLS" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 21 }]
 [exports.call]
 returns = "void"
 
@@ -149,7 +135,6 @@ returns = "void"
 ordinal = 20
 name = "CreateToolbarEx"
 binding = { rust_id = "CommctrlCreateToolbarEx", id_value = 1218, constant = "COMMCTRL_CREATE_TOOLBAR_EX" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 22 }]
 [exports.call]
 returns = "word"
 params = [

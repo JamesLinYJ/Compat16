@@ -1,514 +1,426 @@
 module = "WIFEMAN"
 
-[sources]
-spec = { path = "specs/wifeman.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "FDILOADFONTFILE"
 kind = "stub"
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "FDIUNLOADFONTFILE"
 kind = "stub"
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "FDIQUERYFACES"
 kind = "stub"
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 4
 name = "FDIOPENFONTCONTEXT"
 kind = "stub"
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 5
 name = "FDISETFONTCONTEXT"
 kind = "stub"
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 6
 name = "FDICLOSEFONTCONTEXT"
 kind = "stub"
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 7
 name = "FDIQUERYFACEATTR"
 kind = "stub"
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 8
 name = "FDIQUERYCHARATTR"
 kind = "stub"
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 9
 name = "FDICONTROL"
 kind = "stub"
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 10
 name = "FDICLAIMFONTFILE"
 kind = "stub"
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 11
 name = "FDICONVERTFONTFILE"
 kind = "stub"
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 14
 name = "MIMADDFONTDRIVER"
 kind = "stub"
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 15
 name = "MIMADDFONTPACK"
 kind = "stub"
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 16
 name = "MIMREMOVEFONTDRIVER"
 kind = "stub"
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 17
 name = "MIMREMOVEFONTPACK"
 kind = "stub"
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 18
 name = "MIMENUMFONTDRIVERS"
 kind = "stub"
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 19
 name = "MIMENUMFONTPACKS"
 kind = "stub"
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 20
 name = "MIMOPENFONTCONTEXT"
 kind = "stub"
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 21
 name = "MIMCLOSEFONTCONTEXT"
 kind = "stub"
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 22
 name = "MIMGETINFORMATIONS"
 kind = "stub"
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 24
 name = "MISCSETERROINFO"
 kind = "stub"
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 25
 name = "MISCGETERROINFO"
 kind = "stub"
-evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
 ordinal = 26
 name = "UBSTRLEN"
 kind = "stub"
-evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
 ordinal = 27
 name = "UBSTRCPY"
 kind = "stub"
-evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
 ordinal = 28
 name = "UBSTRNCPY"
 kind = "stub"
-evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
 ordinal = 29
 name = "UBSTRCAT"
 kind = "stub"
-evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
 ordinal = 30
 name = "UBSTRCMP"
 kind = "stub"
-evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
 ordinal = 31
 name = "ASCIZTOUZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
 ordinal = 32
 name = "UZTOASCIZ"
 kind = "stub"
-evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
 ordinal = 33
 name = "MISCWARNINGMESSAGE"
 kind = "stub"
-evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
 ordinal = 34
 name = "MISCWARNINGMESSAGEWITHARGUMENT"
 kind = "stub"
-evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
 ordinal = 35
 name = "FCMCREATECACHEBUFFER"
 kind = "stub"
-evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
 ordinal = 36
 name = "FCMDELETECACHEBUFFER"
 kind = "stub"
-evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
 ordinal = 37
 name = "FCMREQUESTIMAGES"
 kind = "stub"
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 38
 name = "FCMRELEASEIMAGES"
 kind = "stub"
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 39
 name = "FCMREQUESTDEFAULTFB"
 kind = "stub"
-evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
 ordinal = 40
 name = "FCMRELEASEDEFAULTFB"
 kind = "stub"
-evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
 ordinal = 41
 name = "FCMCALCULATETEXTEXTENT"
 kind = "stub"
-evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
 ordinal = 42
 name = "FCMCALCULATEOUTPUTPOSITIONS"
 kind = "stub"
-evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
 ordinal = 43
 name = "FCMCLEANUP"
 kind = "stub"
-evidence = [{ source = "spec", line = 42 }]
 
 [[exports]]
 ordinal = 44
 name = "FCMENUMFONTBUFFERS"
 kind = "stub"
-evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
 ordinal = 45
 name = "MISCGETVERSION"
 kind = "stub"
-evidence = [{ source = "spec", line = 44 }]
 
 [[exports]]
 ordinal = 46
 name = "MISCCONVERTFONTFAMILY"
 kind = "stub"
-evidence = [{ source = "spec", line = 45 }]
 
 [[exports]]
 ordinal = 47
 name = "MISCCONVERTCHARSET"
 kind = "stub"
-evidence = [{ source = "spec", line = 46 }]
 
 [[exports]]
 ordinal = 48
 name = "MISCIFIMETRICSTOLOGFONT"
 kind = "stub"
-evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
 ordinal = 49
 name = "MISCIFIMETRICSTOTEXTMETRICS"
 kind = "stub"
-evidence = [{ source = "spec", line = 48 }]
 
 [[exports]]
 ordinal = 50
 name = "MISCMAKETEXTXFORM"
 kind = "stub"
-evidence = [{ source = "spec", line = 49 }]
 
 [[exports]]
 ordinal = 51
 name = "FCMCALCBYTEWIDTH"
 kind = "stub"
-evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
 ordinal = 52
 name = "FCMFORCECACHEIN"
 kind = "stub"
-evidence = [{ source = "spec", line = 51 }]
 
 [[exports]]
 ordinal = 53
 name = "FCMVALIDATEFC"
 kind = "stub"
-evidence = [{ source = "spec", line = 52 }]
 
 [[exports]]
 ordinal = 54
 name = "FCMUNVALIDATEFC"
 kind = "stub"
-evidence = [{ source = "spec", line = 53 }]
 
 [[exports]]
 ordinal = 55
 name = "FCMQUERYFACEATTR"
 kind = "stub"
-evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
 ordinal = 56
 name = "FCMPROCESSDEVICECONTROL"
 kind = "stub"
-evidence = [{ source = "spec", line = 55 }]
 
 [[exports]]
 ordinal = 57
 name = "MISCTRANCATESTRING"
 kind = "stub"
-evidence = [{ source = "spec", line = 56 }]
 
 [[exports]]
 ordinal = 58
 name = "MISCADDHUGEPTR"
 kind = "stub"
-evidence = [{ source = "spec", line = 57 }]
 
 [[exports]]
 ordinal = 59
 name = "MISCGETSEGMENTINCREMENT"
 kind = "stub"
-evidence = [{ source = "spec", line = 58 }]
 
 [[exports]]
 ordinal = 60
 name = "MISCISWIFECONTROL"
 kind = "stub"
-evidence = [{ source = "spec", line = 59 }]
 
 [[exports]]
 ordinal = 61
 name = "MISCISGAIJICONTROL"
 kind = "stub"
-evidence = [{ source = "spec", line = 60 }]
 
 [[exports]]
 ordinal = 62
 name = "FCMGETEUDCLEADBYTERANGE"
 kind = "stub"
-evidence = [{ source = "spec", line = 61 }]
 
 [[exports]]
 ordinal = 63
 name = "FCMGETEUDCFB"
 kind = "stub"
-evidence = [{ source = "spec", line = 62 }]
 
 [[exports]]
 ordinal = 64
 name = "FCMGETCHARWIDTH"
 kind = "stub"
-evidence = [{ source = "spec", line = 63 }]
 
 [[exports]]
 ordinal = 65
 name = "MISCSTRETCHMONOFONTIMAGE"
 kind = "stub"
-evidence = [{ source = "spec", line = 64 }]
 
 [[exports]]
 ordinal = 66
 name = "MISCGETEUDCLEADBYTERANGE"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 65 }]
 
 [[exports]]
 ordinal = 67
 name = "MISCVALIDATEQUICKSEARCHTABLE"
 kind = "stub"
-evidence = [{ source = "spec", line = 66 }]
 
 [[exports]]
 ordinal = 68
 name = "MISCUNVALIDATEQUICKSEARCHTABLE"
 kind = "stub"
-evidence = [{ source = "spec", line = 67 }]
 
 [[exports]]
 ordinal = 69
 name = "MISCREGISTERNOTIFYFUNCTION"
 kind = "stub"
-evidence = [{ source = "spec", line = 68 }]
 
 [[exports]]
 ordinal = 70
 name = "MISCUNREGISTERNOTIFYFUNCTION"
 kind = "stub"
-evidence = [{ source = "spec", line = 69 }]
 
 [[exports]]
 ordinal = 71
 name = "FCMREQUESTDEFAULTFBEX"
 kind = "stub"
-evidence = [{ source = "spec", line = 70 }]
 
 [[exports]]
 ordinal = 72
 name = "MISCREALIZEWIFEFONT"
 kind = "stub"
-evidence = [{ source = "spec", line = 71 }]
 
 [[exports]]
 ordinal = 73
 name = "MISCDELETEWIFEFONT"
 kind = "stub"
-evidence = [{ source = "spec", line = 72 }]
 
 [[exports]]
 ordinal = 74
 name = "MAPWIFEFONT"
 kind = "stub"
-evidence = [{ source = "spec", line = 73 }]
 
 [[exports]]
 ordinal = 75
 name = "SETCLOSEOLDESTFCFUNC"
 kind = "stub"
-evidence = [{ source = "spec", line = 74 }]
 
 [[exports]]
 ordinal = 76
 name = "CACHEDOPENFONTCONTEXT"
 kind = "stub"
-evidence = [{ source = "spec", line = 75 }]
 
 [[exports]]
 ordinal = 77
 name = "FILLFONTINFO"
 kind = "stub"
-evidence = [{ source = "spec", line = 76 }]
 
 [[exports]]
 ordinal = 78
 name = "FILLCONTEXTINFO"
 kind = "stub"
-evidence = [{ source = "spec", line = 77 }]
 
 [[exports]]
 ordinal = 79
 name = "GETEUDCFD"
 kind = "stub"
-evidence = [{ source = "spec", line = 78 }]
 
 [[exports]]
 ordinal = 80
 name = "GETDEFAULTFONTINFO"
 kind = "stub"
-evidence = [{ source = "spec", line = 79 }]
 
 [[exports]]
 ordinal = 128
 name = "DIAGLOCALLOCKANYTHING"
 kind = "stub"
-evidence = [{ source = "spec", line = 80 }]
 
 [[exports]]
 ordinal = 129
 name = "DIAGLOCALUNLOCKANYTHING"
 kind = "stub"
-evidence = [{ source = "spec", line = 81 }]
 
 [[exports]]
 ordinal = 130
 name = "DIAGGETCONFIRMSTRING"
 kind = "stub"
-evidence = [{ source = "spec", line = 82 }]
 
 [[exports]]
 ordinal = 131
 name = "DIAGSELFCHECK"
 kind = "stub"
-evidence = [{ source = "spec", line = 83 }]
 
 [[exports]]
 ordinal = 132
 name = "DIAGSELFCHECKANDWARNING"
 kind = "stub"
-evidence = [{ source = "spec", line = 84 }]
 
 [[exports]]
 ordinal = 150
 name = "DEBUGASSERTION"
 kind = "stub"
-evidence = [{ source = "spec", line = 85 }]
 
 [[exports]]
 ordinal = 151
 name = "DELAYEDINIT"
 kind = "stub"
-evidence = [{ source = "spec", line = 86 }]
 
 [[exports]]
 ordinal = 152
 name = "FirstInit"
 kind = "stub"
-evidence = [{ source = "spec", line = 87 }]

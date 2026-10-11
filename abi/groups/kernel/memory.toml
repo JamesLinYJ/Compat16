@@ -1,17 +1,10 @@
 module = "KERNEL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-binding_2 = { path = "crates/win16/src/exports/catalog/global_arena_records.inc.rs", note = "binding" }
-binding_3 = { path = "crates/win16/src/exports/catalog/kernel_selectors_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 4
 name = "LocalInit"
 binding = { rust_id = "KernelLocalInit", id_value = 271, constant = "KERNEL_LOCAL_INIT" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 349 }]
 [exports.call]
 returns = "word"
 params = [
@@ -24,7 +17,6 @@ params = [
 ordinal = 5
 name = "LocalAlloc"
 binding = { rust_id = "KernelLocalAlloc", id_value = 272, constant = "KERNEL_LOCAL_ALLOC" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 350 }]
 [exports.call]
 returns = "word"
 params = [
@@ -36,7 +28,6 @@ params = [
 ordinal = 6
 name = "LocalReAlloc"
 binding = { rust_id = "KernelLocalReAlloc", id_value = 273, constant = "KERNEL_LOCAL_REALLOC" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 351 }]
 [exports.call]
 returns = "word"
 params = [
@@ -49,7 +40,6 @@ params = [
 ordinal = 7
 name = "LocalFree"
 binding = { rust_id = "KernelLocalFree", id_value = 274, constant = "KERNEL_LOCAL_FREE" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 352 }]
 [exports.call]
 returns = "word"
 params = [
@@ -61,7 +51,6 @@ ordinal = 8
 name = "LocalLock"
 decl = { attributes = [] }
 binding = { rust_id = "KernelLocalLock", id_value = 275, constant = "KERNEL_LOCAL_LOCK" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 353 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -72,7 +61,6 @@ params = [
 ordinal = 9
 name = "LocalUnlock"
 binding = { rust_id = "KernelLocalUnlock", id_value = 276, constant = "KERNEL_LOCAL_UNLOCK" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 354 }]
 [exports.call]
 returns = "word"
 params = [
@@ -83,7 +71,6 @@ params = [
 ordinal = 10
 name = "LocalSize"
 binding = { rust_id = "KernelLocalSize", id_value = 277, constant = "KERNEL_LOCAL_SIZE" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 355 }]
 [exports.call]
 returns = "word"
 params = [
@@ -94,7 +81,6 @@ params = [
 ordinal = 11
 name = "LocalHandle"
 binding = { rust_id = "KernelLocalHandle", id_value = 278, constant = "KERNEL_LOCAL_HANDLE" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 356 }]
 [exports.call]
 returns = "word"
 params = [
@@ -105,7 +91,6 @@ params = [
 ordinal = 12
 name = "LocalFlags"
 binding = { rust_id = "KernelLocalFlags", id_value = 279, constant = "KERNEL_LOCAL_FLAGS" }
-evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 357 }]
 [exports.call]
 returns = "word"
 params = [
@@ -116,7 +101,6 @@ params = [
 ordinal = 13
 name = "LocalCompact"
 binding = { rust_id = "KernelLocalCompact", id_value = 280, constant = "KERNEL_LOCAL_COMPACT" }
-evidence = [{ source = "spec", line = 14 }, { source = "binding", line = 358 }]
 [exports.call]
 returns = "word"
 params = [
@@ -128,7 +112,6 @@ ordinal = 15
 name = "GlobalAlloc"
 decl = { attributes = ["register"] }
 binding = { rust_id = "KernelGlobalAlloc", id_value = 192, constant = "KERNEL_GLOBAL_ALLOC" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 269 }]
 [exports.call]
 returns = "word"
 params = [
@@ -140,7 +123,6 @@ params = [
 ordinal = 16
 name = "GlobalReAlloc"
 binding = { rust_id = "KernelGlobalReAlloc", id_value = 581, constant = "KERNEL_GLOBAL_REALLOC" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 672 }]
 [exports.call]
 returns = "word"
 params = [
@@ -154,7 +136,6 @@ ordinal = 17
 name = "GlobalFree"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalFree", id_value = 193, constant = "KERNEL_GLOBAL_FREE" }
-evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 270 }]
 [exports.call]
 returns = "word"
 params = [
@@ -166,7 +147,6 @@ ordinal = 18
 name = "GlobalLock"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalLock", id_value = 194, constant = "KERNEL_GLOBAL_LOCK" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 271 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -178,7 +158,6 @@ ordinal = 19
 name = "GlobalUnlock"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalUnlock", id_value = 195, constant = "KERNEL_GLOBAL_UNLOCK" }
-evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 272 }]
 [exports.call]
 returns = "word"
 params = [
@@ -190,7 +169,6 @@ ordinal = 20
 name = "GlobalSize"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalSize", id_value = 196, constant = "KERNEL_GLOBAL_SIZE" }
-evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 273 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -202,7 +180,6 @@ ordinal = 21
 name = "GlobalHandle"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalHandle", id_value = 197, constant = "KERNEL_GLOBAL_HANDLE" }
-evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 274 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -214,7 +191,6 @@ ordinal = 22
 name = "GlobalFlags"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalFlags", id_value = 582, constant = "KERNEL_GLOBAL_FLAGS" }
-evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 673 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -225,7 +201,6 @@ params = [
 ordinal = 23
 name = "LockSegment"
 binding = { rust_id = "KernelLockSegment", id_value = 583, constant = "KERNEL_LOCK_SEGMENT" }
-evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 674 }]
 [exports.call]
 returns = "word"
 params = [
@@ -237,7 +212,6 @@ ordinal = 24
 name = "UnlockSegment"
 decl = { attributes = [] }
 binding = { rust_id = "KernelUnlockSegment", id_value = 584, constant = "KERNEL_UNLOCK_SEGMENT" }
-evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 676 }]
 [exports.call]
 returns = "void"
 params = [
@@ -249,7 +223,6 @@ ordinal = 25
 name = "GlobalCompact"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalCompact", id_value = 585, constant = "KERNEL_GLOBAL_COMPACT" }
-evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 677 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -260,7 +233,6 @@ params = [
 ordinal = 26
 name = "GlobalFreeAll"
 binding = { rust_id = "KernelGlobalFreeAll", id_value = 127, constant = "KERNEL_GLOBAL_FREE_ALL" }
-evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 203 }]
 [exports.call]
 returns = "word"
 params = [
@@ -272,7 +244,6 @@ ordinal = 28
 name = "GlobalMasterHandle"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalMasterHandle", id_value = 798, constant = "KERNEL_GLOBAL_MASTER_HANDLE" }
-evidence = [{ source = "spec", line = 29 }, { source = "binding_2", line = 7 }]
 [exports.call]
 returns = "dword"
 
@@ -281,7 +252,6 @@ ordinal = 111
 name = "GlobalWire"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalWire", id_value = 588, constant = "KERNEL_GLOBAL_WIRE" }
-evidence = [{ source = "spec", line = 112 }, { source = "binding", line = 681 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -292,7 +262,6 @@ params = [
 ordinal = 112
 name = "GlobalUnWire"
 binding = { rust_id = "KernelGlobalUnWire", id_value = 589, constant = "KERNEL_GLOBAL_UNWIRE" }
-evidence = [{ source = "spec", line = 113 }, { source = "binding", line = 682 }]
 [exports.call]
 returns = "word"
 params = [
@@ -304,7 +273,6 @@ ordinal = 159
 name = "GlobalHandleNoRIP"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalHandleNoRip", id_value = 128, constant = "KERNEL_GLOBAL_HANDLE_NO_RIP" }
-evidence = [{ source = "spec", line = 159 }, { source = "binding", line = 204 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -315,7 +283,6 @@ params = [
 ordinal = 163
 name = "GlobalLRUOldest"
 binding = { rust_id = "KernelGlobalLruOldest", id_value = 799, constant = "KERNEL_GLOBAL_LRU_OLDEST" }
-evidence = [{ source = "spec", line = 163 }, { source = "binding_2", line = 9 }]
 [exports.call]
 returns = "word"
 params = [
@@ -326,7 +293,6 @@ params = [
 ordinal = 164
 name = "GlobalLRUNewest"
 binding = { rust_id = "KernelGlobalLruNewest", id_value = 800, constant = "KERNEL_GLOBAL_LRU_NEWEST" }
-evidence = [{ source = "spec", line = 164 }, { source = "binding_2", line = 11 }]
 [exports.call]
 returns = "word"
 params = [
@@ -338,7 +304,6 @@ ordinal = 169
 name = "GetFreeSpace"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGetFreeSpace", id_value = 586, constant = "KERNEL_GET_FREE_SPACE" }
-evidence = [{ source = "spec", line = 169 }, { source = "binding", line = 678 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -349,7 +314,6 @@ params = [
 ordinal = 170
 name = "AllocCStoDSAlias"
 binding = { rust_id = "KernelAllocCStoDSAlias", id_value = 810, constant = "KERNEL_ALLOC_CS_TO_DS_ALIAS" }
-evidence = [{ source = "spec", line = 170 }, { source = "binding_3", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -360,7 +324,6 @@ params = [
 ordinal = 171
 name = "AllocDStoCSAlias"
 binding = { rust_id = "KernelAllocDStoCSAlias", id_value = 811, constant = "KERNEL_ALLOC_DS_TO_CS_ALIAS" }
-evidence = [{ source = "spec", line = 171 }, { source = "binding_3", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -371,7 +334,6 @@ params = [
 ordinal = 172
 name = "AllocAlias"
 binding = { rust_id = "KernelAllocAlias", id_value = 812, constant = "KERNEL_ALLOC_ALIAS" }
-evidence = [{ source = "spec", line = 172 }, { source = "binding_3", line = 12 }]
 [exports.call]
 returns = "word"
 params = [
@@ -382,7 +344,6 @@ params = [
 ordinal = 175
 name = "AllocSelector"
 binding = { rust_id = "KernelAllocSelector", id_value = 813, constant = "KERNEL_ALLOC_SELECTOR" }
-evidence = [{ source = "spec", line = 175 }, { source = "binding_3", line = 14 }]
 [exports.call]
 returns = "word"
 params = [
@@ -393,7 +354,6 @@ params = [
 ordinal = 176
 name = "FreeSelector"
 binding = { rust_id = "KernelFreeSelector", id_value = 814, constant = "KERNEL_FREE_SELECTOR" }
-evidence = [{ source = "spec", line = 176 }, { source = "binding_3", line = 16 }]
 [exports.call]
 returns = "word"
 params = [
@@ -404,7 +364,6 @@ params = [
 ordinal = 177
 name = "PrestoChangoSelector"
 binding = { rust_id = "KernelPrestoChangoSelector", id_value = 815, constant = "KERNEL_PRESTO_CHANGO_SELECTOR" }
-evidence = [{ source = "spec", line = 177 }, { source = "binding_3", line = 18 }]
 [exports.call]
 returns = "word"
 params = [
@@ -417,7 +376,6 @@ ordinal = 180
 name = "LongPtrAdd"
 decl = { attributes = [] }
 binding = { rust_id = "KernelLongPtrAdd", id_value = 816, constant = "KERNEL_LONG_PTR_ADD" }
-evidence = [{ source = "spec", line = 180 }, { source = "binding_3", line = 20 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -430,7 +388,6 @@ ordinal = 184
 name = "GlobalDOSAlloc"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalDosAlloc", id_value = 805, constant = "KERNEL_GLOBAL_DOS_ALLOC" }
-evidence = [{ source = "spec", line = 184 }, { source = "binding_2", line = 21 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -441,7 +398,6 @@ params = [
 ordinal = 185
 name = "GlobalDOSFree"
 binding = { rust_id = "KernelGlobalDosFree", id_value = 806, constant = "KERNEL_GLOBAL_DOS_FREE" }
-evidence = [{ source = "spec", line = 185 }, { source = "binding_2", line = 23 }]
 [exports.call]
 returns = "word"
 params = [
@@ -453,7 +409,6 @@ ordinal = 186
 name = "GetSelectorBase"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGetSelectorBase", id_value = 817, constant = "KERNEL_GET_SELECTOR_BASE" }
-evidence = [{ source = "spec", line = 186 }, { source = "binding_3", line = 22 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -464,7 +419,6 @@ params = [
 ordinal = 187
 name = "SetSelectorBase"
 binding = { rust_id = "KernelSetSelectorBase", id_value = 818, constant = "KERNEL_SET_SELECTOR_BASE" }
-evidence = [{ source = "spec", line = 187 }, { source = "binding_3", line = 24 }]
 [exports.call]
 returns = "word"
 params = [
@@ -477,7 +431,6 @@ ordinal = 188
 name = "GetSelectorLimit"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGetSelectorLimit", id_value = 819, constant = "KERNEL_GET_SELECTOR_LIMIT" }
-evidence = [{ source = "spec", line = 188 }, { source = "binding_3", line = 26 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -488,7 +441,6 @@ params = [
 ordinal = 189
 name = "SetSelectorLimit"
 binding = { rust_id = "KernelSetSelectorLimit", id_value = 820, constant = "KERNEL_SET_SELECTOR_LIMIT" }
-evidence = [{ source = "spec", line = 189 }, { source = "binding_3", line = 28 }]
 [exports.call]
 returns = "word"
 params = [
@@ -500,7 +452,6 @@ params = [
 ordinal = 191
 name = "GlobalPageLock"
 binding = { rust_id = "KernelGlobalPageLock", id_value = 801, constant = "KERNEL_GLOBAL_PAGE_LOCK" }
-evidence = [{ source = "spec", line = 191 }, { source = "binding_2", line = 13 }]
 [exports.call]
 returns = "word"
 params = [
@@ -511,7 +462,6 @@ params = [
 ordinal = 192
 name = "GlobalPageUnlock"
 binding = { rust_id = "KernelGlobalPageUnlock", id_value = 802, constant = "KERNEL_GLOBAL_PAGE_UNLOCK" }
-evidence = [{ source = "spec", line = 192 }, { source = "binding_2", line = 15 }]
 [exports.call]
 returns = "word"
 params = [
@@ -522,7 +472,6 @@ params = [
 ordinal = 196
 name = "SelectorAccessRights"
 binding = { rust_id = "KernelSelectorAccessRights", id_value = 821, constant = "KERNEL_SELECTOR_ACCESS_RIGHTS" }
-evidence = [{ source = "spec", line = 196 }, { source = "binding_3", line = 30 }]
 [exports.call]
 returns = "word"
 params = [
@@ -535,7 +484,6 @@ params = [
 ordinal = 197
 name = "GlobalFix"
 binding = { rust_id = "KernelGlobalFix", id_value = 587, constant = "KERNEL_GLOBAL_FIX" }
-evidence = [{ source = "spec", line = 197 }, { source = "binding", line = 680 }]
 [exports.call]
 returns = "void"
 params = [
@@ -546,7 +494,6 @@ params = [
 ordinal = 198
 name = "GlobalUnfix"
 binding = { rust_id = "KernelGlobalUnfix", id_value = 590, constant = "KERNEL_GLOBAL_UNFIX" }
-evidence = [{ source = "spec", line = 198 }, { source = "binding", line = 684 }]
 [exports.call]
 returns = "void"
 params = [
@@ -557,7 +504,6 @@ params = [
 ordinal = 206
 name = "AllocSelectorArray"
 binding = { rust_id = "KernelAllocSelectorArray", id_value = 822, constant = "KERNEL_ALLOC_SELECTOR_ARRAY" }
-evidence = [{ source = "spec", line = 206 }, { source = "binding_3", line = 32 }]
 [exports.call]
 returns = "word"
 params = [
@@ -569,7 +515,6 @@ ordinal = 230
 name = "GlobalSmartPageLock"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalSmartPageLock", id_value = 803, constant = "KERNEL_GLOBAL_SMART_PAGE_LOCK" }
-evidence = [{ source = "spec", line = 229 }, { source = "binding_2", line = 17 }]
 [exports.call]
 returns = "word"
 params = [
@@ -581,7 +526,6 @@ ordinal = 231
 name = "GlobalSmartPageUnlock"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGlobalSmartPageUnlock", id_value = 804, constant = "KERNEL_GLOBAL_SMART_PAGE_UNLOCK" }
-evidence = [{ source = "spec", line = 230 }, { source = "binding_2", line = 19 }]
 [exports.call]
 returns = "word"
 params = [
@@ -592,7 +536,6 @@ params = [
 ordinal = 310
 name = "LocalHandleDelta"
 binding = { rust_id = "KernelLocalHandleDelta", id_value = 281, constant = "KERNEL_LOCAL_HANDLE_DELTA" }
-evidence = [{ source = "spec", line = 241 }, { source = "binding", line = 359 }]
 [exports.call]
 returns = "word"
 params = [
@@ -603,7 +546,6 @@ params = [
 ordinal = 345
 name = "IsSharedSelector"
 binding = { rust_id = "KernelIsSharedSelector", id_value = 823, constant = "KERNEL_IS_SHARED_SELECTOR" }
-evidence = [{ source = "spec", line = 268 }, { source = "binding_3", line = 34 }]
 [exports.call]
 returns = "word"
 params = [
@@ -614,7 +556,6 @@ params = [
 ordinal = 348
 name = "hmemcpy"
 binding = { rust_id = "KernelHmemcpy", id_value = 201, constant = "KERNEL_HMEMCPY" }
-evidence = [{ source = "spec", line = 271 }, { source = "binding", line = 278 }]
 [exports.call]
 returns = "void"
 params = [
@@ -628,7 +569,6 @@ ordinal = 357
 name = "MapSL"
 decl = { attributes = [] }
 binding = { rust_id = "KernelMapSL", id_value = 824, constant = "KERNEL_MAP_SL" }
-evidence = [{ source = "spec", line = 280 }, { source = "binding_3", line = 36 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -640,7 +580,6 @@ ordinal = 358
 name = "MapLS"
 decl = { attributes = [] }
 binding = { rust_id = "KernelMapLS", id_value = 825, constant = "KERNEL_MAP_LS" }
-evidence = [{ source = "spec", line = 281 }, { source = "binding_3", line = 38 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -652,7 +591,6 @@ ordinal = 359
 name = "UnMapLS"
 decl = { attributes = [] }
 binding = { rust_id = "KernelUnMapLS", id_value = 826, constant = "KERNEL_UNMAP_LS" }
-evidence = [{ source = "spec", line = 282 }, { source = "binding_3", line = 40 }]
 [exports.call]
 returns = "void"
 params = [
@@ -664,7 +602,6 @@ ordinal = 365
 name = "GlobalChangeLockCount"
 decl = { attributes = ["register"] }
 binding = { rust_id = "KernelGlobalChangeLockCount", id_value = 807, constant = "KERNEL_GLOBAL_CHANGE_LOCK_COUNT" }
-evidence = [{ source = "spec", line = 286 }, { source = "binding_2", line = 25 }]
 [exports.call]
 returns = "void"
 params = [
@@ -676,7 +613,6 @@ params = [
 ordinal = 403
 name = "FarSetOwner"
 binding = { rust_id = "KernelFarSetOwner", id_value = 808, constant = "KERNEL_FAR_SET_OWNER" }
-evidence = [{ source = "spec", line = 287 }, { source = "binding_2", line = 27 }]
 [exports.call]
 returns = "word"
 params = [
@@ -688,7 +624,6 @@ params = [
 ordinal = 404
 name = "FarGetOwner"
 binding = { rust_id = "KernelFarGetOwner", id_value = 809, constant = "KERNEL_FAR_GET_OWNER" }
-evidence = [{ source = "spec", line = 288 }, { source = "binding_2", line = 29 }]
 [exports.call]
 returns = "word"
 params = [

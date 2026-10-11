@@ -1,22 +1,16 @@
 module = "RMPATCH"
 
-[sources]
-spec = { path = "specs/rmpatch.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "intcb"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "checkpatch"
 decl = { args = ["word", "long"] }
-evidence = [{ source = "spec", line = 4 }]

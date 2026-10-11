@@ -1,15 +1,10 @@
 module = "WING"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/wing.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1005
 name = "WinGGetDIBColorTable"
 binding = { rust_id = "WingGetDibColorTable", id_value = 712, constant = "WING_GET_DIB_COLOR_TABLE" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 809 }]
 [exports.call]
 returns = "word"
 params = [
@@ -23,7 +18,6 @@ params = [
 ordinal = 1006
 name = "WinGSetDIBColorTable"
 binding = { rust_id = "WingSetDibColorTable", id_value = 713, constant = "WING_SET_DIB_COLOR_TABLE" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 810 }]
 [exports.call]
 returns = "word"
 params = [

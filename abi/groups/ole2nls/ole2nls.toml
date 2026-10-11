@@ -1,16 +1,11 @@
 module = "OLE2NLS"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/ole2nls.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/ole2nls_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "GetUserDefaultLCID"
 decl = { attributes = [] }
 binding = { rust_id = "Ole2NlsGetUserDefaultLcid", id_value = 1126, constant = "OLE2NLS_GET_USER_DEFAULT_LCID" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 7 }]
 [exports.call]
 returns = "dword"
 
@@ -19,7 +14,6 @@ ordinal = 2
 name = "GetSystemDefaultLCID"
 decl = { attributes = [] }
 binding = { rust_id = "Ole2NlsGetSystemDefaultLcid", id_value = 1127, constant = "OLE2NLS_GET_SYSTEM_DEFAULT_LCID" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 9 }]
 [exports.call]
 returns = "dword"
 
@@ -27,7 +21,6 @@ returns = "dword"
 ordinal = 3
 name = "GetUserDefaultLangID"
 binding = { rust_id = "Ole2NlsGetUserDefaultLangId", id_value = 1128, constant = "OLE2NLS_GET_USER_DEFAULT_LANG_ID" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 11 }]
 [exports.call]
 returns = "word"
 
@@ -35,7 +28,6 @@ returns = "word"
 ordinal = 4
 name = "GetSystemDefaultLangID"
 binding = { rust_id = "Ole2NlsGetSystemDefaultLangId", id_value = 1129, constant = "OLE2NLS_GET_SYSTEM_DEFAULT_LANG_ID" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 13 }]
 [exports.call]
 returns = "word"
 
@@ -44,7 +36,6 @@ ordinal = 5
 name = "GetLocaleInfoA"
 decl = { attributes = [] }
 binding = { rust_id = "Ole2NlsGetLocaleInfoA", id_value = 1130, constant = "OLE2NLS_GET_LOCALE_INFO_A" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 17 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -58,7 +49,6 @@ params = [
 ordinal = 6
 name = "LCMapStringA"
 binding = { rust_id = "Ole2NlsLcMapStringA", id_value = 1131, constant = "OLE2NLS_LC_MAP_STRING_A" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 19 }]
 [exports.call]
 returns = "word"
 params = [
@@ -74,7 +64,6 @@ params = [
 ordinal = 7
 name = "GetStringTypeA"
 binding = { rust_id = "Ole2NlsGetStringTypeA", id_value = 1132, constant = "OLE2NLS_GET_STRING_TYPE_A" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 21 }]
 [exports.call]
 returns = "word"
 params = [
@@ -89,7 +78,6 @@ params = [
 ordinal = 8
 name = "CompareStringA"
 binding = { rust_id = "Ole2NlsCompareStringA", id_value = 1133, constant = "OLE2NLS_COMPARE_STRING_A" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 23 }]
 [exports.call]
 returns = "word"
 params = [

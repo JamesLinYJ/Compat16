@@ -1,16 +1,11 @@
 module = "WIN87EM"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/win87em.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "__fpMath"
 decl = { attributes = ["register"] }
 binding = { rust_id = "Win87emFpMath", id_value = 152, constant = "WIN87EM_FP_MATH" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 228 }]
 [exports.call]
 kind = "register_context"
 returns = "register_context"
@@ -19,22 +14,18 @@ returns = "register_context"
 ordinal = 3
 name = "__Win87EmInfo"
 decl = { args = ["pointer", "word"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 4
 name = "__Win87EmRestore"
 decl = { args = ["pointer", "word"] }
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 5
 name = "__Win87EmSave"
 decl = { args = ["pointer", "word"] }
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 100
 name = "fpe_return"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 6 }]

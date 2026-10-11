@@ -1,15 +1,10 @@
 module = "GDI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/gdi.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 7
 name = "SetStretchBltMode"
 binding = { rust_id = "GdiSetStretchBltMode", id_value = 327, constant = "GDI_SET_STRETCH_BLT_MODE" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 405 }]
 [exports.call]
 returns = "word"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 29
 name = "PatBlt"
 binding = { rust_id = "GdiPatBlt", id_value = 339, constant = "GDI_PAT_BLT" }
-evidence = [{ source = "spec", line = 30 }, { source = "binding", line = 417 }]
 [exports.call]
 returns = "word"
 params = [
@@ -38,7 +32,6 @@ ordinal = 31
 name = "SetPixel"
 decl = { attributes = [] }
 binding = { rust_id = "GdiSetPixel", id_value = 341, constant = "GDI_SET_PIXEL" }
-evidence = [{ source = "spec", line = 32 }, { source = "binding", line = 419 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -52,7 +45,6 @@ params = [
 ordinal = 34
 name = "BitBlt"
 binding = { rust_id = "GdiBitBlt", id_value = 308, constant = "GDI_BIT_BLT" }
-evidence = [{ source = "spec", line = 35 }, { source = "binding", line = 386 }]
 [exports.call]
 returns = "word"
 params = [
@@ -71,7 +63,6 @@ params = [
 ordinal = 35
 name = "StretchBlt"
 binding = { rust_id = "GdiStretchBlt", id_value = 342, constant = "GDI_STRETCH_BLT" }
-evidence = [{ source = "spec", line = 36 }, { source = "binding", line = 420 }]
 [exports.call]
 returns = "word"
 params = [
@@ -92,7 +83,6 @@ params = [
 ordinal = 48
 name = "CreateBitmap"
 binding = { rust_id = "GdiCreateBitmap", id_value = 316, constant = "GDI_CREATE_BITMAP" }
-evidence = [{ source = "spec", line = 49 }, { source = "binding", line = 394 }]
 [exports.call]
 returns = "word"
 params = [
@@ -107,7 +97,6 @@ params = [
 ordinal = 49
 name = "CreateBitmapIndirect"
 binding = { rust_id = "GdiCreateBitmapIndirect", id_value = 317, constant = "GDI_CREATE_BITMAP_INDIRECT" }
-evidence = [{ source = "spec", line = 50 }, { source = "binding", line = 395 }]
 [exports.call]
 returns = "word"
 params = [
@@ -118,7 +107,6 @@ params = [
 ordinal = 51
 name = "CreateCompatibleBitmap"
 binding = { rust_id = "GdiCreateCompatibleBitmap", id_value = 322, constant = "GDI_CREATE_COMPATIBLE_BITMAP" }
-evidence = [{ source = "spec", line = 52 }, { source = "binding", line = 400 }]
 [exports.call]
 returns = "word"
 params = [
@@ -132,7 +120,6 @@ ordinal = 74
 name = "GetBitmapBits"
 decl = { attributes = [] }
 binding = { rust_id = "GdiDeviceGetBitmapBits", id_value = 676, constant = "GDI_DEVICE_GET_BITMAP_BITS" }
-evidence = [{ source = "spec", line = 74 }, { source = "binding", line = 773 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -146,7 +133,6 @@ ordinal = 83
 name = "GetPixel"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetPixel", id_value = 348, constant = "GDI_GET_PIXEL" }
-evidence = [{ source = "spec", line = 83 }, { source = "binding", line = 426 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -159,7 +145,6 @@ params = [
 ordinal = 88
 name = "GetStretchBltMode"
 binding = { rust_id = "GdiGetStretchBltMode", id_value = 328, constant = "GDI_GET_STRETCH_BLT_MODE" }
-evidence = [{ source = "spec", line = 88 }, { source = "binding", line = 406 }]
 [exports.call]
 returns = "word"
 params = [
@@ -171,7 +156,6 @@ ordinal = 106
 name = "SetBitmapBits"
 decl = { attributes = [] }
 binding = { rust_id = "GdiDeviceSetBitmapBits", id_value = 677, constant = "GDI_DEVICE_SET_BITMAP_BITS" }
-evidence = [{ source = "spec", line = 106 }, { source = "binding", line = 774 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -184,7 +168,6 @@ params = [
 ordinal = 156
 name = "CreateDiscardableBitmap"
 binding = { rust_id = "GdiDeviceCreateDiscardableBitmap", id_value = 678, constant = "GDI_DEVICE_CREATE_DISCARDABLE_BITMAP" }
-evidence = [{ source = "spec", line = 146 }, { source = "binding", line = 775 }]
 [exports.call]
 returns = "word"
 params = [
@@ -198,7 +181,6 @@ ordinal = 162
 name = "GetBitmapDimension"
 decl = { attributes = [] }
 binding = { rust_id = "GdiDeviceGetBitmapDimension", id_value = 701, constant = "GDI_DEVICE_GET_BITMAP_DIMENSION" }
-evidence = [{ source = "spec", line = 152 }, { source = "binding", line = 798 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -210,7 +192,6 @@ ordinal = 163
 name = "SetBitmapDimension"
 decl = { attributes = [] }
 binding = { rust_id = "GdiDeviceSetBitmapDimension", id_value = 702, constant = "GDI_DEVICE_SET_BITMAP_DIMENSION" }
-evidence = [{ source = "spec", line = 153 }, { source = "binding", line = 799 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -223,7 +204,6 @@ params = [
 ordinal = 360
 name = "CreatePalette"
 binding = { rust_id = "GdiDeviceCreatePalette", id_value = 679, constant = "GDI_DEVICE_CREATE_PALETTE" }
-evidence = [{ source = "spec", line = 259 }, { source = "binding", line = 776 }]
 [exports.call]
 returns = "word"
 params = [
@@ -234,7 +214,6 @@ params = [
 ordinal = 361
 name = "GDISelectPalette"
 binding = { rust_id = "GdiDeviceSelectPalette", id_value = 680, constant = "GDI_DEVICE_SELECT_PALETTE" }
-evidence = [{ source = "spec", line = 260 }, { source = "binding", line = 777 }]
 [exports.call]
 returns = "word"
 params = [
@@ -247,7 +226,6 @@ params = [
 ordinal = 362
 name = "GDIRealizePalette"
 binding = { rust_id = "GdiDeviceRealizePalette", id_value = 681, constant = "GDI_DEVICE_REALIZE_PALETTE" }
-evidence = [{ source = "spec", line = 261 }, { source = "binding", line = 778 }]
 [exports.call]
 returns = "word"
 params = [
@@ -258,7 +236,6 @@ params = [
 ordinal = 363
 name = "GetPaletteEntries"
 binding = { rust_id = "GdiDeviceGetPaletteEntries", id_value = 684, constant = "GDI_DEVICE_GET_PALETTE_ENTRIES" }
-evidence = [{ source = "spec", line = 262 }, { source = "binding", line = 781 }]
 [exports.call]
 returns = "word"
 params = [
@@ -272,7 +249,6 @@ params = [
 ordinal = 364
 name = "SetPaletteEntries"
 binding = { rust_id = "GdiDeviceSetPaletteEntries", id_value = 685, constant = "GDI_DEVICE_SET_PALETTE_ENTRIES" }
-evidence = [{ source = "spec", line = 263 }, { source = "binding", line = 782 }]
 [exports.call]
 returns = "word"
 params = [
@@ -286,7 +262,6 @@ params = [
 ordinal = 365
 name = "RealizeDefaultPalette"
 binding = { rust_id = "GdiDeviceRealizeDefaultPalette", id_value = 686, constant = "GDI_DEVICE_REALIZE_DEFAULT_PALETTE" }
-evidence = [{ source = "spec", line = 264 }, { source = "binding", line = 783 }]
 [exports.call]
 returns = "word"
 params = [
@@ -297,7 +272,6 @@ params = [
 ordinal = 366
 name = "UpdateColors"
 binding = { rust_id = "GdiDeviceUpdateColors", id_value = 687, constant = "GDI_DEVICE_UPDATE_COLORS" }
-evidence = [{ source = "spec", line = 265 }, { source = "binding", line = 784 }]
 [exports.call]
 returns = "word"
 params = [
@@ -308,7 +282,6 @@ params = [
 ordinal = 367
 name = "AnimatePalette"
 binding = { rust_id = "GdiDeviceAnimatePalette", id_value = 688, constant = "GDI_DEVICE_ANIMATE_PALETTE" }
-evidence = [{ source = "spec", line = 266 }, { source = "binding", line = 785 }]
 [exports.call]
 returns = "void"
 params = [
@@ -322,7 +295,6 @@ params = [
 ordinal = 368
 name = "ResizePalette"
 binding = { rust_id = "GdiDeviceResizePalette", id_value = 689, constant = "GDI_DEVICE_RESIZE_PALETTE" }
-evidence = [{ source = "spec", line = 267 }, { source = "binding", line = 786 }]
 [exports.call]
 returns = "word"
 params = [
@@ -334,7 +306,6 @@ params = [
 ordinal = 370
 name = "GetNearestPaletteIndex"
 binding = { rust_id = "GdiDeviceGetNearestPaletteIndex", id_value = 690, constant = "GDI_DEVICE_GET_NEAREST_PALETTE_INDEX" }
-evidence = [{ source = "spec", line = 268 }, { source = "binding", line = 787 }]
 [exports.call]
 returns = "word"
 params = [
@@ -346,7 +317,6 @@ params = [
 ordinal = 373
 name = "SetSystemPaletteUse"
 binding = { rust_id = "GdiDeviceSetSystemPaletteUse", id_value = 691, constant = "GDI_DEVICE_SET_SYSTEM_PALETTE_USE" }
-evidence = [{ source = "spec", line = 270 }, { source = "binding", line = 788 }]
 [exports.call]
 returns = "word"
 params = [
@@ -358,7 +328,6 @@ params = [
 ordinal = 374
 name = "GetSystemPaletteUse"
 binding = { rust_id = "GdiDeviceGetSystemPaletteUse", id_value = 692, constant = "GDI_DEVICE_GET_SYSTEM_PALETTE_USE" }
-evidence = [{ source = "spec", line = 271 }, { source = "binding", line = 789 }]
 [exports.call]
 returns = "word"
 params = [
@@ -369,7 +338,6 @@ params = [
 ordinal = 375
 name = "GetSystemPaletteEntries"
 binding = { rust_id = "GdiDeviceGetSystemPaletteEntries", id_value = 693, constant = "GDI_DEVICE_GET_SYSTEM_PALETTE_ENTRIES" }
-evidence = [{ source = "spec", line = 272 }, { source = "binding", line = 790 }]
 [exports.call]
 returns = "word"
 params = [
@@ -383,7 +351,6 @@ params = [
 ordinal = 376
 name = "ResetDC"
 binding = { rust_id = "GdiDeviceResetDc", id_value = 694, constant = "GDI_DEVICE_RESET_DC" }
-evidence = [{ source = "spec", line = 273 }, { source = "binding", line = 791 }]
 [exports.call]
 returns = "word"
 params = [
@@ -395,7 +362,6 @@ params = [
 ordinal = 377
 name = "StartDoc"
 binding = { rust_id = "GdiDeviceStartDoc", id_value = 695, constant = "GDI_DEVICE_START_DOC" }
-evidence = [{ source = "spec", line = 274 }, { source = "binding", line = 792 }]
 [exports.call]
 returns = "word"
 params = [
@@ -407,7 +373,6 @@ params = [
 ordinal = 378
 name = "EndDoc"
 binding = { rust_id = "GdiDeviceEndDoc", id_value = 696, constant = "GDI_DEVICE_END_DOC" }
-evidence = [{ source = "spec", line = 275 }, { source = "binding", line = 793 }]
 [exports.call]
 returns = "word"
 params = [
@@ -418,7 +383,6 @@ params = [
 ordinal = 379
 name = "StartPage"
 binding = { rust_id = "GdiDeviceStartPage", id_value = 697, constant = "GDI_DEVICE_START_PAGE" }
-evidence = [{ source = "spec", line = 276 }, { source = "binding", line = 794 }]
 [exports.call]
 returns = "word"
 params = [
@@ -429,7 +393,6 @@ params = [
 ordinal = 380
 name = "EndPage"
 binding = { rust_id = "GdiDeviceEndPage", id_value = 698, constant = "GDI_DEVICE_END_PAGE" }
-evidence = [{ source = "spec", line = 277 }, { source = "binding", line = 795 }]
 [exports.call]
 returns = "word"
 params = [
@@ -440,7 +403,6 @@ params = [
 ordinal = 381
 name = "SetAbortProc"
 binding = { rust_id = "GdiDeviceSetAbortProc", id_value = 699, constant = "GDI_DEVICE_SET_ABORT_PROC" }
-evidence = [{ source = "spec", line = 278 }, { source = "binding", line = 796 }]
 [exports.call]
 returns = "word"
 params = [
@@ -452,7 +414,6 @@ params = [
 ordinal = 382
 name = "AbortDoc"
 binding = { rust_id = "GdiDeviceAbortDoc", id_value = 700, constant = "GDI_DEVICE_ABORT_DOC" }
-evidence = [{ source = "spec", line = 279 }, { source = "binding", line = 797 }]
 [exports.call]
 returns = "word"
 params = [
@@ -463,7 +424,6 @@ params = [
 ordinal = 439
 name = "StretchDIBits"
 binding = { rust_id = "GdiStretchDibits", id_value = 671, constant = "GDI_STRETCH_DIBITS" }
-evidence = [{ source = "spec", line = 293 }, { source = "binding", line = 768 }]
 [exports.call]
 returns = "word"
 params = [
@@ -486,7 +446,6 @@ params = [
 ordinal = 440
 name = "SetDIBits"
 binding = { rust_id = "GdiSetDibits", id_value = 672, constant = "GDI_SET_DIBITS" }
-evidence = [{ source = "spec", line = 294 }, { source = "binding", line = 769 }]
 [exports.call]
 returns = "word"
 params = [
@@ -503,7 +462,6 @@ params = [
 ordinal = 441
 name = "GetDIBits"
 binding = { rust_id = "GdiGetDibits", id_value = 673, constant = "GDI_GET_DIBITS" }
-evidence = [{ source = "spec", line = 295 }, { source = "binding", line = 770 }]
 [exports.call]
 returns = "word"
 params = [
@@ -520,7 +478,6 @@ params = [
 ordinal = 442
 name = "CreateDIBitmap"
 binding = { rust_id = "GdiCreateDibitmap", id_value = 674, constant = "GDI_CREATE_DIBITMAP" }
-evidence = [{ source = "spec", line = 296 }, { source = "binding", line = 771 }]
 [exports.call]
 returns = "word"
 params = [
@@ -536,7 +493,6 @@ params = [
 ordinal = 443
 name = "SetDIBitsToDevice"
 binding = { rust_id = "GdiSetDibitsToDevice", id_value = 675, constant = "GDI_SET_DIBITS_TO_DEVICE" }
-evidence = [{ source = "spec", line = 297 }, { source = "binding", line = 772 }]
 [exports.call]
 returns = "word"
 params = [
@@ -558,7 +514,6 @@ params = [
 ordinal = 468
 name = "GetBitmapDimensionEx"
 binding = { rust_id = "GdiDeviceGetBitmapDimensionEx", id_value = 703, constant = "GDI_DEVICE_GET_BITMAP_DIMENSION_EX" }
-evidence = [{ source = "spec", line = 312 }, { source = "binding", line = 800 }]
 [exports.call]
 returns = "word"
 params = [
@@ -570,7 +525,6 @@ params = [
 ordinal = 478
 name = "SetBitmapDimensionEx"
 binding = { rust_id = "GdiDeviceSetBitmapDimensionEx", id_value = 704, constant = "GDI_DEVICE_SET_BITMAP_DIMENSION_EX" }
-evidence = [{ source = "spec", line = 322 }, { source = "binding", line = 801 }]
 [exports.call]
 returns = "word"
 params = [
@@ -584,7 +538,6 @@ params = [
 ordinal = 529
 name = "CreateHalftonePalette"
 binding = { rust_id = "GdiDeviceCreateHalftonePalette", id_value = 705, constant = "GDI_DEVICE_CREATE_HALFTONE_PALETTE" }
-evidence = [{ source = "spec", line = 367 }, { source = "binding", line = 802 }]
 [exports.call]
 returns = "word"
 params = [
@@ -595,7 +548,6 @@ params = [
 ordinal = 602
 name = "SetDIBColorTable"
 binding = { rust_id = "GdiDeviceSetDibColorTable", id_value = 706, constant = "GDI_DEVICE_SET_DIB_COLOR_TABLE" }
-evidence = [{ source = "spec", line = 411 }, { source = "binding", line = 803 }]
 [exports.call]
 returns = "word"
 params = [
@@ -609,7 +561,6 @@ params = [
 ordinal = 603
 name = "GetDIBColorTable"
 binding = { rust_id = "GdiDeviceGetDibColorTable", id_value = 707, constant = "GDI_DEVICE_GET_DIB_COLOR_TABLE" }
-evidence = [{ source = "spec", line = 412 }, { source = "binding", line = 804 }]
 [exports.call]
 returns = "word"
 params = [

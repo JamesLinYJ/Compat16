@@ -94,6 +94,8 @@ mod system;
 mod kernel_services;
 #[path = "win16_kernel_path_info.rs"]
 mod kernel_path_info;
+#[path = "win16_temp_drive.rs"]
+mod temp_drive;
 #[path = "win16_kernel_register_calls.rs"]
 mod kernel_register_calls;
 #[path = "win16_kernel_diagnostics.rs"]

@@ -1,14 +1,9 @@
 module = "OLE2DISP"
 
-[sources]
-spec = { path = "specs/ole2disp.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/ole2disp_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 2
 name = "SysAllocString"
 binding = { rust_id = "Ole2DispSysAllocString", id_value = 913, constant = "OLE2DISP_SYS_ALLOC_STRING" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -19,7 +14,6 @@ params = [
 ordinal = 3
 name = "SysReallocString"
 binding = { rust_id = "Ole2DispSysReallocString", id_value = 914, constant = "OLE2DISP_SYS_REALLOC_STRING" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -31,7 +25,6 @@ params = [
 ordinal = 4
 name = "SysAllocStringLen"
 binding = { rust_id = "Ole2DispSysAllocStringLen", id_value = 915, constant = "OLE2DISP_SYS_ALLOC_STRING_LEN" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 14 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -43,7 +36,6 @@ params = [
 ordinal = 5
 name = "SysReAllocStringLen"
 binding = { rust_id = "Ole2DispSysReAllocStringLen", id_value = 916, constant = "OLE2DISP_SYS_REALLOC_STRING_LEN" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -56,7 +48,6 @@ params = [
 ordinal = 6
 name = "SysFreeString"
 binding = { rust_id = "Ole2DispSysFreeString", id_value = 917, constant = "OLE2DISP_SYS_FREE_STRING" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 21 }]
 [exports.call]
 returns = "void"
 params = [
@@ -67,7 +58,6 @@ params = [
 ordinal = 7
 name = "SysStringLen"
 binding = { rust_id = "Ole2DispSysStringLen", id_value = 918, constant = "OLE2DISP_SYS_STRING_LEN" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 23 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -78,7 +68,6 @@ params = [
 ordinal = 8
 name = "VariantInit"
 binding = { rust_id = "Ole2DispVariantInit", id_value = 919, constant = "OLE2DISP_VARIANT_INIT" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 28 }]
 [exports.call]
 returns = "void"
 params = [
@@ -89,7 +78,6 @@ params = [
 ordinal = 9
 name = "VariantClear"
 binding = { rust_id = "Ole2DispVariantClear", id_value = 920, constant = "OLE2DISP_VARIANT_CLEAR" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 30 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -100,7 +88,6 @@ params = [
 ordinal = 10
 name = "VariantCopy"
 binding = { rust_id = "Ole2DispVariantCopy", id_value = 921, constant = "OLE2DISP_VARIANT_COPY" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 32 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -112,7 +99,6 @@ params = [
 ordinal = 11
 name = "VariantCopyInd"
 binding = { rust_id = "Ole2DispVariantCopyInd", id_value = 922, constant = "OLE2DISP_VARIANT_COPY_IND" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 34 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -124,7 +110,6 @@ params = [
 ordinal = 15
 name = "SafeArrayCreate"
 binding = { rust_id = "Ole2DispSafeArrayCreate", id_value = 923, constant = "OLE2DISP_SAFE_ARRAY_CREATE" }
-evidence = [{ source = "spec", line = 16 }, { source = "binding", line = 36 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -137,7 +122,6 @@ params = [
 ordinal = 16
 name = "SafeArrayDestroy"
 binding = { rust_id = "Ole2DispSafeArrayDestroy", id_value = 924, constant = "OLE2DISP_SAFE_ARRAY_DESTROY" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 38 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -149,7 +133,6 @@ ordinal = 17
 name = "SafeArrayGetDim"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "Ole2DispSafeArrayGetDim", id_value = 925, constant = "OLE2DISP_SAFE_ARRAY_GET_DIM" }
-evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 41 }]
 [exports.call]
 returns = "word"
 params = [
@@ -161,7 +144,6 @@ ordinal = 18
 name = "SafeArrayGetElemsize"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "Ole2DispSafeArrayGetElemsize", id_value = 926, constant = "OLE2DISP_SAFE_ARRAY_GET_ELEMSIZE" }
-evidence = [{ source = "spec", line = 19 }, { source = "binding", line = 43 }]
 [exports.call]
 returns = "word"
 params = [
@@ -172,7 +154,6 @@ params = [
 ordinal = 19
 name = "SafeArrayGetUBound"
 binding = { rust_id = "Ole2DispSafeArrayGetUBound", id_value = 927, constant = "OLE2DISP_SAFE_ARRAY_GET_UBOUND" }
-evidence = [{ source = "spec", line = 20 }, { source = "binding", line = 45 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -185,7 +166,6 @@ params = [
 ordinal = 20
 name = "SafeArrayGetLBound"
 binding = { rust_id = "Ole2DispSafeArrayGetLBound", id_value = 928, constant = "OLE2DISP_SAFE_ARRAY_GET_LBOUND" }
-evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 47 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -198,7 +178,6 @@ params = [
 ordinal = 21
 name = "SafeArrayLock"
 binding = { rust_id = "Ole2DispSafeArrayLock", id_value = 929, constant = "OLE2DISP_SAFE_ARRAY_LOCK" }
-evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 49 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -209,7 +188,6 @@ params = [
 ordinal = 22
 name = "SafeArrayUnlock"
 binding = { rust_id = "Ole2DispSafeArrayUnlock", id_value = 930, constant = "OLE2DISP_SAFE_ARRAY_UNLOCK" }
-evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 51 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -220,7 +198,6 @@ params = [
 ordinal = 23
 name = "SafeArrayAccessData"
 binding = { rust_id = "Ole2DispSafeArrayAccessData", id_value = 931, constant = "OLE2DISP_SAFE_ARRAY_ACCESS_DATA" }
-evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 53 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -232,7 +209,6 @@ params = [
 ordinal = 24
 name = "SafeArrayUnaccessData"
 binding = { rust_id = "Ole2DispSafeArrayUnaccessData", id_value = 932, constant = "OLE2DISP_SAFE_ARRAY_UNACCESS_DATA" }
-evidence = [{ source = "spec", line = 25 }, { source = "binding", line = 55 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -243,7 +219,6 @@ params = [
 ordinal = 25
 name = "SafeArrayGetElement"
 binding = { rust_id = "Ole2DispSafeArrayGetElement", id_value = 933, constant = "OLE2DISP_SAFE_ARRAY_GET_ELEMENT" }
-evidence = [{ source = "spec", line = 26 }, { source = "binding", line = 57 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -256,7 +231,6 @@ params = [
 ordinal = 26
 name = "SafeArrayPutElement"
 binding = { rust_id = "Ole2DispSafeArrayPutElement", id_value = 934, constant = "OLE2DISP_SAFE_ARRAY_PUT_ELEMENT" }
-evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 59 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -269,7 +243,6 @@ params = [
 ordinal = 27
 name = "SafeArrayCopy"
 binding = { rust_id = "Ole2DispSafeArrayCopy", id_value = 936, constant = "OLE2DISP_SAFE_ARRAY_COPY" }
-evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 63 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -281,7 +254,6 @@ params = [
 ordinal = 38
 name = "SafeArrayAllocDescriptor"
 binding = { rust_id = "Ole2DispSafeArrayAllocDescriptor", id_value = 937, constant = "OLE2DISP_SAFE_ARRAY_ALLOC_DESCRIPTOR" }
-evidence = [{ source = "spec", line = 39 }, { source = "binding", line = 65 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -293,7 +265,6 @@ params = [
 ordinal = 39
 name = "SafeArrayAllocData"
 binding = { rust_id = "Ole2DispSafeArrayAllocData", id_value = 938, constant = "OLE2DISP_SAFE_ARRAY_ALLOC_DATA" }
-evidence = [{ source = "spec", line = 40 }, { source = "binding", line = 67 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -304,7 +275,6 @@ params = [
 ordinal = 40
 name = "SafeArrayDestroyDescriptor"
 binding = { rust_id = "Ole2DispSafeArrayDestroyDescriptor", id_value = 939, constant = "OLE2DISP_SAFE_ARRAY_DESTROY_DESCRIPTOR" }
-evidence = [{ source = "spec", line = 41 }, { source = "binding", line = 69 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -315,7 +285,6 @@ params = [
 ordinal = 41
 name = "SafeArrayDestroyData"
 binding = { rust_id = "Ole2DispSafeArrayDestroyData", id_value = 940, constant = "OLE2DISP_SAFE_ARRAY_DESTROY_DATA" }
-evidence = [{ source = "spec", line = 42 }, { source = "binding", line = 71 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -326,7 +295,6 @@ params = [
 ordinal = 109
 name = "SafeArrayPtrOfIndex"
 binding = { rust_id = "Ole2DispSafeArrayPtrOfIndex", id_value = 935, constant = "OLE2DISP_SAFE_ARRAY_PTR_OF_INDEX" }
-evidence = [{ source = "spec", line = 110 }, { source = "binding", line = 61 }]
 [exports.call]
 returns = "dword"
 params = [

@@ -1,184 +1,151 @@
 module = "COMMCTRL"
 
-[sources]
-spec = { path = "specs/commctrl.spec", note = "spec" }
-
 [[exports]]
 ordinal = 3
 name = "SHOWHIDEMENUCTL"
 kind = "stub"
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 5
 name = "DRAWSTATUSTEXT"
 kind = "stub"
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 14
 name = "LBITEMFROMPT"
 kind = "stub"
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 15
 name = "DRAWINSERT"
 kind = "stub"
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 16
 name = "CREATEUPDOWNCONTROL"
 kind = "stub"
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 40
 name = "IMAGELIST_CREATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 41
 name = "IMAGELIST_DESTROY"
 kind = "stub"
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 42
 name = "IMAGELIST_GETIMAGECOUNT"
 kind = "stub"
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 43
 name = "IMAGELIST_SETOVERLAYIMAGE"
 kind = "stub"
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 44
 name = "IMAGELIST_SETBKCOLOR"
 kind = "stub"
-evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
 ordinal = 45
 name = "IMAGELIST_GETBKCOLOR"
 kind = "stub"
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 46
 name = "IMAGELIST_ADD"
 kind = "stub"
-evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
 ordinal = 49
 name = "IMAGELIST_DRAW"
 kind = "stub"
-evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
 ordinal = 53
 name = "IMAGELIST_ADDICON"
 kind = "stub"
-evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
 ordinal = 54
 name = "IMAGELIST_REPLACEICON"
 kind = "stub"
-evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
 ordinal = 159
 name = "PROPERTYSHEET"
 kind = "stub"
-evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
 ordinal = 160
 name = "CREATEPROPERTYSHEETPAGE"
 kind = "stub"
-evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
 ordinal = 161
 name = "DESTROYPROPERTYSHEETPAGE"
 kind = "stub"
-evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
 ordinal = 328
 name = "DPA_CREATE"
 kind = "stub"
-evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
 ordinal = 329
 name = "DPA_DESTROY"
 kind = "stub"
-evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
 ordinal = 330
 name = "DPA_GROW"
 kind = "stub"
-evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
 ordinal = 331
 name = "DPA_CLONE"
 kind = "stub"
-evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
 ordinal = 332
 name = "DPA_GETPTR"
 kind = "stub"
-evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
 ordinal = 333
 name = "DPA_GETPTRINDEX"
 kind = "stub"
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 334
 name = "DPA_INSERTPTR"
 kind = "stub"
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 335
 name = "DPA_SETPTR"
 kind = "stub"
-evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
 ordinal = 336
 name = "DPA_DELETEPTR"
 kind = "stub"
-evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
 ordinal = 337
 name = "DPA_DELETEALLPTRS"
 kind = "stub"
-evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
 ordinal = 338
 name = "DPA_SORT"
 kind = "stub"
-evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
 ordinal = 339
 name = "DPA_SEARCH"
 kind = "stub"
-evidence = [{ source = "spec", line = 42 }]

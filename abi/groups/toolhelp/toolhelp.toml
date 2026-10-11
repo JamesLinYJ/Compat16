@@ -1,15 +1,10 @@
 module = "TOOLHELP"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/toolhelp.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 50
 name = "GlobalHandleToSel"
 binding = { rust_id = "ToolhelpGlobalHandleToSel", id_value = 251, constant = "TOOLHELP_GLOBAL_HANDLE_TO_SEL" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 328 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 51
 name = "GlobalFirst"
 binding = { rust_id = "ToolhelpGlobalFirst", id_value = 252, constant = "TOOLHELP_GLOBAL_FIRST" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 329 }]
 [exports.call]
 returns = "word"
 params = [
@@ -32,7 +26,6 @@ params = [
 ordinal = 52
 name = "GlobalNext"
 binding = { rust_id = "ToolhelpGlobalNext", id_value = 253, constant = "TOOLHELP_GLOBAL_NEXT" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 330 }]
 [exports.call]
 returns = "word"
 params = [
@@ -44,7 +37,6 @@ params = [
 ordinal = 53
 name = "GlobalInfo"
 binding = { rust_id = "ToolhelpGlobalInfo", id_value = 254, constant = "TOOLHELP_GLOBAL_INFO" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 331 }]
 [exports.call]
 returns = "word"
 params = [
@@ -55,7 +47,6 @@ params = [
 ordinal = 54
 name = "GlobalEntryHandle"
 binding = { rust_id = "ToolhelpGlobalEntryHandle", id_value = 255, constant = "TOOLHELP_GLOBAL_ENTRY_HANDLE" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 332 }]
 [exports.call]
 returns = "word"
 params = [
@@ -67,7 +58,6 @@ params = [
 ordinal = 55
 name = "GlobalEntryModule"
 binding = { rust_id = "ToolhelpGlobalEntryModule", id_value = 256, constant = "TOOLHELP_GLOBAL_ENTRY_MODULE" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 333 }]
 [exports.call]
 returns = "word"
 params = [
@@ -80,7 +70,6 @@ params = [
 ordinal = 75
 name = "InterruptRegister"
 binding = { rust_id = "ToolhelpInterruptRegister", id_value = 257, constant = "TOOLHELP_INTERRUPT_REGISTER" }
-evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 334 }]
 [exports.call]
 returns = "word"
 params = [
@@ -92,7 +81,6 @@ params = [
 ordinal = 76
 name = "InterruptUnRegister"
 binding = { rust_id = "ToolhelpInterruptUnregister", id_value = 258, constant = "TOOLHELP_INTERRUPT_UNREGISTER" }
-evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 335 }]
 [exports.call]
 returns = "word"
 params = [

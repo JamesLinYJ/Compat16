@@ -1,15 +1,10 @@
 module = "KERNEL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 30
 name = "WaitEvent"
 binding = { rust_id = "KernelWaitEvent", id_value = 183, constant = "KERNEL_WAIT_EVENT" }
-evidence = [{ source = "spec", line = 31 }, { source = "binding", line = 260 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 31
 name = "PostEvent"
 binding = { rust_id = "KernelPostEvent", id_value = 184, constant = "KERNEL_POST_EVENT" }
-evidence = [{ source = "spec", line = 32 }, { source = "binding", line = 261 }]
 [exports.call]
 returns = "void"
 params = [
@@ -32,7 +26,6 @@ ordinal = 47
 name = "GetModuleHandle"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGetModuleHandle", id_value = 159, constant = "KERNEL_GET_MODULE_HANDLE" }
-evidence = [{ source = "spec", line = 48 }, { source = "binding", line = 235 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -43,7 +36,6 @@ params = [
 ordinal = 48
 name = "GetModuleUsage"
 binding = { rust_id = "KernelGetModuleUsage", id_value = 160, constant = "KERNEL_GET_MODULE_USAGE" }
-evidence = [{ source = "spec", line = 49 }, { source = "binding", line = 236 }]
 [exports.call]
 returns = "word"
 params = [
@@ -54,7 +46,6 @@ params = [
 ordinal = 49
 name = "GetModuleFileName"
 binding = { rust_id = "KernelGetModuleFileName", id_value = 157, constant = "KERNEL_GET_MODULE_FILE_NAME" }
-evidence = [{ source = "spec", line = 50 }, { source = "binding", line = 233 }]
 [exports.call]
 returns = "word"
 params = [
@@ -68,7 +59,6 @@ ordinal = 50
 name = "GetProcAddress"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGetProcAddress", id_value = 164, constant = "KERNEL_GET_PROC_ADDRESS" }
-evidence = [{ source = "spec", line = 51 }, { source = "binding", line = 240 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -81,7 +71,6 @@ ordinal = 51
 name = "MakeProcInstance"
 decl = { attributes = [] }
 binding = { rust_id = "KernelMakeProcInstance", id_value = 185, constant = "KERNEL_MAKE_PROC_INSTANCE" }
-evidence = [{ source = "spec", line = 52 }, { source = "binding", line = 262 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -93,7 +82,6 @@ params = [
 ordinal = 52
 name = "FreeProcInstance"
 binding = { rust_id = "KernelFreeProcInstance", id_value = 186, constant = "KERNEL_FREE_PROC_INSTANCE" }
-evidence = [{ source = "spec", line = 53 }, { source = "binding", line = 263 }]
 [exports.call]
 returns = "void"
 params = [
@@ -104,7 +92,6 @@ params = [
 ordinal = 54
 name = "GetInstanceData"
 binding = { rust_id = "KernelGetInstanceData", id_value = 161, constant = "KERNEL_GET_INSTANCE_DATA" }
-evidence = [{ source = "spec", line = 55 }, { source = "binding", line = 237 }]
 [exports.call]
 returns = "word"
 params = [
@@ -118,7 +105,6 @@ ordinal = 93
 name = "GetCodeHandle"
 decl = { attributes = [] }
 binding = { rust_id = "KernelGetCodeHandle", id_value = 162, constant = "KERNEL_GET_CODE_HANDLE" }
-evidence = [{ source = "spec", line = 94 }, { source = "binding", line = 238 }]
 [exports.call]
 returns = "word"
 params = [
@@ -130,7 +116,6 @@ ordinal = 95
 name = "LoadLibrary"
 decl = { attributes = ["ret16", "stack_prolog"] }
 binding = { rust_id = "KernelLoadLibrary", id_value = 165, constant = "KERNEL_LOAD_LIBRARY" }
-evidence = [{ source = "spec", line = 96 }, { source = "binding", line = 241 }]
 [exports.call]
 returns = "word"
 params = [
@@ -142,7 +127,6 @@ ordinal = 96
 name = "FreeLibrary"
 decl = { attributes = [] }
 binding = { rust_id = "KernelFreeLibrary", id_value = 166, constant = "KERNEL_FREE_LIBRARY" }
-evidence = [{ source = "spec", line = 97 }, { source = "binding", line = 242 }]
 [exports.call]
 returns = "void"
 params = [
@@ -153,7 +137,6 @@ params = [
 ordinal = 104
 name = "GetCodeInfo"
 binding = { rust_id = "KernelGetCodeInfo", id_value = 163, constant = "KERNEL_GET_CODE_INFO" }
-evidence = [{ source = "spec", line = 105 }, { source = "binding", line = 239 }]
 [exports.call]
 returns = "void"
 params = [
@@ -165,7 +148,6 @@ params = [
 ordinal = 166
 name = "WinExec"
 binding = { rust_id = "KernelWinExec", id_value = 189, constant = "KERNEL_WIN_EXEC" }
-evidence = [{ source = "spec", line = 166 }, { source = "binding", line = 266 }]
 [exports.call]
 returns = "word"
 params = [
@@ -177,7 +159,6 @@ params = [
 ordinal = 466
 name = "ExitProcess"
 binding = { rust_id = "KernelExitProcess", id_value = 207, constant = "KERNEL_EXIT_PROCESS" }
-evidence = [{ source = "spec", line = 341 }, { source = "binding", line = 284 }]
 [exports.call]
 returns = "void"
 params = [

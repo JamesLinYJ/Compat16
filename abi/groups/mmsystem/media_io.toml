@@ -1,14 +1,9 @@
 module = "MMSYSTEM"
 
-[sources]
-spec = { path = "specs/mmsystem.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/media_services_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1210
 name = "mmioOpen"
 binding = { rust_id = "MediaIoOpen", id_value = 1018, constant = "MMSYSTEM_MMIO_OPEN" }
-evidence = [{ source = "spec", line = 150 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "word"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 1211
 name = "mmioClose"
 binding = { rust_id = "MediaIoClose", id_value = 1019, constant = "MMSYSTEM_MMIO_CLOSE" }
-evidence = [{ source = "spec", line = 151 }, { source = "binding", line = 18 }]
 [exports.call]
 returns = "word"
 params = [
@@ -33,7 +27,6 @@ params = [
 ordinal = 1212
 name = "mmioRead"
 binding = { rust_id = "MediaIoRead", id_value = 1020, constant = "MMSYSTEM_MMIO_READ" }
-evidence = [{ source = "spec", line = 152 }, { source = "binding", line = 20 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -46,7 +39,6 @@ params = [
 ordinal = 1213
 name = "mmioWrite"
 binding = { rust_id = "MediaIoWrite", id_value = 1021, constant = "MMSYSTEM_MMIO_WRITE" }
-evidence = [{ source = "spec", line = 153 }, { source = "binding", line = 22 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -59,7 +51,6 @@ params = [
 ordinal = 1214
 name = "mmioSeek"
 binding = { rust_id = "MediaIoSeek", id_value = 1022, constant = "MMSYSTEM_MMIO_SEEK" }
-evidence = [{ source = "spec", line = 154 }, { source = "binding", line = 24 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -72,7 +63,6 @@ params = [
 ordinal = 1218
 name = "mmioFlush"
 binding = { rust_id = "MediaIoFlush", id_value = 1023, constant = "MMSYSTEM_MMIO_FLUSH" }
-evidence = [{ source = "spec", line = 158 }, { source = "binding", line = 26 }]
 [exports.call]
 returns = "word"
 params = [
@@ -84,7 +74,6 @@ params = [
 ordinal = 1220
 name = "mmioStringToFOURCC"
 binding = { rust_id = "MediaIoStringToFourCc", id_value = 1024, constant = "MMSYSTEM_MMIO_STRING_TO_FOURCC" }
-evidence = [{ source = "spec", line = 160 }, { source = "binding", line = 28 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -96,7 +85,6 @@ params = [
 ordinal = 1223
 name = "mmioDescend"
 binding = { rust_id = "MediaIoDescend", id_value = 1025, constant = "MMSYSTEM_MMIO_DESCEND" }
-evidence = [{ source = "spec", line = 163 }, { source = "binding", line = 30 }]
 [exports.call]
 returns = "word"
 params = [
@@ -110,7 +98,6 @@ params = [
 ordinal = 1224
 name = "mmioAscend"
 binding = { rust_id = "MediaIoAscend", id_value = 1026, constant = "MMSYSTEM_MMIO_ASCEND" }
-evidence = [{ source = "spec", line = 164 }, { source = "binding", line = 32 }]
 [exports.call]
 returns = "word"
 params = [
@@ -123,7 +110,6 @@ params = [
 ordinal = 1225
 name = "mmioCreateChunk"
 binding = { rust_id = "MediaIoCreateChunk", id_value = 1027, constant = "MMSYSTEM_MMIO_CREATE_CHUNK" }
-evidence = [{ source = "spec", line = 165 }, { source = "binding", line = 34 }]
 [exports.call]
 returns = "word"
 params = [
@@ -136,7 +122,6 @@ params = [
 ordinal = 1226
 name = "mmioRename"
 binding = { rust_id = "MediaIoRename", id_value = 1028, constant = "MMSYSTEM_MMIO_RENAME" }
-evidence = [{ source = "spec", line = 166 }, { source = "binding", line = 36 }]
 [exports.call]
 returns = "word"
 params = [

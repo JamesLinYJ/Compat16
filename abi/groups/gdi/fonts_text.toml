@@ -1,15 +1,10 @@
 module = "GDI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/gdi.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 8
 name = "SetTextCharacterExtra"
 binding = { rust_id = "GdiSetTextCharacterExtra", id_value = 329, constant = "GDI_SET_TEXT_CHARACTER_EXTRA" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 407 }]
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +17,6 @@ ordinal = 9
 name = "SetTextColor"
 decl = { attributes = [] }
 binding = { rust_id = "GdiSetTextColor", id_value = 303, constant = "GDI_SET_TEXT_COLOR" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 381 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -34,7 +28,6 @@ params = [
 ordinal = 10
 name = "SetTextJustification"
 binding = { rust_id = "GdiSetTextJustification", id_value = 331, constant = "GDI_SET_TEXT_JUSTIFICATION" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 409 }]
 [exports.call]
 returns = "word"
 params = [
@@ -47,7 +40,6 @@ params = [
 ordinal = 33
 name = "TextOut"
 binding = { rust_id = "GdiTextOut", id_value = 307, constant = "GDI_TEXT_OUT" }
-evidence = [{ source = "spec", line = 34 }, { source = "binding", line = 385 }]
 [exports.call]
 returns = "word"
 params = [
@@ -62,7 +54,6 @@ params = [
 ordinal = 56
 name = "CreateFont"
 binding = { rust_id = "GdiCreateFont", id_value = 323, constant = "GDI_CREATE_FONT" }
-evidence = [{ source = "spec", line = 57 }, { source = "binding", line = 401 }]
 [exports.call]
 returns = "word"
 params = [
@@ -86,7 +77,6 @@ params = [
 ordinal = 57
 name = "CreateFontIndirect"
 binding = { rust_id = "GdiCreateFontIndirect", id_value = 324, constant = "GDI_CREATE_FONT_INDIRECT" }
-evidence = [{ source = "spec", line = 58 }, { source = "binding", line = 402 }]
 [exports.call]
 returns = "word"
 params = [
@@ -97,7 +87,6 @@ params = [
 ordinal = 70
 name = "EnumFonts"
 binding = { rust_id = "GdiEnumFonts", id_value = 266, constant = "GDI_ENUM_FONTS" }
-evidence = [{ source = "spec", line = 70 }, { source = "binding", line = 343 }]
 [exports.call]
 returns = "word"
 params = [
@@ -111,7 +100,6 @@ params = [
 ordinal = 89
 name = "GetTextCharacterExtra"
 binding = { rust_id = "GdiGetTextCharacterExtra", id_value = 330, constant = "GDI_GET_TEXT_CHARACTER_EXTRA" }
-evidence = [{ source = "spec", line = 89 }, { source = "binding", line = 408 }]
 [exports.call]
 returns = "word"
 params = [
@@ -123,7 +111,6 @@ ordinal = 90
 name = "GetTextColor"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetTextColor", id_value = 385, constant = "GDI_GET_TEXT_COLOR" }
-evidence = [{ source = "spec", line = 90 }, { source = "binding", line = 465 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -135,7 +122,6 @@ ordinal = 91
 name = "GetTextExtent"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetTextExtent", id_value = 310, constant = "GDI_GET_TEXT_EXTENT" }
-evidence = [{ source = "spec", line = 91 }, { source = "binding", line = 388 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -148,7 +134,6 @@ params = [
 ordinal = 92
 name = "GetTextFace"
 binding = { rust_id = "GdiGetTextFace", id_value = 315, constant = "GDI_GET_TEXT_FACE" }
-evidence = [{ source = "spec", line = 92 }, { source = "binding", line = 393 }]
 [exports.call]
 returns = "word"
 params = [
@@ -161,7 +146,6 @@ params = [
 ordinal = 93
 name = "GetTextMetrics"
 binding = { rust_id = "GdiGetTextMetrics", id_value = 314, constant = "GDI_GET_TEXT_METRICS" }
-evidence = [{ source = "spec", line = 93 }, { source = "binding", line = 392 }]
 [exports.call]
 returns = "word"
 params = [
@@ -173,7 +157,6 @@ params = [
 ordinal = 308
 name = "GetOutlineTextMetrics"
 binding = { rust_id = "GdiGetOutlineTextMetrics", id_value = 313, constant = "GDI_GET_OUTLINE_TEXT_METRICS" }
-evidence = [{ source = "spec", line = 235 }, { source = "binding", line = 391 }]
 [exports.call]
 returns = "word"
 params = [
@@ -186,7 +169,6 @@ params = [
 ordinal = 330
 name = "EnumFontFamilies"
 binding = { rust_id = "GdiEnumFontFamilies", id_value = 267, constant = "GDI_ENUM_FONT_FAMILIES" }
-evidence = [{ source = "spec", line = 245 }, { source = "binding", line = 344 }]
 [exports.call]
 returns = "word"
 params = [
@@ -200,7 +182,6 @@ params = [
 ordinal = 345
 name = "GetTextAlign"
 binding = { rust_id = "GdiGetTextAlign", id_value = 356, constant = "GDI_GET_TEXT_ALIGN" }
-evidence = [{ source = "spec", line = 247 }, { source = "binding", line = 436 }]
 [exports.call]
 returns = "word"
 params = [
@@ -211,7 +192,6 @@ params = [
 ordinal = 346
 name = "SetTextAlign"
 binding = { rust_id = "GdiSetTextAlign", id_value = 357, constant = "GDI_SET_TEXT_ALIGN" }
-evidence = [{ source = "spec", line = 248 }, { source = "binding", line = 437 }]
 [exports.call]
 returns = "word"
 params = [
@@ -223,7 +203,6 @@ params = [
 ordinal = 351
 name = "ExtTextOut"
 binding = { rust_id = "GdiExtTextOut", id_value = 358, constant = "GDI_EXT_TEXT_OUT" }
-evidence = [{ source = "spec", line = 254 }, { source = "binding", line = 438 }]
 [exports.call]
 returns = "word"
 params = [
@@ -241,7 +220,6 @@ params = [
 ordinal = 471
 name = "GetTextExtentPoint"
 binding = { rust_id = "GdiGetTextExtentPoint", id_value = 360, constant = "GDI_GET_TEXT_EXTENT_POINT" }
-evidence = [{ source = "spec", line = 315 }, { source = "binding", line = 440 }]
 [exports.call]
 returns = "word"
 params = [

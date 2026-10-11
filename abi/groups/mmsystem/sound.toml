@@ -1,14 +1,9 @@
 module = "MMSYSTEM"
 
-[sources]
-spec = { path = "specs/mmsystem.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/sound_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 2
 name = "sndPlaySound"
 binding = { rust_id = "MultimediaSndPlaySound", id_value = 1059, constant = "MMSYSTEM_SND_PLAY_SOUND" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 6 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 3
 name = "PlaySound"
 binding = { rust_id = "MultimediaPlaySound", id_value = 1060, constant = "MMSYSTEM_PLAY_SOUND" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "word"
 params = [

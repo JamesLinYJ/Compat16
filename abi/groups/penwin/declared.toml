@@ -1,309 +1,255 @@
 module = "PENWIN"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/penwin.spec", note = "spec" }
-
 [[exports]]
 ordinal = 10
 name = "InitRC"
 decl = { args = ["word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 11
 name = "Recognize"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 12
 name = "RecognizeData"
 decl = { args = ["segmented_pointer", "word"] }
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 13
 name = "BoundingRectFromPoints"
 decl = { attributes = [], args = ["segmented_pointer", "signed_word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 14
 name = "InstallRecognizer"
 decl = { args = ["string"] }
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 15
 name = "UninstallRecognizer"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 16
 name = "TrainInk"
 decl = { args = ["segmented_pointer", "word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 17
 name = "TrainContext"
 decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer", "signed_word"] }
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 101
 name = "PostVirtualMouseEvent"
 decl = { attributes = [], args = ["word", "signed_word", "signed_word"] }
-evidence = [{ source = "spec", line = 13 }]
 
 [[exports]]
 ordinal = 102
 name = "PostVirtualKeyEvent"
 decl = { attributes = [], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 14 }]
 
 [[exports]]
 ordinal = 104
 name = "AtomicVirtualEvent"
 decl = { attributes = [], args = ["word"] }
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 110
 name = "IsPenAware"
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 111
 name = "RegisterPenApp"
 decl = { attributes = [], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 17 }]
 
 [[exports]]
 ordinal = 114
 name = "SetRecogHook"
 decl = { args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 18 }]
 
 [[exports]]
 ordinal = 115
 name = "SetPenHook"
 decl = { args = ["word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 19 }]
 
 [[exports]]
 ordinal = 121
 name = "GetSymbolMaxLength"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 20 }]
 
 [[exports]]
 ordinal = 122
 name = "GetSymbolCount"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 21 }]
 
 [[exports]]
 ordinal = 123
 name = "FirstSymbolFromGraph"
 decl = { attributes = [], args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 22 }]
 
 [[exports]]
 ordinal = 124
 name = "EnumSymbols"
 decl = { args = ["segmented_pointer", "word", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 125
 name = "SymbolToCharacter"
 decl = { args = ["segmented_pointer", "signed_word", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
 ordinal = 126
 name = "CharacterToSymbol"
 decl = { args = ["string", "signed_word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
 ordinal = 131
 name = "DPtoTP"
 decl = { args = ["segmented_pointer", "signed_word"] }
-evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
 ordinal = 132
 name = "TPtoDP"
 decl = { args = ["segmented_pointer", "signed_word"] }
-evidence = [{ source = "spec", line = 27 }]
 
 [[exports]]
 ordinal = 135
 name = "IsPenEvent"
 decl = { args = ["word", "long"] }
-evidence = [{ source = "spec", line = 28 }]
 
 [[exports]]
 ordinal = 137
 name = "EndPenCollection"
 decl = { args = ["signed_word"] }
-evidence = [{ source = "spec", line = 29 }]
 
 [[exports]]
 ordinal = 138
 name = "GetPenHwData"
 decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
 ordinal = 139
 name = "GetPenHwEventData"
 decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 31 }]
 
 [[exports]]
 ordinal = 144
 name = "GetPenAsyncState"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 32 }]
 
 [[exports]]
 ordinal = 150
 name = "SetGlobalRC"
 decl = { args = ["segmented_pointer", "string", "string"] }
-evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
 ordinal = 151
 name = "GetGlobalRC"
 decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "signed_word"] }
-evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
 ordinal = 170
 name = "ProcessWriting"
 decl = { args = ["word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
 ordinal = 172
 name = "CorrectWriting"
 decl = { args = ["word", "segmented_pointer", "word", "segmented_pointer", "long", "long"] }
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 173
 name = "EmulatePen"
 decl = { attributes = [], args = ["word"] }
-evidence = [{ source = "spec", line = 37 }]
 
 [[exports]]
 ordinal = 207
 name = "UpdatePenInfo"
 decl = { attributes = [], args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 38 }]
 
 [[exports]]
 ordinal = 210
 name = "CreatePenData"
 decl = { args = ["segmented_pointer", "signed_word", "word", "word"] }
-evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
 ordinal = 211
 name = "GetPenDataInfo"
 decl = { args = ["word", "segmented_pointer", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
 ordinal = 212
 name = "AddPointsPenData"
 decl = { args = ["word", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
 ordinal = 213
 name = "BeginEnumStrokes"
 decl = { attributes = [], args = ["word"] }
-evidence = [{ source = "spec", line = 42 }]
 
 [[exports]]
 ordinal = 214
 name = "DrawPenData"
 decl = { attributes = [], args = ["word", "segmented_pointer", "word"] }
-evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
 ordinal = 215
 name = "MetricScalePenData"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 44 }]
 
 [[exports]]
 ordinal = 216
 name = "OffsetPenData"
 decl = { args = ["word", "signed_word", "signed_word"] }
-evidence = [{ source = "spec", line = 45 }]
 
 [[exports]]
 ordinal = 218
 name = "DuplicatePenData"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 46 }]
 
 [[exports]]
 ordinal = 219
 name = "GetPenDataStroke"
 decl = { args = ["segmented_pointer", "word", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
 ordinal = 221
 name = "GetPointsFromPenData"
 decl = { args = ["word", "word", "word", "word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 48 }]
 
 [[exports]]
 ordinal = 222
 name = "ResizePenData"
 decl = { args = ["word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 49 }]
 
 [[exports]]
 ordinal = 223
 name = "CompactPenData"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 50 }]
 
 [[exports]]
 ordinal = 242
 name = "RedisplayPenData"
 decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "long"] }
-evidence = [{ source = "spec", line = 51 }]
 
 [[exports]]
 ordinal = 250
 name = "ShowKeyboard"
 decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 52 }]
 
 [[exports]]
 ordinal = 402
 name = "GetVersionPenWin"
-evidence = [{ source = "spec", line = 53 }]
 
 [[exports]]
 ordinal = 418
 name = "ExecuteGesture"
 decl = { args = ["word", "long", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
 ordinal = 420
 name = "DictionarySearch"
 decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer", "signed_word"] }
-evidence = [{ source = "spec", line = 55 }]

@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 430
 name = "lstrcmp"
 binding = { rust_id = "UserLstrcmp", id_value = 288, constant = "USER_LSTRCMP" }
-evidence = [{ source = "spec", line = 385 }, { source = "binding", line = 366 }]
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +17,6 @@ ordinal = 431
 name = "AnsiUpper"
 decl = { attributes = [] }
 binding = { rust_id = "UserAnsiUpper", id_value = 289, constant = "USER_ANSI_UPPER" }
-evidence = [{ source = "spec", line = 386 }, { source = "binding", line = 367 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -34,7 +28,6 @@ ordinal = 432
 name = "AnsiLower"
 decl = { attributes = [] }
 binding = { rust_id = "UserAnsiLower", id_value = 216, constant = "USER_ANSI_LOWER" }
-evidence = [{ source = "spec", line = 387 }, { source = "binding", line = 293 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -45,7 +38,6 @@ params = [
 ordinal = 433
 name = "IsCharAlpha"
 binding = { rust_id = "UserIsCharAlpha", id_value = 290, constant = "USER_IS_CHAR_ALPHA" }
-evidence = [{ source = "spec", line = 388 }, { source = "binding", line = 368 }]
 [exports.call]
 returns = "word"
 params = [
@@ -56,7 +48,6 @@ params = [
 ordinal = 434
 name = "IsCharAlphaNumeric"
 binding = { rust_id = "UserIsCharAlphaNumeric", id_value = 291, constant = "USER_IS_CHAR_ALPHA_NUMERIC" }
-evidence = [{ source = "spec", line = 389 }, { source = "binding", line = 369 }]
 [exports.call]
 returns = "word"
 params = [
@@ -67,7 +58,6 @@ params = [
 ordinal = 435
 name = "IsCharUpper"
 binding = { rust_id = "UserIsCharUpper", id_value = 292, constant = "USER_IS_CHAR_UPPER" }
-evidence = [{ source = "spec", line = 390 }, { source = "binding", line = 370 }]
 [exports.call]
 returns = "word"
 params = [
@@ -78,7 +68,6 @@ params = [
 ordinal = 436
 name = "IsCharLower"
 binding = { rust_id = "UserIsCharLower", id_value = 293, constant = "USER_IS_CHAR_LOWER" }
-evidence = [{ source = "spec", line = 391 }, { source = "binding", line = 371 }]
 [exports.call]
 returns = "word"
 params = [
@@ -89,7 +78,6 @@ params = [
 ordinal = 437
 name = "AnsiUpperBuff"
 binding = { rust_id = "UserAnsiUpperBuff", id_value = 294, constant = "USER_ANSI_UPPER_BUFF" }
-evidence = [{ source = "spec", line = 392 }, { source = "binding", line = 372 }]
 [exports.call]
 returns = "word"
 params = [
@@ -101,7 +89,6 @@ params = [
 ordinal = 438
 name = "AnsiLowerBuff"
 binding = { rust_id = "UserAnsiLowerBuff", id_value = 295, constant = "USER_ANSI_LOWER_BUFF" }
-evidence = [{ source = "spec", line = 393 }, { source = "binding", line = 373 }]
 [exports.call]
 returns = "word"
 params = [
@@ -113,7 +100,6 @@ params = [
 ordinal = 471
 name = "lstrcmpi"
 binding = { rust_id = "UserLstrcmpi", id_value = 296, constant = "USER_LSTRCMPI" }
-evidence = [{ source = "spec", line = 418 }, { source = "binding", line = 374 }]
 [exports.call]
 returns = "word"
 params = [
@@ -126,7 +112,6 @@ ordinal = 472
 name = "AnsiNext"
 decl = { attributes = [] }
 binding = { rust_id = "UserAnsiNext", id_value = 297, constant = "USER_ANSI_NEXT" }
-evidence = [{ source = "spec", line = 419 }, { source = "binding", line = 375 }]
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -138,7 +123,6 @@ ordinal = 473
 name = "AnsiPrev"
 decl = { attributes = [] }
 binding = { rust_id = "UserAnsiPrev", id_value = 298, constant = "USER_ANSI_PREV" }
-evidence = [{ source = "spec", line = 420 }, { source = "binding", line = 376 }]
 [exports.call]
 returns = "far_pointer"
 params = [

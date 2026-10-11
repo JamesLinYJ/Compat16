@@ -1,14 +1,9 @@
 module = "WINSPOOL"
 
-[sources]
-spec = { path = "specs/winspool.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 91
 name = "DeviceCapabilities"
 binding = { rust_id = "WinspoolDeviceCapabilities", id_value = 724, constant = "WINSPOOL_DEVICE_CAPABILITIES" }
-evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 822 }]
 [exports.call]
 returns = "dword"
 params = [

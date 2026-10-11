@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "MessageBox"
 binding = { rust_id = "UserMessageBox", id_value = 234, constant = "USER_MESSAGE_BOX" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 311 }]
 [exports.call]
 returns = "word"
 params = [
@@ -23,7 +18,6 @@ params = [
 ordinal = 6
 name = "PostQuitMessage"
 binding = { rust_id = "UserPostQuitMessage", id_value = 219, constant = "USER_POST_QUIT_MESSAGE" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 296 }]
 [exports.call]
 returns = "void"
 params = [
@@ -34,7 +28,6 @@ params = [
 ordinal = 10
 name = "SetTimer"
 binding = { rust_id = "UserSetTimer", id_value = 438, constant = "USER_SET_TIMER" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 518 }]
 [exports.call]
 returns = "word"
 params = [
@@ -48,7 +41,6 @@ params = [
 ordinal = 12
 name = "KillTimer"
 binding = { rust_id = "UserKillTimer", id_value = 439, constant = "USER_KILL_TIMER" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 519 }]
 [exports.call]
 returns = "word"
 params = [
@@ -60,7 +52,6 @@ params = [
 ordinal = 18
 name = "SetCapture"
 binding = { rust_id = "UserSetCapture", id_value = 440, constant = "USER_SET_CAPTURE" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 520 }]
 [exports.call]
 returns = "word"
 params = [
@@ -71,7 +62,6 @@ params = [
 ordinal = 22
 name = "SetFocus"
 binding = { rust_id = "UserSetFocus", id_value = 442, constant = "USER_SET_FOCUS" }
-evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 522 }]
 [exports.call]
 returns = "word"
 params = [
@@ -83,7 +73,6 @@ ordinal = 101
 name = "SendDlgItemMessage"
 decl = { attributes = [] }
 binding = { rust_id = "UserSendDlgItemMessage", id_value = 446, constant = "USER_SEND_DLG_ITEM_MESSAGE" }
-evidence = [{ source = "spec", line = 102 }, { source = "binding", line = 526 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -98,7 +87,6 @@ params = [
 ordinal = 104
 name = "MessageBeep"
 binding = { rust_id = "UserMessageBeep", id_value = 224, constant = "USER_MESSAGE_BEEP" }
-evidence = [{ source = "spec", line = 105 }, { source = "binding", line = 301 }]
 [exports.call]
 returns = "void"
 params = [
@@ -109,7 +97,6 @@ params = [
 ordinal = 108
 name = "GetMessage"
 binding = { rust_id = "UserGetMessage", id_value = 220, constant = "USER_GET_MESSAGE" }
-evidence = [{ source = "spec", line = 109 }, { source = "binding", line = 297 }]
 [exports.call]
 returns = "word"
 params = [
@@ -123,7 +110,6 @@ params = [
 ordinal = 109
 name = "PeekMessage"
 binding = { rust_id = "UserPeekMessage", id_value = 221, constant = "USER_PEEK_MESSAGE" }
-evidence = [{ source = "spec", line = 110 }, { source = "binding", line = 298 }]
 [exports.call]
 returns = "word"
 params = [
@@ -138,7 +124,6 @@ params = [
 ordinal = 110
 name = "PostMessage"
 binding = { rust_id = "UserPostMessage", id_value = 444, constant = "USER_POST_MESSAGE" }
-evidence = [{ source = "spec", line = 111 }, { source = "binding", line = 524 }]
 [exports.call]
 returns = "word"
 params = [
@@ -153,7 +138,6 @@ ordinal = 111
 name = "SendMessage"
 decl = { attributes = [] }
 binding = { rust_id = "UserSendMessage", id_value = 445, constant = "USER_SEND_MESSAGE" }
-evidence = [{ source = "spec", line = 112 }, { source = "binding", line = 525 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -167,7 +151,6 @@ params = [
 ordinal = 113
 name = "TranslateMessage"
 binding = { rust_id = "UserTranslateMessage", id_value = 222, constant = "USER_TRANSLATE_MESSAGE" }
-evidence = [{ source = "spec", line = 114 }, { source = "binding", line = 299 }]
 [exports.call]
 returns = "word"
 params = [
@@ -179,7 +162,6 @@ ordinal = 114
 name = "DispatchMessage"
 decl = { attributes = [] }
 binding = { rust_id = "UserDispatchMessage", id_value = 223, constant = "USER_DISPATCH_MESSAGE" }
-evidence = [{ source = "spec", line = 115 }, { source = "binding", line = 300 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -190,7 +172,6 @@ params = [
 ordinal = 116
 name = "PostAppMessage"
 binding = { rust_id = "UserPostAppMessage", id_value = 448, constant = "USER_POST_APP_MESSAGE" }
-evidence = [{ source = "spec", line = 117 }, { source = "binding", line = 528 }]
 [exports.call]
 returns = "word"
 params = [
@@ -204,7 +185,6 @@ params = [
 ordinal = 118
 name = "RegisterWindowMessage"
 binding = { rust_id = "UserRegisterWindowMessage", id_value = 474, constant = "USER_REGISTER_WINDOW_MESSAGE" }
-evidence = [{ source = "spec", line = 119 }, { source = "binding", line = 554 }]
 [exports.call]
 returns = "word"
 params = [
@@ -216,7 +196,6 @@ ordinal = 122
 name = "CallWindowProc"
 decl = { attributes = [] }
 binding = { rust_id = "UserCallWindowProc", id_value = 451, constant = "USER_CALL_WINDOW_PROC" }
-evidence = [{ source = "spec", line = 123 }, { source = "binding", line = 531 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -231,7 +210,6 @@ params = [
 ordinal = 222
 name = "GetKeyboardState"
 binding = { rust_id = "UserGetKeyboardState", id_value = 452, constant = "USER_GET_KEYBOARD_STATE" }
-evidence = [{ source = "spec", line = 226 }, { source = "binding", line = 532 }]
 [exports.call]
 returns = "void"
 params = [
@@ -242,7 +220,6 @@ params = [
 ordinal = 223
 name = "SetKeyboardState"
 binding = { rust_id = "UserSetKeyboardState", id_value = 453, constant = "USER_SET_KEYBOARD_STATE" }
-evidence = [{ source = "spec", line = 227 }, { source = "binding", line = 533 }]
 [exports.call]
 returns = "void"
 params = [
@@ -253,7 +230,6 @@ params = [
 ordinal = 266
 name = "SetMessageQueue"
 binding = { rust_id = "UserSetMessageQueue", id_value = 246, constant = "USER_SET_MESSAGE_QUEUE" }
-evidence = [{ source = "spec", line = 271 }, { source = "binding", line = 323 }]
 [exports.call]
 returns = "word"
 params = [
@@ -265,7 +241,6 @@ ordinal = 334
 name = "GetQueueStatus"
 decl = { attributes = [] }
 binding = { rust_id = "UserGetQueueStatus", id_value = 455, constant = "USER_GET_QUEUE_STATUS" }
-evidence = [{ source = "spec", line = 323 }, { source = "binding", line = 535 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -276,7 +251,6 @@ params = [
 ordinal = 420
 name = "_wsprintf"
 binding = { rust_id = "UserWsprintf", id_value = 480, constant = "USER_WSPRINTF" }
-evidence = [{ source = "spec", line = 378 }, { source = "binding", line = 560 }]
 [exports.call]
 kind = "variable_stack"
 convention = "varargs"
@@ -290,7 +264,6 @@ params = [
 ordinal = 421
 name = "wvsprintf"
 binding = { rust_id = "UserWvsprintf", id_value = 481, constant = "USER_WVSPRINTF" }
-evidence = [{ source = "spec", line = 379 }, { source = "binding", line = 561 }]
 [exports.call]
 returns = "word"
 params = [

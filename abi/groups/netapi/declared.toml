@@ -1,11 +1,7 @@
 module = "NETAPI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/netapi.spec", note = "spec" }
-
 [[exports]]
 ordinal = 249
 name = "NetWkstaGetInfo"
 decl = { args = ["string", "word", "pointer", "word", "pointer"] }
-evidence = [{ source = "spec", line = 2 }]

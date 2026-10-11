@@ -1,14 +1,9 @@
 module = "MMSYSTEM"
 
-[sources]
-spec = { path = "specs/mmsystem.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/media_services_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 601
 name = "timeGetSystemTime"
 binding = { rust_id = "MediaTimeGetSystemTime", id_value = 1013, constant = "MMSYSTEM_TIME_GET_SYSTEM_TIME" }
-evidence = [{ source = "spec", line = 101 }, { source = "binding", line = 6 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 604
 name = "timeGetDevCaps"
 binding = { rust_id = "MediaTimeGetDevCaps", id_value = 1014, constant = "MMSYSTEM_TIME_GET_DEV_CAPS" }
-evidence = [{ source = "spec", line = 104 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -32,7 +26,6 @@ params = [
 ordinal = 605
 name = "timeBeginPeriod"
 binding = { rust_id = "MediaTimeBeginPeriod", id_value = 1015, constant = "MMSYSTEM_TIME_BEGIN_PERIOD" }
-evidence = [{ source = "spec", line = 105 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -43,7 +36,6 @@ params = [
 ordinal = 606
 name = "timeEndPeriod"
 binding = { rust_id = "MediaTimeEndPeriod", id_value = 1016, constant = "MMSYSTEM_TIME_END_PERIOD" }
-evidence = [{ source = "spec", line = 106 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "word"
 params = [

@@ -1,15 +1,10 @@
 module = "KEYBOARD"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/keyboard.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 6
 name = "OemToAnsi"
 binding = { rust_id = "KeyboardOemToAnsi", id_value = 213, constant = "KEYBOARD_OEM_TO_ANSI" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 290 }]
 [exports.call]
 returns = "word"
 params = [

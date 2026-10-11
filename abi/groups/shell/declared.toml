@@ -1,40 +1,31 @@
 module = "SHELL"
 
-[sources]
-spec = { path = "specs/shell.spec", note = "spec" }
-
 [[exports]]
 ordinal = 33
 name = "AboutDlgProc"
 decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 101
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
-evidence = [{ source = "spec", line = 23 }]
 
 [[exports]]
 ordinal = 102
 name = "RegisterShellHook"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 24 }]
 
 [[exports]]
 ordinal = 103
 name = "ShellHookProc"
 decl = { args = ["word", "word", "long"] }
-evidence = [{ source = "spec", line = 25 }]
 
 [[exports]]
 ordinal = 157
 name = "RESTARTDIALOG"
 kind = "stub"
-evidence = [{ source = "spec", line = 26 }]
 
 [[exports]]
 ordinal = 401
 name = "SHCHECKDRIVE"
 kind = "stub"
-evidence = [{ source = "spec", line = 29 }]

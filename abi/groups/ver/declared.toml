@@ -1,10 +1,6 @@
 module = "VER"
 
-[sources]
-spec = { path = "specs/ver.spec", note = "spec" }
-
 [[exports]]
 ordinal = 20
 name = "GETFILEVERSIONINFORAW"
 kind = "stub"
-evidence = [{ source = "spec", line = 10 }]

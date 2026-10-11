@@ -1,14 +1,9 @@
 module = "KERNEL"
 
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 513
 name = "LoadLibraryEx32W"
 binding = { rust_id = "KernelLoadLibraryEx32W", id_value = 718, constant = "KERNEL_LOAD_LIBRARY_EX_32W" }
-evidence = [{ source = "spec", line = 382 }, { source = "binding", line = 815 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 514
 name = "FreeLibrary32W"
 binding = { rust_id = "KernelFreeLibrary32W", id_value = 719, constant = "KERNEL_FREE_LIBRARY_32W" }
-evidence = [{ source = "spec", line = 383 }, { source = "binding", line = 816 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -32,7 +26,6 @@ params = [
 ordinal = 515
 name = "GetProcAddress32W"
 binding = { rust_id = "KernelGetProcAddress32W", id_value = 720, constant = "KERNEL_GET_PROC_ADDRESS_32W" }
-evidence = [{ source = "spec", line = 384 }, { source = "binding", line = 817 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -44,7 +37,6 @@ params = [
 ordinal = 516
 name = "GetVDMPointer32W"
 binding = { rust_id = "KernelGetVDMPointer32W", id_value = 721, constant = "KERNEL_GET_VDM_POINTER_32W" }
-evidence = [{ source = "spec", line = 385 }, { source = "binding", line = 818 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -56,7 +48,6 @@ params = [
 ordinal = 517
 name = "CallProc32W"
 binding = { rust_id = "KernelCallProc32W", id_value = 722, constant = "KERNEL_CALL_PROC_32W" }
-evidence = [{ source = "spec", line = 386 }, { source = "binding", line = 819 }]
 [exports.call]
 kind = "variable_stack"
 convention = "varargs"
@@ -71,7 +62,6 @@ params = [
 ordinal = 518
 name = "_CallProcEx32W"
 binding = { rust_id = "KernelCallProcEx32W", id_value = 723, constant = "KERNEL_CALL_PROC_EX_32W" }
-evidence = [{ source = "spec", line = 387 }, { source = "binding", line = 821 }]
 [exports.call]
 kind = "variable_stack"
 convention = "varargs"

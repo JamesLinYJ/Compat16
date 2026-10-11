@@ -1,15 +1,10 @@
 module = "SHELL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/shell.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 262
 name = "DriveType"
 binding = { rust_id = "ShellDriveType", id_value = 667, constant = "SHELL_DRIVE_TYPE" }
-evidence = [{ source = "spec", line = 27 }, { source = "binding", line = 764 }]
 [exports.call]
 returns = "word"
 params = [

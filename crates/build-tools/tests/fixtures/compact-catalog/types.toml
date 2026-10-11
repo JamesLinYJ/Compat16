@@ -1,6 +1,3 @@
-[defaults]
-evidence = []
-
 [types.Word]
 value = { kind = "integer", bits = 16, signedness = "unsigned" }
 declaration_encoding = "word"

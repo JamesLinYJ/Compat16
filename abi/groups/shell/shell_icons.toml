@@ -1,15 +1,10 @@
 module = "SHELL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/shell.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 34
 name = "ExtractIcon"
 binding = { rust_id = "ShellExtractIcon", id_value = 656, constant = "SHELL_EXTRACT_ICON" }
-evidence = [{ source = "spec", line = 17 }, { source = "binding", line = 753 }]
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 36
 name = "ExtractAssociatedIcon"
 binding = { rust_id = "ShellExtractAssociatedIcon", id_value = 660, constant = "SHELL_EXTRACT_ASSOCIATED_ICON" }
-evidence = [{ source = "spec", line = 18 }, { source = "binding", line = 757 }]
 [exports.call]
 returns = "word"
 params = [
@@ -35,7 +29,6 @@ params = [
 ordinal = 39
 name = "InternalExtractIcon"
 binding = { rust_id = "ShellInternalExtractIcon", id_value = 661, constant = "SHELL_INTERNAL_EXTRACT_ICON" }
-evidence = [{ source = "spec", line = 21 }, { source = "binding", line = 758 }]
 [exports.call]
 returns = "word"
 params = [
@@ -49,7 +42,6 @@ params = [
 ordinal = 40
 name = "ExtractIconEx"
 binding = { rust_id = "ShellExtractIconEx", id_value = 662, constant = "SHELL_EXTRACT_ICON_EX" }
-evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 759 }]
 [exports.call]
 returns = "word"
 params = [

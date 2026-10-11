@@ -1,46 +1,36 @@
 module = "CTL3D"
 
-[sources]
-spec = { path = "specs/ctl3d.spec", note = "spec" }
-
 [[exports]]
 ordinal = 7
 name = "BtnWndProc3d"
 decl = { args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 8
 name = "EditWndProc3d"
 decl = { args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 9
 name = "ListWndProc3d"
 decl = { args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 10
 name = "ComboWndProc3d"
 decl = { args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 11
 name = "StaticWndProc3d"
 decl = { args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 12 }]
 
 [[exports]]
 ordinal = 17
 name = "Ctl3dDlgProc"
 decl = { args = ["word", "word", "word", "long"] }
-evidence = [{ source = "spec", line = 16 }]
 
 [[exports]]
 ordinal = 19
 name = "Ctl3dSetStyle"
 decl = { attributes = ["ret16"], args = ["word", "long", "word"] }
-evidence = [{ source = "spec", line = 18 }]

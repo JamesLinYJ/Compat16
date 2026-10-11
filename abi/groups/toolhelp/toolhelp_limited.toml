@@ -1,14 +1,9 @@
 module = "TOOLHELP"
 
-[sources]
-spec = { path = "specs/toolhelp.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/toolhelp_limited_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 81
 name = "TaskSetCSIP"
 binding = { rust_id = "ToolhelpTaskSetCsip", id_value = 725, constant = "TOOLHELP_TASK_SET_CSIP" }
-evidence = [{ source = "spec", line = 33 }, { source = "binding", line = 6 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -22,7 +17,6 @@ ordinal = 83
 name = "TaskSwitch"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "ToolhelpTaskSwitch", id_value = 726, constant = "TOOLHELP_TASK_SWITCH" }
-evidence = [{ source = "spec", line = 35 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "word"
 params = [

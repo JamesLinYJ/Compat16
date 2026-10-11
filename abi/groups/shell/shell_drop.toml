@@ -1,14 +1,9 @@
 module = "SHELL"
 
-[sources]
-spec = { path = "specs/shell.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 9
 name = "DragAcceptFiles"
 binding = { rust_id = "ShellDragAcceptFiles", id_value = 663, constant = "SHELL_DRAG_ACCEPT_FILES" }
-evidence = [{ source = "spec", line = 9 }, { source = "binding", line = 760 }]
 [exports.call]
 returns = "void"
 params = [
@@ -21,7 +16,6 @@ ordinal = 11
 name = "DragQueryFile"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "ShellDragQueryFile", id_value = 664, constant = "SHELL_DRAG_QUERY_FILE" }
-evidence = [{ source = "spec", line = 10 }, { source = "binding", line = 761 }]
 [exports.call]
 returns = "word"
 params = [
@@ -35,7 +29,6 @@ params = [
 ordinal = 12
 name = "DragFinish"
 binding = { rust_id = "ShellDragFinish", id_value = 665, constant = "SHELL_DRAG_FINISH" }
-evidence = [{ source = "spec", line = 11 }, { source = "binding", line = 762 }]
 [exports.call]
 returns = "void"
 params = [
@@ -47,7 +40,6 @@ ordinal = 13
 name = "DragQueryPoint"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "ShellDragQueryPoint", id_value = 666, constant = "SHELL_DRAG_QUERY_POINT" }
-evidence = [{ source = "spec", line = 12 }, { source = "binding", line = 763 }]
 [exports.call]
 returns = "word"
 params = [
@@ -59,7 +51,6 @@ params = [
 ordinal = 400
 name = "SHFormatDrive"
 binding = { rust_id = "ShellFormatDrive", id_value = 668, constant = "SHELL_FORMAT_DRIVE" }
-evidence = [{ source = "spec", line = 28 }, { source = "binding", line = 765 }]
 [exports.call]
 returns = "dword"
 params = [

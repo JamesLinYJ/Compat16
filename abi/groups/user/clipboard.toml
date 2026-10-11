@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 145
 name = "RegisterClipboardFormat"
 binding = { rust_id = "UserRegisterClipboardFormat", id_value = 475, constant = "USER_REGISTER_CLIPBOARD_FORMAT" }
-evidence = [{ source = "spec", line = 146 }, { source = "binding", line = 555 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 146
 name = "GetClipboardFormatName"
 binding = { rust_id = "UserGetClipboardFormatName", id_value = 476, constant = "USER_GET_CLIPBOARD_FORMAT_NAME" }
-evidence = [{ source = "spec", line = 147 }, { source = "binding", line = 556 }]
 [exports.call]
 returns = "word"
 params = [

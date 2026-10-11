@@ -1,14 +1,9 @@
 module = "SHELL"
 
-[sources]
-spec = { path = "specs/shell.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "RegOpenKey"
 binding = { rust_id = "ShellRegOpenKey", id_value = 145, constant = "SHELL_REG_OPEN_KEY" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 221 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 2
 name = "RegCreateKey"
 binding = { rust_id = "ShellRegCreateKey", id_value = 146, constant = "SHELL_REG_CREATE_KEY" }
-evidence = [{ source = "spec", line = 3 }, { source = "binding", line = 222 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -34,7 +28,6 @@ params = [
 ordinal = 3
 name = "RegCloseKey"
 binding = { rust_id = "ShellRegCloseKey", id_value = 147, constant = "SHELL_REG_CLOSE_KEY" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 223 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -45,7 +38,6 @@ params = [
 ordinal = 4
 name = "RegDeleteKey"
 binding = { rust_id = "ShellRegDeleteKey", id_value = 148, constant = "SHELL_REG_DELETE_KEY" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 224 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -57,7 +49,6 @@ params = [
 ordinal = 5
 name = "RegSetValue"
 binding = { rust_id = "ShellRegSetValue", id_value = 149, constant = "SHELL_REG_SET_VALUE" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 225 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -72,7 +63,6 @@ params = [
 ordinal = 6
 name = "RegQueryValue"
 binding = { rust_id = "ShellRegQueryValue", id_value = 150, constant = "SHELL_REG_QUERY_VALUE" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 226 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -86,7 +76,6 @@ params = [
 ordinal = 7
 name = "RegEnumKey"
 binding = { rust_id = "ShellRegEnumKey", id_value = 151, constant = "SHELL_REG_ENUM_KEY" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 227 }]
 [exports.call]
 returns = "dword"
 params = [

@@ -1,16 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-binding_2 = { path = "crates/win16/src/exports/catalog/user_drawing_objects_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 39
 name = "BeginPaint"
 binding = { rust_id = "UserBeginPaint", id_value = 457, constant = "USER_BEGIN_PAINT" }
-evidence = [{ source = "spec", line = 38 }, { source = "binding", line = 537 }]
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +16,6 @@ params = [
 ordinal = 40
 name = "EndPaint"
 binding = { rust_id = "UserEndPaint", id_value = 458, constant = "USER_END_PAINT" }
-evidence = [{ source = "spec", line = 39 }, { source = "binding", line = 538 }]
 [exports.call]
 returns = "void"
 params = [
@@ -34,7 +27,6 @@ params = [
 ordinal = 61
 name = "ScrollWindow"
 binding = { rust_id = "UserScrollWindow", id_value = 459, constant = "USER_SCROLL_WINDOW" }
-evidence = [{ source = "spec", line = 62 }, { source = "binding", line = 539 }]
 [exports.call]
 returns = "void"
 params = [
@@ -49,7 +41,6 @@ params = [
 ordinal = 81
 name = "FillRect"
 binding = { rust_id = "UserFillRect", id_value = 472, constant = "USER_FILL_RECT" }
-evidence = [{ source = "spec", line = 82 }, { source = "binding", line = 552 }]
 [exports.call]
 returns = "word"
 params = [
@@ -62,7 +53,6 @@ params = [
 ordinal = 82
 name = "InvertRect"
 binding = { rust_id = "UserInvertRect", id_value = 1149, constant = "USER_INVERT_RECT" }
-evidence = [{ source = "spec", line = 83 }, { source = "binding_2", line = 7 }]
 [exports.call]
 returns = "void"
 params = [
@@ -74,7 +64,6 @@ params = [
 ordinal = 83
 name = "FrameRect"
 binding = { rust_id = "UserFrameRect", id_value = 1150, constant = "USER_FRAME_RECT" }
-evidence = [{ source = "spec", line = 84 }, { source = "binding_2", line = 9 }]
 [exports.call]
 returns = "word"
 params = [
@@ -87,7 +76,6 @@ params = [
 ordinal = 84
 name = "DrawIcon"
 binding = { rust_id = "UserDrawIcon", id_value = 1151, constant = "USER_DRAW_ICON" }
-evidence = [{ source = "spec", line = 85 }, { source = "binding_2", line = 11 }]
 [exports.call]
 returns = "word"
 params = [
@@ -101,7 +89,6 @@ params = [
 ordinal = 85
 name = "DrawText"
 binding = { rust_id = "UserDrawText", id_value = 473, constant = "USER_DRAW_TEXT" }
-evidence = [{ source = "spec", line = 86 }, { source = "binding", line = 553 }]
 [exports.call]
 returns = "word"
 params = [
@@ -116,7 +103,6 @@ params = [
 ordinal = 124
 name = "UpdateWindow"
 binding = { rust_id = "UserUpdateWindow", id_value = 460, constant = "USER_UPDATE_WINDOW" }
-evidence = [{ source = "spec", line = 125 }, { source = "binding", line = 540 }]
 [exports.call]
 returns = "void"
 params = [
@@ -127,7 +113,6 @@ params = [
 ordinal = 125
 name = "InvalidateRect"
 binding = { rust_id = "UserInvalidateRect", id_value = 461, constant = "USER_INVALIDATE_RECT" }
-evidence = [{ source = "spec", line = 126 }, { source = "binding", line = 541 }]
 [exports.call]
 returns = "void"
 params = [
@@ -140,7 +125,6 @@ params = [
 ordinal = 126
 name = "InvalidateRgn"
 binding = { rust_id = "UserInvalidateRgn", id_value = 462, constant = "USER_INVALIDATE_RGN" }
-evidence = [{ source = "spec", line = 127 }, { source = "binding", line = 542 }]
 [exports.call]
 returns = "void"
 params = [
@@ -153,7 +137,6 @@ params = [
 ordinal = 127
 name = "ValidateRect"
 binding = { rust_id = "UserValidateRect", id_value = 463, constant = "USER_VALIDATE_RECT" }
-evidence = [{ source = "spec", line = 128 }, { source = "binding", line = 543 }]
 [exports.call]
 returns = "void"
 params = [
@@ -165,7 +148,6 @@ params = [
 ordinal = 128
 name = "ValidateRgn"
 binding = { rust_id = "UserValidateRgn", id_value = 464, constant = "USER_VALIDATE_RGN" }
-evidence = [{ source = "spec", line = 129 }, { source = "binding", line = 544 }]
 [exports.call]
 returns = "void"
 params = [
@@ -177,7 +159,6 @@ params = [
 ordinal = 190
 name = "GetUpdateRect"
 binding = { rust_id = "UserGetUpdateRect", id_value = 465, constant = "USER_GET_UPDATE_RECT" }
-evidence = [{ source = "spec", line = 192 }, { source = "binding", line = 545 }]
 [exports.call]
 returns = "word"
 params = [
@@ -190,7 +171,6 @@ params = [
 ordinal = 221
 name = "ScrollDC"
 binding = { rust_id = "UserScrollDC", id_value = 470, constant = "USER_SCROLL_DC" }
-evidence = [{ source = "spec", line = 225 }, { source = "binding", line = 550 }]
 [exports.call]
 returns = "word"
 params = [
@@ -207,7 +187,6 @@ params = [
 ordinal = 237
 name = "GetUpdateRgn"
 binding = { rust_id = "UserGetUpdateRgn", id_value = 466, constant = "USER_GET_UPDATE_RGN" }
-evidence = [{ source = "spec", line = 242 }, { source = "binding", line = 546 }]
 [exports.call]
 returns = "word"
 params = [
@@ -220,7 +199,6 @@ params = [
 ordinal = 238
 name = "ExcludeUpdateRgn"
 binding = { rust_id = "UserExcludeUpdateRgn", id_value = 467, constant = "USER_EXCLUDE_UPDATE_RGN" }
-evidence = [{ source = "spec", line = 243 }, { source = "binding", line = 547 }]
 [exports.call]
 returns = "word"
 params = [
@@ -232,7 +210,6 @@ params = [
 ordinal = 290
 name = "RedrawWindow"
 binding = { rust_id = "UserRedrawWindow", id_value = 468, constant = "USER_REDRAW_WINDOW" }
-evidence = [{ source = "spec", line = 295 }, { source = "binding", line = 548 }]
 [exports.call]
 returns = "word"
 params = [
@@ -246,7 +223,6 @@ params = [
 ordinal = 294
 name = "LockWindowUpdate"
 binding = { rust_id = "UserLockWindowUpdate", id_value = 469, constant = "USER_LOCK_WINDOW_UPDATE" }
-evidence = [{ source = "spec", line = 299 }, { source = "binding", line = 549 }]
 [exports.call]
 returns = "word"
 params = [
@@ -257,7 +233,6 @@ params = [
 ordinal = 319
 name = "ScrollWindowEx"
 binding = { rust_id = "UserScrollWindowEx", id_value = 471, constant = "USER_SCROLL_WINDOW_EX" }
-evidence = [{ source = "spec", line = 312 }, { source = "binding", line = 551 }]
 [exports.call]
 returns = "word"
 params = [
@@ -275,7 +250,6 @@ params = [
 ordinal = 466
 name = "DrawFocusRect"
 binding = { rust_id = "UserDrawFocusRect", id_value = 1152, constant = "USER_DRAW_FOCUS_RECT" }
-evidence = [{ source = "spec", line = 416 }, { source = "binding_2", line = 14 }]
 [exports.call]
 returns = "void"
 params = [

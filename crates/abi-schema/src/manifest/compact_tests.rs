@@ -9,17 +9,12 @@ types = ["types.toml"]
 [defaults]
 architecture = "win16"
 ordinal_source = "explicit"
-[source_notes]
-spec = "Preserved historical evidence"
-types = "Preserved type evidence"
 [[modules]]
 id = "KERNEL"
 source_module = "krnl386.exe"
 "#;
 
 const TYPES: &str = r#"
-[defaults]
-evidence = [{ source = "compiled-baseline", note_ref = "types" }]
 [types.Word]
 value = { kind = "integer", bits = 16, signedness = "unknown" }
 declaration_encoding = "word"
@@ -34,13 +29,10 @@ declaration_encoding = "pointer"
 const GROUP: &str = r#"
 module = "KERNEL"
 defaults = { attributes = ["ret16"] }
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
 [[exports]]
 ordinal = 1
 name = "Example"
 binding = { rust_id = "Example", id_value = 17, constant = "EXAMPLE" }
-evidence = [{ source = "spec", line = 2 }]
 [exports.call]
 returns = "void"
 params = [{ name = "value", type = "Byte" }]
@@ -64,7 +56,7 @@ fn decode(root: &str, group: &str, types: &str) -> Result<ValidatedCatalog, Mani
 }
 
 #[test]
-fn compact_bound_contract_expands_exact_semantics_and_evidence() {
+fn compact_bound_contract_preserves_semantics() {
     let catalog = decode(ROOT, GROUP, TYPES).unwrap();
     assert_eq!(catalog.catalog().version, SCHEMA_VERSION);
     let export = catalog.exports().next().unwrap().1;
@@ -73,14 +65,6 @@ fn compact_bound_contract_expands_exact_semantics_and_evidence() {
     assert_eq!(export.name.as_deref(), Some("Example"));
     assert_eq!(export.declared_name, "Example");
     assert_eq!(export.binding.as_ref().unwrap().id_value, 17);
-    assert_eq!(
-        export.evidence,
-        vec![Evidence {
-            source: "specs/kernel.spec".into(),
-            line: Some(2),
-            note: Some("Preserved historical evidence".into())
-        }]
-    );
     let abi = export.entry.abi().unwrap();
     assert_eq!(
         abi.cleanup(),
@@ -101,10 +85,6 @@ fn compact_bound_contract_expands_exact_semantics_and_evidence() {
     assert_eq!(
         export.declaration.abi.as_ref().unwrap().return_modifier,
         ReturnModifier::Ret16
-    );
-    assert_eq!(
-        catalog.types()["Byte"].evidence[0].note.as_deref(),
-        Some("Preserved type evidence")
     );
 }
 
@@ -262,8 +242,6 @@ kind = "stub"
 fn compact_missing_refs_unknown_fields_and_versions_fail() {
     for group in [
         GROUP.replace("type = \"Byte\"", "type = \"Missing\""),
-        GROUP.replace("source = \"spec\"", "source = \"missing\""),
-        GROUP.replace("note = \"spec\"", "note = \"missing\""),
         GROUP.replace(
             "returns = \"void\"",
             "returns = \"void\"\nunrecognized = true",
@@ -272,24 +250,13 @@ fn compact_missing_refs_unknown_fields_and_versions_fail() {
         assert!(decode(ROOT, &group, TYPES).is_err());
     }
     assert!(decode(&ROOT.replace("version = 2", "version = 3"), GROUP, TYPES).is_err());
-    assert!(
-        decode(
-            ROOT,
-            GROUP,
-            &TYPES.replace("note_ref = \"types\"", "note_ref = \"missing\"")
-        )
-        .is_err()
-    );
 }
 
 #[test]
-fn compact_aliases_inherit_type_encoding_and_keep_independent_evidence() {
-    let types =
-        TYPES.to_owned() + "\n[types.Alias]\nvalue = {kind='named', name='Byte'}\nevidence = []\n";
+fn compact_aliases_inherit_type_encoding() {
+    let types = TYPES.to_owned() + "\n[types.Alias]\nvalue = {kind='named', name='Byte'}\n";
     let group = GROUP.replace("type = \"Byte\"", "type = \"Alias\"");
     let catalog = decode(ROOT, &group, &types).unwrap();
-    assert!(catalog.types()["Alias"].evidence.is_empty());
-    assert!(!catalog.types()["Byte"].evidence.is_empty());
     assert_eq!(
         catalog
             .exports()
@@ -513,7 +480,7 @@ fn compact_unknown_argument_knowledge_requires_an_explicit_declaration() {
 
 #[test]
 fn compact_oversized_inherited_metadata_is_rejected_before_expansion() {
-    let root = ROOT.replace("Preserved historical evidence", &"n".repeat(16 * 1024 + 1));
+    let root = ROOT.replace("KERNEL", &"n".repeat(16 * 1024 + 1));
     assert!(
         decode(&root, GROUP, TYPES)
             .unwrap_err()
@@ -529,19 +496,5 @@ fn compact_oversized_inherited_metadata_is_rejected_before_expansion() {
             .unwrap_err()
             .message
             .contains("duplicate inherited")
-    );
-    let evidence = (0..65)
-        .map(|_| "{source='compiled-baseline',note_ref='types'}")
-        .collect::<Vec<_>>()
-        .join(",");
-    let types = TYPES.replace(
-        "evidence = [{ source = \"compiled-baseline\", note_ref = \"types\" }]",
-        &format!("evidence = [{evidence}]"),
-    );
-    assert!(
-        decode(ROOT, GROUP, &types)
-            .unwrap_err()
-            .message
-            .contains("64 records")
     );
 }

@@ -1,15 +1,10 @@
 module = "GDI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/gdi.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 30
 name = "SaveDC"
 binding = { rust_id = "GdiSaveDc", id_value = 340, constant = "GDI_SAVE_DC" }
-evidence = [{ source = "spec", line = 31 }, { source = "binding", line = 418 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 39
 name = "RestoreDC"
 binding = { rust_id = "GdiRestoreDc", id_value = 344, constant = "GDI_RESTORE_DC" }
-evidence = [{ source = "spec", line = 40 }, { source = "binding", line = 422 }]
 [exports.call]
 returns = "word"
 params = [
@@ -32,7 +26,6 @@ params = [
 ordinal = 52
 name = "CreateCompatibleDC"
 binding = { rust_id = "GdiCreateCompatibleDc", id_value = 259, constant = "GDI_CREATE_COMPATIBLE_DC" }
-evidence = [{ source = "spec", line = 53 }, { source = "binding", line = 336 }]
 [exports.call]
 returns = "word"
 params = [
@@ -43,7 +36,6 @@ params = [
 ordinal = 53
 name = "CreateDC"
 binding = { rust_id = "GdiCreateDc", id_value = 311, constant = "GDI_CREATE_DC" }
-evidence = [{ source = "spec", line = 54 }, { source = "binding", line = 389 }]
 [exports.call]
 returns = "word"
 params = [
@@ -57,7 +49,6 @@ params = [
 ordinal = 68
 name = "DeleteDC"
 binding = { rust_id = "GdiDeleteDc", id_value = 260, constant = "GDI_DELETE_DC" }
-evidence = [{ source = "spec", line = 68 }, { source = "binding", line = 337 }]
 [exports.call]
 returns = "word"
 params = [
@@ -69,7 +60,6 @@ ordinal = 79
 name = "GetDCOrg"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetDcOrg", id_value = 380, constant = "GDI_GET_DC_ORG" }
-evidence = [{ source = "spec", line = 79 }, { source = "binding", line = 460 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -80,7 +70,6 @@ params = [
 ordinal = 80
 name = "GetDeviceCaps"
 binding = { rust_id = "GdiGetDeviceCaps", id_value = 264, constant = "GDI_GET_DEVICE_CAPS" }
-evidence = [{ source = "spec", line = 80 }, { source = "binding", line = 341 }]
 [exports.call]
 returns = "word"
 params = [
@@ -92,7 +81,6 @@ params = [
 ordinal = 153
 name = "CreateIC"
 binding = { rust_id = "GdiCreateIc", id_value = 312, constant = "GDI_CREATE_IC" }
-evidence = [{ source = "spec", line = 143 }, { source = "binding", line = 390 }]
 [exports.call]
 returns = "word"
 params = [

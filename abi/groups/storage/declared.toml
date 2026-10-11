@@ -1,52 +1,41 @@
 module = "STORAGE"
 
-[sources]
-spec = { path = "specs/storage.spec", note = "spec" }
-
 [[exports]]
 ordinal = 1
 name = "StgCreateDocFileA"
 decl = { args = ["string", "long", "long", "pointer"] }
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "StgCreateDocfileOnILockBytes"
 decl = { args = ["segmented_pointer", "long", "long", "pointer"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "StgOpenStorage"
 decl = { args = ["string", "segmented_pointer", "long", "pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 4
 name = "StgOpenStorageOnILockBytes"
 decl = { args = ["segmented_pointer", "segmented_pointer", "long", "pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 5
 name = "StgIsStorageFile"
 decl = { args = ["string"] }
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 6
 name = "StgIsStorageILockBytes"
 decl = { args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 7 }]
 
 [[exports]]
 ordinal = 7
 name = "StgSetTimes"
 decl = { args = ["string", "pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 103
 name = "DllGetClassObject"
 kind = "stub"
-evidence = [{ source = "spec", line = 9 }]

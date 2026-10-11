@@ -1,73 +1,58 @@
 module = "SYSTEM"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/system.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1
 name = "InquireSystem"
 decl = { attributes = [], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 2 }]
 
 [[exports]]
 ordinal = 2
 name = "CreateSystemTimer"
 decl = { args = ["word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "KillSystemTimer"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 4 }]
 
 [[exports]]
 ordinal = 4
 name = "EnableSystemTimers"
-evidence = [{ source = "spec", line = 5 }]
 
 [[exports]]
 ordinal = 5
 name = "DisableSystemTimers"
-evidence = [{ source = "spec", line = 6 }]
 
 [[exports]]
 ordinal = 6
 name = "GetSystemMSecCount"
 decl = { attributes = [] }
 binding = { rust_id = "SystemGetSystemMsecCount", id_value = 126, constant = "SYSTEM_GET_SYSTEM_MSEC_COUNT" }
-evidence = [{ source = "spec", line = 7 }, { source = "binding", line = 202 }]
 [exports.call]
 returns = "dword"
 
 [[exports]]
 ordinal = 7
 name = "Get80x87SaveSize"
-evidence = [{ source = "spec", line = 8 }]
 
 [[exports]]
 ordinal = 8
 name = "Save80x87State"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 9 }]
 
 [[exports]]
 ordinal = 9
 name = "Restore80x87State"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 10 }]
 
 [[exports]]
 ordinal = 13
 name = "INQUIRELONGINTS"
 kind = "stub"
 decl = { attributes = [] }
-evidence = [{ source = "spec", line = 11 }]
 
 [[exports]]
 ordinal = 20
 name = "A20_Proc"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 12 }]

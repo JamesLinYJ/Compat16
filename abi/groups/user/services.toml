@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 5
 name = "InitApp"
 binding = { rust_id = "UserInitApp", id_value = 235, constant = "USER_INIT_APP" }
-evidence = [{ source = "spec", line = 6 }, { source = "binding", line = 312 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 66
 name = "GetDC"
 binding = { rust_id = "UserGetDc", id_value = 243, constant = "USER_GET_DC" }
-evidence = [{ source = "spec", line = 67 }, { source = "binding", line = 320 }]
 [exports.call]
 returns = "word"
 params = [
@@ -31,7 +25,6 @@ params = [
 ordinal = 68
 name = "ReleaseDC"
 binding = { rust_id = "UserReleaseDc", id_value = 245, constant = "USER_RELEASE_DC" }
-evidence = [{ source = "spec", line = 69 }, { source = "binding", line = 322 }]
 [exports.call]
 returns = "word"
 params = [
@@ -43,7 +36,6 @@ params = [
 ordinal = 179
 name = "GetSystemMetrics"
 binding = { rust_id = "UserGetSystemMetrics", id_value = 226, constant = "USER_GET_SYSTEM_METRICS" }
-evidence = [{ source = "spec", line = 181 }, { source = "binding", line = 303 }]
 [exports.call]
 returns = "word"
 params = [
@@ -55,7 +47,6 @@ ordinal = 180
 name = "GetSysColor"
 decl = { attributes = [] }
 binding = { rust_id = "UserGetSysColor", id_value = 579, constant = "USER_GET_SYS_COLOR" }
-evidence = [{ source = "spec", line = 182 }, { source = "binding", line = 668 }]
 [exports.call]
 returns = "dword"
 params = [

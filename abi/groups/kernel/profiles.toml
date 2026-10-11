@@ -1,16 +1,10 @@
 module = "KERNEL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-binding_2 = { path = "crates/win16/src/exports/catalog/kernel_profile_sections_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 57
 name = "GetProfileInt"
 binding = { rust_id = "KernelGetProfileInt", id_value = 211, constant = "KERNEL_GET_PROFILE_INT" }
-evidence = [{ source = "spec", line = 58 }, { source = "binding", line = 288 }]
 [exports.call]
 returns = "word"
 params = [
@@ -23,7 +17,6 @@ params = [
 ordinal = 58
 name = "GetProfileString"
 binding = { rust_id = "KernelGetProfileString", id_value = 212, constant = "KERNEL_GET_PROFILE_STRING" }
-evidence = [{ source = "spec", line = 59 }, { source = "binding", line = 289 }]
 [exports.call]
 returns = "word"
 params = [
@@ -38,7 +31,6 @@ params = [
 ordinal = 127
 name = "GetPrivateProfileInt"
 binding = { rust_id = "KernelGetPrivateProfileInt", id_value = 208, constant = "KERNEL_GET_PRIVATE_PROFILE_INT" }
-evidence = [{ source = "spec", line = 128 }, { source = "binding", line = 285 }]
 [exports.call]
 returns = "word"
 params = [
@@ -52,7 +44,6 @@ params = [
 ordinal = 128
 name = "GetPrivateProfileString"
 binding = { rust_id = "KernelGetPrivateProfileString", id_value = 209, constant = "KERNEL_GET_PRIVATE_PROFILE_STRING" }
-evidence = [{ source = "spec", line = 129 }, { source = "binding", line = 286 }]
 [exports.call]
 returns = "word"
 params = [
@@ -68,7 +59,6 @@ params = [
 ordinal = 129
 name = "WritePrivateProfileString"
 binding = { rust_id = "KernelWritePrivateProfileString", id_value = 210, constant = "KERNEL_WRITE_PRIVATE_PROFILE_STRING" }
-evidence = [{ source = "spec", line = 130 }, { source = "binding", line = 287 }]
 [exports.call]
 returns = "word"
 params = [
@@ -82,7 +72,6 @@ params = [
 ordinal = 416
 name = "WritePrivateProfileSection"
 binding = { rust_id = "KernelWritePrivateProfileSection", id_value = 1159, constant = "KERNEL_WRITE_PRIVATE_PROFILE_SECTION" }
-evidence = [{ source = "spec", line = 299 }, { source = "binding_2", line = 6 }]
 [exports.call]
 returns = "word"
 params = [
@@ -95,7 +84,6 @@ params = [
 ordinal = 417
 name = "WriteProfileSection"
 binding = { rust_id = "KernelWriteProfileSection", id_value = 1160, constant = "KERNEL_WRITE_PROFILE_SECTION" }
-evidence = [{ source = "spec", line = 300 }, { source = "binding_2", line = 8 }]
 [exports.call]
 returns = "word"
 params = [
@@ -107,7 +95,6 @@ params = [
 ordinal = 418
 name = "GetPrivateProfileSection"
 binding = { rust_id = "KernelGetPrivateProfileSection", id_value = 1161, constant = "KERNEL_GET_PRIVATE_PROFILE_SECTION" }
-evidence = [{ source = "spec", line = 301 }, { source = "binding_2", line = 10 }]
 [exports.call]
 returns = "word"
 params = [
@@ -121,7 +108,6 @@ params = [
 ordinal = 419
 name = "GetProfileSection"
 binding = { rust_id = "KernelGetProfileSection", id_value = 1162, constant = "KERNEL_GET_PROFILE_SECTION" }
-evidence = [{ source = "spec", line = 302 }, { source = "binding_2", line = 12 }]
 [exports.call]
 returns = "word"
 params = [

@@ -1,13 +1,8 @@
 module = "MSACM"
 
-[sources]
-spec = { path = "specs/msacm.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/media_services_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 7
 name = "acmGetVersion"
 binding = { rust_id = "MsacmGetVersion", id_value = 1030, constant = "MSACM_GET_VERSION" }
-evidence = [{ source = "spec", line = 5 }, { source = "binding", line = 40 }]
 [exports.call]
 returns = "dword"

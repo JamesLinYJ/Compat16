@@ -1,6 +1,6 @@
 //! Compact TOML authoring version 2. This module expands authoring defaults and
 //! references into the version-1 semantic IR; generators consume only that IR.
-//! Declaration defaults reconstruct historical metadata, never callability.
+//! Declaration defaults reconstruct consumed declaration metadata, never callability.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -17,19 +17,15 @@ type Result<T> = std::result::Result<T, ManifestError>;
 // container entries and temporary clones, not only compact input bytes.
 const MAX_EXPANDED_BYTES: usize = 64 * 1024 * 1024;
 const MAX_TEXT_BYTES: usize = 16 * 1024;
-const MAX_RECORD_EVIDENCE: usize = 64;
-const MAX_EVIDENCE: usize = 65_536;
 const MAX_CONSTRAINTS: usize = 64;
 
 struct Budget {
     remaining: usize,
-    evidence_remaining: usize,
 }
 impl Budget {
     fn new() -> Self {
         Self {
             remaining: MAX_EXPANDED_BYTES,
-            evidence_remaining: MAX_EVIDENCE,
         }
     }
     fn charge(&mut self, bytes: usize, location: &str) -> Result<()> {
@@ -54,29 +50,6 @@ impl Budget {
             .ok_or_else(|| error(location, "normalization allocation size overflow"))?;
         self.charge(bytes, location)
     }
-    fn evidence(
-        &mut self,
-        source: &str,
-        line: Option<u32>,
-        note: Option<&str>,
-        location: &str,
-    ) -> Result<Evidence> {
-        self.evidence_remaining = self
-            .evidence_remaining
-            .checked_sub(1)
-            .ok_or_else(|| error(location, "expanded evidence count limit exceeded"))?;
-        self.charge(2 * std::mem::size_of::<Evidence>() + 64, location)?;
-        self.text(source, location)?;
-        if let Some(note) = note {
-            self.text(note, location)?;
-        }
-        // All allocation checks precede the potentially amplified clones.
-        Ok(Evidence {
-            source: source.to_owned(),
-            line,
-            note: note.map(str::to_owned),
-        })
-    }
 }
 
 fn attributes(values: &[Attribute], location: &str) -> Result<()> {
@@ -88,20 +61,12 @@ fn attributes(values: &[Attribute], location: &str) -> Result<()> {
     }
     Ok(())
 }
-fn evidence_count(count: usize, location: &str) -> Result<()> {
-    if count > MAX_RECORD_EVIDENCE {
-        return Err(error(location, "evidence list exceeds 64 records"));
-    }
-    Ok(())
-}
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Root {
     pub version: u32,
     pub defaults: RootDefaults,
-    #[serde(default)]
-    pub source_notes: BTreeMap<String, String>,
     pub modules: Vec<CompactModule>,
     #[serde(default)]
     pub name_resolutions: Vec<NameResolution>,
@@ -157,8 +122,6 @@ pub(super) struct CompactGroup {
     module: Option<String>,
     #[serde(default)]
     defaults: Defaults,
-    #[serde(default)]
-    sources: BTreeMap<String, Source>,
     pub exports: Vec<CompactExport>,
 }
 
@@ -195,21 +158,6 @@ impl EffectiveDefaults {
     }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Source {
-    path: String,
-    /// Key in the root source_notes table, not a free-form note.
-    note: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SourceReference {
-    source: String,
-    line: Option<u32>,
-}
-
 #[derive(Clone, Copy, Debug, Default, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum Kind {
@@ -242,8 +190,6 @@ pub(super) struct CompactExport {
     #[serde(default)]
     decl: Declaration,
     binding: Option<Binding>,
-    #[serde(default)]
-    evidence: Vec<SourceReference>,
     call: Option<Call>,
     values: Option<Vec<u32>>,
     value: Option<i32>,
@@ -298,24 +244,7 @@ struct Param {
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct CompactTypes {
-    #[serde(default)]
-    defaults: TypeDefaults,
     pub types: BTreeMap<String, TypeDefinition>,
-}
-
-#[derive(Debug, Default, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct TypeDefaults {
-    #[serde(default)]
-    evidence: Vec<TypeEvidence>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct TypeEvidence {
-    source: String,
-    line: Option<u32>,
-    note_ref: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -324,7 +253,6 @@ pub(super) struct TypeDefinition {
     value: CompactValue,
     declaration_encoding: Option<ArgumentEncoding>,
     slot_bytes: Option<u16>,
-    evidence: Option<Vec<TypeEvidence>>,
 }
 
 /// Only authoring permits omitted pointer annotations. Their default is
@@ -422,10 +350,6 @@ pub(super) fn normalize(
     }
     let mut budget = Budget::new();
     attributes(&root.defaults.attributes, "catalog.toml")?;
-    for (key, value) in &root.source_notes {
-        budget.text(key, "catalog.toml")?;
-        budget.text(value, "catalog.toml")?;
-    }
     for module in &root.modules {
         if let Some(values) = &module.defaults.attributes {
             attributes(values, "catalog.toml")?;
@@ -459,10 +383,6 @@ pub(super) fn normalize(
     let mut values = BTreeMap::new();
     for (path, file) in type_files {
         let mut types = Vec::new();
-        evidence_count(file.defaults.evidence.len(), &path)?;
-        for item in &file.defaults.evidence {
-            note(&root, item.note_ref.as_deref(), &path)?;
-        }
         for (name, definition) in file.types {
             budget.charge(
                 std::mem::size_of::<NamedType>() + std::mem::size_of::<ValueType>() + 256,
@@ -471,22 +391,6 @@ pub(super) fn normalize(
             for _ in 0..3 {
                 budget.text(&name, &path)?;
             }
-            let evidence = definition
-                .evidence
-                .as_deref()
-                .unwrap_or(&file.defaults.evidence);
-            evidence_count(evidence.len(), &path)?;
-            let evidence = evidence
-                .iter()
-                .map(|item| {
-                    budget.evidence(
-                        &item.source,
-                        item.line,
-                        note(&root, item.note_ref.as_deref(), &path)?,
-                        &path,
-                    )
-                })
-                .collect::<Result<Vec<_>>>()?;
             let value = definition.value.normalize();
             if let ValueType::Named { name } = &value {
                 budget.text(name, &path)?;
@@ -505,7 +409,7 @@ pub(super) fn normalize(
             types.push(NamedType {
                 name,
                 value,
-                evidence,
+                evidence: Vec::new(),
             });
         }
         expanded_types.insert(
@@ -525,17 +429,6 @@ pub(super) fn normalize(
     for (path, group) in group_files {
         if let Some(values) = &group.defaults.attributes {
             attributes(values, &path)?;
-        }
-        let mut sources = BTreeMap::new();
-        for (key, source) in group.sources {
-            budget.charge(128, &path)?;
-            budget.text(&key, &path)?;
-            budget.text(&source.path, &path)?;
-            if key.is_empty() || source.path.is_empty() {
-                return Err(error(&path, "empty evidence source key or path"));
-            }
-            let note = note(&root, source.note.as_deref(), &path)?;
-            sources.insert(key, (source.path, note));
         }
         let mut exports = Vec::new();
         for export in group.exports {
@@ -748,20 +641,6 @@ pub(super) fn normalize(
                 (Kind::Forward, None, None) => Entry::Forward,
                 _ => return Err(error(&location, "entry kind and data payload disagree")),
             };
-            evidence_count(export.evidence.len(), &location)?;
-            let evidence = export
-                .evidence
-                .into_iter()
-                .map(|item| {
-                    let (source, note) = sources.get(&item.source).ok_or_else(|| {
-                        error(
-                            &location,
-                            format!("unknown evidence source {}", item.source),
-                        )
-                    })?;
-                    budget.evidence(source, item.line, *note, &location)
-                })
-                .collect::<Result<Vec<_>>>()?;
             exports.push(Export {
                 module,
                 ordinal: export.ordinal,
@@ -784,7 +663,7 @@ pub(super) fn normalize(
                 },
                 entry,
                 binding: export.binding,
-                evidence,
+                evidence: Vec::new(),
             });
         }
         expanded_groups.insert(
@@ -801,15 +680,7 @@ pub(super) fn normalize(
 fn error(location: &str, message: impl Into<String>) -> ManifestError {
     ManifestError::new(location, message)
 }
-fn note<'a>(root: &'a Root, key: Option<&str>, location: &str) -> Result<Option<&'a str>> {
-    key.map(|key| {
-        root.source_notes
-            .get(key)
-            .map(String::as_str)
-            .ok_or_else(|| error(location, format!("unknown source note {key}")))
-    })
-    .transpose()
-}
+
 fn resolve<'a>(
     name: &'a str,
     types: &'a BTreeMap<String, ValueType>,
@@ -904,25 +775,14 @@ mod budget_tests {
     use super::*;
 
     #[test]
-    fn evidence_amplification_is_charged_before_any_expanded_clone() {
-        let mut budget = Budget {
-            remaining: 8,
-            evidence_remaining: 1,
-        };
-        let error = budget
-            .evidence("source", Some(1), Some("repeated note"), "test")
-            .unwrap_err();
-        assert!(error.message.contains("allocation budget"));
-        let mut budget = Budget {
-            remaining: usize::MAX,
-            evidence_remaining: 0,
-        };
+    fn inherited_text_is_charged_before_an_expanded_clone() {
+        let mut budget = Budget { remaining: 8 };
         assert!(
             budget
-                .evidence("source", None, None, "test")
+                .text("a long repeated module name", "test")
                 .unwrap_err()
                 .message
-                .contains("evidence count")
+                .contains("allocation budget")
         );
     }
 
@@ -939,7 +799,7 @@ mod budget_tests {
     }
 
     #[test]
-    fn excessive_note_and_evidence_defaults_fail_without_expansion() {
+    fn excessive_text_and_duplicate_defaults_fail_without_expansion() {
         let mut budget = Budget::new();
         assert!(
             budget
@@ -948,7 +808,6 @@ mod budget_tests {
                 .message
                 .contains("16 KiB")
         );
-        assert!(evidence_count(MAX_RECORD_EVIDENCE + 1, "test").is_err());
         assert!(attributes(&[Attribute::Ret16, Attribute::Ret16], "test").is_err());
     }
 }

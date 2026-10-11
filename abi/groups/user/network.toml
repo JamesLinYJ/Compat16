@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 499
 name = "WNetErrorText"
 binding = { rust_id = "UserWNetErrorText", id_value = 3, constant = "USER_WNET_ERROR_TEXT" }
-evidence = [{ source = "spec", line = 442 }, { source = "binding", line = 77 }]
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 501
 name = "WNetOpenJob"
 binding = { rust_id = "UserWNetOpenJob", id_value = 4, constant = "USER_WNET_OPEN_JOB" }
-evidence = [{ source = "spec", line = 444 }, { source = "binding", line = 78 }]
 [exports.call]
 returns = "word"
 params = [
@@ -36,7 +30,6 @@ params = [
 ordinal = 502
 name = "WNetCloseJob"
 binding = { rust_id = "UserWNetCloseJob", id_value = 5, constant = "USER_WNET_CLOSE_JOB" }
-evidence = [{ source = "spec", line = 445 }, { source = "binding", line = 79 }]
 [exports.call]
 returns = "word"
 params = [
@@ -49,7 +42,6 @@ params = [
 ordinal = 503
 name = "WNetAbortJob"
 binding = { rust_id = "UserWNetAbortJob", id_value = 6, constant = "USER_WNET_ABORT_JOB" }
-evidence = [{ source = "spec", line = 446 }, { source = "binding", line = 80 }]
 [exports.call]
 returns = "word"
 params = [
@@ -61,7 +53,6 @@ params = [
 ordinal = 504
 name = "WNetHoldJob"
 binding = { rust_id = "UserWNetHoldJob", id_value = 7, constant = "USER_WNET_HOLD_JOB" }
-evidence = [{ source = "spec", line = 447 }, { source = "binding", line = 81 }]
 [exports.call]
 returns = "word"
 params = [
@@ -73,7 +64,6 @@ params = [
 ordinal = 505
 name = "WNetReleaseJob"
 binding = { rust_id = "UserWNetReleaseJob", id_value = 8, constant = "USER_WNET_RELEASE_JOB" }
-evidence = [{ source = "spec", line = 448 }, { source = "binding", line = 82 }]
 [exports.call]
 returns = "word"
 params = [
@@ -85,7 +75,6 @@ params = [
 ordinal = 506
 name = "WNetCancelJob"
 binding = { rust_id = "UserWNetCancelJob", id_value = 9, constant = "USER_WNET_CANCEL_JOB" }
-evidence = [{ source = "spec", line = 449 }, { source = "binding", line = 83 }]
 [exports.call]
 returns = "word"
 params = [
@@ -97,7 +86,6 @@ params = [
 ordinal = 507
 name = "WNetSetJobCopies"
 binding = { rust_id = "UserWNetSetJobCopies", id_value = 10, constant = "USER_WNET_SET_JOB_COPIES" }
-evidence = [{ source = "spec", line = 450 }, { source = "binding", line = 84 }]
 [exports.call]
 returns = "word"
 params = [
@@ -110,7 +98,6 @@ params = [
 ordinal = 508
 name = "WNetWatchQueue"
 binding = { rust_id = "UserWNetWatchQueue", id_value = 11, constant = "USER_WNET_WATCH_QUEUE" }
-evidence = [{ source = "spec", line = 451 }, { source = "binding", line = 85 }]
 [exports.call]
 returns = "word"
 params = [
@@ -124,7 +111,6 @@ params = [
 ordinal = 509
 name = "WNetUnwatchQueue"
 binding = { rust_id = "UserWNetUnwatchQueue", id_value = 12, constant = "USER_WNET_UNWATCH_QUEUE" }
-evidence = [{ source = "spec", line = 452 }, { source = "binding", line = 86 }]
 [exports.call]
 returns = "word"
 params = [
@@ -135,7 +121,6 @@ params = [
 ordinal = 510
 name = "WNetLockQueueData"
 binding = { rust_id = "UserWNetLockQueueData", id_value = 13, constant = "USER_WNET_LOCK_QUEUE_DATA" }
-evidence = [{ source = "spec", line = 453 }, { source = "binding", line = 87 }]
 [exports.call]
 returns = "word"
 params = [
@@ -148,7 +133,6 @@ params = [
 ordinal = 511
 name = "WNetUnlockQueueData"
 binding = { rust_id = "UserWNetUnlockQueueData", id_value = 14, constant = "USER_WNET_UNLOCK_QUEUE_DATA" }
-evidence = [{ source = "spec", line = 454 }, { source = "binding", line = 88 }]
 [exports.call]
 returns = "word"
 params = [
@@ -159,7 +143,6 @@ params = [
 ordinal = 512
 name = "WNetGetConnection"
 binding = { rust_id = "UserWNetGetConnection", id_value = 15, constant = "USER_WNET_GET_CONNECTION" }
-evidence = [{ source = "spec", line = 455 }, { source = "binding", line = 89 }]
 [exports.call]
 returns = "word"
 params = [
@@ -172,7 +155,6 @@ params = [
 ordinal = 513
 name = "WNetGetCaps"
 binding = { rust_id = "UserWNetGetCaps", id_value = 240, constant = "USER_WNET_GET_CAPS" }
-evidence = [{ source = "spec", line = 456 }, { source = "binding", line = 317 }]
 [exports.call]
 returns = "word"
 params = [
@@ -183,7 +165,6 @@ params = [
 ordinal = 514
 name = "WNetDeviceMode"
 binding = { rust_id = "UserWNetDeviceMode", id_value = 16, constant = "USER_WNET_DEVICE_MODE" }
-evidence = [{ source = "spec", line = 457 }, { source = "binding", line = 90 }]
 [exports.call]
 returns = "word"
 params = [
@@ -194,7 +175,6 @@ params = [
 ordinal = 515
 name = "WNetBrowseDialog"
 binding = { rust_id = "UserWNetBrowseDialog", id_value = 17, constant = "USER_WNET_BROWSE_DIALOG" }
-evidence = [{ source = "spec", line = 458 }, { source = "binding", line = 91 }]
 [exports.call]
 returns = "word"
 params = [
@@ -207,7 +187,6 @@ params = [
 ordinal = 516
 name = "WNetGetUser"
 binding = { rust_id = "UserWNetGetUser", id_value = 18, constant = "USER_WNET_GET_USER" }
-evidence = [{ source = "spec", line = 459 }, { source = "binding", line = 92 }]
 [exports.call]
 returns = "word"
 params = [
@@ -219,7 +198,6 @@ params = [
 ordinal = 517
 name = "WNetAddConnection"
 binding = { rust_id = "UserWNetAddConnection", id_value = 19, constant = "USER_WNET_ADD_CONNECTION" }
-evidence = [{ source = "spec", line = 460 }, { source = "binding", line = 93 }]
 [exports.call]
 returns = "word"
 params = [
@@ -232,7 +210,6 @@ params = [
 ordinal = 518
 name = "WNetCancelConnection"
 binding = { rust_id = "UserWNetCancelConnection", id_value = 20, constant = "USER_WNET_CANCEL_CONNECTION" }
-evidence = [{ source = "spec", line = 461 }, { source = "binding", line = 94 }]
 [exports.call]
 returns = "word"
 params = [
@@ -244,7 +221,6 @@ params = [
 ordinal = 519
 name = "WNetGetError"
 binding = { rust_id = "UserWNetGetError", id_value = 21, constant = "USER_WNET_GET_ERROR" }
-evidence = [{ source = "spec", line = 462 }, { source = "binding", line = 95 }]
 [exports.call]
 returns = "word"
 params = [
@@ -255,7 +231,6 @@ params = [
 ordinal = 520
 name = "WNetGetErrorText"
 binding = { rust_id = "UserWNetGetErrorText", id_value = 22, constant = "USER_WNET_GET_ERROR_TEXT" }
-evidence = [{ source = "spec", line = 463 }, { source = "binding", line = 96 }]
 [exports.call]
 returns = "word"
 params = [
@@ -268,7 +243,6 @@ params = [
 ordinal = 523
 name = "WNetRestoreConnection"
 binding = { rust_id = "UserWNetRestoreConnection", id_value = 23, constant = "USER_WNET_RESTORE_CONNECTION" }
-evidence = [{ source = "spec", line = 466 }, { source = "binding", line = 97 }]
 [exports.call]
 returns = "word"
 params = [
@@ -280,7 +254,6 @@ params = [
 ordinal = 524
 name = "WNetWriteJob"
 binding = { rust_id = "UserWNetWriteJob", id_value = 24, constant = "USER_WNET_WRITE_JOB" }
-evidence = [{ source = "spec", line = 467 }, { source = "binding", line = 98 }]
 [exports.call]
 returns = "word"
 params = [
@@ -293,7 +266,6 @@ params = [
 ordinal = 525
 name = "WNetConnectDialog"
 binding = { rust_id = "UserWNetConnectDialog", id_value = 25, constant = "USER_WNET_CONNECT_DIALOG" }
-evidence = [{ source = "spec", line = 468 }, { source = "binding", line = 99 }]
 [exports.call]
 returns = "word"
 params = [
@@ -305,7 +277,6 @@ params = [
 ordinal = 526
 name = "WNetDisconnectDialog"
 binding = { rust_id = "UserWNetDisconnectDialog", id_value = 26, constant = "USER_WNET_DISCONNECT_DIALOG" }
-evidence = [{ source = "spec", line = 469 }, { source = "binding", line = 100 }]
 [exports.call]
 returns = "word"
 params = [
@@ -317,7 +288,6 @@ params = [
 ordinal = 527
 name = "WNetConnectionDialog"
 binding = { rust_id = "UserWNetConnectionDialog", id_value = 27, constant = "USER_WNET_CONNECTION_DIALOG" }
-evidence = [{ source = "spec", line = 470 }, { source = "binding", line = 101 }]
 [exports.call]
 returns = "word"
 params = [
@@ -329,7 +299,6 @@ params = [
 ordinal = 528
 name = "WNetViewQueueDialog"
 binding = { rust_id = "UserWNetViewQueueDialog", id_value = 28, constant = "USER_WNET_VIEW_QUEUE_DIALOG" }
-evidence = [{ source = "spec", line = 471 }, { source = "binding", line = 102 }]
 [exports.call]
 returns = "word"
 params = [
@@ -341,7 +310,6 @@ params = [
 ordinal = 529
 name = "WNetPropertyDialog"
 binding = { rust_id = "UserWNetPropertyDialog", id_value = 29, constant = "USER_WNET_PROPERTY_DIALOG" }
-evidence = [{ source = "spec", line = 472 }, { source = "binding", line = 103 }]
 [exports.call]
 returns = "word"
 params = [
@@ -356,7 +324,6 @@ params = [
 ordinal = 530
 name = "WNetGetDirectoryType"
 binding = { rust_id = "UserWNetGetDirectoryType", id_value = 30, constant = "USER_WNET_GET_DIRECTORY_TYPE" }
-evidence = [{ source = "spec", line = 473 }, { source = "binding", line = 104 }]
 [exports.call]
 returns = "word"
 params = [
@@ -368,7 +335,6 @@ params = [
 ordinal = 531
 name = "WNetDirectoryNotify"
 binding = { rust_id = "UserWNetDirectoryNotify", id_value = 31, constant = "USER_WNET_DIRECTORY_NOTIFY" }
-evidence = [{ source = "spec", line = 474 }, { source = "binding", line = 105 }]
 [exports.call]
 returns = "word"
 params = [
@@ -381,7 +347,6 @@ params = [
 ordinal = 532
 name = "WNetGetPropertyText"
 binding = { rust_id = "UserWNetGetPropertyText", id_value = 32, constant = "USER_WNET_GET_PROPERTY_TEXT" }
-evidence = [{ source = "spec", line = 475 }, { source = "binding", line = 106 }]
 [exports.call]
 returns = "word"
 params = [

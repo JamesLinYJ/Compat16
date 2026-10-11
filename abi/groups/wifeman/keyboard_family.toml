@@ -1,15 +1,10 @@
 module = "WIFEMAN"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/wifeman.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 23
 name = "MiscIsDBCSLeadByte"
 binding = { rust_id = "WifemanMiscIsDbcsLeadByte", id_value = 144, constant = "WIFEMAN_MISC_IS_DBCS_LEAD_BYTE" }
-evidence = [{ source = "spec", line = 22 }, { source = "binding", line = 220 }]
 [exports.call]
 returns = "word"
 params = [

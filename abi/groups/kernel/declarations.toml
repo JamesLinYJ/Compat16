@@ -1,20 +1,14 @@
 module = "KERNEL"
 
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 2
 name = "ExitKernel"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 3 }]
 
 [[exports]]
 ordinal = 3
 name = "GetVersion"
 binding = { rust_id = "KernelGetVersion", id_value = 153, constant = "KERNEL_GET_VERSION" }
-evidence = [{ source = "spec", line = 4 }, { source = "binding", line = 229 }]
 [exports.call]
 returns = "dword"
 
@@ -22,43 +16,36 @@ returns = "dword"
 ordinal = 14
 name = "LocalNotify"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 15 }]
 
 [[exports]]
 ordinal = 29
 name = "Yield"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 30 }]
 
 [[exports]]
 ordinal = 32
 name = "SetPriority"
 decl = { attributes = ["ret16"], args = ["word", "signed_word"] }
-evidence = [{ source = "spec", line = 33 }]
 
 [[exports]]
 ordinal = 33
 name = "LockCurrentTask"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 34 }]
 
 [[exports]]
 ordinal = 34
 name = "SetTaskQueue"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 35 }]
 
 [[exports]]
 ordinal = 35
 name = "GetTaskQueue"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 36 }]
 
 [[exports]]
 ordinal = 36
 name = "GetCurrentTask"
 binding = { rust_id = "KernelGetCurrentTask", id_value = 156, constant = "KERNEL_GET_CURRENT_TASK" }
-evidence = [{ source = "spec", line = 37 }, { source = "binding", line = 232 }]
 [exports.call]
 returns = "dword"
 
@@ -66,7 +53,6 @@ returns = "dword"
 ordinal = 37
 name = "GetCurrentPDB"
 binding = { rust_id = "KernelGetCurrentPdb", id_value = 86, constant = "KERNEL_GET_CURRENT_PDB" }
-evidence = [{ source = "spec", line = 38 }, { source = "binding", line = 161 }]
 [exports.call]
 returns = "dword"
 
@@ -74,92 +60,77 @@ returns = "dword"
 ordinal = 38
 name = "SetTaskSignalProc"
 decl = { args = ["word", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 39 }]
 
 [[exports]]
 ordinal = 39
 name = "SetTaskSwitchProc"
 kind = "stub"
-evidence = [{ source = "spec", line = 40 }]
 
 [[exports]]
 ordinal = 40
 name = "SetTaskInterchange"
 kind = "stub"
-evidence = [{ source = "spec", line = 41 }]
 
 [[exports]]
 ordinal = 41
 name = "EnableDos"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 42 }]
 
 [[exports]]
 ordinal = 42
 name = "DisableDos"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 43 }]
 
 [[exports]]
 ordinal = 43
 name = "IsScreenGrab"
 kind = "stub"
-evidence = [{ source = "spec", line = 44 }]
 
 [[exports]]
 ordinal = 44
 name = "BuildPDB"
 kind = "stub"
-evidence = [{ source = "spec", line = 45 }]
 
 [[exports]]
 ordinal = 45
 name = "LoadModule"
 decl = { attributes = ["ret16"], args = ["string", "pointer"] }
-evidence = [{ source = "spec", line = 46 }]
 
 [[exports]]
 ordinal = 46
 name = "FreeModule"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 47 }]
 
 [[exports]]
 ordinal = 53
 name = "CallProcInstance"
 kind = "stub"
-evidence = [{ source = "spec", line = 54 }]
 
 [[exports]]
 ordinal = 55
 name = "Catch"
 decl = { attributes = ["register"], args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 56 }]
 
 [[exports]]
 ordinal = 56
 name = "Throw"
 decl = { attributes = ["register"], args = ["pointer", "word"] }
-evidence = [{ source = "spec", line = 57 }]
 
 [[exports]]
 ordinal = 75
 name = "OpenPathName"
 kind = "stub"
-evidence = [{ source = "spec", line = 76 }]
 
 [[exports]]
 ordinal = 76
 name = "DeletePathName"
 kind = "stub"
-evidence = [{ source = "spec", line = 77 }]
 
 [[exports]]
 ordinal = 91
 name = "InitTask"
 decl = { attributes = ["register"] }
 binding = { rust_id = "KernelInitTask", id_value = 204, constant = "KERNEL_INIT_TASK" }
-evidence = [{ source = "spec", line = 92 }, { source = "binding", line = 281 }]
 [exports.call]
 kind = "register_context"
 returns = "register_context"
@@ -167,45 +138,44 @@ returns = "register_context"
 [[exports]]
 ordinal = 92
 name = "GetTempDrive"
-decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 93 }]
+binding = { rust_id = "KernelGetTempDrive", id_value = 1219, constant = "KERNEL_GET_TEMP_DRIVE" }
+[exports.call]
+# Public BYTE is in AL; preserve the independently observed AH=':' via AX.
+returns = "word"
+params = [
+  { name = "drive", type = "Char8" },
+]
 
 [[exports]]
 ordinal = 94
 name = "DefineHandleTable"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 95 }]
 
 [[exports]]
 ordinal = 98
 name = "GetLastDiskChange"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 99 }]
 
 [[exports]]
 ordinal = 99
 name = "GetLPErrMode"
 kind = "stub"
-evidence = [{ source = "spec", line = 100 }]
 
 [[exports]]
 ordinal = 100
 name = "ValidateCodeSegments"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 101 }]
 
 [[exports]]
 ordinal = 101
 name = "NoHookDosCall"
 kind = "stub"
-evidence = [{ source = "spec", line = 102 }]
 
 [[exports]]
 ordinal = 102
 name = "DOS3Call"
 decl = { attributes = ["register"] }
 binding = { rust_id = "KernelDos3Call", id_value = 205, constant = "KERNEL_DOS3_CALL" }
-evidence = [{ source = "spec", line = 103 }, { source = "binding", line = 282 }]
 [exports.call]
 kind = "register_context"
 returns = "register_context"
@@ -215,7 +185,6 @@ ordinal = 103
 name = "NetBIOSCall"
 decl = { attributes = ["register"] }
 binding = { rust_id = "KernelNetbiosCall", id_value = 206, constant = "KERNEL_NETBIOS_CALL" }
-evidence = [{ source = "spec", line = 104 }, { source = "binding", line = 283 }]
 [exports.call]
 kind = "register_context"
 returns = "register_context"
@@ -225,7 +194,6 @@ ordinal = 105
 name = "GetExeVersion"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "KernelGetExeVersion", id_value = 92, constant = "KERNEL_GET_EXE_VERSION" }
-evidence = [{ source = "spec", line = 106 }, { source = "binding", line = 167 }]
 [exports.call]
 returns = "word"
 
@@ -233,111 +201,93 @@ returns = "word"
 ordinal = 106
 name = "SetSwapAreaSize"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 107 }]
 
 [[exports]]
 ordinal = 108
 name = "SwitchStackTo"
 decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 109 }]
 
 [[exports]]
 ordinal = 109
 name = "SwitchStackBack"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 110 }]
 
 [[exports]]
 ordinal = 110
 name = "PatchCodeHandle"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 111 }]
 
 [[exports]]
 ordinal = 113
 name = "__AHSHIFT"
 kind = "equate"
-evidence = [{ source = "spec", line = 114 }]
 value = 3
 
 [[exports]]
 ordinal = 114
 name = "__AHINCR"
 kind = "equate"
-evidence = [{ source = "spec", line = 115 }]
 value = 8
 
 [[exports]]
 ordinal = 116
 name = "InitLib"
 kind = "stub"
-evidence = [{ source = "spec", line = 117 }]
 
 [[exports]]
 ordinal = 117
 name = "OldYield"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 118 }]
 
 [[exports]]
 ordinal = 118
 name = "GetTaskQueueDS"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 119 }]
 
 [[exports]]
 ordinal = 119
 name = "GetTaskQueueES"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 120 }]
 
 [[exports]]
 ordinal = 120
 name = "UndefDynLink"
 kind = "stub"
-evidence = [{ source = "spec", line = 121 }]
 
 [[exports]]
 ordinal = 121
 name = "LocalShrink"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
-evidence = [{ source = "spec", line = 122 }]
 
 [[exports]]
 ordinal = 122
 name = "IsTaskLocked"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 123 }]
 
 [[exports]]
 ordinal = 123
 name = "KbdRst"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 124 }]
 
 [[exports]]
 ordinal = 124
 name = "EnableKernel"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 125 }]
 
 [[exports]]
 ordinal = 125
 name = "DisableKernel"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 126 }]
 
 [[exports]]
 ordinal = 126
 name = "MemoryFreed"
 kind = "stub"
-evidence = [{ source = "spec", line = 127 }]
 
 [[exports]]
 ordinal = 131
 name = "GetDOSEnvironment"
 binding = { rust_id = "KernelGetDosEnvironment", id_value = 87, constant = "KERNEL_GET_DOS_ENVIRONMENT" }
-evidence = [{ source = "spec", line = 132 }, { source = "binding", line = 162 }]
 [exports.call]
 returns = "far_pointer"
 
@@ -345,7 +295,6 @@ returns = "far_pointer"
 ordinal = 132
 name = "GetWinFlags"
 binding = { rust_id = "KernelGetWinFlags", id_value = 182, constant = "KERNEL_GET_WIN_FLAGS" }
-evidence = [{ source = "spec", line = 133 }, { source = "binding", line = 259 }]
 [exports.call]
 returns = "dword"
 
@@ -353,61 +302,51 @@ returns = "dword"
 ordinal = 138
 name = "GetHeapSpaces"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 139 }]
 
 [[exports]]
 ordinal = 139
 name = "DoSignal"
 kind = "stub"
-evidence = [{ source = "spec", line = 140 }]
 
 [[exports]]
 ordinal = 140
 name = "SetSigHandler"
 decl = { attributes = ["ret16"], args = ["segmented_pointer", "pointer", "pointer", "word", "word"] }
-evidence = [{ source = "spec", line = 141 }]
 
 [[exports]]
 ordinal = 141
 name = "InitTask1"
 kind = "stub"
-evidence = [{ source = "spec", line = 142 }]
 
 [[exports]]
 ordinal = 147
 name = "SetLastError"
 decl = { attributes = ["ret16"], args = ["long"] }
-evidence = [{ source = "spec", line = 148 }]
 
 [[exports]]
 ordinal = 148
 name = "GetLastError"
-evidence = [{ source = "spec", line = 149 }]
 
 [[exports]]
 ordinal = 149
 name = "GetVersionEx"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 150 }]
 
 [[exports]]
 ordinal = 150
 name = "DirectedYield"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 151 }]
 
 [[exports]]
 ordinal = 151
 name = "WinOldApCall"
 kind = "stub"
-evidence = [{ source = "spec", line = 152 }]
 
 [[exports]]
 ordinal = 152
 name = "GetNumTasks"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "KernelGetNumTasks", id_value = 94, constant = "KERNEL_GET_NUM_TASKS" }
-evidence = [{ source = "spec", line = 153 }, { source = "binding", line = 169 }]
 [exports.call]
 returns = "word"
 
@@ -415,14 +354,12 @@ returns = "word"
 ordinal = 154
 name = "GlobalNotify"
 decl = { attributes = ["ret16"], args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 154 }]
 
 [[exports]]
 ordinal = 155
 name = "GetTaskDS"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "KernelGetTaskDs", id_value = 95, constant = "KERNEL_GET_TASK_DS" }
-evidence = [{ source = "spec", line = 155 }, { source = "binding", line = 170 }]
 [exports.call]
 returns = "word"
 
@@ -430,32 +367,27 @@ returns = "word"
 ordinal = 156
 name = "LimitEMSPages"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 156 }]
 
 [[exports]]
 ordinal = 157
 name = "GetCurPID"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 157 }]
 
 [[exports]]
 ordinal = 158
 name = "IsWinOldApTask"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 158 }]
 
 [[exports]]
 ordinal = 160
 name = "EMSCopy"
 kind = "stub"
-evidence = [{ source = "spec", line = 160 }]
 
 [[exports]]
 ordinal = 161
 name = "LocalCountFree"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "KernelLocalCountFree", id_value = 282, constant = "KERNEL_LOCAL_COUNT_FREE" }
-evidence = [{ source = "spec", line = 161 }, { source = "binding", line = 360 }]
 [exports.call]
 returns = "word"
 
@@ -464,7 +396,6 @@ ordinal = 162
 name = "LocalHeapSize"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "KernelLocalHeapSize", id_value = 283, constant = "KERNEL_LOCAL_HEAP_SIZE" }
-evidence = [{ source = "spec", line = 162 }, { source = "binding", line = 361 }]
 [exports.call]
 returns = "word"
 
@@ -472,1405 +403,1174 @@ returns = "word"
 ordinal = 165
 name = "A20Proc"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 165 }]
 
 [[exports]]
 ordinal = 168
 name = "DirectResAlloc"
 decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 168 }]
 
 [[exports]]
 ordinal = 173
 name = "__ROMBIOS"
 kind = "equate"
-evidence = [{ source = "spec", line = 173 }]
 value = 0
 
 [[exports]]
 ordinal = 174
 name = "__A000H"
 kind = "equate"
-evidence = [{ source = "spec", line = 174 }]
 value = 0
 
 [[exports]]
 ordinal = 178
 name = "__WINFLAGS"
 kind = "equate"
-evidence = [{ source = "spec", line = 178 }]
 value = 1043
 
 [[exports]]
 ordinal = 179
 name = "__D000H"
 kind = "equate"
-evidence = [{ source = "spec", line = 179 }]
 value = 0
 
 [[exports]]
 ordinal = 181
 name = "__B000H"
 kind = "equate"
-evidence = [{ source = "spec", line = 181 }]
 value = 0
 
 [[exports]]
 ordinal = 182
 name = "__B800H"
 kind = "equate"
-evidence = [{ source = "spec", line = 182 }]
 value = 0
 
 [[exports]]
 ordinal = 183
 name = "__0000H"
 kind = "equate"
-evidence = [{ source = "spec", line = 183 }]
 value = 0
 
 [[exports]]
 ordinal = 190
 name = "__E000H"
 kind = "equate"
-evidence = [{ source = "spec", line = 190 }]
 value = 0
 
 [[exports]]
 ordinal = 193
 name = "__0040H"
 kind = "equate"
-evidence = [{ source = "spec", line = 193 }]
 value = 0
 
 [[exports]]
 ordinal = 194
 name = "__F000H"
 kind = "equate"
-evidence = [{ source = "spec", line = 194 }]
 value = 0
 
 [[exports]]
 ordinal = 195
 name = "__C000H"
 kind = "equate"
-evidence = [{ source = "spec", line = 195 }]
 value = 0
 
 [[exports]]
 ordinal = 200
 name = "ValidateFreeSpaces"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 200 }]
 
 [[exports]]
 ordinal = 201
 name = "ReplaceInst"
 kind = "stub"
-evidence = [{ source = "spec", line = 201 }]
 
 [[exports]]
 ordinal = 202
 name = "RegisterPtrace"
 kind = "stub"
-evidence = [{ source = "spec", line = 202 }]
 
 [[exports]]
 ordinal = 204
 name = "SwapRecording"
 kind = "stub"
-evidence = [{ source = "spec", line = 204 }]
 
 [[exports]]
 ordinal = 205
 name = "CVWBreak"
 kind = "stub"
-evidence = [{ source = "spec", line = 205 }]
 
 [[exports]]
 ordinal = 208
 name = "K208"
 decl = { args = ["word", "long", "long", "long"] }
-evidence = [{ source = "spec", line = 208 }]
 
 [[exports]]
 ordinal = 209
 name = "K209"
 decl = { args = ["long", "long", "word", "long"] }
-evidence = [{ source = "spec", line = 209 }]
 
 [[exports]]
 ordinal = 210
 name = "K210"
 decl = { args = ["long", "long", "word", "long", "long"] }
-evidence = [{ source = "spec", line = 210 }]
 
 [[exports]]
 ordinal = 211
 name = "K211"
 decl = { args = ["long", "long", "word"] }
-evidence = [{ source = "spec", line = 211 }]
 
 [[exports]]
 ordinal = 213
 name = "K213"
 decl = { args = ["long", "long", "word", "word"] }
-evidence = [{ source = "spec", line = 212 }]
 
 [[exports]]
 ordinal = 214
 name = "K214"
 decl = { args = ["long", "long", "word"] }
-evidence = [{ source = "spec", line = 213 }]
 
 [[exports]]
 ordinal = 215
 name = "K215"
 decl = { args = ["long", "word"] }
-evidence = [{ source = "spec", line = 214 }]
 
 [[exports]]
 ordinal = 216
 name = "RegEnumKey"
 decl = { args = ["long", "long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 215 }]
 
 [[exports]]
 ordinal = 217
 name = "RegOpenKey"
 decl = { args = ["long", "string", "pointer"] }
-evidence = [{ source = "spec", line = 216 }]
 
 [[exports]]
 ordinal = 218
 name = "RegCreateKey"
 decl = { args = ["long", "string", "pointer"] }
-evidence = [{ source = "spec", line = 217 }]
 
 [[exports]]
 ordinal = 219
 name = "RegDeleteKey"
 decl = { args = ["long", "string"] }
-evidence = [{ source = "spec", line = 218 }]
 
 [[exports]]
 ordinal = 220
 name = "RegCloseKey"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 219 }]
 
 [[exports]]
 ordinal = 221
 name = "RegSetValue"
 decl = { args = ["long", "string", "long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 220 }]
 
 [[exports]]
 ordinal = 222
 name = "RegDeleteValue"
 decl = { args = ["long", "string"] }
-evidence = [{ source = "spec", line = 221 }]
 
 [[exports]]
 ordinal = 223
 name = "RegEnumValue"
 decl = { args = ["long", "long", "pointer", "pointer", "pointer", "pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 222 }]
 
 [[exports]]
 ordinal = 224
 name = "RegQueryValue"
 decl = { args = ["long", "string", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 223 }]
 
 [[exports]]
 ordinal = 225
 name = "RegQueryValueEx"
 decl = { args = ["long", "string", "pointer", "pointer", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 224 }]
 
 [[exports]]
 ordinal = 226
 name = "RegSetValueEx"
 decl = { args = ["long", "string", "long", "long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 225 }]
 
 [[exports]]
 ordinal = 227
 name = "RegFlushKey"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 226 }]
 
 [[exports]]
 ordinal = 228
 name = "K228"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 227 }]
 
 [[exports]]
 ordinal = 229
 name = "K229"
 decl = { attributes = ["ret16"], args = ["long"] }
-evidence = [{ source = "spec", line = 228 }]
 
 [[exports]]
 ordinal = 232
 name = "RegLoadKey"
 kind = "stub"
-evidence = [{ source = "spec", line = 231 }]
 
 [[exports]]
 ordinal = 233
 name = "RegUnloadKey"
 kind = "stub"
-evidence = [{ source = "spec", line = 232 }]
 
 [[exports]]
 ordinal = 234
 name = "RegSaveKey"
 kind = "stub"
-evidence = [{ source = "spec", line = 233 }]
 
 [[exports]]
 ordinal = 235
 name = "InvalidateNlsCache"
 kind = "stub"
-evidence = [{ source = "spec", line = 234 }]
 
 [[exports]]
 ordinal = 236
 name = "GetProductName"
 kind = "stub"
-evidence = [{ source = "spec", line = 235 }]
 
 [[exports]]
 ordinal = 237
 name = "K237"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 236 }]
 
 [[exports]]
 ordinal = 262
 name = "WOWWaitForMsgAndEvent"
 kind = "stub"
-evidence = [{ source = "spec", line = 237 }]
 
 [[exports]]
 ordinal = 263
 name = "WOWMsgBox"
 kind = "stub"
-evidence = [{ source = "spec", line = 238 }]
 
 [[exports]]
 ordinal = 273
 name = "K273"
 kind = "stub"
-evidence = [{ source = "spec", line = 239 }]
 
 [[exports]]
 ordinal = 274
 name = "GetShortPathName"
 decl = { attributes = ["ret16"], args = ["string", "pointer", "word"] }
-evidence = [{ source = "spec", line = 240 }]
 
 [[exports]]
 ordinal = 311
 name = "GetSetKernelDOSProc"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 242 }]
 
 [[exports]]
 ordinal = 314
 name = "DebugDefineSegment"
 kind = "stub"
-evidence = [{ source = "spec", line = 243 }]
 
 [[exports]]
 ordinal = 315
 name = "WriteOutProfiles"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 244 }]
 
 [[exports]]
 ordinal = 316
 name = "GetFreeMemInfo"
-evidence = [{ source = "spec", line = 245 }]
 
 [[exports]]
 ordinal = 318
 name = "FatalExitHook"
 kind = "stub"
-evidence = [{ source = "spec", line = 246 }]
 
 [[exports]]
 ordinal = 319
 name = "FlushCachedFileHandle"
 kind = "stub"
-evidence = [{ source = "spec", line = 247 }]
 
 [[exports]]
 ordinal = 323
 name = "IsRomModule"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 249 }]
 
 [[exports]]
 ordinal = 324
 name = "LogError"
 decl = { attributes = ["ret16"], args = ["word", "pointer"] }
-evidence = [{ source = "spec", line = 250 }]
 
 [[exports]]
 ordinal = 325
 name = "LogParamError"
 decl = { attributes = ["ret16"], args = ["word", "pointer", "pointer"] }
-evidence = [{ source = "spec", line = 251 }]
 
 [[exports]]
 ordinal = 326
 name = "IsRomFile"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 252 }]
 
 [[exports]]
 ordinal = 327
 name = "K327"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 253 }]
 
 [[exports]]
 ordinal = 328
 name = "_DebugOutput"
 decl = { type = "varargs", attributes = ["ret16"], args = ["word", "string"] }
-evidence = [{ source = "spec", line = 254 }]
 
 [[exports]]
 ordinal = 329
 name = "K329"
 decl = { attributes = ["ret16"], args = ["string", "word"] }
-evidence = [{ source = "spec", line = 255 }]
 
 [[exports]]
 ordinal = 332
 name = "THHOOK"
 kind = "variable"
-evidence = [{ source = "spec", line = 256 }]
 values = [0, 0, 0, 0, 0, 0, 0, 0]
 
 [[exports]]
 ordinal = 338
 name = "HasGPHandler"
 decl = { attributes = ["ret16"], args = ["segmented_pointer"] }
-evidence = [{ source = "spec", line = 261 }]
 
 [[exports]]
 ordinal = 339
 name = "DiagQuery"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 262 }]
 
 [[exports]]
 ordinal = 340
 name = "DiagOutput"
 decl = { attributes = ["ret16"], args = ["string"] }
-evidence = [{ source = "spec", line = 263 }]
 
 [[exports]]
 ordinal = 341
 name = "ToolHelpHook"
 decl = { args = ["pointer"] }
-evidence = [{ source = "spec", line = 264 }]
 
 [[exports]]
 ordinal = 342
 name = "__GP"
 kind = "variable"
-evidence = [{ source = "spec", line = 265 }]
 values = [0, 0]
 
 [[exports]]
 ordinal = 343
 name = "RegisterWinOldApHook"
 kind = "stub"
-evidence = [{ source = "spec", line = 266 }]
 
 [[exports]]
 ordinal = 344
 name = "GetWinOldApHooks"
 kind = "stub"
-evidence = [{ source = "spec", line = 267 }]
 
 [[exports]]
 ordinal = 351
 name = "BUNNY_351"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 274 }]
 
 [[exports]]
 ordinal = 354
 name = "GetAppCompatFlags"
 decl = { args = ["word"] }
-evidence = [{ source = "spec", line = 277 }]
 
 [[exports]]
 ordinal = 355
 name = "GetWinDebugInfo"
 decl = { attributes = ["ret16"], args = ["pointer", "word"] }
-evidence = [{ source = "spec", line = 278 }]
 
 [[exports]]
 ordinal = 356
 name = "SetWinDebugInfo"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 279 }]
 
 [[exports]]
 ordinal = 360
 name = "OpenFileEx"
 decl = { attributes = ["ret16"], args = ["string", "pointer", "word"] }
-evidence = [{ source = "spec", line = 283 }]
 
 [[exports]]
 ordinal = 361
 name = "PIGLET_361"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 284 }]
 
 [[exports]]
 ordinal = 362
 name = "ThunkTerminateProcess"
 kind = "stub"
-evidence = [{ source = "spec", line = 285 }]
 
 [[exports]]
 ordinal = 406
 name = "WritePrivateProfileStruct"
 decl = { attributes = ["ret16"], args = ["string", "string", "pointer", "word", "string"] }
-evidence = [{ source = "spec", line = 289 }]
 
 [[exports]]
 ordinal = 407
 name = "GetPrivateProfileStruct"
 decl = { attributes = ["ret16"], args = ["string", "string", "pointer", "word", "string"] }
-evidence = [{ source = "spec", line = 290 }]
 
 [[exports]]
 ordinal = 408
 name = "KERNEL_408"
 kind = "stub"
-evidence = [{ source = "spec", line = 291 }]
 
 [[exports]]
 ordinal = 409
 name = "KERNEL_409"
 kind = "stub"
-evidence = [{ source = "spec", line = 292 }]
 
 [[exports]]
 ordinal = 410
 name = "CreateProcessFromWinExec"
 kind = "stub"
-evidence = [{ source = "spec", line = 293 }]
 
 [[exports]]
 ordinal = 423
 name = "LogApiThk"
 decl = { attributes = ["ret16"], args = ["string"] }
-evidence = [{ source = "spec", line = 306 }]
 
 [[exports]]
 ordinal = 431
 name = "IsPeFormat"
 decl = { attributes = ["ret16"], args = ["string", "word"] }
-evidence = [{ source = "spec", line = 307 }]
 
 [[exports]]
 ordinal = 432
 name = "FileTimeToLocalFileTime"
 kind = "stub"
-evidence = [{ source = "spec", line = 308 }]
 
 [[exports]]
 ordinal = 434
 name = "UnicodeToAnsi"
 decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word"] }
-evidence = [{ source = "spec", line = 309 }]
 
 [[exports]]
 ordinal = 435
 name = "GetTaskFlags"
 kind = "stub"
-evidence = [{ source = "spec", line = 310 }]
 
 [[exports]]
 ordinal = 436
 name = "_ConfirmSysLevel"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 311 }]
 
 [[exports]]
 ordinal = 437
 name = "_CheckNotSysLevel"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 312 }]
 
 [[exports]]
 ordinal = 438
 name = "_CreateSysLevel"
 decl = { attributes = ["ret16"], args = ["pointer", "long"] }
-evidence = [{ source = "spec", line = 313 }]
 
 [[exports]]
 ordinal = 439
 name = "_EnterSysLevel"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 314 }]
 
 [[exports]]
 ordinal = 440
 name = "_LeaveSysLevel"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 315 }]
 
 [[exports]]
 ordinal = 441
 name = "CreateThread16"
 decl = { args = ["pointer", "long", "segmented_pointer", "segmented_pointer", "long", "pointer"] }
-evidence = [{ source = "spec", line = 316 }]
 
 [[exports]]
 ordinal = 442
 name = "VWin32_EventCreate"
-evidence = [{ source = "spec", line = 317 }]
 
 [[exports]]
 ordinal = 443
 name = "VWin32_EventDestroy"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 318 }]
 
 [[exports]]
 ordinal = 444
 name = "Local32Info"
 decl = { attributes = ["ret16"], args = ["pointer", "word"] }
-evidence = [{ source = "spec", line = 319 }]
 
 [[exports]]
 ordinal = 445
 name = "Local32First"
 decl = { attributes = ["ret16"], args = ["pointer", "word"] }
-evidence = [{ source = "spec", line = 320 }]
 
 [[exports]]
 ordinal = 446
 name = "Local32Next"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 321 }]
 
 [[exports]]
 ordinal = 447
 name = "WIN32_OldYield"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 322 }]
 
 [[exports]]
 ordinal = 448
 name = "KERNEL_448"
 kind = "stub"
-evidence = [{ source = "spec", line = 323 }]
 
 [[exports]]
 ordinal = 449
 name = "GetpWin16Lock"
-evidence = [{ source = "spec", line = 324 }]
 
 [[exports]]
 ordinal = 450
 name = "VWin32_EventWait"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 325 }]
 
 [[exports]]
 ordinal = 451
 name = "VWin32_EventSet"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 326 }]
 
 [[exports]]
 ordinal = 452
 name = "LoadLibrary32"
 decl = { args = ["string"] }
-evidence = [{ source = "spec", line = 327 }]
 
 [[exports]]
 ordinal = 453
 name = "GetProcAddress32"
 decl = { args = ["long", "string"] }
-evidence = [{ source = "spec", line = 328 }]
 
 [[exports]]
 ordinal = 454
 name = "__FLATCS"
 kind = "equate"
-evidence = [{ source = "spec", line = 329 }]
 value = 0
 
 [[exports]]
 ordinal = 455
 name = "__FLATDS"
 kind = "equate"
-evidence = [{ source = "spec", line = 330 }]
 value = 0
 
 [[exports]]
 ordinal = 457
 name = "CreateW32Event"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 332 }]
 
 [[exports]]
 ordinal = 458
 name = "SetW32Event"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 333 }]
 
 [[exports]]
 ordinal = 459
 name = "ResetW32Event"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 334 }]
 
 [[exports]]
 ordinal = 460
 name = "WaitForSingleObject"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 335 }]
 
 [[exports]]
 ordinal = 461
 name = "WaitForMultipleObjects"
 decl = { args = ["long", "pointer", "long", "long"] }
-evidence = [{ source = "spec", line = 336 }]
 
 [[exports]]
 ordinal = 462
 name = "GetCurrentThreadId"
-evidence = [{ source = "spec", line = 337 }]
 
 [[exports]]
 ordinal = 463
 name = "SetThreadQueue"
 decl = { args = ["long", "word"] }
-evidence = [{ source = "spec", line = 338 }]
 
 [[exports]]
 ordinal = 464
 name = "GetThreadQueue"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 339 }]
 
 [[exports]]
 ordinal = 465
 name = "NukeProcess"
 kind = "stub"
-evidence = [{ source = "spec", line = 340 }]
 
 [[exports]]
 ordinal = 467
 name = "WOACreateConsole"
 kind = "stub"
-evidence = [{ source = "spec", line = 342 }]
 
 [[exports]]
 ordinal = 468
 name = "WOASpawnConApp"
 kind = "stub"
-evidence = [{ source = "spec", line = 343 }]
 
 [[exports]]
 ordinal = 469
 name = "WOAGimmeTitle"
 kind = "stub"
-evidence = [{ source = "spec", line = 344 }]
 
 [[exports]]
 ordinal = 470
 name = "WOADestroyConsole"
 kind = "stub"
-evidence = [{ source = "spec", line = 345 }]
 
 [[exports]]
 ordinal = 471
 name = "GetCurrentProcessId"
-evidence = [{ source = "spec", line = 346 }]
 
 [[exports]]
 ordinal = 472
 name = "MapHInstLS"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 347 }]
 
 [[exports]]
 ordinal = 473
 name = "MapHInstSL"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 348 }]
 
 [[exports]]
 ordinal = 474
 name = "CloseW32Handle"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 349 }]
 
 [[exports]]
 ordinal = 475
 name = "GetTEBSelectorFS"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 350 }]
 
 [[exports]]
 ordinal = 476
 name = "ConvertToGlobalHandle"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 351 }]
 
 [[exports]]
 ordinal = 477
 name = "WOAFullScreen"
 kind = "stub"
-evidence = [{ source = "spec", line = 352 }]
 
 [[exports]]
 ordinal = 478
 name = "WOATerminateProcess"
 kind = "stub"
-evidence = [{ source = "spec", line = 353 }]
 
 [[exports]]
 ordinal = 479
 name = "KERNEL_479"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 354 }]
 
 [[exports]]
 ordinal = 480
 name = "_EnterWin16Lock"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 355 }]
 
 [[exports]]
 ordinal = 481
 name = "_LeaveWin16Lock"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 356 }]
 
 [[exports]]
 ordinal = 482
 name = "LoadSystemLibrary32"
 decl = { args = ["string"] }
-evidence = [{ source = "spec", line = 357 }]
 
 [[exports]]
 ordinal = 483
 name = "MapProcessHandle"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 358 }]
 
 [[exports]]
 ordinal = 484
 name = "SetProcessDword"
 decl = { args = ["long", "signed_word", "long"] }
-evidence = [{ source = "spec", line = 359 }]
 
 [[exports]]
 ordinal = 485
 name = "GetProcessDword"
 decl = { args = ["long", "signed_word"] }
-evidence = [{ source = "spec", line = 360 }]
 
 [[exports]]
 ordinal = 486
 name = "FreeLibrary32"
 decl = { args = ["long"] }
-evidence = [{ source = "spec", line = 361 }]
 
 [[exports]]
 ordinal = 487
 name = "GetModuleFileName32"
 decl = { args = ["long", "string", "word"] }
-evidence = [{ source = "spec", line = 362 }]
 
 [[exports]]
 ordinal = 488
 name = "GetModuleHandle32"
 decl = { args = ["string"] }
-evidence = [{ source = "spec", line = 363 }]
 
 [[exports]]
 ordinal = 489
 name = "KERNEL_489"
 kind = "stub"
-evidence = [{ source = "spec", line = 364 }]
 
 [[exports]]
 ordinal = 490
 name = "KERNEL_490"
 decl = { attributes = ["ret16"], args = ["word"] }
-evidence = [{ source = "spec", line = 365 }]
 
 [[exports]]
 ordinal = 491
 name = "RegisterServiceProcess"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 366 }]
 
 [[exports]]
 ordinal = 492
 name = "WOAAbort"
 kind = "stub"
-evidence = [{ source = "spec", line = 367 }]
 
 [[exports]]
 ordinal = 493
 name = "UTInit"
 decl = { attributes = ["ret16"], args = ["long", "long", "long", "long"] }
-evidence = [{ source = "spec", line = 368 }]
 
 [[exports]]
 ordinal = 494
 name = "KERNEL_494"
 kind = "stub"
-evidence = [{ source = "spec", line = 369 }]
 
 [[exports]]
 ordinal = 495
 name = "WaitForMultipleObjectsEx"
 decl = { args = ["long", "pointer", "long", "long", "long"] }
-evidence = [{ source = "spec", line = 370 }]
 
 [[exports]]
 ordinal = 500
 name = "WOW16Call"
 decl = { type = "varargs", args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 371 }]
 
 [[exports]]
 ordinal = 501
 name = "KDDBGOUT"
 kind = "stub"
-evidence = [{ source = "spec", line = 372 }]
 
 [[exports]]
 ordinal = 502
 name = "WOWGETNEXTVDMCOMMAND"
 kind = "stub"
-evidence = [{ source = "spec", line = 373 }]
 
 [[exports]]
 ordinal = 503
 name = "WOWREGISTERSHELLWINDOWHANDLE"
 kind = "stub"
-evidence = [{ source = "spec", line = 374 }]
 
 [[exports]]
 ordinal = 504
 name = "WOWLOADMODULE"
 kind = "stub"
-evidence = [{ source = "spec", line = 375 }]
 
 [[exports]]
 ordinal = 505
 name = "WOWQUERYPERFORMANCECOUNTER"
 kind = "stub"
-evidence = [{ source = "spec", line = 376 }]
 
 [[exports]]
 ordinal = 506
 name = "WOWCURSORICONOP"
 kind = "stub"
-evidence = [{ source = "spec", line = 377 }]
 
 [[exports]]
 ordinal = 507
 name = "WOWFAILEDEXEC"
 kind = "stub"
-evidence = [{ source = "spec", line = 378 }]
 
 [[exports]]
 ordinal = 508
 name = "WOWCLOSECOMPORT"
 kind = "stub"
-evidence = [{ source = "spec", line = 379 }]
 
 [[exports]]
 ordinal = 511
 name = "WOWKILLREMOTETASK"
 kind = "stub"
-evidence = [{ source = "spec", line = 380 }]
 
 [[exports]]
 ordinal = 512
 name = "WOWQUERYDEBUG"
 kind = "stub"
-evidence = [{ source = "spec", line = 381 }]
 
 [[exports]]
 ordinal = 519
 name = "EXITKERNELTHUNK"
 kind = "stub"
-evidence = [{ source = "spec", line = 388 }]
 
 [[exports]]
 ordinal = 520
 name = "__MOD_KERNEL"
 kind = "equate"
-evidence = [{ source = "spec", line = 389 }]
 value = 4200
 
 [[exports]]
 ordinal = 521
 name = "__MOD_DKERNEL"
 kind = "equate"
-evidence = [{ source = "spec", line = 390 }]
 value = 4201
 
 [[exports]]
 ordinal = 522
 name = "__MOD_USER"
 kind = "equate"
-evidence = [{ source = "spec", line = 391 }]
 value = 4203
 
 [[exports]]
 ordinal = 523
 name = "__MOD_DUSER"
 kind = "equate"
-evidence = [{ source = "spec", line = 392 }]
 value = 4204
 
 [[exports]]
 ordinal = 524
 name = "__MOD_GDI"
 kind = "equate"
-evidence = [{ source = "spec", line = 393 }]
 value = 4205
 
 [[exports]]
 ordinal = 525
 name = "__MOD_DGDI"
 kind = "equate"
-evidence = [{ source = "spec", line = 394 }]
 value = 4206
 
 [[exports]]
 ordinal = 526
 name = "__MOD_KEYBOARD"
 kind = "equate"
-evidence = [{ source = "spec", line = 395 }]
 value = 4207
 
 [[exports]]
 ordinal = 527
 name = "__MOD_SOUND"
 kind = "equate"
-evidence = [{ source = "spec", line = 396 }]
 value = 4208
 
 [[exports]]
 ordinal = 528
 name = "__MOD_SHELL"
 kind = "equate"
-evidence = [{ source = "spec", line = 397 }]
 value = 4209
 
 [[exports]]
 ordinal = 529
 name = "__MOD_WINSOCK"
 kind = "equate"
-evidence = [{ source = "spec", line = 398 }]
 value = 4210
 
 [[exports]]
 ordinal = 530
 name = "__MOD_TOOLHELP"
 kind = "equate"
-evidence = [{ source = "spec", line = 399 }]
 value = 4211
 
 [[exports]]
 ordinal = 531
 name = "__MOD_MMEDIA"
 kind = "equate"
-evidence = [{ source = "spec", line = 400 }]
 value = 4212
 
 [[exports]]
 ordinal = 532
 name = "__MOD_COMMDLG"
 kind = "equate"
-evidence = [{ source = "spec", line = 401 }]
 value = 4213
 
 [[exports]]
 ordinal = 533
 name = "ConvertDDEHandleLS"
 kind = "stub"
-evidence = [{ source = "spec", line = 402 }]
 
 [[exports]]
 ordinal = 534
 name = "ConvertDDEHandleSL"
 kind = "stub"
-evidence = [{ source = "spec", line = 403 }]
 
 [[exports]]
 ordinal = 535
 name = "VWin32_BoostThreadGroup"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 404 }]
 
 [[exports]]
 ordinal = 536
 name = "VWin32_BoostThreadStatic"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 405 }]
 
 [[exports]]
 ordinal = 537
 name = "KERNEL_537"
 kind = "stub"
-evidence = [{ source = "spec", line = 406 }]
 
 [[exports]]
 ordinal = 538
 name = "ThunkTheTemplateHandle"
 kind = "stub"
-evidence = [{ source = "spec", line = 407 }]
 
 [[exports]]
 ordinal = 540
 name = "KERNEL_540"
 kind = "stub"
-evidence = [{ source = "spec", line = 408 }]
 
 [[exports]]
 ordinal = 541
 name = "WOWSETEXITONLASTAPP"
 kind = "stub"
-evidence = [{ source = "spec", line = 409 }]
 
 [[exports]]
 ordinal = 542
 name = "KERNEL_542"
 kind = "stub"
-evidence = [{ source = "spec", line = 410 }]
 
 [[exports]]
 ordinal = 543
 name = "KERNEL_543"
 kind = "stub"
-evidence = [{ source = "spec", line = 411 }]
 
 [[exports]]
 ordinal = 544
 name = "WOWSETCOMPATHANDLE"
 kind = "stub"
-evidence = [{ source = "spec", line = 412 }]
 
 [[exports]]
 ordinal = 560
 name = "SetThunkletCallbackGlue"
 decl = { args = ["long", "segmented_pointer"] }
-evidence = [{ source = "spec", line = 413 }]
 
 [[exports]]
 ordinal = 561
 name = "AllocLSThunkletCallback"
 decl = { args = ["segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 414 }]
 
 [[exports]]
 ordinal = 562
 name = "AllocSLThunkletCallback"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 415 }]
 
 [[exports]]
 ordinal = 563
 name = "FindLSThunkletCallback"
 decl = { args = ["segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 416 }]
 
 [[exports]]
 ordinal = 564
 name = "FindSLThunkletCallback"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 417 }]
 
 [[exports]]
 ordinal = 566
 name = "KERNEL_566"
 kind = "stub"
-evidence = [{ source = "spec", line = 418 }]
 
 [[exports]]
 ordinal = 567
 name = "AllocLSThunkletCallbackEx"
 decl = { args = ["segmented_pointer", "long", "word"] }
-evidence = [{ source = "spec", line = 419 }]
 
 [[exports]]
 ordinal = 568
 name = "AllocSLThunkletCallbackEx"
 decl = { args = ["long", "long", "word"] }
-evidence = [{ source = "spec", line = 420 }]
 
 [[exports]]
 ordinal = 600
 name = "AllocCodeAlias"
 kind = "stub"
-evidence = [{ source = "spec", line = 421 }]
 
 [[exports]]
 ordinal = 601
 name = "FreeCodeAlias"
 kind = "stub"
-evidence = [{ source = "spec", line = 422 }]
 
 [[exports]]
 ordinal = 602
 name = "GetDummyModuleHandleDS"
 decl = { attributes = ["ret16"] }
-evidence = [{ source = "spec", line = 423 }]
 
 [[exports]]
 ordinal = 603
 name = "KERNEL_603"
 kind = "stub"
-evidence = [{ source = "spec", line = 424 }]
 
 [[exports]]
 ordinal = 604
 name = "CBClientGlueSL"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 425 }]
 
 [[exports]]
 ordinal = 605
 name = "AllocSLThunkletCallback_dup"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 426 }]
 
 [[exports]]
 ordinal = 606
 name = "AllocLSThunkletCallback_dup"
 decl = { args = ["segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 427 }]
 
 [[exports]]
 ordinal = 607
 name = "AllocLSThunkletSysthunk"
 decl = { args = ["segmented_pointer", "long", "long"] }
-evidence = [{ source = "spec", line = 428 }]
 
 [[exports]]
 ordinal = 608
 name = "AllocSLThunkletSysthunk"
 decl = { args = ["long", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 429 }]
 
 [[exports]]
 ordinal = 609
 name = "FindLSThunkletCallback_dup"
 decl = { args = ["segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 430 }]
 
 [[exports]]
 ordinal = 610
 name = "FindSLThunkletCallback_dup"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 431 }]
 
 [[exports]]
 ordinal = 611
 name = "FreeThunklet"
 decl = { attributes = ["ret16"], args = ["long", "long"] }
-evidence = [{ source = "spec", line = 432 }]
 
 [[exports]]
 ordinal = 612
 name = "IsSLThunklet"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 433 }]
 
 [[exports]]
 ordinal = 613
 name = "HugeMapLS"
 kind = "stub"
-evidence = [{ source = "spec", line = 434 }]
 
 [[exports]]
 ordinal = 614
 name = "HugeUnMapLS"
 kind = "stub"
-evidence = [{ source = "spec", line = 435 }]
 
 [[exports]]
 ordinal = 615
 name = "ConvertDialog32To16"
 decl = { attributes = ["ret16"], args = ["long", "long", "long"] }
-evidence = [{ source = "spec", line = 436 }]
 
 [[exports]]
 ordinal = 616
 name = "ConvertMenu32To16"
 decl = { attributes = ["ret16"], args = ["long", "long", "long"] }
-evidence = [{ source = "spec", line = 437 }]
 
 [[exports]]
 ordinal = 617
 name = "GetMenu32Size"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 438 }]
 
 [[exports]]
 ordinal = 618
 name = "GetDialog32Size"
 decl = { attributes = ["ret16"], args = ["pointer"] }
-evidence = [{ source = "spec", line = 439 }]
 
 [[exports]]
 ordinal = 619
 name = "RegisterCBClient"
 decl = { attributes = ["ret16"], args = ["word", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 440 }]
 
 [[exports]]
 ordinal = 620
 name = "CBClientThunkSL"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 441 }]
 
 [[exports]]
 ordinal = 621
 name = "CBClientThunkSLEx"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 442 }]
 
 [[exports]]
 ordinal = 622
 name = "UnRegisterCBClient"
 decl = { attributes = ["ret16"], args = ["word", "segmented_pointer", "long"] }
-evidence = [{ source = "spec", line = 443 }]
 
 [[exports]]
 ordinal = 623
 name = "InitCBClient"
 decl = { attributes = ["ret16"], args = ["long"] }
-evidence = [{ source = "spec", line = 444 }]
 
 [[exports]]
 ordinal = 624
 name = "SetFastQueue"
 decl = { args = ["long", "long"] }
-evidence = [{ source = "spec", line = 445 }]
 
 [[exports]]
 ordinal = 625
 name = "GetFastQueue"
-evidence = [{ source = "spec", line = 446 }]
 
 [[exports]]
 ordinal = 626
 name = "SmashEnvironment"
 kind = "stub"
-evidence = [{ source = "spec", line = 447 }]
 
 [[exports]]
 ordinal = 627
 name = "IsBadFlatReadWritePtr"
 decl = { attributes = ["ret16"], args = ["segmented_pointer", "long", "word"] }
-evidence = [{ source = "spec", line = 448 }]
 
 [[exports]]
 ordinal = 630
 name = "C16ThkSL"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 449 }]
 
 [[exports]]
 ordinal = 631
 name = "C16ThkSL01"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 450 }]
 
 [[exports]]
 ordinal = 651
 name = "ThunkConnect16"
 decl = { args = ["string", "string", "word", "long", "pointer", "string", "word"] }
-evidence = [{ source = "spec", line = 451 }]
 
 [[exports]]
 ordinal = 652
 name = "IsThreadId"
 kind = "stub"
-evidence = [{ source = "spec", line = 452 }]
 
 [[exports]]
 ordinal = 653
 name = "OkWithKernelToChangeUsers"
 kind = "stub"
-evidence = [{ source = "spec", line = 453 }]
 
 [[exports]]
 ordinal = 666
 name = "UTGlue16"
 decl = { args = ["pointer", "long", "pointer", "long"] }
-evidence = [{ source = "spec", line = 454 }]
 
 [[exports]]
 ordinal = 667
 name = "EntryAddrProc"
 decl = { args = ["word", "word"] }
-evidence = [{ source = "spec", line = 455 }]
 
 [[exports]]
 ordinal = 668
 name = "MyAlloc"
 decl = { args = ["word", "word", "word"] }
-evidence = [{ source = "spec", line = 456 }]
 
 [[exports]]
 ordinal = 669
 name = "DllEntryPoint"
 decl = { attributes = ["ret16"], args = ["long", "word", "word", "word", "long", "word"] }
-evidence = [{ source = "spec", line = 457 }]
 
 [[exports]]
 ordinal = 700
 name = "SSInit"
-evidence = [{ source = "spec", line = 458 }]
 
 [[exports]]
 ordinal = 701
 name = "SSOnBigStack"
 kind = "stub"
-evidence = [{ source = "spec", line = 459 }]
 
 [[exports]]
 ordinal = 702
 name = "SSCall"
 kind = "stub"
-evidence = [{ source = "spec", line = 460 }]
 
 [[exports]]
 ordinal = 703
 name = "CallProc32WFix"
 kind = "stub"
-evidence = [{ source = "spec", line = 461 }]
 
 [[exports]]
 ordinal = 704
 name = "SSConfirmSmallStack"
 decl = { attributes = ["register"] }
-evidence = [{ source = "spec", line = 462 }]

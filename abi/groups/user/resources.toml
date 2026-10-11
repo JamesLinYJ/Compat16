@@ -1,15 +1,10 @@
 module = "USER"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/user.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 174
 name = "LoadIcon"
 binding = { rust_id = "UserLoadIcon", id_value = 238, constant = "USER_LOAD_ICON" }
-evidence = [{ source = "spec", line = 176 }, { source = "binding", line = 315 }]
 [exports.call]
 returns = "word"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 175
 name = "LoadBitmap"
 binding = { rust_id = "UserLoadBitmap", id_value = 239, constant = "USER_LOAD_BITMAP" }
-evidence = [{ source = "spec", line = 177 }, { source = "binding", line = 316 }]
 [exports.call]
 returns = "word"
 params = [
@@ -33,7 +27,6 @@ params = [
 ordinal = 176
 name = "LoadString"
 binding = { rust_id = "UserLoadString", id_value = 236, constant = "USER_LOAD_STRING" }
-evidence = [{ source = "spec", line = 178 }, { source = "binding", line = 313 }]
 [exports.call]
 returns = "word"
 params = [
@@ -47,7 +40,6 @@ params = [
 ordinal = 407
 name = "CreateIcon"
 binding = { rust_id = "UserCreateIcon", id_value = 241, constant = "USER_CREATE_ICON" }
-evidence = [{ source = "spec", line = 366 }, { source = "binding", line = 318 }]
 [exports.call]
 returns = "word"
 params = [

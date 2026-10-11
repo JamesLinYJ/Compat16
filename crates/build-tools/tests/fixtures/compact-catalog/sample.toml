@@ -5,7 +5,6 @@ defaults = { attributes = ["ret16"] }
 ordinal = 1
 name = "Example"
 binding = { rust_id = "SampleExample", id_value = 0, constant = "SAMPLE_EXAMPLE" }
-evidence = []
 [exports.call]
 returns = "void"
 params = [
@@ -15,4 +14,3 @@ params = [
 [[exports]]
 ordinal = 2
 name = "MetadataOnly"
-evidence = []

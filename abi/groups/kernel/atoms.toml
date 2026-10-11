@@ -1,15 +1,10 @@
 module = "KERNEL"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/kernel.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 68
 name = "InitAtomTable"
 binding = { rust_id = "KernelInitAtomTable", id_value = 175, constant = "KERNEL_INIT_ATOM_TABLE" }
-evidence = [{ source = "spec", line = 69 }, { source = "binding", line = 251 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 69
 name = "FindAtom"
 binding = { rust_id = "KernelFindAtom", id_value = 176, constant = "KERNEL_FIND_ATOM" }
-evidence = [{ source = "spec", line = 70 }, { source = "binding", line = 252 }]
 [exports.call]
 returns = "word"
 params = [
@@ -31,7 +25,6 @@ params = [
 ordinal = 70
 name = "AddAtom"
 binding = { rust_id = "KernelAddAtom", id_value = 177, constant = "KERNEL_ADD_ATOM" }
-evidence = [{ source = "spec", line = 71 }, { source = "binding", line = 253 }]
 [exports.call]
 returns = "word"
 params = [
@@ -42,7 +35,6 @@ params = [
 ordinal = 71
 name = "DeleteAtom"
 binding = { rust_id = "KernelDeleteAtom", id_value = 178, constant = "KERNEL_DELETE_ATOM" }
-evidence = [{ source = "spec", line = 72 }, { source = "binding", line = 254 }]
 [exports.call]
 returns = "word"
 params = [
@@ -53,7 +45,6 @@ params = [
 ordinal = 72
 name = "GetAtomName"
 binding = { rust_id = "KernelGetAtomName", id_value = 179, constant = "KERNEL_GET_ATOM_NAME" }
-evidence = [{ source = "spec", line = 73 }, { source = "binding", line = 255 }]
 [exports.call]
 returns = "word"
 params = [
@@ -66,7 +57,6 @@ params = [
 ordinal = 73
 name = "GetAtomHandle"
 binding = { rust_id = "KernelGetAtomHandle", id_value = 180, constant = "KERNEL_GET_ATOM_HANDLE" }
-evidence = [{ source = "spec", line = 74 }, { source = "binding", line = 256 }]
 [exports.call]
 returns = "word"
 params = [

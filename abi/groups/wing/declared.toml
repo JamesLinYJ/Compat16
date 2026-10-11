@@ -1,15 +1,10 @@
 module = "WING"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/wing.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 1001
 name = "WinGCreateDC"
 binding = { rust_id = "WingCreateDc", id_value = 708, constant = "WING_CREATE_DC" }
-evidence = [{ source = "spec", line = 2 }, { source = "binding", line = 805 }]
 [exports.call]
 returns = "word"
 
@@ -17,6 +12,5 @@ returns = "word"
 ordinal = 1007
 name = "WinGCreateHalfTonePalette"
 binding = { rust_id = "WingCreateHalfTonePalette", id_value = 714, constant = "WING_CREATE_HALF_TONE_PALETTE" }
-evidence = [{ source = "spec", line = 8 }, { source = "binding", line = 811 }]
 [exports.call]
 returns = "word"

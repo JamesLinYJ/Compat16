@@ -33,6 +33,7 @@ pub(super) fn decode(
         }
         Win16ExportId::KernelGetWindowsDirectory
         | Win16ExportId::KernelGetSystemDirectory
+        | Win16ExportId::KernelGetTempDrive
         | Win16ExportId::KernelGetTempFileName => {
             let request = super::super::call_kernel_path_info::decode(
                 descriptor.id,

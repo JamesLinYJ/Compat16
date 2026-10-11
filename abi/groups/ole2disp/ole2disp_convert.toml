@@ -1,14 +1,9 @@
 module = "OLE2DISP"
 
-[sources]
-spec = { path = "specs/ole2disp.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/ole2disp_convert_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 12
 name = "VariantChangeType"
 binding = { rust_id = "Ole2DispVariantChangeType", id_value = 879, constant = "OLE2DISP_VARIANT_CHANGE_TYPE" }
-evidence = [{ source = "spec", line = 13 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -22,7 +17,6 @@ params = [
 ordinal = 43
 name = "VarI2FromI4"
 binding = { rust_id = "Ole2DispVarI2FromI4", id_value = 880, constant = "OLE2DISP_VAR_I2_FROM_I4" }
-evidence = [{ source = "spec", line = 44 }, { source = "binding", line = 10 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -34,7 +28,6 @@ params = [
 ordinal = 44
 name = "VarI2FromR4"
 binding = { rust_id = "Ole2DispVarI2FromR4", id_value = 881, constant = "OLE2DISP_VAR_I2_FROM_R4" }
-evidence = [{ source = "spec", line = 45 }, { source = "binding", line = 12 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -46,7 +39,6 @@ params = [
 ordinal = 45
 name = "VarI2FromR8"
 binding = { rust_id = "Ole2DispVarI2FromR8", id_value = 882, constant = "OLE2DISP_VAR_I2_FROM_R8" }
-evidence = [{ source = "spec", line = 46 }, { source = "binding", line = 14 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -59,7 +51,6 @@ params = [
 ordinal = 46
 name = "VarI2FromCy"
 binding = { rust_id = "Ole2DispVarI2FromCy", id_value = 883, constant = "OLE2DISP_VAR_I2_FROM_CY" }
-evidence = [{ source = "spec", line = 47 }, { source = "binding", line = 16 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -72,7 +63,6 @@ params = [
 ordinal = 47
 name = "VarI2FromDate"
 binding = { rust_id = "Ole2DispVarI2FromDate", id_value = 884, constant = "OLE2DISP_VAR_I2_FROM_DATE" }
-evidence = [{ source = "spec", line = 48 }, { source = "binding", line = 18 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -85,7 +75,6 @@ params = [
 ordinal = 48
 name = "VarI2FromStr"
 binding = { rust_id = "Ole2DispVarI2FromStr", id_value = 885, constant = "OLE2DISP_VAR_I2_FROM_STR" }
-evidence = [{ source = "spec", line = 49 }, { source = "binding", line = 20 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -99,7 +88,6 @@ params = [
 ordinal = 50
 name = "VarI2FromBool"
 binding = { rust_id = "Ole2DispVarI2FromBool", id_value = 886, constant = "OLE2DISP_VAR_I2_FROM_BOOL" }
-evidence = [{ source = "spec", line = 51 }, { source = "binding", line = 22 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -111,7 +99,6 @@ params = [
 ordinal = 56
 name = "VarI4FromStr"
 binding = { rust_id = "Ole2DispVarI4FromStr", id_value = 887, constant = "OLE2DISP_VAR_I4_FROM_STR" }
-evidence = [{ source = "spec", line = 57 }, { source = "binding", line = 24 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -125,7 +112,6 @@ params = [
 ordinal = 61
 name = "VarR4FromR8"
 binding = { rust_id = "Ole2DispVarR4FromR8", id_value = 888, constant = "OLE2DISP_VAR_R4_FROM_R8" }
-evidence = [{ source = "spec", line = 62 }, { source = "binding", line = 26 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -138,7 +124,6 @@ params = [
 ordinal = 64
 name = "VarR4FromStr"
 binding = { rust_id = "Ole2DispVarR4FromStr", id_value = 889, constant = "OLE2DISP_VAR_R4_FROM_STR" }
-evidence = [{ source = "spec", line = 65 }, { source = "binding", line = 28 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -152,7 +137,6 @@ params = [
 ordinal = 72
 name = "VarR8FromStr"
 binding = { rust_id = "Ole2DispVarR8FromStr", id_value = 890, constant = "OLE2DISP_VAR_R8_FROM_STR" }
-evidence = [{ source = "spec", line = 73 }, { source = "binding", line = 30 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -166,7 +150,6 @@ params = [
 ordinal = 80
 name = "VarDateFromStr"
 binding = { rust_id = "Ole2DispVarDateFromStr", id_value = 891, constant = "OLE2DISP_VAR_DATE_FROM_STR" }
-evidence = [{ source = "spec", line = 81 }, { source = "binding", line = 32 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -180,7 +163,6 @@ params = [
 ordinal = 88
 name = "VarCyFromStr"
 binding = { rust_id = "Ole2DispVarCyFromStr", id_value = 892, constant = "OLE2DISP_VAR_CY_FROM_STR" }
-evidence = [{ source = "spec", line = 89 }, { source = "binding", line = 34 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -194,7 +176,6 @@ params = [
 ordinal = 91
 name = "VarBstrFromI2"
 binding = { rust_id = "Ole2DispVarBstrFromI2", id_value = 893, constant = "OLE2DISP_VAR_BSTR_FROM_I2" }
-evidence = [{ source = "spec", line = 92 }, { source = "binding", line = 36 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -208,7 +189,6 @@ params = [
 ordinal = 92
 name = "VarBstrFromI4"
 binding = { rust_id = "Ole2DispVarBstrFromI4", id_value = 894, constant = "OLE2DISP_VAR_BSTR_FROM_I4" }
-evidence = [{ source = "spec", line = 93 }, { source = "binding", line = 38 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -222,7 +202,6 @@ params = [
 ordinal = 93
 name = "VarBstrFromR4"
 binding = { rust_id = "Ole2DispVarBstrFromR4", id_value = 895, constant = "OLE2DISP_VAR_BSTR_FROM_R4" }
-evidence = [{ source = "spec", line = 94 }, { source = "binding", line = 40 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -236,7 +215,6 @@ params = [
 ordinal = 94
 name = "VarBstrFromR8"
 binding = { rust_id = "Ole2DispVarBstrFromR8", id_value = 896, constant = "OLE2DISP_VAR_BSTR_FROM_R8" }
-evidence = [{ source = "spec", line = 95 }, { source = "binding", line = 42 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -251,7 +229,6 @@ params = [
 ordinal = 95
 name = "VarBstrFromCy"
 binding = { rust_id = "Ole2DispVarBstrFromCy", id_value = 897, constant = "OLE2DISP_VAR_BSTR_FROM_CY" }
-evidence = [{ source = "spec", line = 96 }, { source = "binding", line = 44 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -266,7 +243,6 @@ params = [
 ordinal = 96
 name = "VarBstrFromDate"
 binding = { rust_id = "Ole2DispVarBstrFromDate", id_value = 898, constant = "OLE2DISP_VAR_BSTR_FROM_DATE" }
-evidence = [{ source = "spec", line = 97 }, { source = "binding", line = 46 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -281,7 +257,6 @@ params = [
 ordinal = 97
 name = "VarBstrFromDisp"
 binding = { rust_id = "Ole2DispVarBstrFromDisp", id_value = 899, constant = "OLE2DISP_VAR_BSTR_FROM_DISP" }
-evidence = [{ source = "spec", line = 98 }, { source = "binding", line = 48 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -295,7 +270,6 @@ params = [
 ordinal = 98
 name = "VarBstrFromBool"
 binding = { rust_id = "Ole2DispVarBstrFromBool", id_value = 900, constant = "OLE2DISP_VAR_BSTR_FROM_BOOL" }
-evidence = [{ source = "spec", line = 99 }, { source = "binding", line = 50 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -309,7 +283,6 @@ params = [
 ordinal = 108
 name = "VariantChangeTypeEx"
 binding = { rust_id = "Ole2DispVariantChangeTypeEx", id_value = 901, constant = "OLE2DISP_VARIANT_CHANGE_TYPE_EX" }
-evidence = [{ source = "spec", line = 109 }, { source = "binding", line = 52 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -324,7 +297,6 @@ params = [
 ordinal = 116
 name = "VarUI1FromI2"
 binding = { rust_id = "Ole2DispVarUI1FromI2", id_value = 902, constant = "OLE2DISP_VAR_UI1_FROM_I2" }
-evidence = [{ source = "spec", line = 117 }, { source = "binding", line = 54 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -336,7 +308,6 @@ params = [
 ordinal = 117
 name = "VarUI1FromI4"
 binding = { rust_id = "Ole2DispVarUI1FromI4", id_value = 903, constant = "OLE2DISP_VAR_UI1_FROM_I4" }
-evidence = [{ source = "spec", line = 118 }, { source = "binding", line = 56 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -348,7 +319,6 @@ params = [
 ordinal = 118
 name = "VarUI1FromR4"
 binding = { rust_id = "Ole2DispVarUI1FromR4", id_value = 904, constant = "OLE2DISP_VAR_UI1_FROM_R4" }
-evidence = [{ source = "spec", line = 119 }, { source = "binding", line = 58 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -360,7 +330,6 @@ params = [
 ordinal = 119
 name = "VarUI1FromR8"
 binding = { rust_id = "Ole2DispVarUI1FromR8", id_value = 905, constant = "OLE2DISP_VAR_UI1_FROM_R8" }
-evidence = [{ source = "spec", line = 120 }, { source = "binding", line = 60 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -373,7 +342,6 @@ params = [
 ordinal = 120
 name = "VarUI1FromCy"
 binding = { rust_id = "Ole2DispVarUI1FromCy", id_value = 906, constant = "OLE2DISP_VAR_UI1_FROM_CY" }
-evidence = [{ source = "spec", line = 121 }, { source = "binding", line = 62 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -386,7 +354,6 @@ params = [
 ordinal = 121
 name = "VarUI1FromDate"
 binding = { rust_id = "Ole2DispVarUI1FromDate", id_value = 907, constant = "OLE2DISP_VAR_UI1_FROM_DATE" }
-evidence = [{ source = "spec", line = 122 }, { source = "binding", line = 64 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -399,7 +366,6 @@ params = [
 ordinal = 122
 name = "VarUI1FromStr"
 binding = { rust_id = "Ole2DispVarUI1FromStr", id_value = 908, constant = "OLE2DISP_VAR_UI1_FROM_STR" }
-evidence = [{ source = "spec", line = 123 }, { source = "binding", line = 66 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -413,7 +379,6 @@ params = [
 ordinal = 123
 name = "VarUI1FromDisp"
 binding = { rust_id = "Ole2DispVarUI1FromDisp", id_value = 909, constant = "OLE2DISP_VAR_UI1_FROM_DISP" }
-evidence = [{ source = "spec", line = 124 }, { source = "binding", line = 68 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -426,7 +391,6 @@ params = [
 ordinal = 124
 name = "VarUI1FromBool"
 binding = { rust_id = "Ole2DispVarUI1FromBool", id_value = 910, constant = "OLE2DISP_VAR_UI1_FROM_BOOL" }
-evidence = [{ source = "spec", line = 125 }, { source = "binding", line = 70 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -438,7 +402,6 @@ params = [
 ordinal = 125
 name = "VarI2FromUI1"
 binding = { rust_id = "Ole2DispVarI2FromUI1", id_value = 911, constant = "OLE2DISP_VAR_I2_FROM_UI1" }
-evidence = [{ source = "spec", line = 126 }, { source = "binding", line = 72 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -450,7 +413,6 @@ params = [
 ordinal = 131
 name = "VarBstrFromUI1"
 binding = { rust_id = "Ole2DispVarBstrFromUI1", id_value = 912, constant = "OLE2DISP_VAR_BSTR_FROM_UI1" }
-evidence = [{ source = "spec", line = 132 }, { source = "binding", line = 74 }]
 [exports.call]
 returns = "dword"
 params = [

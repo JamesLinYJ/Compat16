@@ -1,15 +1,10 @@
 module = "TOOLHELP"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/toolhelp.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/toolhelp_memory_records.inc.rs", note = "binding" }
-
 [[exports]]
 ordinal = 71
 name = "SystemHeapInfo"
 binding = { rust_id = "ToolhelpSystemHeapInfo", id_value = 727, constant = "TOOLHELP_SYSTEM_HEAP_INFO" }
-evidence = [{ source = "spec", line = 23 }, { source = "binding", line = 6 }]
 [exports.call]
 returns = "word"
 params = [
@@ -20,7 +15,6 @@ params = [
 ordinal = 72
 name = "MemManInfo"
 binding = { rust_id = "ToolhelpMemManInfo", id_value = 728, constant = "TOOLHELP_MEMMAN_INFO" }
-evidence = [{ source = "spec", line = 24 }, { source = "binding", line = 8 }]
 [exports.call]
 returns = "word"
 params = [

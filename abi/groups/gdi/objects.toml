@@ -1,15 +1,10 @@
 module = "GDI"
 defaults = { attributes = ["ret16"] }
 
-[sources]
-spec = { path = "specs/gdi.spec", note = "spec" }
-binding = { path = "crates/win16/src/exports/catalog/declarations.rs", note = "binding" }
-
 [[exports]]
 ordinal = 45
 name = "SelectObject"
 binding = { rust_id = "GdiSelectObject", id_value = 270, constant = "GDI_SELECT_OBJECT" }
-evidence = [{ source = "spec", line = 46 }, { source = "binding", line = 348 }]
 [exports.call]
 returns = "word"
 params = [
@@ -21,7 +16,6 @@ params = [
 ordinal = 50
 name = "CreateBrushIndirect"
 binding = { rust_id = "GdiCreateBrushIndirect", id_value = 318, constant = "GDI_CREATE_BRUSH_INDIRECT" }
-evidence = [{ source = "spec", line = 51 }, { source = "binding", line = 396 }]
 [exports.call]
 returns = "word"
 params = [
@@ -32,7 +26,6 @@ params = [
 ordinal = 58
 name = "CreateHatchBrush"
 binding = { rust_id = "GdiCreateHatchBrush", id_value = 319, constant = "GDI_CREATE_HATCH_BRUSH" }
-evidence = [{ source = "spec", line = 59 }, { source = "binding", line = 397 }]
 [exports.call]
 returns = "word"
 params = [
@@ -44,7 +37,6 @@ params = [
 ordinal = 60
 name = "CreatePatternBrush"
 binding = { rust_id = "GdiCreatePatternBrush", id_value = 320, constant = "GDI_CREATE_PATTERN_BRUSH" }
-evidence = [{ source = "spec", line = 60 }, { source = "binding", line = 398 }]
 [exports.call]
 returns = "word"
 params = [
@@ -55,7 +47,6 @@ params = [
 ordinal = 61
 name = "CreatePen"
 binding = { rust_id = "GdiCreatePen", id_value = 325, constant = "GDI_CREATE_PEN" }
-evidence = [{ source = "spec", line = 61 }, { source = "binding", line = 403 }]
 [exports.call]
 returns = "word"
 params = [
@@ -68,7 +59,6 @@ params = [
 ordinal = 62
 name = "CreatePenIndirect"
 binding = { rust_id = "GdiCreatePenIndirect", id_value = 326, constant = "GDI_CREATE_PEN_INDIRECT" }
-evidence = [{ source = "spec", line = 62 }, { source = "binding", line = 404 }]
 [exports.call]
 returns = "word"
 params = [
@@ -79,7 +69,6 @@ params = [
 ordinal = 66
 name = "CreateSolidBrush"
 binding = { rust_id = "GdiCreateSolidBrush", id_value = 309, constant = "GDI_CREATE_SOLID_BRUSH" }
-evidence = [{ source = "spec", line = 66 }, { source = "binding", line = 387 }]
 [exports.call]
 returns = "word"
 params = [
@@ -90,7 +79,6 @@ params = [
 ordinal = 69
 name = "DeleteObject"
 binding = { rust_id = "GdiDeleteObject", id_value = 261, constant = "GDI_DELETE_OBJECT" }
-evidence = [{ source = "spec", line = 69 }, { source = "binding", line = 338 }]
 [exports.call]
 returns = "word"
 params = [
@@ -101,7 +89,6 @@ params = [
 ordinal = 82
 name = "GetObject"
 binding = { rust_id = "GdiGetObject", id_value = 263, constant = "GDI_GET_OBJECT" }
-evidence = [{ source = "spec", line = 82 }, { source = "binding", line = 340 }]
 [exports.call]
 returns = "word"
 params = [
@@ -114,7 +101,6 @@ params = [
 ordinal = 87
 name = "GetStockObject"
 binding = { rust_id = "GdiGetStockObject", id_value = 265, constant = "GDI_GET_STOCK_OBJECT" }
-evidence = [{ source = "spec", line = 87 }, { source = "binding", line = 342 }]
 [exports.call]
 returns = "word"
 params = [
@@ -126,7 +112,6 @@ ordinal = 148
 name = "SetBrushOrg"
 decl = { attributes = [] }
 binding = { rust_id = "GdiSetBrushOrg", id_value = 388, constant = "GDI_SET_BRUSH_ORG" }
-evidence = [{ source = "spec", line = 138 }, { source = "binding", line = 468 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -140,7 +125,6 @@ ordinal = 149
 name = "GetBrushOrg"
 decl = { attributes = [] }
 binding = { rust_id = "GdiGetBrushOrg", id_value = 389, constant = "GDI_GET_BRUSH_ORG" }
-evidence = [{ source = "spec", line = 139 }, { source = "binding", line = 469 }]
 [exports.call]
 returns = "dword"
 params = [
@@ -151,7 +135,6 @@ params = [
 ordinal = 150
 name = "UnrealizeObject"
 binding = { rust_id = "GdiUnrealizeObject", id_value = 262, constant = "GDI_UNREALIZE_OBJECT" }
-evidence = [{ source = "spec", line = 140 }, { source = "binding", line = 339 }]
 [exports.call]
 returns = "word"
 params = [
@@ -162,7 +145,6 @@ params = [
 ordinal = 445
 name = "CreateDIBPatternBrush"
 binding = { rust_id = "GdiCreateDibPatternBrush", id_value = 321, constant = "GDI_CREATE_DIB_PATTERN_BRUSH" }
-evidence = [{ source = "spec", line = 299 }, { source = "binding", line = 399 }]
 [exports.call]
 returns = "word"
 params = [
@@ -174,7 +156,6 @@ params = [
 ordinal = 469
 name = "GetBrushOrgEx"
 binding = { rust_id = "GdiGetBrushOrgEx", id_value = 390, constant = "GDI_GET_BRUSH_ORG_EX" }
-evidence = [{ source = "spec", line = 313 }, { source = "binding", line = 470 }]
 [exports.call]
 returns = "word"
 params = [

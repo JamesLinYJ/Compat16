@@ -17,6 +17,17 @@ impl Win16State {
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
         match request {
+            Win16KernelPathInfoRequest::GetTempDrive { drive } => {
+                let letter = super::temp_drive::select(
+                    drive,
+                    || self.kernel_file_system.current_drive(self.current_task_owner()?),
+                    |drive| self.drive_type(u16::from(drive), host).map(|kind| kind == 3),
+                )?;
+                // WINDOWS.H declares BYTE (AL). The original Windows 3.1
+                // implementation additionally leaves ':' in AH. Deliberately
+                // use the Word return path; DX is not part of this API result.
+                Ok(u32::from(u16::from_le_bytes([letter, b':'])))
+            }
             Win16KernelPathInfoRequest::GetWindowsDirectory { output, capacity } =>
                 self.directory_query(Operation::WindowsDirectory, output, capacity, memory, host),
             Win16KernelPathInfoRequest::GetSystemDirectory { output, capacity } =>
@@ -153,3 +164,7 @@ fn guest_api_failure(error: &RuntimeError) -> bool {
 fn invariant(message: &'static str) -> RuntimeError {
     RuntimeError::new(Kind::InternalInvariant, message)
 }
+
+#[cfg(test)]
+#[path = "win16_get_temp_drive_tests.rs"]
+mod get_temp_drive_tests;
