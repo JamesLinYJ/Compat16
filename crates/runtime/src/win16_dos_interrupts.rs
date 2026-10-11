@@ -485,3 +485,7 @@ mod spool_tests;
 #[cfg(test)]
 #[path = "win16_dos_search_tests.rs"]
 mod dos_search_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_write_access_tests.rs"]
+mod dos_write_access_tests;

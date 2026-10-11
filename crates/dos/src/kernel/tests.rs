@@ -85,6 +85,9 @@ pub(super) struct TestHost {
     file_commit_error: Option<DosErrorCode>,
     duplicate_token_override: Option<DosHostFile>,
     max_file_write: Option<usize>,
+    file_write_calls: Vec<(DosHostFile, Vec<u8>)>,
+    file_seek_calls: Vec<(DosHostFile, i32, DosSeekOrigin)>,
+    file_set_len_calls: Vec<(DosHostFile, u32)>,
     code_page: Option<text_codec::CodePage>,
     redirected_standard_streams: bool,
     standard_info_override: Option<DosIoctlObjectInfo>,
@@ -280,6 +283,7 @@ impl DosHost for TestHost {
         Ok(count)
     }
     fn file_write(&mut self, file: DosHostFile, input: &[u8]) -> Result<usize, DosHostError> {
+        self.file_write_calls.push((file, input.to_vec()));
         let input = &input[..self.max_file_write.unwrap_or(input.len()).min(input.len())];
         let state = self.file_for(file)?;
         state.written = true;
@@ -291,6 +295,7 @@ impl DosHost for TestHost {
         Ok(input.len())
     }
     fn file_seek(&mut self, file: DosHostFile, offset: i32, origin: DosSeekOrigin) -> Result<u32, DosHostError> {
+        self.file_seek_calls.push((file, offset, origin));
         let state = self.file_for(file)?;
         let base = match origin { DosSeekOrigin::Start => 0i64, DosSeekOrigin::Current => i64::from(state.cursor), DosSeekOrigin::End => state.bytes.len() as i64 };
         let displacement = match origin {
@@ -303,6 +308,7 @@ impl DosHost for TestHost {
         Ok(state.cursor)
     }
     fn file_set_len(&mut self, file: DosHostFile, length: u32) -> Result<(), DosHostError> {
+        self.file_set_len_calls.push((file, length));
         let state = self.file_for(file)?;
         state.written = true;
         state.bytes.resize(length as usize, 0);
@@ -1393,3 +1399,6 @@ mod file_seek_tests;
 
 #[path = "file_read_access_tests.rs"]
 mod file_read_access_tests;
+
+#[path = "file_write_access_tests.rs"]
+mod file_write_access_tests;

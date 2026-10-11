@@ -274,6 +274,23 @@ impl DosKernel {
                 return Ok(DosAction::Continue);
             }
         };
+        if let Handle::File(_) = target {
+            // DOS 4 rejects read-only opens before SETUP, including CX=0.
+            // https://github.com/microsoft/MS-DOS/blob/main/v4.0/src/DOS/DISK.ASM#L433-L458
+            // Use the owned mode, never the guest-writable SFT projection.
+            let error = match self.file_table.file_open_mode(handle_id) {
+                Some(mode) => match mode & u16::from(OPEN_ACCESS_MASK) {
+                    1 | 2 => None,
+                    0 => Some(DosErrorCode::AccessDenied),
+                    _ => Some(DosErrorCode::InvalidAccess),
+                },
+                None => Some(DosErrorCode::InvalidHandle),
+            };
+            if let Some(error) = error {
+                Self::failure(regs, DosHostError::new(error));
+                return Ok(DosAction::Continue);
+            }
+        }
         let mut data = vec![0; count];
         if count != 0 {
             let pointer = memory.resolve_caller_pointer(regs.ds, regs.dx())?;
