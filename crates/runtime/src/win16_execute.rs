@@ -21,6 +21,10 @@ mod teardown;
 #[path = "win16_execute_toolhelp.rs"]
 mod toolhelp;
 
+#[cfg(test)]
+#[path = "win16_execute_exit_tests.rs"]
+mod exit_tests;
+
 /// A service-gate slot already identifies its NE import binding. Snapshot it
 /// only for an enabled trace so dispatch may mutate runtime state without
 /// holding metadata borrows across the call.
@@ -520,6 +524,15 @@ impl Runtime {
                                     )?
                                 {
                                     return Ok(exit_status);
+                                }
+                                // A terminal INT has no caller continuation to
+                                // execute while native ownership drains. Rejoin
+                                // the outer exit pump instead of running ROM
+                                // IRET (whose saved IP may be past the segment).
+                                // Active or newly dispatched callbacks still
+                                // need their normal checked CPU return path.
+                                if state.classic_dde_task_exit_needs_pump() {
+                                    continue;
                                 }
                             }
                             _ => {

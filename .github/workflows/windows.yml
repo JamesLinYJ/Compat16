@@ -148,6 +148,7 @@ jobs:
             '-p runtime --lib dos_search_tests::',
             '-p runtime --lib get_char_width',
             '-p host-services --lib get_char_width',
+            '-p runtime --lib execute::exit_tests::',
             '-p runtime --lib character_classification',
             '-p host-services --lib character_classification',
             '-p runtime --lib any_popup',
