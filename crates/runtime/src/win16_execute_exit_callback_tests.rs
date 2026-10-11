@@ -48,7 +48,10 @@ fn word(runtime: &Runtime, data_selector: u16, offset: u16) -> u16 {
 }
 
 fn pause(runtime: &mut Runtime, host: &mut ExitHost, limit: u64) {
-    assert_eq!(runtime.run_win16_inner(host, limit).unwrap_err().kind(), Kind::ExecutionLimit);
+    let error = runtime.run_win16_inner(host, limit).unwrap_err();
+    assert_eq!(error.kind(), Kind::ExecutionLimit,
+        "pause at instruction {limit}, actual instruction {} at {:04X}:{:04X}: {error:?}",
+        runtime.instructions, runtime.cpu.regs.cs, runtime.cpu.regs.ip());
     assert_eq!(runtime.instructions, limit);
     assert!(host.exits.is_empty());
 }
