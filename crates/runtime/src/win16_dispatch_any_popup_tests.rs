@@ -61,7 +61,7 @@ impl crate::RuntimeNetbiosHost for PopupHost {}
 fn prepare() -> (Runtime, (u16, u16, u16), Vec<u8>) {
     let mut runtime = Runtime::load(&tiny_ne_executable(), &[], br"C:\POPUP.NE").unwrap();
     let descriptor = lookup_export(b"USER", ExportLookupTarget::Ordinal(52)).unwrap();
-    let return_to = (runtime.cpu.regs.cs, 0x12, runtime.cpu.regs.sp() + 4);
+    let return_to: (u16, u16, u16) = (runtime.cpu.regs.cs, 0x12, runtime.cpu.regs.sp() + 4);
     let state = runtime.win16.as_mut().unwrap();
     let mut bytes = Vec::from(return_to.1.to_le_bytes());
     bytes.extend_from_slice(&return_to.0.to_le_bytes());
