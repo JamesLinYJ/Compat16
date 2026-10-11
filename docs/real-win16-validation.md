@@ -30,10 +30,29 @@ certificate overrides or DNS/network configuration changes.
 After transport retries are exhausted, one three-second DNS observation records
 whether the same system resolver resolves the same hostname, including address
 family counts or a failure/timeout. It does not select a download address or
-claim an OS lookup stopped when the observation timed out. Request disposal
-cancels unfinished HTTP work. The default download/retry/observation budget is
-under one minute, leaving room for the default runtime limit in the workflow's
-three-minute diagnostic step. A persistent source failure still fails the step.
+claim an OS lookup stopped when the observation timed out. A separate
+three-second observation samples the existing `HttpClient.DefaultProxy` route
+for the exact source URL. It records only direct/proxy/unknown categories,
+PowerShell/.NET versions, socket address-family support, and present/nonempty flags
+for a fixed list of relevant environment variables. It does not record proxy
+addresses, credentials, configuration contents or environment values. A route
+snapshot does not prove which route an earlier request used; system DNS success
+alongside an HTTP DNS failure does not establish a general DNS outage.
+
+The route check uses the existing policy without overriding it. Its observation
+deadline does not cancel an underlying Windows/PAC lookup; the source-failure
+path then ends the disposable PowerShell process. Request disposal cancels
+unfinished HTTP work. The default timed download/retry/observation waits total
+at most one minute, plus local setup, within the workflow's three-minute step.
+A persistent source failure still fails the step.
+
+No alternate transport is currently enabled. A conditional System32 `curl.exe`
+comparison would first need bounded Microsoft-signature/version checks, an
+unambiguous equivalent route/configuration assessment, and separately bounded
+process containment while preserving the download environment. The guest's
+credential-free environment cannot be reused for downloads because that would
+remove proxy settings. A direct-route observation alone does not authorize a
+fallback, bypass, mirror or relaxed certificate validation.
 
 PFE.EXE is MZ/NE, with its NE header at `0x400`, Windows target 2, expected Windows
 version `0x030A`, 100 segments and startup entry segment 98, offset `0x001A`.
@@ -124,8 +143,11 @@ that directory on success or failure, provided the directory output exists,
 and retains it for three days. The allowlist contains `result.json`, stdout/stderr,
 the bounded failure trace and service trace. The result records architecture,
 source commit, hashes, outcome, limits, exit status, warnings and cleanup status.
-Source attempt receipts include the exact URL, time, typed failure classification
-and bounded error text. `sourceVerified` records completion of all fixture checks;
+Source attempt receipts include the exact URL, time and typed failure classification;
+original network exception text is omitted because it can contain proxy details.
+`sourceTransportObservation` records the bounded redacted routing observations
+after transport retries fail, and explicitly records that no alternate transport
+was attempted. `sourceVerified` records completion of all fixture checks;
 `executionAttempted` stays false for source-only failures. A true execution-attempt
 flag means the harness entered its launch attempt, not that guest instructions
 ran. A source retrieval failure provides no evidence about Win16 compatibility.

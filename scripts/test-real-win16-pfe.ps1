@@ -60,7 +60,7 @@ $result = [ordered]@{
     sourceCommit = $env:GITHUB_SHA; exitCode = $null; elapsedMilliseconds = $null
     processTreeCleaned = $false; initTaskCrossing = $false; warnings = @(); error = $null
     sourceOutcome = 'not-attempted'; sourceVerified = $false; sourceAttempts = @()
-    sourceDnsObservation = $null; executionAttempted = $false
+    sourceDnsObservation = $null; sourceTransportObservation = $null; executionAttempted = $false
 }
 function Protect-ResultText([string]$Text) {
     foreach ($pair in @(@($scratch, '<fixture>'), @($repositoryRoot, '<repository>'),
@@ -94,8 +94,9 @@ function Get-SourceFailure([Exception]$Exception) {
             'ConnectionAborted', 'ConnectionReset', 'ConnectionRefused', 'HostDown', 'HostUnreachable')) {
         $outcome = 'connection-failure'; $retryable = $true
     }
-    $message = Protect-ResultText $Exception.Message
-    if ($message.Length -gt 1500) { $message = $message.Substring(0, 1500) }
+    # Network exception messages can contain proxy addresses or credentials.
+    # Preserve only the typed classification, never the original message/URI.
+    $message = "Source failure classified as $outcome; detailed exception text omitted."
     return [pscustomobject]@{ outcome = $outcome; retryable = $retryable
         exceptionType = $Exception.GetType().FullName; socketError = $socketError; error = $message }
 }
@@ -120,11 +121,87 @@ function Get-SourceDnsObservation {
     }
     return $observation
 }
+function Get-SourceTransportObservation {
+    $presence = [ordered]@{}
+    # Windows environment names are case-insensitive. Record only state flags;
+    # never enumerate the environment or retain/log these values in the receipt.
+    foreach ($name in @('HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+            'CURL_HOME', 'XDG_CONFIG_HOME', 'CURL_CA_BUNDLE', 'CURL_SSL_BACKEND',
+            'SSL_CERT_FILE', 'SSL_CERT_DIR', 'SSLKEYLOGFILE', 'DOTNET_SYSTEM_NET_DISABLEIPV6')) {
+        $value = [Environment]::GetEnvironmentVariable($name, 'Process')
+        $presence[$name] = [ordered]@{ present = $null -ne $value; nonempty = -not [string]::IsNullOrEmpty($value) }
+        $value = $null
+    }
+    $observation = [ordered]@{
+        powerShellVersion = $PSVersionTable.PSVersion.ToString()
+        dotNetVersion = [Environment]::Version.ToString()
+        supportsIPv4 = [Net.Sockets.Socket]::OSSupportsIPv4
+        supportsIPv6 = [Net.Sockets.Socket]::OSSupportsIPv6
+        environmentVariablePresence = $presence
+        defaultProxyRoute = 'timeout'; proxyImplementation = $null
+        exceptionType = $null; observationDeadlineMilliseconds = 3000
+        alternateTransport = 'not-attempted'; alternateTransportReason = 'equivalent-controls-not-implemented'
+    }
+    try {
+        # Use a managed worker: PAC discovery/GetProxy can block. The worker
+        # returns only categorical information, never a proxy URI/credentials.
+        # This samples the existing policy without replacing it. A snapshot is
+        # not proof of the route taken by a previous or future HTTP request.
+        Add-Type -TypeDefinition @'
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
+namespace Compat16.PfeProbe {
+    public sealed class SourceRouteObservation {
+        public string Route, Implementation, ExceptionType;
+    }
+    public static class SourceRouting {
+        public static Task<SourceRouteObservation> ObserveAsync(string source) {
+            return Task.Run(() => {
+                var result = new SourceRouteObservation();
+                try {
+                    var destination = new Uri(source);
+                    var proxy = HttpClient.DefaultProxy;
+                    string type = proxy.GetType().FullName;
+                    result.Implementation = type == "System.Net.Http.HttpEnvironmentProxy" ? "environment" :
+                        type == "System.Net.Http.HttpWindowsProxy" ? "windows" : "other";
+                    // Windows' proxy can return false from IsBypassed and null
+                    // from GetProxy for direct routing. Do not equate false
+                    // from IsBypassed alone with an actual proxy selection.
+                    bool bypassed = proxy.IsBypassed(destination);
+                    Uri selected = bypassed ? null : proxy.GetProxy(destination);
+                    result.Route = bypassed || selected == null || selected.Equals(destination) ?
+                        "direct-observed" : "proxy-observed";
+                } catch (Exception error) {
+                    result.Route = "observation-failed";
+                    result.ExceptionType = error.GetType().FullName;
+                }
+                return result;
+            });
+        }
+    }
+}
+'@
+        $lookup = [Compat16.PfeProbe.SourceRouting]::ObserveAsync($source)
+        if ($lookup.Wait(3000)) {
+            $route = $lookup.GetAwaiter().GetResult()
+            $observation.defaultProxyRoute = $route.Route
+            $observation.proxyImplementation = $route.Implementation
+            $observation.exceptionType = $route.ExceptionType
+        }
+        # A timeout bounds observation only, not the OS/PAC worker's lifetime.
+        # The failure path ends this disposable PowerShell process afterwards.
+    } catch {
+        $observation.defaultProxyRoute = 'observation-failed'
+        $observation.exceptionType = $_.Exception.GetType().FullName
+    }
+    return $observation
+}
 
 try {
     # No redirects, credentials, alternate mirrors, certificate bypass, or
     # unbounded response buffering. Only typed transport/DNS/timeouts retry.
-    # Three <=16s observed attempts + 2/4s delays + one <=3s DNS observation
+    # Three <=16s observed attempts + 2/4s delays + two <=3s observations
     # leave room for the default 30s guest run inside the 3-minute CI step.
     $archiveBytes = $null
     for ($number = 1; $number -le 3; $number++) {
@@ -178,7 +255,10 @@ try {
         if ($attempt.outcome -eq 'downloaded') { break }
         if (-not $attempt.retryable -or $number -eq 3) {
             $result.status = if ($attempt.retryable) { 'source-unavailable' } else { 'source-rejected' }
-            if ($attempt.retryable) { $result.sourceDnsObservation = Get-SourceDnsObservation }
+            if ($attempt.retryable) {
+                $result.sourceDnsObservation = Get-SourceDnsObservation
+                $result.sourceTransportObservation = Get-SourceTransportObservation
+            }
             throw "PFE source retrieval stopped before execution: $($attempt.outcome). $($attempt.error)"
         }
         Start-Sleep -Seconds (2 * $number)
