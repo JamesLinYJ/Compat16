@@ -152,9 +152,10 @@ pub enum Win16HelpData {
     },
 }
 
-/// One decoded Win16 USER.69/71/171/177/178 call.
+/// One decoded Win16 USER.69/71/171/177/178/247 call.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16UserCursorAcceleratorRequest {
+    GetCursor,
     SetCursor {
         cursor: u16,
     },

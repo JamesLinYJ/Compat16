@@ -718,11 +718,13 @@ pub(super) fn finish_cursor_accelerator(
     use crate::Win16HostUserCursorAcceleratorResult as ResultValue;
     if owner.phase == CursorAcceleratorProjectionPhase::Ready {
         let value = match (continuation, result) {
-            (Call::SetCursor, ResultValue::SetCursor(Some(cursor))) =>
+            (Call::SetCursor, ResultValue::SetCursor(Some(cursor)))
+            | (Call::GetCursor, ResultValue::GetCursor(Some(cursor))) =>
                 access.guest_images.allocate_cursor(*cursor).ok_or_else(||
                     RuntimeError::new(Kind::ResourceExhausted,
                         "Win16 cursor handle table is full"))?,
-            (Call::SetCursor, ResultValue::SetCursor(None)) => 0,
+            (Call::SetCursor, ResultValue::SetCursor(None))
+            | (Call::GetCursor, ResultValue::GetCursor(None)) => 0,
             (Call::ShowCursor, ResultValue::ShowCursor(count)) => *count as u16,
             (Call::WinHelp, ResultValue::WinHelp(succeeded)) => u16::from(*succeeded),
             (Call::LoadAccelerators { guest_handle, owner_module, resource_id },

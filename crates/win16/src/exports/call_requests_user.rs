@@ -82,7 +82,8 @@ pub(super) fn decode(
         Win16ExportId::UserWvsprintf => {
             super::call_user_string_format::decode_wvsprintf(arguments, selectors, memory)?
         }
-        Win16ExportId::UserSetCursor
+        Win16ExportId::UserGetCursor
+        | Win16ExportId::UserSetCursor
         | Win16ExportId::UserShowCursor
         | Win16ExportId::UserWinHelp
         | Win16ExportId::UserLoadAccelerators

@@ -409,3 +409,73 @@ fn collision_error_transfers_last_established_owner_past_mutex_scope() {
     drop(collision);
     assert_eq!(established.load(Ordering::SeqCst), 1);
 }
+
+#[test]
+fn get_cursor_borrowed_result_release_never_destroys_native_cursor() {
+    use crate::windows::win16_user_cursor_accelerator::get_cursor_with;
+    use runtime::Win16HostUserCursorAcceleratorResult as ResultValue;
+
+    let images = images();
+    let count = Arc::new(AtomicUsize::new(0));
+    let raw = 601usize as HICON;
+    let ResultValue::GetCursor(Some(cursor)) = get_cursor_with(&images, || raw).unwrap()
+        else { panic!("non-null external cursor must be borrowed"); };
+    {
+        let mut table = images.lock().unwrap();
+        let retained = Arc::get_mut(table.images.get_mut(&cursor.0).unwrap()).unwrap();
+        assert!(!retained.image.owned);
+        retained.test_destruction = Some(Arc::clone(&count));
+    }
+    assert_eq!(get_cursor_with(&images, || raw).unwrap(), ResultValue::GetCursor(Some(cursor)));
+    assert_eq!(images.native_cursor(cursor).unwrap(), Some(raw));
+    images.release_cursor(cursor).unwrap();
+    assert_eq!(images.native_cursor(cursor).unwrap(), None);
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+    drop(images);
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn get_cursor_preserves_owned_cursor_identity_and_single_destruction_authority() {
+    use crate::windows::win16_user_cursor_accelerator::get_cursor_with;
+    use runtime::{Win16HostCursor, Win16HostUserCursorAcceleratorResult as ResultValue};
+
+    let images = images();
+    let count = Arc::new(AtomicUsize::new(0));
+    let token = images.insert_owned(guard(602, ImageKind::Cursor, &count)).unwrap();
+    let cursor = Win16HostCursor(token);
+    let lease = Arc::clone(&images.lock().unwrap().images[&token]);
+    assert_eq!(get_cursor_with(&images, || 602 as HICON).unwrap(),
+        ResultValue::GetCursor(Some(cursor)));
+    assert!(Arc::ptr_eq(&images.lock().unwrap().images[&token], &lease));
+    images.release_cursor(cursor).unwrap();
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+
+    // A suspended native call can retain the owner after token retirement.
+    let ResultValue::GetCursor(Some(recovered)) = get_cursor_with(&images, || 602 as HICON)
+        .unwrap() else { panic!("live cursor owner must be recoverable"); };
+    assert_ne!(recovered, cursor);
+    assert!(Arc::ptr_eq(&images.lock().unwrap().images[&recovered.0], &lease));
+    assert!(images.lock().unwrap().images[&recovered.0].image.owned);
+    images.release_cursor(recovered).unwrap();
+    drop(images);
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+    drop(lease);
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn get_cursor_propagates_token_exhaustion_without_publishing_native_bits() {
+    use crate::windows::win16_user_cursor_accelerator::get_cursor_with;
+
+    let images = images();
+    images.lock().unwrap().next_id = u64::MAX;
+    let mut calls = 0;
+    let result = get_cursor_with(&images, || {
+        calls += 1;
+        603 as HICON
+    });
+    assert!(result.is_err());
+    assert_eq!(calls, 1);
+    assert!(images.lock().unwrap().images.is_empty());
+}

@@ -3,6 +3,8 @@ macro_rules! export_catalog_with_user_cursor_accelerators {
     ($($existing:tt)*) => {
         export_catalog_with_ole2disp_convert! {
             $($existing)*
+            UserGetCursor => USER_GET_CURSOR:
+                ("USER", 247u16, Stack, &[], Word);
             UserSetCursor => USER_SET_CURSOR:
                 ("USER", 69u16, Stack, user_cursor_accelerator::SET_CURSOR_PARAMETERS, Word);
             UserShowCursor => USER_SHOW_CURSOR:
