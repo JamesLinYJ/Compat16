@@ -237,6 +237,34 @@ jobs:
             throw 'BLOCKED: the exact SFT representative selection benchmark did not execute once.'
           }
 
+      - name: Measure complete SFT refresh
+        # Complete refresh with deterministic host; no timing thresholds. Keep its
+        # ignored test isolated from the ordinary noninteractive test filters.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for complete SFT refresh benchmark.'
+          }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'BLOCKED: Visual Studio developer command script unavailable for complete SFT refresh benchmark.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $filter = 'kernel::sft::tests::refresh_bench::full_refresh_paired_benchmark'
+          Write-Host 'Measure complete old and adaptive SFT refresh with matching guest writes and host calls.'
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p dos-kernel --lib --release {4} -- --ignored --exact --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+          & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+          $probeExitCode = $LASTEXITCODE
+          if ($probeExitCode -ne 0) {
+            throw "UNSUPPORTED/FAILED: complete SFT refresh benchmark (exit $probeExitCode); inspect benchmark output above."
+          }
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 1 passed; 0 failed; 0 ignored;') {
+            throw 'BLOCKED: the exact complete SFT refresh benchmark did not execute once.'
+          }
+
       - name: Probe owned memory DC outline metrics
         # Owned memory DC and font only, no visible windows or input. Keep its
         # ignored test isolated from the ordinary noninteractive test filters.

@@ -9,7 +9,8 @@ use guest_core::{GuestMemory, MemoryError, PhysAddr, Registers};
 pub(super) struct TestMemory(Vec<u8>);
 
 impl TestMemory {
-    pub(super) fn new() -> Self { Self(vec![0; 0x20_000]) }
+    pub(super) fn new() -> Self { Self::with_size(0x20_000) }
+    pub(super) fn with_size(bytes: usize) -> Self { Self(vec![0; bytes]) }
     pub(super) fn put(&mut self, address: u32, bytes: &[u8]) {
         self.0[address as usize..address as usize + bytes.len()].copy_from_slice(bytes);
     }
@@ -102,6 +103,16 @@ pub(super) struct TestHost {
 }
 
 impl TestHost {
+    // Clear and reserve outside timed batches so trace allocation cannot favor
+    // either full-refresh candidate. Each file record emits two queries.
+    pub(super) fn prepare_sft_queries(&mut self, records: usize, rounds: usize) {
+        let queries = self.sft_queries.get_mut();
+        queries.clear();
+        queries.reserve(2 * records * rounds);
+        self.file_status_calls.clear();
+        self.file_status_calls.reserve(records * rounds);
+    }
+
     pub(super) fn sft_queries(&self) -> Vec<SftQuery> {
         self.sft_queries.borrow().clone()
     }

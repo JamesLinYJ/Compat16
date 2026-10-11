@@ -39,6 +39,13 @@ pub trait SegmentResolver {
     fn resolve_execute(&self, segment: u16, offset: u32, address32: bool) -> Result<PhysAddr, CpuError> {
         self.resolve(segment, offset, address32)
     }
+    /// Validate a canonical near-transfer target without fetching from it.
+    /// By default this preserves instruction-execute permissions. A runtime
+    /// may additionally admit an exact owned continuation boundary, which it
+    /// must observe before fetching; this never grants instruction access.
+    fn validate_near_code_target(&self, segment: u16, offset: u32) -> Result<(), CpuError> {
+        self.resolve_execute(segment, offset, true).map(|_| ())
+    }
 }
 
 pub struct RealModeSegments;

@@ -406,6 +406,36 @@ impl DosKernel {
         memory: &mut impl GuestMemory,
         host: &mut impl DosHost,
     ) -> Result<(), DosError> {
+        self.refresh_sft_with(memory, host, |dos, records, host, system_segment| {
+            if records.len() <= DIRECT_SFT_RECORD_LIMIT {
+                for (index, entry) in records.iter_mut() {
+                    let current = dos.file_table.representative(
+                        *index, dos.handles.iter().map(|(&guest, &handle)| (guest, handle)),
+                    );
+                    refresh_entry(entry, current, host, system_segment)?;
+                }
+            } else {
+                let representatives = dos.file_table.representatives(
+                    records,
+                    dos.handles.iter().map(|(&guest, &handle)| (guest, handle)),
+                );
+                for (index, entry) in records.iter_mut() {
+                    refresh_entry(entry, representatives[usize::from(*index)], host, system_segment)?;
+                }
+            }
+            Ok(())
+        })
+    }
+
+    // Keep validation, snapshots, pool publication, serialization, and both
+    // guest writes shared with the test-only pre-indexing baseline. The closure
+    // is statically dispatched and replaces only selection plus host queries.
+    fn refresh_sft_with<H: DosHost>(
+        &mut self,
+        memory: &mut impl GuestMemory,
+        host: &mut H,
+        refresh_records: impl FnOnce(&Self, &mut [(u8, SftEntry)], &mut H, u16) -> Result<(), DosError>,
+    ) -> Result<(), DosError> {
         let Some(system) = self.system_tables.as_ref() else { return Ok(()); };
         self.validate_jft(memory)?;
 
@@ -415,22 +445,7 @@ impl DosKernel {
         memory.validate_write(sft_address, sft_len)?;
 
         let mut records = self.file_table.entries_snapshot();
-        if records.len() <= DIRECT_SFT_RECORD_LIMIT {
-            for (index, entry) in &mut records {
-                let current = self.file_table.representative(
-                    *index, self.handles.iter().map(|(&guest, &handle)| (guest, handle)),
-                );
-                refresh_entry(entry, current, host, system.segment)?;
-            }
-        } else {
-            let representatives = self.file_table.representatives(
-                &records,
-                self.handles.iter().map(|(&guest, &handle)| (guest, handle)),
-            );
-            for (index, entry) in &mut records {
-                refresh_entry(entry, representatives[usize::from(*index)], host, system.segment)?;
-            }
-        }
+        refresh_records(self, &mut records, host, system.segment)?;
 
         let mut sft_bytes = vec![0; sft_len];
         sft_bytes[..4].copy_from_slice(&u32::MAX.to_le_bytes());

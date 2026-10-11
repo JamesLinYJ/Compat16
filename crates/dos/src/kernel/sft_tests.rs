@@ -495,3 +495,6 @@ fn direct_representatives_preserve_original_small_case_work() {
 
 #[path = "sft_bench_tests.rs"]
 mod bench;
+
+#[path = "sft_refresh_bench_tests.rs"]
+mod refresh_bench;

@@ -286,6 +286,7 @@ impl Pe32GuestExecutionEnvironment {
         Pe32SegmentResolver {
             segments: &self.segments,
             executable_ranges: &self.executable_ranges,
+            return_gate: (self.code_selector, self.return_gate_offset),
         }
     }
 
@@ -351,6 +352,7 @@ impl Pe32GuestExecutionEnvironment {
 pub(crate) struct Pe32SegmentResolver<'a> {
     segments: &'a [Pe32SegmentMapping],
     executable_ranges: &'a [Pe32GuestCodeRange],
+    return_gate: (u16, u32),
 }
 
 impl Pe32SegmentResolver<'_> {
@@ -482,6 +484,18 @@ impl SegmentResolver for Pe32SegmentResolver<'_> {
             ));
         }
         Ok(address)
+    }
+
+    fn validate_near_code_target(&self, selector: u16, offset: u32) -> Result<(), CpuError> {
+        if (selector, offset) == self.return_gate {
+            // This environment belongs to the current call frame. Permit
+            // reaching only its exact continuation after normal segment
+            // checks; the dispatcher still checks nonce and SS:ESP before
+            // finishing it. The gate remains excluded from instruction fetch.
+            self.translate(selector, offset, true, SegmentAccess::Execute).map(|_| ())
+        } else {
+            self.resolve_execute(selector, offset, true).map(|_| ())
+        }
     }
 }
 

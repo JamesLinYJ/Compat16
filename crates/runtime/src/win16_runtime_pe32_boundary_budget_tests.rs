@@ -3,10 +3,67 @@
 use super::*;
 use guest_core::{PhysAddr, Registers, arena::{PhysicalArenaMap, RegionKind}};
 use crate::pe32::{Pe32CallCompletion, Pe32CallLeaseState};
+use x86_cpu::{CpuError, SegmentAccess, SegmentFaultReason, SegmentResolver};
 
 const IMAGE_BASE: u32 = 0x0040_0000;
 const ENTRY_RVA: u32 = 0x1000;
 const SERVICE_VALUE: u32 = 0x1234_5678;
+
+fn assert_default_target_validation_preserves_execute_checks() {
+    struct ExecuteOnlyResolver(Result<PhysAddr, CpuError>);
+    impl SegmentResolver for ExecuteOnlyResolver {
+        fn resolve(&self, _: u16, _: u32, _: bool) -> Result<PhysAddr, CpuError> {
+            panic!("target validation bypassed execute permissions");
+        }
+        fn resolve_execute(&self, selector: u16, offset: u32, address32: bool) -> Result<PhysAddr, CpuError> {
+            assert_eq!((selector, offset, address32), (0x18, 0x1234_5678, true));
+            self.0.clone()
+        }
+    }
+    for outcome in [
+        Ok(PhysAddr(0x1234)),
+        Err(CpuError::GeneralProtectionFault { error_code: 0x20, ip: 0x5678 }),
+    ] {
+        let resolver = ExecuteOnlyResolver(outcome.clone());
+        assert_eq!(resolver.validate_near_code_target(0x18, 0x1234_5678), outcome.map(|_| ()));
+    }
+}
+
+fn assert_gate_preserves_segment_checks() {
+    use crate::pe32_call::{Pe32GuestExecutionEnvironment, Pe32GuestStackRange, Pe32SegmentAccess, Pe32SegmentMapping};
+    for (execute, limit, reason) in [
+        (false, 0xffff, Some(SegmentFaultReason::AccessDenied)),
+        (true, 0x1fff, Some(SegmentFaultReason::Limit)),
+        (true, 0xffff, None),
+    ] {
+        let environment = Pe32GuestExecutionEnvironment::new(
+            vec![
+                Pe32SegmentMapping::new(8, 0, limit, Pe32SegmentAccess::new(true, false, execute)),
+                Pe32SegmentMapping::new(16, 0, 0xffff, Pe32SegmentAccess::new(true, true, false)),
+                Pe32SegmentMapping::new(24, 0, 0xffff, Pe32SegmentAccess::new(true, false, true)),
+            ],
+            vec![Pe32GuestCodeRange::from_linear_range(0x1000..0x1100)],
+            8, 16, 16, None, None, None,
+            Pe32GuestStackRange::new(0x3000, 0x4000, 0x4000), 0x2000,
+        );
+        if let Some(reason) = reason {
+            // Invalid environments cannot enter a frame; the narrow resolver
+            // hook also rejects their exact gate when asked directly.
+            assert!(environment.validate().is_err());
+            assert_eq!(environment.resolver().validate_near_code_target(8, 0x2000), Err(CpuError::SegmentFault {
+                selector: 8, offset: 0x2000, access: SegmentAccess::Execute, reason,
+            }));
+        } else {
+            environment.validate().unwrap();
+            assert!(environment.resolver().validate_near_code_target(8, 0x2000).is_ok());
+            // Even an executable alias of the same linear address cannot
+            // acquire another selector's continuation identity.
+            assert_eq!(environment.resolver().validate_near_code_target(24, 0x2000), Err(CpuError::SegmentFault {
+                selector: 24, offset: 0x2000, access: SegmentAccess::Execute, reason: SegmentFaultReason::AccessDenied,
+            }));
+        }
+    }
+}
 
 // One bounded, parser-validated I386 DLL with a single executable section.
 // Its entrypoint is PUSH value; CALL SetLastError; MOV EAX,1; RET 12.
@@ -56,6 +113,8 @@ fn boundary_dll(service_gate: u32) -> Vec<u8> {
 
 #[test]
 fn pe32_return_and_service_gates_preserve_boundary_budget() {
+    assert_default_target_validation_preserves_execute_checks();
+    assert_gate_preserves_segment_checks();
     // Two CPU boundaries reach the service gate. Its separate third charge
     // permits the LastError mutation, but no following instruction. At five,
     // MOV and RET have used the remaining budget; recognizing the checked
@@ -109,6 +168,34 @@ fn pe32_return_and_service_gates_preserve_boundary_budget() {
             id: group, root: Some(module), members: vec![module], attach_order: Vec::new(),
             temporary_providers: Vec::new(), next_attach_sequence: 0, phase: LoadGroupPhase::Attaching,
         });
+        let mut environment = environment::for_call(
+            &dispatcher, &imports, &memory, dispatcher.default_stack_top().unwrap(), Some(module),
+        ).unwrap();
+        environment.validate().unwrap();
+        let return_gate = environment.return_gate_offset;
+        let resolver = environment.resolver();
+        assert!(resolver.validate_near_code_target(8, return_gate).is_ok());
+        assert!(resolver.validate_near_code_target(8, IMAGE_BASE + ENTRY_RVA).is_ok());
+        assert!(resolver.validate_near_code_target(8, gate.address).is_ok());
+        for (selector, offset) in [
+            (8, return_gate - 1), (8, return_gate + 1), (16, return_gate),
+            (0x20, return_gate), (8, IMAGE_BASE + 0x3000),
+        ] {
+            assert!(resolver.validate_near_code_target(selector, offset).is_err());
+        }
+        for offset in [return_gate, return_gate + 1] {
+            assert_eq!(resolver.resolve_execute(8, offset, true), Err(CpuError::SegmentFault {
+                selector: 8, offset, access: SegmentAccess::Execute, reason: SegmentFaultReason::AccessDenied,
+            }));
+        }
+        // A service refresh changes executable modules, never gate identity or
+        // fetch permissions. The real call below builds its own environment.
+        environment.replace_executable_ranges(vec![Pe32GuestCodeRange::from_linear_range(
+            u64::from(IMAGE_BASE + ENTRY_RVA)..u64::from(IMAGE_BASE + ENTRY_RVA + 0x200),
+        )]).unwrap();
+        assert!(environment.resolver().validate_near_code_target(8, return_gate).is_ok());
+        assert!(environment.resolver().resolve_execute(8, return_gate, true).is_err());
+        assert!(environment.resolver().validate_near_code_target(8, gate.address).is_err());
         let lease = dispatcher.registry.prepare_process_attach(module).unwrap().unwrap();
         let lease_id = lease.id();
         let mut cpu = Cpu::new(Registers::default());
