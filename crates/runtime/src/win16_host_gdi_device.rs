@@ -57,8 +57,20 @@ pub enum Win16DitherPattern {
     Clustered4x4,
 }
 
+/// Read-only Escape queries with explicit host conversions. No arbitrary
+/// driver escape code or guest pointer can cross this boundary.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16EscapeQuery {
+    QuerySupport,
+    PhysicalPageSize,
+    PrintingOffset,
+    ScalingFactor,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16GdiDeviceOperation {
+    QueryEscapeSupport { dc: Win16HostDc, query: Win16EscapeQuery },
+    EscapeQuery { dc: Win16HostDc, query: Win16EscapeQuery },
     GetObject { object: Win16HostGdiObject },
     RecommendWinGDibFormat,
     CreateWinGDibSection {

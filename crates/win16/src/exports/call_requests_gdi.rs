@@ -174,7 +174,8 @@ pub(super) fn decode(
         | Win16ExportId::GdiChord => {
             gdi_primitives_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
-        Win16ExportId::GdiStretchDibits
+        Win16ExportId::GdiEscape
+        | Win16ExportId::GdiStretchDibits
         | Win16ExportId::GdiSetDibits
         | Win16ExportId::GdiGetDibits
         | Win16ExportId::GdiCreateDibitmap

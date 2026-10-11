@@ -84,7 +84,7 @@ fn contracts() -> Vec<SdkContract<'static>> {
         })
         .collect();
     // Deliberately bounded inventory: deleting rows must not silently reduce coverage.
-    assert_eq!(rows.len(), 22);
+    assert_eq!(rows.len(), 23);
     let mut names = HashSet::new();
     let mut ordinals = HashSet::new();
     let mut records = HashSet::new();

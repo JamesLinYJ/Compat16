@@ -259,7 +259,7 @@ pub use win16_host_drawing::{
 };
 pub use win16_host_gdi_bitmap::{Win16GdiBitmapOperation, Win16GdiBitmapResult};
 pub use win16_host_gdi_device::{
-    Win16DibColorTableKind, Win16DitherPattern, Win16GdiDeviceOperation, Win16GdiDeviceResult,
+    Win16DibColorTableKind, Win16DitherPattern, Win16EscapeQuery, Win16GdiDeviceOperation, Win16GdiDeviceResult,
     Win16GdiObjectInfo,
     Win16HostDibSection, Win16PaletteTransferKind, Win16PrintOperation,
 };

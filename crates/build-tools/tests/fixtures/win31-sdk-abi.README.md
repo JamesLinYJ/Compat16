@@ -1,6 +1,6 @@
 # Bounded Windows 3.1 SDK ABI facts
 
-`win31-sdk-abi.tsv` records 22 independently checked contracts for implemented
+`win31-sdk-abi.tsv` records 23 independently checked contracts for implemented
 exports. Expected values were transcribed from Microsoft's original Windows
 3.1 SDK `WINDOWS.H` declarations and `LIBW.LIB` import records, not generated
 from this repository's catalog or Wine specifications. This is a regression
@@ -39,10 +39,12 @@ It does not claim to verify higher-level pointer ownership or buffer semantics.
 Pascal arguments are stack-passed in declaration order and callee-cleaned;
 cleanup is the sum of argument slots, excluding the far return address. The
 fixture explicitly records both callee and caller cleanup. Return classes come
-from the header types: void → Void, BOOL/UINT/handles → Word, DWORD → Dword,
+from the header types: void → Void, int/BOOL/UINT/handles → Word, DWORD → Dword,
 and far pointer → FarPointer. This is a public calling contract, not a promise
 about incidental register values left by the original binaries.
 
+- `Escape` line 2543 returns int in AX, despite the historical declaration
+  metadata lacking `ret16`; its 14-byte Pascal frame includes two FAR pointers.
 - `LineDDA` takes a 4-byte callback (lines 1607–1609) and 4-byte LPARAM.
 - `GlobalLock` line 609 is the STRICT void-far-pointer declaration; the
   non-STRICT char-far-pointer declaration at line 611 has the same ABI.

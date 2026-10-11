@@ -1,6 +1,6 @@
 # Verified Microsoft SDK declarations
 
-This record covers GDI.350 GetCharWidth, USER.196 TabbedTextOut,
+This record covers GDI.38 Escape, GDI.350 GetCharWidth, USER.196 TabbedTextOut,
 USER.197 GetTabbedTextExtent, USER.43 CloseWindow, USER.44 OpenIcon,
 USER.170 ArrangeIconicWindows, USER.233 SetParent, and the four GDI rectangle predicate exports
 listed below. It independently establishes the stated import identities and
@@ -276,3 +276,33 @@ targets, completion retry, callback return and malformed result rejection. Nativ
 caption/icon and identity tests are ignored by default and require an explicitly
 selected disposable Windows desktop; compilation alone does not verify those
 visual effects.
+
+## GDI.38 Escape query subset
+
+The original SDK artifacts above establish `int WINAPI Escape(HDC, int, int,
+LPCSTR, void FAR*)` (`WINDOWS.H` line 2543) and GDI ordinal 38 (`LIBW.LIB`
+IMPDEF at `0x2d8b`). This is 14 bytes of far Pascal callee cleanup and a signed
+16-bit AX result; DX is preserved. The original declaration metadata remains
+unchanged, and the typed Word return follows the SDK prototype independently.
+
+The inspected Windows 3.1 SDK Programmer's Reference volume 3,
+printed pages 478–479 and 491–492 (PDF SHA-256
+`a53b45602c256720cc00589c3bda88a1ea4ce43e02c6f467ae4f4fe75c898cd8`),
+defines QUERYESCSUPPORT (8) with a two-byte
+Win16 int input and GETPHYSPAGESIZE (12), GETPRINTINGOFFSET (13), and
+GETSCALINGFACTOR (14) with four-byte POINT16 outputs. Scaling components are
+exponents of two, not multipliers. The query-only bridge rejects other escapes
+with zero, including print-job commands, callbacks, and private driver escapes.
+
+Microsoft's [GetDeviceCaps contract](https://learn.microsoft.com/windows/win32/api/wingdi/nf-wingdi-getdevicecaps)
+replaces the three point escapes with six native cap indices. The adapter
+conservatively requires printer/plotter technology and positive physical page
+extent, and rejects results outside signed POINT16 range. Zero offsets and
+scaling exponents remain valid. Support reports and point retrieval share this
+conversion policy. QUERYESCSUPPORT's own support is probed with one fixed,
+owned native int; no arbitrary escape or guest pointer reaches native Escape.
+
+This policy is a bounded host conversion, not proof of historical driver
+support equivalence. Tests cover ABI, guest memory/identity boundaries, mock
+cap conversions, and nonprinting native DCs. They do not establish real printer
+behavior or successful execution of this import by a desktop application.

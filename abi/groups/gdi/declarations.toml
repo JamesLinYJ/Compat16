@@ -10,6 +10,16 @@ decl = { args = ["word", "word"] }
 ordinal = 38
 name = "Escape"
 decl = { attributes = [], args = ["word", "word", "word", "segmented_pointer", "pointer"] }
+binding = { rust_id = "GdiEscape", id_value = 1224, constant = "GDI_ESCAPE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "escape", type = "U16" },
+  { name = "input_size", type = "U16" },
+  { name = "input", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "output", type = "FarOutputBuffer" },
+]
 
 [[exports]]
 ordinal = 46

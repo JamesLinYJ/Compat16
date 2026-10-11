@@ -21,3 +21,4 @@ KERNEL	GlobalAlloc	15	601	0x2a0	Pascal	Stack	2,4	Word	6	0
 KERNEL	GlobalLock	18	609	0x34f	Pascal	Stack	2	FarPointer	2	0
 USER	PtInRect	76	2761	0x681d	Pascal	Stack	4,4	Word	8	0
 USER	CreateWindow	41	3038	0x60c1	Pascal	Stack	4,4,4,2,2,2,2,2,2,2,4	Word	30	0
+GDI	Escape	38	2543	0x2d8b	Pascal	Stack	2,2,2,4,4	Word	14	0
