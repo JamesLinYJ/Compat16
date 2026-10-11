@@ -404,7 +404,9 @@ fn guest_character_range(
         let encoded = if guest_code <= u16::from(u8::MAX) {
             [guest_code as u8, 0]
         } else {
-            guest_code.to_le_bytes()
+            // GDI numeric DBCS codes use lead << 8 | trail (Microsoft KB244046):
+            // https://ftp.zx.net.nz/pub/archive/ftp.microsoft.com/MISC/KB/en-us/244/046.HTM
+            guest_code.to_be_bytes()
         };
         let byte_count = if guest_code <= u16::from(u8::MAX) {
             1
@@ -466,7 +468,9 @@ fn guest_character_from_wide(
     }
     match encoded.bytes.as_slice() {
         [single] => Some(u16::from(*single)),
-        [low, high] => Some(u16::from_le_bytes([*low, *high])),
+        // GetKerningPairsA uses this same numeric packing (NT 3.5 DCQUERY.C).
+        // The runtime separately stores each WORD in little-endian guest memory.
+        [lead, trail] => Some(u16::from_be_bytes([*lead, *trail])),
         _ => None,
     }
 }
@@ -511,3 +515,7 @@ fn zero_rect() -> runtime::Win16DrawingRect {
         bottom: 0,
     }
 }
+
+#[cfg(test)]
+#[path = "win16_gdi_services_dbcs_tests.rs"]
+mod dbcs_tests;

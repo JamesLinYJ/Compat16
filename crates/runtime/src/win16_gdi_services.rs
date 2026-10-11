@@ -491,3 +491,7 @@ fn encode_char_widths(entries: &[i32]) -> Option<Vec<u8>> {
 #[cfg(test)]
 #[path = "win16_gdi_char_width_tests.rs"]
 mod char_width_tests;
+
+#[cfg(test)]
+#[path = "win16_gdi_services_wire_tests.rs"]
+mod wire_tests;
