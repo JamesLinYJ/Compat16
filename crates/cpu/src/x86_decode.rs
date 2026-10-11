@@ -178,6 +178,10 @@ pub(super) fn decode_cached(
     start_ip: u32,
     cache: &mut DecodeCache,
 ) -> Result<DecodedInstruction, CpuError> {
+    #[cfg(test)]
+    if cache.bypass {
+        return decode(bus, cs, start_ip);
+    }
     decode_inner(bus, cs, start_ip, Some(cache))
 }
 

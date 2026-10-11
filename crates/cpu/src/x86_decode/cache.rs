@@ -20,15 +20,28 @@ pub(super) struct Entry {
 /// page/segment faults, remapping, and provider read side effects.
 pub(crate) struct DecodeCache {
     entries: [Option<Entry>; CACHE_SLOTS],
+    // Test fixtures can retain this CPU/cache while suppressing both lookup
+    // and insertion. Normal construction always enables reuse.
+    #[cfg(test)]
+    pub(crate) bypass: bool,
 }
 
 impl Default for DecodeCache {
     fn default() -> Self {
-        Self { entries: [None; CACHE_SLOTS] }
+        Self {
+            entries: [None; CACHE_SLOTS],
+            #[cfg(test)]
+            bypass: false,
+        }
     }
 }
 
 impl DecodeCache {
+    #[cfg(test)]
+    pub(crate) fn is_empty(&self) -> bool {
+        self.entries.iter().all(Option::is_none)
+    }
+
     fn slot(cs: u16, ip: u32) -> usize {
         (ip ^ ip.rotate_right(6) ^ u32::from(cs).rotate_left(3)) as usize
             & (CACHE_SLOTS - 1)

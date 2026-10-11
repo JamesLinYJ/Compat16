@@ -11,6 +11,7 @@ mod x87_execution;
 mod transcendental_vectors;
 mod interrupt_shadow;
 mod execution_boundary;
+mod decode_cache;
 
 struct Ram {
     bytes: Vec<u8>,
