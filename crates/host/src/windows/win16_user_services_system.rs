@@ -5,7 +5,7 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     GetDoubleClickTime, SetDoubleClickTime,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetCaretBlinkTime, GetDialogBaseUnits, SetCaretBlinkTime,
+    AnyPopup, GetCaretBlinkTime, GetDialogBaseUnits, SetCaretBlinkTime,
 };
 
 pub(super) fn get_double_click_time() -> u32 {
@@ -38,3 +38,20 @@ pub(super) fn get_dialog_base_units() -> u32 {
     // SAFETY: This scalar USER query has no pointer or handle preconditions.
     unsafe { GetDialogBaseUnits() as u32 }
 }
+
+/// USER.52 retains the native compatibility API's desktop-wide semantics:
+/// owned top-level windows with WS_VISIBLE, including completely covered ones.
+/// Do not restrict this query to guest windows or substitute popup style tests.
+/// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-anypopup
+pub(super) fn any_popup() -> bool {
+    // SAFETY: The native read-only query takes no pointers or handles.
+    any_popup_with(|| unsafe { AnyPopup() })
+}
+
+fn any_popup_with(query: impl FnOnce() -> i32) -> bool {
+    query() != 0
+}
+
+#[cfg(test)]
+#[path = "win16_any_popup_tests.rs"]
+mod any_popup_tests;

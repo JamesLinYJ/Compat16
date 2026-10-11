@@ -26,6 +26,7 @@ pub(crate) fn dispatch(
         Win16UserSystemRequest::GetCaretBlinkTime => get_caret_blink_time(host),
         Win16UserSystemRequest::GetSysColor { index } => get_sys_color(host, index),
         Win16UserSystemRequest::GetDialogBaseUnits => get_dialog_base_units(host),
+        Win16UserSystemRequest::AnyPopup => Ok(u32::from(host.win16_any_popup()?)),
     }
 }
 
@@ -79,3 +80,7 @@ pub(crate) fn get_dialog_base_units(
 ) -> Result<u32, RuntimeError> {
     host.win16_get_dialog_base_units()
 }
+
+#[cfg(test)]
+#[path = "win16_dispatch_any_popup_tests.rs"]
+mod any_popup_tests;

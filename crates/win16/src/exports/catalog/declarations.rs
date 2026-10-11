@@ -622,6 +622,7 @@ UserGetParent => USER_GET_PARENT: ("USER", 46u16, Stack, window_ops::USER_WINDOW
 UserIsWindow => USER_IS_WINDOW: ("USER", 47u16, Stack, window_ops::USER_WINDOW_HANDLE_PARAMETERS, Word);
 UserIsWindowVisible => USER_IS_WINDOW_VISIBLE: ("USER", 49u16, Stack, window_ops::USER_WINDOW_HANDLE_PARAMETERS, Word);
 UserFindWindow => USER_FIND_WINDOW: ("USER", 50u16, Stack, window_ops::USER_FIND_WINDOW_PARAMETERS, Word);
+UserAnyPopup => USER_ANY_POPUP: ("USER", 52u16, Stack, &[], Word);
 UserDestroyWindow => USER_DESTROY_WINDOW: ("USER", 53u16, Stack, window_ops::USER_WINDOW_HANDLE_PARAMETERS, Word);
 UserMoveWindow => USER_MOVE_WINDOW: ("USER", 56u16, Stack, window_ops::USER_WINDOW_MOVE_PARAMETERS, Word);
 UserGetClassName => USER_GET_CLASS_NAME: ("USER", 58u16, Stack, window_ops::USER_GET_CLASS_NAME_PARAMETERS, Word);

@@ -955,6 +955,9 @@ impl RuntimeHost for WindowsHost {
     fn win16_get_sys_color(&mut self, index: i32) -> Result<u32, RuntimeError> {
         Ok(win16_user_services_system::get_sys_color(index))
     }
+    fn win16_any_popup(&mut self) -> Result<bool, RuntimeError> {
+        Ok(win16_user_services_system::any_popup())
+    }
     fn win16_get_dialog_base_units(&mut self) -> Result<u32, RuntimeError> {
         Ok(win16_user_services_system::get_dialog_base_units())
     }
