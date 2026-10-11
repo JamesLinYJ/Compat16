@@ -387,6 +387,7 @@ GdiCreateSolidBrush => GDI_CREATE_SOLID_BRUSH: ("GDI", 66u16, Stack, gdi::GDI_BR
 GdiGetTextExtent => GDI_GET_TEXT_EXTENT: ("GDI", 91u16, Stack, gdi::GDI_GET_TEXT_EXTENT_PARAMETERS, Dword);
 GdiCreateDc => GDI_CREATE_DC: ("GDI", 53u16, Stack, gdi::GDI_CREATE_DC_PARAMETERS, Word);
 GdiCreateIc => GDI_CREATE_IC: ("GDI", 153u16, Stack, gdi::GDI_CREATE_DC_PARAMETERS, Word);
+GdiGetOutlineTextMetrics => GDI_GET_OUTLINE_TEXT_METRICS: ("GDI", 308u16, Stack, gdi::GDI_GET_OUTLINE_TEXT_METRICS_PARAMETERS, Word);
 GdiGetTextMetrics => GDI_GET_TEXT_METRICS: ("GDI", 93u16, Stack, gdi::GDI_GET_TEXT_METRICS_PARAMETERS, Word);
 GdiGetTextFace => GDI_GET_TEXT_FACE: ("GDI", 92u16, Stack, gdi::GDI_GET_TEXT_FACE_PARAMETERS, Word);
 GdiCreateBitmap => GDI_CREATE_BITMAP: ("GDI", 48u16, Stack, gdi::GDI_CREATE_BITMAP_PARAMETERS, Word);

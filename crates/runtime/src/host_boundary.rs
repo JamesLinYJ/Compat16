@@ -658,6 +658,15 @@ pub trait RuntimeHost:
             "host Win16 information context creation is unavailable",
         ))
     }
+    fn win16_get_outline_text_metrics(
+        &mut self,
+        _dc: Win16HostDc,
+    ) -> Result<Option<crate::Win16HostOutlineTextMetrics>, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 outline text metrics are unavailable",
+        ))
+    }
     fn win16_get_text_metrics(
         &mut self,
         _dc: Win16HostDc,

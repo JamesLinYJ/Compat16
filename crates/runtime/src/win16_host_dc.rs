@@ -48,3 +48,12 @@ pub struct Win16HostTextFace {
     pub result: i32,
     pub bytes: Vec<u8>,
 }
+
+/// Owned outline metrics. `fixed` contains the packed Win16 prefix through
+/// underscore size; the runtime supplies otmSize and relative name offsets.
+/// Names are UTF-16 words without terminators, copied out of native storage.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Win16HostOutlineTextMetrics {
+    pub fixed: [u8; 106],
+    pub names: [Vec<u16>; 4],
+}

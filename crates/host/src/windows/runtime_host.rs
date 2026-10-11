@@ -275,6 +275,12 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
         runtime_host_gdi::create_ic(self, driver, device, output, devmode)
     }
+    fn win16_get_outline_text_metrics(
+        &mut self,
+        dc: Win16HostDc,
+    ) -> Result<Option<runtime::Win16HostOutlineTextMetrics>, RuntimeError> {
+        self.win16_dcs.get_outline_text_metrics(dc)
+    }
     fn win16_get_text_metrics(
         &mut self,
         dc: Win16HostDc,

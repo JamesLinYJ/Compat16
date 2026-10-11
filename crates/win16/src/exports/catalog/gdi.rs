@@ -324,6 +324,12 @@ pub(super) const GDI_TEXT_JUSTIFICATION_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "breaks", kind: ArgumentKind::Word, parameter_type: SIGNED_SCALAR },
 ];
 
+pub(super) const GDI_GET_OUTLINE_TEXT_METRICS_PARAMETERS: &[Win16Parameter] = &[
+    Win16Parameter { name: "dc", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+    Win16Parameter { name: "count", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
+    Win16Parameter { name: "output", kind: ArgumentKind::Dword, parameter_type: FAR_OUTPUT_BUFFER },
+];
+
 pub(super) const GDI_GET_TEXT_METRICS_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "dc", kind: ArgumentKind::Word, parameter_type: SCALAR_WORD },
     Win16Parameter { name: "output", kind: ArgumentKind::Dword, parameter_type: FAR_OUTPUT_BUFFER },

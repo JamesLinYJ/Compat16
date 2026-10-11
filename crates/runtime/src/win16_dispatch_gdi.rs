@@ -467,6 +467,11 @@ impl Win16State {
                 output,
                 init_data,
             }) => u32::from(self.create_ic(driver, device, output, init_data, memory, host)?),
+            Win16ApiRequest::GdiText(win16_abi::Win16GdiTextRequest::GetOutlineTextMetrics {
+                dc,
+                count,
+                output,
+            }) => u32::from(self.get_outline_text_metrics(dc, count, output, memory, host)?),
             Win16ApiRequest::GdiText(win16_abi::Win16GdiTextRequest::GetTextMetrics {
                 dc,
                 output,

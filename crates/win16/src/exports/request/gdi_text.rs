@@ -134,8 +134,14 @@ pub enum Win16GdiTextRequest {
         count: i16,
     },
 
-    /// Copy TEXTMETRIC16 into the raw guest output address after complete
-    /// 31-byte write preflight in the runtime.
+    /// Query outline size or copy a bounded packed outline-metric prefix.
+    GetOutlineTextMetrics {
+        dc: u16,
+        count: u16,
+        output: u32,
+    },
+
+    /// Copy TEXTMETRIC16 after complete 31-byte runtime write preflight.
     GetTextMetrics {
         dc: u16,
         output: u32,

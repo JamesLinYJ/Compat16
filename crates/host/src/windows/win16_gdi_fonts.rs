@@ -129,7 +129,7 @@ fn metric_character_marker_w_to_guest(
     }
 }
 
-fn metric_markers_w_to_guest(
+pub(super) fn metric_markers_w_to_guest(
     codec: GuestTextCodec,
     metric: &TEXTMETRICW,
 ) -> Result<Option<[u8; 4]>, RuntimeError> {

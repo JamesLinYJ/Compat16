@@ -41,6 +41,7 @@ pub(super) fn decode(
         | Win16ExportId::GdiGetTextExtent
         | Win16ExportId::GdiCreateDc
         | Win16ExportId::GdiCreateIc
+        | Win16ExportId::GdiGetOutlineTextMetrics
         | Win16ExportId::GdiGetTextMetrics
         | Win16ExportId::GdiGetTextFace => {
             gdi_calls::decode(descriptor.id, &arguments, selectors, memory)?

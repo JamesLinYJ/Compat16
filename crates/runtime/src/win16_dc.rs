@@ -183,3 +183,78 @@ impl Win16State {
         Ok(face.result as i16)
     }
 }
+
+impl Win16State {
+    pub(super) fn get_outline_text_metrics(
+        &self,
+        dc: u16,
+        count: u16,
+        output: u32,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u16, RuntimeError> {
+        use super::guest_ranges::{GuestOutputRange, commit_guest_output};
+        let Some(native) = self.guest_gdi.dc(dc) else { return Ok(0); };
+        // The original far-pointer NULL test examines the selector only.
+        let query = output >> 16 == 0;
+        let destination = if !query && count != 0 {
+            if usize::from(output as u16) + usize::from(count) > 0x1_0000 {
+                return Err(RuntimeError::new(Kind::GuestFault,
+                    "Win16 outline text metrics output crosses a FAR segment"));
+            }
+            let pointer = self.selectors.pointer_from_far(output).map_err(crate::runtime_error)?;
+            // Conservative safety policy: the declared capacity must be valid,
+            // even when the eventual prefix is shorter. Capture before host work.
+            Some(GuestOutputRange::capture(self, memory, pointer, usize::from(count))?)
+        } else {
+            None
+        };
+        let Some(metric) = host.win16_get_outline_text_metrics(native)? else { return Ok(0); };
+        let Some((required, stored_size)) = outline_metrics_sizes(&metric.names) else {
+            return Ok(0);
+        };
+        if query { return Ok(required); }
+        if count == 0 { return Ok(1); }
+        let mut fixed = metric.fixed;
+        fixed[..2].copy_from_slice(&stored_size.to_le_bytes());
+        let length = if count <= 106 { usize::from(count) }
+            else { usize::from(count.min(required)) };
+        let mut bytes = Vec::new();
+        bytes.try_reserve_exact(usize::from(required)).map_err(|error|
+            RuntimeError::with_source(Kind::ResourceExhausted,
+                "reserve Win16 outline text metrics", error))?;
+        bytes.extend_from_slice(&fixed);
+        if count > 106 {
+            bytes.resize(114, 0);
+            for (index, name) in metric.names.iter().enumerate() {
+                let offset = bytes.len() as u16; // validated by outline_metrics_sizes
+                bytes[106 + index * 2..108 + index * 2].copy_from_slice(&offset.to_le_bytes());
+                // Original GDI308 uses the low byte of each UTF-16 word, not
+                // the process ANSI codec. A partial output gets no added NUL.
+                bytes.extend(name.iter().map(|word| *word as u8));
+                bytes.push(0);
+            }
+        }
+        bytes.truncate(length);
+        if let Some(destination) = destination {
+            commit_guest_output(self, memory, &destination, &bytes)?;
+        }
+        Ok(1)
+    }
+}
+
+fn outline_metrics_sizes(names: &[Vec<u16>; 4]) -> Option<(u16, u16)> {
+    let mut required = 114_usize;
+    for name in names {
+        // Native names are copied without terminators. Embedded full-word NUL
+        // indicates a malformed host result; low-byte NUL is intentionally valid.
+        if name.contains(&0) { return None; }
+        required = required.checked_add(name.len().checked_add(1)?)?;
+    }
+    let stored = required.checked_add(1)? & !1;
+    Some((u16::try_from(required).ok()?, u16::try_from(stored).ok()?))
+}
+
+#[cfg(test)]
+#[path = "win16_outline_text_metrics_tests.rs"]
+mod outline_text_metrics_tests;

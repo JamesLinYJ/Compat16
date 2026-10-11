@@ -148,6 +148,8 @@ jobs:
             '-p runtime --lib dos_search_tests::',
             '-p runtime --lib get_char_width',
             '-p host-services --lib get_char_width',
+            '-p runtime --lib get_outline_text_metrics',
+            '-p host-services --lib get_outline_text_metrics',
             '-p runtime --lib keyboard_state_tests',
             '-p runtime --lib set_window_text_tests',
             '-p runtime --lib set_rect_rgn_tests',
@@ -203,6 +205,34 @@ jobs:
           }
           if ($failedSuites.Count -gt 0) {
             throw ('Compatibility tests failed: ' + ($failedSuites -join '; '))
+          }
+
+      - name: Probe owned memory DC outline metrics
+        # Owned memory DC and font only, no visible windows or input. Keep its
+        # ignored test isolated from the ordinary noninteractive test filters.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for owned memory DC outline metrics.'
+          }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'BLOCKED: Visual Studio developer command script unavailable for owned memory DC outline metrics.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $filter = 'windows::win16_gdi::outline_metrics::native_tests::get_outline_text_metrics_native_matches_independent_oracle_and_rejects_non_mm_text'
+          Write-Host 'Compare packed outline metrics with an independent native TrueType oracle on an owned memory DC.'
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib {4} -- --ignored --exact --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+          & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+          $probeExitCode = $LASTEXITCODE
+          if ($probeExitCode -ne 0) {
+            throw "UNSUPPORTED/FAILED: owned memory DC outline metrics (exit $probeExitCode); inspect native query diagnostics above."
+          }
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 1 passed; 0 failed; 0 ignored;') {
+            throw 'BLOCKED: the exact owned memory DC outline metrics did not execute once.'
           }
 
       - name: Probe read-only desktop popup query

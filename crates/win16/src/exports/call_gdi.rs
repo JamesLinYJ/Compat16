@@ -210,6 +210,13 @@ pub(super) fn decode(
                 })
             }
         }
+        Win16ExportId::GdiGetOutlineTextMetrics => {
+            Win16ApiRequest::GdiText(super::Win16GdiTextRequest::GetOutlineTextMetrics {
+                dc: word_argument(arguments, 0)?,
+                count: word_argument(arguments, 1)?,
+                output: dword_argument(arguments, 2)?,
+            })
+        }
         Win16ExportId::GdiGetTextMetrics => {
             Win16ApiRequest::GdiText(super::Win16GdiTextRequest::GetTextMetrics {
                 dc: word_argument(arguments, 0)?,
@@ -290,3 +297,7 @@ pub(super) fn read_exact_bytes(
 #[cfg(test)]
 #[path = "call_enum_font_families_tests.rs"]
 mod enum_font_families_tests;
+
+#[cfg(test)]
+#[path = "call_get_outline_text_metrics_tests.rs"]
+mod outline_text_metrics_tests;

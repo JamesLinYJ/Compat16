@@ -8,6 +8,8 @@ mod update_region;
 mod dc_lease;
 #[path = "win16_gdi_fonts.rs"]
 pub(super) mod fonts;
+#[path = "win16_gdi_outline_metrics.rs"]
+mod outline_metrics;
 
 
 use std::alloc::{alloc_zeroed, dealloc, Layout};
