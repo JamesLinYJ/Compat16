@@ -179,13 +179,23 @@ fn pending_events_do_not_claim_an_instruction_even_if_delivery_fails() {
 }
 
 #[test]
-fn fetch_decode_and_instruction_breakpoint_faults_are_incomplete() {
+fn fetch_unsupported_model_and_instruction_breakpoint_faults_are_incomplete() {
     let (mut cpu, mut ram) = cpu_with(&[], 0);
     let boundary = report(&mut cpu, &mut ram);
     assert_eq!(boundary.progress, Progress::InstructionIncomplete);
     assert!(boundary.outcome.is_err());
 
     let (mut cpu, mut ram) = cpu_with(&[0x0f, 0x0b], 0x20000); // UD2
+    let boundary = observed(&mut cpu, &mut ram);
+    assert_eq!(boundary.progress, Progress::InstructionIncomplete);
+    // UD2 currently reaches the unsupported executor path, not architectural
+    // #UD delivery. The report must preserve that compatibility error.
+    assert_eq!(boundary.outcome.unwrap_err(), CpuError::UnsupportedOpcode { opcode: 0x0f, ip: 0 });
+    assert_eq!(cpu.regs.eip, 0);
+
+    // CPUID on the explicit I486 profile is an established architectural #UD.
+    let (cpu, mut ram) = cpu_with(&[0x0f, 0xa2], 0x20000);
+    let mut cpu = Cpu::new_with_model(cpu.regs, CpuModel::I486);
     let boundary = observed(&mut cpu, &mut ram);
     assert_eq!(boundary.progress, Progress::InstructionIncomplete);
     let event = deferred(boundary.outcome).observation();
@@ -235,10 +245,13 @@ fn post_execution_events_keep_body_progress_and_repeat_token_authority() {
 #[test]
 fn stack_debug_shadow_preserves_progress_event_and_wrapper_parity() {
     for next_faults in [false, true] {
-        let code = if next_faults { &[0x8e, 0x16, 0x00, 0x02, 0x0f, 0x0b][..] }
+        let code = if next_faults { &[0x8e, 0x16, 0x00, 0x02, 0x0f, 0xa2][..] }
             else { &[0x8e, 0x16, 0x00, 0x02, 0x90][..] }; // MOV SS,[0200]
-        let (mut cpu, mut ram) = cpu_with(code, 0x20000);
-        let (mut legacy, mut legacy_ram) = cpu_with(code, 0x20000);
+        let (cpu, mut ram) = cpu_with(code, 0x20000);
+        let (legacy, mut legacy_ram) = cpu_with(code, 0x20000);
+        // CPUID must produce #UD, rather than an unsupported-executor error.
+        let mut cpu = Cpu::new_with_model(cpu.regs, CpuModel::I486);
+        let mut legacy = Cpu::new_with_model(legacy.regs, CpuModel::I486);
         for (cpu, ram) in [(&mut cpu, &mut ram), (&mut legacy, &mut legacy_ram)] {
             cpu.regs.eflags |= crate::TF;
             cpu.system.debug.addresses[0] = 0x200;

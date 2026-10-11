@@ -111,8 +111,10 @@ fn pe32_return_and_service_gates_preserve_boundary_budget() {
         });
         let lease = dispatcher.registry.prepare_process_attach(module).unwrap().unwrap();
         let lease_id = lease.id();
-        let initial = Registers::default();
-        let mut cpu = Cpu::new(initial.clone());
+        let mut cpu = Cpu::new(Registers::default());
+        // CPU construction canonicalizes reserved EFLAGS bit 1. Compare the
+        // restored state with the actual pre-call CPU, not its raw input DTO.
+        let initial = cpu.regs.clone();
         let mut host = super::super::test_support::NoHost;
         imports.set_last_error(7);
 
