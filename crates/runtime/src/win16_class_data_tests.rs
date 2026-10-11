@@ -607,3 +607,6 @@ mod close_window_tests;
 
 #[path = "win16_dispatch_set_window_text_tests.rs"]
 mod set_window_text_tests;
+
+#[path = "win16_dispatch_flash_window_tests.rs"]
+mod flash_window_tests;

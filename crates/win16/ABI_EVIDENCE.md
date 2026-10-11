@@ -249,3 +249,30 @@ https://github.com/wine-mirror/wine/blob/master/dlls/user.exe16/user.exe16.spec 
 The original parameter tables also cite Open Watcom declarations where noted
 in their retained revision history. The project license and third-party
 notices remain applicable; conversion to TOML does not remove those obligations.
+
+## USER.105 FlashWindow
+
+Windows 3.1 SDK Programmer's Reference Volume 2, printed page 310, declares
+`BOOL FlashWindow(HWND, BOOL)`: two WORD slots, far Pascal cleanup of four bytes,
+and a WORD return. The [original Microsoft reference](https://bitsavers.trailing-edge.com/pdf/microsoft/windows_3.1/Microsoft_Windows_3.1_SDK_1992/PC28916-0492_Programmers_Reference_Volume_2_199204.pdf)
+states that this flashes once and returns the previous active state. Zero is a
+valid result. For minimized windows the icon flashes regardless of the invert
+argument, and the result is always nonzero.
+
+The worker resolves the opaque token before querying iconic state and calling
+native FlashWindow, retaining no worker borrow over callbacks. Same-worker
+windows retain exact cookie checks; foreign aliases retain the existing ordinary
+USER lifetime limitations. Iconic targets force the native invert flag, and the
+iconic return override requires successful resolution to the same native target
+after the call. A callback-retired target retains the native prior-state result.
+The runtime uses the existing WindowCall continuation and Boolean result checking;
+completion retries cannot repeat the native flash. No timer, activation, or focus
+operation is added. The native API has no distinct failure return or documented
+last-error contract; host operation errors remain errors in the continuation.
+
+Focused ABI tests cover both WORD slots, noncanonical BOOL16 values, truncated
+frames and four-byte cleanup. Runtime tests cover zero/one results, exact opaque
+targets, completion retry, callback return and malformed result rejection. Native
+caption/icon and identity tests are ignored by default and require an explicitly
+selected disposable Windows desktop; compilation alone does not verify those
+visual effects.

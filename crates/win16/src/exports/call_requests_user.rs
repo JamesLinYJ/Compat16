@@ -330,6 +330,7 @@ pub(super) fn decode(
         }
         Win16ExportId::UserCloseWindow
         | Win16ExportId::UserArrangeIconicWindows
+        | Win16ExportId::UserFlashWindow
         | Win16ExportId::UserOpenIcon
         | Win16ExportId::UserIsIconic
         | Win16ExportId::UserGetWindowRect

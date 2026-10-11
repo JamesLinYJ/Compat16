@@ -81,6 +81,7 @@ pub enum Win16WindowCall {
     EnumWindowProperties { window: Win16WindowTarget },
     CloseWindow { window: Win16WindowTarget },
     OpenIcon { window: Win16WindowTarget },
+    FlashWindow { window: Win16WindowTarget, invert: bool },
     ArrangeIconicWindows { window: Win16WindowTarget },
     IsIconic { window: Win16WindowTarget },
     GetWindowRect { window: Win16WindowTarget },

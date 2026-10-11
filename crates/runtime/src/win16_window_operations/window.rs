@@ -96,6 +96,16 @@ impl Win16State {
                     return_kind,
                 )
             }
+            Request::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::FlashWindow { window, invert },
+            )) => self.submit_call(
+                registers, memory, host,
+                Win16WindowCall::FlashWindow {
+                    window: self.native_window(window), invert: invert != 0,
+                },
+                Win16WindowCallOutput::Boolean,
+                return_to, return_kind, None,
+            ),
             // Native BOOL is validated internally; typed Void preserves guest AX/DX.
             Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::CloseWindow { window },

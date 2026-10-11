@@ -18,7 +18,7 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     EnableWindow, GetActiveWindow, IsWindowEnabled, SetActiveWindow,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    ArrangeIconicWindows, CloseWindow, GetWindowLongW, GWL_STYLE, WS_CHILD, WS_POPUP,
+    ArrangeIconicWindows, CloseWindow, FlashWindow, GetWindowLongW, GWL_STYLE, WS_CHILD, WS_POPUP,
     BringWindowToTop, ChildWindowFromPoint, ChildWindowFromPointEx, FindWindowW,
     GetClientRect, GetClassNameW,
     GetClipCursor, GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
@@ -112,6 +112,10 @@ pub(super) fn execute(
         // identity before the call and retain no worker borrow over reentry.
         Call::OpenIcon { window } => ResultValue::Boolean(hwnd(state, window)
             .is_some_and(|native| unsafe { OpenIcon(native) != 0 })),
+        Call::FlashWindow { window, invert } => ResultValue::Boolean(
+            flash_window_with(state, window, invert, |native| unsafe { IsIconic(native) != 0 },
+                |native, invert| unsafe { FlashWindow(native, i32::from(invert)) != 0 }),
+        ),
         Call::IsIconic { window } => ResultValue::Boolean(hwnd(state, window)
             .is_some_and(|native| unsafe { IsIconic(native) != 0 })),
         Call::GetWindowRect { window } => {
@@ -377,6 +381,27 @@ fn hwnd(state: &SharedWorker, target: Win16WindowTarget) -> Option<HWND> {
         Win16WindowTarget::Mapped(token) =>
             super::win16_window_identity::resolve_user_window(state, token),
     }
+}
+
+// Win16's minimized-window contract differs from Win32: ignore the invert
+// argument, flash the icon once, and return nonzero. Zero from native FlashWindow
+// is a valid prior-inactive result, not a GetLastError-style failure sentinel.
+// Never apply the iconic override to a null, stale, or callback-retired target.
+pub(super) fn flash_window_with(
+    state: &SharedWorker,
+    target: Win16WindowTarget,
+    invert: bool,
+    is_iconic: impl FnOnce(HWND) -> bool,
+    flash: impl FnOnce(HWND, bool) -> bool,
+) -> bool {
+    let Win16WindowTarget::Mapped(token) = target else { return false; };
+    let resolve = || super::win16_window_identity::resolve_user_window(state, token);
+    let Some(native) = resolve() else { return false; };
+    let iconic = is_iconic(native);
+    if resolve() != Some(native) { return false; }
+    // Resolution retains no worker borrow across native window procedures.
+    let previously_active = flash(native, iconic || invert);
+    previously_active || (iconic && resolve() == Some(native))
 }
 
 fn token_for_native(

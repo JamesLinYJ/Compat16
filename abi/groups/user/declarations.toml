@@ -105,7 +105,13 @@ decl = { attributes = [] }
 [[exports]]
 ordinal = 105
 name = "FlashWindow"
-decl = { args = ["word", "word"] }
+binding = { rust_id = "UserFlashWindow", id_value = 1221, constant = "USER_FLASH_WINDOW" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "invert", type = "U16" },
+]
 
 [[exports]]
 ordinal = 112

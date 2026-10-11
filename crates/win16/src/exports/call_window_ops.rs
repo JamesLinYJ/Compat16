@@ -70,6 +70,12 @@ pub(super) fn decode(
                 window: word_argument(arguments, 0)?,
             },
         )),
+        Win16ExportId::UserFlashWindow => Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::FlashWindow {
+                window: word_argument(arguments, 0)?,
+                invert: word_argument(arguments, 1)?,
+            },
+        )),
         Win16ExportId::UserOpenIcon => Win16ApiRequest::User(super::Win16UserRequest::Window(
             super::Win16UserWindowRequest::OpenIcon {
                 window: word_argument(arguments, 0)?,
@@ -474,3 +480,7 @@ mod arrange_iconic_windows_tests;
 #[cfg(test)]
 #[path = "call_get_clip_cursor_tests.rs"]
 mod get_clip_cursor_tests;
+
+#[cfg(test)]
+#[path = "call_flash_window_tests.rs"]
+mod flash_window_tests;

@@ -150,6 +150,13 @@ pub enum Win16UserWindowRequest {
         window: u16,
     },
 
+    /// USER.105 flashes once and returns previous active state, always nonzero
+    /// for minimized windows. Preserve the complete guest BOOL16 argument.
+    FlashWindow {
+        window: u16,
+        invert: u16,
+    },
+
     /// USER.170 arranges minimized children and returns an unsigned row height.
     ArrangeIconicWindows {
         window: u16,

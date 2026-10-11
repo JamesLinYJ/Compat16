@@ -186,6 +186,7 @@ jobs:
             '-p runtime --lib gdi_services::wire_tests::',
             '-p runtime --lib win16_runtime::task_state::tests::',
             '-p runtime --lib get_window_task_'
+            '-p runtime --lib flash_window_'
           )
           # Keep focused additions visible: a renamed filter must not silently
           # succeed after selecting zero tests.
@@ -198,6 +199,7 @@ jobs:
             '-p runtime --lib gdi_services::wire_tests::' = 2
             '-p runtime --lib win16_runtime::task_state::tests::' = 7
             '-p runtime --lib get_window_task_' = 6
+            '-p runtime --lib flash_window_' = 6
           }
           $failedSuites = @()
           $runtimeCompileChecked = $false
@@ -699,7 +701,9 @@ jobs:
             'windows::win16_windows::win16_window_data::tests::reparent_never_projects_a_replacement_parent_identity_at_the_same_native_bits',
             'windows::win16_windows::win16_window_data::tests::reparent_never_queries_a_replacement_child_identity_at_the_same_native_bits',
             'windows::win16_windows::win16_window_data::tests::get_window_task_tests::get_window_task_native_queue_is_immutable_and_includes_borrowed_control_aliases',
-            'windows::win16_windows::win16_window_data::tests::get_window_task_tests::get_window_task_native_rejects_cookie_mismatch_retired_and_replaced_hwnd_tokens'
+            'windows::win16_windows::win16_window_data::tests::get_window_task_tests::get_window_task_native_rejects_cookie_mismatch_retired_and_replaced_hwnd_tokens',
+            'windows::win16_windows::win16_window_data::tests::flash_window_tests::flash_window_rejects_null_unknown_retired_and_stale_without_native_calls',
+            'windows::win16_windows::win16_window_data::tests::flash_window_tests::flash_window_normalizes_only_live_iconic_targets_after_reentry'
           )
           $failedSuites = @()
           foreach ($filter in $filters) {
@@ -770,7 +774,7 @@ jobs:
             throw ('UNSUPPORTED/FAILED: activation-capable OpenIcon capability validation: ' + ($failedSuites -join '; '))
           }
 
-      - name: Validate activation-capable CloseWindow fixtures
+      - name: Validate activation-capable CloseWindow/FlashWindow fixtures
         # Capability validation on disposable GitHub-hosted windows-2022 x64
         # and windows-11-arm ARM64 only, never shared/self-hosted desktops.
         # Minimizing/restoring test windows may incidentally activate the runner
@@ -783,27 +787,28 @@ jobs:
           NATIVE_RUNNER_LABEL: ${{ matrix.runner }}
         run: |
           if ($env:NATIVE_RUNNER_ENVIRONMENT -cne 'github-hosted') {
-            throw 'BLOCKED: activation-capable CloseWindow fixtures require a disposable GitHub-hosted runner; shared/self-hosted desktops are excluded.'
+            throw 'BLOCKED: activation-capable CloseWindow/FlashWindow fixtures require a disposable GitHub-hosted runner; shared/self-hosted desktops are excluded.'
           }
           $supportedRunner = ($env:NATIVE_RUNNER_LABEL -ceq 'windows-2022' -and $env:BUILD_ARCHITECTURE -ceq 'x64') -or
             ($env:NATIVE_RUNNER_LABEL -ceq 'windows-11-arm' -and $env:BUILD_ARCHITECTURE -ceq 'arm64')
           if (-not $supportedRunner) {
-            throw 'BLOCKED: activation-capable CloseWindow capability validation is limited to windows-2022 x64 and windows-11-arm ARM64.'
+            throw 'BLOCKED: activation-capable CloseWindow/FlashWindow capability validation is limited to windows-2022 x64 and windows-11-arm ARM64.'
           }
           $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
           $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
           if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
-            throw 'BLOCKED: Visual Studio C++ tools unavailable for activation-capable CloseWindow fixtures.'
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for activation-capable CloseWindow/FlashWindow fixtures.'
           }
           $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
           if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
-            throw 'BLOCKED: Visual Studio developer command script unavailable for activation-capable CloseWindow fixtures.'
+            throw 'BLOCKED: Visual Studio developer command script unavailable for activation-capable CloseWindow/FlashWindow fixtures.'
           }
           $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
-          Write-Host 'Capability validation only: CloseWindow fixtures may incidentally activate the disposable runner desktop.'
+          Write-Host 'Capability validation only: CloseWindow/FlashWindow fixtures may incidentally activate the disposable runner desktop.'
           $filters = @(
             'windows::win16_windows::win16_window_data::tests::close_window_tests::close_window_minimizes_without_destroying_or_retiring_identity',
-            'windows::win16_windows::win16_window_data::tests::close_window_tests::close_window_reentry_rejects_replaced_identity_without_retiring_replacement'
+            'windows::win16_windows::win16_window_data::tests::close_window_tests::close_window_reentry_rejects_replaced_identity_without_retiring_replacement',
+            'windows::win16_windows::win16_window_data::tests::flash_window_tests::flash_window_uses_native_prior_state_and_win16_iconic_contract'
           )
           $failedSuites = @()
           foreach ($filter in $filters) {
@@ -819,7 +824,7 @@ jobs:
             }
           }
           if ($failedSuites.Count -gt 0) {
-            throw ('UNSUPPORTED/FAILED: activation-capable CloseWindow capability validation: ' + ($failedSuites -join '; '))
+            throw ('UNSUPPORTED/FAILED: activation-capable CloseWindow/FlashWindow capability validation: ' + ($failedSuites -join '; '))
           }
 
       - name: Build and stage native release
