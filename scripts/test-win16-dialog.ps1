@@ -226,7 +226,7 @@ function Invoke-ProbeCase {
         if ([regex]::Matches($outputEvidence, '(?m)^L1\r?$').Count -ne 1) {
             throw 'Missing unique L1 evidence from the local handle delta guest.'
         }
-        Write-Host 'PASS: generated local heap NE guest verified KERNEL310 query/set, bounded small-heap allocation, movable handle expansion, payload access, unlock/free and caller canaries.'
+        Write-Host 'PASS: generated local heap NE guest verified KERNEL310 query/set, bounded small-heap allocation, movable handle expansion, KERNEL6 zero-size failure preserving payload, unlock/free and caller canaries.'
     } elseif ($Module -eq 'GDI') {
         Write-Host "PASS: generated $Name NE guest exited zero with exact GDI52/330/68 service counts and guest-executed font callback assertions; font callbacks have no dedicated trace marker."
     } elseif ($Name -eq 'user-queries') {
@@ -285,7 +285,7 @@ try {
             Name = 'local-handle-delta'
             Generator = 'win16-local-handle-delta-probe'
             ProgramName = 'DELTA.EXE'
-            ServiceCounts = [ordered]@{ '4' = 1; '310' = 5; '5' = 4; '8' = 1; '9' = 1; '7' = 3 }
+            ServiceCounts = [ordered]@{ '4' = 1; '310' = 5; '5' = 4; '6' = 1; '8' = 2; '9' = 2; '7' = 3 }
             InitializationCount = 0
             Module = 'KERNEL'
         },

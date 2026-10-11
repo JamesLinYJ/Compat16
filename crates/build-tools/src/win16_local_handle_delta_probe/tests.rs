@@ -21,7 +21,7 @@ fn local_handle_delta_probe_has_exact_kernel_imports_and_bounded_segments() {
     assert_eq!(&image[data_start..data_start + DATA_LENGTH], &[0; DATA_LENGTH]);
     let start = code.file_offset.unwrap();
     let end = start + code.file_size as usize;
-    let ordinals = [4, 310, 5, 310, 310, 5, 8, 310, 310, 5, 5, 9, 7, 7, 7];
+    let ordinals = [4, 310, 5, 310, 310, 5, 8, 310, 310, 5, 5, 9, 6, 8, 9, 7, 7, 7];
     assert_eq!(code.fixups.len(), ordinals.len());
     assert!(end + 2 + 8 * ordinals.len() <= data_start);
     for (fixup, ordinal) in code.fixups.iter().zip(ordinals) {
@@ -50,10 +50,10 @@ fn local_handle_delta_guest_encodes_pascal_arguments_and_owned_cleanup() {
         let [lo, hi] = size.to_le_bytes();
         assert_eq!(&code[call(index) - 5..call(index)], &[0x6a, 0x12, 0x68, lo, hi]);
     }
-    for (index, slot) in [(6, 40), (11, 40), (12, 44), (13, 42), (14, 40)] {
+    for (index, slot) in [(6, 40), (11, 40), (13, 40), (14, 40), (15, 44), (16, 42), (17, 40)] {
         assert_eq!(&code[call(index) - 4..call(index)], &[0xff, 0x36, slot, 0]);
     }
-    for index in [2, 5, 6, 9, 10] {
+    for index in [2, 5, 6, 9, 10, 13] {
         assert_eq!(&code[call(index) + 5..call(index) + 7], &[0x36, 0xa3]);
     }
     // Each API boundary checks the independently saved stack and caller DS.
@@ -62,7 +62,7 @@ fn local_handle_delta_guest_encodes_pascal_arguments_and_owned_cleanup() {
     for expected in [32, 1, 2] {
         assert!(contains(&[0x66, 0x3d, expected, 0, 0x34, 0x12]));
     }
-    for status in (20..=39).chain(60..=61) {
+    for status in (20..=46).chain(60..=61) {
         assert!(contains(&[0xc7, 0x06, 32, 0, status, 0]), "missing assertion {status}");
     }
     assert!(contains(&[0xc7, 0x06, 48, 0, b'L', b'1']));
@@ -70,6 +70,29 @@ fn local_handle_delta_guest_encodes_pascal_arguments_and_owned_cleanup() {
     assert!(contains(&[0x81, 0x3e, 0xf0, 2, 0x68, 0x24]));
     assert!(contains(&[0x81, 0x3f, 0x5a, 0xa5]));
     assert!(contains(&[0x81, 0x7f, 94, 0xa5, 0x5a]));
+}
+
+#[test]
+fn local_handle_delta_guest_rejects_zero_realloc_then_checks_the_original_payload() {
+    let (code, fixups) = guest_code().unwrap();
+    let call = |index: usize| usize::from(u16::from_le_bytes([fixups[index][2], fixups[index][3]])) - 1;
+    let contains = |bytes: &[u8], pattern: &[u8]| bytes.windows(pattern.len()).any(|w| w == pattern);
+    // Unlock ownership is cleared via SS before either ABI check can fail.
+    assert_eq!(&code[call(11) + 5..call(11) + 12], &[0x36, 0xc7, 0x06, 46, 0, 0, 0]);
+    let unlocked = &code[call(11) + 12..call(12)];
+    assert!(contains(unlocked, &[0x85, 0xc0, 0x74, 10, 0x36, 0xc7, 0x06, 32, 0, 40, 0]));
+    assert_eq!(&code[call(12) - 8..call(12)], &[0xff, 0x36, 40, 0, 0x6a, 0, 0x6a, 0]);
+    let rejected = &code[call(12) + 5..call(13)];
+    assert!(contains(rejected, &[0x85, 0xc0, 0x74, 10, 0x36, 0xc7, 0x06, 32, 0, 41, 0]));
+    assert!(!contains(rejected, &[0xa3, 40, 0])); // never replace the handle with AX=0
+    assert_eq!(&code[call(13) - 4..call(13)], &[0xff, 0x36, 40, 0]);
+    assert_eq!(&code[call(13) + 5..call(13) + 9], &[0x36, 0xa3, 46, 0]);
+    let relocked = &code[call(13) + 9..call(14)];
+    assert!(contains(relocked, &[0x85, 0xc0, 0x75, 10]));
+    assert!(contains(relocked, &[0x3d, 0, 2, 0x73, 10]));
+    assert!(contains(relocked, &[0x3d, 0x90, 2, 0x76, 10]));
+    assert!(contains(relocked, &[0x89, 0xc3, 0x81, 0x3f, 0x5a, 0xa5, 0x74, 10]));
+    assert!(contains(relocked, &[0x81, 0x7f, 94, 0xa5, 0x5a, 0x74, 10]));
 }
 
 #[test]
@@ -97,6 +120,9 @@ fn local_handle_delta_fixture_heap_geometry_supports_the_guest_sequence() {
     assert_ne!(first, second);
     assert_ne!(first, third);
     assert_ne!(second, third);
+    assert_eq!(heap.unlock(first), Ok(0));
+    assert_eq!(heap.realloc(first, 0, 0), Ok(0));
+    assert_eq!(heap.lock(first), Ok(pointer));
     assert_eq!(heap.unlock(first), Ok(0));
     for handle in [third, second, first] { assert_eq!(heap.free(handle), Ok(0)); }
     assert_eq!(&bytes[usize::from(HEAP_START - 2)..usize::from(HEAP_START)], &0x1357u16.to_le_bytes());

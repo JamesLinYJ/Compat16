@@ -119,6 +119,37 @@ fn guest_code() -> Result<(Vec<u8>, Vec<[u8; 8]>), ProbeBuildError> {
     code.emit(&[0x81, 0x7f, 94, 0xa5, 0x5a]);
     require(&mut code, 0x74, 35, "cleanup");
 
+    // Rejecting an unlocked LocalReAlloc(h, 0, 0) must retain the live block.
+    // LMEM_MOVEABLE is deliberately absent: this is not an explicit discard.
+    word(&mut code, &[0xff, 0x36], HANDLES[0]);
+    imported_call(&mut code, &mut fixups, 9);
+    // Relinquish lock ownership before an ABI assertion can enter cleanup.
+    code.emit(&[0x36]);
+    store(&mut code, LOCKED, 0);
+    preserved(&mut code, "cleanup");
+    code.emit(&[0x85, 0xc0]);
+    require(&mut code, 0x74, 40, "cleanup");
+    word(&mut code, &[0xff, 0x36], HANDLES[0]);
+    code.emit(&[0x6a, 0, 0x6a, 0]); // Pascal: handle, size, flags (six bytes)
+    call(&mut code, &mut fixups, 6);
+    code.emit(&[0x85, 0xc0]);
+    require(&mut code, 0x74, 41, "cleanup");
+    // Keep the original handle even though the rejected realloc returned zero.
+    word(&mut code, &[0xff, 0x36], HANDLES[0]);
+    imported_call(&mut code, &mut fixups, 8);
+    word(&mut code, &[0x36, 0xa3], LOCKED);
+    preserved(&mut code, "cleanup");
+    code.emit(&[0x85, 0xc0]);
+    require(&mut code, 0x75, 42, "cleanup");
+    word(&mut code, &[0x3d], HEAP_START);
+    require(&mut code, 0x73, 43, "cleanup");
+    word(&mut code, &[0x3d], HEAP_END - 95);
+    require(&mut code, 0x76, 44, "cleanup");
+    code.emit(&[0x89, 0xc3, 0x81, 0x3f, 0x5a, 0xa5]);
+    require(&mut code, 0x74, 45, "cleanup");
+    code.emit(&[0x81, 0x7f, 94, 0xa5, 0x5a]);
+    require(&mut code, 0x74, 46, "cleanup");
+
     code.mark("cleanup");
     restore(&mut code);
     word(&mut code, &[0x83, 0x3e], LOCKED); code.emit(&[0]);
