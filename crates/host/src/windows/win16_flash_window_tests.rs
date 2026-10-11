@@ -22,12 +22,32 @@ fn flash_window_uses_native_prior_state_and_win16_iconic_contract() {
         let windows = NativeWindows::new(state);
         let target = windows.window(ptr::null_mut(), WS_OVERLAPPEDWINDOW);
         let mapped = Win16WindowTarget::Mapped(target.0);
-        // FALSE restores the original caption; repeated calls have stable state.
-        unsafe {
-            FlashWindow(target.1, 0);
-        }
-        let previous = unsafe { FlashWindow(target.1, 0) != 0 };
-        assert_eq!(flash(state, mapped, false), previous);
+        assert_eq!(unsafe { IsIconic(target.1) }, 0);
+        assert_eq!(identity::resolve(state, target.0), Some(target.1));
+        // Compare the exact native invocation's prior-caption result. Separate
+        // calls can observe different caption states even when invert is FALSE.
+        let mut native_previous = None;
+        let mut calls = 0;
+        let returned = flash_window_with(
+            state,
+            mapped,
+            false,
+            |native| unsafe { IsIconic(native) != 0 },
+            |native, invert| {
+                calls += 1;
+                assert_eq!(native, target.1);
+                assert!(!invert);
+                let previous = unsafe { FlashWindow(native, i32::from(invert)) != 0 };
+                native_previous = Some(previous);
+                previous
+            },
+        );
+        assert_eq!(
+            calls, 1,
+            "the exact live target must reach native FlashWindow"
+        );
+        assert_eq!(native_previous, Some(returned));
+        assert_eq!(identity::resolve(state, target.0), Some(target.1));
         unsafe {
             ShowWindow(target.1, SW_SHOWMINNOACTIVE);
         }
