@@ -98,7 +98,7 @@ fn win16_font_families_shared_packager_rejects_unrepresentable_or_overlapping_la
     assert!(build_image_with_import(&[0xcb], &[], 0, b"GDI", false).is_err());
     assert!(build_image_with_import(&[0xcb], &[], 0x1001, b"GDI", false).is_err());
     assert!(build_image_with_import(&[0xcb], &[], 1, b"", false).is_err());
-    assert!(build_image_with_import(&[0xcb], &[], 1, b"TOOLONG", false).is_err());
+    assert!(build_image_with_import(&[0xcb], &[], 1, b"ABCDEFGHIJKLM", false).is_err());
     assert!(build_image_with_import(&[0xcb], &[], 257, b"USER", true).is_err());
     assert!(build_image_with_import(&vec![0x90; 65535], &[], 84, b"GDI", false).is_err());
 }
