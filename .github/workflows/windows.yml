@@ -151,6 +151,8 @@ jobs:
             '-p runtime --lib keyboard_state_tests',
             '-p runtime --lib set_window_text_tests',
             '-p runtime --lib set_rect_rgn_tests',
+            '-p runtime --lib line_dda::tests::',
+            '-p runtime --lib global_memory::fix_void_tests::',
             '-p runtime --lib firmware_rom_',
             '-p runtime --lib execute::exit_tests::',
             '-p runtime --lib character_classification',

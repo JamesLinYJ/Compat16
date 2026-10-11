@@ -7,7 +7,7 @@ use crate::{AccessRights, ArgumentKind, ExportCallingConvention, ExportLookupTar
     Win16UserWindowRequest, decode_export_call, lookup_export};
 use guest_core::{GuestMemory, PhysAddr, memory::Memory};
 
-fn decode(module: &[u8], ordinal: u16, words: &[u16], stack_bytes: u32)
+pub(super) fn decode(module: &[u8], ordinal: u16, words: &[u16], stack_bytes: u32)
     -> Result<Win16ApiRequest, Win16Error>
 {
     let mut memory = Memory::with_size(0x10_0000).unwrap();

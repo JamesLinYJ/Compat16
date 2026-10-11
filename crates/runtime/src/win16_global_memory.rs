@@ -294,10 +294,9 @@ impl Win16State {
         }
     }
 
-    /// GlobalFix increments the allocator lock count without returning a
-    /// value in the Win3.1 public contract. The catalog keeps its `.spec`
-    /// WORD return convention, so AX is neutral rather than an invented
-    /// lock-count or success result.
+    /// GlobalFix adds an independent fix reference. The Win3.1 SDK declares
+    /// void; the catalog applies the project's AX/DX-preserving Void policy.
+    /// The internal zero is not a guest success or lock-count result.
     pub(super) fn kernel_global_fix(
         &mut self,
         guest_handle: u16,
@@ -320,9 +319,9 @@ impl Win16State {
         }
     }
 
-    /// GlobalUnfix releases one GlobalFix lock. Win3.1 declares no return
-    /// value; AX remains neutral under the catalog's retained `.spec` WORD
-    /// convention.
+    /// GlobalUnfix releases one GlobalFix reference. Its internal remaining
+    /// count is exposed through the existing CX compatibility behavior, not
+    /// AX/DX: the SDK declaration is void and the catalog uses Void.
     pub(super) fn kernel_global_unfix(
         &mut self,
         guest_handle: u16,
@@ -817,3 +816,7 @@ impl Win16State {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "win16_global_fix_void_tests.rs"]
+mod fix_void_tests;

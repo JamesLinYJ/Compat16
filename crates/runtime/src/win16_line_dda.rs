@@ -243,3 +243,7 @@ impl Win16State {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "win16_line_dda_tests.rs"]
+mod tests;

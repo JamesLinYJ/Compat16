@@ -535,3 +535,7 @@ pub fn lookup_export(
 #[cfg(test)]
 #[path = "exports/call_void_text_region_tests.rs"]
 mod void_text_region_tests;
+
+#[cfg(test)]
+#[path = "exports/call_line_dda_global_void_tests.rs"]
+mod line_dda_global_void_tests;
