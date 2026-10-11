@@ -201,3 +201,7 @@ impl Win16State {
         first_error.map_or(Ok(()), Err)
     }
 }
+
+#[cfg(test)]
+#[path = "win16_open_file_tests.rs"]
+mod open_file_tests;

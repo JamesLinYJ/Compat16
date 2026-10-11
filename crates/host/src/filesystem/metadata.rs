@@ -40,7 +40,11 @@ pub(super) fn dos_attributes(metadata: &cap_std::fs::Metadata) -> u8 {
 }
 
 pub(super) fn dos_write_time(metadata: &cap_std::fs::Metadata) -> Result<(u16, u16), DosHostError> {
-    dos_file_time(metadata.last_write_time(), &current_time_zone()?)
+    dos_write_time_from_ticks(metadata.last_write_time())
+}
+
+pub(super) fn dos_write_time_from_ticks(ticks: u64) -> Result<(u16, u16), DosHostError> {
+    dos_file_time(ticks, &current_time_zone()?)
 }
 
 fn current_time_zone() -> Result<DYNAMIC_TIME_ZONE_INFORMATION, DosHostError> {

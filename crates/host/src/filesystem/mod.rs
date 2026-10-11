@@ -29,6 +29,11 @@ use runtime::{
 
 use crate::windows::{decode, invalid, os_error};
 
+/// Share the DOS local timestamp policy with handle-based Win16 file services.
+pub(crate) fn dos_write_time_from_ticks(ticks: u64) -> Result<(u16, u16), DosHostError> {
+    metadata::dos_write_time_from_ticks(ticks)
+}
+
 /// Open-description state is shared by duplicated DOS file tokens.
 pub(super) struct OpenFile {
     file: File,

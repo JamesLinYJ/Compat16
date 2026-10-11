@@ -120,3 +120,7 @@ pub use register_context::decode_export_call_with_register_context;
 /// Kept here as a convenience for thunk integration code that needs to build
 /// the matching frame from a guest SS:SP pair.
 pub const FAR_EXPORT_RETURN_WIDTH: ReturnAddressWidth = ReturnAddressWidth::Far;
+
+#[cfg(test)]
+#[path = "call_open_file_tests.rs"]
+mod open_file_tests;
