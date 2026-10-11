@@ -99,28 +99,66 @@ fn global_fix_unfix_void_invalid_handles_and_overflow_do_not_invent_results() {
 
 #[test]
 fn global_fix_unfix_void_dos_blocks_retain_pins_and_handle_count_saturation() {
-    let mut runtime = fixture();
-    let handle = runtime.win16.as_mut().unwrap()
-        .kernel_global_dos_alloc(32, &mut runtime.dos, &mut runtime.memory).unwrap() as u16;
-    assert_ne!(handle, 0);
-    call(&mut runtime, 197, handle, 0x9876);
-    call(&mut runtime, 197, handle, 0x9876);
-    let state = runtime.win16.as_mut().unwrap();
-    assert_eq!(state.dos_global_blocks[&handle].fix_count, 2);
-    assert_eq!(state.kernel_global_dos_free(handle, &mut runtime.dos, &mut runtime.memory).unwrap(), handle);
-    call(&mut runtime, 198, handle, 1);
-    assert_eq!(runtime.win16.as_ref().unwrap().dos_global_blocks[&handle].fix_count, 1);
-    runtime.win16.as_mut().unwrap().dos_global_blocks.get_mut(&handle).unwrap().fix_count = u16::MAX;
-    call(&mut runtime, 197, handle, 0x9876);
-    assert_eq!(runtime.win16.as_ref().unwrap().dos_global_blocks[&handle].fix_count, u16::MAX);
-    call(&mut runtime, 198, handle, u16::MAX - 1);
-    runtime.win16.as_mut().unwrap().dos_global_blocks.get_mut(&handle).unwrap().fix_count = 1;
-    call(&mut runtime, 198, handle, 0);
-    call(&mut runtime, 198, handle, 0);
-    let state = runtime.win16.as_mut().unwrap();
-    assert_eq!(state.dos_global_blocks[&handle].fix_count, 0);
-    assert_eq!(state.kernel_global_dos_free(handle, &mut runtime.dos, &mut runtime.memory).unwrap(), 0);
-    assert!(!state.dos_global_blocks.contains_key(&handle));
+    for protected_overlap in [true, false] {
+        let mut runtime = fixture();
+        if !protected_overlap {
+            // Free conventional RAM above the canonical PSP through DOS's real
+            // resize operation. A 64KiB request cannot fit in the low free gap,
+            // so first-fit places it outside the bootstrap __0000H selector.
+            let mut regs = guest_core::Registers { es: runtime.dos.psp_segment(), ..Default::default() };
+            regs.set_ax(0x4a00);
+            regs.set_bx(0x100);
+            assert_eq!(runtime.dos.interrupt(0x21, &mut regs, &mut runtime.memory.bus(), &mut NoHost).unwrap(),
+                dos_kernel::DosAction::Continue);
+            assert!(!regs.carry());
+        }
+        let handle = runtime.win16.as_mut().unwrap()
+            .kernel_global_dos_alloc(if protected_overlap { 32 } else { 0x10000 },
+                &mut runtime.dos, &mut runtime.memory).unwrap() as u16;
+        assert_ne!(handle, 0);
+        call(&mut runtime, 197, handle, 0x9876);
+        call(&mut runtime, 197, handle, 0x9876);
+        let state = runtime.win16.as_mut().unwrap();
+        assert_eq!(state.dos_global_blocks[&handle].fix_count, 2);
+        assert_eq!(state.kernel_global_dos_free(handle, &mut runtime.dos, &mut runtime.memory).unwrap(), handle);
+        call(&mut runtime, 198, handle, 1);
+        assert_eq!(runtime.win16.as_ref().unwrap().dos_global_blocks[&handle].fix_count, 1);
+        runtime.win16.as_mut().unwrap().dos_global_blocks.get_mut(&handle).unwrap().fix_count = u16::MAX;
+        call(&mut runtime, 197, handle, 0x9876);
+        assert_eq!(runtime.win16.as_ref().unwrap().dos_global_blocks[&handle].fix_count, u16::MAX);
+        call(&mut runtime, 198, handle, u16::MAX - 1);
+        runtime.win16.as_mut().unwrap().dos_global_blocks.get_mut(&handle).unwrap().fix_count = 1;
+        call(&mut runtime, 198, handle, 0);
+        call(&mut runtime, 198, handle, 0);
+        let state = runtime.win16.as_mut().unwrap();
+        assert_eq!(state.dos_global_blocks[&handle].fix_count, 0);
+        let block = &state.dos_global_blocks[&handle];
+        let extent = block.extent;
+        let base = extent.guest_base().unwrap();
+        let size = block.size;
+        let selector = state.global_selectors[&handle];
+        // No hidden lease is responsible for a busy result here.
+        assert!(runtime.dos.block_lease_is_last_pin(&mut runtime.memory, &block.lease).unwrap());
+        if protected_overlap {
+            assert!(base.0 < 0x10000);
+            assert!(matches!(state.selectors.suspend_allocation_views(base, size),
+                Err(Win16Error::SelectorBlockInterior)));
+            assert_eq!(state.kernel_global_dos_free(handle, &mut runtime.dos, &mut runtime.memory).unwrap(), handle);
+            let retained = &state.dos_global_blocks[&handle];
+            assert_eq!(retained.fix_count, 0);
+            assert!(!retained.mcb_released);
+            assert!(retained.suspended_views.is_none());
+            assert!(state.selectors.describe(selector).unwrap().present);
+            assert!(runtime.dos.block_lease_is_last_pin(&mut runtime.memory, &retained.lease).unwrap());
+        } else {
+            assert!(base.0 >= 0x10000);
+            assert_eq!(state.kernel_global_dos_free(handle, &mut runtime.dos, &mut runtime.memory).unwrap(), 0);
+            assert!(!state.dos_global_blocks.contains_key(&handle));
+            assert!(!state.global_selectors.contains_key(&handle));
+            assert!(state.selectors.describe(selector).is_err());
+            assert_eq!(runtime.dos.owned_block_containing_range(&mut runtime.memory, base, size as usize).unwrap(), None);
+        }
+    }
 }
 
 #[test]

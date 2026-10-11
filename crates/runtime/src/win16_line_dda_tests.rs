@@ -181,20 +181,35 @@ fn line_dda_void_host_errors_and_malformed_results_do_not_commit_return() {
 }
 
 #[test]
-fn line_dda_void_bad_retf_or_stopped_callback_teardown_preserves_terminal_registers() {
+fn line_dda_void_bad_retf_or_stopped_callback_teardown_restores_captured_caller() {
     for bad_return in [false, true] {
-        let (mut runtime, _, _) = fixture(false, if bad_return { 6 } else { 8 });
+        let (mut runtime, return_to, _) = fixture(false, if bad_return { 6 } else { 8 });
+        let captured = runtime.cpu.regs.clone();
         let allocations = runtime.win16.as_ref().unwrap().heap.allocation_count();
         let mut host = LineHost { success: true, points: vec![Win16DrawingPoint { x: 1, y: 2 }; 2], ..Default::default() };
         dispatch(&mut runtime, &mut host).unwrap();
-        if bad_return { assert!(retf(&mut runtime).is_err()); }
+        if bad_return {
+            let error = retf(&mut runtime).unwrap_err();
+            assert_eq!(error.kind(), Kind::GuestFault);
+            assert!(error.to_string().contains("exact return gate and stack proof"));
+        }
+        let state = runtime.win16.as_ref().unwrap();
+        assert_eq!(state.line_dda_callbacks.len(), 1);
+        assert_eq!(state.line_dda_callbacks[0].next_index, 1);
+        assert_eq!(state.legacy_cpu_frames.len(), 1);
         runtime.cpu.regs.set_ax(0x1234); runtime.cpu.regs.set_dx(0x5678);
-        let terminal = runtime.cpu.regs.clone();
+        assert_ne!(runtime.cpu.regs, captured);
         let ended = super::super::execute::Win16TaskExecutionEnded::for_test();
         let state = runtime.win16.as_mut().unwrap();
         state.cancel_line_dda_callback_for_teardown(&ended, &mut runtime.cpu,
             &mut runtime.dos, &mut runtime.memory).unwrap();
-        assert_eq!(runtime.cpu.regs, terminal);
+        // An unfinished CPU owner restores its captured caller architecture;
+        // it does not preserve callback-time registers or invent a normal return.
+        assert_eq!(runtime.cpu.regs, captured);
+        assert_ne!((runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.sp()), return_to);
+        assert!(state.cancel_line_dda_callback_for_teardown(&ended, &mut runtime.cpu,
+            &mut runtime.dos, &mut runtime.memory).is_err());
+        assert_eq!(runtime.cpu.regs, captured);
         assert_retired(&runtime, allocations);
     }
 }
