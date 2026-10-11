@@ -228,6 +228,53 @@ fn default_capacity_limits_duplicate_and_force_duplicate_to_twenty_slots() {
 }
 
 #[test]
+fn ah45_full_jft_precedes_invalid_source_without_changing_ownership() {
+    fn assert_failure(fixture: &mut Fixture, source: u16, error: DosErrorCode) {
+        let handles = fixture.dos.handles.clone();
+        let mappings = fixture.dos.file_table.live_handles().collect::<Vec<_>>();
+        let bytes = fixture.memory.bytes.clone();
+        let host_activity = fixture.host.file_handle_activity();
+        let mut regs = call_registers(0x4500, source, 0);
+
+        assert_eq!(fixture.interrupt(&mut regs).unwrap(), DosAction::Continue);
+
+        assert_dos_error(&regs, error);
+        assert_eq!(fixture.dos.handles, handles);
+        assert_eq!(fixture.dos.file_table.live_handles().collect::<Vec<_>>(), mappings);
+        // The interrupt wrapper refreshes metadata even on failure, but the
+        // published SFT/JFT, including every reference count, must be unchanged.
+        assert_eq!(fixture.memory.bytes, bytes);
+        assert_eq!(fixture.host.file_handle_activity(), host_activity);
+    }
+
+    let mut fixture = Fixture::new();
+    assert_failure(&mut fixture, 0xffff, DosErrorCode::InvalidHandle);
+    for expected in 3..20 {
+        let mut regs = call_registers(0x4500, 0, 0);
+        assert_eq!(fixture.interrupt(&mut regs).unwrap(), DosAction::Continue);
+        assert!(!regs.carry());
+        assert_eq!(regs.ax(), expected);
+    }
+    assert_eq!(fixture.header(), (20, INLINE_JFT, PSP));
+    assert!(!fixture.jft().contains(&0xff));
+    assert_eq!(fixture.sft_references(0), 18);
+    assert_failure(&mut fixture, 0xffff, DosErrorCode::TooManyOpenFiles);
+    assert_failure(&mut fixture, 0, DosErrorCode::TooManyOpenFiles);
+
+    fixture.close(7);
+    assert_eq!(fixture.jft()[7], 0xff);
+    assert_eq!(fixture.sft_references(0), 17);
+    assert_failure(&mut fixture, 0xffff, DosErrorCode::InvalidHandle);
+    let mut regs = call_registers(0x4500, 0, 0);
+    assert_eq!(fixture.interrupt(&mut regs).unwrap(), DosAction::Continue);
+    assert!(!regs.carry());
+    assert_eq!(regs.ax(), 7);
+    assert_eq!(fixture.jft()[7], 0);
+    assert_eq!(fixture.sft_references(0), 18);
+    assert_eq!(fixture.host.file_handle_activity(), (0, 0, 0));
+}
+
+#[test]
 fn expanded_capacity_drives_lowest_free_duplicate_search_past_ff() {
     let mut fixture = Fixture::new();
     fixture.grow(257);

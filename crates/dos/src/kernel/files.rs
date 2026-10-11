@@ -353,17 +353,19 @@ impl DosKernel {
         regs: &mut Registers,
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
+        // DOS 4 $DUP checks JFNFree before CheckOwner, so a full JFT takes
+        // precedence over an invalid source handle (HANDLE.ASM, lines 673–689).
+        let new_id = self.first_free_handle();
+        let Some(new_id) = new_id else {
+            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            return Ok(DosAction::Continue);
+        };
         let source = match self.handles.get(&regs.bx()).copied() {
             Some(handle) => handle,
             None => {
                 Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
                 return Ok(DosAction::Continue);
             }
-        };
-        let new_id = self.first_free_handle();
-        let Some(new_id) = new_id else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
-            return Ok(DosAction::Continue);
         };
         if !self.file_table.can_duplicate_handle(regs.bx(), new_id) {
             Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));

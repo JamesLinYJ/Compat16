@@ -60,6 +60,8 @@ pub(super) struct TestHost {
     drive: u8,
     disk_space: Option<DosDiskSpace>,
     duplicate_calls: usize,
+    file_duplicate_attempts: usize,
+    file_close_calls: usize,
     fail_duplicate_at: Option<usize>,
     create_new_calls: usize,
     create_new_paths: Vec<Vec<u8>>,
@@ -92,6 +94,10 @@ pub(super) struct TestHost {
 }
 
 impl TestHost {
+    pub(super) fn file_handle_activity(&self) -> (usize, usize, usize) {
+        (self.file_duplicate_attempts, self.file_close_calls, self.handles.len())
+    }
+
     pub(super) fn set_current_drive(&mut self, drive: u8) { self.drive = drive; }
 
     pub(super) fn set_disk_space(&mut self, space: DosDiskSpace) { self.disk_space = Some(space); }
@@ -203,6 +209,7 @@ impl DosHost for TestHost {
         self.file_open(path, access)
     }
     fn file_duplicate(&mut self, file: DosHostFile) -> Result<DosHostFile, DosHostError> {
+        self.file_duplicate_attempts += 1;
         let id = self.handles.get(&file).copied().ok_or(DosHostError::new(DosErrorCode::InvalidHandle))?;
         self.duplicate_calls += 1;
         if self.fail_duplicate_at == Some(self.duplicate_calls) {
@@ -217,6 +224,7 @@ impl DosHost for TestHost {
         Ok(copy)
     }
     fn file_close(&mut self, file: DosHostFile) -> Result<(), DosHostError> {
+        self.file_close_calls += 1;
         if let Some(code) = self.file_close_error { return Err(DosHostError::new(code)); }
         self.handles.remove(&file).map(|_| ()).ok_or(DosHostError::new(DosErrorCode::InvalidHandle))
     }
