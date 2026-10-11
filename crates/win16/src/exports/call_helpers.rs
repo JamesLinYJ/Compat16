@@ -59,12 +59,12 @@ pub(super) fn decode_fixed_stack_frame(
         }
         _ => return Err(Win16Error::UnsupportedCallingConvention),
     };
-    let kinds: Vec<_> = descriptor
-        .parameters
-        .iter()
-        .map(|parameter| parameter.kind)
-        .collect();
-    let arguments = frame.decode_arguments(selectors, memory, calling_convention, &kinds)?;
+    let arguments = frame.decode_arguments_iter(
+        selectors,
+        memory,
+        calling_convention,
+        descriptor.parameters.iter().map(|parameter| parameter.kind),
+    )?;
     Ok((arguments, stack_cleanup))
 }
 
