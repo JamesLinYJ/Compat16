@@ -702,8 +702,8 @@ fn help_data_matches_command(command: u16, data: &Win16HostHelpData) -> bool {
 }
 
 /// Keep the one native read separate from token adoption for deterministic tests.
-pub(super) fn get_cursor_with(
-    images: &super::win16_images::Win16Images,
+pub(in crate::windows) fn get_cursor_with(
+    images: &crate::windows::win16_images::Win16Images,
     read: impl FnOnce() -> HCURSOR,
 ) -> Result<ResultValue, RuntimeError> {
     images.adopt_borrowed_cursor(read()).map(ResultValue::GetCursor)

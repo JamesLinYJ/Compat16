@@ -83,7 +83,7 @@ mod win16_message_calls;
 #[path = "win16_message_loop.rs"]
 mod win16_message_loop;
 #[path = "win16_user_cursor_accelerator.rs"]
-mod win16_user_cursor_accelerator;
+pub(super) mod win16_user_cursor_accelerator;
 #[path = "win16_user_services_clipboard.rs"]
 mod win16_user_services_clipboard;
 #[path = "win16_user_services_controls.rs"]

@@ -412,7 +412,7 @@ fn collision_error_transfers_last_established_owner_past_mutex_scope() {
 
 #[test]
 fn get_cursor_borrowed_result_release_never_destroys_native_cursor() {
-    use crate::windows::win16_user_cursor_accelerator::get_cursor_with;
+    use crate::windows::win16_windows::win16_user_cursor_accelerator::get_cursor_with;
     use runtime::Win16HostUserCursorAcceleratorResult as ResultValue;
 
     let images = images();
@@ -437,7 +437,7 @@ fn get_cursor_borrowed_result_release_never_destroys_native_cursor() {
 
 #[test]
 fn get_cursor_preserves_owned_cursor_identity_and_single_destruction_authority() {
-    use crate::windows::win16_user_cursor_accelerator::get_cursor_with;
+    use crate::windows::win16_windows::win16_user_cursor_accelerator::get_cursor_with;
     use runtime::{Win16HostCursor, Win16HostUserCursorAcceleratorResult as ResultValue};
 
     let images = images();
@@ -466,7 +466,7 @@ fn get_cursor_preserves_owned_cursor_identity_and_single_destruction_authority()
 
 #[test]
 fn get_cursor_propagates_token_exhaustion_without_publishing_native_bits() {
-    use crate::windows::win16_user_cursor_accelerator::get_cursor_with;
+    use crate::windows::win16_windows::win16_user_cursor_accelerator::get_cursor_with;
 
     let images = images();
     images.lock().unwrap().next_id = u64::MAX;

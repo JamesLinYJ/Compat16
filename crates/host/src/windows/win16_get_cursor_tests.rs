@@ -7,7 +7,7 @@ use runtime::{
     Win16HostUserCursorAcceleratorResult as ResultValue,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{GetCursor, HCURSOR};
-use crate::windows::win16_user_cursor_accelerator::{execute as execute_cursor, get_cursor_with};
+use crate::windows::win16_windows::win16_user_cursor_accelerator::{execute as execute_cursor, get_cursor_with};
 
 #[test]
 fn get_cursor_native_adapter_reads_once_and_preserves_null_or_borrowed_identity() {
