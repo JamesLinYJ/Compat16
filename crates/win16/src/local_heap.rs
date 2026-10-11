@@ -239,6 +239,25 @@ impl<'a> LocalHeap<'a> {
         self.transaction(|heap| heap.compact_inner(minimum, 0))
     }
 
+    /// Queries (`delta == 0`) or sets the number of entries used by future
+    /// movable-handle table expansions. Returns the current/new WORD. Existing
+    /// tables are unchanged; oversized values remain stored exactly, while
+    /// allocation keeps its checked size arithmetic and ordinary failure path.
+    pub fn handle_delta(&mut self, delta: u16) -> Result<u16, LocalHeapError> {
+        let offset = usize::from(self.info) + HEAP_HANDLE_DELTA_OFFSET;
+        if delta == 0 {
+            self.validate()?;
+            return read_word(self.dgroup, offset)
+                .ok_or(LocalHeapError::CorruptHeapInfo { offset });
+        }
+        self.transaction(|heap| {
+            write_word(heap.dgroup, &mut heap.write_spans, offset, delta)
+                .map_err(|error| LocalHeapError::preserve_write_error(error,
+                    LocalHeapError::CorruptHeapInfo { offset }))?;
+            Ok(delta)
+        })
+    }
+
     /// Returns the total size of all reusable free extents, including their
     /// arena headers but excluding the terminal sentinel.
     pub fn count_free(&self) -> Result<u16, LocalHeapError> {
@@ -752,3 +771,7 @@ fn write_patch(offset: usize, bytes: &[u8]) -> Result<LocalHeapWrite, LocalHeapI
         bytes: storage,
     })
 }
+
+#[cfg(test)]
+#[path = "local_heap/handle_delta_tests.rs"]
+mod handle_delta_tests;

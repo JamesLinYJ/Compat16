@@ -164,6 +164,12 @@ pub(super) const LOCAL_OFFSET_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
     parameter_type: SCALAR_WORD,
 }];
 
+pub(super) const LOCAL_HANDLE_DELTA_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
+    name: "delta",
+    kind: ArgumentKind::Word,
+    parameter_type: SCALAR_WORD,
+}];
+
 pub(super) const LOCAL_MINIMUM_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
     name: "minimum",
     kind: ArgumentKind::Word,

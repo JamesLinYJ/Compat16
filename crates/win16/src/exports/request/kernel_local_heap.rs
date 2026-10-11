@@ -56,6 +56,12 @@ pub enum Win16KernelLocalHeapRequest {
         minimum: u16,
     },
 
+    /// Query (zero) or replace the calling data segment's handle-table delta.
+    /// Returns the current or newly stored WORD, not the previous value.
+    LocalHandleDelta {
+        delta: u16,
+    },
+
     LocalCountFree,
 
     LocalHeapSize,

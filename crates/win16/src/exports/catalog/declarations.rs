@@ -356,6 +356,7 @@ KernelLocalSize => KERNEL_LOCAL_SIZE: ("KERNEL", 10u16, Stack, kernel::LOCAL_HAN
 KernelLocalHandle => KERNEL_LOCAL_HANDLE: ("KERNEL", 11u16, Stack, kernel::LOCAL_OFFSET_PARAMETERS, Word);
 KernelLocalFlags => KERNEL_LOCAL_FLAGS: ("KERNEL", 12u16, Stack, kernel::LOCAL_HANDLE_PARAMETERS, Word);
 KernelLocalCompact => KERNEL_LOCAL_COMPACT: ("KERNEL", 13u16, Stack, kernel::LOCAL_MINIMUM_PARAMETERS, Word);
+KernelLocalHandleDelta => KERNEL_LOCAL_HANDLE_DELTA: ("KERNEL", 310u16, Stack, kernel::LOCAL_HANDLE_DELTA_PARAMETERS, Word);
 KernelLocalCountFree => KERNEL_LOCAL_COUNT_FREE: ("KERNEL", 161u16, Stack, &[], Word);
 KernelLocalHeapSize => KERNEL_LOCAL_HEAP_SIZE: ("KERNEL", 162u16, Stack, &[], Word);
 KernelReserved5 => KERNEL_RESERVED5: ("KERNEL", 87u16, Stack, kernel::STRING_COMPARE_PARAMETERS, Word);

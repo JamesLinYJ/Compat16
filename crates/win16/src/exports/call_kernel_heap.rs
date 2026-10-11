@@ -112,6 +112,11 @@ pub(super) fn decode(
                 },
             ))
         }
+        Win16ExportId::KernelLocalHandleDelta => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::LocalHeap(super::Win16KernelLocalHeapRequest::LocalHandleDelta {
+                delta: word_argument(arguments, 0)?,
+            }),
+        ),
         Win16ExportId::KernelLocalCountFree => {
             Win16ApiRequest::Kernel(super::Win16KernelRequest::LocalHeap(
                 super::Win16KernelLocalHeapRequest::LocalCountFree,
@@ -123,3 +128,7 @@ pub(super) fn decode(
         _ => return Err(Win16Error::InvalidRange),
     })
 }
+
+#[cfg(test)]
+#[path = "call_kernel_heap_tests.rs"]
+mod tests;

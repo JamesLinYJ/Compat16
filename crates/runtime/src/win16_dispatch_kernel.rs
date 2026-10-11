@@ -304,6 +304,9 @@ impl Win16State {
                 self.local_operation(registers.ds, LocalOperation::Compact { minimum }, memory)?
             }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::LocalHeap(
+                win16_abi::Win16KernelLocalHeapRequest::LocalHandleDelta { delta },
+            )) => self.local_operation(registers.ds, LocalOperation::HandleDelta { delta }, memory)?,
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::LocalHeap(
                 win16_abi::Win16KernelLocalHeapRequest::LocalCountFree,
             )) => self.local_operation(registers.ds, LocalOperation::CountFree, memory)?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::LocalHeap(

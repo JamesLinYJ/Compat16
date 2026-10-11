@@ -23,6 +23,7 @@ pub(super) enum LocalOperation {
     Handle { offset: u16 },
     Flags { handle: u16 },
     Compact { minimum: u16 },
+    HandleDelta { delta: u16 },
     CountFree,
     HeapSize,
     AtomInit { buckets: i16 },
@@ -43,6 +44,7 @@ impl LocalOperation {
             Self::Handle { .. } => "LocalHandle",
             Self::Flags { .. } => "LocalFlags",
             Self::Compact { .. } => "LocalCompact",
+            Self::HandleDelta { .. } => "LocalHandleDelta",
             Self::CountFree => "LocalCountFree",
             Self::HeapSize => "LocalHeapSize",
             Self::AtomInit { .. } => "InitAtomTable",
@@ -53,6 +55,9 @@ impl LocalOperation {
     }
 
     fn changes_heap(&self) -> bool {
+        if let Self::HandleDelta { delta } = self {
+            return *delta != 0;
+        }
         matches!(self, Self::Alloc { .. } | Self::ReAlloc { .. } | Self::Free { .. }
             | Self::Lock { .. } | Self::Unlock { .. } | Self::Compact { .. }
             | Self::AtomInit { .. } | Self::AtomAdd { .. } | Self::AtomDelete { .. })
@@ -79,6 +84,7 @@ impl LocalOperation {
             Self::Handle { offset } => heap.handle(offset),
             Self::Flags { handle } => heap.flags(handle),
             Self::Compact { minimum } => heap.compact(minimum),
+            Self::HandleDelta { delta } => heap.handle_delta(delta),
             Self::CountFree => heap.count_free(),
             Self::HeapSize => heap.heap_size(),
             Self::AtomInit { buckets } => heap.atom_init(buckets),
@@ -394,3 +400,7 @@ fn segment_offset_address(address: PhysAddr, offset: usize) -> Result<PhysAddr, 
         RuntimeError::new(Kind::InternalInvariant,
             "Win16 local-segment physical address overflowed"))
 }
+
+#[cfg(test)]
+#[path = "win16_local_handle_delta_tests.rs"]
+mod handle_delta_tests;
