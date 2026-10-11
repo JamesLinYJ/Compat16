@@ -225,11 +225,8 @@ impl LocalHeap<'_> {
                 self.write_entry(entry)?;
                 Ok(handle)
             }
-            Some(HandleSlot::Live(entry)) if flags == 0 && entry.lock == 0 => {
-                self.release_arena(entry.addr - (ARENA_HEADER_BYTES + MOVEABLE_PREFIX_BYTES) as u16)?;
-                self.clear_entry(handle)?;
-                Ok(0)
-            }
+            // A zero-size request without LMEM_MOVEABLE fails without freeing
+            // the live object. LocalDiscard explicitly supplies LMEM_MOVEABLE.
             Some(HandleSlot::Live(_)) => Ok(0),
         }
     }

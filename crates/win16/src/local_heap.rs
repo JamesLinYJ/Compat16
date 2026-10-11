@@ -775,3 +775,7 @@ fn write_patch(offset: usize, bytes: &[u8]) -> Result<LocalHeapWrite, LocalHeapI
 #[cfg(test)]
 #[path = "local_heap/handle_delta_tests.rs"]
 mod handle_delta_tests;
+
+#[cfg(test)]
+#[path = "local_heap/realloc_zero_tests.rs"]
+mod realloc_zero_tests;

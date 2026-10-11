@@ -404,3 +404,7 @@ fn segment_offset_address(address: PhysAddr, offset: usize) -> Result<PhysAddr, 
 #[cfg(test)]
 #[path = "win16_local_handle_delta_tests.rs"]
 mod handle_delta_tests;
+
+#[cfg(test)]
+#[path = "win16_local_realloc_zero_tests.rs"]
+mod realloc_zero_tests;
