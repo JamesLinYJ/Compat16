@@ -38,7 +38,7 @@ mod win16_dde;
 mod win16_io_trace;
 mod win16_loader;
 mod win16_runtime;
-pub use win16_abi::network_print_abi;
+pub use win16_abi::{Win16CharacterClassification, network_print_abi};
 pub use win16_io_trace::{
     Win16IoEvent, Win16ServiceBoundaryStage, Win16WindowCallbackPhase,
     Win16WindowCallbackProcedure, Win16WindowCallbackReturn, Win16WindowCreationApi,

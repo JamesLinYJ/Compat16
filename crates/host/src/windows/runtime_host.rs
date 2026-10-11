@@ -339,6 +339,13 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<Result<runtime::Win16ModuleImage, u16>, RuntimeError> {
         runtime_host_diagnostics::read_win16_module(self, name, application_path)
     }
+    fn win16_classify_character(
+        &mut self,
+        value: u8,
+        classification: runtime::Win16CharacterClassification,
+    ) -> Result<bool, RuntimeError> {
+        win16_text::classify_character(self.win16_dcs.text_codec(), value, classification)
+    }
     fn win16_ansi_lower_char(&mut self, value: u16) -> Result<u16, RuntimeError> {
         win16_text::ansi_lower_char(self.win16_dcs.text_codec(), value)
     }

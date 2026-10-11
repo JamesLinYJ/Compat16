@@ -120,6 +120,22 @@ pub(super) fn decode(
         Win16ExportId::UserDestroyIcon | Win16ExportId::UserDestroyCursor => {
             Win16ApiRequest::DestroyImage(decode_destroy_image(descriptor.ordinal(), &arguments)?)
         }
+        Win16ExportId::UserIsCharAlpha | Win16ExportId::UserIsCharAlphaNumeric
+        | Win16ExportId::UserIsCharUpper | Win16ExportId::UserIsCharLower => {
+            use super::Win16CharacterClassification as Classification;
+            let classification = match descriptor.id {
+                Win16ExportId::UserIsCharAlpha => Classification::Alpha,
+                Win16ExportId::UserIsCharAlphaNumeric => Classification::AlphaNumeric,
+                Win16ExportId::UserIsCharUpper => Classification::Upper,
+                _ => Classification::Lower,
+            };
+            Win16ApiRequest::User(super::Win16UserRequest::Ansi(
+                super::Win16UserAnsiRequest::ClassifyCharacter {
+                    value: word_argument(&arguments, 0)? as u8,
+                    classification,
+                },
+            ))
+        }
         Win16ExportId::UserAnsiLower => Win16ApiRequest::User(super::Win16UserRequest::Ansi(
             super::Win16UserAnsiRequest::AnsiLower {
                 target: ansi_case_target(dword_argument(&arguments, 0)?, selectors, memory)?,
@@ -439,3 +455,7 @@ mod child_lookup_tests;
 #[cfg(test)]
 #[path = "call_set_window_pos_tests.rs"]
 mod set_window_pos_tests;
+
+#[cfg(test)]
+#[path = "call_character_classification_tests.rs"]
+mod character_classification_tests;

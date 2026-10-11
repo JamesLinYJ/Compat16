@@ -2,7 +2,7 @@
 
 #[path = "user_ansi.rs"]
 mod user_ansi;
-pub use user_ansi::Win16UserAnsiRequest;
+pub use user_ansi::{Win16CharacterClassification, Win16UserAnsiRequest};
 
 #[path = "user_menu.rs"]
 mod user_menu;

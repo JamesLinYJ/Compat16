@@ -328,3 +328,11 @@ pub(super) const USER_ENUM_SCOPED_WINDOWS_PARAMETERS: &[Win16Parameter] = &[
     Win16Parameter { name: "callback", kind: ArgumentKind::Dword, parameter_type: SCALAR_DWORD },
     Win16Parameter { name: "data", kind: ArgumentKind::Dword, parameter_type: SCALAR_DWORD },
 ];
+
+// Original Windows 3.1 SDK: BOOL WINAPI IsChar*(char). The Pascal stack slot
+// is a WORD, but the implementation consumes AL only and returns BOOL in AX.
+pub(super) const USER_CLASSIFY_CHARACTER_PARAMETERS: &[Win16Parameter] = &[Win16Parameter {
+    name: "character",
+    kind: ArgumentKind::Word,
+    parameter_type: SCALAR_WORD,
+}];

@@ -473,6 +473,9 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Ansi(
+                win16_abi::Win16UserAnsiRequest::ClassifyCharacter { value, classification },
+            )) => u32::from(host.win16_classify_character(value, classification)?),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Ansi(
                 win16_abi::Win16UserAnsiRequest::AnsiLower { target },
             )) => self.ansi_case(target, false, memory, host)?,
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Ansi(
@@ -705,3 +708,7 @@ mod get_clip_cursor_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_get_cursor_tests.rs"]
 mod get_cursor_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_character_classification_tests.rs"]
+mod character_classification_tests;

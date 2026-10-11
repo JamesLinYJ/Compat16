@@ -5,7 +5,36 @@ use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::Globalization::{lstrcmpW, lstrcmpiW};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CharLowerBuffW, CharLowerW, CharUpperBuffW, CharUpperW,
+    IsCharAlphaW, IsCharAlphaNumericW, IsCharUpperW, IsCharLowerW,
 };
+
+/// Use the configured guest code page and modern Windows NLS semantics. These
+/// need not match historical English or localized Win16 classification tables.
+/// In particular, SBCS/DBCS replacement decoding and strict UTF-8/GB18030
+/// failures follow GuestTextCodec, rather than inventing a lead-byte policy.
+pub(super) fn classify_character(
+    codec: GuestTextCodec,
+    value: u8,
+    classification: runtime::Win16CharacterClassification,
+) -> Result<bool, RuntimeError> {
+    use runtime::Win16CharacterClassification as Classification;
+    let mut wide = GuestTextBuffer::acquire();
+    codec.to_wide_into(&[value], &mut wide)?;
+    if wide.len() != 1 {
+        return Err(RuntimeError::new(Kind::InvalidInput,
+            "one-byte Win16 character did not decode to exactly one UTF-16 unit"));
+    }
+    // SAFETY: These W APIs consume a scalar UTF-16 unit, not a pointer.
+    let result = unsafe {
+        match classification {
+            Classification::Alpha => IsCharAlphaW(wide[0]),
+            Classification::AlphaNumeric => IsCharAlphaNumericW(wide[0]),
+            Classification::Upper => IsCharUpperW(wide[0]),
+            Classification::Lower => IsCharLowerW(wide[0]),
+        }
+    };
+    Ok(result != 0)
+}
 
 pub(super) fn ansi_lower_char(codec: GuestTextCodec, value: u16) -> Result<u16, RuntimeError> {
     ansi_case_char(codec, value, false)
@@ -304,3 +333,7 @@ mod tests {
         assert!(ansi_prev_offset(utf8, &[0xc2], 1).is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "win16_character_classification_tests.rs"]
+mod character_classification_tests;

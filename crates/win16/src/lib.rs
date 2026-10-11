@@ -99,7 +99,7 @@ pub use exports::{
     Win16ShellIconRequest, Win16ShellRegistryRequest, Win16ShellRequest, Win16SocketSetInput,
     Win16StringComparison, Win16SystemParametersInfoRequest, Win16SystemRequest, Win16TimeCaps16,
     Win16SoundPlayApi, Win16SoundRequest, Win16ToolhelpRequest, Win16ToolhelpStackRequest,
-    Win16UserAnsiRequest, Win16UserAtomsRequest,
+    Win16CharacterClassification, Win16UserAnsiRequest, Win16UserAtomsRequest,
     Win16UserClipboardRequest, Win16UserCursorAcceleratorRequest, Win16UserDialogRequest,
     Win16UserDrawingRequest, Win16UserFamilyRequest, Win16UserGeometryRequest,
     Win16UserSessionRequest,

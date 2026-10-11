@@ -1112,6 +1112,17 @@ pub trait RuntimeHost:
             "host Win16 OEM-to-ANSI conversion is unavailable",
         ))
     }
+    /// Classify one guest byte using the configured guest codec and native NLS.
+    fn win16_classify_character(
+        &mut self,
+        _value: u8,
+        _classification: win16_abi::Win16CharacterClassification,
+    ) -> Result<bool, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 character classification is unavailable",
+        ))
+    }
     fn win16_ansi_lower_char(&mut self, _value: u16) -> Result<u16, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
