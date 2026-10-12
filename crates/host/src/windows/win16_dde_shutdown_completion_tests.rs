@@ -1,7 +1,7 @@
 //! Completed native transfer evidence survives normal source retirement.
 
 use super::*;
-use runtime::{Win16HostDdeDataTransfer, Win16HostDdeDataTransferOutcome};
+use runtime::{Win16HostDdeDataTransfer, Win16HostDdeDataTransferOutcome, Win16HostDdeValue};
 
 const OPERATION: Win16HostDdeOperation = Win16HostDdeOperation(21);
 const DATA: Win16HostDdeData = Win16HostDdeData(51);

@@ -1,6 +1,7 @@
 //! Capacity planning and stable failure reconciliation for DDE shutdown.
 
 use super::*;
+use runtime::Win16HostDdeValue;
 
 pub(super) fn reserve_receipt_for_pending_owner(
     host: &Win16DdeHost,
