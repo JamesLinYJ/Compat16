@@ -99,6 +99,12 @@ handles are inherited. The child environment is constructed from a small
 allowlist, excluding CI token variables. A monitored aggregate 8 MiB diagnostic
 output ceiling bounds normal operation; it is not an atomic disk quota.
 
+The harness requests complete Win16 service tracing, flushing each event so a
+forced stop does not discard buffered service boundaries. This diagnostic mode
+can affect execution timing and can reach the output ceiling; an output-limit
+stop remains a failure. It is not a fixed-size rolling trace or a performance
+benchmark.
+
 Neither the Job Object, environment sanitization nor temporary working directory
 provides a filesystem, registry or network sandbox. Windows profile APIs can
 still resolve the real runner profile independently of environment variables.
@@ -143,6 +149,9 @@ that directory on success or failure, provided the directory output exists,
 and retains it for three days. The allowlist contains `result.json`, stdout/stderr,
 the bounded failure trace and service trace. The result records architecture,
 source commit, hashes, outcome, limits, exit status, warnings and cleanup status.
+After output-size validation, complete recorded InitTask rows and warnings are
+extracted for every stop reason, including timeout. Observing those rows does
+not turn timeout or output-limit termination into startup-prefix success.
 Source attempt receipts include the exact URL, time and typed failure classification;
 original network exception text is omitted because it can contain proxy details.
 `sourceTransportObservation` records the bounded redacted routing observations

@@ -489,7 +489,7 @@ namespace Compat16.PfeProbe {
         "LOCALAPPDATA=$(Join-Path $profileDirectory 'AppData/Local')", 'RUST_BACKTRACE=1'
     )
     $arguments = @('--max-instructions', [string]$InstructionLimit, '--trace-file', $failureTrace,
-        '--trace-win16-io', $serviceTrace, (Join-Path $workingDirectory 'PFE.EXE'))
+        '--trace-win16-io-complete', $serviceTrace, (Join-Path $workingDirectory 'PFE.EXE'))
     # True means entering the launch attempt, not proof guest instructions ran.
     $result.executionAttempted = $true
     $run = [Compat16.PfeProbe.ContainedProcess]::Run((Join-Path $runtimeDirectory 'compat16.exe'),
@@ -505,20 +505,25 @@ namespace Compat16.PfeProbe {
         if (Test-Path -LiteralPath $path -PathType Leaf) { $rawBytes += (Get-Item -LiteralPath $path).Length }
     }
     if ($rawBytes -gt 8MB) { $result.status = 'output-limit' }
-    if ($result.status -eq 'exited') {
+    else {
+        # Extract bounded diagnostic facts even when the process was stopped.
+        # A completed InitTask pair does not change a timeout into a pass.
         $errorText = [IO.File]::ReadAllText($stderr)
         $services = if (Test-Path -LiteralPath $serviceTrace) { [IO.File]::ReadAllText($serviceTrace) } else { '' }
         $trace = if (Test-Path -LiteralPath $failureTrace) { [IO.File]::ReadAllText($failureTrace) } else { '' }
         $result.warnings = @($errorText -split '\r?\n' | Where-Object { $_ -match '\[warn/' })
         # The InitTask register-context handler completes synchronously. Other
         # dispatch-return rows may merely transfer control into a guest callback.
-        $entryPattern = '(?m)^[#@]\d+ service-boundary stage=dispatch-enter module=KERNEL name=InitTask ordinal=91 instruction=(\d+) guest=([0-9A-F]{4}:[0-9A-F]{4})\r?$'
+        # Require terminated rows: job termination can interrupt a trace write.
+        $entryPattern = '(?m)^[#@]\d+ service-boundary stage=dispatch-enter module=KERNEL name=InitTask ordinal=91 instruction=(\d+) guest=([0-9A-F]{4}:[0-9A-F]{4})\r?\n'
         $entry = [regex]::Match($services, $entryPattern)
         if ($entry.Success) {
             $returnPattern = '(?m)^[#@]\d+ service-boundary stage=dispatch-return module=KERNEL name=InitTask ordinal=91 instruction=' +
-                [regex]::Escape($entry.Groups[1].Value) + ' guest=' + [regex]::Escape($entry.Groups[2].Value) + '\r?$'
+                [regex]::Escape($entry.Groups[1].Value) + ' guest=' + [regex]::Escape($entry.Groups[2].Value) + '\r?\n'
             $result.initTaskCrossing = [regex]::IsMatch($services.Substring($entry.Index + $entry.Length), $returnPattern)
         }
+    }
+    if ($result.status -eq 'exited') {
         $terminalPattern = '(?m)^runtime: \[warn/execution_limit\] after ' + $InstructionLimit +
             ' instructions, CS:IP=[0-9A-F]{4}:[0-9A-F]{4}: Win16 instruction budget exhausted\r?$'
         $savedPattern = '(?m)^\[warn/execution_limit\] after ' + $InstructionLimit +
