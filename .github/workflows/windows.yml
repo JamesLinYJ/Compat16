@@ -221,9 +221,29 @@ jobs:
             '-p host-services --lib dde_shutdown_' = 4
           }
           $failedSuites = @()
+          $hostCompileChecked = $false
+          $hostCompileExitCode = 0
           $runtimeCompileChecked = $false
           $runtimeCompileExitCode = 0
           foreach ($suite in $suites) {
+            if ($suite.StartsWith('-p host-services --lib ')) {
+              if (-not $hostCompileChecked) {
+                Write-Host '::group::Compile host-services library tests once'
+                $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib --no-run' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET
+                & $env:ComSpec /d /c $command
+                $hostCompileExitCode = $LASTEXITCODE
+                $hostCompileChecked = $true
+                Write-Host "Host-services test compilation exit code: $hostCompileExitCode"
+                Write-Host '::endgroup::'
+                if ($hostCompileExitCode -ne 0) {
+                  $failedSuites += "host-services library test compilation (exit $hostCompileExitCode)"
+                }
+              }
+              if ($hostCompileExitCode -ne 0) {
+                Write-Host "BLOCKED (not executed): cargo test $suite; host-services library test compilation failed."
+                continue
+              }
+            }
             if ($suite.StartsWith('-p runtime --lib ')) {
               if (-not $runtimeCompileChecked) {
                 Write-Host '::group::Compile runtime library tests once'
