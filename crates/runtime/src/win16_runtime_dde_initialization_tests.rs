@@ -37,6 +37,12 @@ struct InitializationHost {
     consumed: Vec<Win16DdeSourceRetiredProof>,
     retired: Vec<Win16DdeOperationRetirementProof>,
     resources_retired: usize,
+    result: Option<Win16HostDdeResult>,
+    additional_proofs: Vec<Win16DdeSourceRetiredProof>,
+    terminal_source: Option<Win16WindowTerminalSourceTop>,
+    fail_retirement_before_once: bool,
+    fail_terminal_source_once: bool,
+    fail_retirement_reply_once: bool,
 }
 
 impl Default for InitializationHost {
@@ -54,6 +60,12 @@ impl Default for InitializationHost {
             consumed: Vec::new(),
             retired: Vec::new(),
             resources_retired: 0,
+            result: None,
+            additional_proofs: Vec::new(),
+            terminal_source: None,
+            fail_retirement_before_once: false,
+            fail_terminal_source_once: false,
+            fail_retirement_reply_once: false,
         }
     }
 }
@@ -81,13 +93,17 @@ impl RuntimeHost for InitializationHost {
         &mut self,
         operation: Win16WindowOperation,
     ) -> Result<Win16WindowStep, RuntimeError> {
-        let Win16WindowOperation::Dde(call @ Win16HostDdeCall::Initialize { .. }) = operation
+        let Win16WindowOperation::Dde(call) = operation
         else {
             panic!("unexpected native operation");
         };
         self.calls.push(call);
         Ok(match &self.begin_result {
-            BeginResult::SourceRetired => source_retired(Arc::clone(&self.proof)),
+            BeginResult::SourceRetired => Win16WindowStep::DdeSourceRetired {
+                proof: Arc::clone(&self.proof),
+                result: Box::new(Win16WindowStep::Complete(Win16WindowResult::Dde(
+                    self.result.clone().unwrap_or_else(native_result)))),
+            },
             BeginResult::RawComplete => {
                 Win16WindowStep::Complete(Win16WindowResult::Dde(native_result()))
             }
@@ -95,6 +111,14 @@ impl RuntimeHost for InitializationHost {
                 Win16WindowStep::DdeStartedFailure(Arc::clone(failure))
             }
         })
+    }
+    fn win16_window_terminal_source_top(
+        &mut self, _receipt: &Win16WindowAbortReceipt,
+    ) -> Result<Option<Win16WindowTerminalSourceTop>, RuntimeError> {
+        if std::mem::take(&mut self.fail_terminal_source_once) {
+            return Err(RuntimeError::new(Kind::HostFailure, "test defers shared-source query"));
+        }
+        Ok(self.terminal_source)
     }
     fn epoch_seconds(&self) -> i64 {
         panic!("unexpected host call")
@@ -115,7 +139,9 @@ impl RuntimeDdeHost for InitializationHost {
         &mut self,
         proof: &Win16DdeSourceRetiredProof,
     ) -> Result<bool, RuntimeError> {
-        assert_eq!(proof, self.proof.as_ref());
+        assert!(proof == self.proof.as_ref() || self.additional_proofs.contains(proof));
+        assert!(!self.retired.iter().any(|retired| retired.cancellation.operation == proof.operation),
+            "normal proof readback replayed after shutdown ACK");
         self.source_readbacks += 1;
         if std::mem::take(&mut self.fail_source_readback_once) {
             return Err(RuntimeError::new(
@@ -129,9 +155,9 @@ impl RuntimeDdeHost for InitializationHost {
         &mut self,
         proof: &Win16DdeSourceRetiredProof,
     ) -> Result<(), RuntimeError> {
-        assert_eq!(proof, self.proof.as_ref());
+        assert!(proof == self.proof.as_ref() || self.additional_proofs.contains(proof));
         assert!(
-            self.consumed.is_empty(),
+            !self.consumed.iter().any(|entry| entry.operation == proof.operation),
             "DDE source ACK replayed after consumption"
         );
         self.consumed.push(proof.clone());
@@ -145,16 +171,24 @@ impl RuntimeDdeHost for InitializationHost {
         assert!(proof.matches_receipt(receipt));
         assert_eq!(proof.owner, OWNER);
         assert_eq!(proof.worker_generation, GENERATION);
-        assert_eq!(proof.cancellation.operation, OPERATION);
-        let BeginResult::StartedFailure(failure) = &self.begin_result else {
-            panic!("unexpected terminal retirement");
-        };
-        assert!(proof.matches_started_failure(failure));
-        assert!(
-            self.retired.is_empty(),
-            "DDE operation ACK replayed after retirement"
-        );
-        self.retired.push(proof.clone());
+        assert!(proof.cancellation.operation == OPERATION
+            || self.additional_proofs.iter().any(|normal| normal.operation == proof.cancellation.operation));
+        if let BeginResult::StartedFailure(failure) = &self.begin_result {
+            assert!(proof.matches_started_failure(failure));
+        }
+        if std::mem::take(&mut self.fail_retirement_before_once) {
+            return Err(RuntimeError::new(Kind::HostFailure, "test defers exact shutdown ACK"));
+        }
+        if let Some(cached) = self.retired.iter().find(|cached|
+            cached.cancellation.operation == proof.cancellation.operation)
+        {
+            assert_eq!(cached, proof, "terminal ACK changed across reply-loss retry");
+        } else {
+            self.retired.push(proof.clone());
+        }
+        if std::mem::take(&mut self.fail_retirement_reply_once) {
+            return Err(RuntimeError::new(Kind::HostFailure, "test loses exact shutdown ACK reply"));
+        }
         Ok(())
     }
     fn win16_dde_runtime_resources_retired(
@@ -340,35 +374,32 @@ fn begin(
     host: &mut InitializationHost,
     instance_output: u32,
 ) -> Result<(u16, u16, u32), RuntimeError> {
-    let return_to = (
-        runtime.cpu.regs.cs,
-        0x12,
-        u32::from(runtime.cpu.regs.sp()) + 20,
-    );
-    let callback = u32::from(runtime.cpu.regs.cs) << 16;
-    let initial_instance = read_instance(runtime);
+    let request = Win16DdeRequest::Initialize {
+        instance_output,
+        initial_instance: read_instance(runtime),
+        callback: u32::from(runtime.cpu.regs.cs) << 16,
+        flags: 0,
+        reserved: 0,
+    };
+    begin_request(runtime, host, request)
+}
+
+fn begin_request(
+    runtime: &mut Runtime,
+    host: &mut InitializationHost,
+    request: Win16DdeRequest,
+) -> Result<(u16, u16, u32), RuntimeError> {
+    let return_to = (runtime.cpu.regs.cs, 0x12, u32::from(runtime.cpu.regs.sp()) + 20);
     let context = runtime.cpu.capture_context();
     let state = runtime.win16.as_mut().unwrap();
     let owner = state.capture_legacy_cpu_call_frame(
-        &mut runtime.cpu,
-        &mut runtime.dos,
-        &mut runtime.memory,
+        &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory,
     )?;
     assert!(state.window_dispatch_context.replace(context).is_none());
     assert!(state.active_dispatch_call_owner.replace(owner).is_none());
     let result = state.begin_dde_request(
-        Win16DdeRequest::Initialize {
-            instance_output,
-            initial_instance,
-            callback,
-            flags: 0,
-            reserved: 0,
-        },
-        &mut runtime.cpu.regs,
-        &mut runtime.memory,
-        host,
-        return_to,
-        Win16ReturnKind::Word,
+        request, &mut runtime.cpu.regs, &mut runtime.memory, host,
+        return_to, Win16ReturnKind::Word,
     );
     state.window_dispatch_context = None;
     assert!(state.active_dispatch_call_owner.is_none());
@@ -583,6 +614,24 @@ fn initialize_projection_failure_retains_proof_and_caller() {
     assert_eq!(state.window_operations.len(), 1);
     assert!(state.window_operations[0].cpu_call_owner.is_some());
     assert_eq!(state.legacy_cpu_frames.len(), 1);
+
+    install_terminal_receipts(&mut runtime, shutdown_receipt(None));
+    host.fail_terminal_source_once = true;
+    assert_eq!(terminal_retire(&mut runtime, &mut host).unwrap_err().kind(), Kind::GuestFault);
+    assert!(host.retired.is_empty());
+    assert_eq!(host.source_readbacks, 0);
+    host.fail_retirement_before_once = true;
+    let error = terminal_retire(&mut runtime, &mut host).unwrap_err();
+    assert_eq!(error.kind(), Kind::GuestFault, "projection failure remains the primary cause");
+    assert!(host.retired.is_empty());
+    assert_eq!(runtime.win16.as_ref().unwrap().window_operations.len(), 1);
+    terminal_retire(&mut runtime, &mut host).unwrap();
+    assert_eq!(read_instance(&runtime), 0, "terminal cleanup must not project again");
+    assert_eq!(host.calls.len(), 1);
+    assert_eq!(host.retired.len(), 1);
+    assert!(host.consumed.is_empty());
+    assert!(runtime.win16.as_ref().unwrap().window_operations.is_empty());
+    assert!(runtime.win16.as_ref().unwrap().legacy_cpu_frames.is_empty());
 }
 
 #[test]
@@ -932,3 +981,7 @@ fn started_return_failure_case(reinitializing: bool) {
     assert!(state.dde_context_restores.is_empty());
     assert_eq!(read_instance(&runtime), original_guest);
 }
+
+#[path = "win16_runtime_dde_terminal_tests.rs"]
+mod terminal_tests;
+use terminal_tests::{install_terminal_receipts, terminal_retire};

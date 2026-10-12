@@ -2,7 +2,6 @@
 
 use super::*;
 use crate::Win16HostDdeDataTransferOutcome;
-use crate::win16_dde::Win16DdeDataOrigin;
 use crate::win16_runtime::guest_ranges::commit_guest_writes_with_selectors;
 use compat_services::win16_dde::error as dde_error;
 
@@ -187,227 +186,64 @@ impl super::DdeCompletionAccess<'_> {
 
     pub(super) fn finish_data_transfer_receipt(
         &mut self,
-        continuation: &Win16DdeContinuation,
+        continuation: &mut Win16DdeContinuation,
         result: &Win16HostDdeResult,
     ) -> Result<(), RuntimeError> {
-        use Win16DdeRequest as R;
-        let guard = continuation.data_transfer_guard;
-        if let Some(guard) = guard {
-            if self.dde.data_transfer_guard_matches(
-                guard.guard_id,
-                guard.guest_data,
-                guard.host_data,
-                guard.owner,
-                guard.origin,
-            ) != Some(true)
-            {
-                return Err(invariant(
-                    "DDE input transfer guard or its identity disappeared",
-                ));
-            }
+        validate_normal_transfer_receipt(continuation, result)?;
+        continuation.validate_transfer_settlement_record(result)?;
+        if continuation.transfer_guard_retired {
+            continuation.require_transfer_settlement(result)?;
+            return self.retry_dde_guest_block_retirements();
         }
-        if let (Some(guard), Some(receipt)) = (guard, result.data_transfer.as_ref()) {
-            if receipt.token != guard.host_data || continuation.instance != Some(guard.owner) {
-                return Err(invariant(
-                    "DDE transaction transfer receipt identifies the wrong input data",
-                ));
-            }
-            validate_transaction_transfer_result(continuation, result)?;
-            if matches!(receipt.outcome, Win16HostDdeDataTransferOutcome::NotPassed) {
-                self.dde
-                    .restore_data_transfer(
-                        guard.guard_id,
-                        guard.guest_data,
-                        guard.host_data,
-                        guard.owner,
-                        guard.origin,
-                    )
-                    .ok_or_else(|| {
-                        invariant(
-                            "DDE input data disappeared before restoring a NotPassed transfer",
-                        )
-                    })?;
-            }
+        if let Some(guard) = continuation.data_transfer_guard {
+            let receipt = result.data_transfer.as_ref().expect("validated transfer receipt");
+            super::super::transfer::settle_transfer_guard(
+                self.dde, guard,
+                crate::Win16DdeNativeTransferGuardSource::NativeCompletion(receipt.outcome),
+                self.dde_retired_guest_blocks,
+            )?;
         }
-        let evidence = match guard {
-            Some(guard) => Some(
-                self.dde
-                    .take_guest_free_evidence(
-                        guard.guard_id,
-                        guard.guest_data,
-                        guard.host_data,
-                        guard.owner,
-                        guard.origin,
-                    )
-                    .ok_or_else(|| {
-                        invariant("DDE input transfer guard or its identity disappeared")
-                    })?,
-            ),
-            None => None,
-        };
-        match (&continuation.request, guard, result.data_transfer.as_ref()) {
-            (
-                R::ClientTransaction {
-                    data: win16_abi::Win16DdeTransactionData::DataHandle(guest),
-                    ..
-                },
-                Some(guard),
-                Some(receipt),
-            ) if *guest == guard.guest_data => {
-                if receipt.token != guard.host_data || continuation.instance != Some(guard.owner) {
-                    return Err(invariant(
-                        "DDE transaction transfer receipt identifies the wrong input data",
-                    ));
-                }
-                let (captured_previously_transferred, source_freed, instance_uninitialized) =
-                    evidence.ok_or_else(|| {
-                        invariant("DDE transfer receipt lost its registered source evidence")
-                    })?;
-                if captured_previously_transferred != guard.previously_transferred {
-                    return Err(invariant(
-                        "DDE transfer guard changed its captured prior state",
-                    ));
-                }
-                validate_transaction_transfer_result(continuation, result)?;
-                let live_origin = self.dde.data_origin(guard.guest_data);
-                let live_owner = self.dde.instance_for_data(guard.guest_data);
-                let live_host = self.dde.host_data(guard.guest_data);
-                let live_matches = live_host == Some(guard.host_data)
-                    && live_owner == Some(guard.owner)
-                    && live_origin == Some(guard.origin);
-                match receipt.outcome {
-                    Win16HostDdeDataTransferOutcome::NotPassed => {
-                        if result.dde_error == dde_error::NO_ERROR {
-                            return Err(invariant(
-                                "DDE NotPassed receipt accompanied a success-shaped transaction result",
-                            ));
-                        }
-                        if !source_freed && !instance_uninitialized && !live_matches {
-                            return Err(invariant(
-                                "DDE input identity changed before a NotPassed receipt",
-                            ));
-                        }
-                    }
-                    Win16HostDdeDataTransferOutcome::Consumed => {
-                        if source_freed {
-                            return Err(invariant(
-                                "DDE consumed receipt conflicts with a guest FreeData retirement",
-                            ));
-                        }
-                        if !matches!(
-                            guard.origin,
-                            Win16DdeDataOrigin::Created {
-                                retain_after_transfer: false
-                            }
-                        ) || !guard.transfer_marked
-                        {
-                            return Err(invariant(
-                                "DDE host consumed a non-transferable or mismatched data handle",
-                            ));
-                        }
-                        if instance_uninitialized {
-                            if live_matches {
-                                return Err(invariant(
-                                    "successful DdeUninitialize left its consumed input mapping live",
-                                ));
-                            }
-                        } else {
-                            if !live_matches
-                                || self.dde.data_transfer_state(guard.guest_data) != Some(true)
-                            {
-                                return Err(invariant(
-                                    "DDE host consumed a non-transferable or mismatched data handle",
-                                ));
-                            }
-                            let removed = self
-                                .dde
-                                .consume_data_transfer(guard.guest_data)
-                                .map_err(|_| {
-                                    invariant(
-                                        "DDE consumed receipt contradicted runtime data state",
-                                    )
-                                })?;
-                            if let Some(removed) = removed {
-                                if let Some(block) = removed.access_block {
-                                    self.free_runtime_dde_block(block.identity)?;
-                                }
-                            }
-                        }
-                    }
-                    Win16HostDdeDataTransferOutcome::RetainedReadOnly => {
-                        if !matches!(
-                            guard.origin,
-                            Win16DdeDataOrigin::Created {
-                                retain_after_transfer: true
-                            }
-                        ) || !guard.transfer_marked
-                        {
-                            return Err(invariant(
-                                "retained DDE input data was not kept read-only",
-                            ));
-                        }
-                        if source_freed || instance_uninitialized {
-                            if live_matches {
-                                return Err(invariant(
-                                    "DDE source retirement evidence conflicts with a live APPOWNED source",
-                                ));
-                            }
-                        } else if !live_matches
-                            || self.dde.data_transfer_state(guard.guest_data) != Some(true)
-                            || self.dde.data_is_writable(guard.guest_data) != Some(false)
-                        {
-                            return Err(invariant(
-                                "retained DDE input data was not kept read-only",
-                            ));
-                        }
-                    }
-                    Win16HostDdeDataTransferOutcome::CopiedInputRetained => {
-                        if !matches!(
-                            guard.origin,
-                            Win16DdeDataOrigin::CallbackBorrowed | Win16DdeDataOrigin::ClientResult
-                        ) || guard.transfer_marked
-                        {
-                            return Err(invariant(
-                                "DDE host copied a source with unsupported provenance",
-                            ));
-                        }
-                        if source_freed || instance_uninitialized {
-                            if live_matches {
-                                return Err(invariant(
-                                    "DDE source retirement evidence conflicts with a live copied source",
-                                ));
-                            }
-                        } else if !live_matches
-                            || self.dde.data_transfer_state(guard.guest_data)
-                                != Some(guard.previously_transferred)
-                        {
-                            return Err(invariant(
-                                "copied DDE input source changed identity while still live",
-                            ));
-                        }
-                    }
-                }
-            }
-            (
-                R::ClientTransaction {
-                    data: win16_abi::Win16DdeTransactionData::DataHandle(_),
-                    ..
-                },
-                None,
-                _,
-            ) => return Err(invariant("DDE transaction lost its input transfer guard")),
-            (_, Some(_), _) => {
-                return Err(invariant("DDE transfer guard does not match its request"));
-            }
-            (_, None, Some(_)) => return Err(invariant("unexpected DDE data transfer receipt")),
-            (_, None, None) => {}
+        continuation.mark_transfer_settled(result);
+        self.retry_dde_guest_block_retirements()
+    }
+
+}
+
+pub(in crate::win16_runtime) fn validate_normal_transfer_receipt(
+    continuation: &Win16DdeContinuation,
+    result: &Win16HostDdeResult,
+) -> Result<(), RuntimeError> {
+    validate_transfer_receipt(&continuation.request, continuation.instance,
+        continuation.data_transfer_guard, continuation.outputs.transaction_result.is_some(), result)
+}
+
+pub(in crate::win16_runtime) fn validate_transfer_receipt(
+    request: &Win16DdeRequest,
+    instance: Option<u32>,
+    guard: Option<super::super::DdeDataTransferGuard>,
+    transaction_output: bool,
+    result: &Win16HostDdeResult,
+) -> Result<(), RuntimeError> {
+    match (request, guard, result.data_transfer) {
+        (Win16DdeRequest::ClientTransaction {
+            data: win16_abi::Win16DdeTransactionData::DataHandle(guest), ..
+        }, Some(guard), Some(receipt))
+            if *guest == guard.guest_data && receipt.token == guard.host_data
+                && instance == Some(guard.owner) =>
+        {
+            validate_transaction_transfer_result(request, transaction_output, result)
         }
-        Ok(())
+        (Win16DdeRequest::ClientTransaction {
+            data: win16_abi::Win16DdeTransactionData::DataHandle(_), ..
+        }, _, _) | (_, Some(_), _) | (_, _, Some(_)) => Err(invariant(
+            "DDE transfer receipt does not match its exact request and input owner")),
+        (_, None, None) => Ok(()),
     }
 }
 
 fn validate_transaction_transfer_result(
-    continuation: &Win16DdeContinuation,
+    request: &Win16DdeRequest,
+    transaction_output: bool,
     result: &Win16HostDdeResult,
 ) -> Result<(), RuntimeError> {
     use Win16DdeRequest as R;
@@ -417,7 +253,7 @@ fn validate_transaction_transfer_result(
         data: win16_abi::Win16DdeTransactionData::DataHandle(_),
         result_output,
         ..
-    } = &continuation.request
+    } = request
     else {
         return Err(invariant(
             "DDE transfer receipt is not attached to an existing data input",
@@ -451,7 +287,7 @@ fn validate_transaction_transfer_result(
         ));
     }
     if !*entered_native {
-        if *succeeded || result.transaction_result.is_some() {
+        if *succeeded || result.transaction_result.is_some() || result.dde_error == dde_error::NO_ERROR {
             return Err(invariant(
                 "preflight DDE transaction returned native-only outputs",
             ));
@@ -461,9 +297,9 @@ fn validate_transaction_transfer_result(
     match (
         *result_output != 0,
         result.transaction_result,
-        continuation.outputs.transaction_result.as_ref(),
+        transaction_output,
     ) {
-        (true, Some(_), Some(_)) | (false, None, None) => Ok(()),
+        (true, Some(_), true) | (false, None, false) => Ok(()),
         (true, _, _) => Err(invariant(
             "entered DDE transaction omitted its requested pdwResult value",
         )),

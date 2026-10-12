@@ -525,7 +525,9 @@ impl Win16State {
             .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
                 "Win16 terminal error lost its exact retained top operation"))?;
         let latest = std::sync::Arc::new(error);
-        let combined = match frame.terminal_error.as_ref() {
+        let original = frame.terminal_error.as_ref().or_else(||
+            frame.dde_completion.as_ref().and_then(|journal| journal.first_cause.as_ref()));
+        let combined = match original {
             Some(original) => RuntimeError::with_source(
                 original.kind(),
                 "Win16 terminal operation retained its original typed failure",

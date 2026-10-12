@@ -7,6 +7,14 @@ impl Win16DdeHost {
         operation: Win16HostDdeOperation,
         result: Win16HostDdeResult,
     ) -> (Self, Win16HostDdeStep) {
+        Self::completed_operation_with_transfer_fixture(operation, result, None)
+    }
+
+    pub(in crate::windows) fn completed_operation_with_transfer_fixture(
+        operation: Win16HostDdeOperation,
+        result: Win16HostDdeResult,
+        input: Option<(Win16HostDdeData, Win16HostDdeInstance)>,
+    ) -> (Self, Win16HostDdeStep) {
         let (command_sender, _) = mpsc::channel();
         let (_, event_receiver) = mpsc::channel();
         let mut host = Self {
@@ -29,14 +37,16 @@ impl Win16DdeHost {
             pending_operation_instances: BTreeMap::from([(
                 operation,
                 PendingDdeOperationRecord {
-                    instance: None,
+                    instance: input.map(|(_, instance)| instance),
+                    transfer_data: input.map(|(data, _)| data),
                     request_phase: Some(Win16DdeOperationRequestPhase::SubmittedPending),
                     failure: None,
                     completed_result: None,
                     source_retirement_failure: None,
                 },
             )]),
-            pending_transfer_guards: BTreeMap::new(),
+            pending_transfer_guards: input.into_iter()
+                .map(|input| (operation, input)).collect(),
             pending_events: BTreeMap::new(),
             unsolicited_callbacks: VecDeque::new(),
             pending_callback_completions: BTreeMap::new(),

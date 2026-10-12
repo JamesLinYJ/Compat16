@@ -166,6 +166,7 @@ impl DdeCompletionAccess<'_> {
         let frame = self.dde_callbacks.last().ok_or_else(|| {
             invariant("DDE callback frame disappeared before its exact LIFO pop")
         })?;
+        require_callback_follow_up_sources_retired(frame)?;
         if frame.callback_id != ticket.callback_id
             || frame.host_frame != ticket.host_frame
             || frame.source_step.owner != ticket.owner
@@ -200,6 +201,7 @@ impl DdeCompletionAccess<'_> {
         let active = self.dde_callbacks.last().ok_or_else(|| {
             invariant("DDE callback frame disappeared after native acknowledgement")
         })?;
+        require_callback_follow_up_sources_retired(active)?;
         let ticket = DdeCallbackRetirementTicket {
             callback_id: active.callback_id,
             callback_kind_active: active.callback_kind_active,
@@ -464,3 +466,45 @@ impl DdeCompletionAccess<'_> {
     }
 
 }
+
+/// A callback-owned readback continuation is a distinct native operation
+/// owner. Callback retirement must not drop its unacknowledged normal source
+/// history or a submitted operation just because the callback itself stopped.
+fn require_callback_follow_up_sources_retired(
+    frame: &super::Win16DdeCallbackFrame,
+) -> Result<(), RuntimeError> {
+    let Some(follow_up) = frame.pending_follow_up.as_ref() else { return Ok(()); };
+    match follow_up.owner {
+        super::super::runtime_dde::Win16DdeFollowUpOwner::Callback {
+            callback_id, host_frame, parent, owner, worker_generation, origin,
+        } if callback_id == frame.callback_id && host_frame == frame.host_frame
+            && parent == frame.source_step.parent && owner == frame.source_step.owner
+            && worker_generation == frame.source_step.worker_generation && origin == frame.origin => {}
+        _ => return Err(invariant("DDE callback follow-up changed its exact callback owner")),
+    }
+    require_follow_up_sources_retired(follow_up)
+}
+
+fn require_follow_up_sources_retired(
+    follow_up: &super::Win16DdeCallbackFollowUp,
+) -> Result<(), RuntimeError> {
+    let continuation = follow_up.continuation.as_ref().ok_or_else(|| invariant(
+        "DDE callback follow-up lost its retained native-source owner"))?;
+    let sources_retired = match continuation.host_operation() {
+        Some(_) => continuation.all_normal_sources_consumed(),
+        None => continuation.normal_source_history_consumed()
+            && matches!(follow_up.phase,
+                super::super::runtime_dde::Win16DdeFollowUpPhase::UnboundPrepared
+                    | super::super::runtime_dde::Win16DdeFollowUpPhase::Prepared(_)),
+    };
+    if !sources_retired || follow_up.pending_child_callback.is_some() {
+        return Err(invariant(
+            "DDE callback follow-up retains an unretired native operation or normal source proof"));
+    }
+    Ok(())
+}
+
+
+#[cfg(test)]
+#[path = "win16_dde_callback_retirement_tests.rs"]
+mod tests;

@@ -98,6 +98,9 @@ pub(super) struct WorkerShutdownReport {
 #[derive(Clone)]
 struct PendingDdeOperationRecord {
     instance: Option<Win16HostDdeInstance>,
+    /// Original ClientTransaction input survives removal of the active native
+    /// transfer guard so shutdown can prove the actual returned disposition.
+    transfer_data: Option<Win16HostDdeData>,
     request_phase: Option<Win16DdeOperationRequestPhase>,
     failure: Option<Arc<RuntimeError>>,
     completed_result: Option<Win16HostDdeResult>,
@@ -300,10 +303,17 @@ impl Win16DdeHost {
             | Win16HostDdeCall::Connect { instance, .. } => Some(*instance),
             _ => None,
         };
+        let transfer_data = match &call {
+            Win16HostDdeCall::ClientTransaction {
+                data: Win16HostDdeTransactionData::Data(data), ..
+            } => Some(*data),
+            _ => None,
+        };
         self.pending_operation_instances.insert(
             operation,
             PendingDdeOperationRecord {
                 instance,
+                transfer_data,
                 request_phase: None,
                 failure: None,
                 completed_result: None,
@@ -342,6 +352,7 @@ impl Win16DdeHost {
                     .entry(operation)
                     .or_insert_with(|| PendingDdeOperationRecord {
                         instance,
+                        transfer_data,
                         request_phase: Some(Win16DdeOperationRequestPhase::SubmittedPending),
                         failure: None,
                         completed_result: None,

@@ -211,6 +211,7 @@ impl Win16State {
             worker_generation: None,
             started_failure: None,
             instance,
+            native_input_instance: None,
             outputs: prepared.outputs,
             callback_candidate: prepared.callback_candidate,
             data_transfer_guard: prepared.data_transfer_guard,
@@ -224,6 +225,7 @@ impl Win16State {
             purpose: Win16DdeCompletionPurpose::GuestApi,
             cleanup_error: None,
         };
+        continuation.capture_native_input_identity(&self.dde)?;
         continuation.reserve_source_retirement_record()?;
         self.begin_window_operation(
             registers,

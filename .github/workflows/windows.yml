@@ -192,6 +192,10 @@ jobs:
             '-p host-services --lib escape_'
             '-p host-services --lib dde_completion_'
             '-p runtime --lib initialization_tests::'
+            '-p runtime --lib win16_runtime_dde::transfer::tests::'
+            '-p runtime --lib win16_dde_callback::retirement::tests::'
+            '-p host-services --lib dde_normal_tombstone_shutdown_'
+            '-p host-services --lib dde_shutdown_'
           )
           # Keep focused additions visible: a renamed filter must not silently
           # succeed after selecting zero tests.
@@ -209,7 +213,11 @@ jobs:
             '-p runtime --lib escape_' = 7
             '-p host-services --lib escape_' = 3
             '-p host-services --lib dde_completion_' = 3
-            '-p runtime --lib initialization_tests::' = 7
+            '-p runtime --lib initialization_tests::' = 17
+            '-p runtime --lib win16_runtime_dde::transfer::tests::' = 16
+            '-p runtime --lib win16_dde_callback::retirement::tests::' = 1
+            '-p host-services --lib dde_normal_tombstone_shutdown_' = 2
+            '-p host-services --lib dde_shutdown_' = 4
           }
           $failedSuites = @()
           $runtimeCompileChecked = $false

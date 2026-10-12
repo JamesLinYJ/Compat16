@@ -226,34 +226,7 @@ fn dde_completion_retirement_failure_keeps_first_owner_until_exact_shutdown_ack(
         status: Win16DdeOperationCancellationStatus::NativeCompleteReturned,
         failure: None,
     };
-    let receipt = Win16DdeAbortReceipt {
-        owner: Some(failure.owner),
-        worker_generation: Some(failure.worker_generation),
-        request_id: Some(41),
-        native_owner_receipt: Some(Win16DdeNativeOwnerShutdownReceipt {
-            owner: failure.owner,
-            worker_generation: failure.worker_generation,
-            request_id: 41,
-            all_native_callbacks_returned: true,
-            all_active_operations_returned: true,
-            all_native_replies_released_or_transferred: true,
-            all_native_transfer_guards_retired: true,
-            all_native_instances_uninitialized: true,
-            control_window_destroyed: true,
-        }),
-        owner_status: Win16DdeAbortOwnerStatus::Quiesced,
-        worker_status: Win16DdeAbortWorkerStatus::Joined,
-        cancelled_callbacks: Vec::new(),
-        cancelled_operations: vec![cancellation.clone()],
-        native_instances: vec![runtime::Win16DdeNativeInstanceReceipt {
-            instance: Win16HostDdeInstance(31),
-            status: runtime::Win16DdeCleanupStatus::Released,
-            failure: None,
-        }],
-        native_replies: Vec::new(),
-        native_transfer_guards: Vec::new(),
-        cleanup_failures: Vec::new(),
-    };
+    let receipt = shutdown_receipt(failure.owner, failure.worker_generation, cancellation.clone());
     let proof = Win16DdeOperationRetirementProof {
         owner: failure.owner,
         worker_generation: failure.worker_generation,
@@ -286,4 +259,156 @@ fn dde_completion_retirement_failure_keeps_first_owner_until_exact_shutdown_ack(
     host.dde_operation_retired_inner(&proof, &receipt).unwrap();
     host.dde_runtime_resources_retired_inner(&receipt).unwrap();
     assert!(host.dde_sources.retired_operations.is_empty());
+}
+
+fn shutdown_receipt(
+    owner: runtime::Win16HostDdeOwner,
+    worker_generation: u64,
+    cancellation: Win16DdeOperationCancellation,
+) -> Win16DdeAbortReceipt {
+    Win16DdeAbortReceipt {
+        owner: Some(owner),
+        worker_generation: Some(worker_generation),
+        request_id: Some(41),
+        native_owner_receipt: Some(Win16DdeNativeOwnerShutdownReceipt {
+            owner,
+            worker_generation,
+            request_id: 41,
+            all_native_callbacks_returned: true,
+            all_active_operations_returned: true,
+            all_native_replies_released_or_transferred: true,
+            all_native_transfer_guards_retired: true,
+            all_native_instances_uninitialized: true,
+            control_window_destroyed: true,
+        }),
+        owner_status: Win16DdeAbortOwnerStatus::Quiesced,
+        worker_status: Win16DdeAbortWorkerStatus::Joined,
+        cancelled_callbacks: Vec::new(),
+        cancelled_operations: vec![cancellation.clone()],
+        native_instances: vec![runtime::Win16DdeNativeInstanceReceipt {
+            instance: Win16HostDdeInstance(31),
+            status: runtime::Win16DdeCleanupStatus::Released,
+            failure: None,
+        }],
+        native_replies: Vec::new(),
+        native_transfer_guards: Vec::new(),
+        cleanup_failures: Vec::new(),
+    }
+}
+
+fn normal_shutdown_fixture() -> (
+    Win16Windows,
+    Arc<runtime::Win16DdeSourceRetiredProof>,
+    Win16DdeAbortReceipt,
+    Win16DdeOperationRetirementProof,
+) {
+    let (mut host, step) = fixture();
+    let Win16WindowStep::DdeSourceRetired { proof: normal, .. } =
+        host.dde_window_step(OPERATION, step).unwrap()
+    else { panic!("normal completion must retire its exact source") };
+    let cancellation = Win16DdeOperationCancellation {
+        operation: OPERATION,
+        instance: None,
+        status: Win16DdeOperationCancellationStatus::NativeCompleteReturned,
+        failure: None,
+    };
+    let receipt = shutdown_receipt(normal.owner, normal.worker_generation, cancellation.clone());
+    let proof = Win16DdeOperationRetirementProof {
+        owner: normal.owner,
+        worker_generation: normal.worker_generation,
+        request_id: 41,
+        cancellation,
+        callback_receipts: Vec::new(),
+        transfer_guard: None,
+    };
+    host.dde.as_mut().unwrap().cache_abort_receipt_fixture(receipt.clone());
+    (host, normal, receipt, proof)
+}
+
+#[test]
+fn dde_normal_tombstone_shutdown_ack_replaces_same_slot_without_popping_unrelated_source() {
+    let (mut host, normal, receipt, proof) = normal_shutdown_fixture();
+    let unrelated = PendingSource::User { id: 71 };
+    host.dde_sources.pending.push(unrelated);
+    let original_capacity = host.dde_sources.retired_operations.capacity();
+    host.dde_operation_retired_inner(&proof, &receipt).unwrap();
+    assert_eq!(host.dde_sources.pending, [unrelated]);
+    assert_eq!(host.dde_sources.retired_operations.len(), 1);
+    assert_eq!(host.dde_sources.retired_operations.capacity(), original_capacity);
+    assert!(matches!(&host.dde_sources.retired_operations[0],
+        RetiredDdeOperationSource::Shutdown(cached) if cached == &proof));
+    assert!(host.dde.as_ref().unwrap().normal_completion_result(OPERATION).is_none());
+    assert!(host.dde_source_retirement_inner(&normal).is_err());
+    assert!(host.consume_dde_source_retirement_inner(&normal).is_err());
+    host.dde_operation_retired_inner(&proof, &receipt).unwrap();
+    assert_eq!(host.dde_sources.pending, [unrelated]);
+    host.dde_runtime_resources_retired_inner(&receipt).unwrap();
+    assert!(host.dde_sources.retired_operations.is_empty());
+    assert_eq!(host.dde_sources.pending, [unrelated]);
+}
+
+#[test]
+fn dde_normal_tombstone_shutdown_rejects_foreign_duplicate_and_live_identities() {
+    let (mut host, normal, receipt, proof) = normal_shutdown_fixture();
+    for mutate in [0, 1, 2, 3] {
+        let mut foreign = proof.clone();
+        match mutate {
+            0 => foreign.owner.0 += 1,
+            1 => foreign.worker_generation += 1,
+            2 => foreign.request_id += 1,
+            _ => foreign.cancellation.operation.0 += 1,
+        }
+        assert!(host.dde_operation_retired_inner(&foreign, &receipt).is_err());
+        assert!(host.dde.as_ref().unwrap().normal_completion_result(OPERATION).is_some());
+        assert!(matches!(&host.dde_sources.retired_operations[0],
+            RetiredDdeOperationSource::Normal(cached) if cached == &normal));
+    }
+    let child = Arc::new(runtime::Win16HostDdeCallbackStep {
+        frame: runtime::Win16HostDdeCallbackFrame(61),
+        parent: Some(OPERATION),
+        owner: normal.owner,
+        worker_generation: normal.worker_generation,
+        callback: runtime::Win16DdeCallbackCall {
+            host_instance: Win16HostDdeInstance(31),
+            callback_route: 1,
+            transaction_type: 0,
+            format: 0,
+            host_conversation: None,
+            host_string_1: None,
+            host_string_2: None,
+            data: runtime::Win16HostDdeCallbackData::Null,
+            conversation_context: None,
+            data_1: None,
+            data_2: None,
+        },
+    });
+    host.dde_sources.callbacks.push(PendingDdeCallbackSource {
+        step: Arc::clone(&child), runtime_published: true,
+    });
+    assert!(host.dde_operation_retired_inner(&proof, &receipt).is_err());
+    assert_eq!(host.dde_sources.callbacks.len(), 1);
+    host.dde_sources.callbacks.pop();
+    host.dde_sources.retired_operations.push(RetiredDdeOperationSource::Normal(Arc::clone(&normal)));
+    assert!(host.dde_operation_retired_inner(&proof, &receipt).is_err());
+    assert_eq!(host.dde_sources.retired_operations.len(), 2);
+    host.dde_sources.retired_operations.pop();
+    let duplicate = PendingSource::Dde { operation: OPERATION };
+    host.dde_sources.pending.push(duplicate);
+    assert!(host.dde_operation_retired_inner(&proof, &receipt).is_err());
+    assert_eq!(host.dde_sources.pending.pop(), Some(duplicate));
+    host.dde_operation_retired_inner(&proof, &receipt).unwrap();
+    host.dde_sources.callbacks.push(PendingDdeCallbackSource {
+        step: child, runtime_published: true,
+    });
+    assert!(host.dde_operation_retired_inner(&proof, &receipt).is_err());
+    assert_eq!(host.dde_sources.callbacks.len(), 1);
+    host.dde_sources.callbacks.pop();
+    host.dde_sources.retired_operations.push(RetiredDdeOperationSource::Shutdown(proof.clone()));
+    assert!(host.dde_operation_retired_inner(&proof, &receipt).is_err());
+    assert_eq!(host.dde_sources.retired_operations.len(), 2);
+    host.dde_sources.retired_operations.pop();
+    host.dde_sources.pending.push(duplicate);
+    assert!(host.dde_operation_retired_inner(&proof, &receipt).is_err());
+    assert_eq!(host.dde_sources.pending.pop(), Some(duplicate));
+    host.dde_operation_retired_inner(&proof, &receipt).unwrap();
 }

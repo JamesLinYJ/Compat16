@@ -18,7 +18,7 @@ mod access;
 #[path = "win16_runtime_dde_completion_data.rs"]
 mod data;
 #[path = "win16_runtime_dde_receipt.rs"]
-mod receipt;
+pub(super) mod receipt;
 #[path = "win16_runtime_dde_completion_state_api.rs"]
 mod state_api;
 
@@ -53,6 +53,7 @@ impl DdeCompletionAccess<'_> {
         host: &mut impl RuntimeHost,
     ) -> Result<Win16DdeFinish, RuntimeError> {
         continuation.require_cached_normal_source_result(&result)?;
+        continuation.capture_native_input_identity(self.dde)?;
         if let Some(original_error) = continuation.cleanup_error.as_ref() {
             return finish_dde_access_compensation(Arc::clone(original_error), result);
         }
@@ -61,7 +62,7 @@ impl DdeCompletionAccess<'_> {
             validate_dde_error_shape(&continuation.request, &result)?;
         }
         super::Win16State::validate_dde_transaction_shape(&continuation, &result)?;
-        self.finish_data_transfer_receipt(&continuation, &result)?;
+        self.finish_data_transfer_receipt(continuation, &result)?;
         if !matches!(continuation.purpose, Win16DdeCompletionPurpose::GuestApi) {
             return self.finish_dde_callback_readback(continuation, result, memory, host);
         }

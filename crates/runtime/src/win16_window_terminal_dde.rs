@@ -50,10 +50,19 @@ impl Win16State {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
                     "DDE continuation has a zero native operation identity"));
             }
+            if !receipt.is_quiesced() {
+                return Err(RuntimeError::new(Kind::HostFailure,
+                    "DDE terminal retirement requires an exact quiesced native owner"));
+            }
+            let normally_consumed = continuation.all_normal_sources_consumed();
+            if normally_consumed != frame.source_retirement_consumed {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "DDE normal consumption journal disagrees with its exact frame"));
+            }
             Ok((operation, continuation.native_input_guest_instance(),
-                continuation.operation_retirement_proof().cloned()))
+                continuation.operation_retirement_proof().cloned(), normally_consumed))
         })();
-        let (expected_operation, expected_guest_instance, cached_proof) = match identities {
+        let (expected_operation, expected_guest_instance, cached_proof, normally_consumed) = match identities {
             Ok(identities) => identities,
             Err(error) => return self.retain_operation_failure(frame_id, error),
         };
@@ -104,108 +113,115 @@ impl Win16State {
                 Err(error) => return self.retain_operation_failure(frame_id, error),
             }
         }
-        let retirement_result = {
-            let (dde, retired_guest_blocks, operations) = (
-                &mut self.dde,
-                &mut self.dde_retired_guest_blocks,
-                &mut self.window_operations,
-            );
-            match operations.last_mut().filter(|frame| frame.id == frame_id) {
-                Some(frame) => match frame.continuation_mut() {
-                    Some(WindowReturn::Dde(continuation)) => Ok(
-                        super::super::runtime_dde::prepare_dde_window_operation_retirement(
-                            dde,
-                            continuation,
-                            &receipt,
-                            host,
-                            retired_guest_blocks,
+        // If normal source consumption succeeded before CPU-owner release
+        // failed, there is no native operation left to cancel a second time.
+        // Its exact consumed records and frame journal own the remaining CPU
+        // cleanup; never invent a shutdown cancellation for that operation.
+        if !normally_consumed {
+            let retirement_result = {
+                let (dde, retired_guest_blocks, operations) = (
+                    &mut self.dde,
+                    &mut self.dde_retired_guest_blocks,
+                    &mut self.window_operations,
+                );
+                match operations.last_mut().filter(|frame| frame.id == frame_id) {
+                    Some(frame) => match frame.continuation_mut() {
+                        Some(WindowReturn::Dde(continuation)) => Ok(
+                            super::super::runtime_dde::prepare_dde_window_operation_retirement(
+                                dde,
+                                continuation,
+                                &receipt,
+                                host,
+                                retired_guest_blocks,
+                            ),
                         ),
-                    ),
-                    _ => Err(RuntimeError::new(Kind::InternalInvariant,
-                        "DDE exact top changed kind before its native source ACK")),
-                },
-                None => Err(RuntimeError::new(Kind::InternalInvariant,
-                    "DDE terminal top changed before its exact receipt was consumed")),
-            }
-        };
-        let retirement = match retirement_result {
-            Ok(retirement) => retirement,
-            Err(error) => return self.retain_operation_failure(frame_id, error),
-        };
-        let proof = match retirement {
-            crate::Win16DdeOperationRetirement::Released(proof) => proof,
-            crate::Win16DdeOperationRetirement::Retained {
-                operation,
-                proof,
-                cause,
-            } => {
-                let identity_error = if operation.is_some_and(|operation|
-                    operation != expected_operation)
-                {
-                    Some(RuntimeError::new(Kind::InternalInvariant,
-                        "retained DDE teardown changed its exact host operation identity"))
-                } else if let Some(proof) = &proof {
-                    if !proof.matches_receipt(&receipt)
-                        || proof.cancellation.operation != expected_operation
+                        _ => Err(RuntimeError::new(Kind::InternalInvariant,
+                            "DDE exact top changed kind before its native source ACK")),
+                    },
+                    None => Err(RuntimeError::new(Kind::InternalInvariant,
+                        "DDE terminal top changed before its exact receipt was consumed")),
+                }
+            };
+            let retirement = match retirement_result {
+                Ok(retirement) => retirement,
+                Err(error) => return self.retain_operation_failure(frame_id, error),
+            };
+            let proof = match retirement {
+                crate::Win16DdeOperationRetirement::Released(proof) => proof,
+                crate::Win16DdeOperationRetirement::Retained {
+                    operation,
+                    proof,
+                    cause,
+                } => {
+                    let identity_error = if operation.is_some_and(|operation|
+                        operation != expected_operation)
                     {
-                        Some(RuntimeError::new(Kind::HostFailure,
-                            "retained DDE teardown proof differs from its exact cached receipt"))
+                        Some(RuntimeError::new(Kind::InternalInvariant,
+                            "retained DDE teardown changed its exact host operation identity"))
+                    } else if let Some(proof) = &proof {
+                        if !proof.matches_receipt(&receipt)
+                            || proof.cancellation.operation != expected_operation
+                        {
+                            Some(RuntimeError::new(Kind::HostFailure,
+                                "retained DDE teardown proof differs from its exact cached receipt"))
+                        } else {
+                            None
+                        }
                     } else {
                         None
-                    }
-                } else {
-                    None
-                };
-                let retained = match identity_error {
-                    Some(error) => RuntimeError::with_source(
-                        cause.kind(),
-                        "DDE teardown retained its original typed failure and operation identity",
-                        std::sync::Arc::clone(&cause),
-                    ).with_cleanup(
-                        "DDE abort receipt or operation ACK remains retained",
-                        error,
-                    ),
-                    None => RuntimeError::with_source(
-                        cause.kind(),
-                        "DDE native operation, callback source, or resource retirement remains retained",
-                        cause,
-                    ),
-                };
-                return self.retain_operation_failure(frame_id, retained);
+                    };
+                    let retained = match identity_error {
+                        Some(error) => RuntimeError::with_source(
+                            cause.kind(),
+                            "DDE teardown retained its original typed failure and operation identity",
+                            std::sync::Arc::clone(&cause),
+                        ).with_cleanup(
+                            "DDE abort receipt or operation ACK remains retained",
+                            error,
+                        ),
+                        None => RuntimeError::with_source(
+                            cause.kind(),
+                            "DDE native operation, callback source, or resource retirement remains retained",
+                            cause,
+                        ),
+                    };
+                    return self.retain_operation_failure(frame_id, retained);
+                }
+            };
+
+            if !proof.matches_receipt(&receipt)
+                || proof.cancellation.operation != expected_operation
+                || cached_proof.as_ref().is_some_and(|cached| cached != &proof)
+            {
+                return self.retain_operation_failure(frame_id, RuntimeError::new(
+                    Kind::HostFailure,
+                    "released DDE source proof does not match its exact owner, operation, context, and native terminal receipt",
+                ));
             }
-        };
+            // matches_receipt validates all documented terminal outcomes, including
+            // a real native result or error that arrived during Abort. Its original
+            // cause remains owned by the cached abort receipt; retirement does not
+            // turn that API failure into a cancellation or successful API result.
+            if proof.cancellation.instance.is_none() && expected_guest_instance.is_some() {
+                return self.retain_operation_failure(frame_id, RuntimeError::new(
+                    Kind::HostFailure,
+                    "released DDE source proof lost the native instance for its guest owner",
+                ));
+            }
 
-        if !proof.matches_receipt(&receipt)
-            || proof.cancellation.operation != expected_operation
-            || cached_proof.as_ref().is_some_and(|cached| cached != &proof)
-        {
-            return self.retain_operation_failure(frame_id, RuntimeError::new(
-                Kind::HostFailure,
-                "released DDE source proof does not match its exact owner, operation, context, and native terminal receipt",
-            ));
-        }
-        // matches_receipt validates all documented terminal outcomes, including
-        // a real native result or error that arrived during Abort. Its original
-        // cause remains owned by the cached abort receipt; retirement does not
-        // turn that API failure into a cancellation or successful API result.
-        if proof.cancellation.instance.is_none() && expected_guest_instance.is_some() {
-            return self.retain_operation_failure(frame_id, RuntimeError::new(
-                Kind::HostFailure,
-                "released DDE source proof lost the native instance for its guest owner",
-            ));
-        }
+            let cached_after_release = self.window_operations.last()
+                .filter(|frame| frame.id == frame_id)
+                .and_then(|frame| match frame.continuation() {
+                    Some(WindowReturn::Dde(continuation)) => continuation.operation_retirement_proof(),
+                    _ => None,
+                });
+            if cached_after_release != Some(&proof) {
+                return self.retain_operation_failure(frame_id, RuntimeError::new(
+                    Kind::HostFailure,
+                    "released DDE ACK proof was not cached on its exact suspended continuation",
+                ));
+            }
 
-        let cached_after_release = self.window_operations.last()
-            .filter(|frame| frame.id == frame_id)
-            .and_then(|frame| match frame.continuation() {
-                Some(WindowReturn::Dde(continuation)) => continuation.operation_retirement_proof(),
-                _ => None,
-            });
-        if cached_after_release != Some(&proof) {
-            return self.retain_operation_failure(frame_id, RuntimeError::new(
-                Kind::HostFailure,
-                "released DDE ACK proof was not cached on its exact suspended continuation",
-            ));
         }
 
         if let Some(frame) = self.window_operations.last_mut().filter(|frame| frame.id == frame_id) {
