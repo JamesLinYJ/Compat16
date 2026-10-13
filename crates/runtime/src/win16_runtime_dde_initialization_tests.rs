@@ -397,12 +397,16 @@ fn begin_request(
     )?;
     assert!(state.window_dispatch_context.replace(context).is_none());
     assert!(state.active_dispatch_call_owner.replace(owner).is_none());
+    let return_kind = super::api::dde_return_kind(&request);
     let result = state.begin_dde_request(
         request, &mut runtime.cpu.regs, &mut runtime.memory, host,
-        return_to, Win16ReturnKind::Word,
+        return_to, return_kind,
     );
     state.window_dispatch_context = None;
-    assert!(state.active_dispatch_call_owner.is_none());
+    assert!(
+        state.active_dispatch_call_owner.is_none(),
+        "DDE begin left the dispatch owner set: {result:?}"
+    );
     result?;
     Ok(return_to)
 }

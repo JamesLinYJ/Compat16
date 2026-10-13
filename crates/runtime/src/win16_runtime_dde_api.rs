@@ -408,7 +408,7 @@ pub(super) fn decode_context(
         .transpose()
 }
 
-fn dde_return_kind(request: &Win16DdeRequest) -> Win16ReturnKind {
+pub(super) fn dde_return_kind(request: &Win16DdeRequest) -> Win16ReturnKind {
     use Win16DdeRequest as R;
     match request {
         R::Initialize { .. }
