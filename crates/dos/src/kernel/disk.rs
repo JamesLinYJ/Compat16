@@ -2,6 +2,7 @@ use crate::{DosAction, DosDiskSpace, DosError, DosHost};
 use guest_core::Registers;
 
 use super::DosKernel;
+use super::state::Handle;
 
 const DOS_SECTOR_BYTES: u64 = 512;
 const MAX_SECTORS_PER_CLUSTER: u64 = 64;
@@ -47,6 +48,32 @@ impl DosKernel {
             // AH=36h has its own AX=FFFFh failure convention, including a
             // mapped drive whose volume information cannot be queried.
             Err(_) => return Ok(self.invalid_disk(regs)),
+        }
+        Ok(DosAction::Continue)
+    }
+
+    /// INT 21h/AH=0Dh flushes open file buffers and returns no status.
+    ///
+    /// MS-DOS 4 `$DISK_RESET` ignores flush errors so the call can still force
+    /// a known buffer state. Character devices are not disk buffers. Each
+    /// distinct owned file token is committed once, including a host file
+    /// whose guest handle could not be closed.
+    pub(super) fn disk_reset(&self, host: &mut impl DosHost) -> Result<DosAction, DosError> {
+        let mut files = Vec::new();
+        for handle in self.handles.values().copied() {
+            if let Handle::File(file) = handle {
+                if !files.contains(&file) {
+                    files.push(file);
+                }
+            }
+        }
+        for &file in &self.orphan_file_handles {
+            if !files.contains(&file) {
+                files.push(file);
+            }
+        }
+        for file in files {
+            let _ = host.file_commit(file);
         }
         Ok(DosAction::Continue)
     }

@@ -26,6 +26,7 @@ impl DosKernel {
             0x0a => self.buffered_input(regs, memory, host),
             0x0b => self.input_status(regs, host),
             0x0c => self.flush_and_input(regs, memory, host),
+            0x0d => self.disk_reset(host),
             0x0e => self.select_drive(regs, host),
             0x19 => {
                 let drive = host.current_drive();
@@ -48,6 +49,7 @@ impl DosKernel {
                 Ok(DosAction::Continue)
             }
             0x2a | 0x2c => self.get_date_time(regs, host),
+            0x2e => Ok(self.set_verify(regs)),
             0x30 => Ok(Self::dos_version(regs)),
             0x33 => Ok(self.extended_version(regs)),
             0x25 => self.set_interrupt_vector(regs, memory),
@@ -97,6 +99,7 @@ impl DosKernel {
                 Ok(DosAction::Continue)
             }
             0x52 => self.list_of_lists(regs, memory, host),
+            0x54 => Ok(self.get_verify(regs)),
             _ => {
                 self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
                 Ok(DosAction::Continue)

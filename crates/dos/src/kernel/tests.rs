@@ -1385,6 +1385,9 @@ mod extended_open_tests;
 #[path = "extended_error_tests.rs"]
 mod extended_error_tests;
 
+#[path = "disk_control_tests.rs"]
+mod disk_control_tests;
+
 #[path = "temporary_file_tests.rs"]
 mod temporary_file_tests;
 

@@ -46,4 +46,19 @@ impl super::DosKernel {
         }
         DosAction::Continue
     }
+
+    /// INT 21h/AH=2Eh. DOS 3+ ignores DL. Any nonzero AL turns verify on, and
+    /// AH=54h reports that as 01h. This kernel has no sector buffer, so the
+    /// flag is recorded and queried without re-reading a host write.
+    pub(super) fn set_verify(&mut self, regs: &Registers) -> DosAction {
+        self.verify_after_write = regs.al() != 0;
+        DosAction::Continue
+    }
+
+    /// INT 21h/AH=54h returns the verify flag in AL and leaves every other
+    /// register and flag unchanged.
+    pub(super) fn get_verify(&self, regs: &mut Registers) -> DosAction {
+        regs.set_al(u8::from(self.verify_after_write));
+        DosAction::Continue
+    }
 }

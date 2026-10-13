@@ -113,6 +113,8 @@ pub struct DosKernel {
     pub(super) next_temporary_name: u32,
     /// DOS INT 21h/AH=33 Ctrl-Break checking state (default: disabled).
     pub(super) break_check_enabled: bool,
+    /// DOS INT 21h/AH=2Eh verify-after-write flag (default: off).
+    pub(super) verify_after_write: bool,
     pub(super) pending_input: Option<u8>,
     pub(super) last_exit_code: u8,
     pub(super) extended_error: std::cell::Cell<super::extended_error::ExtendedError>,
@@ -176,6 +178,7 @@ impl DosKernel {
             next_search_identity: 0,
             next_temporary_name: 0,
             break_check_enabled: false,
+            verify_after_write: false,
             pending_input: None,
             last_exit_code: 0,
             extended_error: std::cell::Cell::new(super::extended_error::ExtendedError::NONE),
@@ -218,6 +221,7 @@ impl DosKernel {
         child.case_map_addresses = parent.case_map_addresses.clone();
         child.next_search_identity = parent.next_search_identity;
         child.break_check_enabled = parent.break_check_enabled;
+        child.verify_after_write = parent.verify_after_write;
         child
     }
 
@@ -657,6 +661,7 @@ impl DosKernel {
             .clone_from(&self.case_map_addresses);
         parent.next_search_identity = self.next_search_identity;
         parent.break_check_enabled = self.break_check_enabled;
+        parent.verify_after_write = self.verify_after_write;
         if parent.pending_input.is_none() {
             parent.pending_input = self.pending_input.take();
         }
