@@ -303,6 +303,12 @@ impl Runtime {
                     .restore_returned_cpu_callback(&mut self.cpu)?;
             }
             self.port_clock.advance(&mut self.ports);
+            for (segment, offset) in self.ports.take_cmos_waits() {
+                let address = real_address(segment, offset);
+                if let Ok(byte) = self.memory.read_u8(address) {
+                    let _ = self.memory.write_u8(address, byte | 0x80);
+                }
+            }
             if self.cpu.take_pending_x87_irq13() {
                 self.ports.request_irq(13).map_err(runtime_error)?;
             }

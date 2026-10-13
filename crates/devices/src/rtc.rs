@@ -24,13 +24,17 @@ pub struct ClockReading {
 pub struct RtcState {
     last_day: Option<i64>,
     unacknowledged_midnights: u8,
+    cmos: crate::cmos::CmosRtc,
 }
 
 impl RtcState {
     pub fn new() -> Self { Self::default() }
 
+    pub fn cmos(&self) -> crate::cmos::CmosRtc { self.cmos.clone() }
+
     pub fn update_bda(&mut self, memory: &mut impl GuestMemory, unix_seconds: i64) -> Result<ClockReading, MemoryError> {
-        let reading = self.observe(unix_seconds);
+        self.cmos.observe_host_time(unix_seconds);
+        let reading = self.observe(self.cmos.unix_seconds());
         memory.write_u32(PhysAddr(BDA_BASE + 0x6c), reading.ticks)?;
         memory.write_u8(PhysAddr(BDA_BASE + 0x70), reading.midnight_rollovers)?;
         Ok(reading)
@@ -51,39 +55,85 @@ impl RtcState {
             regs.set_carry(true);
             return Ok(());
         }
-        if !matches!(function, 0x00 | 0x02 | 0x04) {
-            // Return a recoverable failure for unavailable non-PCI
-            // INT 1Ah calls; this is not asserted as a universal PC BIOS rule.
-            regs.set_ah(0x86);
-            regs.set_carry(true);
-            return Ok(());
-        }
-        let time = self.update_bda(memory, epoch_seconds)?;
+        self.cmos.observe_host_time(epoch_seconds);
         match function {
             0x00 => {
+                let time = self.update_bda(memory, epoch_seconds)?;
                 regs.set_cx((time.ticks >> 16) as u16);
                 regs.set_dx(time.ticks as u16);
                 regs.set_al(time.midnight_rollovers);
                 memory.write_u8(PhysAddr(BDA_BASE + 0x70), 0)?;
                 self.acknowledge_midnight();
             }
-            0x02 => {
-                let datetime = unix_seconds_to_datetime(epoch_seconds);
-                set_high_byte(&mut regs.ecx, to_bcd(datetime.hour));
-                set_low_byte(&mut regs.ecx, to_bcd(datetime.minute));
-                set_high_byte(&mut regs.edx, to_bcd(datetime.second));
-                set_low_byte(&mut regs.edx, 0);
+            0x01 => {
+                let ticks = (u32::from(regs.cx()) << 16) | u32::from(regs.dx());
+                memory.write_u32(PhysAddr(BDA_BASE + 0x6c), ticks)?;
+                memory.write_u8(PhysAddr(BDA_BASE + 0x70), 0)?;
+                self.unacknowledged_midnights = 0;
+                regs.set_ah(0);
                 regs.set_carry(false);
+            }
+            0x02 => {
+                let _ = self.update_bda(memory, epoch_seconds)?;
+                match self.cmos.read_bios_time() {
+                    Some((hour, minute, second, daylight)) => {
+                        set_high_byte(&mut regs.ecx, hour);
+                        set_low_byte(&mut regs.ecx, minute);
+                        set_high_byte(&mut regs.edx, second);
+                        set_low_byte(&mut regs.edx, daylight);
+                        regs.set_carry(false);
+                    }
+                    None => {
+                        regs.set_ah(0);
+                        regs.set_carry(true);
+                    }
+                }
+            }
+            0x03 => {
+                let hour = crate::bios::high_byte(regs.ecx);
+                let minute = crate::bios::low_byte(regs.ecx);
+                let second = crate::bios::high_byte(regs.edx);
+                let daylight = crate::bios::low_byte(regs.edx) & 0x01 != 0;
+                regs.set_carry(!self.cmos.write_bios_time(hour, minute, second, daylight));
             }
             0x04 => {
-                let datetime = unix_seconds_to_datetime(epoch_seconds);
-                set_high_byte(&mut regs.ecx, to_bcd((datetime.year / 100) as u8));
-                set_low_byte(&mut regs.ecx, to_bcd((datetime.year % 100) as u8));
-                set_high_byte(&mut regs.edx, to_bcd(datetime.month));
-                set_low_byte(&mut regs.edx, to_bcd(datetime.day));
+                let _ = self.update_bda(memory, epoch_seconds)?;
+                match self.cmos.read_bios_date() {
+                    Some((century, year, month, day)) => {
+                        set_high_byte(&mut regs.ecx, century);
+                        set_low_byte(&mut regs.ecx, year);
+                        set_high_byte(&mut regs.edx, month);
+                        set_low_byte(&mut regs.edx, day);
+                        regs.set_carry(false);
+                    }
+                    None => {
+                        regs.set_ah(0);
+                        regs.set_carry(true);
+                    }
+                }
+            }
+            0x05 => {
+                let century = crate::bios::high_byte(regs.ecx);
+                let year = crate::bios::low_byte(regs.ecx);
+                let month = crate::bios::high_byte(regs.edx);
+                let day = crate::bios::low_byte(regs.edx);
+                regs.set_carry(!self.cmos.write_bios_date(century, year, month, day));
+            }
+            0x06 => {
+                let hour = crate::bios::high_byte(regs.ecx);
+                let minute = crate::bios::low_byte(regs.ecx);
+                let second = crate::bios::high_byte(regs.edx);
+                regs.set_carry(!self.cmos.enable_alarm(hour, minute, second));
+            }
+            0x07 => {
+                self.cmos.disable_alarm();
                 regs.set_carry(false);
             }
-            _ => return Err(DeviceError::UnsupportedInterrupt { interrupt: 0x1a, function }),
+            _ => {
+                // Recoverable failure for an unavailable INT 1Ah call.
+                regs.set_ah(0x86);
+                regs.set_carry(true);
+            }
         }
         Ok(())
     }
@@ -105,9 +155,14 @@ impl RtcState {
     }
 
     pub fn acknowledge_midnight(&mut self) { self.unacknowledged_midnights = 0; }
+
+    pub(crate) fn reset_tick_state(&mut self) {
+        self.last_day = None;
+        self.unacknowledged_midnights = 0;
+    }
 }
 
-pub fn to_bcd(value: u8) -> u8 { ((value / 10) << 4) | (value % 10) }
+pub(crate) fn to_bcd(value: u8) -> u8 { ((value / 10) << 4) | (value % 10) }
 
 /// Gregorian calendar conversion using integer arithmetic only. The same
 /// timestamp always produces the same guest date/time on every host.

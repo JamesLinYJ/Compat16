@@ -11,6 +11,8 @@ use guest_core::{GuestMemory, PhysAddr, Registers, real_address};
 
 pub const FUNCTIONALITY_SEGMENT: u16 = 0xf000;
 pub const FUNCTIONALITY_OFFSET: u16 = 0x3000;
+pub const FONT_8X16_SEGMENT: u16 = 0xf000;
+pub const FONT_8X16_OFFSET: u16 = 0x6000;
 
 const FUNCTIONALITY_BYTES: usize = 16;
 const STATE_BYTES: usize = 64;
@@ -69,6 +71,10 @@ pub fn dispatch(
             dispatch_vga_memory_info(vga, regs);
             Ok(true)
         }
+        0x11 if regs.al() == 0x30 => {
+            dispatch_font_info(vga, regs, memory)?;
+            Ok(true)
+        }
         0x1a => {
             dispatch_display_combination(vga, regs);
             Ok(true)
@@ -79,6 +85,57 @@ pub fn dispatch(
         }
         _ => Ok(false),
     }
+}
+
+/// 8x16 glyphs for the INT 10h AH=11h AL=30h font pointer. The shapes are a
+/// plain box for printable ASCII so a program can probe the table; they are
+/// not a copy of a vendor font.
+pub fn font_8x16() -> Vec<u8> {
+    let mut font = vec![0u8; 256 * 16];
+    for glyph in 0x20..0x7f {
+        let base = glyph * 16;
+        font[base] = 0xff;
+        font[base + 15] = 0xff;
+        for row in 1..15 {
+            font[base + row] = 0x81;
+        }
+    }
+    font
+}
+
+fn dispatch_font_info(
+    vga: &VgaDevice,
+    regs: &mut Registers,
+    memory: &impl GuestMemory,
+) -> Result<(), DeviceError> {
+    let rows = modes::mode_info(vga.borrow().bios_mode)
+        .map(|info| u8::try_from(info.rows.saturating_sub(1)).unwrap_or(u8::MAX))
+        .unwrap_or(24);
+    match regs.bh() {
+        0x00 => read_font_vector(memory, 0x1f, regs, 8)?,
+        0x01 => read_font_vector(memory, 0x43, regs, 8)?,
+        _ => {
+            regs.es = FONT_8X16_SEGMENT;
+            regs.set_bp(FONT_8X16_OFFSET);
+            regs.set_cx(16);
+        }
+    }
+    regs.set_dl(rows);
+    Ok(())
+}
+
+fn read_font_vector(
+    memory: &impl GuestMemory,
+    vector: u8,
+    regs: &mut Registers,
+    bytes_per_character: u16,
+) -> Result<(), DeviceError> {
+    let mut entry = [0u8; 4];
+    memory.read(PhysAddr(u32::from(vector) * 4), &mut entry)?;
+    regs.set_bp(u16::from_le_bytes([entry[0], entry[1]]));
+    regs.es = u16::from_le_bytes([entry[2], entry[3]]);
+    regs.set_cx(bytes_per_character);
+    Ok(())
 }
 
 fn dispatch_palette(

@@ -52,6 +52,7 @@ pub enum DeviceAction {
     RenderText(ConsoleSnapshot),
     AwaitKeyboard,
     SetHostMousePosition { x: u16, y: u16 },
+    SetA20Gate { enabled: bool },
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -66,6 +67,8 @@ pub struct BiosDevices {
     pub mouse: MouseDevice,
     pub(super) rtc: RtcState,
     pub(super) conventional_memory_kib: u16,
+    pub(super) cmos_posted: bool,
+    a20_enabled: bool,
 }
 
 impl Default for BiosDevices {
@@ -87,8 +90,21 @@ impl BiosDevices {
             mouse: MouseDevice::new(),
             rtc: RtcState::new(),
             conventional_memory_kib: CONVENTIONAL_MEMORY_KIB,
+            cmos_posted: false,
+            a20_enabled: true,
         }
     }
+
+    /// The CMOS chip shared with the port bus.
+    pub fn cmos(&self) -> crate::cmos::CmosRtc { self.rtc.cmos() }
+
+    pub fn load_cmos_file(&mut self, path: &std::path::Path) {
+        self.rtc.cmos().attach_file(path);
+    }
+
+    pub fn a20_enabled(&self) -> bool { self.a20_enabled }
+
+    pub fn set_a20_enabled(&mut self, enabled: bool) { self.a20_enabled = enabled; }
 
     /// Initialize the BIOS data area and the reset VGA text screen. Requires normal PC low memory
     /// and a mapped color-text aperture in the emulated guest RAM.
@@ -99,7 +115,12 @@ impl BiosDevices {
         self.video.reset_text_mode();
         self.keyboard = BiosKeyboard::new();
         self.mouse = MouseDevice::new();
-        self.rtc = RtcState::new();
+        if !self.rtc.cmos().loaded_from_file() {
+            self.rtc.cmos().install_defaults(memory.len());
+        }
+        self.rtc.reset_tick_state();
+        self.conventional_memory_kib = self.rtc.cmos().base_memory_kib();
+        let equipment = self.rtc.cmos().equipment_word();
 
         let (text_base, columns, rows, page_bytes) = self.video.text_layout();
         let text_bytes = u32::try_from(columns * rows * 2).unwrap_or(u32::MAX);
@@ -112,8 +133,8 @@ impl BiosDevices {
         }
 
         let mut bda = [0u8; BDA_SIZE];
-        write_word(&mut bda, 0x10, VIDEO_EQUIPMENT_WORD);
-        write_word(&mut bda, 0x13, CONVENTIONAL_MEMORY_KIB);
+        write_word(&mut bda, 0x10, equipment);
+        write_word(&mut bda, 0x13, self.conventional_memory_kib);
         write_word(&mut bda, 0x1a, 0x001e);
         write_word(&mut bda, 0x1c, 0x001e);
         write_word(&mut bda, 0x4a, columns as u16);
@@ -136,6 +157,7 @@ impl BiosDevices {
 
         memory.write(PhysAddr(BDA_BASE), &bda)?;
         self.video.sync_to_guest(memory)?;
+        self.cmos_posted = true;
         Ok(())
     }
 
@@ -198,11 +220,15 @@ impl BiosDevices {
                     outcome.actions.push(DeviceAction::RenderText(self.video.snapshot()));
                 }
             }
-            0x11 | 0x12 | 0x15 => crate::system_bios::dispatch(self, interrupt, regs, memory)?,
+            0x11 | 0x12 | 0x15 => crate::system_bios::dispatch(self, interrupt, regs, memory, &mut outcome)?,
             0x13 => crate::disk_bios::dispatch(regs, memory)?,
+            0x14 => crate::serial_bios::dispatch(regs),
             0x16 => self.keyboard.dispatch_int16(regs, memory, &mut outcome)?,
             0x17 => crate::printer_bios::dispatch(regs),
             0x1a => self.rtc.dispatch_int1a(regs, memory, epoch_seconds)?,
+            0x70 => {
+                let _ = self.rtc.cmos().acknowledge_interrupt();
+            }
             0x33 => self.mouse.dispatch_int33(regs, memory, &mut outcome)?,
             _ => return Err(DeviceError::UnsupportedInterrupt { interrupt, function: u16::from(regs.ah()) }),
         }

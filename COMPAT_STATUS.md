@@ -45,6 +45,43 @@ MS-DOS 4 `$DISK_RESET`, which returns no status. AH=2Eh and AH=54h store and
 return the verify-after-write flag. Host writes are not re-read; this kernel
 has no sector buffer. A child process shares that flag with its parent.
 
+## Lightweight BIOS
+
+DOS programs that skip DOS and call the BIOS go through a high-level service
+layer. There is no POST, boot loader, or setup screen. Unsupported subfunctions
+return carry or a status code instead of aborting the guest.
+
+The MC146818 clock is on ports 70h and 71h. Bit 7 of the index is the NMI mask
+and is not part of the register number. Time bytes follow register B for BCD or
+binary and for 12-hour or 24-hour mode. Register A exposes the update-in-progress
+bit and the periodic rate. Reading register C clears the periodic, alarm, and
+update-ended flags. A rising IRQ8 is delivered as INT 70h; the default handler
+reads register C and sends end-of-interrupt to both PICs. The configuration
+block (equipment, floppy and fixed-disk types, base and extended memory, boot
+byte) keeps a checksum at 2Eh. A bad checksum is replaced with the defaults.
+`COMPAT16_CMOS_FILE`, when set, loads that image at startup and is rewritten
+when configuration bytes change.
+
+BIOS services wired to that state:
+
+- INT 10h: mode, cursor, scroll, character and attribute, teletype, CGA palette
+  (AH=0Bh), VGA palette (AH=10h), video state, and the AH=11h/AL=30h font probe.
+  Other INT 10h functions leave the registers unchanged.
+- INT 16h: read, peek, shift flags, and the extended AH=10h–12h forms.
+- INT 1Ah: timer ticks, CMOS time and date, and the alarm. AH=02h and AH=04h
+  return carry while the update is in progress.
+- INT 11h and INT 12h: equipment word and conventional memory from CMOS after
+  startup.
+- INT 15h: AH=83h and AH=86h waits, AH=88h extended memory, and AH=24h A20.
+  AH=86h returns as soon as the call is accepted; it does not stall the host.
+  Other INT 15h functions, including AH=87h and E820, set carry and AH=86h.
+- INT 13h: reset and status for a machine with no BIOS block device.
+- INT 14h: timeout status when no serial port is configured.
+- INT 17h: timeout and I/O-error status when no printer is configured.
+- BDA 40:10h, 40:13h, 40:17h, 40:1Ah, 40:49h, 40:4Ah, 40:50h, and 40:6Ch track
+  equipment, memory, keyboard flags and buffer, video mode, columns, cursor,
+  and the timer tick count.
+
 ## Still open
 
 DOS services that still return invalid function include auxiliary and printer

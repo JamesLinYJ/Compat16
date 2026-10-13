@@ -1,5 +1,5 @@
 use super::dispatch;
-use crate::BiosDevices;
+use crate::{BiosDevices, DispatchOutcome};
 use guest_core::{GuestMemory, MemoryError, PhysAddr, Registers};
 
 struct Memory(Vec<u8>);
@@ -43,7 +43,9 @@ fn e801_absence_returns_unsupported_status_without_memory_sizes() {
     regs.set_cx(0x1234);
     regs.set_dx(0x5678);
 
-    dispatch(&devices, 0x15, &mut regs, &memory).unwrap();
+    let mut devices = devices;
+    let mut outcome = DispatchOutcome::default();
+    dispatch(&mut devices, 0x15, &mut regs, &memory, &mut outcome).unwrap();
 
     assert_eq!(regs.ah(), 0x86);
     assert!(regs.carry());
@@ -64,7 +66,9 @@ fn e820_absence_returns_failure_without_smap_or_guest_buffer_write() {
     regs.es = 0x5000;
     regs.edi = 0;
 
-    dispatch(&devices, 0x15, &mut regs, &memory).unwrap();
+    let mut devices = devices;
+    let mut outcome = DispatchOutcome::default();
+    dispatch(&mut devices, 0x15, &mut regs, &memory, &mut outcome).unwrap();
 
     assert_eq!(regs.ah(), 0x86);
     assert!(regs.carry());
@@ -79,7 +83,9 @@ fn ah88_remains_a_supported_extended_memory_size_query() {
     let mut regs = Registers::default();
     regs.set_ah(0x88);
 
-    dispatch(&devices, 0x15, &mut regs, &memory).unwrap();
+    let mut devices = devices;
+    let mut outcome = DispatchOutcome::default();
+    dispatch(&mut devices, 0x15, &mut regs, &memory, &mut outcome).unwrap();
 
     assert_eq!(regs.ax(), 0x0080);
     assert!(!regs.carry());

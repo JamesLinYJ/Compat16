@@ -4,8 +4,10 @@
 pub mod vga;
 
 mod bios;
+mod cmos;
 mod system_bios;
 mod printer_bios;
+mod serial_bios;
 pub mod disk_bios;
 
 pub mod keyboard;

@@ -63,6 +63,8 @@ pub struct VideoDevice {
     version: u64,
     suppress_version: bool,
     suppress_crtc_sync: bool,
+    cga_background: u8,
+    cga_palette: u8,
 }
 
 impl Default for VideoDevice {
@@ -97,6 +99,8 @@ impl VideoDevice {
             version: 0,
             suppress_version: false,
             suppress_crtc_sync: false,
+            cga_background: 0,
+            cga_palette: 0,
         }
     }
 
@@ -270,6 +274,13 @@ impl VideoDevice {
                     0
                 };
                 regs.set_al(color);
+            }
+            0x0b => {
+                if high_byte(regs.ebx) == 0 {
+                    self.cga_background = low_byte(regs.ebx) & 0x1f;
+                } else {
+                    self.cga_palette = low_byte(regs.ebx) & 0x01;
+                }
             }
             0x0e => {
                 self.ensure_text(function)?;

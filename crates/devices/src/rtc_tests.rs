@@ -61,7 +61,7 @@ fn unsupported_clock_function_returns_bios_failure_without_clock_side_effects() 
     let mut memory = Memory::new();
     memory.0[bda_ticks..bda_ticks + 5].fill(0xa5);
     let mut regs = Registers::default();
-    regs.set_ah(0x01);
+    regs.set_ah(0x08);
 
     rtc.dispatch_int1a(&mut regs, &mut memory, 86_400).unwrap();
 

@@ -1,3 +1,6 @@
+#[path = "hle_bios_tests.rs"]
+mod hle_bios_tests;
+
 use crate::keyboard::KeyStroke;
 use crate::keyboard::BiosKeyboard;
 use crate::mouse::{GuestFarPointer, MouseDevice, MouseInput, MouseState};

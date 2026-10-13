@@ -101,6 +101,7 @@ impl Runtime {
                             retry = true;
                         }
                         DeviceAction::SetHostMousePosition { x, y } => host.set_mouse_position(x, y)?,
+                        DeviceAction::SetA20Gate { enabled } => self.memory.set_a20_enabled(enabled)?,
                     }
                 }
                 if !retry { break; }
@@ -144,7 +145,9 @@ impl Runtime {
                 OwnerId(u32::from(self.dos.psp_segment())), &mut self.cpu.regs, &mut memory, prepared,
             ).map_err(runtime_error)?;
         }
-        self.memory.set_a20_enabled(self.xms.a20_state().enabled)?;
+        let enabled = self.xms.a20_state().enabled;
+        self.memory.set_a20_enabled(enabled)?;
+        self.devices.set_a20_enabled(enabled);
         Ok(())
     }
 

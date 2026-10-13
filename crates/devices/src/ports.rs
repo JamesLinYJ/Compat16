@@ -20,6 +20,7 @@ pub struct MachinePorts {
     pit: Pit8254,
     pic: Pic8259Pair,
     vga: VgaDevice,
+    cmos: crate::cmos::CmosRtc,
 }
 
 impl Default for MachinePorts {
@@ -36,7 +37,20 @@ impl MachinePorts {
     /// Construct the port bus around a VGA handle shared with BIOS and guest
     /// memory, so port writes affect the same adapter state those paths see.
     pub fn with_vga(vga: VgaDevice) -> Self {
-        Self { pit: Pit8254::new(), pic: Pic8259Pair::new(), vga }
+        Self::with_vga_and_cmos(vga, crate::cmos::CmosRtc::new())
+    }
+
+    pub fn with_vga_and_cmos(vga: VgaDevice, cmos: crate::cmos::CmosRtc) -> Self {
+        Self { pit: Pit8254::new(), pic: Pic8259Pair::new(), vga, cmos }
+    }
+
+    /// Use the BIOS chip so port 70h/71h and INT 1Ah address the same RAM.
+    pub fn share_cmos(&mut self, cmos: crate::cmos::CmosRtc) {
+        self.cmos = cmos;
+    }
+
+    pub fn take_cmos_waits(&self) -> Vec<(u16, u16)> {
+        self.cmos.take_completed_waits()
     }
 
     /// Advance the deterministic guest PIT clock and route channel 0 rising
@@ -45,6 +59,9 @@ impl MachinePorts {
         self.vga.advance_ticks(ticks);
         if self.pit.advance_ticks(ticks) {
             self.pic.request_irq(0).expect("IRQ0 is in range");
+        }
+        if self.cmos.advance_pit_ticks(ticks) {
+            self.pic.request_irq(8).expect("IRQ8 is in range");
         }
     }
 
@@ -109,6 +126,8 @@ impl PortIo for MachinePorts {
         match port {
             0x40..=0x42 => self.pit.read_counter((port - 0x40) as u8).map(u32::from),
             0x20 | 0x21 | 0xa0 | 0xa1 => self.pic.read_port(port).map(u32::from),
+            0x70 => Ok(u32::from(self.cmos.read_index())),
+            0x71 => Ok(u32::from(self.cmos.read_data())),
             _ => Ok(width.mask()),
         }
     }
@@ -136,6 +155,14 @@ impl PortIo for MachinePorts {
             0x40..=0x42 => self.pit.write_counter((port - 0x40) as u8, value),
             0x43 => self.pit.write_control(value),
             0x20 | 0x21 | 0xa0 | 0xa1 => self.pic.write_port(port, value),
+            0x70 => {
+                self.cmos.write_index(value);
+                Ok(())
+            }
+            0x71 => {
+                self.cmos.write_data(value);
+                Ok(())
+            }
             _ => Ok(()),
         }
     }
@@ -156,9 +183,10 @@ fn transaction_overlaps_vga(port: u16, width: PortWidth) -> bool {
 }
 
 fn transaction_overlaps_legacy_pc_device(port: u16, width: PortWidth) -> bool {
-    const LEGACY_DEVICE_RANGES: [(u16, u16); 3] = [
+    const LEGACY_DEVICE_RANGES: [(u16, u16); 4] = [
         (0x0020, 0x0021), // master PIC
         (0x0040, 0x0043), // PIT counters and control
+        (0x0070, 0x0071), // CMOS address and data
         (0x00a0, 0x00a1), // slave PIC
     ];
     transaction_end(port, width).is_some_and(|last| {

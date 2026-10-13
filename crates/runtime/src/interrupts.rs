@@ -13,11 +13,10 @@ use guest_core::memory::Memory;
 const ROM_SEGMENT: u16 = 0xf000;
 const SERVICE_BASE: u16 = 0x1000;
 const SERVICE_STRIDE: u16 = 4;
-const SERVICE_VECTORS: &[u8] = &[0x10, 0x11, 0x12, 0x13, 0x15, 0x16, 0x17, 0x1a, 0x20, 0x21, 0x2a, 0x2f, 0x33];
-// No serial ports or resident timer/idle clients are configured. These are
-// actual IRET chain ends, replaceable by guest software. INT 14h with no
-// installed port preserves registers (Phoenix System BIOS, 1989, p. 373).
-const EMPTY_VECTORS: &[u8] = &[0x14, 0x1c, 0x28];
+const SERVICE_VECTORS: &[u8] = &[0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x1a, 0x20, 0x21, 0x2a, 0x2f, 0x33];
+// No resident timer or idle clients are configured. These are actual IRET
+// chain ends, replaceable by guest software.
+const EMPTY_VECTORS: &[u8] = &[0x1c, 0x28];
 pub(crate) const STATUS_FLAGS: u16 = 0x08d5; // OF, SF, ZF, AF, PF, CF; not IF/TF/control bits.
 
 fn entry_offset(vector: u8) -> u16 {

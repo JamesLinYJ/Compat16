@@ -130,12 +130,20 @@ impl Runtime {
             devices::vga::bios::FUNCTIONALITY_SEGMENT,
             devices::vga::bios::FUNCTIONALITY_OFFSET,
         ), &devices::vga::bios::functionality_table()).map_err(runtime_error)?;
+        if let Some(path) = std::env::var_os("COMPAT16_CMOS_FILE") {
+            devices.load_cmos_file(std::path::Path::new(&path));
+        }
         devices.initialize(&mut memory)
             .map_err(|error| RuntimeError::with_source(Kind::InternalInvariant, "initialize machine BIOS data", error))?;
         memory.initialize_rom(real_address(XMS_ENTRY.segment, XMS_ENTRY.offset), &[0xcb])
             .map_err(|error| RuntimeError::with_source(Kind::InternalInvariant, "install XMS firmware", error))?;
         crate::interrupts::install_service_entries(&mut memory)?;
         let mut ports = MachinePorts::with_vga(vga);
+        ports.share_cmos(devices.cmos());
+        memory.initialize_rom(guest_core::real_address(
+            devices::vga::bios::FONT_8X16_SEGMENT,
+            devices::vga::bios::FONT_8X16_OFFSET,
+        ), &devices::vga::bios::font_8x16()).map_err(runtime_error)?;
         crate::hardware_interrupts::initialize(&mut memory, &mut ports)?;
         let mut dos = dos_kernel::DosKernel::new(psp_segment);
         crate::nls::install(&mut memory, &mut dos)?;
