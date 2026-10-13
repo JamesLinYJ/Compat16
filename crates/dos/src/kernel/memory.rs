@@ -98,7 +98,7 @@ impl DosKernel {
         let chain = match self.mcb_chain(memory) {
             Ok(chain) => chain,
             Err(DosError::MalformedGuestInput(_) | DosError::InvalidMcbSignature { .. }) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::McbDestroyed));
+                self.failure(regs, DosHostError::new(DosErrorCode::McbDestroyed));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
@@ -119,7 +119,7 @@ impl DosKernel {
             .position(|mcb| mcb.owner() == 0 && requested != 0 && mcb.size() >= requested)
         else {
             regs.set_bx(largest);
-            Self::failure(regs, DosHostError::new(DosErrorCode::InsufficientMemory));
+            self.failure(regs, DosHostError::new(DosErrorCode::InsufficientMemory));
             return Ok(DosAction::Continue);
         };
         let mut allocated = chain[index];
@@ -145,7 +145,7 @@ impl DosKernel {
         }
         regs.set_ax(allocated.segment + 1);
         // DOS returns the actual allocation size in BX only on failure.
-        Self::success(regs);
+        self.success(regs);
         Ok(DosAction::Continue)
     }
 
@@ -277,33 +277,33 @@ impl DosKernel {
         memory: &mut impl GuestMemory,
     ) -> Result<DosAction, DosError> {
         let Some(mcb_segment) = regs.es.checked_sub(1) else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
             return Ok(DosAction::Continue);
         };
         let chain = match self.mcb_chain(memory) {
             Ok(chain) => chain,
             Err(DosError::MalformedGuestInput(_) | DosError::InvalidMcbSignature { .. }) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::McbDestroyed));
+                self.failure(regs, DosHostError::new(DosErrorCode::McbDestroyed));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
         };
         let Some(mut mcb) = chain.iter().find(|mcb| mcb.segment == mcb_segment).copied() else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
             return Ok(DosAction::Continue);
         };
         if mcb.segment + 1 != regs.es || mcb.owner() != self.psp_segment {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
             return Ok(DosAction::Continue);
         }
         if self.block_leases.is_pinned(regs.es, mcb.owner())? {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
             return Ok(DosAction::Continue);
         }
         mcb.set_owner(0);
         write_mcb(memory, mcb)?;
         self.coalesce_free_mcbs(memory)?;
-        Self::success(regs);
+        self.success(regs);
         Ok(DosAction::Continue)
     }
 
@@ -313,24 +313,24 @@ impl DosKernel {
         memory: &mut impl GuestMemory,
     ) -> Result<DosAction, DosError> {
         let Some(mcb_segment) = regs.es.checked_sub(1) else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
             return Ok(DosAction::Continue);
         };
         let mut chain = match self.mcb_chain(memory) {
             Ok(chain) => chain,
             Err(DosError::MalformedGuestInput(_) | DosError::InvalidMcbSignature { .. }) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::McbDestroyed));
+                self.failure(regs, DosHostError::new(DosErrorCode::McbDestroyed));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
         };
         let Some(mut index) = chain.iter().position(|mcb| mcb.segment == mcb_segment) else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
             return Ok(DosAction::Continue);
         };
         let mut block = chain[index];
         if block.segment.checked_add(1) != Some(regs.es) || block.owner() != self.psp_segment {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
             return Ok(DosAction::Continue);
         }
         let requested = regs.bx();
@@ -341,11 +341,11 @@ impl DosKernel {
             requested,
         )? {
             regs.set_bx(block.size());
-            Self::failure(regs, DosHostError::new(DosErrorCode::InsufficientMemory));
+            self.failure(regs, DosHostError::new(DosErrorCode::InsufficientMemory));
             return Ok(DosAction::Continue);
         }
         if requested == 0 {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidMemoryBlock));
             return Ok(DosAction::Continue);
         }
         if requested > block.size() {
@@ -366,7 +366,7 @@ impl DosKernel {
         }
         let old_size = block.size();
         if requested == old_size {
-            Self::success(regs);
+            self.success(regs);
             return Ok(DosAction::Continue);
         }
 
@@ -381,7 +381,7 @@ impl DosKernel {
             block.set_size(requested);
             write_mcb_pair(memory, block, free)?;
             self.coalesce_free_mcbs(memory)?;
-            Self::success(regs);
+            self.success(regs);
             return Ok(DosAction::Continue);
         }
 
@@ -399,7 +399,7 @@ impl DosKernel {
                 write_mcb(memory, block)?;
             }
             regs.set_bx(available);
-            Self::failure(regs, DosHostError::new(DosErrorCode::InsufficientMemory));
+            self.failure(regs, DosHostError::new(DosErrorCode::InsufficientMemory));
             return Ok(DosAction::Continue);
         }
         let next = adjacent.ok_or(DosError::MalformedGuestInput(
@@ -422,7 +422,7 @@ impl DosKernel {
             write_mcb_pair(memory, block, free)?;
             self.coalesce_free_mcbs(memory)?;
         }
-        Self::success(regs);
+        self.success(regs);
         Ok(DosAction::Continue)
     }
 

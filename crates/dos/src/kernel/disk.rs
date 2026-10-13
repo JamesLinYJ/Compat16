@@ -25,7 +25,7 @@ impl DosKernel {
         let drive = match requested {
             0 => host.current_drive(),
             1..=26 => requested - 1,
-            _ => return Ok(Self::invalid_disk(regs)),
+            _ => return Ok(self.invalid_disk(regs)),
         };
         if drive > 25 {
             return Err(DosError::HostContractViolation(
@@ -40,20 +40,20 @@ impl DosKernel {
                     regs.set_bx(free_clusters);
                     regs.set_cx(DOS_SECTOR_BYTES as u16);
                     regs.set_dx(total_clusters);
-                    Self::success(regs);
+                    self.success(regs);
                 }
-                None => return Ok(Self::invalid_disk(regs)),
+                None => return Ok(self.invalid_disk(regs)),
             },
             // AH=36h has its own AX=FFFFh failure convention, including a
             // mapped drive whose volume information cannot be queried.
-            Err(_) => return Ok(Self::invalid_disk(regs)),
+            Err(_) => return Ok(self.invalid_disk(regs)),
         }
         Ok(DosAction::Continue)
     }
 
-    fn invalid_disk(regs: &mut Registers) -> DosAction {
+    fn invalid_disk(&self, regs: &mut Registers) -> DosAction {
         regs.set_ax(u16::MAX);
-        Self::success(regs);
+        self.success(regs);
         DosAction::Continue
     }
 }

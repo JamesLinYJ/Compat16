@@ -268,7 +268,7 @@ fn file_commit_routes_do_not_activate_directory_or_capture_file_cdr_path() {
 }
 
 #[test]
-fn file_commit_routes_preserve_failed_handle_for_retry_and_direct_typed_error() {
+fn file_commit_routes_preserve_failed_handle_and_reduce_visible_error_to_invalid_handle() {
     for route in ROUTES {
         for code in [DosErrorCode::AccessDenied, DosErrorCode::DiskFull,
             DosErrorCode::GeneralFailure, DosErrorCode::InvalidFunction] {
@@ -276,7 +276,7 @@ fn file_commit_routes_preserve_failed_handle_for_retry_and_direct_typed_error() 
             let mut expected = prepare(&mut runtime, route, handle, 0);
             runtime.cpu.regs.set_carry(false);
             host.next_commit_error = Some(code);
-            expected.set_ax(code as u16);
+            expected.set_ax(DosErrorCode::InvalidHandle as u16);
             expected.set_carry(true);
             call(&mut runtime, &mut host, route, expected, &[HOST_FILE]);
             assert_eq!(host.tokens, [HOST_FILE]);
@@ -292,11 +292,11 @@ fn file_commit_routes_preserve_failed_handle_for_retry_and_direct_typed_error() 
 #[test]
 fn file_commit_routes_reject_invalid_closed_and_unknown_standard_handles() {
     for route in ROUTES {
-        for (handle, error) in [(0xffff, DosErrorCode::InvalidHandle), (0, DosErrorCode::InvalidFunction)] {
+        for handle in [0xffff, 0] {
             let (mut runtime, mut host, _) = fixture();
             let mut expected = prepare(&mut runtime, route, handle, 0);
             use_invalid_data_selectors(&mut runtime, &mut expected, 0);
-            expected.set_ax(error as u16);
+            expected.set_ax(DosErrorCode::InvalidHandle as u16);
             expected.set_carry(true);
             call(&mut runtime, &mut host, route, expected, &[]);
             runtime.dos.close_all_handles_checked(&mut host).unwrap();
@@ -322,7 +322,7 @@ fn file_commit_routes_distinguish_proven_console_and_redirected_file() {
             match info {
                 DosIoctlObjectInfo::CharacterDevice { .. } => expected.set_carry(false),
                 DosIoctlObjectInfo::File { .. } => {
-                    expected.set_ax(DosErrorCode::InvalidFunction as u16);
+                    expected.set_ax(DosErrorCode::InvalidHandle as u16);
                     expected.set_carry(true);
                 }
             }

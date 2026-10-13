@@ -431,7 +431,7 @@ impl Runtime {
             .refresh_system_tables(&mut self.memory.bus(), host)
             .map_err(runtime_error)?;
 
-        DosKernel::complete_exec_success(&mut parent_cpu.regs);
+        frame.dos.complete_exec_success(&mut parent_cpu.regs);
         match frame.return_to {
             ProcessReturn::DosInterrupt => {
                 store_service_return_flags(&mut self.memory.bus(), &parent_cpu.regs)?;

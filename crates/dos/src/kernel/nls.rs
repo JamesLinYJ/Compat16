@@ -109,7 +109,7 @@ impl DosKernel {
             0x04 => self.get_extended_country_table(regs, memory, host, 0x04),
             0x06 => self.get_extended_country_table(regs, memory, host, 0x06),
             _ => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
                 Ok(DosAction::Continue)
             }
         }
@@ -123,11 +123,11 @@ impl DosKernel {
     ) -> Result<DosAction, DosError> {
         let requested = usize::from(regs.cx());
         if requested < 5 {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
             return Ok(DosAction::Continue);
         }
         let Some(code_page) = Self::requested_code_page(regs, host) else {
-            return Self::country_not_found(regs);
+            return self.country_not_found(regs);
         };
         let returned = requested.min(COUNTRY_INFO_LEN);
         let destination = memory.resolve_caller_pointer(regs.es, regs.di())?;
@@ -160,7 +160,7 @@ impl DosKernel {
 
         regs.set_cx(returned as u16);
         regs.set_ax(code_page.number());
-        Self::success(regs);
+        self.success(regs);
         Ok(DosAction::Continue)
     }
 
@@ -172,11 +172,11 @@ impl DosKernel {
         info_id: u8,
     ) -> Result<DosAction, DosError> {
         if regs.cx() < 5 {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
             return Ok(DosAction::Continue);
         }
         let Some(code_page) = Self::requested_code_page(regs, host) else {
-            return Self::country_not_found(regs);
+            return self.country_not_found(regs);
         };
         let destination = memory.resolve_caller_pointer(regs.es, regs.di())?;
         memory.validate_caller_range(
@@ -224,7 +224,7 @@ impl DosKernel {
         Self::write_segmented(memory, regs.es, regs.di(), &descriptor)?;
         regs.set_cx(5);
         regs.set_ax(code_page.number());
-        Self::success(regs);
+        self.success(regs);
         Ok(DosAction::Continue)
     }
 
@@ -238,7 +238,7 @@ impl DosKernel {
         // core has no country-switch service, so report the documented invalid
         // country code and leave guest memory untouched.
         if regs.dx() == u16::MAX {
-            return Self::country_not_found(regs);
+            return self.country_not_found(regs);
         }
 
         let country = match regs.al() {
@@ -247,7 +247,7 @@ impl DosKernel {
             0xff => regs.bx(),
         };
         if country != 1 || !matches!(host.guest_code_page(), CodePage::Cp437) {
-            return Self::country_not_found(regs);
+            return self.country_not_found(regs);
         }
         let (case_segment, case_offset) = self.case_map_address(CodePage::Cp437)?;
         self.validate_registered_case_map(memory, case_segment, case_offset)?;
@@ -276,7 +276,7 @@ impl DosKernel {
         )?;
         regs.set_ax(1);
         regs.set_bx(1);
-        Self::success(regs);
+        self.success(regs);
         Ok(DosAction::Continue)
     }
 
@@ -406,9 +406,9 @@ impl DosKernel {
         memory.write_caller_range(pointer, 0, bytes, DosSpanPolicy::OffsetWrap)
     }
 
-    fn country_not_found(regs: &mut Registers) -> Result<DosAction, DosError> {
+    fn country_not_found(&self, regs: &mut Registers) -> Result<DosAction, DosError> {
         // DOS documents AX=2 when no country/code-page table matches.
-        Self::failure(regs, DosHostError::new(DosErrorCode::FileNotFound));
+        self.failure(regs, DosHostError::new(DosErrorCode::FileNotFound));
         Ok(DosAction::Continue)
     }
 }

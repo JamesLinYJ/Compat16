@@ -29,13 +29,13 @@ impl DosKernel {
         // DOS rejects volume/directory and reserved attribute bits before its
         // retry loop. Validate all of CX rather than silently discarding CH.
         if regs.cx() & !0x0027 != 0 {
-            return Ok(Self::temporary_file_failure(regs, DosErrorCode::AccessDenied));
+            return Ok(self.temporary_file_failure(regs, DosErrorCode::AccessDenied));
         }
         let Some(handle) = self.first_free_handle() else {
-            return Ok(Self::temporary_file_failure(regs, DosErrorCode::TooManyOpenFiles));
+            return Ok(self.temporary_file_failure(regs, DosErrorCode::TooManyOpenFiles));
         };
         if !self.file_table.has_free_slot() {
-            return Ok(Self::temporary_file_failure(regs, DosErrorCode::TooManyOpenFiles));
+            return Ok(self.temporary_file_failure(regs, DosErrorCode::TooManyOpenFiles));
         }
         let pointer = memory.resolve_caller_pointer(regs.ds, regs.dx())?;
         let mut path = match memory.read_caller_terminated(
@@ -43,14 +43,14 @@ impl DosKernel {
         ) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                return Ok(Self::temporary_file_failure(regs, DosErrorCode::PathNotFound));
+                return Ok(self.temporary_file_failure(regs, DosErrorCode::PathNotFound));
             }
             Err(error) => return Err(error),
         };
         let mut trailing_separator = false;
         for character in text_codec::encoded_characters(&path, host.guest_code_page()) {
             let Ok(character) = character else {
-                return Ok(Self::temporary_file_failure(regs, DosErrorCode::PathNotFound));
+                return Ok(self.temporary_file_failure(regs, DosErrorCode::PathNotFound));
             };
             trailing_separator = character.is_standalone_ascii(b'\\')
                 || character.is_standalone_ascii(b'/');
@@ -60,7 +60,7 @@ impl DosKernel {
         let prefix_len = path.len() + usize::from(!trailing_separator);
         let capacity = prefix_len + NAME_BUFFER_BYTES;
         if capacity > PATH_BUFFER_LIMIT {
-            return Ok(Self::temporary_file_failure(regs, DosErrorCode::PathNotFound));
+            return Ok(self.temporary_file_failure(regs, DosErrorCode::PathNotFound));
         }
         memory.validate_caller_range(
             pointer, 0, capacity, DosPointerAccess::Write, DosSpanPolicy::Linear,
@@ -74,7 +74,7 @@ impl DosKernel {
         let time = match host.local_date_time() {
             Ok(time) => time,
             Err(error) => {
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
         };
@@ -82,7 +82,7 @@ impl DosKernel {
         // Read/write, compatibility sharing, inheritable, cursor initially 0.
         // Both guest table identities are claimed before any host mutation.
         if self.file_table.register_open(handle, 2).is_none() {
-            return Ok(Self::temporary_file_failure(regs, DosErrorCode::TooManyOpenFiles));
+            return Ok(self.temporary_file_failure(regs, DosErrorCode::TooManyOpenFiles));
         }
         for _ in 0..TEMPORARY_CREATE_ATTEMPTS {
             let value = seed.wrapping_add(self.next_temporary_name);
@@ -111,13 +111,13 @@ impl DosKernel {
                     }
                     self.handles.insert(handle, Handle::File(file));
                     regs.set_ax(handle);
-                    Self::success(regs);
+                    self.success(regs);
                     return Ok(DosAction::Continue);
                 }
                 Err(error) if error.code == DosErrorCode::FileExists => {}
                 Err(error) => {
                     self.file_table.remove_handle(handle);
-                    Self::failure(regs, error);
+                    self.failure(regs, error);
                     return Ok(DosAction::Continue);
                 }
             }
@@ -126,11 +126,11 @@ impl DosKernel {
         // Do not pretend a collision was a created file, or loop on genuine
         // AccessDenied as old DOS did. Error 5 is a documented 5Ah failure.
         self.file_table.remove_handle(handle);
-        Ok(Self::temporary_file_failure(regs, DosErrorCode::AccessDenied))
+        Ok(self.temporary_file_failure(regs, DosErrorCode::AccessDenied))
     }
 
-    fn temporary_file_failure(regs: &mut Registers, code: DosErrorCode) -> DosAction {
-        Self::failure(regs, DosHostError::new(code));
+    fn temporary_file_failure(&self, regs: &mut Registers, code: DosErrorCode) -> DosAction {
+        self.failure(regs, DosHostError::new(code));
         DosAction::Continue
     }
 }

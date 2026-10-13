@@ -21,17 +21,17 @@ impl DosKernel {
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
         let Some(handle) = self.first_free_handle() else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         };
         if !self.file_table.has_free_slot() {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         let path = match read_dos_c_string(memory, regs.ds, regs.dx()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
@@ -40,7 +40,7 @@ impl DosKernel {
         // exhaustion side-effect free and leaves no post-create registration
         // failure that would require closing an untracked host token.
         if self.file_table.register_open(handle, 2).is_none() {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         // MS-DOS 4 Programmer's Reference, Function 5Bh: unlike 3Ch, fail
@@ -61,12 +61,12 @@ impl DosKernel {
                 }
                 self.handles.insert(handle, Handle::File(file));
                 regs.set_ax(handle);
-                Self::success(regs);
+                self.success(regs);
                 Ok(DosAction::Continue)
             }
             Err(error) => {
                 self.file_table.remove_handle(handle);
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 Ok(DosAction::Continue)
             }
         }
@@ -79,11 +79,11 @@ impl DosKernel {
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
         let Some(handle) = self.first_free_handle() else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         };
         if !self.file_table.has_free_slot() {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         let mode = regs.al();
@@ -92,7 +92,7 @@ impl DosKernel {
             1 => DosFileAccess::WriteOnly,
             2 => DosFileAccess::ReadWrite,
             _ => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidAccess));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidAccess));
                 return Ok(DosAction::Continue);
             }
         };
@@ -103,18 +103,18 @@ impl DosKernel {
             3 => DosFileSharing::DenyRead,
             4 => DosFileSharing::DenyNone,
             _ => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidAccess));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidAccess));
                 return Ok(DosAction::Continue);
             }
         };
         if mode & OPEN_RESERVED_MASK != 0 {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidAccess));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidAccess));
             return Ok(DosAction::Continue);
         }
         let path = match read_dos_c_string(memory, regs.ds, regs.dx()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
@@ -127,16 +127,16 @@ impl DosKernel {
                     .is_none()
                 {
                     let _ = host.file_close(file);
-                    Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+                    self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
                     return Ok(DosAction::Continue);
                 }
                 self.handles.insert(handle, Handle::File(file));
                 regs.set_ax(handle);
-                Self::success(regs);
+                self.success(regs);
                 Ok(DosAction::Continue)
             }
             Err(error) => {
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 Ok(DosAction::Continue)
             }
         }
@@ -149,18 +149,18 @@ impl DosKernel {
     ) -> Result<DosAction, DosError> {
         let handle = regs.bx();
         let Some(target) = self.handles.get(&handle).copied() else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
             return Ok(DosAction::Continue);
         };
         if let Handle::File(file) = target {
             if let Err(error) = host.file_close(file) {
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
         }
         self.handles.remove(&handle);
         self.file_table.remove_handle(handle);
-        Self::success(regs);
+        self.success(regs);
         Ok(DosAction::Continue)
     }
 
@@ -175,7 +175,7 @@ impl DosKernel {
         let target = match self.handles.get(&handle_id).copied() {
             Some(handle) => handle,
             None => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
                 return Ok(DosAction::Continue);
             }
         };
@@ -192,7 +192,7 @@ impl DosKernel {
                 None => Some(DosErrorCode::InvalidHandle),
             };
             if let Some(error) = error {
-                Self::failure(regs, DosHostError::new(error));
+                self.failure(regs, DosHostError::new(error));
                 return Ok(DosAction::Continue);
             }
         }
@@ -228,14 +228,14 @@ impl DosKernel {
                     memory.write_caller_range(pointer, 0, &data[..read], DosSpanPolicy::Linear)?;
                 }
                 regs.set_ax(read as u16);
-                Self::success(regs);
+                self.success(regs);
             }
             Ok(_) => {
                 return Err(DosError::HostContractViolation(
                     "host read exceeded its output buffer",
                 ));
             }
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }
@@ -270,7 +270,7 @@ impl DosKernel {
         let target = match self.handles.get(&handle_id).copied() {
             Some(handle) => handle,
             None => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
                 return Ok(DosAction::Continue);
             }
         };
@@ -287,7 +287,7 @@ impl DosKernel {
                 None => Some(DosErrorCode::InvalidHandle),
             };
             if let Some(error) = error {
-                Self::failure(regs, DosHostError::new(error));
+                self.failure(regs, DosHostError::new(error));
                 return Ok(DosAction::Continue);
             }
         }
@@ -314,14 +314,14 @@ impl DosKernel {
         match write {
             Ok(written) if written <= count => {
                 regs.set_ax(written as u16);
-                Self::success(regs);
+                self.success(regs);
             }
             Ok(_) => {
                 return Err(DosError::HostContractViolation(
                     "host write exceeded its input buffer",
                 ));
             }
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }
@@ -335,16 +335,16 @@ impl DosKernel {
         let path = match read_dos_c_string(memory, regs.ds, regs.dx()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
         };
         match host.file_delete(&path) {
             Ok(()) => {
-                Self::success(regs);
+                self.success(regs);
             }
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }
@@ -357,7 +357,7 @@ impl DosKernel {
         let file = match self.handles.get(&regs.bx()).copied() {
             Some(Handle::File(file)) => file,
             _ => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
                 return Ok(DosAction::Continue);
             }
         };
@@ -366,7 +366,7 @@ impl DosKernel {
             1 => DosSeekOrigin::Current,
             2 => DosSeekOrigin::End,
             _ => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
                 return Ok(DosAction::Continue);
             }
         };
@@ -375,9 +375,9 @@ impl DosKernel {
             Ok(position) => {
                 regs.set_dx((position >> 16) as u16);
                 regs.set_ax(position as u16);
-                Self::success(regs);
+                self.success(regs);
             }
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }
@@ -391,18 +391,18 @@ impl DosKernel {
         // precedence over an invalid source handle (HANDLE.ASM, lines 673–689).
         let new_id = self.first_free_handle();
         let Some(new_id) = new_id else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         };
         let source = match self.handles.get(&regs.bx()).copied() {
             Some(handle) => handle,
             None => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
                 return Ok(DosAction::Continue);
             }
         };
         if !self.file_table.can_duplicate_handle(regs.bx(), new_id) {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         let target = match source {
@@ -415,7 +415,7 @@ impl DosKernel {
                     ));
                 }
                 Err(error) => {
-                    Self::failure(regs, error);
+                    self.failure(regs, error);
                     return Ok(DosAction::Continue);
                 }
             },
@@ -424,12 +424,12 @@ impl DosKernel {
             if let Handle::File(file) = target {
                 let _ = host.file_close(file);
             }
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         self.handles.insert(new_id, target);
         regs.set_ax(new_id);
-        Self::success(regs);
+        self.success(regs);
         Ok(DosAction::Continue)
     }
 
@@ -441,19 +441,19 @@ impl DosKernel {
         let source_id = regs.bx();
         let target_id = regs.cx();
         let Some(source) = self.handles.get(&source_id).copied() else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
             return Ok(DosAction::Continue);
         };
         if !self.handle_fits_jft(target_id) {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
             return Ok(DosAction::Continue);
         }
         if !self.file_table.can_duplicate_handle(source_id, target_id) {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         if source_id == target_id {
-            Self::success(regs);
+            self.success(regs);
             return Ok(DosAction::Continue);
         }
         let replacement = match source {
@@ -466,7 +466,7 @@ impl DosKernel {
                     ));
                 }
                 Err(error) => {
-                    Self::failure(regs, error);
+                    self.failure(regs, error);
                     return Ok(DosAction::Continue);
                 }
             },
@@ -476,7 +476,7 @@ impl DosKernel {
                 if let Handle::File(copy) = replacement {
                     let _ = host.file_close(copy);
                 }
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
         }
@@ -484,12 +484,12 @@ impl DosKernel {
             if let Handle::File(copy) = replacement {
                 let _ = host.file_close(copy);
             }
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         self.handles.insert(target_id, replacement);
         regs.set_ax(target_id);
-        Self::success(regs);
+        self.success(regs);
         Ok(DosAction::Continue)
     }
 }

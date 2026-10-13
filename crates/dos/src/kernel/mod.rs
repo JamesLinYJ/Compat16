@@ -9,6 +9,7 @@ mod directory;
 mod disk;
 mod dispatch;
 mod exec;
+mod extended_error;
 mod extended_open;
 mod files;
 mod file_commit;

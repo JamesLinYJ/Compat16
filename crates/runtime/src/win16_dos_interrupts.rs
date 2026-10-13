@@ -44,7 +44,7 @@ pub(super) fn dispatch_int21(
     host: &mut impl RuntimeHost,
 ) -> Result<DosAction, RuntimeError> {
     let service = regs.ah();
-    if (service == 0x68 || (service == 0x57 && regs.al() == 1))
+    if (service == 0x68 || service == 0x6a || (service == 0x57 && regs.al() == 1))
         && (state.files.contains_key(&regs.bx())
             || state.network_print_jobs.values().any(|jobs| jobs.owns_hfile(regs.bx())))
     {
@@ -53,8 +53,7 @@ pub(super) fn dispatch_int21(
         // every known HFILE before DOS fallback, including another task's
         // spool alias, rather than modifying an unrelated equal-number file.
         dos.prepare_external_int21(memory).map_err(runtime_error)?;
-        regs.set_ax(DosErrorCode::InvalidFunction as u16);
-        regs.set_carry(true);
+        dos.complete_service_failure(regs, DosErrorCode::InvalidFunction);
         dos.finish_external_int21(memory, host).map_err(runtime_error)?;
         return Ok(DosAction::Continue);
     }

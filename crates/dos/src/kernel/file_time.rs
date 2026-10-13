@@ -17,7 +17,7 @@ impl DosKernel {
         // MS-DOS 4 Programmer's Reference, Function 57h:
         // https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/
         if regs.al() > 1 {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
             return Ok(DosAction::Continue);
         }
         let status = match self.handles.get(&regs.bx()).copied() {
@@ -38,9 +38,9 @@ impl DosKernel {
                     regs.set_cx(status.write_time);
                     regs.set_dx(status.write_date);
                 }
-                Self::success(regs);
+                self.success(regs);
             }
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }

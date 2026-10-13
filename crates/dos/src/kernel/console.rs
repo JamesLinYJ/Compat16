@@ -8,15 +8,6 @@ use super::DosKernel;
 use super::state::{Handle, StandardHandle};
 
 impl DosKernel {
-    pub(super) fn success(regs: &mut Registers) {
-        regs.set_carry(false);
-    }
-
-    pub(super) fn failure(regs: &mut Registers, error: DosHostError) {
-        regs.set_ax(error.code as u16);
-        regs.set_carry(true);
-    }
-
     pub(super) fn console_input(
         &mut self,
         regs: &mut Registers,
@@ -26,7 +17,7 @@ impl DosKernel {
         let byte = match self.read_console_byte(host) {
             Ok(byte) => byte,
             Err(error) => {
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
         };
@@ -52,7 +43,7 @@ impl DosKernel {
                     "console write returned no byte",
                 ));
             }
-            Err(e) => Self::failure(regs, e),
+            Err(e) => self.failure(regs, e),
         }
         Ok(DosAction::Continue)
     }
@@ -75,7 +66,7 @@ impl DosKernel {
                 regs.set_al(0);
                 regs.eflags |= 1 << 6;
             }
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }
@@ -189,7 +180,7 @@ impl DosKernel {
                     ));
                 }
                 Err(error) => {
-                    Self::failure(regs, error);
+                    self.failure(regs, error);
                     return Ok(false);
                 }
             }
@@ -265,7 +256,7 @@ impl DosKernel {
             let byte = match self.read_console_byte(host) {
                 Ok(byte) => byte,
                 Err(error) => {
-                    Self::failure(regs, error);
+                    self.failure(regs, error);
                     return Ok(DosAction::Continue);
                 }
             };
@@ -296,7 +287,7 @@ impl DosKernel {
         match self.standard_input_status(host) {
             Ok(true) => regs.set_al(0xff),
             Ok(false) => regs.set_al(0),
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }
@@ -312,14 +303,14 @@ impl DosKernel {
             // changes host stream state even if the caller pointer is invalid.
             let (pointer, max) = preflight_buffered_input(regs, memory)?;
             if let Err(error) = host.flush_stdin() {
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
             self.pending_input = None;
             return self.buffered_input_with_target(regs, memory, host, pointer, max);
         }
         if let Err(error) = host.flush_stdin() {
-            Self::failure(regs, error);
+            self.failure(regs, error);
             return Ok(DosAction::Continue);
         }
         self.pending_input = None;
@@ -346,7 +337,7 @@ impl DosKernel {
                 }
                 regs.set_al(count);
             }
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }

@@ -1382,6 +1382,9 @@ mod file_commit_tests;
 #[path = "extended_open_tests.rs"]
 mod extended_open_tests;
 
+#[path = "extended_error_tests.rs"]
+mod extended_error_tests;
+
 #[path = "temporary_file_tests.rs"]
 mod temporary_file_tests;
 

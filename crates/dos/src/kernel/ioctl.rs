@@ -14,7 +14,7 @@ impl DosKernel {
         match regs.al() {
             0x00 => self.get_device_information(regs, host),
             _ => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
                 Ok(DosAction::Continue)
             }
         }
@@ -26,7 +26,7 @@ impl DosKernel {
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
         let Some(handle) = self.handles.get(&regs.bx()).copied() else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
             return Ok(DosAction::Continue);
         };
 
@@ -45,7 +45,7 @@ impl DosKernel {
         let info = match info {
             Ok(info) => info,
             Err(error) => {
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
         };
@@ -75,7 +75,7 @@ impl DosKernel {
         };
 
         regs.set_dx(word);
-        Self::success(regs);
+        self.success(regs);
         Ok(DosAction::Continue)
     }
 }

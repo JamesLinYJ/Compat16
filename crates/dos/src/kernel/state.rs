@@ -115,6 +115,9 @@ pub struct DosKernel {
     pub(super) break_check_enabled: bool,
     pub(super) pending_input: Option<u8>,
     pub(super) last_exit_code: u8,
+    pub(super) extended_error: std::cell::Cell<super::extended_error::ExtendedError>,
+    pub(super) extended_error_touched: std::cell::Cell<bool>,
+    pub(super) preserve_extended_error: std::cell::Cell<bool>,
 }
 
 /// A failed child start retains its partial DOS owner so runtime can close
@@ -175,6 +178,9 @@ impl DosKernel {
             break_check_enabled: false,
             pending_input: None,
             last_exit_code: 0,
+            extended_error: std::cell::Cell::new(super::extended_error::ExtendedError::NONE),
+            extended_error_touched: std::cell::Cell::new(false),
+            preserve_extended_error: std::cell::Cell::new(false),
         }
     }
 
@@ -421,7 +427,10 @@ impl DosKernel {
             // This storage-only operation owns its metadata lifecycle. In
             // particular, unsupported and unchanged requests must not run a
             // generic SFT/JFT refresh that could write through a guest pointer.
-            return self.set_handle_count(regs, memory);
+            self.prepare_extended_error();
+            let action = self.set_handle_count(regs, memory)?;
+            self.finish_extended_error();
+            return Ok(action);
         }
         if number == 0x21 {
             self.validate_system_tables(memory)?;
@@ -435,7 +444,16 @@ impl DosKernel {
         }
         let action = match number {
             0x20 => Ok(DosAction::Exit(0)),
-            0x21 => self.int21(regs, memory, host),
+            0x21 => {
+                self.prepare_extended_error();
+                match self.int21(regs, memory, host) {
+                    Ok(action) => {
+                        self.finish_extended_error();
+                        Ok(action)
+                    }
+                    Err(error) => Err(error),
+                }
+            }
             _ => Ok(DosAction::Unhandled),
         }?;
         if let DosAction::Exit(code) = &action {
@@ -453,13 +471,13 @@ impl DosKernel {
 
     /// Complete the DOS return state for an EXEC request rejected by runtime
     /// image or memory handling after DOS decoded the request.
-    pub fn complete_exec_failure(regs: &mut Registers, code: DosErrorCode) {
-        Self::failure(regs, DosHostError::new(code));
+    pub fn complete_exec_failure(&self, regs: &mut Registers, code: DosErrorCode) {
+        self.complete_service_failure(regs, code);
     }
 
     /// Complete the successful return state for INT 21h/AH=4Bh.
-    pub fn complete_exec_success(regs: &mut Registers) {
-        Self::success(regs);
+    pub fn complete_exec_success(&self, regs: &mut Registers) {
+        self.success(regs);
     }
 
     /// Close every host file token owned by this process. Also called on DOS exit.

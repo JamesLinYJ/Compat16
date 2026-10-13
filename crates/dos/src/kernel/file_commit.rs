@@ -40,13 +40,16 @@ impl DosKernel {
             None => Err(DosHostError::new(DosErrorCode::InvalidHandle)),
         };
         match result {
-            Ok(()) => Self::success(regs),
-            // DOS4 reduces ordinary AH=68h errors to 6 and preserves the
-            // actual cause for AH=59h. Until that stateful API exists, retain
-            // Compat16's direct typed DOS error code instead of replacing it
-            // with 6. This is a bounded deviation from DOS4 error reduction.
+            Ok(()) => self.success(regs),
+            // MS-DOS 4 I21_MAP_E_TAB allows only error_invalid_handle on
+            // Commit. Any other code stays available through AH=59h, and the
+            // call itself returns 6.
             // https://github.com/microsoft/MS-DOS/blob/main/v4.0/src/DOS/HANDLE.ASM#L157-L194
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.fail_with_extended_cause(
+                regs,
+                error.code,
+                DosErrorCode::InvalidHandle,
+            ),
         }
         Ok(DosAction::Continue)
     }

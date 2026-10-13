@@ -57,7 +57,12 @@ fn assert_commit(
     let mut expected = regs.clone();
     match result {
         Ok(()) => expected.set_carry(false),
-        Err(code) => { expected.set_ax(code as u16); expected.set_carry(true); }
+        // Commit's guest AX is only invalid-handle. The typed cause remains
+        // for AH=59h and is checked after the register comparison.
+        Err(_) => {
+            expected.set_ax(DosErrorCode::InvalidHandle as u16);
+            expected.set_carry(true);
+        }
     }
     let calls = host.file_commit_calls.len();
     let bytes = memory.0.clone();
@@ -69,6 +74,13 @@ fn assert_commit(
     assert_eq!(memory.0, bytes);
     assert_eq!(dos.handles, handles);
     assert_eq!(host.handles, tokens);
+    if let Err(code) = result {
+        let mut query = Registers::default();
+        query.set_ax(0x5900);
+        assert_eq!(dos.interrupt(0x21, &mut query, memory, host).unwrap(), DosAction::Continue);
+        assert!(!query.carry());
+        assert_eq!(query.ax(), code as u16);
+    }
 }
 
 #[test]
@@ -159,7 +171,7 @@ fn file_commit_inherited_handle_uses_child_token_and_survives_parent_close() {
 }
 
 #[test]
-fn file_commit_failure_preserves_aliases_cursor_and_retry_with_direct_dos_error() {
+fn file_commit_failure_preserves_aliases_cursor_and_reports_cause_through_ah59() {
     let mut dos = DosKernel::new(0x1000);
     let mut host = TestHost::default();
     let mut memory = TestMemory::new();

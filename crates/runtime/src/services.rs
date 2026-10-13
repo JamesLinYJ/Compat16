@@ -5,7 +5,7 @@ use crate::interrupts::{store_service_return_flags, validate_service_frame};
 use crate::multiplex::{self, MultiplexOutcome};
 use crate::trace::{GuestMemoryWriteObserver, GuestWriteBoundary};
 use devices::DeviceAction;
-use dos_kernel::{DosAction, DosKernel};
+use dos_kernel::DosAction;
 use guest_core::{real_address, GuestMemory, OwnerId};
 use xms::{MoveRequest, PreparedXmsCall, XmsError};
 
@@ -55,7 +55,7 @@ impl Runtime {
                 match self.start_child_process(request, host, *instruction, before.clone())? {
                     None => return Ok(DosAction::Continue),
                     Some(code) => {
-                        DosKernel::complete_exec_failure(&mut self.cpu.regs, code);
+                        self.dos.complete_exec_failure(&mut self.cpu.regs, code);
                         DosAction::Continue
                     }
                 }
