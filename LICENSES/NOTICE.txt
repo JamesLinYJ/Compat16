@@ -6,3 +6,6 @@ The workspace manifest declares LGPL-2.1-or-later; the full text is in the root 
 - MS-DOS 4 US/CP437 NLS data: Microsoft Corporation copyright and MIT license; the source table points to LICENSES/Microsoft-MS-DOS-MIT.txt.
 
 Registry crate licenses and notices are collected in LICENSES/DEPENDENCIES.txt. These notices do not claim Microsoft authored the project.
+
+The native integer JIT uses Cranelift from the Bytecode Alliance. Additional
+registry dependency licenses and notices are in LICENSES/JIT-DEPENDENCIES.txt.

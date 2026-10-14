@@ -288,9 +288,11 @@ impl Runtime {
             );
         }
         let child_model = self.cpu.model();
+        let mut child_cpu = Cpu::new_with_model(loaded.registers, child_model);
+        child_cpu.set_execution_engine(self.cpu.execution_engine());
         let parent_cpu = std::mem::replace(
             &mut self.cpu,
-            Cpu::new_with_model(loaded.registers, child_model),
+            child_cpu,
         );
         let parent_dos = std::mem::replace(&mut self.dos, child_dos);
         self.process_frames.push(ProcessFrame {

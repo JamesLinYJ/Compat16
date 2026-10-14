@@ -570,7 +570,10 @@ impl Cpu {
             // remain live; this is not a memory rollback mechanism.
             let mut regs = self.regs.clone();
             let (outcome, next_ip, task_debug) =
-                match execute::execute(&mut regs, &mut bus, decoded, self.model) {
+                if self.jit.execute(&mut regs, decoded)
+                    || execute::execute_jit_memory(&mut self.jit, &mut regs, &mut bus, decoded)? {
+                    (StepOutcome::Continue, decoded.next_ip, false)
+                } else { match execute::execute(&mut regs, &mut bus, decoded, self.model) {
                     Ok(result) => result,
                     Err(error @ CpuError::TaskSwitchCommitted { target_ip, .. }) => {
                         regs.eip = target_ip;
@@ -579,7 +582,7 @@ impl Cpu {
                         return Err(error);
                     }
                     Err(error) => return Err(error),
-                };
+                } };
             self.regs = regs;
             let data_breakpoint_hits = bus.take_data_breakpoint_hits();
             (

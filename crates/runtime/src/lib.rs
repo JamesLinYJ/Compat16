@@ -353,6 +353,7 @@ pub use win16_host_window_ops::{
 pub use diagnostics::{Diagnostic, DiagnosticKind, DiagnosticSeverity, RuntimeError};
 pub use load::MINIMUM_PSP_SEGMENT;
 pub use machine::{Runtime, RuntimeProgress};
+pub use x86_cpu::{ExecutionEngine, JitStatistics};
 
 pub use guest_core::Registers as GuestRegisters;
 use xms::GuestFarPointer;

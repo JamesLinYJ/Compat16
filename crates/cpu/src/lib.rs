@@ -27,6 +27,8 @@ mod task_switch;
 #[cfg(test)]
 mod tests;
 mod x86_decode;
+mod jit;
+pub use jit::{ExecutionEngine, JitStatistics};
 mod x87;
 mod x87_math;
 mod x87_state;
@@ -103,6 +105,7 @@ pub struct Cpu {
     // Nonarchitectural reuse, deliberately excluded from CpuContext. Every
     // hit is checked against bytes fetched from the current memory context.
     decode_cache: x86_decode::DecodeCache,
+    jit: jit::IntegerTranslator,
     model: CpuModel,
     x87: x87_state::X87State,
     pending_x87_irq13: bool,
@@ -175,6 +178,7 @@ impl Cpu {
         Self {
             regs,
             decode_cache: x86_decode::DecodeCache::default(),
+            jit: jit::IntegerTranslator::default(),
             model,
             x87: x87_state::X87State::default(),
             pending_x87_irq13: false,
@@ -203,6 +207,15 @@ impl Cpu {
     pub const fn model(&self) -> CpuModel {
         self.model
     }
+
+    /// Select interpreter-only execution or the native hot-integer translator.
+    /// Every native result still retires through the normal CPU boundary.
+    pub fn set_execution_engine(&mut self, engine: ExecutionEngine) {
+        self.jit.set_engine(engine);
+    }
+
+    pub fn jit_statistics(&self) -> JitStatistics { self.jit.statistics() }
+    pub fn execution_engine(&self) -> ExecutionEngine { self.jit.engine() }
 
     pub(crate) fn normalize_model_eflags(&mut self) {
         self.regs.eflags = self.model.normalize_eflags(self.regs.eflags);

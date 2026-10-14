@@ -12,6 +12,8 @@ mod transcendental_vectors;
 mod interrupt_shadow;
 mod execution_boundary;
 mod decode_cache;
+#[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+mod jit;
 
 struct Ram {
     bytes: Vec<u8>,

@@ -13,6 +13,8 @@ mod far_transfer;
 mod flags_transfer;
 mod io;
 mod io_permission;
+mod jit_memory;
+pub(super) use jit_memory::execute as execute_jit_memory;
 mod operand;
 mod privilege;
 mod protected_iret;

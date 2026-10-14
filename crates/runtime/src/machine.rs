@@ -47,6 +47,14 @@ pub struct RuntimeProgress {
 }
 
 impl Runtime {
+    pub fn set_execution_engine(&mut self, engine: crate::ExecutionEngine) {
+        self.cpu.set_execution_engine(engine);
+        for frame in &mut self.process_frames { frame.cpu.set_execution_engine(engine); }
+    }
+
+    /// Statistics for the currently active guest CPU and its process-local cache.
+    pub fn jit_statistics(&self) -> crate::JitStatistics { self.cpu.jit_statistics() }
+
     /// Share one bounded executor across pure host-buffer work before execution.
     pub fn set_work_executor(&mut self, work: parallel_work::SharedExecutor) -> Result<(), RuntimeError> {
         if self.instructions != 0 {
