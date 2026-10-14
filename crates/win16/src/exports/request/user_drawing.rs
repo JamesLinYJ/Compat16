@@ -44,4 +44,25 @@ pub enum Win16UserDrawingRequest {
         rect_output: u32,
         flags: u16,
     },
+
+    /// USER.196 retains signed Win16 counts and copies only the counted bytes
+    /// and INT16 tab stops. A null tab array remains distinguishable.
+    TabbedTextOut {
+        dc: u16,
+        x: i16,
+        y: i16,
+        text: Vec<u8>,
+        count: i16,
+        tab_count: i16,
+        tab_stops: Option<Vec<i16>>,
+        tab_origin: i16,
+    },
+
+    GetTabbedTextExtent {
+        dc: u16,
+        text: Vec<u8>,
+        count: i16,
+        tab_count: i16,
+        tab_stops: Option<Vec<i16>>,
+    },
 }

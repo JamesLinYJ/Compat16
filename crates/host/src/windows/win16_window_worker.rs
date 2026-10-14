@@ -11,7 +11,7 @@ use std::thread::{self, JoinHandle};
 
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16CreationId, Win16HostCallback, Win16HostClass,
-    Win16HostClassSpec, Win16HostCreationData, Win16HostDc, Win16HostGdiObject, Win16HostMenu,
+    Win16HostClassSpec, Win16HostCreationData, Win16HostDc, Win16HostGdiObject,
     Win16HostTaskQueue, Win16HostWindow, Win16HostWindowCreationResult, Win16HostWindowLiveness,
     Win16HostWindowOperationId, Win16NativeWindowApiReturn, Win16RegisteredClass,
     Win16WindowCreationRejection, Win16WindowOperation, Win16WindowReply, Win16WindowResult,

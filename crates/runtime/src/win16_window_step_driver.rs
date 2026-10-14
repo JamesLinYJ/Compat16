@@ -256,6 +256,21 @@ impl Win16State {
                     )?;
                     return Ok(());
                 }
+                Win16WindowStep::NativeSubclassCallback {
+                    operation_id, callback, window: native, message, source,
+                } => {
+                    self.validate_native_window_callback_owner(operation_id, callback, source)?;
+                    let (window, address, instance, root) =
+                        self.native_subclass_callback_owner(native)?;
+                    let destroyed = matches!(&message, Win16HostMessage::Scalar {
+                        kind: Win16ScalarMessage::NcDestroy, ..
+                    });
+                    self.begin_host_procedure_callback(
+                        registers, memory, host, operation_id, callback, native,
+                        window, address, instance, root, message, None, source, destroyed,
+                    )?;
+                    return Ok(());
+                }
                 Win16WindowStep::DialogCallback {
                     operation_id, callback, window: native, message, source,
                 } => {

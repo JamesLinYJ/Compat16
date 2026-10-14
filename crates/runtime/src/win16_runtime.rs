@@ -390,6 +390,8 @@ mod win16_dib_memory;
 mod window_operations;
 #[path = "win16_window_data.rs"]
 mod window_data;
+#[path = "win16_window_subclass.rs"]
+mod window_subclass;
 #[path = "win16_window_parent_observation.rs"]
 mod window_parent_observation;
 #[path = "win16_window_properties.rs"]

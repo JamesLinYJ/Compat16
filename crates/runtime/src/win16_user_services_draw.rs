@@ -24,6 +24,37 @@ impl Win16State {
     ) -> Result<u32, RuntimeError> {
         match request {
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Drawing(
+                win16_abi::Win16UserDrawingRequest::TabbedTextOut {
+                    dc, x, y, text, count, tab_count, tab_stops, tab_origin,
+                },
+            )) => {
+                let Some(tab_stops) = tabbed_text_stops(&text, count, tab_count, tab_stops)? else {
+                    return Ok(0);
+                };
+                let Some(dc) = self.guest_gdi.dc(dc) else { return Ok(0); };
+                match host.win16_gdi(Operation::UserTabbedTextOut {
+                    dc, x: i32::from(x), y: i32::from(y), text, tab_stops,
+                    tab_origin: i32::from(tab_origin),
+                })? {
+                    HostResult::PackedTextExtent(value) => Ok(value),
+                    _ => Err(wrong_result("TabbedTextOut")),
+                }
+            }
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Drawing(
+                win16_abi::Win16UserDrawingRequest::GetTabbedTextExtent {
+                    dc, text, count, tab_count, tab_stops,
+                },
+            )) => {
+                let Some(tab_stops) = tabbed_text_stops(&text, count, tab_count, tab_stops)? else {
+                    return Ok(0);
+                };
+                let Some(dc) = self.guest_gdi.dc(dc) else { return Ok(0); };
+                match host.win16_gdi(Operation::UserGetTabbedTextExtent { dc, text, tab_stops })? {
+                    HostResult::PackedTextExtent(value) => Ok(value),
+                    _ => Err(wrong_result("GetTabbedTextExtent")),
+                }
+            }
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Drawing(
                 win16_abi::Win16UserDrawingRequest::InvertRect { dc, rect },
             )) => {
                 let (Some(dc), Some(rect)) = (self.guest_gdi.dc(dc), rect) else {
@@ -213,6 +244,41 @@ impl Win16State {
         };
         self.write_text_bytes(memory, pointer, &rect.encode())
     }
+}
+
+fn tabbed_text_stops(
+    text: &[u8],
+    count: i16,
+    tab_count: i16,
+    tab_stops: Option<Vec<i16>>,
+) -> Result<Option<Vec<i32>>, RuntimeError> {
+    if count < 0 || tab_count < 0 {
+        return Ok(None);
+    }
+    if text.len() != count as usize {
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "Win16 tabbed text byte count differs from its decoded text",
+        ));
+    }
+    let Some(stops) = tab_stops else {
+        // Win16 accepts a null tab array and uses the default eight average
+        // character widths even when its count is positive. Normalize that
+        // case to the documented native count-zero/null default contract.
+        return Ok(Some(Vec::new()));
+    };
+    if stops.len() != tab_count as usize {
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "Win16 tabbed text stop count differs from its decoded array",
+        ));
+    }
+    let mut native = Vec::new();
+    native.try_reserve_exact(stops.len()).map_err(|error| RuntimeError::with_source(
+        Kind::ResourceExhausted, "reserve Win16 tabbed text stops", error,
+    ))?;
+    native.extend(stops.into_iter().map(i32::from));
+    Ok(Some(native))
 }
 
 fn rect_to_host(rect: Rect16) -> Win16DrawingRect {

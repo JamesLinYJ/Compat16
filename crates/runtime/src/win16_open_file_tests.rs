@@ -54,16 +54,18 @@ impl DosHost for OpenFileHost {
     fn directory_search_open(&mut self, _directory: &[u8]) -> Result<DosHostSearch, DosHostError> { panic!("unexpected host call") }
     fn directory_search_next(&mut self, _search: DosHostSearch) -> Result<Option<DosDirectoryEntry>, DosHostError> { panic!("unexpected host call") }
     fn directory_search_close(&mut self, _search: DosHostSearch) -> Result<(), DosHostError> { panic!("unexpected host call") }
-    fn guest_code_page(&self) -> text_codec::CodePage { panic!("unexpected host call") }
+    fn guest_code_page(&self) -> text_codec::CodePage { text_codec::CodePage::CP437 }
     fn current_drive(&self) -> u8 { panic!("unexpected host call") }
     fn select_drive(&mut self, _drive: u8) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn logical_drive_count(&self) -> u8 { panic!("unexpected host call") }
 }
 
 impl RuntimeHost for OpenFileHost {
-    fn win16_open_file(&mut self, path: &[u8], style: u16, previous: Vec<u8>)
+    fn win16_open_file(&mut self, path: &crate::Win16GuestPath, _search_name: Option<&str>,
+        style: u16, previous: Vec<u8>)
         -> Result<Win16HostOpenFile, RuntimeError> {
-        self.opened.push((path.to_vec(), style, previous));
+        let leaf = path.components.last().map(|part| part.text.as_bytes().to_vec()).unwrap_or_default();
+        self.opened.push((leaf, style, previous));
         self.response.take().expect("only one native open expected")
     }
     fn win16_file_close(&mut self, file: Win16HostFile) -> Result<Win16HostFileClose, RuntimeError> {
@@ -153,7 +155,8 @@ fn open_file_reopen_gate_returns_guest_hfile_in_ax_and_preserves_dx() {
     assert_return(&runtime, super::FIRST_GUEST_HFILE, return_to);
     assert_eq!((runtime.cpu.regs.ds, runtime.cpu.regs.ss,
         runtime.cpu.regs.ebp, runtime.cpu.regs.esi, runtime.cpu.regs.edi), preserved);
-    assert_eq!(host.opened, [(Vec::new(), OF_REOPEN_VERIFY, vec![0x5a; OFSTRUCT_BYTES])]);
+    assert_eq!(host.opened, [(vec![0x5a; OFSTRUCT_BYTES - 8], OF_REOPEN_VERIFY,
+        vec![0x5a; OFSTRUCT_BYTES])]);
     assert!(host.closed.is_empty());
     let state = runtime.win16.as_ref().unwrap();
     assert_eq!(state.files.len(), 1);

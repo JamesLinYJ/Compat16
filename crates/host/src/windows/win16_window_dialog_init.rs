@@ -95,7 +95,7 @@ pub(in crate::windows::win16_windows) fn dispatch_dialog_class_init_callback(
         state,
         hwnd,
         identity,
-        class,
+        Some(class),
         WM_INITDIALOG,
         w_param,
         l_param,

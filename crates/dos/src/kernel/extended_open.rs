@@ -1,5 +1,5 @@
 //! Bounded DOS 4 extended open (Microsoft KB Q39529; DOS 4 FILE.ASM,
-//! Extended_Open). Replacement and commit-on-write need additional contracts.
+//! Extended_Open). Commit-on-write still needs a separate host contract.
 //! https://www.betaarchive.com/wiki/index.php/Microsoft_KB_Archive/39529
 //! https://github.com/microsoft/MS-DOS/blob/main/v4.0/src/DOS/FILE.ASM
 
@@ -74,7 +74,9 @@ impl DosKernel {
             (request.disposition, opened.outcome),
             (DosFileDisposition::OpenExisting, DosFileOpenOutcome::Opened)
                 | (DosFileDisposition::CreateNew, DosFileOpenOutcome::Created)
-                | (DosFileDisposition::OpenOrCreate, _)
+                | (DosFileDisposition::OpenOrCreate, DosFileOpenOutcome::Opened | DosFileOpenOutcome::Created)
+                | (DosFileDisposition::ReplaceExisting, DosFileOpenOutcome::Replaced)
+                | (DosFileDisposition::ReplaceOrCreate, DosFileOpenOutcome::Replaced | DosFileOpenOutcome::Created)
         );
         if !outcome_matches {
             self.file_table.remove_handle(handle);
@@ -92,6 +94,7 @@ impl DosKernel {
         regs.set_cx(match opened.outcome {
             DosFileOpenOutcome::Opened => 1,
             DosFileOpenOutcome::Created => 2,
+            DosFileOpenOutcome::Replaced => 3,
         });
         Self::success(regs);
         Ok(DosAction::Continue)
@@ -130,8 +133,9 @@ fn extended_open_request(regs: &Registers) -> Result<DosFileOpenRequest, DosErro
         0x0001 => DosFileDisposition::OpenExisting,
         0x0010 => DosFileDisposition::CreateNew,
         0x0011 => DosFileDisposition::OpenOrCreate,
-        // DOS 4 explicitly rejects 0000. Reserved bits/nibbles and the valid
-        // but unsupported replace actions 0002/0012 also fail before mutation.
+        0x0002 => DosFileDisposition::ReplaceExisting,
+        0x0012 => DosFileDisposition::ReplaceOrCreate,
+        // DOS 4 explicitly rejects 0000 and reserved action bits/nibbles.
         _ => return Err(DosErrorCode::InvalidFunction),
     };
     let attributes = if disposition == DosFileDisposition::OpenExisting {

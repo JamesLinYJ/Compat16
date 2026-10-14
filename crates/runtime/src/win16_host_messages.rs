@@ -33,9 +33,15 @@ pub enum Win16ScalarMessage {
     QueryEndSession = 0x0011,
     /// Pointer-free restore query; a zero WndProc result vetoes opening the icon.
     QueryOpen = 0x0013,
+    /// SDK WM_SYSCOLORCHANGE carries no pointer or handle parameters.
+    SystemColorChange = 0x0015,
     /// End-session result; WPARAM is BOOL and LPARAM carries session options.
     EndSession = 0x0016,
     ShowWindow = 0x0018,
+    /// SDK font-pool notification; both parameters are unused.
+    FontChange = 0x001d,
+    /// SDK system-time notification; both parameters are unused.
+    TimeChange = 0x001e,
     CancelMode = 0x001f,
     NcDestroy = 0x0082,
     NcHitTest = 0x0084,
@@ -67,6 +73,17 @@ pub enum Win16ScalarMessage {
 }
 
 impl Win16ScalarMessage {
+    /// Broadcast reaches native windows without a guest procedure identity.
+    /// The optional paint HDC and timer FARPROC need a lifetime/provenance
+    /// adapter; their nonzero forms are not scalar broadcast parameters.
+    pub const fn broadcast_parameters_are_scalar(self, w_param: u16, l_param: u32) -> bool {
+        match self {
+            Self::Paint => w_param == 0,
+            Self::Timer => l_param == 0,
+            _ => true,
+        }
+    }
+
     pub fn from_raw(message: u16) -> Option<Self> {
         Some(match message {
             0x0000 => Self::Null,
@@ -79,8 +96,11 @@ impl Win16ScalarMessage {
             0x0010 => Self::Close,
             0x0011 => Self::QueryEndSession,
             0x0013 => Self::QueryOpen,
+            0x0015 => Self::SystemColorChange,
             0x0016 => Self::EndSession,
             0x0018 => Self::ShowWindow,
+            0x001d => Self::FontChange,
+            0x001e => Self::TimeChange,
             0x001f => Self::CancelMode,
             0x0082 => Self::NcDestroy,
             0x0084 => Self::NcHitTest,
@@ -479,6 +499,16 @@ pub enum Win16WindowOperation {
     QueryProcedure {
         window: Win16HostWindow,
     },
+    QuerySubclassProcedure {
+        window: Win16HostWindow,
+    },
+    /// Installation follows a completed query: the guest already owns its
+    /// callable old-procedure gate before the native window changes.
+    SetProcedure {
+        window: Win16HostWindow,
+        previous: crate::Win16HostProcedure,
+        restore: bool,
+    },
     CallProcedure {
         procedure: crate::Win16HostProcedure,
         window: Win16HostWindow,
@@ -553,6 +583,7 @@ pub enum Win16NativeWindowOperationKind {
     Send,
     StaticIcon,
     QueryProcedure,
+    SetProcedure,
     CallProcedure,
     Show,
     Destroy,
@@ -594,7 +625,8 @@ impl Win16WindowOperation {
             Self::Default { .. } => Kind::Default,
             Self::Send { .. } => Kind::Send,
             Self::StaticIcon { .. } => Kind::StaticIcon,
-            Self::QueryProcedure { .. } => Kind::QueryProcedure,
+            Self::QueryProcedure { .. } | Self::QuerySubclassProcedure { .. } => Kind::QueryProcedure,
+            Self::SetProcedure { .. } => Kind::SetProcedure,
             Self::CallProcedure { .. } => Kind::CallProcedure,
             Self::Show { .. } => Kind::Show,
             Self::Destroy { .. } => Kind::Destroy,
@@ -781,6 +813,10 @@ pub enum Win16WindowResult {
     Thunk(crate::Win16ThunkResult),
     Created(Win16HostWindowCreationResult),
     Procedure(Option<crate::Win16HostProcedure>),
+    SubclassProcedure {
+        procedure: Option<crate::Win16HostProcedure>,
+        instance: Option<u16>,
+    },
     Menu(crate::Win16MenuResult),
     WindowCall(crate::Win16WindowCallResult),
     MessageCall(crate::Win16MessageCallResult),
@@ -965,6 +1001,14 @@ pub enum Win16WindowStep {
         creation_data: Option<Win16HostCreationData>,
         window: Win16HostWindow,
         class: Win16HostClass,
+        message: Win16HostMessage,
+        source: Win16NativeCallbackSource,
+    },
+    /// Explicit guest subclass of a native window, without a guest class.
+    NativeSubclassCallback {
+        operation_id: Win16HostWindowOperationId,
+        callback: Win16HostCallback,
+        window: Win16HostWindow,
         message: Win16HostMessage,
         source: Win16NativeCallbackSource,
     },

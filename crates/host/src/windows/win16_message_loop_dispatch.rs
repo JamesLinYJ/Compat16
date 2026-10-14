@@ -429,7 +429,7 @@ pub(super) fn expose_or_dispatch(
             super::super::win16_window_position::report_diagnostic(
                 state,
                 Kind::CompatibilityGap,
-                "native Unicode character has no supported single-byte Win16 WM_CHAR projection; the queued character was consumed",
+                "native Unicode character has no ANSI/DBCS Win16 word projection; the queued character was consumed",
             );
             return Ok(None);
         };
@@ -448,7 +448,7 @@ pub(super) fn expose_or_dispatch(
                     source: Win16MessageSource::NativeQueue,
                     window,
                     message: message_id,
-                    w_param: u16::from(guest_character),
+                    w_param: guest_character,
                     l_param: Win16MessageParam::Scalar(native.lParam as u32),
                     time: native.time,
                     point: runtime::Win16HostPoint {

@@ -139,6 +139,7 @@ fn window_step_kind(step: &Win16WindowStep) -> &'static str {
         Win16WindowStep::PendingModalGuestWork { .. } => "PendingModalGuestWork",
         Win16WindowStep::DdeCallback(_) => "DdeCallback",
         Win16WindowStep::Callback { .. } => "Callback",
+        Win16WindowStep::NativeSubclassCallback { .. } => "NativeSubclassCallback",
         Win16WindowStep::DialogCallback { .. } => "DialogCallback",
         Win16WindowStep::GuestTimerCallback { .. } => "GuestTimerCallback",
         Win16WindowStep::WindowPropertyCallback { .. } => "WindowPropertyCallback",

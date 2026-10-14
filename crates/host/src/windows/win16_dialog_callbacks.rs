@@ -887,7 +887,9 @@ fn copy_typed_message(
             }
             Win16HostMessage::Scalar {
                 kind,
-                w_param: w_param as u16,
+                w_param: match super::win16_character_messages::to_guest(state, message, w_param) {
+                    Some(word) => word, None => return Ok(None),
+                },
                 l_param: l_param as u32,
             }
         }

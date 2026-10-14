@@ -6,7 +6,7 @@ use runtime::{
 use windows_sys::Win32::Foundation::{RECT, SIZE};
 use windows_sys::Win32::Graphics::Gdi::{
     DT_MODIFYSTRING, DrawTextW, ETO_GLYPH_INDEX, ETO_PDY, ExtTextOutW, GetTextExtentPoint32W,
-    TextOutW,
+    GetTabbedTextExtentW, TabbedTextOutW, TextOutW,
 };
 
 use super::super::guest_text::{GuestTextBuffer, GuestTextSpan};
@@ -70,6 +70,39 @@ pub(super) fn text_extent(
     // SAFETY: The HDC lease, owned text, and writable SIZE remain live through the call.
     let success = unsafe { GetTextExtentPoint32W(dc_use.native(), pointer, count, &mut size) } != 0;
     Ok(Some((success, size)))
+}
+
+pub(super) fn tabbed_text(
+    dcs: &Win16Dcs,
+    dc: Win16HostDc,
+    bytes: &[u8],
+    tab_stops: &[i32],
+    output: Option<(i32, i32, i32)>,
+) -> Result<Win16DrawingResult, RuntimeError> {
+    let Some(dc_use) = dcs.lease_dc(dc)? else {
+        return Ok(Win16DrawingResult::PackedTextExtent(0));
+    };
+    // Win16 counts guest bytes; the W APIs count UTF-16 units. Tabs remain
+    // logical positions and must not be scaled by the text's byte length.
+    let wide = guest_text(dcs, bytes)?;
+    let (Ok(count), Ok(tab_count)) = (i32::try_from(wide.len()), i32::try_from(tab_stops.len())) else {
+        return Ok(Win16DrawingResult::PackedTextExtent(0));
+    };
+    let empty = [0_u16; 1];
+    let pointer = text_pointer(&wide, &empty);
+    let stops = if tab_stops.is_empty() { std::ptr::null() } else { tab_stops.as_ptr() };
+    // SAFETY: The HDC lease, owned converted text and widened tab array stay
+    // live for this synchronous call. No guest address reaches native USER.
+    let extent = unsafe {
+        match output {
+            Some((x, y, origin)) => TabbedTextOutW(
+                dc_use.native(), x, y, pointer, count, tab_count, stops, origin,
+            ) as u32,
+            None => GetTabbedTextExtentW(dc_use.native(), pointer, count, tab_count, stops),
+        }
+    };
+    // LONG and DWORD expose identical packed width/height bits in Win16.
+    Ok(Win16DrawingResult::PackedTextExtent(extent))
 }
 
 pub(super) fn ext_text_out(

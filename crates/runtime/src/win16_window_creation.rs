@@ -138,7 +138,9 @@ impl Win16State {
         let procedure = WindowProcedure {
             class: class.host_class,
             address: class.wnd_proc,
-            instance: class.instance,
+            // WNDPROC's instance and GWW_HINSTANCE belong to the window.
+            // The registering DLL still owns a global class and its menu.
+            instance: request.instance,
         };
         self.begin_window_operation(
             registers,

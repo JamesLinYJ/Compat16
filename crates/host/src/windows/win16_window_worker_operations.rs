@@ -285,6 +285,18 @@ pub(super) fn run_operation(
                     super::super::win16_native_procedures::query(state, window)
                         .map(Win16WindowResult::Procedure)
                 }
+                Win16WindowOperation::QuerySubclassProcedure { window } => {
+                    super::super::win16_native_procedures::query(state, window).map(|procedure|
+                        Win16WindowResult::SubclassProcedure {
+                            procedure,
+                            instance: super::super::win16_window_instances::query(state, window),
+                        })
+                }
+                Win16WindowOperation::SetProcedure { window, previous, restore } => {
+                    super::super::win16_native_procedures::set_procedure(
+                        state, window, previous, restore,
+                    ).map(Win16WindowResult::Procedure)
+                }
                 Win16WindowOperation::CallProcedure {
                     procedure,
                     window,

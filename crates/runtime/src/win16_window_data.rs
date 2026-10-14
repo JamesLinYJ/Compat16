@@ -35,16 +35,19 @@ const DIALOG_USER_RANGE: std::ops::Range<usize> =
 
 #[derive(Debug)]
 pub(super) struct Win16WindowDataState {
-    native_window: Win16HostWindow,
+    pub(super) native_window: Win16HostWindow,
     class_root: WindowClassRoot,
     /// `None` means that no guest `cbWndExtra` contract is known. An empty
     /// vector means a known class explicitly requested zero extra bytes.
     extra_bytes: Option<Vec<u8>>,
-    instance: u16,
+    pub(super) instance: u16,
     is_dialog: bool,
     /// Previously installed guest FAR procedures stay rooted while the HWND
     /// lives so SetWindowLong's returned subclass-chain values remain callable.
     procedure_roots: Vec<u32>,
+    /// A native control's guest procedure has no guest class registration.
+    pub(super) native_subclass: Option<u32>,
+    pub(super) subclass_revision: u64,
     reported_missing_contract: bool,
 }
 
@@ -83,6 +86,8 @@ impl Win16WindowDataState {
             instance,
             is_dialog,
             procedure_roots: Vec::new(),
+            native_subclass: None,
+            subclass_revision: 0,
             reported_missing_contract: false,
         })
     }
@@ -265,7 +270,8 @@ impl Win16State {
     /// pass their FAR value to CallWindowProc.
     pub(super) fn window_procedure_roots(&self) -> impl Iterator<Item = u32> + '_ {
         self.window_data.values()
-            .flat_map(|state| state.procedure_roots.iter().copied())
+            .flat_map(|state| state.procedure_roots.iter().copied()
+                .chain(state.native_subclass))
     }
 
     /// Handle USER.133–136. Positive indexes are byte offsets into checked,
@@ -354,21 +360,9 @@ impl Win16State {
                 return zero(self, registers);
             }
             let Some(procedure) = self.window_procedures.get(&window).copied() else {
-                if replacement.is_none() {
-                    let native_window = self.window_handles[&window];
-                    return self.begin_window_operation(registers, memory, host,
-                        Win16WindowOperation::QueryProcedure { window: native_window },
-                        WindowReturn::QueryProcedure { window, native_window }, return_to);
-                }
-                let api = if replacement.is_some() {
-                    "SetWindowLong"
-                } else {
-                    "GetWindowLong"
-                };
-                host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap, format!(
-                    "Win16 {api}(GWL_WNDPROC) for guest HWND 0x{window:04X} requires a native control subclass bridge; returned zero",
-                )));
-                return zero(self, registers);
+                return self.begin_native_subclass_data(
+                    registers, memory, host, window, replacement, return_to,
+                );
             };
             let old = procedure.address;
             if let Some(value) = replacement {
@@ -577,7 +571,7 @@ impl Win16State {
         }
     }
 
-    fn retain_procedure_root(&mut self, window: u16, address: u32)
+    pub(super) fn retain_procedure_root(&mut self, window: u16, address: u32)
         -> Result<(), RuntimeError> {
         if address == 0 { return Ok(()); }
         let state = self.window_data.get_mut(&window).ok_or_else(|| RuntimeError::new(

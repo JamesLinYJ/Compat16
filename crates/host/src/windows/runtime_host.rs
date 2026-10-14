@@ -604,25 +604,27 @@ impl RuntimeHost for WindowsHost {
     }
     fn win16_file_create(
         &mut self,
-        path: &[u8],
+        path: &runtime::Win16GuestPath,
         attributes: u16,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
-        self.win16_files
-            .create(self.win16_dcs.text_codec(), path, attributes)
+        super::win16_file_paths::open(&mut self.filesystem, &mut self.win16_files,
+            path, attributes, true)
     }
     fn win16_file_open(
         &mut self,
-        path: &[u8],
+        path: &runtime::Win16GuestPath,
         mode: u16,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
-        self.win16_files
-            .open(self.win16_dcs.text_codec(), path, mode)
+        super::win16_file_paths::open(&mut self.filesystem, &mut self.win16_files,
+            path, mode, false)
     }
     fn win16_open_file(
-        &mut self, path: &[u8], style: u16, previous_ofstruct: Vec<u8>,
+        &mut self, path: &runtime::Win16GuestPath, search_name: Option<&str>,
+        style: u16, previous_ofstruct: Vec<u8>,
     ) -> Result<runtime::Win16HostOpenFile, RuntimeError> {
         super::win16_open_file::open(
-            &mut self.win16_files, self.win16_dcs.text_codec(), path, style, previous_ofstruct,
+            &mut self.filesystem, &mut self.win16_files, self.win16_dcs.text_codec(),
+            path, search_name, style, previous_ofstruct,
         )
     }
     fn win16_file_read(
@@ -996,19 +998,15 @@ impl RuntimeHost for WindowsHost {
         Ok(win16_user_services_system::get_dialog_base_units())
     }
     fn win16_profile_int(
-        &mut self,
-        section: Option<&[u8]>,
-        key: Option<&[u8]>,
-        default: i32,
-        filename: Option<&[u8]>,
+        &mut self, section: Option<&[u8]>, key: Option<&[u8]>, default: i32,
+        filename: &runtime::Win16ProfilePath,
     ) -> Result<u32, RuntimeError> {
-        win16_common::get_private_profile_int(
-            self.win16_dcs.text_codec(),
-            section,
-            key,
-            default,
-            filename,
-        )
+        let codec = self.win16_dcs.text_codec();
+        if matches!(filename, runtime::Win16ProfilePath::System) {
+            return win16_common::get_private_profile_int(codec, section, key, default, None);
+        }
+        super::win16_private_profile::read(&mut self.filesystem, codec, filename,
+            |path| win16_common::private_int_wide(codec, section, key, default, path))
     }
     fn win16_system_profile_int(
         &mut self,
@@ -1019,21 +1017,17 @@ impl RuntimeHost for WindowsHost {
         win16_common::get_profile_int(self.win16_dcs.text_codec(), section, key, default)
     }
     fn win16_profile_string(
-        &mut self,
-        section: Option<&[u8]>,
-        key: Option<&[u8]>,
-        default: Option<&[u8]>,
-        filename: Option<&[u8]>,
-        capacity: u16,
+        &mut self, section: Option<&[u8]>, key: Option<&[u8]>, default: Option<&[u8]>,
+        filename: &runtime::Win16ProfilePath, capacity: u16,
     ) -> Result<(Vec<u8>, u16), RuntimeError> {
-        profile::private_string(
-            self.win16_dcs.text_codec(),
-            section,
-            key,
-            default,
-            filename,
-            capacity,
-        )
+        let codec = self.win16_dcs.text_codec();
+        if matches!(filename, runtime::Win16ProfilePath::System) {
+            return profile::private_string(codec, section, key, default, None, capacity);
+        }
+        let output = super::win16_private_profile::read(&mut self.filesystem, codec, filename,
+            |path| win16_common::private_string_wide(codec, section, key, default, path,
+                u32::from(capacity)))?;
+        Ok((output.buffer, output.copied as u16))
     }
     fn win16_system_profile_string(
         &mut self,
@@ -1045,32 +1039,27 @@ impl RuntimeHost for WindowsHost {
         profile::system_string(self.win16_dcs.text_codec(), section, key, default, capacity)
     }
     fn win16_profile_write(
-        &mut self,
-        section: Option<&[u8]>,
-        key: Option<&[u8]>,
-        value: Option<&[u8]>,
-        filename: Option<&[u8]>,
+        &mut self, section: Option<&[u8]>, key: Option<&[u8]>, value: Option<&[u8]>,
+        filename: &runtime::Win16ProfilePath,
     ) -> Result<bool, RuntimeError> {
-        Ok(win16_common::write_private_profile_string(
-            self.win16_dcs.text_codec(),
-            section,
-            key,
-            value,
-            filename,
-        )? != 0)
+        let codec = self.win16_dcs.text_codec();
+        if matches!(filename, runtime::Win16ProfilePath::System) {
+            return Ok(win16_common::write_private_profile_string(codec, section, key, value, None)? != 0);
+        }
+        super::win16_private_profile::write(&mut self.filesystem, codec, filename,
+            section.is_none() && key.is_none() && value.is_none(),
+            |path| win16_common::private_write_wide(codec, section, key, value, path))
     }
     fn win16_profile_section(
-        &mut self,
-        section: Option<&[u8]>,
-        filename: Option<&[u8]>,
-        capacity: u16,
+        &mut self, section: Option<&[u8]>, filename: &runtime::Win16ProfilePath, capacity: u16,
     ) -> Result<(Vec<u8>, u16), RuntimeError> {
-        let output = win16_profile_sections::get_private_profile_section(
-            self.win16_dcs.text_codec(),
-            section,
-            filename,
-            capacity,
-        )?;
+        let codec = self.win16_dcs.text_codec();
+        let output = if matches!(filename, runtime::Win16ProfilePath::System) {
+            win16_profile_sections::get_private_profile_section(codec, section, None, capacity)?
+        } else {
+            super::win16_private_profile::read(&mut self.filesystem, codec, filename,
+                |path| win16_profile_sections::private_section_wide(codec, section, path, capacity))?
+        };
         Ok((output.buffer, output.copied))
     }
     fn win16_system_profile_section(
@@ -1086,17 +1075,16 @@ impl RuntimeHost for WindowsHost {
         Ok((output.buffer, output.copied))
     }
     fn win16_profile_section_write(
-        &mut self,
-        section: Option<&[u8]>,
-        entries: Option<&[u8]>,
-        filename: Option<&[u8]>,
+        &mut self, section: Option<&[u8]>, entries: Option<&[u8]>,
+        filename: &runtime::Win16ProfilePath,
     ) -> Result<bool, RuntimeError> {
-        win16_profile_sections::write_private_profile_section(
-            self.win16_dcs.text_codec(),
-            section,
-            entries,
-            filename,
-        )
+        let codec = self.win16_dcs.text_codec();
+        if matches!(filename, runtime::Win16ProfilePath::System) {
+            return win16_profile_sections::write_private_profile_section(codec, section, entries, None);
+        }
+        super::win16_private_profile::write(&mut self.filesystem, codec, filename,
+            section.is_none() && entries.is_none(),
+            |path| win16_profile_sections::private_write_wide(codec, section, entries, path))
     }
     fn win16_system_profile_section_write(
         &mut self,

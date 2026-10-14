@@ -147,6 +147,7 @@ pub(super) fn worker_main(
         dialog_routes_by_native: HashMap::new(),
         dialog_creation_data: HashMap::new(),
         dialog_children_by_native: HashMap::new(),
+        window_creation_instances: HashMap::new(),
         clipboard_open: false,
         clipboard_viewers: BTreeMap::new(),
         native_timers: BTreeSet::new(),
@@ -527,6 +528,7 @@ fn finish_abort_or_shutdown(
         let mut borrowed = state.borrow_mut();
         borrowed.dialog_routes_by_native.clear();
         borrowed.dialog_children_by_native.clear();
+        borrowed.window_creation_instances.clear();
         borrowed.clipboard_viewers.clear();
         drop(borrowed);
         send_terminal_results(
@@ -541,6 +543,9 @@ fn finish_abort_or_shutdown(
         true
     } else {
         let mut errors = errors;
+        if let Err(error) = super::super::win16_native_procedures::restore_subclasses(state) {
+            errors.push(Arc::new(error));
+        }
         if let Some(error) = state.borrow().modal_control.take_callback_failure() {
             errors.push(Arc::new(error));
         }
@@ -742,6 +747,7 @@ pub(in crate::windows::win16_windows) fn remove_window_maps(
     state.retired_window_tokens.insert(token);
     state.deferred_native_messages.retire_window(token);
     state.windows.remove(&token);
+    state.window_creation_instances.remove(&token);
     state.drop_accepting_windows.remove(&token);
     if drop_file_ledger_retired {
         state.native_drop_files.retire_window(token);

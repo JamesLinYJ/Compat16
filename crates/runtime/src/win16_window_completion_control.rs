@@ -258,6 +258,27 @@ impl Win16State {
         if phase == WindowOperationCompletionPhase::Received
             && source == Some(WindowOperationCompletionSource::NativeUser)
         {
+            let subclass_pending = self.window_operations.last()
+                .filter(|frame| frame.id == frame_id)
+                .and_then(|frame| frame.completion.as_ref())
+                .is_some_and(|completion| matches!(completion.continuation,
+                    WindowReturn::PrepareNativeSubclass { .. }));
+            if subclass_pending {
+                let proof = match self.window_follow_up_source_proof(frame_id) {
+                    Ok(proof) => proof,
+                    Err(error) => return self.retain_window_completion_failure(frame_id, error),
+                };
+                let prepared = match self.prepare_native_subclass_follow_up(frame_id, memory) {
+                    Ok(prepared) => prepared,
+                    Err(error) => return self.retain_window_completion_failure(frame_id, error),
+                };
+                if let Some((operation, continuation)) = prepared {
+                    return self.begin_prepared_window_follow_up_on_top(
+                        &mut cpu.regs, memory, host, frame_id, proof,
+                        operation, Some(continuation),
+                    );
+                }
+            }
             let dialog_item = self.window_operations.last()
                 .filter(|frame| frame.id == frame_id)
                 .and_then(|frame| {

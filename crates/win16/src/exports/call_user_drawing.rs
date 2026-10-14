@@ -13,6 +13,36 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Win16ApiRequest, Win16Error> {
     match export {
+        Win16ExportId::UserTabbedTextOut => {
+            let count = word_argument(arguments, 4)? as i16;
+            let tab_count = word_argument(arguments, 5)? as i16;
+            let (text, tab_stops) = read_tabbed_text_input(
+                dword_argument(arguments, 3)?, count, tab_count,
+                dword_argument(arguments, 6)?, selectors, memory,
+            )?;
+            Ok(Win16ApiRequest::User(super::Win16UserRequest::Drawing(
+                super::Win16UserDrawingRequest::TabbedTextOut {
+                    dc: word_argument(arguments, 0)?,
+                    x: word_argument(arguments, 1)? as i16,
+                    y: word_argument(arguments, 2)? as i16,
+                    text, count, tab_count, tab_stops,
+                    tab_origin: word_argument(arguments, 7)? as i16,
+                },
+            )))
+        }
+        Win16ExportId::UserGetTabbedTextExtent => {
+            let count = word_argument(arguments, 2)? as i16;
+            let tab_count = word_argument(arguments, 3)? as i16;
+            let (text, tab_stops) = read_tabbed_text_input(
+                dword_argument(arguments, 1)?, count, tab_count,
+                dword_argument(arguments, 4)?, selectors, memory,
+            )?;
+            Ok(Win16ApiRequest::User(super::Win16UserRequest::Drawing(
+                super::Win16UserDrawingRequest::GetTabbedTextExtent {
+                    dc: word_argument(arguments, 0)?, text, count, tab_count, tab_stops,
+                },
+            )))
+        }
         Win16ExportId::UserInvertRect => Ok(Win16ApiRequest::User(
             super::Win16UserRequest::Drawing(super::Win16UserDrawingRequest::InvertRect {
                 dc: word_argument(arguments, 0)?,
@@ -74,6 +104,38 @@ pub(super) fn decode(
         }
         _ => Err(Win16Error::InvalidRange),
     }
+}
+
+fn read_tabbed_text_input(
+    text_far: u32,
+    count: i16,
+    tab_count: i16,
+    tabs_far: u32,
+    selectors: &SelectorTable,
+    memory: &impl GuestMemory,
+) -> Result<(Vec<u8>, Option<Vec<i16>>), Win16Error> {
+    // Both counts are signed SDK int values. Invalid counts reach the runtime
+    // as an ordinary zero result without dereferencing either guest pointer.
+    if count < 0 || tab_count < 0 {
+        return Ok((Vec::new(), None));
+    }
+    let text = if count == 0 {
+        Vec::new()
+    } else {
+        gdi_calls::read_exact_bytes(text_far, count as usize, selectors, memory)?
+    };
+    if tab_count == 0 || tabs_far == 0 {
+        return Ok((text, None));
+    }
+    let tab_count = tab_count as usize;
+    let byte_count = tab_count.checked_mul(2).ok_or(Win16Error::InvalidRange)?;
+    let bytes = gdi_calls::read_exact_bytes(tabs_far, byte_count, selectors, memory)?;
+    let mut tabs = Vec::new();
+    tabs.try_reserve_exact(tab_count).map_err(|_| Win16Error::OutOfMemory)?;
+    for pair in bytes.chunks_exact(2) {
+        tabs.push(i16::from_le_bytes([pair[0], pair[1]]));
+    }
+    Ok((text, Some(tabs)))
 }
 
 fn read_optional_rect(

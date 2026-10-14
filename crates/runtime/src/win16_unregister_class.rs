@@ -93,8 +93,9 @@ impl Win16State {
                 {
                     return Ok((self.window_classes.entries[index].instance == owner).then_some(index));
                 }
-                let Some(index) = self.window_classes.entries.iter().position(|entry|
-                    entry.instance == owner && entry.source_name_atom == Some(*atom))
+                let Some(index) = self.window_classes.registered_class_index(
+                    Some(owner), name, None,
+                ).filter(|&index| self.window_classes.entries[index].instance == owner)
                 else { return Ok(None); };
                 // RegisterClass copies a source atom's name but does not own
                 // that global atom. Revalidate it before accepting the alias:
@@ -110,8 +111,8 @@ impl Win16State {
         };
         // Cached predefined aliases and unrelated native classes are not in
         // this table. Guest name resemblance never grants native ownership.
-        Ok(self.window_classes.entries.iter().position(|entry|
-            entry.instance == owner && entry.lower_name.as_deref() == Some(lower.as_slice())))
+        Ok(self.window_classes.registered_class_index(Some(owner), name, Some(&lower))
+            .filter(|&index| self.window_classes.entries[index].instance == owner))
     }
 }
 

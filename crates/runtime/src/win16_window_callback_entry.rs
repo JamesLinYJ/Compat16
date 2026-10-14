@@ -44,6 +44,22 @@ impl Win16State {
         source: crate::Win16NativeCallbackSource,
         destroyed: bool,
     ) -> Result<(), RuntimeError> {
+        self.begin_host_procedure_callback(
+            registers, memory, host, operation_id, callback, native_window,
+            window, procedure.address, procedure.instance,
+            WindowClassRoot::Class(procedure.class), message, creation, source, destroyed,
+        )
+    }
+
+    pub(super) fn begin_host_procedure_callback(
+        &mut self, registers: &mut Registers, memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+        operation_id: crate::Win16HostWindowOperationId,
+        callback: Win16HostCallback, native_window: Win16HostWindow,
+        window: u16, address: u32, instance: u16, expected_root: WindowClassRoot,
+        message: Win16HostMessage, creation: Option<&WindowCreateRequest>,
+        source: crate::Win16NativeCallbackSource, destroyed: bool,
+    ) -> Result<(), RuntimeError> {
         let guest_notification = match &message {
             Win16HostMessage::GuestNotification(notification) => Some(*notification),
             _ => None,
@@ -53,7 +69,6 @@ impl Win16State {
             _ => None,
         };
         let callback_id = self.reserve_window_callback_frame()?;
-        let expected_root = WindowClassRoot::Class(procedure.class);
         let class_root = if WindowClassRoot::from_native_message(source, native_window) == expected_root {
             expected_root
         } else {
@@ -92,7 +107,7 @@ impl Win16State {
             setup: WindowCallbackSetupJournal::preparing(),
             guest_notification,
             mdi_child_creation,
-            callback_address: procedure.address,
+            callback_address: address,
             class_root,
             host_operation: Some(operation_id),
             native_source: Some(source),
@@ -112,7 +127,7 @@ impl Win16State {
                     "native WndProc source differs from its exact selected class registration"));
             }
             self.record_window_class_root(window, native_window, class_root)?;
-            self.check_window_callback(registers, procedure.address, memory)?;
+            self.check_window_callback(registers, address, memory)?;
             self.record_preparing_window_callback_phase(
                 callback_id,
                 WindowCallbackSetupPhase::ProcedureValidated,
@@ -165,9 +180,9 @@ impl Win16State {
         // teardown must not free a handle the guest may retain or finish.
         frame.guest_drop_global = None;
         registers.set_sp(registers.sp() - WNDPROC_STACK_BYTES);
-        registers.cs = (procedure.address >> 16) as u16;
-        registers.set_ip(procedure.address as u16);
-        registers.set_ax(procedure.instance);
+        registers.cs = (address >> 16) as u16;
+        registers.set_ip(address as u16);
+        registers.set_ax(instance);
         registers.ds = registers.ss;
         registers.es = registers.ss;
         frame.setup.last_completed = WindowCallbackSetupPhase::GuestEntryCommitted;

@@ -96,18 +96,18 @@ fn strict_dispositions_do_not_fall_back() {
 }
 
 #[test]
-fn read_only_creation_is_rejected_before_any_create_attempt() {
+fn read_only_creation_reports_the_actual_create_outcome() {
     assert_eq!(
-        run_attempts(DosFileDisposition::CreateNew, DosFileAccess::ReadOnly, vec![]),
-        (Err(DosErrorCode::InvalidFunction), vec![]),
+        run_attempts(DosFileDisposition::CreateNew, DosFileAccess::ReadOnly, vec![Ok(())]),
+        (Ok(DosFileOpenOutcome::Created), vec![OpenAttempt::CreateNew]),
     );
     assert_eq!(
         run_attempts(
             DosFileDisposition::OpenOrCreate,
             DosFileAccess::ReadOnly,
-            vec![Err(DosErrorCode::FileNotFound)],
+            vec![Err(DosErrorCode::FileNotFound), Ok(())],
         ),
-        (Err(DosErrorCode::InvalidFunction), vec![OpenAttempt::Existing]),
+        (Ok(DosFileOpenOutcome::Created), vec![OpenAttempt::Existing, OpenAttempt::CreateNew]),
     );
     for disposition in [DosFileDisposition::OpenExisting, DosFileDisposition::OpenOrCreate] {
         assert_eq!(

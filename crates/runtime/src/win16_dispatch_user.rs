@@ -417,6 +417,12 @@ impl Win16State {
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Drawing(
                 win16_abi::Win16UserDrawingRequest::DrawText { .. },
+            ))
+            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Drawing(
+                win16_abi::Win16UserDrawingRequest::TabbedTextOut { .. },
+            ))
+            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Drawing(
+                win16_abi::Win16UserDrawingRequest::GetTabbedTextExtent { .. },
             ))) => self.user_service_drawing(request, memory, host)?,
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetDc { window },

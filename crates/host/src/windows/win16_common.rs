@@ -65,6 +65,33 @@ pub(super) fn get_private_profile_int(
     )
 }
 
+pub(super) fn private_int_wide(
+    codec: GuestTextCodec, section: Option<&[u8]>, key: Option<&[u8]>,
+    default: i32, filename: &[u16],
+) -> Result<u32, RuntimeError> {
+    profile_int(codec, section, key, default, ProfileIntSource::WideFile(filename))
+}
+
+pub(super) fn private_string_wide(
+    codec: GuestTextCodec, section: Option<&[u8]>, key: Option<&[u8]>,
+    default: Option<&[u8]>, filename: &[u16], capacity: u32,
+) -> Result<ProfileStringOutput, RuntimeError> {
+    profile_string(codec, section, key, default, ProfileStringSource::WideFile(filename), capacity)
+}
+
+pub(super) fn private_write_wide(
+    codec: GuestTextCodec, section: Option<&[u8]>, key: Option<&[u8]>,
+    value: Option<&[u8]>, filename: &[u16],
+) -> Result<bool, RuntimeError> {
+    if !inputs_are_valid(&[section, key, value]) { return Ok(false); }
+    let section = copy_optional_wide_z(codec, section)?;
+    let key = copy_optional_wide_z(codec, key)?;
+    let value = copy_optional_wide_z(codec, value)?;
+    // The path belongs to a private host temporary file, never guest text.
+    Ok(unsafe { WritePrivateProfileStringW(wide_ptr(section.as_ref()),
+        wide_ptr(key.as_ref()), wide_ptr(value.as_ref()), filename.as_ptr()) } != 0)
+}
+
 /// Read the system profile using Windows' WIN.INI compatibility mapping.
 pub(super) fn get_profile_int(
     codec: GuestTextCodec,
@@ -79,6 +106,7 @@ pub(super) fn get_profile_int(
 enum ProfileIntSource<'a> {
     System,
     File(Option<&'a [u8]>),
+    WideFile(&'a [u16]),
 }
 
 fn profile_int(
@@ -91,6 +119,7 @@ fn profile_int(
     let file_name = match source {
         ProfileIntSource::System => None,
         ProfileIntSource::File(file_name) => file_name,
+        ProfileIntSource::WideFile(_) => None,
     };
     if !inputs_are_valid(&[app_name, key_name, file_name]) {
         return Ok(default as u32);
@@ -98,7 +127,10 @@ fn profile_int(
 
     let app_name = copy_optional_wide_z(codec, app_name)?;
     let key_name = copy_optional_wide_z(codec, key_name)?;
-    let file_name = copy_optional_wide_z(codec, file_name)?;
+    let file_name = match source {
+        ProfileIntSource::WideFile(path) => Some(path.to_vec()),
+        _ => copy_optional_wide_z(codec, file_name)?,
+    };
 
     // SAFETY: Every non-null pointer references an owned, NUL-terminated UTF-16
     // copy which remains alive for the synchronous call; null options preserve
@@ -110,7 +142,7 @@ fn profile_int(
                 wide_ptr(key_name.as_ref()),
                 default,
             ),
-            ProfileIntSource::File(_) => GetPrivateProfileIntW(
+            ProfileIntSource::File(_) | ProfileIntSource::WideFile(_) => GetPrivateProfileIntW(
                 wide_ptr(app_name.as_ref()),
                 wide_ptr(key_name.as_ref()),
                 default,
@@ -131,6 +163,7 @@ pub(super) struct ProfileStringOutput {
 enum ProfileStringSource<'a> {
     System,
     File(Option<&'a [u8]>),
+    WideFile(&'a [u16]),
 }
 
 /// Query a private profile through the W API, translating text through the
@@ -185,6 +218,7 @@ fn profile_string(
     let file_name = match source {
         ProfileStringSource::System => None,
         ProfileStringSource::File(file_name) => file_name,
+        ProfileStringSource::WideFile(_) => None,
     };
     if capacity == 0 || !inputs_are_valid(&[app_name, key_name, default, file_name]) {
         return Ok(ProfileStringOutput { buffer, copied: 0 });
@@ -193,7 +227,10 @@ fn profile_string(
     let app_name = copy_optional_wide_z(codec, app_name)?;
     let key_name = copy_optional_wide_z(codec, key_name)?;
     let default = copy_optional_wide_z(codec, default)?;
-    let file_name = copy_optional_wide_z(codec, file_name)?;
+    let file_name = match source {
+        ProfileStringSource::WideFile(path) => Some(path.to_vec()),
+        _ => copy_optional_wide_z(codec, file_name)?,
+    };
     let enumerate = app_name.is_none() || key_name.is_none();
 
     // A supplementary scalar can occupy two UTF-16 units and map to one
@@ -219,7 +256,7 @@ fn profile_string(
                 output.as_mut_ptr(),
                 wide_capacity_u32,
             ),
-            ProfileStringSource::File(_) => GetPrivateProfileStringW(
+            ProfileStringSource::File(_) | ProfileStringSource::WideFile(_) => GetPrivateProfileStringW(
                 wide_ptr(app_name.as_ref()),
                 wide_ptr(key_name.as_ref()),
                 default,

@@ -368,6 +368,12 @@ pub(super) fn execute(
         UserDrawText { dc, text, count, rect, flags } => {
             super::text::draw_text(dcs, dc, text, count, rect, flags)
         }
+        UserTabbedTextOut { dc, x, y, text, tab_stops, tab_origin } => {
+            super::text::tabbed_text(dcs, dc, &text, &tab_stops, Some((x, y, tab_origin)))
+        }
+        UserGetTabbedTextExtent { dc, text, tab_stops } => {
+            super::text::tabbed_text(dcs, dc, &text, &tab_stops, None)
+        }
         _ => Err(RuntimeError::new(
             runtime::DiagnosticKind::InternalInvariant,
             "unhandled operation reached Win16 drawing extra adapter",

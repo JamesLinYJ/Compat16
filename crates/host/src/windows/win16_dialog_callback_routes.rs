@@ -53,6 +53,10 @@ pub(super) fn dialog_route(
         return Ok(None);
     };
     super::super::win16_dialog_icon_controls::before_init(state, operation, creation, hwnd)?;
+    let instance = state.borrow().pending_dialog_routes.iter()
+        .find(|pending| pending.operation == operation && pending.creation == creation)
+        .map(|pending| pending.guest_instance).ok_or_else(|| RuntimeError::new(
+            Kind::InternalInvariant, "dialog initialization lost its creation instance"))?;
     let existing_route = {
         state.borrow().dialog_routes_by_native.get(&native).copied()
     };
@@ -64,6 +68,7 @@ pub(super) fn dialog_route(
             && super::super::win16_window_identity::resolve(state, existing.window) == Some(hwnd)
         {
             super::super::win16_window_dialog_creation::attach_template_menu(state, existing, hwnd)?;
+            super::super::win16_window_instances::capture_dialog(state, hwnd, instance)?;
             mark_init_published(state, operation, creation);
             return Ok(Some(existing));
         }
@@ -139,6 +144,7 @@ pub(super) fn dialog_route(
         borrowed.dialog_routes_by_native.insert(native, route);
     }
     super::super::win16_window_identity::associate_dialog_child(state, hwnd);
+    super::super::win16_window_instances::capture_dialog(state, hwnd, instance)?;
     if let Err(error) = super::super::win16_window_dialog_creation::attach_template_menu(
         state, route, hwnd,
     ) {
@@ -306,7 +312,10 @@ pub(super) fn copy_native_queued_message(
         } else {
             return Ok(None);
         };
-        (native.wParam as u16, l_param)
+        let Some(w_param) = super::super::win16_character_messages::to_guest(
+            state, native.message, native.wParam,
+        ) else { return Ok(None); };
+        (w_param, l_param)
     };
     Ok(Some(Win16HostQueuedMessage {
         source: Win16MessageSource::NativeQueue,

@@ -59,8 +59,10 @@ impl Win16State {
                 matches!(
                     (&completion.continuation, &completion.result),
                     (
-                        WindowReturn::QueryProcedure { .. },
-                        Win16WindowResult::Procedure(_)
+                        WindowReturn::QueryProcedure { .. }
+                            | WindowReturn::PrepareNativeSubclass { .. }
+                            | WindowReturn::NativeSubclass(_),
+                        Win16WindowResult::Procedure(_) | Win16WindowResult::SubclassProcedure { .. }
                     ),
                 )
             });

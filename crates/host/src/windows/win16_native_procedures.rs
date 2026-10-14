@@ -29,6 +29,7 @@ pub(super) struct NativeProcedures {
     class_entries: HashMap<Win16HostProcedure, SystemProcedureEntry>,
     class_by_kind: HashMap<runtime::Win16HostSystemClass, Win16HostProcedure>,
     bases: HashMap<Win16HostWindow, NativeBaseBinding>,
+    next_subclass_generation: u64,
 }
 
 struct SystemProcedureEntry {
@@ -46,6 +47,8 @@ struct NativeBaseBinding {
     hwnd: usize,
     cookie: usize,
     destroy_entered: bool,
+    subclass_generation: Option<u64>,
+    subclass_attached: bool,
 }
 
 pub(super) fn capture_system_class(
@@ -251,7 +254,9 @@ pub(super) fn call(
             ..
         }
     );
-    if nc_destroy && let Some(binding) = state.borrow_mut().native_procedures.bases.get_mut(&window)
+    if nc_destroy
+        && let Some(binding) = state.borrow_mut().native_procedures.bases.get_mut(&window)
+        && binding.procedure == procedure
     {
         if binding.destroy_entered {
             return Ok(Some(Win16HostMessageResult {
@@ -276,6 +281,7 @@ pub(super) fn call(
     if nc_destroy
         && !matches!(&result, Ok(Some(_)))
         && let Some(binding) = state.borrow_mut().native_procedures.bases.get_mut(&window)
+        && binding.procedure == procedure
     {
         binding.destroy_entered = false;
     }
@@ -533,6 +539,8 @@ pub(super) fn enter_creation(
             hwnd: identity.hwnd,
             cookie: identity.value,
             destroy_entered: false,
+            subclass_generation: None,
+            subclass_attached: false,
         },
     );
     true
@@ -560,11 +568,11 @@ pub(super) fn base_fallback(
     let (binding, procedure) = {
         let state = state.borrow();
         let binding = *state.native_procedures.bases.get(&window)?;
-        let entry = state
-            .native_procedures
-            .class_entries
-            .get(&binding.procedure)?;
-        (binding, entry.native_procedure)
+        let procedure = state.native_procedures.class_entries.get(&binding.procedure)
+            .map(|entry| entry.native_procedure)
+            .or_else(|| state.native_procedures.entries.get(&binding.procedure)
+                .map(|entry| entry.key.native_procedure))?;
+        (binding, procedure)
     };
     if binding.hwnd != identity.hwnd || binding.cookie != identity.value {
         return None;
@@ -761,3 +769,7 @@ fn pin_provider(address: isize) -> Option<ModuleLease> {
         None
     }
 }
+
+#[path = "win16_native_subclass.rs"]
+mod subclass;
+pub(super) use subclass::{is_subclassed, set_procedure, restore_subclasses};

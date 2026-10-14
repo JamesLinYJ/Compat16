@@ -178,6 +178,7 @@ fn drawing_dcs(operation: &Win16DrawingOperation) -> ([Option<Win16HostDc>; 2], 
         | Op::UserFrameRect { dc, .. }
         | Op::UserDrawIcon { dc, .. }
         | Op::UserDrawFocusRect { dc, .. }
+        | Op::UserTabbedTextOut { dc, .. }
         | Op::UserDrawText { dc, .. } => {
             tokens[0] = Some(*dc);
             1

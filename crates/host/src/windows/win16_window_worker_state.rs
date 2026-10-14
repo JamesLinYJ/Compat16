@@ -339,6 +339,8 @@ pub(in crate::windows) struct WorkerState {
         super::super::win16_window_properties::WindowPropertyStore,
     pub(in crate::windows::win16_windows) native_procedures:
         super::super::win16_native_procedures::NativeProcedures,
+    pub(in crate::windows::win16_windows) window_creation_instances:
+        HashMap<Win16HostWindow, u16>,
     pub(in crate::windows::win16_windows) window_identity_cookies:
         HashMap<Win16HostWindow, super::super::win16_window_identity::WindowCookieBinding>,
     pub(in crate::windows::win16_windows) commands: Arc<Mutex<Receiver<WorkerCommand>>>,

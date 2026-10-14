@@ -168,6 +168,39 @@ params = [
 ]
 
 [[exports]]
+ordinal = 196
+name = "TabbedTextOut"
+decl = { attributes = [] }
+binding = { rust_id = "UserTabbedTextOut", id_value = 1246, constant = "USER_TABBED_TEXT_OUT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "text", type = "FarBuffer", encoding = "string" },
+  { name = "count", type = "I16" },
+  { name = "tab_count", type = "I16" },
+  { name = "tab_stops", type = "FarBuffer" },
+  { name = "tab_origin", type = "I16" },
+]
+
+[[exports]]
+ordinal = 197
+name = "GetTabbedTextExtent"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetTabbedTextExtent", id_value = 1247, constant = "USER_GET_TABBED_TEXT_EXTENT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "text", type = "FarBuffer", encoding = "string" },
+  { name = "count", type = "I16" },
+  { name = "tab_count", type = "I16" },
+  { name = "tab_stops", type = "FarBuffer" },
+]
+
+[[exports]]
 ordinal = 221
 name = "ScrollDC"
 binding = { rust_id = "UserScrollDC", id_value = 470, constant = "USER_SCROLL_DC" }

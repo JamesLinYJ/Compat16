@@ -45,6 +45,13 @@ pub(in crate::win16_runtime) enum WindowReturn {
         window: u16,
         native_window: Win16HostWindow,
     },
+    PrepareNativeSubclass {
+        window: u16,
+        native_window: Win16HostWindow,
+        replacement: u32,
+        instance: Option<u16>,
+    },
+    NativeSubclass(super::super::window_subclass::NativeSubclassChange),
     MessageCall(crate::win16_host_message_calls::Win16MessageCallContinuation),
     UserMessageBox,
     UserFamily(Win16UserFamilyContinuation),

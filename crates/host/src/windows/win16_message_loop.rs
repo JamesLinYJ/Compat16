@@ -308,7 +308,13 @@ pub(super) fn dispatch_message(
                 "callback-scoped control-color HDC reached queued native dispatch",
             ));
         }
-        Win16MessageParam::Scalar(value) => (usize::from(message.w_param), (value as i32) as isize),
+        Win16MessageParam::Scalar(value) => {
+            let Some(native_w) = super::win16_character_messages::to_native(state,
+                u32::from(message.message), message.w_param)? else {
+                    return Ok(Win16WindowResult::Dispatched(0));
+                };
+            (native_w, (value as i32) as isize)
+        },
         Win16MessageParam::Mdi(_) => {
             unreachable!("typed MDI messages returned through the shared MDI result route")
         }

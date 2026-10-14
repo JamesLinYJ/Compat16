@@ -29,6 +29,12 @@ mod win16_ime_profiles;
 mod win16_mdi_pending_creation;
 #[path = "win16_native_procedures.rs"]
 mod win16_native_procedures;
+#[path = "win16_window_instances.rs"]
+mod win16_window_instances;
+#[path = "win16_character_messages.rs"]
+mod win16_character_messages;
+#[path = "win16_subclass_send.rs"]
+mod win16_subclass_send;
 #[path = "win16_owner_draw_callbacks.rs"]
 mod win16_owner_draw_callbacks;
 #[path = "win16_shell_execution.rs"]

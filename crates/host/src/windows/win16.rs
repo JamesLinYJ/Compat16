@@ -1,22 +1,26 @@
 //! Native Windows services requested by the Win16 guest ABI.
 
 use super::bindings::{_lclose, _llseek, _lread, _lwrite, LZClose, LZRead, LZSeek};
+#[cfg(test)]
 use super::guest_text::GuestTextCodec;
 use runtime::Win16HostFile;
 use runtime::Win16HostFileClose;
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use std::collections::{BTreeMap, BTreeSet};
 use windows_sys::Win32::Foundation::{
-    CloseHandle, ERROR_NO_UNICODE_TRANSLATION, GENERIC_READ, GENERIC_WRITE, GetLastError, HANDLE,
-    HWND, INVALID_HANDLE_VALUE,
+    CloseHandle, GENERIC_READ, GENERIC_WRITE, HANDLE, HWND,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    CREATE_ALWAYS, CreateFileW, FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_NORMAL,
+    FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_NORMAL,
     FILE_ATTRIBUTE_READONLY, FILE_ATTRIBUTE_SYSTEM, FILE_BEGIN, FILE_CURRENT, FILE_END,
-    FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING, ReadFile, SetEndOfFile, SetFilePointerEx,
+    FILE_SHARE_READ, FILE_SHARE_WRITE, ReadFile, SetEndOfFile, SetFilePointerEx,
     WriteFile,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::MessageBoxW;
+#[cfg(test)]
+use windows_sys::Win32::Foundation::{ERROR_NO_UNICODE_TRANSLATION, GetLastError, INVALID_HANDLE_VALUE};
+#[cfg(test)]
+use windows_sys::Win32::Storage::FileSystem::{CREATE_ALWAYS, CreateFileW, OPEN_EXISTING};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum Win16NativeFile {
@@ -74,6 +78,7 @@ impl Win16Files {
         self.files.get(&file).copied()
     }
 
+    #[cfg(test)]
     pub(super) fn open(
         &mut self,
         codec: GuestTextCodec,
@@ -111,6 +116,7 @@ impl Win16Files {
         self.retain_native(Win16NativeFile::NativeHandle(handle))
     }
 
+    #[cfg(test)]
     pub(super) fn create(
         &mut self,
         codec: GuestTextCodec,
@@ -463,6 +469,7 @@ fn close_native(native: Win16NativeFile) {
     }
 }
 
+#[cfg(test)]
 fn guest_file_path(codec: GuestTextCodec, path: &[u8]) -> Result<Option<Vec<u16>>, RuntimeError> {
     match codec.to_wide_z(path) {
         Ok(path) => Ok(Some(path)),
@@ -501,7 +508,7 @@ pub(super) fn open_access_and_share(mode: u16) -> Option<(u32, u32)> {
     Some((access, share))
 }
 
-fn create_attributes(attributes: u16) -> Option<u32> {
+pub(super) fn create_attributes(attributes: u16) -> Option<u32> {
     match attributes {
         0 => Some(FILE_ATTRIBUTE_NORMAL),
         1 => Some(FILE_ATTRIBUTE_READONLY),

@@ -385,14 +385,13 @@ pub(super) fn native_prefix_to_guest_in_buffer(
     Ok((guest, count))
 }
 
-/// Project one Unicode WM_CHAR-family code unit into the guest's fixed ANSI
-/// page. Win16's WM_CHAR carries one byte, so multi-byte DBCS/UTF-8 output is
-/// left as an explicit compatibility gap until Windows 3.1 packing/queue
-/// behavior can be established from a primary source.
+/// Project one Unicode character into a fixed guest ANSI/DBCS word. DBCS uses
+/// low-byte lead/high-byte trail; encodings needing more than two bytes have
+/// no representation in this Win16 message field.
 pub(super) fn native_guest_character(
     state: &Rc<RefCell<WorkerState>>,
     native_w_param: usize,
-) -> Option<u8> {
+) -> Option<u16> {
     let unit = u16::try_from(native_w_param).ok()?;
     let encoding = state.borrow().text_codec.from_wide(&[unit]).ok()?;
     if encoding.used_default_char == Some(true) {
@@ -402,5 +401,13 @@ pub(super) fn native_guest_character(
             "native Unicode WM_CHAR required the guest code-page replacement character",
         );
     }
-    (encoding.bytes.len() == 1).then(|| encoding.bytes[0])
+    match encoding.bytes.as_slice() {
+        [byte] => Some(u16::from(*byte)),
+        [lead, trail] if unsafe {
+            windows_sys::Win32::Globalization::IsDBCSLeadByteEx(
+                state.borrow().text_codec.code_page(), *lead,
+            )
+        } != 0 => Some(u16::from_le_bytes([*lead, *trail])),
+        _ => None,
+    }
 }

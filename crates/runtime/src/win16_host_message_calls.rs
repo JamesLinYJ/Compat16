@@ -5,12 +5,24 @@
 //! guest-bit values kept numeric for a verified guest WndProc or the current
 //! task's thread queue.
 
-use crate::{Win16HostClass, Win16HostWindow, Win16MessageParam};
+use crate::{Win16HostClass, Win16HostWindow, Win16MessageParam, Win16ScalarMessage};
 use crate::win16_runtime::guest_ranges::GuestOutputRange;
 
 /// A USER operation executed on the dedicated native window thread.
 #[derive(Clone, Debug)]
 pub enum Win16MessageCall {
+    /// HWND_BROADCAST is an explicit target, never an opaque window token.
+    /// Only a classified scalar message may reach unrelated native windows.
+    SendBroadcast {
+        kind: Win16ScalarMessage,
+        w_param: u16,
+        l_param: u32,
+    },
+    PostBroadcast {
+        kind: Win16ScalarMessage,
+        w_param: u16,
+        l_param: u32,
+    },
     SendMessage {
         window: Win16HostWindow,
         message: u16,
@@ -52,7 +64,9 @@ pub enum Win16MessageCall {
         window: Option<Win16HostWindow>,
         host_timer_id: u64,
     },
-    SetFocus { window: Win16HostWindow },
+    /// None is the documented NULL target that clears this queue's focus;
+    /// an unknown nonzero guest HWND must never be translated to None.
+    SetFocus { window: Option<Win16HostWindow> },
     GetFocus,
     SetCapture { window: Win16HostWindow },
     GetCapture,

@@ -267,16 +267,6 @@ binding = { rust_id = "UserInSendMessage", id_value = 1227, constant = "USER_IN_
 returns = "word"
 
 [[exports]]
-ordinal = 196
-name = "TabbedTextOut"
-decl = { attributes = [], args = ["word", "signed_word", "signed_word", "pointer", "signed_word", "signed_word", "pointer", "signed_word"] }
-
-[[exports]]
-ordinal = 197
-name = "GetTabbedTextExtent"
-decl = { attributes = [], args = ["word", "pointer", "word", "word", "pointer"] }
-
-[[exports]]
 ordinal = 198
 name = "CascadeChildWindows"
 decl = { args = ["word", "word"] }

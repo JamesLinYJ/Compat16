@@ -367,7 +367,10 @@ impl Win16State {
         {
             if let crate::Win16HostDialogAtom::GuestClass(class) = &template.class {
                 if let Some(resource) = self.window_classes.menu_resource_for_host_class(*class) {
-                    let Some(menu) = self.resource_menu_template(instance, resource, host)? else {
+                    let owner = self.window_classes.resolve_registered_host_class(*class)
+                        .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
+                            "custom dialog menu lost its exact guest class owner"))?.instance;
+                    let Some(menu) = self.resource_menu_template(owner, resource, host)? else {
                         return Ok(false);
                     };
                     template.menu_template = Some(menu);

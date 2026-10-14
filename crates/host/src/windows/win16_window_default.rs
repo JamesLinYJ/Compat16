@@ -150,6 +150,9 @@ pub(super) fn send_message(
     message: Win16HostMessage,
     control_color_return: Option<&super::ControlColorReturnSlot>,
 ) -> Result<Option<Win16HostMessageResult>, RuntimeError> {
+    if let Win16HostMessage::GuestOpaque { message, w_param, l_param } = &message {
+        return super::win16_subclass_send::send(state, window, *message, *w_param, *l_param);
+    }
     if !matches!(
         &message,
         Win16HostMessage::ControlColor(_)
@@ -531,7 +534,8 @@ fn message_with_invocation(
             w_param,
             l_param,
         } => {
-            let native_w = usize::from(w_param);
+            let Some(native_w) = super::win16_character_messages::to_native(state,
+                u32::from(kind as u16), w_param)? else { return Ok(None); };
             let native_l = (l_param as i32) as isize;
             let native_message = u32::from(kind as u16);
             // This variant carries only scalar message fields. Messages with

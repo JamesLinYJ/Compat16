@@ -5,6 +5,9 @@ for selected exports. Original SDK artifacts, historical implementation referenc
 and modern native contracts are identified separately. In particular, the WINNLS
 section does not establish original SDK export identities. These records do not
 verify runtime behavior. Existing third-party notices remain applicable.
+Historical implementations supply evidence, not a limit on SDK functionality or
+a requirement to reproduce their internal architecture. Declaration checks and
+successful compilation do not establish application compatibility.
 
 Original SDK source: Microsoft Windows SDK 3.10 disk 03, archived by PCjs.
 
@@ -41,6 +44,25 @@ output lengths; read the unmodified headers and OMF COMENT records (record
 `0x88`, class `0xa0`, subtype `0x01`, import-by-ordinal flag `0x01`). Offsets
 refer to expanded `LIBW.LIB`. Header line numbers count original CRLF-delimited
 lines. `WINDOWS.H` line 124 defines WINAPI as far Pascal.
+
+## USER.196 TabbedTextOut and USER.197 GetTabbedTextExtent
+
+The verified imports above correspond to `LONG WINAPI TabbedTextOut(HDC, int,
+int, LPCSTR, int, int, int FAR*, int)` and `DWORD WINAPI
+GetTabbedTextExtent(HDC, LPCSTR, int, int, int FAR*)`. Their Pascal argument
+frames are 20 and 14 bytes respectively; both return the full packed value in
+DX:AX. Coordinates, byte counts, tab counts and tab-array elements are signed
+16-bit `int`, not unsigned WORD counts.
+
+The bridge copies the requested guest bytes and 16-bit tab array before host
+execution, converts ANSI/DBCS text to UTF-16, and widens tab positions separately.
+The native W calls receive the converted UTF-16 count. Their result preserves
+width in the low word and height in the high word, as documented by
+[TabbedTextOutW](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-tabbedtextoutw)
+and [GetTabbedTextExtentW](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-gettabbedtextextentw).
+This establishes the translation route, not historical rendering equivalence;
+the modern TabbedTextOutW documentation itself notes changed text-alignment
+behavior on Windows Vista and later.
 
 ## Rectangle predicate exports
 
@@ -519,3 +541,102 @@ This policy is a bounded host conversion, not proof of historical driver
 support equivalence. Tests cover ABI, guest memory/identity boundaries, mock
 cap conversions, and nonprinting native DCs. They do not establish real printer
 behavior or successful execution of this import by a desktop application.
+
+## KERNEL.16 GlobalReAlloc guest locks
+
+`WINDOWS.H:602` declares `HGLOBAL WINAPI GlobalReAlloc(HGLOBAL, DWORD, UINT)`;
+the original LIBW.LIB IMPDEF at `0x02e2` names KERNEL ordinal 16. The argument
+frame is eight bytes and the returned HGLOBAL occupies AX.
+
+The original [Microsoft Windows SDK 3.0 reference, GlobalReAlloc and GlobalLock
+entries](https://www.pcjs.org/documents/books/mspl13/win/w3sdkr1/)
+expressly permits relocating a guest-locked movable block when GMEM_MOVEABLE
+is supplied. Locking alone is therefore not a universal refusal condition.
+The allocator distinguishes guest lock counts from retained runtime backing,
+page locks and selector aliases: an unchanged size returns the existing handle,
+guest locks permit an in-place resize, and relocation checks GMEM_MOVEABLE.
+Retained backing leases continue to prevent size or base changes. These are
+memory/ownership contracts; copying a historical allocator's internal layout is
+not required.
+
+## USER.22 SetFocus NULL target
+
+`WINDOWS.H:3538` declares `HWND WINAPI SetFocus(HWND)`; LIBW.LIB IMPDEF
+`0x5c8d` imports USER ordinal 22. It consumes two argument bytes and returns a
+16-bit HWND in AX. The original [Microsoft SDK SetFocus
+entry](https://www.pcjs.org/documents/books/mspl13/win/w3sdkr1/) defines NULL as
+removing keyboard focus and describes WM_KILLFOCUS delivery and the previous
+focus HWND result. NT 3.5 `MVDM/WOW32/WUSER.C:2401-2439` independently preserves
+that contract. The typed worker request distinguishes NULL from an invalid
+nonzero guest handle and uses the existing resumable message path for callbacks.
+
+## USER notifications and HWND_BROADCAST
+
+The original SDK defines WM_SYSCOLORCHANGE (`0x0015`, `WINDOWS.H:1366`),
+WM_FONTCHANGE (`0x001d`, line 1844), WM_TIMECHANGE (`0x001e`, line 2693), and
+HWND_BROADCAST (`0xffff`, lines 2839-2840). The last is explicitly a target for
+both PostMessage and SendMessage, not an ordinary guest window handle.
+Their prototypes at lines 2829-2830 use a ten-byte Pascal argument frame;
+PostMessage returns BOOL16 in AX and SendMessage returns LRESULT in DX:AX.
+LIBW.LIB IMPDEF records `0x6f40` and `0x6f70` confirm USER ordinals 110 and 111.
+
+The three notifications carry no pointer or handle parameters, as documented
+by [WM_SYSCOLORCHANGE](https://learn.microsoft.com/en-us/windows/win32/gdi/wm-syscolorchange),
+[WM_FONTCHANGE](https://learn.microsoft.com/en-us/windows/win32/gdi/wm-fontchange)
+and [WM_TIMECHANGE](https://learn.microsoft.com/en-us/windows/win32/sysinfo/wm-timechange).
+Broadcast delivery has a separate target and parameter classification at both
+the runtime and native boundary. Pointer-, handle- and character-bearing forms
+require their own conversion; a numeric message ID alone does not authorize
+forwarding guest bits to unrelated native windows. These declarations and source
+routes do not establish desktop application or cross-process runtime acceptance.
+
+## Native control subclassing and character conversion
+
+`SetWindowLong(GWL_WNDPROC)` can install a guest FAR procedure on a native
+dialog control through a per-window worker bridge. The old native procedure
+is returned as a retained guest call gate. HWND incarnation, mutation revision
+and provider-module ownership remain explicit through installation, restoration
+and WM_NCDESTROY. Ordinary query/gate/replacement failures return zero. Native
+dialog template controls capture their creator's Win16 instance before entering
+WM_INITDIALOG; later parent changes do not select a different callback instance.
+
+Synchronous WM_USER control messages first reach the guest subclass with the
+original Win16 words via a private numeric carrier. `CallWindowProc(old)` uses
+the existing control-family translation before invoking native USER. Unadapted
+native-only control messages fall back to the saved native procedure.
+
+The WM_CHAR, WM_DEADCHAR, WM_SYSCHAR and WM_SYSDEADCHAR paths use the fixed guest
+code page at sends, broadcasts, queued dispatch, callbacks and default calls.
+Packed DBCS words use low-byte lead/high-byte trail, consistent with the byte
+order consumed by the historical USER character thunk. A partial lead byte has
+no cross-message state in this adapter; encodings needing more than two guest
+bytes have no Win16 character-word representation. These source contracts do
+not establish original application acceptance.
+
+## Classic file paths, private profiles and DOS extended open
+
+`OpenFile`, `_lopen` and `_lcreat` resolve ANSI names against the calling
+task's retained DOS drive/directory and virtual aliases. `OF_REOPEN` resolves
+the saved OFSTRUCT filename, while `OF_VERIFY` compares the opened object's
+DOS date/time. Native opens remain capability-rooted. NUL and CON use fixed
+endpoint names through a separate adapter; arbitrary device paths are excluded.
+
+Private INI names retain the Windows-directory rule for bare filenames;
+explicit relative paths use the task directory. The host holds the target
+object, asks the native Unicode profile parser to process a uniquely named
+private snapshot, and copies successful writes back through the same target
+handle. Read queries need no target write access. ANSI/UTF-16 BOM encodings and
+guest output byte capacities remain explicit. Native cache flush, encoding or
+copyback failure cannot become a successful write; copyback is not an atomic
+file replacement. The documented profile search and modern IniFileMapping
+behavior are described in [GetPrivateProfileStringW](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getprivateprofilestringw).
+
+DOS INT 21h/AH=6Ch accepts replacement actions DX=0002h and 0012h and reports
+CX=3 only after replacing an existing object. Created/opened results remain
+CX=2/1. Creation and replacement can return read-only DOS handles: mutation
+rights are temporary, and DuplicateHandle reduces the same native object to
+read access before publication. Existing-only truncation cannot accidentally
+create a missing file. These contracts follow the extended-open dispatch in
+the public [MS-DOS FILE.ASM](https://github.com/microsoft/MS-DOS/blob/main/v4.0/src/DOS/FILE.ASM)
+and the native [CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)
+disposition contract; they are separate from application-level acceptance.

@@ -90,13 +90,14 @@ pub enum DosFileSharing {
     DenyNone,
 }
 
-/// Non-destructive INT 21h/AX=6C00 dispositions. Replacement is intentionally
-/// absent until the host can preserve existing-only and attribute contracts.
+/// INT 21h/AX=6C00 dispositions, including an existing-only replacement.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DosFileDisposition {
     OpenExisting,
     CreateNew,
     OpenOrCreate,
+    ReplaceExisting,
+    ReplaceOrCreate,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -104,7 +105,7 @@ pub struct DosFileOpenRequest {
     pub access: DosFileAccess,
     pub sharing: DosFileSharing,
     pub disposition: DosFileDisposition,
-    /// Creation attributes only; existing files must remain unchanged.
+    /// Creation/replacement attributes; an ordinary existing open ignores them.
     pub attributes: u8,
 }
 
@@ -112,6 +113,7 @@ pub struct DosFileOpenRequest {
 pub enum DosFileOpenOutcome {
     Opened,
     Created,
+    Replaced,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

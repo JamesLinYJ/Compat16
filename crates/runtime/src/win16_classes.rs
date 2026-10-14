@@ -22,6 +22,9 @@ mod unregister;
 #[path = "win16_class_procedure.rs"]
 mod procedure;
 
+#[path = "win16_class_lookup.rs"]
+mod lookup;
+
 struct GuestWindowClass {
     instance: u16,
     atom: u16,
@@ -44,6 +47,8 @@ pub(super) struct ResolvedWindowClass {
     pub system_kind: Option<Win16HostSystemClass>,
     pub wnd_proc: u32,
     pub has_menu_resource: bool,
+    /// The registration owner supplies class resources and owns its WNDPROC.
+    /// A CS_GLOBALCLASS window may be created by a different module.
     pub instance: u16,
     pub window_extra_bytes: usize,
 }
@@ -214,13 +219,9 @@ impl Win16State {
             Win16ClassName::Name(bytes) => Some(host.win16_ansi_lower_string(bytes)?),
             Win16ClassName::Atom(_) => None,
         };
-        let registered = self.window_classes.entries.iter().find(|entry| {
-            Some(entry.instance) == owner && match &name {
-                Win16ClassName::Atom(atom) => *atom == entry.atom
-                    || entry.source_name_atom == Some(*atom),
-                Win16ClassName::Name(_) => entry.lower_name.as_ref() == lower_name.as_ref(),
-            }
-        }).map(|entry| entry.info);
+        let registered = self.window_classes.registered_class_index(
+            owner, &name, lower_name.as_deref(),
+        ).map(|index| self.window_classes.entries[index].info);
         let info = if let Some(info) = registered { info } else {
             let Win16ClassName::Name(bytes) = &name else { return Ok(0); };
             let Some(kind) = system_control_class(bytes) else { return Ok(0); };
@@ -285,10 +286,9 @@ impl Win16State {
             return Ok(0);
         }
         let lower_name = Some(host.win16_ansi_lower_string(&class_name)?);
-        if self.window_classes.entries.iter().any(|entry| {
-            entry.instance == owner && (entry.lower_name.as_ref() == lower_name.as_ref()
-                || source_name_atom.is_some() && entry.source_name_atom == source_name_atom)
-        }) {
+        if self.window_classes.registration_conflicts(
+            owner, info.style, lower_name.as_deref(), source_name_atom,
+        ) {
             return Ok(0);
         }
         self.window_classes.entries.try_reserve(1).map_err(|_| RuntimeError::new(
@@ -366,19 +366,15 @@ impl Win16State {
             Win16ClassName::Name(bytes) => Some(host.win16_ansi_lower_string(bytes)?),
             Win16ClassName::Atom(_) => None,
         };
-        let class = self.window_classes.entries.iter().find(|class| {
-            class.instance == owner && match name {
-                Win16ClassName::Atom(atom) => class.atom == *atom
-                    || class.source_name_atom == Some(*atom),
-                Win16ClassName::Name(_) => class.lower_name.as_ref() == lower.as_ref(),
-            }
-        });
+        let class = self.window_classes.registered_class_index(
+            Some(owner), name, lower.as_deref(),
+        ).map(|index| &self.window_classes.entries[index]);
         Ok(class.map(|class| ResolvedWindowClass {
             host_class: class.host_class,
             system_kind: None,
             wnd_proc: class.info.lpfn_wnd_proc,
             has_menu_resource: class.menu_name.is_some(),
-            instance: owner,
+            instance: class.instance,
             window_extra_bytes: usize::try_from(class.info.cb_wnd_extra).unwrap_or(0),
         }))
     }

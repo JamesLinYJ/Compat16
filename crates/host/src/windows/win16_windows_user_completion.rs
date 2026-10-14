@@ -119,6 +119,12 @@ impl Win16Windows {
                 source,
                 ..
             }
+            | Win16WindowStep::NativeSubclassCallback {
+                operation_id,
+                callback,
+                source,
+                ..
+            }
             | Win16WindowStep::DialogCallback {
                 operation_id,
                 callback,

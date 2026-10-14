@@ -181,6 +181,9 @@ impl Win16State {
     ) -> Option<(u32, u16, WindowClassRoot)> {
         let native = native?;
         if self.window_handles.get(&window) != Some(&native) { return None; }
+        if let Some((address, instance)) = self.native_subclass_procedure(window) {
+            return Some((address, instance, WindowClassRoot::NoRegistration));
+        }
         if let Some(&(address, instance)) = self.dialog_procedures.get(&window) {
             return (address != 0).then(|| (address, instance, self.window_class_root(window)));
         }

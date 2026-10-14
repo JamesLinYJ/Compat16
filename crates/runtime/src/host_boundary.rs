@@ -26,6 +26,15 @@ pub enum Win16AnsiNextProbe {
     Complete(usize),
 }
 
+/// Private profile location, resolved without changing the native process cwd.
+#[derive(Clone, Debug)]
+pub enum Win16ProfilePath {
+    System,
+    WindowsDirectory(String),
+    File(crate::Win16GuestPath),
+    Invalid,
+}
+
 /// Opaque host file identity. It is never a guest HFILE or native HANDLE.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Win16HostFile(pub u64);
@@ -1211,7 +1220,7 @@ pub trait RuntimeHost:
     }
     fn win16_file_create(
         &mut self,
-        _path: &[u8],
+        _path: &crate::Win16GuestPath,
         _attributes: u16,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
         Err(RuntimeError::new(
@@ -1221,7 +1230,7 @@ pub trait RuntimeHost:
     }
     fn win16_file_open(
         &mut self,
-        _path: &[u8],
+        _path: &crate::Win16GuestPath,
         _mode: u16,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
         Err(RuntimeError::new(
@@ -1231,7 +1240,8 @@ pub trait RuntimeHost:
     }
     fn win16_open_file(
         &mut self,
-        _path: &[u8],
+        _path: &crate::Win16GuestPath,
+        _search_name: Option<&str>,
         _style: u16,
         _previous_ofstruct: Vec<u8>,
     ) -> Result<Win16HostOpenFile, RuntimeError> {
@@ -1589,7 +1599,7 @@ pub trait RuntimeHost:
         _section: Option<&[u8]>,
         _key: Option<&[u8]>,
         _default: i32,
-        _filename: Option<&[u8]>,
+        _filename: &Win16ProfilePath,
     ) -> Result<u32, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
@@ -1612,7 +1622,7 @@ pub trait RuntimeHost:
         _section: Option<&[u8]>,
         _key: Option<&[u8]>,
         _default: Option<&[u8]>,
-        _filename: Option<&[u8]>,
+        _filename: &Win16ProfilePath,
         _capacity: u16,
     ) -> Result<(Vec<u8>, u16), RuntimeError> {
         Err(RuntimeError::new(
@@ -1637,7 +1647,7 @@ pub trait RuntimeHost:
         _section: Option<&[u8]>,
         _key: Option<&[u8]>,
         _value: Option<&[u8]>,
-        _filename: Option<&[u8]>,
+        _filename: &Win16ProfilePath,
     ) -> Result<bool, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
@@ -1647,7 +1657,7 @@ pub trait RuntimeHost:
     fn win16_profile_section(
         &mut self,
         _section: Option<&[u8]>,
-        _filename: Option<&[u8]>,
+        _filename: &Win16ProfilePath,
         _capacity: u16,
     ) -> Result<(Vec<u8>, u16), RuntimeError> {
         Err(RuntimeError::new(
@@ -1669,7 +1679,7 @@ pub trait RuntimeHost:
         &mut self,
         _section: Option<&[u8]>,
         _entries: Option<&[u8]>,
-        _filename: Option<&[u8]>,
+        _filename: &Win16ProfilePath,
     ) -> Result<bool, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,

@@ -41,6 +41,12 @@ impl Win16State {
             match frame.continuation() {
                 Some(WindowReturn::Create { procedure, .. }) if procedure.address != 0 =>
                     references.push(procedure.address),
+                Some(WindowReturn::PrepareNativeSubclass { replacement, .. }) =>
+                    references.push(*replacement),
+                Some(WindowReturn::NativeSubclass(change)) => {
+                    references.push(change.replacement);
+                    references.extend(change.previous);
+                }
                 Some(WindowReturn::WindowProperties(
                     super::super::window_properties::WindowPropertyReturn::Enum { procedure, .. },
                 )) => references.push(*procedure),

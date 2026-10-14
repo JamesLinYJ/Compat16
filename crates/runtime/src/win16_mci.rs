@@ -162,6 +162,7 @@ fn unexpected_mci_post_error(
         crate::Win16WindowStep::PendingModalGuestWork { .. } => "PendingModalGuestWork",
         crate::Win16WindowStep::DdeCallback(_) => "DdeCallback",
         crate::Win16WindowStep::Callback { .. } => "Callback",
+        crate::Win16WindowStep::NativeSubclassCallback { .. } => "NativeSubclassCallback",
         crate::Win16WindowStep::DialogCallback { .. } => "DialogCallback",
         crate::Win16WindowStep::GuestTimerCallback { .. } => "GuestTimerCallback",
         crate::Win16WindowStep::WindowPropertyCallback { .. } => "WindowPropertyCallback",

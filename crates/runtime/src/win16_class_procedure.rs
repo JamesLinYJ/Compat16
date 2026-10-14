@@ -27,9 +27,9 @@ impl Win16State {
         let Some(entry) = self.window_classes.entries.iter_mut()
             .find(|entry| entry.host_class == class) else { return Ok(0); };
         let Some(procedure) = self.window_procedures.get_mut(&window) else { return Ok(0); };
-        if procedure.class != class || procedure.instance != entry.instance { return Ok(0); }
+        if procedure.class != class { return Ok(0); }
         let Some(history) = self.window_data.get_mut(&window).and_then(|state|
-            state.procedure_roots_for_owner_mut(native, class, entry.instance))
+            state.procedure_roots_for_owner_mut(native, class, procedure.instance))
         else { return Ok(0); };
 
         // The selected HWND history and class history have different owners.

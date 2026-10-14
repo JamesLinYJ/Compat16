@@ -685,7 +685,9 @@ impl WindowApiProjectionJournal {
                 phase: WindowPropertyProjectionPhase::Ready,
                 value: None,
             }),
-            Return::QueryProcedure { .. } => Self::QueryProcedure(ProcedureProjection {
+            Return::QueryProcedure { .. }
+            | Return::PrepareNativeSubclass { .. }
+            | Return::NativeSubclass(_) => Self::QueryProcedure(ProcedureProjection {
                 phase: ProcedureProjectionPhase::Ready,
                 value: None,
             }),
@@ -862,6 +864,8 @@ impl WindowApiProjectionJournal {
                 | (Journal::WindowData(_), Return::WindowData(_))
                 | (Journal::WindowProperties(_), Return::WindowProperties(_))
                 | (Journal::QueryProcedure(_), Return::QueryProcedure { .. })
+                | (Journal::QueryProcedure(_), Return::PrepareNativeSubclass { .. })
+                | (Journal::QueryProcedure(_), Return::NativeSubclass(_))
                 | (Journal::UserMessageBox(_), Return::UserMessageBox)
                 | (
                     Journal::UserCursorAccelerator(_),

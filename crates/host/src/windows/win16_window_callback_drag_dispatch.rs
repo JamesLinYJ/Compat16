@@ -13,7 +13,7 @@ pub(super) fn dispatch(
     state: &Rc<RefCell<WorkerState>>,
     hwnd: HWND,
     identity: NativeWindowIdentity,
-    host_class: Win16HostClass,
+    host_class: Option<Win16HostClass>,
     message: u32,
     w_param: WPARAM,
     l_param: LPARAM,

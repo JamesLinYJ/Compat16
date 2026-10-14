@@ -657,7 +657,10 @@ impl Win16State {
                 return self.complete_return(registers, return_to.0, return_to.1,
                     return_to.2, 0, Win16ReturnKind::Dword);
             }
-            if let Some((address, instance)) = self.dialog_procedures.get(&message.hwnd).copied() {
+            if let Some((address, instance)) = self.native_subclass_procedure(message.hwnd) {
+                (address, WindowCallbackContinuation::GuestDispatch, Some(instance),
+                    WindowClassRoot::NoRegistration)
+            } else if let Some((address, instance)) = self.dialog_procedures.get(&message.hwnd).copied() {
                 self.initialize_dialog_window_data(message.hwnd, instance)?;
                 self.reset_dialog_message_result(message.hwnd);
                 (address, WindowCallbackContinuation::GuestDialogDispatch {

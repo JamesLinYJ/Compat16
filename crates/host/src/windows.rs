@@ -24,6 +24,8 @@ mod service_trace;
 mod vga_window;
 mod win16;
 mod win16_open_file;
+mod win16_file_paths;
+mod win16_file_devices;
 mod win16_common;
 mod win16_drawing;
 mod win16_gdi;
@@ -58,6 +60,7 @@ mod win16_wing_dib_use;
 mod multimedia_wake;
 mod win16_printer;
 mod win16_profile_sections;
+mod win16_private_profile;
 mod win16_registered_names;
 mod win16_wing_brush;
 

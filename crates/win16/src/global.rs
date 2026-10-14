@@ -356,7 +356,13 @@ impl GlobalHeap {
         }
 
         self.validate_memory(memory)?;
-        if block.is_pinned() { return Err(Win16Error::Locked); }
+        // A same-sized resident allocation needs no writes or descriptor
+        // changes, even while a guest lock or retained host view is active.
+        if new_size == block.size { return Ok(handle); }
+        // Guest GlobalLock/GlobalFix counts constrain relocation, not an
+        // in-place resize. Internal, page and selector-alias leases retain
+        // backing ranges and must still prevent any size or base change.
+        if self.retention_pin_count(handle)? != 0 { return Err(Win16Error::Locked); }
         selector_updates.try_reserve(selectors.slot_capacity())
             .map_err(|_| Win16Error::OutOfMemory)?;
         if block.discarded {
@@ -396,7 +402,6 @@ impl GlobalHeap {
             return Ok(handle);
         }
 
-        if new_size == block.size { return Ok(handle); }
         let initialize_extension = flags & GMEM_ZEROINIT != 0 || block.flags.zero_init;
         if self.can_fit_at(block.base, new_size, Some(handle.raw.0)) {
             let new_length = usize::try_from(new_size).map_err(|_| Win16Error::OutOfMemory)?;
@@ -445,6 +450,11 @@ impl GlobalHeap {
             return Ok(handle);
         }
 
+        // The Win16 caller may explicitly permit moving a guest-locked block.
+        // The retained backing leases above are never overridden by this flag.
+        if block.reported_lock_count() != 0 && flags & GMEM_MOVEABLE == 0 {
+            return Err(Win16Error::Locked);
+        }
         // Win16 GMEM_MOVEABLE permits relocation of a fixed block for this
         // resize; only GMEM_MODIFY can convert a fixed allocation to movable.
         if !block.flags.movable && flags & GMEM_MOVEABLE == 0 {

@@ -418,7 +418,7 @@ impl Win16State {
                 if !self.resolve_dialog_template_classes(&mut template, instance, host)? {
                     host.report_diagnostic(&crate::Diagnostic::warning(
                         Kind::CompatibilityGap,
-                        "Win16 dialog template references a class that is not registered by its guest instance",
+                        "Win16 dialog template references a class unavailable in its local, global, or predefined namespace",
                     ));
                     return Ok(dialog_create_not_invoked(
                         modal,
@@ -437,7 +437,7 @@ impl Win16State {
                     // classes to reserve the Win16 DLGWINDOWEXTRA area and
                     // call DefDlgProc from their WndProc. Guest storage stays
                     // separate from Win32's own dialog-manager bytes.
-                    if resolved.instance != instance || resolved.wnd_proc == 0
+                    if resolved.wnd_proc == 0
                         || resolved.window_extra_bytes < 30
                     {
                         host.report_diagnostic(&crate::Diagnostic::warning(Kind::CompatibilityGap,
