@@ -509,10 +509,10 @@ impl Win16State {
         self.read_text_bytes(memory, pointer, length).map(Some)
     }
 
-    /// Copies an HGLOBAL-owned packed DIB while holding the same guest global
-    /// allocation identity used by GlobalLock. The native brush is created
-    /// only from this owned snapshot, never from the guest FAR address.
-    fn copy_global_bytes(
+    /// Copies an HGLOBAL-owned byte block while holding the same guest global
+    /// allocation identity used by GlobalLock. Native consumers receive only
+    /// this owned snapshot, never the guest FAR address.
+    pub(super) fn copy_global_bytes(
         &mut self,
         guest_handle: u16,
         memory: &Memory,
@@ -538,7 +538,7 @@ impl Win16State {
         let length = usize::try_from(info.size).map_err(|error| {
             RuntimeError::with_source(
                 Kind::ResourceExhausted,
-                "Win16 packed DIB exceeds host address space",
+                "Win16 global byte block exceeds host address space",
                 error,
             )
         })?;

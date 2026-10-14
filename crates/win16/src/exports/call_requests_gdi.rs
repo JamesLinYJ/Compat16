@@ -15,6 +15,12 @@ pub(super) fn decode(
         return Ok(Some(Win16ApiRequest::PrintQueue(request)));
     }
     let request = match descriptor.id {
+        Win16ExportId::GdiGetMetaFile
+        | Win16ExportId::GdiPlayMetaFile
+        | Win16ExportId::GdiCopyMetaFile
+        | Win16ExportId::GdiDeleteMetaFile => {
+            gdi_calls::decode(descriptor.id, &arguments, selectors, memory)?
+        }
         Win16ExportId::GdiCreateCompatibleDc
         | Win16ExportId::GdiDeleteDc
         | Win16ExportId::GdiDeleteObject
@@ -22,7 +28,11 @@ pub(super) fn decode(
         | Win16ExportId::GdiGetObject
         | Win16ExportId::GdiGetDeviceCaps
         | Win16ExportId::GdiGetStockObject
+        | Win16ExportId::GdiGetMetaFileBits
+        | Win16ExportId::GdiSetMetaFileBits
+        | Win16ExportId::GdiSetMetaFileBitsBetter
         | Win16ExportId::GdiEnumFonts
+        | Win16ExportId::GdiEnumObjects
         | Win16ExportId::GdiEnumFontFamilies
         | Win16ExportId::GdiLineDda
         | Win16ExportId::GdiMulDiv

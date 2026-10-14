@@ -87,6 +87,29 @@ impl Win16State {
         } else {
             PSP_COMMAND_TEXT + leading_space as u16
         };
+        let command_terminator = if command_length == 0 {
+            None
+        } else {
+            let search_start = 1 + leading_space;
+            let carriage_return = command[search_start..=command_length + 1]
+                .iter()
+                .position(|byte| *byte == b'\r')
+                .map(|offset| search_start + offset)
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        Kind::GuestFault,
+                        "Win16 InitTask PSP command tail has no carriage return",
+                    )
+                })?;
+            let offset = usize::from(PSP_COMMAND_LENGTH) + carriage_return;
+            Some(u16::try_from(offset).map_err(|error| {
+                RuntimeError::with_source(
+                    Kind::GuestFault,
+                    "Win16 InitTask PSP command terminator offset is invalid",
+                    error,
+                )
+            })?)
+        };
 
         let stack_min = returned_sp as u16;
         let stack_reserve = context.ebx as u16;
@@ -99,8 +122,12 @@ impl Win16State {
         let dgroup = self.selectors.reference(Selector(context.ds))
             .map_err(crate::runtime_error)?;
         let mut patches = Vec::new();
-        patches.try_reserve_exact(10).map_err(|error| RuntimeError::with_source(
+        patches.try_reserve_exact(11).map_err(|error| RuntimeError::with_source(
             Kind::ResourceExhausted, "allocate Win16 InitTask memory patches", error))?;
+        if let Some(offset) = command_terminator {
+            self.stage_task_patch(memory, &mut patches,
+                SegmentedPointer::new(self.psp_selector, offset), &[0])?;
+        }
         self.stage_task_patch(memory, &mut patches,
             SegmentedPointer::new(dgroup, INSTANCE_DATA_STACK_TOP_OFFSET as u16), &stack_top.to_le_bytes())?;
         self.stage_task_patch(memory, &mut patches,
@@ -128,7 +155,7 @@ impl Win16State {
         commit_task_patches(memory, &patches)?;
 
         let mut returned = context;
-        returned.eax = 1;
+        returned.eax = u32::from(self.psp_selector.raw().0);
         returned.ebx = u32::from(command_offset);
         returned.ecx = u32::from(stack_top);
         returned.edx = DEFAULT_CMD_SHOW;

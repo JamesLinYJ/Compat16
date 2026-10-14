@@ -538,6 +538,7 @@ impl Win16State {
         // final root set is module handles consumed by `unreachable`.
         let mut references = self.window_code_references();
         references.extend(self.font_code_references());
+        references.extend(self.object_code_references());
         references.extend(self.line_dda_code_references());
         references.extend(self.window_enumeration_code_references());
         references.extend(self.user_hook_code_references());

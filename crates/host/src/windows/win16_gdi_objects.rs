@@ -9,6 +9,9 @@ pub(super) use self::win16_gdi_region_lease::Win16RegionLease;
 #[path = "win16_gdi_object_query.rs"]
 mod object_query;
 
+#[path = "win16_gdi_object_enumeration.rs"]
+mod object_enumeration;
+
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostGdiCleanup, Win16HostGdiObject,
     Win16SelectObjectResult,

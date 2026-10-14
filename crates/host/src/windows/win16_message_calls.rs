@@ -15,8 +15,8 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     GetCapture, GetFocus, GetKeyboardState, ReleaseCapture, SetCapture, SetFocus, SetKeyboardState,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetInputState, GetMessagePos, GetMessageTime, GetQueueStatus, KillTimer, PostMessageW,
-    PostThreadMessageW, SendMessageW, SetTimer, TIMERPROC,
+    GetInputState, GetMessageExtraInfo, GetMessagePos, GetMessageTime, GetQueueStatus, InSendMessage,
+    KillTimer, PostMessageW, PostThreadMessageW, SendMessageW, SetTimer, TIMERPROC,
 };
 
 use super::win16_message_loop::{self, WaitResult};
@@ -372,6 +372,21 @@ pub(super) fn execute(
         }
         Win16MessageCall::GetMessageTime => {
             Ok(Win16MessageCallResult::Long(unsafe { GetMessageTime() }))
+        }
+        Win16MessageCall::GetMessageExtraInfo => {
+            // SDK LPARAM is a 32-bit LONG here. Keep its low 32 bits as queue
+            // metadata, without treating native LONG_PTR bits as a pointer.
+            Ok(Win16MessageCallResult::Long(unsafe {
+                GetMessageExtraInfo() as i32
+            }))
+        }
+        Win16MessageCall::InSendMessage => {
+            // wait_for_guest_reply executes nested Begin commands inline on
+            // the still-live native WndProc stack, preserving its send context.
+            // Capture it now; completion retries only project this saved BOOL.
+            Ok(Win16MessageCallResult::Boolean(unsafe {
+                InSendMessage() != 0
+            }))
         }
         Win16MessageCall::GetInputState => Ok(Win16MessageCallResult::Boolean(
             unsafe { GetInputState() } != 0,

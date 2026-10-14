@@ -28,6 +28,14 @@ pub struct Win16HostLogBrush {
     pub hatch: u32,
 }
 
+/// Copied native EnumObjects data. Pattern bitmaps retain opaque GDI identity;
+/// a native LOGBRUSH handle or address is never narrowed into guest storage.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Win16HostGdiObjectRecord {
+    Pen(Win16HostLogPen),
+    Brush { brush: Win16HostLogBrush, pattern: Option<Win16HostGdiObject> },
+}
+
 /// Fixed-size ANSI font description shared by factories and USER settings.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Win16HostLogFont {

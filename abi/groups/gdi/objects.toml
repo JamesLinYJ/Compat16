@@ -2,6 +2,19 @@ module = "GDI"
 defaults = { attributes = ["ret16"] }
 
 [[exports]]
+ordinal = 71
+name = "EnumObjects"
+binding = { rust_id = "GdiEnumObjects", id_value = 1231, constant = "GDI_ENUM_OBJECTS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "object_type", type = "I16" },
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "parameter", type = "I32" },
+]
+
+[[exports]]
 ordinal = 45
 name = "SelectObject"
 binding = { rust_id = "GdiSelectObject", id_value = 270, constant = "GDI_SELECT_OBJECT" }
@@ -140,6 +153,30 @@ returns = "word"
 params = [
   { name = "object", type = "U16" },
 ]
+
+[[exports]]
+ordinal = 159
+name = "GetMetaFileBits"
+binding = { rust_id = "GdiGetMetaFileBits", id_value = 1241, constant = "GDI_GET_META_FILE_BITS" }
+[exports.call]
+returns = "word"
+params = [{ name = "metafile", type = "U16" }]
+
+[[exports]]
+ordinal = 160
+name = "SetMetaFileBits"
+binding = { rust_id = "GdiSetMetaFileBits", id_value = 1242, constant = "GDI_SET_META_FILE_BITS" }
+[exports.call]
+returns = "word"
+params = [{ name = "bits", type = "U16" }]
+
+[[exports]]
+ordinal = 196
+name = "SetMetaFileBitsBetter"
+binding = { rust_id = "GdiSetMetaFileBitsBetter", id_value = 1243, constant = "GDI_SET_META_FILE_BITS_BETTER" }
+[exports.call]
+returns = "word"
+params = [{ name = "bits", type = "U16" }]
 
 [[exports]]
 ordinal = 445

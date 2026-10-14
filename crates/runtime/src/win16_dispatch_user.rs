@@ -62,6 +62,8 @@ impl Win16State {
                 | win16_abi::Win16UserMessagesRequest::PostAppMessage { .. }
                 | win16_abi::Win16UserMessagesRequest::GetMessagePos
                 | win16_abi::Win16UserMessagesRequest::GetMessageTime
+                | win16_abi::Win16UserMessagesRequest::GetMessageExtraInfo
+                | win16_abi::Win16UserMessagesRequest::InSendMessage
                 | win16_abi::Win16UserMessagesRequest::CallWindowProc { .. }
                 | win16_abi::Win16UserMessagesRequest::GetKeyboardState { .. }
                 | win16_abi::Win16UserMessagesRequest::SetKeyboardState { .. }
@@ -607,6 +609,13 @@ impl Win16State {
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Runtime(
                 win16_abi::Win16UserRuntimeRequest::WNetGetCaps { index },
             )) => u32::from(host.win16_wnet_get_caps(index)?),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Runtime(
+                win16_abi::Win16UserRuntimeRequest::GetTimerResolution,
+            )) => {
+                // Win3.0/3.1 USER returns this historical constant; it is not
+                // the frequency of a modern host performance clock.
+                1000
+            }
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Runtime(
                 win16_abi::Win16UserRuntimeRequest::GetTickCount,
             ))

@@ -97,7 +97,7 @@ impl Win16State {
 
     pub(super) fn kernel_get_exp_win_ver(
         &self, input: u16, host: &mut impl RuntimeHost,
-    ) -> u16 {
+    ) -> u32 {
         let handle = if input == 0 { self.modules.main } else {
             let Some(handle) = self.modules.by_handle(input) else { return 0; };
             handle
@@ -108,10 +108,22 @@ impl Win16State {
             );
             return 0;
         }
-        self.modules.records.get(&handle)
+        let Some(module) = self.modules.records.get(&handle)
             .filter(|record| !matches!(record.state, ModuleState::Retired | ModuleState::Unloading))
-            .and_then(|record| record.definition.as_ref())
-            .map_or(0, |module| module.header.expected_windows_version)
+            .and_then(|record| record.definition.as_ref()) else { return 0; };
+
+        // KERNEL's loaded NE header keeps NEWINPROT in ne_flags at runtime.
+        // LDHEADER derives that private bit from NEINFONT in the high byte
+        // of its exetype word, parsed here as the `other_flags` byte.
+        const NEINFONT: u8 = 0x02;
+        const NEWINPROT: u16 = 0x2000;
+        let proportional_font_flag = if module.header.other_flags & NEINFONT != 0 {
+            NEWINPROT
+        } else {
+            0
+        };
+        (u32::from(proportional_font_flag) << 16)
+            | u32::from(module.header.expected_windows_version)
     }
 }
 

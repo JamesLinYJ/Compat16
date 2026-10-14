@@ -55,6 +55,17 @@ pub(super) fn decode(
             };
             Win16ApiRequest::User(super::Win16UserRequest::Geometry(request))
         }
+        Win16ExportId::UserSetCursorPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::SetCursorPos {
+                x: word_argument(arguments, 0)? as i16,
+                y: word_argument(arguments, 1)? as i16,
+            }),
+        ),
+        Win16ExportId::UserClipCursor => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::ClipCursor {
+                rect: dword_argument(arguments, 0)?,
+            }),
+        ),
         Win16ExportId::UserGetClipCursor => Win16ApiRequest::User(
             super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::GetClipCursor {
                 rect: dword_argument(arguments, 0)?,
@@ -367,6 +378,28 @@ pub(super) fn decode(
                 super::Win16UserGeometryRequest::WindowFromPoint { x, y },
             ))
         }
+        Win16ExportId::UserBeginDeferWindowPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::BeginDeferWindowPos {
+                count: word_argument(arguments, 0)? as i16,
+            }),
+        ),
+        Win16ExportId::UserDeferWindowPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::DeferWindowPos {
+                batch: word_argument(arguments, 0)?,
+                window: word_argument(arguments, 1)?,
+                insert_after: word_argument(arguments, 2)?,
+                x: word_argument(arguments, 3)? as i16,
+                y: word_argument(arguments, 4)? as i16,
+                width: word_argument(arguments, 5)? as i16,
+                height: word_argument(arguments, 6)? as i16,
+                flags: word_argument(arguments, 7)?,
+            }),
+        ),
+        Win16ExportId::UserEndDeferWindowPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::EndDeferWindowPos {
+                batch: word_argument(arguments, 0)?,
+            }),
+        ),
         Win16ExportId::UserSetWindowPos => Win16ApiRequest::User(
             super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::SetWindowPos {
                 window: word_argument(arguments, 0)?,

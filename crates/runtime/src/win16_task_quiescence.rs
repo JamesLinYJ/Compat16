@@ -20,6 +20,7 @@ impl Win16State {
             && self.dde_context_restores.is_empty()
             && self.callback_kinds.is_empty()
             && self.font_callbacks.is_empty()
+            && self.object_callbacks.is_empty()
             && self.line_dda_callbacks.is_empty()
             && self.window_enumerations.is_empty()
             && self.window_callbacks.is_empty()

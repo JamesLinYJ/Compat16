@@ -53,6 +53,7 @@ pub(super) fn worker_main(
     // signals after the actual worker thread exits.
     let worker_liveness = Arc::clone(&worker_alive);
     let _worker_exit = MarkWorkerExited(worker_alive);
+    let _cursor_clip_exit = super::super::win16_cursor_clip::WorkerExitGuard;
 
     // Each thread needs its own USER queue. This call intentionally does not
     // dispatch queued messages; callbacks are delivered only by explicit
@@ -284,6 +285,9 @@ pub(super) fn worker_main(
 }
 
 fn retain_com_sta_without_terminal_ack() -> ! {
+    if let Err(error) = super::super::win16_cursor_clip::cleanup_for_exit() {
+        eprintln!("runtime: cursor clipping cleanup before retained USER exit failed: {error}");
+    }
     // There is no live command sender left to acknowledge the exact retained
     // result. Parking retains WorkerState, its bounded terminal journal, the
     // native object/media tables, and the initialized USER/OLE STA together.

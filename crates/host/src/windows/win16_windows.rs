@@ -11,6 +11,8 @@ mod win16_common_controls_dc_retention;
 mod win16_common_controls_drag_list;
 #[path = "win16_control_outputs.rs"]
 mod win16_control_outputs;
+#[path = "win16_cursor_clip.rs"]
+mod win16_cursor_clip;
 #[path = "win16_deferred_native_messages.rs"]
 mod win16_deferred_native_messages;
 #[path = "win16_dialog_icon_controls.rs"]

@@ -193,6 +193,8 @@ pub(super) fn decode(
         | Win16ExportId::UserPostAppMessage
         | Win16ExportId::UserGetMessagePos
         | Win16ExportId::UserGetMessageTime
+        | Win16ExportId::UserGetMessageExtraInfo
+        | Win16ExportId::UserInSendMessage
         | Win16ExportId::UserCallWindowProc
         | Win16ExportId::UserGetKeyboardState
         | Win16ExportId::UserSetKeyboardState
@@ -368,6 +370,9 @@ pub(super) fn decode(
         | Win16ExportId::UserInflateRect
         | Win16ExportId::UserIntersectRect
         | Win16ExportId::UserSetWindowPos
+        | Win16ExportId::UserBeginDeferWindowPos
+        | Win16ExportId::UserDeferWindowPos
+        | Win16ExportId::UserEndDeferWindowPos
         | Win16ExportId::UserGetWindow
         | Win16ExportId::UserShowOwnedPopups
         | Win16ExportId::UserIsZoomed
@@ -376,6 +381,8 @@ pub(super) fn decode(
         | Win16ExportId::UserGetLastActivePopup
         | Win16ExportId::UserClientToScreen
         | Win16ExportId::UserGetClipCursor
+        | Win16ExportId::UserClipCursor
+        | Win16ExportId::UserSetCursorPos
         | Win16ExportId::UserGetCursorPos
         | Win16ExportId::UserCreateCaret
         | Win16ExportId::UserDestroyCaret
@@ -391,6 +398,7 @@ pub(super) fn decode(
             call_window_ops::decode(descriptor.id, &arguments, selectors, memory)?
         }
         Win16ExportId::UserGetTickCount
+        | Win16ExportId::UserGetTimerResolution
         | Win16ExportId::UserWNetGetCaps
         | Win16ExportId::UserGetCurrentTime
         | Win16ExportId::UserMessageBeep

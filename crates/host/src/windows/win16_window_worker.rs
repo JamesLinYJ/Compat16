@@ -681,6 +681,11 @@ pub(super) fn receive_command(state: &Rc<RefCell<WorkerState>>) -> Option<Worker
 }
 
 pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerCommand) {
+    if matches!(&command, WorkerCommand::Abort { .. } | WorkerCommand::Shutdown { .. }) {
+        if let Err(error) = super::win16_cursor_clip::cleanup_for_exit() {
+            state.borrow_mut().terminal_failures.push(Arc::new(error));
+        }
+    }
     match command {
         WorkerCommand::WindowEnumeration { query, response } => {
             let _ = response.send(super::win16_window_enumeration::query(state, query));

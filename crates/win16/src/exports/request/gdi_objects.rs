@@ -4,6 +4,19 @@ use super::super::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16GdiObjectsRequest {
+    GetMetaFile { path: Vec<u8> },
+    PlayMetaFile { dc: u16, metafile: u16 },
+    CopyMetaFile { metafile: u16, path: Option<Vec<u8>> },
+    DeleteMetaFile { metafile: u16 },
+
+    /// Enumerate LOGPEN16 or LOGBRUSH16 through a checked guest FAR callback.
+    EnumObjects {
+        dc: u16,
+        object_type: i16,
+        callback: u32,
+        parameter: i32,
+    },
+
     /// GDI object creation requests own decoded fixed Win16 structure values;
     /// bitmap pixel data remains a guest FAR address for runtime-side sizing.
     CreatePen {
@@ -141,4 +154,10 @@ pub enum Win16GdiObjectsRequest {
         output: Option<Vec<u8>>,
         init_data: u32,
     },
+
+    /// Win16 metafile bits retain the original guest global-memory identity.
+    GetMetaFileBits { metafile: u16 },
+    SetMetaFileBits { bits: u16 },
+    /// Transfer the block to the shared global-memory class via GMEM_MODIFY.
+    SetMetaFileBitsBetter { bits: u16 },
 }

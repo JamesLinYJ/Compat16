@@ -130,6 +130,14 @@ impl Win16State {
                 self.shell_registry_api(request, memory, host)?
             }
             Win16ApiRequest::Ole2Nls(request) => self.ole2nls_api(request, memory, host)?,
+            Win16ApiRequest::Winnls(request @ (
+                win16_abi::Win16WinnlsRequest::EnableIme { .. }
+                    | win16_abi::Win16WinnlsRequest::GetEnableStatus { .. }
+            )) => {
+                return self.begin_winnls_ime_control(
+                    request, registers, memory, host, return_to, descriptor.return_kind,
+                );
+            }
             Win16ApiRequest::Winnls(request) => self.winnls_api(request, memory, host)?,
             Win16ApiRequest::Ole2Disp(request) => self.ole2disp_api(request, memory, host)?,
             Win16ApiRequest::Ole2DispConvert(request) => {

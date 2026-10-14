@@ -37,6 +37,9 @@ returns = "dword"
 ordinal = 14
 name = "GetTimerResolution"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetTimerResolution", id_value = 1238, constant = "USER_GET_TIMER_RESOLUTION" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 15
@@ -50,6 +53,10 @@ returns = "dword"
 ordinal = 16
 name = "ClipCursor"
 decl = { args = ["pointer"] }
+binding = { rust_id = "UserClipCursor", id_value = 1240, constant = "USER_CLIP_CURSOR" }
+[exports.call]
+returns = "void"
+params = [{ name = "rect", type = "FarBuffer" }]
 
 [[exports]]
 ordinal = 19
@@ -96,6 +103,10 @@ returns = "word"
 ordinal = 70
 name = "SetCursorPos"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "UserSetCursorPos", id_value = 1239, constant = "USER_SET_CURSOR_POS" }
+[exports.call]
+returns = "void"
+params = [{ name = "x", type = "I16" }, { name = "y", type = "I16" }]
 
 [[exports]]
 ordinal = 86
@@ -251,6 +262,9 @@ name = "GetSysModalWindow"
 [[exports]]
 ordinal = 192
 name = "InSendMessage"
+binding = { rust_id = "UserInSendMessage", id_value = 1227, constant = "USER_IN_SEND_MESSAGE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 196
@@ -445,21 +459,6 @@ name = "GetNextDriver"
 decl = { args = ["word", "long"] }
 
 [[exports]]
-ordinal = 259
-name = "BeginDeferWindowPos"
-decl = { args = ["signed_word"] }
-
-[[exports]]
-ordinal = 260
-name = "DeferWindowPos"
-decl = { args = ["word", "word", "word", "signed_word", "signed_word", "signed_word", "signed_word", "word"] }
-
-[[exports]]
-ordinal = 261
-name = "EndDeferWindowPos"
-decl = { args = ["word"] }
-
-[[exports]]
 ordinal = 273
 name = "ControlPanelInfo"
 decl = { args = ["word", "word", "string"] }
@@ -514,6 +513,9 @@ returns = "word"
 ordinal = 288
 name = "GetMessageExtraInfo"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetMessageExtraInfo", id_value = 1233, constant = "USER_GET_MESSAGE_EXTRA_INFO" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 289

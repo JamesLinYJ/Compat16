@@ -66,6 +66,9 @@ pub(super) unsafe extern "system" fn host_window_proc(
     w_param: WPARAM,
     l_param: LPARAM,
 ) -> LRESULT {
+    if message == WM_ACTIVATEAPP && w_param == 0 {
+        super::win16_cursor_clip::forget_after_deactivation();
+    }
     // The catch arm runs after Rust has unwound local guards. It must know
     // whether WM_DROPFILES' opaque native owner was already released before
     // deciding whether the original native parameters can be forwarded.

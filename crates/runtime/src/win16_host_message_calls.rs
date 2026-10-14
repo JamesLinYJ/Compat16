@@ -59,6 +59,10 @@ pub enum Win16MessageCall {
     ReleaseCapture,
     GetMessagePos,
     GetMessageTime,
+    /// Scalar queue metadata; no native or guest pointer is dereferenced.
+    GetMessageExtraInfo,
+    /// Query InSendMessage on the native worker owning the active guest WndProc.
+    InSendMessage,
     GetInputState,
     GetQueueStatus { flags: u16 },
     GetKeyboardState,

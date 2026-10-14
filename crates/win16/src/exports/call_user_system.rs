@@ -16,6 +16,9 @@ pub(super) fn decode(
         Win16ExportId::UserGetTickCount => Win16ApiRequest::User(super::Win16UserRequest::Runtime(
             super::Win16UserRuntimeRequest::GetTickCount,
         )),
+        Win16ExportId::UserGetTimerResolution => Win16ApiRequest::User(super::Win16UserRequest::Runtime(
+            super::Win16UserRuntimeRequest::GetTimerResolution,
+        )),
         Win16ExportId::UserGetCurrentTime => Win16ApiRequest::User(
             super::Win16UserRequest::Runtime(super::Win16UserRuntimeRequest::GetCurrentTime),
         ),

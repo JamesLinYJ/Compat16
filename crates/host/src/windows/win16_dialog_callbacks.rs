@@ -33,6 +33,9 @@ pub(super) unsafe extern "system" fn host_dialog_proc(
     w_param: WPARAM,
     l_param: LPARAM,
 ) -> isize {
+    if message == windows_sys::Win32::UI::WindowsAndMessaging::WM_ACTIVATEAPP && w_param == 0 {
+        super::win16_cursor_clip::forget_after_deactivation();
+    }
     let is_native_drop = message == WM_DROPFILES
         && !super::win16_guest_notifications::is_carrier_message(hwnd, message, w_param, l_param);
     let outcome = catch_unwind(AssertUnwindSafe(|| {

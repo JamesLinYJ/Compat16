@@ -4,6 +4,7 @@
 pub enum Win16UserRuntimeRequest {
     WNetGetCaps { index: u16 },
     GetTickCount,
+    GetTimerResolution,
 
     GetCurrentTime,
 

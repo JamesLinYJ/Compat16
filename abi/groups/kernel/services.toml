@@ -128,7 +128,7 @@ ordinal = 167
 name = "GetExpWinVer"
 binding = { rust_id = "KernelGetExpWinVer", id_value = 96, constant = "KERNEL_GET_EXP_WIN_VER" }
 [exports.call]
-returns = "word"
+returns = "dword"
 params = [
   { name = "module", type = "U16" },
 ]

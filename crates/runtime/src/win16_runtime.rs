@@ -82,6 +82,8 @@ mod kernel_memory;
 mod kernel_instance;
 #[path = "win16_gdi_services.rs"]
 mod gdi_services;
+#[path = "win16_metafile.rs"]
+mod metafile;
 #[path = "win16_kernel_task.rs"]
 mod kernel_task;
 #[path = "win16_window_task.rs"]
@@ -206,6 +208,8 @@ mod atoms;
 mod call_return;
 #[path = "win16_font_callback.rs"]
 mod font_callback;
+#[path = "win16_object_callback.rs"]
+mod object_callback;
 #[path = "win16_far_callback.rs"]
 mod far_callback;
 #[path = "win16_callback_entry.rs"]
@@ -482,6 +486,7 @@ enum ImportBinding {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum CallbackKind {
     Font,
+    GdiObject,
     AcmEnumeration,
     LineDda,
     WindowEnumeration,
@@ -654,8 +659,10 @@ pub(crate) struct Win16State {
     active_dispatch_return: Option<x86_cpu::LegacyRegisterTransfer>,
     vm_start_tick: Option<u32>,
     font_callbacks: Vec<font_callback::FontCallbackFrame>,
+    object_callbacks: Vec<object_callback::ObjectCallbackFrame>,
     line_dda_callbacks: Vec<line_dda::LineDdaCallbackFrame>,
     window_enumerations: Vec<window_enumeration::WindowEnumerationFrame>,
+    deferred_window_batches: window_operations::DeferredWindowBatches,
     user_hooks: user_hooks::Win16UserHooks,
     window_callbacks: Vec<windows::WindowCallbackFrame>,
     retired_window_payloads: Vec<windows::RetiredWindowPayloadOwner>,

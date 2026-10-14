@@ -330,6 +330,20 @@ impl RuntimeHost for WindowsHost {
             operation,
         )
     }
+    fn win16_metafile(
+        &mut self,
+        operation: runtime::Win16HostMetafileOperation,
+    ) -> Result<runtime::Win16HostMetafileResult, RuntimeError> {
+        match runtime_host_gdi::execute_metafile(self, operation) {
+            Err(error) if error.kind() == Kind::CompatibilityGap => {
+                self.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
+                    "WMF playback requires an unsupported Escape payload translation")
+                    .with_cause(error));
+                Ok(runtime::Win16HostMetafileResult::Played(false))
+            }
+            result => result,
+        }
+    }
     fn win16_printer_capabilities(
         &mut self,
         request: runtime::Win16PrinterCapabilities,
@@ -696,6 +710,13 @@ impl RuntimeHost for WindowsHost {
         index: i16,
     ) -> Result<Option<i16>, RuntimeError> {
         runtime_host_gdi::device_caps(self, dc, index)
+    }
+    fn win16_enum_objects(
+        &mut self,
+        dc: Win16HostDc,
+        object_type: i16,
+    ) -> Result<Vec<runtime::Win16HostGdiObjectRecord>, RuntimeError> {
+        runtime_host_gdi::enum_objects(self, dc, object_type)
     }
     fn win16_enum_fonts(
         &mut self,

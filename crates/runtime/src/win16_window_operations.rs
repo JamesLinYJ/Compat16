@@ -19,6 +19,9 @@ use crate::{
 mod child_lookup;
 #[path = "win16_window_operations/geometry.rs"]
 mod geometry;
+#[path = "win16_window_operations/defer.rs"]
+mod defer;
+pub(super) use defer::DeferredWindowBatches;
 #[path = "win16_window_operations/caret.rs"]
 mod caret;
 #[path = "win16_window_operations/window.rs"]
@@ -84,7 +87,7 @@ impl Win16State {
         )
     }
 
-    fn submit_call(
+    pub(super) fn submit_call(
         &mut self,
         registers: &mut Registers,
         memory: &mut Memory,
@@ -110,7 +113,7 @@ impl Win16State {
         )
     }
 
-    fn native_window(&self, guest: u16) -> Win16WindowTarget {
+    pub(super) fn native_window(&self, guest: u16) -> Win16WindowTarget {
         if guest == 0 {
             Win16WindowTarget::Null
         } else {

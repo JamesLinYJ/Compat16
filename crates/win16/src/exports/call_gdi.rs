@@ -13,6 +13,36 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Win16ApiRequest, Win16Error> {
     let request = match export {
+        Win16ExportId::GdiGetMetaFile => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::GetMetaFile {
+                path: super::read_far_string(dword_argument(arguments, 0)?, selectors, memory)?,
+            })
+        }
+        Win16ExportId::GdiPlayMetaFile => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::PlayMetaFile {
+                dc: word_argument(arguments, 0)?,
+                metafile: word_argument(arguments, 1)?,
+            })
+        }
+        Win16ExportId::GdiCopyMetaFile => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::CopyMetaFile {
+                metafile: word_argument(arguments, 0)?,
+                path: read_nullable_far_string(dword_argument(arguments, 1)?, selectors, memory)?,
+            })
+        }
+        Win16ExportId::GdiDeleteMetaFile => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::DeleteMetaFile {
+                metafile: word_argument(arguments, 0)?,
+            })
+        }
+        Win16ExportId::GdiEnumObjects => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::EnumObjects {
+                dc: word_argument(arguments, 0)?,
+                object_type: word_argument(arguments, 1)? as i16,
+                callback: dword_argument(arguments, 2)?,
+                parameter: dword_argument(arguments, 3)? as i32,
+            })
+        }
         Win16ExportId::GdiGetObject => Win16ApiRequest::GdiDevice(super::super::GdiDeviceRequest::GetObject {
             object: word_argument(arguments, 0)?, count: word_argument(arguments, 1)? as i16,
             output: dword_argument(arguments, 2)?,
@@ -41,6 +71,21 @@ pub(super) fn decode(
             Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::GetDeviceCaps {
                 dc: word_argument(arguments, 0)?,
                 index: word_argument(arguments, 1)? as i16,
+            })
+        }
+        Win16ExportId::GdiGetMetaFileBits => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::GetMetaFileBits {
+                metafile: word_argument(arguments, 0)?,
+            })
+        }
+        Win16ExportId::GdiSetMetaFileBits => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::SetMetaFileBits {
+                bits: word_argument(arguments, 0)?,
+            })
+        }
+        Win16ExportId::GdiSetMetaFileBitsBetter => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::SetMetaFileBitsBetter {
+                bits: word_argument(arguments, 0)?,
             })
         }
         Win16ExportId::GdiGetStockObject => {

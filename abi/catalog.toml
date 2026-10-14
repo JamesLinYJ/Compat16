@@ -21,6 +21,7 @@ groups = [
   "groups/gdi/declarations.toml",
   "groups/gdi/drawing.toml",
   "groups/gdi/fonts_text.toml",
+  "groups/gdi/metafiles.toml",
   "groups/gdi/objects.toml",
   "groups/gdi/print_queue.toml",
   "groups/gdi/raster.toml",

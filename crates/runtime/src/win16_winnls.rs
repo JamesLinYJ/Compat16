@@ -1,7 +1,7 @@
-//! WINNLS IME profile execution and checked guest writeback.
+//! WINNLS IME control, profile execution, and checked guest writeback.
 
-use guest_core::memory::Memory;
-use win16_abi::{ImeProfile16, Win16WinnlsRequest, winnls_abi};
+use guest_core::{Registers, memory::Memory};
+use win16_abi::{ImeProfile16, Win16ReturnKind, Win16WinnlsRequest, winnls_abi};
 
 use super::{
     Win16State,
@@ -11,8 +11,40 @@ use crate::{
     Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostImeProfile,
     Win16HostImeProfileCall as HostCall, Win16HostImeProfileResult as HostResult,
 };
+use crate::win16_host_window_ops::{Win16WindowCall, Win16WindowCallOutput};
 
 impl Win16State {
+    pub(super) fn begin_winnls_ime_control(
+        &mut self,
+        request: Win16WinnlsRequest,
+        registers: &mut Registers,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+        return_to: (u16, u16, u32),
+        return_kind: Win16ReturnKind,
+    ) -> Result<Option<u8>, RuntimeError> {
+        let call = match request {
+            Win16WinnlsRequest::EnableIme { hwnd, enable } => Win16WindowCall::EnableIme {
+                window: self.native_window(hwnd), enable,
+            },
+            Win16WinnlsRequest::GetEnableStatus { hwnd } => Win16WindowCall::GetImeEnableStatus {
+                window: self.native_window(hwnd),
+            },
+            _ => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "non-control WINNLS request reached the resumable IME bridge")),
+        };
+        self.submit_call(
+            registers,
+            memory,
+            host,
+            call,
+            Win16WindowCallOutput::Boolean,
+            return_to,
+            return_kind,
+            None,
+        )
+    }
+
     pub(super) fn winnls_api(
         &mut self,
         request: Win16WinnlsRequest,
@@ -20,6 +52,10 @@ impl Win16State {
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
         match request {
+            Win16WinnlsRequest::EnableIme { .. } | Win16WinnlsRequest::GetEnableStatus { .. } => {
+                Err(RuntimeError::new(Kind::InternalInvariant,
+                    "WINNLS IME control bypassed its resumable USER operation"))
+            }
             Win16WinnlsRequest::QueryIme { name, output } => {
                 let Some(name) = name else {
                     return Ok(0);

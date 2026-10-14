@@ -98,9 +98,10 @@ pub(super) fn unregister_class(
 }
 
 pub(in super::super) fn shutdown_all(state: &Rc<RefCell<WorkerState>>) -> Result<(), RuntimeError> {
+    let cursor_cleanup = super::super::win16_cursor_clip::cleanup_for_exit();
     let dialog_cleanup = super::super::win16_common_dialog_worker::shutdown(state);
     let drag_list_cleanup = super::super::win16_common_controls_drag_list::retire_all(state);
-    let mut result = combine_cleanup(dialog_cleanup, drag_list_cleanup);
+    let mut result = combine_cleanup(cursor_cleanup, combine_cleanup(dialog_cleanup, drag_list_cleanup));
     let mut windows = {
         let state = state.borrow();
         state.windows.iter().filter_map(|(token, hwnd)| {

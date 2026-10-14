@@ -381,7 +381,11 @@ impl Win16State {
                     size,
                     flags,
                 } => {
-                    let result = u32::from(self.kernel_global_realloc(handle, size, flags, memory, host)?);
+                    let result = u32::from(self.kernel_global_realloc_with_caller(
+                        handle, size, flags,
+                        Some(super::global_memory::GlobalMemoryCaller::GuestCode(return_selector)),
+                        memory, host,
+                    )?);
                     finish_global_heap_call(registers);
                     result
                 },
@@ -780,7 +784,7 @@ impl Win16State {
 // clears these registers. Keeping ES across a free or move would expose
 // a retired selector to the next API. Internal heap helpers do not have
 // this caller-register side effect.
-fn finish_global_heap_call(registers: &mut Registers) {
+pub(super) fn finish_global_heap_call(registers: &mut Registers) {
     registers.es = 0;
     registers.fs = 0;
     registers.gs = 0;

@@ -727,6 +727,43 @@ params = [
 ]
 
 [[exports]]
+ordinal = 259
+name = "BeginDeferWindowPos"
+binding = { rust_id = "UserBeginDeferWindowPos", id_value = 1228, constant = "USER_BEGIN_DEFER_WINDOW_POS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "count", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 260
+name = "DeferWindowPos"
+binding = { rust_id = "UserDeferWindowPos", id_value = 1229, constant = "USER_DEFER_WINDOW_POS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "batch", type = "U16" },
+  { name = "window", type = "U16" },
+  { name = "insert_after", type = "U16" },
+  { name = "x", type = "I16", encoding = "word" },
+  { name = "y", type = "I16", encoding = "word" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 261
+name = "EndDeferWindowPos"
+binding = { rust_id = "UserEndDeferWindowPos", id_value = 1230, constant = "USER_END_DEFER_WINDOW_POS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "batch", type = "U16" },
+]
+
+[[exports]]
 ordinal = 233
 name = "SetParent"
 binding = { rust_id = "UserSetParent", id_value = 80, constant = "USER_SET_PARENT" }

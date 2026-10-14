@@ -61,19 +61,9 @@ name = "WINNLSGETIMEHOTKEY"
 kind = "stub"
 
 [[exports]]
-ordinal = 16
-name = "WINNLSEnableIME"
-decl = { attributes = ["ret16"], args = ["word", "word"] }
-
-[[exports]]
 ordinal = 17
 name = "WINNLSGETKEYSTATE"
 kind = "stub"
-
-[[exports]]
-ordinal = 18
-name = "WINNLSGetEnableStatus"
-decl = { attributes = ["ret16"], args = ["word"] }
 
 [[exports]]
 ordinal = 19

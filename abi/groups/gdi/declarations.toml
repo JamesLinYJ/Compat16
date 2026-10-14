@@ -28,11 +28,6 @@ kind = "stub"
 decl = { attributes = [] }
 
 [[exports]]
-ordinal = 71
-name = "EnumObjects"
-decl = { args = ["word", "word", "segmented_pointer", "long"] }
-
-[[exports]]
 ordinal = 73
 name = "ExcludeVisRect"
 decl = { args = ["word", "signed_word", "signed_word", "signed_word", "signed_word"] }
@@ -83,16 +78,6 @@ name = "Resurrection"
 decl = { args = ["word", "word", "word", "word", "word", "word", "word"] }
 
 [[exports]]
-ordinal = 123
-name = "PlayMetaFile"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 124
-name = "GetMetaFile"
-decl = { args = ["string"] }
-
-[[exports]]
 ordinal = 125
 name = "CreateMetaFile"
 decl = { args = ["string"] }
@@ -100,11 +85,6 @@ decl = { args = ["string"] }
 [[exports]]
 ordinal = 126
 name = "CloseMetaFile"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 127
-name = "DeleteMetaFile"
 decl = { args = ["word"] }
 
 [[exports]]
@@ -204,11 +184,6 @@ kind = "stub"
 decl = { attributes = [] }
 
 [[exports]]
-ordinal = 151
-name = "CopyMetaFile"
-decl = { args = ["word", "string"] }
-
-[[exports]]
 ordinal = 152
 name = "GDIInitApp"
 kind = "stub"
@@ -230,16 +205,6 @@ ordinal = 158
 name = "EnumCallback"
 kind = "stub"
 decl = { attributes = [] }
-
-[[exports]]
-ordinal = 159
-name = "GetMetaFileBits"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 160
-name = "SetMetaFileBits"
-decl = { args = ["word"] }
 
 [[exports]]
 ordinal = 164
@@ -357,11 +322,6 @@ decl = { args = ["word", "word"] }
 ordinal = 195
 name = "SelectBitmap"
 decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 196
-name = "SetMetaFileBitsBetter"
-decl = { args = ["word"] }
 
 [[exports]]
 ordinal = 201

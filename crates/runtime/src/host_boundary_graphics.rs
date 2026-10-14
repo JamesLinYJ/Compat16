@@ -2,6 +2,11 @@
 
 macro_rules! graphics_runtime_host_ports {
     () => {
+    fn win16_metafile(&mut self, _operation: crate::Win16HostMetafileOperation)
+        -> Result<crate::Win16HostMetafileResult, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 metafile service is unavailable"))
+    }
     fn win16_create_icon_masks(&mut self, _masks: &crate::Win16HostImageMasks)
         -> Result<Option<Win16HostIcon>, RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap, "host icon mask creation is unavailable"))
@@ -42,6 +47,11 @@ macro_rules! graphics_runtime_host_ports {
         -> Result<Option<i16>, RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 device capability query is unavailable"))
+    }
+    fn win16_enum_objects(&mut self, _dc: Win16HostDc, _object_type: i16)
+        -> Result<Vec<crate::Win16HostGdiObjectRecord>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 GDI object enumeration is unavailable"))
     }
     fn win16_enum_fonts(&mut self, _dc: Win16HostDc, _face: Option<&[u8]>)
         -> Result<Vec<Win16HostFontRecord>, RuntimeError> {

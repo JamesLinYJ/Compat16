@@ -134,6 +134,20 @@ pub(super) fn execute_device(
     )
 }
 
+pub(super) fn execute_metafile(
+    host: &mut WindowsHost,
+    operation: runtime::Win16HostMetafileOperation,
+) -> Result<runtime::Win16HostMetafileResult, RuntimeError> {
+    let dcs = &host.win16_dcs;
+    let filesystem = &mut host.filesystem;
+    win16_wing_dib_use::with_metafile(
+        dcs,
+        &mut host.win16_objects,
+        operation,
+        |_, operation| win16_metafile::execute(dcs, filesystem, operation),
+    )
+}
+
 pub(super) fn create_compatible_dc(
     host: &mut WindowsHost,
     source: Option<Win16HostDc>,
@@ -176,6 +190,17 @@ pub(super) fn device_caps(
     index: i16,
 ) -> Result<Option<i16>, RuntimeError> {
     host.win16_dcs.device_caps(dc, index)
+}
+
+pub(super) fn enum_objects(
+    host: &mut WindowsHost,
+    dc: Win16HostDc,
+    object_type: i16,
+) -> Result<Vec<runtime::Win16HostGdiObjectRecord>, RuntimeError> {
+    let Some(dc_use) = host.win16_dcs.lease_dc(dc)? else {
+        return Ok(Vec::new());
+    };
+    host.win16_objects.enum_objects(dc_use.native(), object_type)
 }
 
 pub(super) fn enum_fonts(

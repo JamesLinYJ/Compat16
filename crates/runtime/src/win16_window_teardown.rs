@@ -67,6 +67,9 @@ impl Win16State {
             super::super::WindowTeardownState::Closed => return Ok(()),
             super::super::WindowTeardownState::Live => {
                 self.window_teardown_state = super::super::WindowTeardownState::AbortPending;
+                // Pending HDWPs contain only owned Rust positions. Abandon
+                // them before native teardown can invoke or cancel callbacks.
+                self.deferred_window_batches.clear();
             }
             super::super::WindowTeardownState::AbortPending
             | super::super::WindowTeardownState::NativeQuiescent => {}

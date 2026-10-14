@@ -22,6 +22,14 @@ pub(super) enum GlobalTeardownResult {
     Retained { selector_aliases: u16, page_locks: u16, internal_pins: u16 },
 }
 
+/// Caller provenance for shared global-memory ownership.
+/// Builtin services have module identities but no guest code selectors.
+#[derive(Clone, Copy)]
+pub(super) enum GlobalMemoryCaller {
+    GuestCode(u16),
+    BuiltinModule(u16),
+}
+
 impl GlobalTeardownResult {
     pub(super) fn retained_error(self, owner: &'static str) -> Option<RuntimeError> {
         match self {
@@ -35,6 +43,21 @@ impl GlobalTeardownResult {
 }
 
 impl Win16State {
+    fn global_memory_caller_owner(
+        &self, caller: Option<GlobalMemoryCaller>,
+    ) -> Option<GuestMemoryOwner> {
+        let owner = match caller? {
+            GlobalMemoryCaller::GuestCode(selector) => self.live_code_module_owner(selector),
+            GlobalMemoryCaller::BuiltinModule(module) => self.modules.records.get(&module)
+                .filter(|record| record.builtin
+                    && record.handle == module
+                    && record.state == ModuleState::Ready
+                    && record.external_application.is_none())
+                .map(|record| record.handle),
+        }?;
+        Some(GuestMemoryOwner::from_raw(owner))
+    }
+
     /// Reallocate one live Win16 HGLOBAL. Invalid handles and allocator pressure
     /// are ordinary NULL results. Heap and selector state change together.
     pub(super) fn kernel_global_realloc(
@@ -42,6 +65,18 @@ impl Win16State {
         guest_handle: u16,
         size: u32,
         flags: u16,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u16, RuntimeError> {
+        self.kernel_global_realloc_with_caller(guest_handle, size, flags, None, memory, host)
+    }
+
+    pub(super) fn kernel_global_realloc_with_caller(
+        &mut self,
+        guest_handle: u16,
+        size: u32,
+        flags: u16,
+        caller: Option<GlobalMemoryCaller>,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u16, RuntimeError> {
@@ -60,6 +95,8 @@ impl Win16State {
         let Some(identity) = self.global_handles.get(&guest_handle).copied() else {
             return Ok(0);
         };
+        let discarded_zero_realloc = size == 0
+            && self.heap.info(identity).is_ok_and(|block| block.discarded);
         if self.queued_drop_files.iter().any(|entry|
             entry.guest_handle == guest_handle
                 && entry.allocation == identity
@@ -74,17 +111,27 @@ impl Win16State {
         if primary.is_some_and(|selector| self.toolhelp_interrupt_owns_selector(selector)) {
             return Ok(0);
         }
-        let modified_handle = if flags & GMEM_MODIFY != 0 {
+        let shared_owner = if flags & (GMEM_MODIFY | GMEM_DDESHARE)
+            == (GMEM_MODIFY | GMEM_DDESHARE) && !discarded_zero_realloc
+        {
+            // GMEM_DDESHARE takes the owner of the calling code. Resolve it
+            // before changing flags or handles, including internal builtin
+            // callers whose code does not live in a guest NE segment.
+            let Some(owner) = self.global_memory_caller_owner(caller) else { return Ok(0); };
+            Some(owner)
+        } else {
+            None
+        };
+        let modified_handle = if flags & (GMEM_MODIFY | GMEM_MOVEABLE)
+            == (GMEM_MODIFY | GMEM_MOVEABLE) && !discarded_zero_realloc
+        {
             let Some(selector) = primary else {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
                     "Win16 GlobalReAlloc has no primary selector"));
             };
-            let next = if flags & GMEM_MOVEABLE != 0 {
-                let Some(handle) = selector.raw().0.checked_sub(1) else { return Ok(0); };
-                handle
-            } else {
-                selector.raw().0
-            };
+            // Absence of GMEM_MOVEABLE never converts a movable allocation
+            // back to a fixed selector or replaces its existing HGLOBAL.
+            let Some(next) = selector.raw().0.checked_sub(1) else { return Ok(0); };
             if next == 0 || (next != guest_handle && (
                 self.global_handles.contains_key(&next)
                     || self.dos_global_blocks.contains_key(&next)
@@ -106,6 +153,9 @@ impl Win16State {
         self.sync_discarded_global_handles();
         match result {
             Ok(_) => {
+                if let Some(owner) = shared_owner {
+                    self.heap.set_guest_owner(identity, owner).map_err(crate::runtime_error)?;
+                }
                 let next = if let Some(next) = modified_handle {
                     if next != guest_handle {
                         self.global_handles.remove(&guest_handle);
@@ -535,8 +585,21 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u16, RuntimeError> {
-        self.global_alloc_with_caller_at_slot(
-            raw_flags, size, caller_code_selector, None, memory, host,
+        self.global_alloc_with_context(
+            raw_flags, size, Some(GlobalMemoryCaller::GuestCode(caller_code_selector)), memory, host,
+        )
+    }
+
+    pub(super) fn global_alloc_with_context(
+        &mut self,
+        raw_flags: u16,
+        size: u32,
+        caller: Option<GlobalMemoryCaller>,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u16, RuntimeError> {
+        self.global_alloc_with_context_at_slot(
+            raw_flags, size, caller, None, memory, host,
         )
     }
 
@@ -551,21 +614,21 @@ impl Win16State {
         if selector & 0x04 == 0 || selector >> 3 == 0 {
             return Ok(0);
         }
-        self.global_alloc_with_caller_at_slot(
+        self.global_alloc_with_context_at_slot(
             raw_flags,
             size,
-            0,
+            None,
             Some(usize::from(selector >> 3)),
             memory,
             host,
         )
     }
 
-    fn global_alloc_with_caller_at_slot(
+    fn global_alloc_with_context_at_slot(
         &mut self,
         raw_flags: u16,
         size: u32,
-        caller_code_selector: u16,
+        caller: Option<GlobalMemoryCaller>,
         selector_slot: Option<usize>,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
@@ -581,14 +644,13 @@ impl Win16State {
             Kind::InternalInvariant, "Win16 GlobalAlloc has no current task owner"))?;
         let task_handle = self.current_task_handle()?;
         let guest_owner = if raw_flags & GMEM_DDESHARE != 0 {
-            let Some(module) = self.live_code_module_owner(caller_code_selector) else {
+            let Some(owner) = self.global_memory_caller_owner(caller) else {
                 return Ok(0);
             };
-            module
+            owner
         } else {
-            task_handle
+            GuestMemoryOwner::from_raw(task_handle)
         };
-        let guest_owner = GuestMemoryOwner::from_raw(guest_owner);
         let flags = AllocationFlags {
             movable,
             zero_init: raw_flags & GMEM_ZEROINIT != 0,

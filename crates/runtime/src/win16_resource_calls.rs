@@ -82,7 +82,9 @@ impl Win16State {
         let mut previous = default;
         for identity in types {
             previous = self.resource_handlers.get(&identity).copied().unwrap_or(default);
-            if handler == 0 || handler == default {
+            // A NULL handler disables loading for this resource type. Only
+            // the actual default procedure restores the built-in loader.
+            if handler == default {
                 self.resource_handlers.remove(&identity);
             } else {
                 self.resource_handlers.insert(identity, handler);
@@ -148,6 +150,14 @@ impl Win16State {
             });
             return self.complete_return(registers, return_to.0, return_to.1, return_to.2, value, kind);
         };
+        if procedure == 0 {
+            let kind = match result {
+                ResourceReturn::Load => Win16ReturnKind::Word,
+                ResourceReturn::Lock => Win16ReturnKind::FarPointer,
+            };
+            return self.complete_return(registers, return_to.0, return_to.1,
+                return_to.2, 0, kind);
+        }
         let target = self.selectors.pointer_from_far(procedure).map_err(crate::runtime_error)?;
         self.selectors.translate(target, Access::Execute, 1, memory).map_err(crate::runtime_error)?;
         let sp = registers.sp().checked_sub(LOADPROC_STACK_BYTES).ok_or_else(||
@@ -175,6 +185,10 @@ impl Win16State {
         self.resource_callbacks.push(ResourceCallFrame {
             callback_id, saved: registers.clone(), return_to, key: metadata.key, procedure, result,
         });
+        // Win16 enters a resource handler with both data segments pointing
+        // at the caller's stack. The saved frame restores them on return.
+        registers.ds = registers.ss;
+        registers.es = registers.ss;
         registers.set_sp(sp);
         registers.cs = (procedure >> 16) as u16;
         registers.set_ip(procedure as u16);

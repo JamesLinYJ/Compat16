@@ -20,6 +20,17 @@ impl Win16State {
     ) -> Result<Option<u8>, RuntimeError> {
         let (return_selector, return_offset, return_sp) = return_to;
         let value = match request {
+            Win16ApiRequest::GdiObjects(request @ (
+                win16_abi::Win16GdiObjectsRequest::GetMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::PlayMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::CopyMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::DeleteMetaFile { .. }
+            )) => self.execute_metafile(request, &mut cpu.regs, memory, host)?,
+            Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::EnumObjects {
+                dc, object_type, callback, parameter,
+            }) => return self.begin_enum_objects(
+                cpu, dos, memory, host, dc, object_type, callback, parameter, return_to,
+            ),
             Win16ApiRequest::GdiDevice(request) => {
                 self.execute_gdi_device(request, memory, host)?
             }
@@ -525,6 +536,36 @@ impl Win16State {
                     parameter,
                     (return_selector, return_offset, return_sp),
                 );
+            }
+            Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::GetMetaFileBits {
+                metafile,
+            }) => {
+                // The WOW16 GDI entry checks GlobalHandle's AX, then returns
+                // the input unchanged. In particular a selector alias is not
+                // replaced by the canonical HGLOBAL from that DWORD query.
+                if self.global_handle_of(metafile) as u16 != 0 { u32::from(metafile) } else { 0 }
+            }
+            Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::SetMetaFileBits {
+                bits,
+            }) => {
+                // GDI.160's actual WOW16 assembly entry returns hBits as-is;
+                // the distinct .196 entry below performs the shared conversion.
+                u32::from(bits)
+            }
+            Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::SetMetaFileBitsBetter {
+                bits,
+            }) => {
+                use super::global_memory::GlobalMemoryCaller;
+                use win16_abi::global::{GMEM_DDESHARE, GMEM_MODIFY};
+                // This allocation becomes shared on behalf of GDI, whose
+                // builtin module has an identity but no guest code selector.
+                let caller = self.modules.by_name(b"GDI")
+                    .map(GlobalMemoryCaller::BuiltinModule);
+                let result = self.kernel_global_realloc_with_caller(
+                    bits, 0, GMEM_MODIFY | GMEM_DDESHARE, caller, memory, host,
+                )?;
+                super::dispatch_kernel::finish_global_heap_call(&mut cpu.regs);
+                u32::from(result)
             }
             Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::GetStockObject {
                 index,

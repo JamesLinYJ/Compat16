@@ -308,8 +308,8 @@ impl GlobalHeap {
     }
 
     /// Reallocate with the Win16 `GMEM_MODIFY` and discard transitions applied
-    /// before the ordinary resize path. A zero size discards only a movable,
-    /// discardable, unlocked block; otherwise it leaves the allocation intact.
+    /// before the ordinary resize path. An already-discarded zero-size handle
+    /// is returned unchanged before `GMEM_MODIFY` is considered.
     pub fn realloc_global(
         &mut self,
         handle: GlobalHandle,
@@ -322,15 +322,20 @@ impl GlobalHeap {
     ) -> Result<GlobalHandle, Win16Error> {
         let block = self.lookup(handle)?;
         if block.runtime_primary != primary { return Err(Win16Error::StaleSelector); }
+        if new_size == 0 && block.discarded { return Ok(handle); }
         if flags & GMEM_MODIFY != 0 {
-            let changed = GMEM_MOVEABLE | GMEM_NOCOMPACT | GMEM_NODISCARD
-                | GMEM_DISCARDABLE | GMEM_DDESHARE;
+            // Win16 GMEM_MODIFY may make a fixed block movable, but cannot
+            // reverse that transition. Only movable blocks change their
+            // discardability; sharing is also a one-way ownership change.
             let next_flags = AllocationFlags {
-                movable: flags & GMEM_MOVEABLE != 0,
+                movable: block.flags.movable || flags & GMEM_MOVEABLE != 0,
                 ..block.flags
             };
-            let next_allocation_flags =
-                (block.allocation_flags & !changed) | (flags & changed);
+            let mut next_allocation_flags = block.allocation_flags | (flags & GMEM_DDESHARE);
+            if next_flags.movable {
+                next_allocation_flags = (next_allocation_flags & !GMEM_DISCARDABLE)
+                    | (flags & GMEM_DISCARDABLE) | GMEM_MOVEABLE;
+            }
             self.reserve_lru_slot(Some(handle.raw.0), next_flags, next_allocation_flags)?;
             let entry = self.blocks_by_handle.get_mut(&handle.raw.0)
                 .ok_or(Win16Error::InvalidHandle)?;
@@ -339,7 +344,8 @@ impl GlobalHeap {
             self.sync_lru_membership(handle.raw.0)?;
             return Ok(handle);
         }
-        if new_size == 0 && flags & GMEM_MOVEABLE != 0 {
+        if new_size == 0 {
+            if flags & GMEM_MOVEABLE == 0 { return Err(Win16Error::InvalidSize); }
             selector_updates.try_reserve(selectors.slot_capacity())
                 .map_err(|_| Win16Error::OutOfMemory)?;
             match self.discard(handle, selectors) {
@@ -348,9 +354,6 @@ impl GlobalHeap {
             }
             return Ok(handle);
         }
-        // A zero-byte resize without the movable discard request keeps a
-        // minimum resident block; it is not an implicit discard operation.
-        let new_size = if new_size == 0 { 32 } else { new_size };
 
         self.validate_memory(memory)?;
         if block.is_pinned() { return Err(Win16Error::Locked); }
@@ -443,7 +446,7 @@ impl GlobalHeap {
         }
 
         // Win16 GMEM_MOVEABLE permits relocation of a fixed block for this
-        // resize; only GMEM_MODIFY changes the allocation's fixed/movable type.
+        // resize; only GMEM_MODIFY can convert a fixed allocation to movable.
         if !block.flags.movable && flags & GMEM_MOVEABLE == 0 {
             return Err(Win16Error::OutOfMemory);
         }

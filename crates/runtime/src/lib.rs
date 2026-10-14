@@ -85,6 +85,8 @@ pub use win16_host_thunks::{
 };
 mod win16_host_menus;
 mod win16_host_window_ops;
+mod win16_host_metafile;
+pub use win16_host_metafile::{Win16HostMetafileOperation, Win16HostMetafileResult};
 mod win16_host_window_properties;
 pub use win16_host_window_properties::{Win16HostPropertyCallbackName, Win16HostPropertyName};
 mod win16_host_window_data;
@@ -264,7 +266,7 @@ pub use win16_host_gdi_device::{
     Win16HostDibSection, Win16PaletteTransferKind, Win16PrintOperation,
 };
 pub use win16_host_gdi_objects::{
-    Win16GdiObjectOperation, Win16HostBitmapInfo, Win16HostDib, Win16HostLogBrush,
+    Win16GdiObjectOperation, Win16HostBitmapInfo, Win16HostDib, Win16HostGdiObjectRecord, Win16HostLogBrush,
     Win16HostLogFont, Win16HostLogPen,
 };
 pub use win16_host_message_calls::{Win16MessageCall, Win16MessageCallResult};
@@ -342,7 +344,7 @@ pub use win16_host_menus::{
 pub use win16_host_nonclient::{Win16HostNonClientCalcSize, Win16HostWindowPos};
 pub(crate) use win16_host_window_ops::Win16WindowCallOutput;
 pub use win16_host_window_ops::{
-    Win16CaretShape,
+    Win16CaretShape, Win16DeferredWindowPos,
     Win16WindowEnumerationScope, Win16WindowEnumerationQuery, Win16WindowEnumerationReply,
     Win16WindowCall, Win16WindowCallResult, Win16WindowInsertAfter, Win16WindowSearchClass,
     Win16WindowTarget, Win16WindowPlacement,

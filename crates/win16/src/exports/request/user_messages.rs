@@ -92,6 +92,13 @@ pub enum Win16UserMessagesRequest {
 
     GetMessageTime,
 
+    /// Read the current USER queue's opaque, scalar LONG extra information.
+    GetMessageExtraInfo,
+
+    /// Query the SendMessage state on the native USER worker servicing the
+    /// current guest window callback.
+    InSendMessage,
+
     CallWindowProc {
         procedure: u32,
         window: u16,

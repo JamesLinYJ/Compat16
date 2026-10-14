@@ -18,6 +18,13 @@ impl Win16State {
 
         match request {
             Request::User(win16_abi::Win16UserRequest::Geometry(
+                request @ (win16_abi::Win16UserGeometryRequest::BeginDeferWindowPos { .. }
+                    | win16_abi::Win16UserGeometryRequest::DeferWindowPos { .. }
+                    | win16_abi::Win16UserGeometryRequest::EndDeferWindowPos { .. }),
+            )) => self.begin_defer_window_pos_api(
+                registers, memory, host, request, return_to, return_kind,
+            ),
+            Request::User(win16_abi::Win16UserRequest::Geometry(
                 request @ (win16_abi::Win16UserGeometryRequest::GetWindowPlacement { .. }
                     | win16_abi::Win16UserGeometryRequest::SetWindowPlacement { .. }),
             )) => {
@@ -63,6 +70,30 @@ impl Win16State {
                     }, Win16WindowCallOutput::None)
                 };
                 self.submit_call(registers, memory, host, call, output, return_to, return_kind, None)
+            }
+            Request::User(win16_abi::Win16UserRequest::Geometry(
+                win16_abi::Win16UserGeometryRequest::SetCursorPos { x, y },
+            )) => self.submit_call(
+                registers, memory, host, Win16WindowCall::SetCursorPos { x, y },
+                Win16WindowCallOutput::Boolean, return_to, return_kind, None,
+            ),
+            Request::User(win16_abi::Win16UserRequest::Geometry(
+                win16_abi::Win16UserGeometryRequest::ClipCursor { rect },
+            )) => {
+                let rect = if rect == 0 {
+                    None
+                } else {
+                    let pointer = self.checked_guest_range(rect, Rect16::SIZE, Access::Read, memory)?;
+                    let rect = self.read_rect(memory, pointer)?;
+                    Some(crate::Win16HostRect {
+                        left: i32::from(rect.left), top: i32::from(rect.top),
+                        right: i32::from(rect.right), bottom: i32::from(rect.bottom),
+                    })
+                };
+                self.submit_call(
+                    registers, memory, host, Win16WindowCall::ClipCursor { rect },
+                    Win16WindowCallOutput::Boolean, return_to, return_kind, None,
+                )
             }
             Request::User(win16_abi::Win16UserRequest::Geometry(
                 win16_abi::Win16UserGeometryRequest::GetClipCursor { rect },

@@ -14,6 +14,7 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND, POINT, RECT};
 use windows_sys::Win32::Graphics::Gdi::{ClientToScreen, MapWindowPoints, ScreenToClient};
+use windows_sys::Win32::System::WindowsProgramming::{WINNLSEnableIME, WINNLSGetEnableStatus};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     EnableWindow, GetActiveWindow, IsWindowEnabled, SetActiveWindow,
 };
@@ -25,12 +26,16 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetWindow,
     GetWindowRect, IsChild, IsIconic, IsWindow, IsWindowVisible, IsZoomed, MoveWindow, OpenIcon,
     SetWindowPos, ShowOwnedPopups, WindowFromPoint, GetWindowPlacement, SetWindowPlacement,
+    SetCursorPos,
     HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST, SWP_NOZORDER, WINDOWPLACEMENT,
 };
 
 use super::win16_window_worker::{self as worker, WorkerState};
 
 type SharedWorker = Rc<RefCell<WorkerState>>;
+
+#[path = "win16_window_defer.rs"]
+mod defer;
 
 /// Keep native failure separate from rectangle contents and guest return ABI.
 pub(super) fn get_clip_cursor_with(read: impl FnOnce(&mut RECT) -> bool) -> Win16WindowCallResult {
@@ -47,6 +52,9 @@ pub(super) fn execute(
     use Win16WindowCallResult as ResultValue;
 
     let result = match call {
+        Call::EndDeferWindowPos { positions } => ResultValue::Boolean(
+            defer::execute(state, positions),
+        ),
         call @ (Call::CreateCaret { .. } | Call::DestroyCaret | Call::SetCaretPos { .. }
             | Call::HideCaret { .. } | Call::ShowCaret { .. } | Call::GetCaretPos) => {
                 super::win16_window_caret::execute(state, call)?
@@ -84,6 +92,10 @@ pub(super) fn execute(
             // never substitute screen bounds or alter the global clip region.
             get_clip_cursor_with(|rect| unsafe { GetClipCursor(rect) != 0 })
         }
+        Call::SetCursorPos { x, y } => ResultValue::Boolean(unsafe {
+            SetCursorPos(i32::from(x), i32::from(y)) != 0
+        }),
+        Call::ClipCursor { rect } => ResultValue::Boolean(super::win16_cursor_clip::set(rect)?),
         Call::GetCursorPos => {
             let mut point = POINT::default();
             let success = unsafe { GetCursorPos(&mut point) != 0 };
@@ -134,6 +146,13 @@ pub(super) fn execute(
             .is_some_and(|native| unsafe { EnableWindow(native, i32::from(enable)) != 0 })),
         Call::IsWindowEnabled { window } => ResultValue::Boolean(hwnd(state, window)
             .is_some_and(|native| unsafe { IsWindowEnabled(native) != 0 })),
+        // Keep the previous enabled state verbatim; FALSE is a valid value.
+        // Resolution drops worker borrows before native IME can reenter a
+        // guest WndProc through this operation's callback continuation.
+        Call::EnableIme { window, enable } => ResultValue::Boolean(hwnd(state, window)
+            .is_some_and(|native| unsafe { WINNLSEnableIME(native, i32::from(enable)) != 0 })),
+        Call::GetImeEnableStatus { window } => ResultValue::Boolean(hwnd(state, window)
+            .is_some_and(|native| unsafe { WINNLSGetEnableStatus(native) != 0 })),
         Call::BringWindowToTop { window } => ResultValue::Boolean(hwnd(state, window)
             .is_some_and(|native| unsafe { BringWindowToTop(native) != 0 })),
         Call::GetParent { window } => {

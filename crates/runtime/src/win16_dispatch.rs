@@ -158,7 +158,10 @@ impl Win16State {
                 | Win16ApiRequest::Commctrl(_)
                 | Win16ApiRequest::ShellExecution(_)
                 | Win16ApiRequest::ShellDrop(_)
-                | Win16ApiRequest::ShellDrive(_))
+                | Win16ApiRequest::ShellDrive(_)
+                | Win16ApiRequest::Winnls(
+                    win16_abi::Win16WinnlsRequest::EnableIme { .. }
+                        | win16_abi::Win16WinnlsRequest::GetEnableStatus { .. }))
         {
             Some(self.capture_legacy_cpu_call_frame(cpu, dos, memory)?)
         } else {

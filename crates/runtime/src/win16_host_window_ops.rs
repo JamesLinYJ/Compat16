@@ -35,6 +35,19 @@ pub enum Win16WindowInsertAfter {
     Window(Win16HostWindow),
 }
 
+/// One retained position change. Window identities are captured when the
+/// guest queues it and revalidated together before native batch allocation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Win16DeferredWindowPos {
+    pub window: Win16HostWindow,
+    pub insert_after: Win16WindowInsertAfter,
+    pub x: i16,
+    pub y: i16,
+    pub width: i16,
+    pub height: i16,
+    pub flags: u16,
+}
+
 /// A guest HWND after runtime translation. `Null` preserves the Win16 null
 /// handle for native API semantics; `Invalid` prevents an unknown nonzero
 /// guest token from being mistaken for native NULL; `Mapped` is an opaque
@@ -58,6 +71,9 @@ pub enum Win16CaretShape {
 /// call on the window-owning thread and can suspend it for guest callbacks.
 #[derive(Clone, Debug)]
 pub enum Win16WindowCall {
+    /// The complete Begin/Defer/End sequence is one resumable worker call.
+    /// No native HDWP exists while the guest is collecting positions.
+    EndDeferWindowPos { positions: Vec<Win16DeferredWindowPos> },
     CreateCaret { window: Win16WindowTarget, shape: Win16CaretShape, width: i16, height: i16 },
     DestroyCaret,
     SetCaretPos { x: i16, y: i16 },
@@ -88,6 +104,9 @@ pub enum Win16WindowCall {
     GetClientRect { window: Win16WindowTarget },
     EnableWindow { window: Win16WindowTarget, enable: bool },
     IsWindowEnabled { window: Win16WindowTarget },
+    /// WINNLSEnableIME returns the previous enabled state, including false.
+    EnableIme { window: Win16WindowTarget, enable: bool },
+    GetImeEnableStatus { window: Win16WindowTarget },
     BringWindowToTop { window: Win16WindowTarget },
     GetParent { window: Win16WindowTarget },
     IsWindow { window: Win16WindowTarget },
@@ -107,6 +126,8 @@ pub enum Win16WindowCall {
     GetDlgCtrlId { window: Win16WindowTarget },
     GetDesktopWindow,
     GetCursorPos,
+    SetCursorPos { x: i16, y: i16 },
+    ClipCursor { rect: Option<Win16HostRect> },
     GetClipCursor,
     GetWindowPlacement { window: Win16WindowTarget },
     SetWindowPlacement { window: Win16WindowTarget, placement: Win16WindowPlacement },
@@ -179,7 +200,7 @@ pub enum Win16WindowCallResult {
 #[derive(Debug)]
 pub(crate) enum Win16WindowCallOutput {
     None,
-    /// A scalar success result that must not allocate handles or retire menus.
+    /// A scalar Boolean result that must not allocate handles or retire menus.
     Boolean,
     /// An integer WORD result; reject handle-bearing or Boolean completions.
     Integer,

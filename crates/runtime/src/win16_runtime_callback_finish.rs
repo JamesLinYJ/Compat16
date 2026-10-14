@@ -112,6 +112,7 @@ impl Win16State {
 
         let finished = match kind {
             CallbackKind::Font => self.finish_font_callback(cpu, dos, memory),
+            CallbackKind::GdiObject => self.finish_object_callback(cpu, dos, memory),
             CallbackKind::AcmEnumeration => self.finish_acm_enumeration(cpu, dos, memory, host),
             CallbackKind::LineDda => self.finish_line_dda_callback(cpu, dos, memory),
             CallbackKind::WindowEnumeration => {

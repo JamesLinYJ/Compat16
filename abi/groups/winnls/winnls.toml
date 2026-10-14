@@ -2,6 +2,27 @@ module = "WINNLS"
 defaults = { attributes = ["ret16"] }
 
 [[exports]]
+ordinal = 16
+name = "WINNLSEnableIME"
+binding = { rust_id = "WinnlsEnableIme", id_value = 1225, constant = "WINNLS_ENABLE_IME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "enable", type = "U16" },
+]
+
+[[exports]]
+ordinal = 18
+name = "WINNLSGetEnableStatus"
+binding = { rust_id = "WinnlsGetEnableStatus", id_value = 1226, constant = "WINNLS_GET_ENABLE_STATUS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
 ordinal = 22
 name = "IMPQueryIME"
 binding = { rust_id = "WinnlsQueryIme", id_value = 62, constant = "WINNLS_QUERY_IME" }
