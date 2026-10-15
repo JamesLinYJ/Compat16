@@ -1,6 +1,6 @@
 //! Emit each x87 operation against block-local facts. Facts follow physical
 //! slots relative to entry TOP; every side exit publishes its exact prefix.
-use super::state::State;
+use super::{memory as input, state::State};
 use crate::{FloatBlock, FloatInstruction as I, float_lowering, floating::FloatPlan};
 use cranelift_codegen::ir::{Block, InstBuilder, MemFlagsData, Value, condcodes::IntCC, types};
 use cranelift_frontend::FunctionBuilder;
@@ -23,30 +23,68 @@ pub(super) fn emit(
             state.guard(b, enough, exit, index);
         }
         match *instruction {
-            I::Binary {
-                operation,
-                destination,
-                source,
-                reverse,
-                pop,
-            } => {
-                let dst = state.slot(destination);
-                let src = state.slot(source);
-                let operands = [dst, src, state.top];
-                state.require_nonempty(b, &operands[..if pop { 3 } else { 2 }], exit, index);
-                let (left, right) = if reverse { (src, dst) } else { (dst, src) };
+            I::Binary { .. } | I::BinaryMemory { .. } => {
+                let (operation, dst, left, right, known, pop, source_slot) = match *instruction {
+                    I::Binary {
+                        operation,
+                        destination,
+                        source,
+                        reverse,
+                        pop,
+                    } => {
+                        let dst = state.slot(destination);
+                        let src = state.slot(source);
+                        let operands = [dst, src, state.top];
+                        state.require_nonempty(
+                            b,
+                            &operands[..if pop { 3 } else { 2 }],
+                            exit,
+                            index,
+                        );
+                        let (left, right) = if reverse { (src, dst) } else { (dst, src) };
+                        (
+                            operation,
+                            dst,
+                            (state.values[left * 2], state.values[left * 2 + 1]),
+                            (state.values[right * 2], state.values[right * 2 + 1]),
+                            [state.supported[left], state.supported[right]],
+                            pop,
+                            Some(src),
+                        )
+                    }
+                    I::BinaryMemory {
+                        operation,
+                        format,
+                        offset,
+                        reverse,
+                    } => {
+                        let dst = state.top;
+                        state.require_nonempty(b, &[dst], exit, index);
+                        let (sig, field, valid) = input::load(b, memory, offset, format);
+                        state.guard(b, valid, exit, index);
+                        let top = (state.values[dst * 2], state.values[dst * 2 + 1]);
+                        let (left, right, known) = if reverse {
+                            ((sig, field), top, [true, state.supported[dst]])
+                        } else {
+                            (top, (sig, field), [state.supported[dst], true])
+                        };
+                        (operation, dst, left, right, known, false, None)
+                    }
+                    _ => unreachable!(),
+                };
                 let result = float_lowering::arithmetic_with_known_inputs(
                     b,
                     FloatPlan { operation, ..plan },
-                    state.values[left * 2],
-                    state.values[right * 2],
-                    state.values[left * 2 + 1],
-                    state.values[right * 2 + 1],
-                    [state.supported[left], state.supported[right]],
+                    left.0,
+                    right.0,
+                    left.1,
+                    right.1,
+                    known,
                 );
                 state.guard(b, result.valid, exit, index);
-                state.supported[left] = true;
-                state.supported[right] = true;
+                if let Some(src) = source_slot {
+                    state.supported[src] = true;
+                }
                 state.write(b, dst, result.significand, result.field);
                 state.clear_c1(b);
                 // Arithmetic refreshes ES/B even for zero exception flags.
@@ -69,8 +107,12 @@ pub(super) fn emit(
                     state.guard(b, okay, exit, index + 1);
                 }
             }
-            I::Load80 { offset } | I::LoadRegister(offset) => {
-                let (sig, field) = if matches!(instruction, I::Load80 { .. }) {
+            I::Load80 { offset } | I::LoadRegister(offset) | I::LoadMemory { offset, .. } => {
+                let (sig, field) = if let I::LoadMemory { format, .. } = *instruction {
+                    let (sig, field, valid) = input::load(b, memory, offset, format);
+                    state.guard(b, valid, exit, index);
+                    (sig, field)
+                } else if matches!(instruction, I::Load80 { .. }) {
                     (
                         b.ins().load(
                             types::I64,

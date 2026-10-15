@@ -50,9 +50,18 @@ pub(super) fn emit(
     let sticky = b.ins().uextend(types::I64, sticky);
     let low_far = b.ins().select(below128, low_far, sticky);
     let low = b.ins().select(below64, low_near, low_far);
+    // Only one sign path can contribute to this result. In particular the
+    // same-sign hot path needs no cancellation CLZ/variable shifts.
+    let sum_path = b.create_block();
+    let difference_path = b.create_block();
+    let join = b.create_block();
+    for _ in 0..3 {
+        b.append_block_param(join, types::I64);
+    }
+    b.ins().brif(add, sum_path, &[], difference_path, &[]);
+    b.switch_to_block(sum_path);
     let sum = b.ins().iadd(big, high);
     let carry = b.ins().icmp(IntCC::UnsignedLessThan, sum, big);
-    let carry = b.ins().band(carry, add);
     let carry_bit = b.ins().iconst(types::I64, i64::MIN);
     let sum_high = b.ins().ushr_imm_u(sum, 1);
     let sum_high = b.ins().bor(sum_high, carry_bit);
@@ -65,6 +74,9 @@ pub(super) fn emit(
     let sum_low = b.ins().select(carry, sum_low, low);
     let carry_word = b.ins().uextend(types::I64, carry);
     let sum_exp = b.ins().iadd(exponent, carry_word);
+    b.ins()
+        .jump(join, &[sum.into(), sum_low.into(), sum_exp.into()]);
+    b.switch_to_block(difference_path);
     let borrow = b.ins().icmp_imm_s(IntCC::NotEqual, low, 0);
     let borrow = b.ins().uextend(types::I64, borrow);
     let difference = b.ins().isub(big, high);
@@ -86,9 +98,13 @@ pub(super) fn emit(
     let shifted_low = b.ins().ishl(low_difference, shift);
     let shifted_low = b.ins().select(high_zero, zero, shifted_low);
     let difference_exp = b.ins().isub(exponent, shift);
-    let sig = b.ins().select(add, sum, difference);
-    let tail = b.ins().select(add, sum_low, shifted_low);
-    let exponent = b.ins().select(add, sum_exp, difference_exp);
+    b.ins().jump(
+        join,
+        &[difference.into(), shifted_low.into(), difference_exp.into()],
+    );
+    b.switch_to_block(join);
+    let output = b.block_params(join);
+    let (sig, tail, exponent) = (output[0], output[1], output[2]);
     let residue = b.ins().bor(sig, tail);
     let exact_zero = b.ins().icmp_imm_s(IntCC::Equal, residue, 0);
     let zero_sign = b

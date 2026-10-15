@@ -2,6 +2,7 @@
 //! shared cold exit publishes only its completed prefix, including tags/TOP,
 //! sticky precision, C1, and an unmasked precision exception's deferred state.
 mod instructions;
+mod memory;
 mod state;
 use crate::{FloatBlock, floating::FloatPlan};
 use cranelift_codegen::ir::{InstBuilder, MemFlagsData, condcodes::IntCC, types};

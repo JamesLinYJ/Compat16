@@ -90,9 +90,17 @@ format, and it does not claim Prism's optimization coverage.
   existing APFloat implementation. Checked scalar memory conversion and
   exception precedence stay in the CPU x87 executor, including integer-memory,
   reversed and popping arithmetic forms.
+  Add/subtract select the sign-dependent sum or cancellation path before
+  computing it, avoiding unused normalization work while retaining the same
+  jammed tail and rounding boundary.
 - `FloatBlock` / `FloatBlockCache` compiles 2–32 consecutive x87 operations into
   one SSA function: register arithmetic, FLD/FST/FSTP registers, FXCH, FLD1,
-  FLDZ, FCHS/FABS and raw 80-bit loads/stores. Each arithmetic instruction rounds
+  FLDZ, FCHS/FABS, raw 80-bit loads/stores, 32/64-bit floating loads and
+  add/subtract/multiply/divide with 32/64-bit memory operands, including reverse
+  subtraction/division. Normal IEEE inputs and signed zeros expand exactly into
+  extended values with integer field operations; subnormal and special inputs
+  exit before their instruction for checked CPU conversion/exception handling.
+  32/64-bit stores retain the ordinary conversion path. Each arithmetic instruction rounds
   separately; this does not fuse operations or erase intermediate precision
   exceptions. Budget, special-value, empty-stack and stack-full exits publish
   the exact completed prefix. Unmasked PE commits its rounded result, records

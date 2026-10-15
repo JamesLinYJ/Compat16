@@ -2,6 +2,7 @@
 //! on every development host, independently of the CPU's host enablement.
 use super::*;
 use compat16_jit::{Float80, FloatCache, FloatOperation};
+mod memory;
 fn raw(significand: u64, sign_exponent: u16) -> Ext80 {
     Ext80 {
         significand,

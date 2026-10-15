@@ -9,6 +9,19 @@ use crate::{
 use std::{collections::HashMap, sync::Arc};
 pub const MAX_FLOAT_BLOCK_INSTRUCTIONS: usize = 32;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum FloatMemoryFormat {
+    Binary32,
+    Binary64,
+}
+impl FloatMemoryFormat {
+    pub fn bytes(self) -> u8 {
+        match self {
+            Self::Binary32 => 4,
+            Self::Binary64 => 8,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum FloatInstruction {
     Binary {
         operation: FloatOperation,
@@ -19,6 +32,16 @@ pub enum FloatInstruction {
     },
     Load80 {
         offset: u8,
+    },
+    LoadMemory {
+        format: FloatMemoryFormat,
+        offset: u8,
+    },
+    BinaryMemory {
+        operation: FloatOperation,
+        format: FloatMemoryFormat,
+        offset: u8,
+        reverse: bool,
     },
     Store80 {
         offset: u8,
@@ -54,6 +77,10 @@ impl FloatBlock {
                 FloatInstruction::StoreRegister { destination, .. } => destination >= 8,
                 FloatInstruction::Load80 { offset } | FloatInstruction::Store80 { offset, .. } => {
                     offset > 246
+                }
+                FloatInstruction::LoadMemory { format, offset }
+                | FloatInstruction::BinaryMemory { format, offset, .. } => {
+                    u16::from(offset) + u16::from(format.bytes()) > 256
                 }
                 _ => false,
             })

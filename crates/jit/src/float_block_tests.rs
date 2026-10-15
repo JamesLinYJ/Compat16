@@ -117,6 +117,43 @@ fn float_blocks_stop_before_special_or_empty_operands_and_after_unmasked_precisi
 fn float_blocks_validate_offsets_indices_lengths_and_restore_persistent_artifacts() {
     assert!(FloatBlock::new(vec![FloatInstruction::Exchange(8); 2]).is_none());
     assert!(FloatBlock::new(vec![FloatInstruction::Load80 { offset: 247 }; 2]).is_none());
+    for (format, last) in [
+        (FloatMemoryFormat::Binary32, 252),
+        (FloatMemoryFormat::Binary64, 248),
+    ] {
+        assert!(
+            FloatBlock::new(vec![
+                FloatInstruction::LoadMemory {
+                    format,
+                    offset: last
+                };
+                2
+            ])
+            .is_some()
+        );
+        assert!(
+            FloatBlock::new(vec![
+                FloatInstruction::LoadMemory {
+                    format,
+                    offset: last + 1
+                };
+                2
+            ])
+            .is_none()
+        );
+        assert!(
+            FloatBlock::new(vec![
+                FloatInstruction::BinaryMemory {
+                    operation: FloatOperation::Add,
+                    format,
+                    offset: last + 1,
+                    reverse: false
+                };
+                2
+            ])
+            .is_none()
+        );
+    }
     assert!(FloatBlock::new(vec![FloatInstruction::One; 33]).is_none());
     assert!(FloatBlock::new(vec![FloatInstruction::One]).is_none());
     let block = FloatBlock::new(vec![

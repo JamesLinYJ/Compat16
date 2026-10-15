@@ -8,7 +8,8 @@ use crate::{
     x87_state::{Ext80, X87Tag},
 };
 use compat16_jit::{
-    FloatBlock, FloatBlockCache, FloatInstruction as I, FloatOperation as O, FloatRegisters,
+    FloatBlock, FloatBlockCache, FloatInstruction as I, FloatMemoryFormat, FloatOperation as O,
+    FloatRegisters,
 };
 use guest_core::{GuestMemory, PhysAddr};
 use x86_decoder::{Mnemonic as M, Register};
@@ -63,11 +64,27 @@ impl Block {
                 });
             let mut data = None;
             let instruction = if let Some(mem) = memory {
-                if mem.base != Register::None
-                    || mem.index != Register::None
-                    || n.memory_width != 10
-                    || !matches!(n.mnemonic, M::Fld | M::Fstp)
-                {
+                if mem.base != Register::None || mem.index != Register::None {
+                    break;
+                }
+                let format = match n.memory_width {
+                    4 => Some(FloatMemoryFormat::Binary32),
+                    8 => Some(FloatMemoryFormat::Binary64),
+                    10 => None,
+                    _ => break,
+                };
+                let binary = match n.mnemonic {
+                    M::Fadd => Some((O::Add, false)),
+                    M::Fsub => Some((O::Subtract, false)),
+                    M::Fsubr => Some((O::Subtract, true)),
+                    M::Fmul => Some((O::Multiply, false)),
+                    M::Fdiv => Some((O::Divide, false)),
+                    M::Fdivr => Some((O::Divide, true)),
+                    M::Fld => None,
+                    M::Fstp if format.is_none() => None,
+                    _ => break,
+                };
+                if binary.is_some() && format.is_none() {
                     break;
                 }
                 let offset = if mem.address32 {
@@ -76,7 +93,7 @@ impl Block {
                     u32::from(mem.displacement as u16)
                 };
                 let start = offset & !255;
-                if offset - start > 246 {
+                if (offset - start) as usize + n.memory_width > 256 {
                     break;
                 }
                 let writes = n.mnemonic == M::Fstp;
@@ -90,7 +107,19 @@ impl Block {
                     _ => break,
                 }
                 data = Some(offset);
-                if writes {
+                if let Some((operation, reverse)) = binary {
+                    I::BinaryMemory {
+                        operation,
+                        reverse,
+                        format: format?,
+                        offset: (offset - start) as u8,
+                    }
+                } else if let Some(format) = format {
+                    I::LoadMemory {
+                        format,
+                        offset: (offset - start) as u8,
+                    }
+                } else if writes {
                     I::Store80 {
                         offset: (offset - start) as u8,
                         pop: true,
