@@ -13,6 +13,9 @@ use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost, runtime_error};
 
 use super::Win16State;
 
+#[path = "win16_dos_interrupts/file_metadata.rs"]
+mod file_metadata;
+
 /// A resolved protected-mode destination for one software interrupt.
 ///
 /// Firmware entries remain typed runtime services; guest hooks keep their
@@ -44,18 +47,7 @@ pub(super) fn dispatch_int21(
     host: &mut impl RuntimeHost,
 ) -> Result<DosAction, RuntimeError> {
     let service = regs.ah();
-    if (service == 0x68 || (service == 0x57 && regs.al() == 1))
-        && (state.files.contains_key(&regs.bx())
-            || state.network_print_jobs.values().any(|jobs| jobs.owns_hfile(regs.bx())))
-    {
-        // DOS and Win16 HFILE values can collide, especially after AH=67h.
-        // No Win16 file/spool commit or timestamp-set contract exists. Reject
-        // every known HFILE before DOS fallback, including another task's
-        // spool alias, rather than modifying an unrelated equal-number file.
-        dos.prepare_external_int21(memory).map_err(runtime_error)?;
-        regs.set_ax(DosErrorCode::InvalidFunction as u16);
-        regs.set_carry(true);
-        dos.finish_external_int21(memory, host).map_err(runtime_error)?;
+    if file_metadata::dispatch(state, dos, regs, memory, host)? {
         return Ok(DosAction::Continue);
     }
     if matches!(service, 0x0e | 0x19 | 0x3b | 0x47) {

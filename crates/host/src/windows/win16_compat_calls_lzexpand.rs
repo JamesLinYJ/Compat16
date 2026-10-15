@@ -536,7 +536,7 @@ fn checked_hfile_from_kernel_handle(handle: HANDLE) -> Option<i32> {
     (value > 0).then_some(value)
 }
 
-fn hfile_as_kernel_handle(handle: i32) -> HANDLE {
+pub(super) fn hfile_as_kernel_handle(handle: i32) -> HANDLE {
     // HFILE is signed; sign extension restores its documented 64-bit HANDLE
     // interoperability representation without deriving a host pointer.
     handle as isize as HANDLE

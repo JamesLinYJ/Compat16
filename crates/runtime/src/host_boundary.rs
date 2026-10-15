@@ -1288,6 +1288,33 @@ pub trait RuntimeHost:
             "host Win16 file closing forwarding is unavailable",
         ))
     }
+    /// Commit the same owned open object without moving its cursor or
+    /// changing access/sharing. A proven read-only disk open has no writes
+    /// to commit; a backend must never reopen a pathname to obtain rights.
+    fn win16_file_commit(
+        &mut self,
+        _file: Win16HostFile,
+    ) -> Result<(), dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// Return (packed DOS local time, packed DOS local date) for the owned
+    /// open object, including read-only files. No guest pointer crosses here.
+    fn win16_file_write_time(
+        &mut self,
+        _file: Win16HostFile,
+    ) -> Result<(u16, u16), dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// Update only last-write time through the retained object and its
+    /// existing rights. Validate DOS calendar fields and local-zone rules.
+    fn win16_file_set_write_time(
+        &mut self,
+        _file: Win16HostFile,
+        _time: u16,
+        _date: u16,
+    ) -> Result<(), dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
     fn win16_lz_start(&mut self) -> Result<i16, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,

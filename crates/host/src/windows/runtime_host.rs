@@ -655,6 +655,20 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<runtime::Win16HostFileClose, RuntimeError> {
         self.win16_files.close(file)
     }
+    fn win16_file_commit(&mut self, file: Win16HostFile) -> Result<(), DosHostError> {
+        self.win16_files.commit(file)
+    }
+    fn win16_file_write_time(&mut self, file: Win16HostFile) -> Result<(u16, u16), DosHostError> {
+        self.win16_files.write_time(file)
+    }
+    fn win16_file_set_write_time(
+        &mut self,
+        file: Win16HostFile,
+        time: u16,
+        date: u16,
+    ) -> Result<(), DosHostError> {
+        self.win16_files.set_write_time(file, time, date)
+    }
     fn win16_drive_kind(
         &mut self,
         drive: u16,

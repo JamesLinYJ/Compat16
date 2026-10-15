@@ -29,7 +29,8 @@ pub(super) fn open(
     };
     if let Some(name) = super::win16_file_devices::name(path) {
         let Ok(handle) = super::win16_file_devices::open(name, access, share) else { return Ok(None); };
-        return files.retain_native(Win16NativeFile::NativeHandle(handle.into_raw_handle()));
+        return files.retain_native_with_access(
+            Win16NativeFile::NativeHandle(handle.into_raw_handle()), access);
     }
     let Ok(path) = resolve(filesystem, path, true, create) else { return Ok(None); };
     let mut options = OpenOptions::new();
@@ -39,5 +40,6 @@ pub(super) fn open(
     // The open itself stays beneath the capability root, including any
     // reparse-point changes between resolution and the native open.
     let Ok(file) = filesystem.root.open_with(path, &options) else { return Ok(None); };
-    files.retain_native(Win16NativeFile::NativeHandle(file.into_std().into_raw_handle()))
+    files.retain_native_with_access(
+        Win16NativeFile::NativeHandle(file.into_std().into_raw_handle()), access)
 }

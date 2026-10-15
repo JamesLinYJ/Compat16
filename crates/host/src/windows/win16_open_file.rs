@@ -5,16 +5,12 @@ use super::win16::{Win16Files, Win16NativeFile, open_access_and_share};
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostOpenFile};
 use std::os::windows::io::{AsRawHandle, IntoRawHandle, OwnedHandle};
 use windows_sys::Win32::Foundation::{
-    ERROR_FILENAME_EXCED_RANGE, ERROR_INVALID_FUNCTION, ERROR_INVALID_NAME, FILETIME,
-    GENERIC_READ, GENERIC_WRITE, GetLastError,
+    ERROR_FILENAME_EXCED_RANGE, ERROR_INVALID_NAME, GENERIC_READ, GENERIC_WRITE,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    BY_HANDLE_FILE_INFORMATION,
-    FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_TYPE_CHAR, FILE_TYPE_PIPE,
-    GetDriveTypeW, GetFileInformationByHandle, GetFileType, GetFullPathNameW,
-    SearchPathW,
+    FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_SHARE_WRITE,
+    GetDriveTypeW, GetFullPathNameW, SearchPathW,
 };
-use windows_sys::Win32::System::SystemInformation::GetSystemTimeAsFileTime;
 use windows_sys::Win32::System::WindowsProgramming::DRIVE_FIXED;
 
 const OFSTRUCT_BYTES: usize = 136;
@@ -60,7 +56,7 @@ pub(super) fn open(
         };
         let stamp = file_stamp(&handle);
         return finish_open(filesystem, files, std::path::Path::new(name), style,
-            ofstruct, handle, stamp);
+            ofstruct, handle, access, stamp);
     }
     let mut resolved = super::win16_file_paths::resolve(filesystem, guest_path,
         style & OF_DELETE == 0 || reopen, style & (OF_CREATE | OF_PARSE) != 0);
@@ -134,7 +130,7 @@ pub(super) fn open(
     };
     let handle: OwnedHandle = file.into_std().into();
     let stamp = file_stamp(&handle);
-    finish_open(filesystem, files, &path, style, ofstruct, handle, stamp)
+    finish_open(filesystem, files, &path, style, ofstruct, handle, access, stamp)
 }
 
 fn finish_open(
@@ -144,6 +140,7 @@ fn finish_open(
     style: u16,
     mut ofstruct: Vec<u8>,
     handle: OwnedHandle,
+    access: u32,
     stamp: Result<(u16, u16), u32>,
 ) -> Result<Win16HostOpenFile, RuntimeError> {
     let (time, date) = match stamp {
@@ -175,37 +172,13 @@ fn finish_open(
         // file as missing; no guest HFILE remains owned after this operation.
         return Ok(Win16HostOpenFile { result: 1, file: None, ofstruct });
     }
-    let file = files.retain_native(Win16NativeFile::NativeHandle(handle.into_raw_handle()))?;
+    let file = files.retain_native_with_access(
+        Win16NativeFile::NativeHandle(handle.into_raw_handle()), access)?;
     Ok(Win16HostOpenFile { result: 0, file, ofstruct })
 }
 
 fn file_stamp(handle: &OwnedHandle) -> Result<(u16, u16), u32> {
-    // SAFETY: The HANDLE remains owned for both the type and metadata queries.
-    let last_write = match unsafe { GetFileType(handle.as_raw_handle()) } {
-        FILE_TYPE_CHAR => {
-            // DOS INT 21h/5700 returns current local date/time for character
-            // devices. Use the same Windows clock and DOS conversion policy
-            // as files, rather than failing a previously valid NUL/CON open.
-            let mut now = FILETIME::default();
-            unsafe { GetSystemTimeAsFileTime(&mut now) };
-            now
-        }
-        // OpenFile does not support named pipes. Do not fabricate a disk
-        // timestamp when a CreateFileW-compatible pipe pathname reaches here.
-        FILE_TYPE_PIPE => return Err(ERROR_INVALID_FUNCTION),
-        _ => {
-            let mut info = BY_HANDLE_FILE_INFORMATION::default();
-            // Read the opened object, not a second path lookup. This query
-            // supports write-only opens without requesting GENERIC_READ.
-            // SAFETY: The output is an initialized Windows ABI object.
-            if unsafe { GetFileInformationByHandle(handle.as_raw_handle(), &mut info) } == 0 {
-                return Err(unsafe { GetLastError() });
-            }
-            info.ftLastWriteTime
-        }
-    };
-    let ticks = (u64::from(last_write.dwHighDateTime) << 32)
-        | u64::from(last_write.dwLowDateTime);
+    let ticks = super::win16::file_metadata::last_write_ticks(handle.as_raw_handle())?;
     // Keep Compat16's DOS policy: historical local-zone rules, truncated
     // two-second slots, and zero date/time outside the DOS year range. The
     // comparison/OFSTRUCT contract does not imply byte-exact WOW conversion.

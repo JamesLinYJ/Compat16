@@ -34,6 +34,13 @@ pub(crate) fn dos_write_time_from_ticks(ticks: u64) -> Result<(u16, u16), DosHos
     metadata::dos_write_time_from_ticks(ticks)
 }
 
+pub(crate) fn dos_to_native_write_time(
+    time: u16,
+    date: u16,
+) -> Result<windows_sys::Win32::Foundation::FILETIME, DosHostError> {
+    metadata::dos_to_native_write_time(time, date)
+}
+
 /// Open-description state is shared by duplicated DOS file tokens.
 pub(super) struct OpenFile {
     file: File,
