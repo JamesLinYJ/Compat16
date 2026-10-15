@@ -3,7 +3,7 @@
 pub(super) mod file_metadata;
 mod dos_file_io;
 
-use super::bindings::{_lclose, _llseek, _lread, _lwrite, LZClose, LZRead, LZSeek};
+use super::bindings::{LZClose, LZRead, LZSeek};
 #[cfg(test)]
 use super::guest_text::GuestTextCodec;
 use runtime::Win16HostFile;
@@ -27,12 +27,10 @@ use windows_sys::Win32::Storage::FileSystem::{CREATE_ALWAYS, CreateFileW, OPEN_E
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum Win16NativeFile {
-    /// A real HFILE returned by a legacy HFILE API such as LZOpenFileW.
-    Ordinary(i32),
     /// A pointer-sized HANDLE returned by CreateFileW. It must only be used
     /// with HANDLE APIs and must never be narrowed to an HFILE.
     NativeHandle(HANDLE),
-    /// A native token returned by LZOpenFile or LZInit. Even ordinary files
+    /// A native token returned by LZInit. Even ordinary files
     /// can receive a distinct LZ token, so numeric equality is not a type test.
     LzHandle(Win16LzNative),
 }
@@ -55,8 +53,8 @@ pub(super) struct Win16Files {
 #[derive(Clone, Copy)]
 struct RetainedFile {
     native: Win16NativeFile,
-    // None is reserved for native legacy/LZ APIs whose access has not been
-    // recorded. Never infer read-only rights from a failed native flush.
+    // None marks LZ wrappers or imported handles whose access was not
+    // supplied. Never infer read-only rights from a failed native flush.
     access: Option<u32>,
 }
 
@@ -113,11 +111,6 @@ impl Win16Files {
             .ok_or_else(|| super::invalid(dos_kernel::DosErrorCode::InvalidHandle))?;
         let handle = match entry.native {
             Win16NativeFile::NativeHandle(handle) => handle,
-            Win16NativeFile::Ordinary(hfile) => {
-                // Only a typed native legacy HFILE can use this conversion.
-                // A guest HFILE and a decoded LZ token are never HANDLEs.
-                super::win16_compat_calls_lzexpand::hfile_as_kernel_handle(hfile)
-            }
             Win16NativeFile::LzHandle(_) => {
                 return Err(super::invalid(dos_kernel::DosErrorCode::InvalidFunction));
             }
@@ -233,15 +226,6 @@ impl Win16Files {
         // SAFETY: `data` owns `count` writable bytes and the native file
         // identity is retained in this adapter. The guest pointer never reaches Windows.
         let read = match native {
-            Win16NativeFile::Ordinary(handle) => {
-                // SAFETY: `data` owns `count` writable bytes and the HFILE is
-                // retained in this adapter. The guest pointer never reaches Windows.
-                let read = unsafe { _lread(handle, data.as_mut_ptr().cast(), count) };
-                if read == u32::MAX {
-                    return Ok(None);
-                }
-                read
-            }
             Win16NativeFile::LzHandle(lz) => {
                 let Ok(count) = i32::try_from(count) else {
                     return Ok(None);
@@ -302,10 +286,6 @@ impl Win16Files {
         // SAFETY: `native` is an HFILE owned by this adapter; offset and
         // origin are scalar Win16 arguments already copied out of guest state.
         let position = match native {
-            Win16NativeFile::Ordinary(handle) => {
-                // SAFETY: `handle` is an HFILE owned by this adapter.
-                unsafe { _llseek(handle, offset, i32::from(origin)) }
-            }
             Win16NativeFile::LzHandle(lz) => {
                 // SAFETY: `handle` is an LZ HFILE owned by this adapter.
                 unsafe { LZSeek(lz.handle, offset, i32::from(origin)) }
@@ -350,16 +330,6 @@ impl Win16Files {
             )
         })?;
         match native {
-            Win16NativeFile::Ordinary(native) => {
-                // One native call keeps short writes and the Windows
-                // zero-length truncation behavior intact.
-                // SAFETY: The guest buffer was copied to `data`; the HFILE is owned.
-                let written = unsafe { _lwrite(native, data.as_ptr().cast(), count) };
-                if written == u32::MAX {
-                    return Ok(None);
-                }
-                Ok(Some(written))
-            }
             Win16NativeFile::LzHandle(_) => Ok(None),
             Win16NativeFile::NativeHandle(handle) if count == 0 => {
                 // _lwrite(HFILE, NULL, 0) truncates or extends at the current
@@ -412,15 +382,6 @@ impl Win16Files {
         let native = self.native_file(file)
             .ok_or_else(|| super::invalid(dos_kernel::DosErrorCode::InvalidHandle))?;
         let consumed_source = match native {
-            Win16NativeFile::Ordinary(handle) => {
-                // SAFETY: The HFILE is still owned here; failed close keeps it for retry.
-                if unsafe { _lclose(handle) } == -1 {
-                    return Err(file_error(unsafe {
-                        windows_sys::Win32::Foundation::GetLastError()
-                    }));
-                }
-                None
-            }
             Win16NativeFile::NativeHandle(handle) => {
                 // SAFETY: The HANDLE is still owned here; a failed close
                 // keeps it in the table so the caller can retry.
@@ -439,10 +400,6 @@ impl Win16Files {
                     // The source remains separately owned. A failed close
                     // keeps its table entry and guest alias available for retry.
                     let closed = match self.native_file(source) {
-                        Some(Win16NativeFile::Ordinary(handle)) => {
-                            // SAFETY: This is the table's owned source HFILE.
-                            unsafe { _lclose(handle) != -1 }
-                        }
                         Some(Win16NativeFile::NativeHandle(handle)) => {
                             // SAFETY: This is the table's owned source HANDLE.
                             unsafe { CloseHandle(handle) != 0 }
@@ -481,7 +438,7 @@ impl Drop for Win16Files {
         }
         for source in &consumed_sources {
             if let Some(
-                native @ (Win16NativeFile::Ordinary(_) | Win16NativeFile::NativeHandle(_)),
+                native @ Win16NativeFile::NativeHandle(_),
             ) = self.native_file(*source)
             {
                 // Its LZInit duplicate was closed above; consume the original
@@ -492,7 +449,7 @@ impl Drop for Win16Files {
         for (token, entry) in &self.files {
             if matches!(
                 entry.native,
-                Win16NativeFile::Ordinary(_) | Win16NativeFile::NativeHandle(_)
+                Win16NativeFile::NativeHandle(_)
             ) && !consumed_sources.contains(token)
             {
                 close_native(entry.native);
@@ -511,11 +468,6 @@ fn file_error(code: u32) -> dos_kernel::DosHostError {
 
 fn close_native(native: Win16NativeFile) {
     match native {
-        Win16NativeFile::Ordinary(handle) => {
-            // SAFETY: This HFILE was returned by a successful native legacy
-            // file API and remains owned by this adapter.
-            unsafe { _lclose(handle) };
-        }
         Win16NativeFile::LzHandle(lz) => {
             // SAFETY: This LZ HFILE was returned by a successful native LZ
             // operation and remains owned by this adapter.

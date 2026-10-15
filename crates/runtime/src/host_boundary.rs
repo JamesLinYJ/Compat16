@@ -1371,7 +1371,8 @@ pub trait RuntimeHost:
     }
     fn win16_lz_open_file(
         &mut self,
-        _path: &[u8],
+        _path: &crate::Win16GuestPath,
+        _search_name: Option<&str>,
         _style: u16,
         _ofstruct: Vec<u8>,
     ) -> Result<Win16HostLzOpen, RuntimeError> {
@@ -1430,6 +1431,8 @@ pub trait RuntimeHost:
     fn win16_lz_get_expanded_name(
         &mut self,
         _source: &[u8],
+        _path: &crate::Win16GuestPath,
+        _search_name: Option<&str>,
     ) -> Result<Win16HostLzName, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,

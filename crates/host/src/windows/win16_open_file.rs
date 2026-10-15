@@ -22,8 +22,58 @@ const OF_CREATE: u16 = 0x1000;
 const OF_VERIFY: u16 = 0x0400;
 const OF_EXIST: u16 = 0x4000;
 const OF_REOPEN: u16 = 0x8000;
+const OF_PROMPT: u16 = 0x2000;
 
 pub(super) fn open(
+    filesystem: &mut crate::filesystem::Filesystem,
+    files: &mut Win16Files, codec: GuestTextCodec,
+    guest_path: &runtime::Win16GuestPath, search_name: Option<&str>,
+    style: u16, ofstruct: Vec<u8>,
+) -> Result<Win16HostOpenFile, RuntimeError> {
+    loop {
+        let mut opened = open_once(filesystem, files, codec, guest_path,
+            search_name, style, ofstruct.clone())?;
+        if !needs_prompt(style, opened.result, &opened.ofstruct) {
+            return Ok(opened);
+        }
+        if !prompt_retry(guest_path)? {
+            opened.ofstruct[2..4].copy_from_slice(&2u16.to_le_bytes());
+            return Ok(opened);
+        }
+    }
+}
+
+/// A failed lookup can retry through the same task-resolved capability path.
+/// Sharing, permissions, verification, and parse-only results never prompt.
+pub(super) fn needs_prompt(style: u16, result: i16, ofstruct: &[u8]) -> bool {
+    style & OF_PROMPT != 0 && style & OF_PARSE == 0 && result < 0
+        && ofstruct.get(2..4).is_some_and(|code|
+            matches!(u16::from_le_bytes([code[0], code[1]]), 2 | 3))
+}
+
+pub(super) fn prompt_retry(path: &runtime::Win16GuestPath) -> Result<bool, RuntimeError> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        IDCANCEL, IDRETRY, MB_ICONERROR, MB_RETRYCANCEL, MB_TASKMODAL, MessageBoxW,
+    };
+    let drive = char::from_u32(u32::from(b'A') + u32::from(path.drive)).unwrap_or('?');
+    let name = path.components.iter().map(|part| part.text.as_str()).collect::<Vec<_>>().join("\\");
+    let text = format!("Cannot find the file:\n{drive}:\\{name}\n\nRetry opening the file?");
+    let wide: Vec<u16> = text.encode_utf16().chain(Some(0)).collect();
+    // SAFETY: Owned UTF-16 text with a terminator and a fixed Unicode caption.
+    // This synchronous legacy prompt has the same ownerless host boundary
+    // as the existing Win16 message-box service; no guest pointer is passed.
+    match unsafe { MessageBoxW(std::ptr::null_mut(), wide.as_ptr(),
+        windows_sys::core::w!("Open file"), MB_RETRYCANCEL | MB_ICONERROR | MB_TASKMODAL) } {
+        IDRETRY => Ok(true),
+        IDCANCEL => Ok(false),
+        0 => Err(RuntimeError::with_source(Kind::HostFailure,
+            "show file-open retry prompt", std::io::Error::last_os_error())),
+        _ => Err(RuntimeError::new(Kind::InternalInvariant,
+            "file-open retry prompt returned an unexpected button")),
+    }
+}
+
+fn open_once(
     filesystem: &mut crate::filesystem::Filesystem,
     files: &mut Win16Files, codec: GuestTextCodec,
     guest_path: &runtime::Win16GuestPath, search_name: Option<&str>,
@@ -58,19 +108,7 @@ pub(super) fn open(
         return finish_open(filesystem, files, std::path::Path::new(name), style,
             ofstruct, handle, access, stamp);
     }
-    let mut resolved = super::win16_file_paths::resolve(filesystem, guest_path,
-        style & OF_DELETE == 0 || reopen, style & (OF_CREATE | OF_PARSE) != 0);
-    // The task directory has precedence. A Windows search only locates a
-    // fallback; the resulting file is still opened through the capability.
-    if resolved.is_err() && let Some(name) = search_name {
-        let wide: Vec<u16> = name.encode_utf16().chain(Some(0)).collect();
-        if let Some(found) = query_path(&wide, true)? {
-            let text = String::from_utf16_lossy(&found);
-            resolved = filesystem.resolve_text_path(&text, false)
-                .and_then(|path| filesystem.confined_path(&path, true, false));
-        }
-    }
-    let path = match resolved {
+    let path = match resolve_search_path(filesystem, guest_path, search_name, style)? {
         Ok(path) => path,
         Err(error) => return Ok(failed(ofstruct, u32::from(error.code as u16))),
     };
@@ -183,6 +221,29 @@ fn file_stamp(handle: &OwnedHandle) -> Result<(u16, u16), u32> {
     // two-second slots, and zero date/time outside the DOS year range. The
     // comparison/OFSTRUCT contract does not imply byte-exact WOW conversion.
     crate::filesystem::dos_write_time_from_ticks(ticks).map_err(|error| u32::from(error.code as u16))
+}
+
+/// Share task-first name lookup without imposing OFSTRUCT timestamp/length
+/// contracts on APIs which only need an owned file (such as GetExpandedName).
+pub(super) fn resolve_search_path(
+    filesystem: &mut crate::filesystem::Filesystem,
+    guest_path: &runtime::Win16GuestPath,
+    search_name: Option<&str>,
+    style: u16,
+) -> Result<Result<std::path::PathBuf, dos_kernel::DosHostError>, RuntimeError> {
+    let mut resolved = super::win16_file_paths::resolve(filesystem, guest_path,
+        style & OF_DELETE == 0 || style & OF_REOPEN != 0, style & (OF_CREATE | OF_PARSE) != 0);
+    // A Windows search only locates a fallback. The resulting file is still
+    // opened through the capability root, rather than reopening guest text.
+    if resolved.is_err() && let Some(name) = search_name {
+        let wide: Vec<u16> = name.encode_utf16().chain(Some(0)).collect();
+        if let Some(found) = query_path(&wide, true)? {
+            let text = String::from_utf16_lossy(&found);
+            resolved = filesystem.resolve_text_path(&text, false)
+                .and_then(|path| filesystem.confined_path(&path, true, false));
+        }
+    }
+    Ok(resolved)
 }
 
 fn query_path(path: &[u16], search: bool) -> Result<Option<Vec<u16>>, RuntimeError> {

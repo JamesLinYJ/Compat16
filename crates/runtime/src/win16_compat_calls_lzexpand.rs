@@ -40,7 +40,25 @@ impl Win16State {
                     .map_err(crate::runtime_error)?;
                 let previous = self.read_text_bytes(memory, pointer, OFSTRUCT_BYTES)?;
                 let output = self.prepare_text_write(memory, pointer, OFSTRUCT_BYTES)?;
-                let opened = host.win16_lz_open_file(&path, style, previous)?;
+                // OF_REOPEN consumes the saved guest-ANSI pathname. Resolve
+                // it in the current task before any host file operation.
+                let input = if style & 0x8000 != 0 {
+                    let saved = &previous[8..];
+                    saved.iter().position(|&byte| byte == 0).map(|end| &saved[..end])
+                } else { Some(path.as_slice()) };
+                let resolved = match input {
+                    Some(input) => self.legacy_file_path(input, host)?.map(|path| (path, input)),
+                    None => None,
+                };
+                let opened = match resolved {
+                    Some((resolved, input)) => {
+                        let text = host.decode_win16_ansi(input)?;
+                        let search_name = (style & 0x9100 == 0 && !text.contains(['\\', '/', ':']))
+                            .then_some(text.as_str());
+                        host.win16_lz_open_file(&resolved, search_name, style, previous)?
+                    }
+                    None => crate::Win16HostLzOpen { result: -1, file: None, ofstruct: previous },
+                };
                 if opened.ofstruct.len() != OFSTRUCT_BYTES {
                     if let Some(file) = opened.file {
                         let _ = host.win16_file_close(file)?;
@@ -216,7 +234,15 @@ impl Win16State {
             Win16LzExpandRequest::LzGetExpandedName { source, output } => {
                 let pointer = self.selectors.pointer_from_far(output)
                     .map_err(crate::runtime_error)?;
-                match host.win16_lz_get_expanded_name(&source)? {
+                let name = match self.legacy_file_path(&source, host)? {
+                    Some(path) => {
+                        let text = host.decode_win16_ansi(&source)?;
+                        let search_name = (!text.contains(['\\', '/', ':'])).then_some(text.as_str());
+                        host.win16_lz_get_expanded_name(&source, &path, search_name)?
+                    }
+                    None => Win16HostLzName::Error(-7),
+                };
+                match name {
                     Win16HostLzName::Name(mut name) if !name.contains(&0) => {
                         let length = name.len().checked_add(1).ok_or_else(||
                             RuntimeError::new(Kind::ResourceExhausted,
