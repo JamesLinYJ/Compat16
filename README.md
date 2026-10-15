@@ -102,7 +102,8 @@ Double-click launching requires a Windows legacy-image callback. Microsoft docum
 The architecture separates guest CPU execution, DOS / Win16 ABI translation, and native Windows calls. See [AGENTS.md](AGENTS.md) for concise guidance applicable to all contributors and development tools.
 
 Windows ARM64 and AMD64 builds use an independent, bounded Cranelift JIT for hot
-integer blocks, with a per-user persistent compilation cache. The CPU owns checked memory operands and exception
+integer blocks and budgeted real-address register loops, with a per-user
+persistent compilation cache. The CPU owns checked memory operands and exception
 delivery; generated code computes only values and flags. Other instructions
 retain checked interpreter execution.
 Use `--cpu-engine interpreter` to disable JIT, `--no-jit-cache` to disable disk

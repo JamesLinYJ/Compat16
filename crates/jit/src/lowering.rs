@@ -66,6 +66,17 @@ fn signed(b: &mut FunctionBuilder<'_>, value: Value, bytes: u8) -> Value {
 }
 
 pub(super) fn emit(b: &mut FunctionBuilder<'_>, state: &mut State, instruction: Instruction) {
+    emit_live(b, state, instruction, 0x8d5);
+}
+
+/// Intermediate flags that are overwritten before any read need not be
+/// materialized. Loop exits still request every architectural status bit.
+pub(super) fn emit_live(
+    b: &mut FunctionBuilder<'_>,
+    state: &mut State,
+    instruction: Instruction,
+    live: u32,
+) {
     let register = instruction.destination;
     let original = load(b, state, register);
     let source = match instruction.source {
@@ -159,48 +170,60 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, state: &mut State, instruction: 
         } else {
             b.ins().iadd(l, rc)
         };
-        let carry_bit = if borrow {
-            b.ins().icmp(IntCC::UnsignedLessThan, l, rc)
-        } else {
-            b.ins()
-                .icmp_imm_s(IntCC::UnsignedGreaterThan, wide, i64::from(register.mask()))
-        };
-        new_flags = flag(b, carry_bit, 0);
+        if live & 1 != 0 {
+            let carry_bit = if borrow {
+                b.ins().icmp(IntCC::UnsignedLessThan, l, rc)
+            } else {
+                b.ins()
+                    .icmp_imm_s(IntCC::UnsignedGreaterThan, wide, i64::from(register.mask()))
+            };
+            new_flags = flag(b, carry_bit, 0);
+        }
         let result = b.ins().ireduce(types::I32, wide);
         let result = b.ins().band_imm_u(result, i64::from(register.mask()));
         // OF is a sign-bit relation, also for ADC/SBB's carry input. Keep it
         // in the existing 32-bit SSA values instead of sign-extending twice
         // and computing a second 64-bit sum plus two range comparisons.
-        let signs = b.ins().bxor(left, right);
-        let signs = if borrow { signs } else { b.ins().bnot(signs) };
-        let changed = b.ins().bxor(left, result);
-        let overflow = b.ins().band(signs, changed);
-        let overflow = b
-            .ins()
-            .ushr_imm_u(overflow, i64::from(register.bytes * 8 - 1));
-        let overflow = b.ins().ishl_imm_u(overflow, 11);
-        new_flags = b.ins().bor(new_flags, overflow);
-        let aux = b.ins().bxor(left, right);
-        let aux = b.ins().bxor(aux, result);
-        let aux = b.ins().band_imm_u(aux, 0x10);
-        new_flags = b.ins().bor(new_flags, aux);
+        if live & 0x800 != 0 {
+            let signs = b.ins().bxor(left, right);
+            let signs = if borrow { signs } else { b.ins().bnot(signs) };
+            let changed = b.ins().bxor(left, result);
+            let overflow = b.ins().band(signs, changed);
+            let overflow = b
+                .ins()
+                .ushr_imm_u(overflow, i64::from(register.bytes * 8 - 1));
+            let overflow = b.ins().ishl_imm_u(overflow, 11);
+            new_flags = b.ins().bor(new_flags, overflow);
+        }
+        if live & 0x10 != 0 {
+            let aux = b.ins().bxor(left, right);
+            let aux = b.ins().bxor(aux, result);
+            let aux = b.ins().band_imm_u(aux, 0x10);
+            new_flags = b.ins().bor(new_flags, aux);
+        }
         result
     };
     let result = b.ins().band_imm_u(result, i64::from(register.mask()));
-    let zf = b.ins().icmp_imm_s(IntCC::Equal, result, 0);
-    let zf = flag(b, zf, 6);
-    new_flags = b.ins().bor(new_flags, zf);
-    let sign = b
-        .ins()
-        .ushr_imm_u(result, i64::from(register.bytes * 8 - 1));
-    let sign = b.ins().ishl_imm_u(sign, 7);
-    new_flags = b.ins().bor(new_flags, sign);
-    let low = b.ins().band_imm_u(result, 0xff);
-    let parity = b.ins().popcnt(low);
-    let parity = b.ins().band_imm_u(parity, 1);
-    let parity = b.ins().icmp_imm_s(IntCC::Equal, parity, 0);
-    let parity = flag(b, parity, 2);
-    new_flags = b.ins().bor(new_flags, parity);
+    if live & 0x40 != 0 {
+        let zf = b.ins().icmp_imm_s(IntCC::Equal, result, 0);
+        let zf = flag(b, zf, 6);
+        new_flags = b.ins().bor(new_flags, zf);
+    }
+    if live & 0x80 != 0 {
+        let sign = b
+            .ins()
+            .ushr_imm_u(result, i64::from(register.bytes * 8 - 1));
+        let sign = b.ins().ishl_imm_u(sign, 7);
+        new_flags = b.ins().bor(new_flags, sign);
+    }
+    if live & 4 != 0 {
+        let low = b.ins().band_imm_u(result, 0xff);
+        let parity = b.ins().popcnt(low);
+        let parity = b.ins().band_imm_u(parity, 1);
+        let parity = b.ins().icmp_imm_s(IntCC::Equal, parity, 0);
+        let parity = flag(b, parity, 2);
+        new_flags = b.ins().bor(new_flags, parity);
+    }
     let mask = if logical {
         0x8c5
     } else if matches!(instruction.operation, Op::Increment | Op::Decrement) {
@@ -218,7 +241,11 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, state: &mut State, instruction: 
     }
 }
 
-fn condition_value(b: &mut FunctionBuilder<'_>, flags: Value, condition: Condition) -> Value {
+pub(super) fn condition_value(
+    b: &mut FunctionBuilder<'_>,
+    flags: Value,
+    condition: Condition,
+) -> Value {
     use Condition::*;
     let mask = match condition {
         Overflow | NotOverflow => 1 << 11,
@@ -256,4 +283,40 @@ fn condition_value(b: &mut FunctionBuilder<'_>, flags: Value, condition: Conditi
         selected,
         0,
     )
+}
+
+/// Backwards status-bit liveness for a block whose final state is observable.
+pub(super) fn live_flags(instructions: &[Instruction]) -> Vec<u32> {
+    let mut live = 0x8d5;
+    let mut result = vec![0; instructions.len()];
+    for (index, instruction) in instructions.iter().enumerate().rev() {
+        result[index] = live;
+        let written = match instruction.operation {
+            Op::And | Op::Or | Op::Xor | Op::Test => 0x8c5,
+            Op::Increment | Op::Decrement => 0x8d4,
+            Op::Add
+            | Op::AddCarry
+            | Op::Subtract
+            | Op::SubtractBorrow
+            | Op::Compare
+            | Op::Negate => 0x8d5,
+            _ => 0,
+        };
+        let read = match instruction.operation {
+            Op::AddCarry | Op::SubtractBorrow => 1,
+            Op::SetCondition(condition) | Op::ConditionalMove(condition) => match condition {
+                Condition::Overflow | Condition::NotOverflow => 0x800,
+                Condition::Below | Condition::AboveEqual => 1,
+                Condition::Equal | Condition::NotEqual => 0x40,
+                Condition::BelowEqual | Condition::Above => 0x41,
+                Condition::Sign | Condition::NotSign => 0x80,
+                Condition::Parity | Condition::NotParity => 4,
+                Condition::Less | Condition::GreaterEqual => 0x880,
+                Condition::LessEqual | Condition::Greater => 0x8c0,
+            },
+            _ => 0,
+        };
+        live = (live & !written) | read;
+    }
+    result
 }

@@ -3,6 +3,9 @@
 //! in step.rs. IR keys include immediates and register widths, so re-decoding
 //! self-modifying/remapped code cannot reuse a different instruction's body.
 
+#[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+mod loops;
+
 use crate::x86_decode::DecodedInstruction;
 use guest_core::Registers;
 
@@ -13,6 +16,9 @@ pub enum ExecutionEngine {
 }
 #[derive(Clone, Copy, Debug, Default)]
 pub struct JitStatistics {
+    pub loops_compiled: u64,
+    pub loops_executed: u64,
+    pub loop_iterations: u64,
     pub compiled: u64,
     pub executed: u64,
     pub failures: u64,
@@ -31,6 +37,8 @@ pub(super) struct IntegerTranslator {
     cache: native_jit::TraceEngine,
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
     current: Option<native_jit::Instruction>,
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    loops: loops::Loops,
 }
 impl Default for IntegerTranslator {
     fn default() -> Self {
@@ -47,6 +55,8 @@ impl Default for IntegerTranslator {
             cache: native_jit::TraceEngine::default(),
             #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
             current: None,
+            #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+            loops: loops::Loops::default(),
         }
     }
 }
@@ -83,6 +93,7 @@ impl IntegerTranslator {
         &mut self,
         store: Option<std::sync::Arc<dyn native_jit::ArtifactStore>>,
     ) {
+        self.loops.cache.set_artifact_store(store.clone());
         self.cache.set_artifact_store(store);
     }
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
@@ -117,8 +128,14 @@ impl IntegerTranslator {
     pub(super) fn statistics(&self) -> JitStatistics {
         #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
         {
-            let stats = self.cache.statistics();
+            let stats = self
+                .cache
+                .statistics()
+                .combined(self.loops.cache.statistics());
             JitStatistics {
+                loops_compiled: stats.loops_compiled,
+                loops_executed: stats.loops_executed,
+                loop_iterations: stats.loop_iterations,
                 compiled: stats.compiled,
                 executed: stats.executed,
                 failures: stats.failures,
@@ -271,5 +288,28 @@ mod native {
                 Operation::ConditionalMove(condition)
             },
         )
+    }
+}
+
+impl crate::Cpu {
+    /// Try a bounded pure register loop over opted-in stable real-address RAM.
+    /// Returns the exact instruction count, including backedges, or None with
+    /// no architectural effects. The machine must service pending external
+    /// interrupts first and poll devices/host events again after the quantum.
+    /// Callers requiring per-instruction observation must keep using step.
+    pub fn try_run_integer_loop(
+        &mut self,
+        memory: &impl guest_core::GuestMemory,
+        max_instructions: u32,
+    ) -> Result<Option<u32>, crate::CpuError> {
+        #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+        {
+            self.try_integer_loop_native(memory, max_instructions)
+        }
+        #[cfg(not(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"))))]
+        {
+            let _ = (memory, max_instructions);
+            Ok(None)
+        }
     }
 }

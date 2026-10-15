@@ -82,6 +82,15 @@ pub struct AtomicMemoryRange {
 
 pub trait GuestMemory {
     fn len(&self) -> u32;
+    /// Optional instruction-cache read of ordinary, stable RAM. Return false
+    /// without effects when the range needs device callbacks, observation or
+    /// per-access permission checks. On true, bytes remain unchanged until a
+    /// mutable provider access or a return to the machine owner. Pure CPU
+    /// arithmetic may reuse them within one bounded execution quantum.
+    /// Storage failures still propagate. The default preserves ordered reads.
+    fn read_plain_code(&self, _address: PhysAddr, _bytes: &mut [u8]) -> Result<bool, MemoryError> {
+        Ok(false)
+    }
     fn is_empty(&self) -> bool { self.len() == 0 }
     fn validate_read(&self, address: PhysAddr, length: usize) -> Result<(), MemoryError> {
         let length32 = u32::try_from(length).map_err(|_| MemoryError::AddressOverflow)?;
@@ -136,6 +145,9 @@ pub trait GuestMemory {
 /// memory implementation through `&mut`, including custom access validators.
 impl<T: GuestMemory + ?Sized> GuestMemory for &mut T {
     fn len(&self) -> u32 { (**self).len() }
+    fn read_plain_code(&self, address: PhysAddr, bytes: &mut [u8]) -> Result<bool, MemoryError> {
+        (**self).read_plain_code(address, bytes)
+    }
     fn is_empty(&self) -> bool { (**self).is_empty() }
     fn validate_read(&self, address: PhysAddr, length: usize) -> Result<(), MemoryError> {
         (**self).validate_read(address, length)

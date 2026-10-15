@@ -6,7 +6,9 @@
 mod artifact;
 mod compiler;
 mod ir;
+mod loops;
 mod lowering;
+pub use loops::{IntegerLoop, LoopCache, LoopOutcome};
 #[cfg(test)]
 mod tests;
 mod trace;
@@ -23,6 +25,9 @@ const MAX_ENTRIES: usize = 1024;
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Statistics {
+    pub loops_compiled: u64,
+    pub loops_executed: u64,
+    pub loop_iterations: u64,
     pub compiled: u64,
     pub executed: u64,
     pub failures: u64,
@@ -33,6 +38,29 @@ pub struct Statistics {
     pub block_invalidations: u64,
     pub persistent_hits: u64,
     pub persistent_writes: u64,
+}
+impl Statistics {
+    pub fn combined(self, other: Self) -> Self {
+        Self {
+            loops_compiled: self.loops_compiled.saturating_add(other.loops_compiled),
+            loops_executed: self.loops_executed.saturating_add(other.loops_executed),
+            loop_iterations: self.loop_iterations.saturating_add(other.loop_iterations),
+            compiled: self.compiled.saturating_add(other.compiled),
+            executed: self.executed.saturating_add(other.executed),
+            failures: self.failures.saturating_add(other.failures),
+            cache_resets: self.cache_resets.saturating_add(other.cache_resets),
+            blocks_compiled: self.blocks_compiled.saturating_add(other.blocks_compiled),
+            blocks_executed: self.blocks_executed.saturating_add(other.blocks_executed),
+            checkpoint_hits: self.checkpoint_hits.saturating_add(other.checkpoint_hits),
+            block_invalidations: self
+                .block_invalidations
+                .saturating_add(other.block_invalidations),
+            persistent_hits: self.persistent_hits.saturating_add(other.persistent_hits),
+            persistent_writes: self
+                .persistent_writes
+                .saturating_add(other.persistent_writes),
+        }
+    }
 }
 enum Entry {
     Cold(u8),

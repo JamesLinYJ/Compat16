@@ -211,7 +211,8 @@ impl Cpu {
     }
 
     /// Select interpreter-only execution or the native hot-integer translator.
-    /// Every native result still retires through the normal CPU boundary.
+    /// Single-step execution retains its normal boundary; opt-in integer loops
+    /// retire an exact bounded count through the machine scheduler.
     pub fn set_execution_engine(&mut self, engine: ExecutionEngine) {
         self.jit.set_engine(engine);
     }

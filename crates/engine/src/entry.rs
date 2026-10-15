@@ -284,6 +284,8 @@ fn run() -> Result<u8, RuntimeError> {
         eprintln!("JIT blocks: compiled={} executed={} checkpoints={} invalidations={} persistent_hits={} persistent_writes={}",
             stats.blocks_compiled, stats.blocks_executed, stats.checkpoint_hits, stats.block_invalidations,
             stats.persistent_hits, stats.persistent_writes);
+        eprintln!("JIT loops: compiled={} executed={} iterations={}",
+            stats.loops_compiled, stats.loops_executed, stats.loop_iterations);
     }
     host.finish_output().map_err(|e| RuntimeError::with_source(Kind::HostFailure, "incomplete console output", e))?;
     Ok(result)

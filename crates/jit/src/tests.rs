@@ -206,3 +206,208 @@ fn arithmetic_overflow_matches_wide_math_for_every_byte_and_carry() {
     }
     assert_eq!(cache.statistics().failures, 0);
 }
+
+fn warm_loop(
+    cache: &mut LoopCache,
+    plan: &IntegerLoop,
+    input: IntegerState,
+    budget: u32,
+) -> (IntegerState, LoopOutcome) {
+    for _ in 0..8 {
+        let mut state = input;
+        if let Some(outcome) = cache.execute(plan, &mut state, budget) {
+            return (state, outcome);
+        }
+        assert_eq!(state, input);
+    }
+    panic!("loop compilation failed: {:?}", cache.statistics());
+}
+
+#[test]
+fn budgeted_loops_match_checkpoint_arithmetic_and_stop_at_the_backedge() {
+    let ax = Register::new(0, 2, false).unwrap();
+    let cx = Register::new(1, 2, false).unwrap();
+    let body = vec![
+        Instruction::new(Operation::AddCarry, ax, Operand::Immediate(0x7fff)).unwrap(),
+        Instruction::new(Operation::Decrement, cx, Operand::Immediate(0)).unwrap(),
+    ];
+    let plan = IntegerLoop::new(body.clone(), Some(Condition::NotEqual)).unwrap();
+    let mut loops = LoopCache::default();
+    let mut singles = CodeCache::default();
+    let mut scratch = [IntegerState::default(); 2];
+    for _ in 0..8 {
+        singles.execute_block(&body, &mut IntegerState::default(), &mut scratch);
+    }
+    for count in [1, 2, 7, 255] {
+        for budget in [1, 3, 300] {
+            let input = IntegerState {
+                registers: [0xabcd_ffff, count, 3, 4, 5, 6, 7, 8],
+                flags: 0x203,
+            };
+            let (actual, outcome) = warm_loop(&mut loops, &plan, input, budget);
+            let iterations = count.min(budget);
+            let mut expected = input;
+            for _ in 0..iterations {
+                assert!(singles.execute_block(&body, &mut expected, &mut scratch));
+            }
+            assert_eq!(actual, expected);
+            assert_eq!(
+                outcome,
+                LoopOutcome {
+                    iterations,
+                    backedge_taken: iterations < count
+                }
+            );
+        }
+    }
+    // SETcc consumes status before later arithmetic overwrites it. Backwards
+    // liveness must retain those bits, including AH/AX aliasing and carry.
+    for condition in [
+        Condition::Overflow,
+        Condition::Below,
+        Condition::Equal,
+        Condition::Parity,
+        Condition::Less,
+        Condition::Greater,
+    ] {
+        let body = vec![
+            Instruction::new(Operation::AddCarry, ax, Operand::Immediate(0x7fff)).unwrap(),
+            Instruction::new(
+                Operation::SetCondition(condition),
+                Register::new(0, 1, true).unwrap(),
+                Operand::Immediate(0),
+            )
+            .unwrap(),
+            Instruction::new(Operation::Xor, cx, Operand::Register(cx)).unwrap(),
+        ];
+        let plan = IntegerLoop::new(body.clone(), None).unwrap();
+        for flags in [2, 3, 0x8d7] {
+            let input = IntegerState {
+                registers: [0xffff_8000; 8],
+                flags,
+            };
+            let (actual, outcome) = warm_loop(&mut loops, &plan, input, 11);
+            assert_eq!(outcome.iterations, 11);
+            let mut reference = input;
+            let mut checkpoints = [IntegerState::default(); 3];
+            for _ in 0..8 {
+                singles.execute_block(&body, &mut input.clone(), &mut checkpoints);
+            }
+            for _ in 0..11 {
+                assert!(singles.execute_block(&body, &mut reference, &mut checkpoints));
+            }
+            assert_eq!(actual, reference);
+        }
+    }
+    let infinite = IntegerLoop::new(body, None).unwrap();
+    let (_, result) = warm_loop(&mut loops, &infinite, IntegerState::default(), u32::MAX);
+    assert_eq!(
+        result,
+        LoopOutcome {
+            iterations: 4096,
+            backedge_taken: true
+        }
+    );
+    let mut untouched = IntegerState::default();
+    assert_eq!(loops.execute(&infinite, &mut untouched, 0), None);
+    assert_eq!(untouched, IntegerState::default());
+    assert_eq!(loops.statistics().failures, 0);
+}
+
+#[test]
+fn native_loop_conditions_cover_all_x86_status_relations() {
+    use Condition::*;
+    let conditions = [
+        Overflow,
+        NotOverflow,
+        Below,
+        AboveEqual,
+        Equal,
+        NotEqual,
+        BelowEqual,
+        Above,
+        Sign,
+        NotSign,
+        Parity,
+        NotParity,
+        Less,
+        GreaterEqual,
+        LessEqual,
+        Greater,
+    ];
+    let instruction = Instruction::new(
+        Operation::Not,
+        Register::new(0, 1, true).unwrap(),
+        Operand::Immediate(0),
+    )
+    .unwrap();
+    let mut cache = LoopCache::default();
+    for condition in conditions {
+        let plan = IntegerLoop::new(vec![instruction], Some(condition)).unwrap();
+        for bits in 0..32u32 {
+            let [cf, pf, zf, sf, of] = std::array::from_fn(|i| bits & (1 << i) != 0);
+            let flags = 2
+                | u32::from(cf)
+                | u32::from(pf) << 2
+                | u32::from(zf) << 6
+                | u32::from(sf) << 7
+                | u32::from(of) << 11;
+            let input = IntegerState {
+                registers: [0x1234_5678; 8],
+                flags,
+            };
+            let (state, outcome) = warm_loop(&mut cache, &plan, input, 1);
+            let expected = match condition {
+                Overflow => of,
+                NotOverflow => !of,
+                Below => cf,
+                AboveEqual => !cf,
+                Equal => zf,
+                NotEqual => !zf,
+                BelowEqual => cf || zf,
+                Above => !cf && !zf,
+                Sign => sf,
+                NotSign => !sf,
+                Parity => pf,
+                NotParity => !pf,
+                Less => sf != of,
+                GreaterEqual => sf == of,
+                LessEqual => zf || sf != of,
+                Greater => !zf && sf == of,
+            };
+            assert_eq!(
+                outcome,
+                LoopOutcome {
+                    iterations: 1,
+                    backedge_taken: expected
+                }
+            );
+            assert_eq!(state.registers[0], input.registers[0] ^ 0xff00);
+            assert_eq!(state.flags, flags);
+        }
+    }
+}
+
+#[test]
+fn loop_artifacts_restore_in_fresh_owners_and_remain_signature_specific() {
+    let store = Arc::new(Store::default());
+    let plan = IntegerLoop::new(instructions().to_vec(), None).unwrap();
+    for restored in [false, true] {
+        let mut cache = LoopCache::default();
+        cache.set_artifact_store(Some(store.clone()));
+        warm_loop(&mut cache, &plan, IntegerState::default(), 5);
+        assert_eq!(cache.statistics().persistent_hits > 0, restored);
+        assert_eq!(cache.statistics().persistent_writes > 0, !restored);
+    }
+    let mut checkpoint_cache = CodeCache::default();
+    checkpoint_cache.set_artifact_store(Some(store));
+    for _ in 0..4 {
+        checkpoint_cache.execute_block(
+            &instructions(),
+            &mut IntegerState::default(),
+            &mut [IntegerState::default(); 4],
+        );
+    }
+    assert_eq!(checkpoint_cache.statistics().persistent_hits, 0);
+    assert!(checkpoint_cache.statistics().persistent_writes > 0);
+}

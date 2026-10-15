@@ -410,6 +410,24 @@ impl Runtime {
                 }
             }
             self.check_memory_storage()?;
+            // Pure register loops have no service calls or memory/device
+            // effects. Rejoin the scheduler after at most 256 instructions;
+            // never cross the existing host-pump or absolute budget boundary.
+            // Firmware and DOS service segments keep instruction dispatch.
+            let quantum = instruction_limit.saturating_sub(self.instructions)
+                .min(4096 - self.instructions % 4096).min(256) as u32;
+            if self.instruction_trace.is_none() && self.memory_write_watch.is_none()
+                && self.cpu.regs.cs != dos_kernel::SYSTEM_SEGMENT
+                && (u32::from(self.cpu.regs.cs) << 4) + 0xffff < 0xa0000
+            {
+                if let Some(retired) = self.cpu.try_run_integer_loop(&self.memory.bus(), quantum)
+                    .map_err(runtime_error)?
+                {
+                    self.instructions += u64::from(retired);
+                    if self.instructions % 4096 == 0 { self.pump_host_events(host)?; }
+                    continue;
+                }
+            }
             let step_number = self.instructions;
             let step = crate::cpu_execution::step_with_io(
                 &mut self.cpu,

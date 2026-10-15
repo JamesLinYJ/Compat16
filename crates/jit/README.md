@@ -26,7 +26,27 @@ format, and it does not claim Prism's optimization coverage.
   changed state and control transfers discard predicted tails.
   The existing CPU boundary still owns EIP, RF, interrupt/debug shadows,
   breakpoint delivery, continuation stamps, event observation and instruction
-  budgets. No block skips an observable instruction boundary.
+  budgets. This single-step path retains every observable instruction boundary.
+- A separate `IntegerLoop` / `LoopCache` compiles up to sixteen register
+  operations and a conditional or unconditional backedge into a native SSA
+  loop. Values stay in native registers, intermediate dead flags are omitted,
+  and only the exit state is written. There are no intermediate checkpoint
+  stores. This interface has no CPU, filesystem or Windows dependency.
+  The CPU adapter accepts only ordinary real-address CS caches with no paging,
+  debugging, pending CPU event, interrupt shadow or incomplete REP. It checks
+  the complete current code span on every dispatch, including the branch,
+  and counts every body instruction and backedge without exceeding the budget.
+  A provider must explicitly certify stable, unobserved RAM snapshots; device
+  memory and custom observers retain ordered fetches. Native process-memory
+  snapshots use checked OS copies; no guest address becomes a host pointer.
+  The DOS scheduler dispatches at most 256 instructions per quantum, then
+  resamples its time-driven device clock and arbitrates interrupts. Quanta
+  also stop at the absolute budget and the existing 4,096-instruction host pump.
+  Firmware/DOS service segments, instruction history and write watches keep
+  single stepping. Protected-mode and Win16 observer execution retain the
+  original per-instruction path. This changes host-time sampling granularity,
+  not the instruction counts or guest timer input frequency; it is not a
+  cycle-accurate timing claim.
 - Generated code addresses only exclusive nine-word integer states and a
   bounded owned checkpoint buffer. Guest
   register values cannot become native pointers. AL/AH and 16-bit writes retain
@@ -40,12 +60,16 @@ format, and it does not claim Prism's optimization coverage.
   operands, preserving single device reads on interpreter fallback. Read/modify/
   write operations reuse the same prepared access, and flags commit only after
   a successful write. LOCK operations, memory XCHG, system instructions, control
-  transfers, strings, I/O and x87 continue through the checked interpreter.
+  transfers other than eligible loop backedges, strings, I/O and x87 continue
+  through the checked interpreter.
 - Single instructions become eligible on their 32nd execution; learned blocks
   become eligible on their second dispatch. At most 1,024 code entries and
   1,024 trace plans live
   in one CPU's process-local cache. Eviction drops every private code pointer
   before freeing its module. No pointer escapes the cache owner.
+  Native loops become eligible after eight cache dispatches and have their
+  own bounded 1,024-entry cache. Loop and checkpoint signatures have distinct
+  compiler keys and share the same authenticated persistence contract.
 - Cranelift publishes writable code as executable and synchronizes the native
   instruction cache. Compilation/publication failure disables native execution
   for this cache while leaving interpretation available. No executable pointer
@@ -78,7 +102,7 @@ compilation. Filesystem failures never become guest execution failures.
 native execution, including for DOS EXEC children and restored CPU owners.
 `--no-jit-cache` disables disk persistence. The optional store is shared with
 DOS EXEC children and restored CPU owners; executable allocations remain private.
-`--jit-stats` prints compilation, execution, failure, block, checkpoint and
+`--jit-stats` prints compilation, execution, failure, block, checkpoint, loop, iteration and
 persistence counters
 for the active CPU. Restoring a CPU owner creates a new nonarchitectural cache;
 these counters are not a lifetime aggregate across all subprocesses.
@@ -87,9 +111,10 @@ Cargo checks establish Rust compilation. Native release builds, executed JIT
 counters, interpreter comparisons, original application acceptance and measured
 speedup are separate evidence. Native-call counts include block heads;
 checkpoint hits count later instructions applied without another native call.
-Blocks currently cover pure register arithmetic, with per-instruction CPU
-validation retained. Direct generated guest memory access and fused guest
-control flow remain unsupported. Throughput measurements must identify their
+The ordinary step retains per-instruction validation. The opt-in real-address
+loop path validates code once per bounded quantum; direct generated guest
+memory access, protected-mode loop fusion, x87 and I/O compilation remain
+unsupported. Throughput measurements must identify their
 host architecture; AMD64 execution under ARM64 Windows emulation is not native
 AMD64 performance evidence.
 

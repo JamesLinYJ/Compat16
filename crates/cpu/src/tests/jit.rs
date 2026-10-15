@@ -654,3 +654,301 @@ fn block_throughput_measurement() {
         measurements[1] as f64 / measurements[0] as f64
     );
 }
+
+const PURE_LOOP: &[u8] = &[0x40, 0x01, 0xc3, 0x11, 0xda, 0x31, 0xd6, 0x49, 0x75, 0xf6];
+fn plain_loop(engine: ExecutionEngine) -> (Cpu, guest_core::memory::Memory) {
+    let mut memory = guest_core::memory::Memory::with_size(0x100000).unwrap();
+    memory.write(PhysAddr(0), PURE_LOOP).unwrap();
+    let mut cpu = Cpu::new(Registers {
+        eax: 0x1234_5678,
+        ebx: 0x4321_abcd,
+        ecx: 1000,
+        eflags: 0x203,
+        ..Registers::default()
+    });
+    cpu.reset_real_mode_segments_from_visible_registers()
+        .unwrap();
+    cpu.set_execution_engine(engine);
+    if engine == ExecutionEngine::NativeJit {
+        let original = cpu.regs.clone();
+        let mut compiled = false;
+        for _ in 0..64 {
+            if cpu.try_run_integer_loop(&memory, 256).unwrap().is_some() {
+                compiled = true;
+                break;
+            }
+        }
+        assert!(compiled, "{:?}", cpu.jit_statistics());
+        cpu.regs = original;
+    }
+    (cpu, memory)
+}
+
+#[test]
+fn native_loop_budgets_and_exit_state_match_every_retired_instruction() {
+    let (mut jit, ram) = plain_loop(ExecutionEngine::NativeJit);
+    let (mut interpreter, mut reference) = plain_loop(ExecutionEngine::Interpreter);
+    for count in [1, 2, 41, 1000] {
+        for budget in (0..32).chain([255, 256, u32::MAX]) {
+            let input = Registers {
+                eax: 0xabcd_ffff,
+                ecx: 0x1234_0000 | count,
+                ebx: 0x7654_3210,
+                eflags: 0x203,
+                ..Registers::default()
+            };
+            jit.regs = input.clone();
+            interpreter.regs = input;
+            let before = jit.call_boundary_sequence;
+            let retired = jit.try_run_integer_loop(&ram, budget).unwrap().unwrap_or(0);
+            assert!(retired <= budget.min(256));
+            assert_eq!(jit.call_boundary_sequence, before + u64::from(retired));
+            for _ in 0..retired {
+                interpreter.step(&mut reference).unwrap();
+            }
+            assert!(
+                jit.capture_context() == interpreter.capture_context(),
+                "count={count} budget={budget} retired={retired}"
+            );
+            assert_eq!(retired, (budget.min(256) / 6).min(count) * 6);
+            assert_eq!(
+                jit.regs.eip,
+                if retired == count * 6 {
+                    PURE_LOOP.len() as u32
+                } else {
+                    0
+                }
+            );
+        }
+    }
+    assert!(jit.jit_statistics().loop_iterations > 0);
+    assert_eq!(jit.jit_statistics().failures, 0);
+}
+
+#[test]
+fn rewritten_native_loops_and_unobservable_memory_providers_fall_back() {
+    let (mut jit, mut ram) = plain_loop(ExecutionEngine::NativeJit);
+    let (mut interpreter, mut reference) = plain_loop(ExecutionEngine::Interpreter);
+    ram.write(PhysAddr(0), &[0x48]).unwrap(); // DEC AX replaces INC AX.
+    reference.write(PhysAddr(0), &[0x48]).unwrap();
+    let before = jit.capture_context();
+    assert_eq!(jit.try_run_integer_loop(&ram, 256).unwrap(), None);
+    assert!(jit.capture_context() == before);
+    let mut remaining = 600;
+    while remaining != 0 {
+        let retired = match jit.try_run_integer_loop(&ram, remaining).unwrap() {
+            Some(count) => count,
+            None => {
+                jit.step(&mut ram).unwrap();
+                1
+            }
+        };
+        for _ in 0..retired {
+            interpreter.step(&mut reference).unwrap();
+        }
+        assert!(jit.capture_context() == interpreter.capture_context());
+        remaining -= retired;
+    }
+    // A default provider may have read observers or custom validators. It has
+    // not opted into plain snapshots, even if its bytes are ordinary RAM.
+    let mut observed = Memory {
+        ram: Ram::new(0x20000),
+        trace: RefCell::new(Vec::new()),
+        reject_data_read: false,
+    };
+    observed.ram.put(0, PURE_LOOP);
+    jit.regs.eip = 0;
+    let before = jit.capture_context();
+    for _ in 0..20 {
+        assert_eq!(jit.try_run_integer_loop(&observed, 256).unwrap(), None);
+    }
+    assert!(observed.trace.borrow().is_empty());
+    assert!(jit.capture_context() == before);
+}
+
+#[test]
+fn native_loops_preserve_debug_event_shadow_and_continuation_boundaries() {
+    let (mut cpu, ram) = plain_loop(ExecutionEngine::NativeJit);
+    for guard in 0..12 {
+        let saved = cpu.capture_context();
+        match guard {
+            0 => cpu.regs.eflags |= 1 << 8,
+            1 => cpu.regs.eflags |= 1 << 16,
+            2 => cpu.system.debug.control |= 1,
+            3 => cpu.request_non_maskable_interrupt(),
+            4 => cpu.maskable_interrupt_shadow = true,
+            5 => cpu.debug_exception_shadow = true,
+            6 => cpu.pending_task_debug_trap = true,
+            7 => cpu.pending_x87_irq13 = true,
+            8 => cpu.intermediate_rep_boundary = true,
+            9 => cpu.system.segments[0].descriptor.limit = 7,
+            10 => cpu.system.cr0 |= crate::system::CR0_PG,
+            11 => cpu.halted = true,
+            _ => unreachable!(),
+        }
+        let before = cpu.capture_context();
+        assert_eq!(
+            cpu.try_run_integer_loop(&ram, 256).unwrap(),
+            None,
+            "guard={guard}"
+        );
+        assert!(cpu.capture_context() == before);
+        cpu.restore_context(&saved).unwrap();
+    }
+    cpu.call_boundary_sequence = u64::MAX - 5;
+    assert_eq!(cpu.try_run_integer_loop(&ram, 256).unwrap(), None);
+    assert_eq!(cpu.call_boundary_sequence, u64::MAX - 5);
+    cpu.call_boundary_sequence = u64::MAX - 6;
+    assert_eq!(cpu.try_run_integer_loop(&ram, 256).unwrap(), Some(6));
+    assert_eq!(cpu.call_boundary_sequence, u64::MAX);
+    assert_eq!(cpu.try_run_integer_loop(&ram, 256).unwrap(), None);
+}
+
+#[test]
+fn native_loop_lookahead_does_not_replace_precise_fetch_or_model_faults() {
+    let (mut cpu, mut memory) = plain_loop(ExecutionEngine::NativeJit);
+    let cmov = [0x0f, 0x45, 0xc3, 0x49, 0x75, 0xfa];
+    memory.write(PhysAddr(0), &cmov).unwrap();
+    let mut strict = Cpu::new_with_model(
+        Registers {
+            ecx: 100,
+            eflags: 2,
+            ..Registers::default()
+        },
+        crate::CpuModel::I486,
+    );
+    strict
+        .reset_real_mode_segments_from_visible_registers()
+        .unwrap();
+    for _ in 0..32 {
+        assert_eq!(strict.try_run_integer_loop(&memory, 256).unwrap(), None);
+    }
+    assert_eq!(strict.regs.eip, 0);
+    let outcome = strict
+        .step_with_context_observing_events(&mut memory, &mut NoPorts, &RealModeSegments)
+        .unwrap();
+    let CpuObservedStepOutcome::EventDeferred(event) = outcome else {
+        panic!("expected model fault")
+    };
+    assert_eq!(event.observation().vector, 6);
+    assert_eq!(event.observation().saved_ip, 0);
+    cpu.regs.eip = 0xffff;
+    memory.write(PhysAddr(0xffff), &[0x66]).unwrap();
+    let before = cpu.capture_context();
+    for _ in 0..20 {
+        assert_eq!(cpu.try_run_integer_loop(&memory, 256).unwrap(), None);
+    }
+    assert!(cpu.capture_context() == before);
+    let outcome = cpu
+        .step_with_context_observing_events(&mut memory, &mut NoPorts, &RealModeSegments)
+        .unwrap();
+    let CpuObservedStepOutcome::EventDeferred(event) = outcome else {
+        panic!("expected segment fetch fault")
+    };
+    assert_eq!(event.observation().vector, 13);
+    assert_eq!(event.observation().saved_ip, 0xffff);
+}
+
+#[test]
+#[ignore = "explicit budgeted native-loop throughput measurement"]
+fn native_loop_throughput_measurement() {
+    use std::time::Instant;
+    let mut machines = [
+        plain_loop(ExecutionEngine::NativeJit),
+        plain_loop(ExecutionEngine::Interpreter),
+    ];
+    // Both engines execute the same finite instruction budget. A jump back to
+    // the head is unconditional, preventing early termination from CX wrap.
+    for (_, memory) in &mut machines {
+        memory.write(PhysAddr(8), &[0xeb, 0xf6]).unwrap();
+    }
+    for (cpu, memory) in &mut machines {
+        for _ in 0..1024 {
+            if cpu.try_run_integer_loop(memory, 252).unwrap().is_none() {
+                cpu.step(memory).unwrap();
+            }
+        }
+        cpu.regs = Registers {
+            eax: 0x1234,
+            ebx: 0xabcd,
+            ecx: 100,
+            eflags: 0x203,
+            ..Registers::default()
+        };
+    }
+    let mut elapsed = [Vec::new(), Vec::new()];
+    const STEPS: u32 = 1_000_002;
+    for round in 0..5 {
+        for index in if round % 2 == 0 { [0, 1] } else { [1, 0] } {
+            let (cpu, memory) = &mut machines[index];
+            let start = Instant::now();
+            let mut remaining = STEPS;
+            while remaining != 0 {
+                let retired = match cpu.try_run_integer_loop(memory, remaining).unwrap() {
+                    Some(count) => count,
+                    None => {
+                        std::hint::black_box(cpu.step(memory).unwrap());
+                        1
+                    }
+                };
+                remaining -= retired;
+            }
+            elapsed[index].push(start.elapsed().as_nanos());
+        }
+    }
+    assert_eq!(machines[0].0.regs, machines[1].0.regs);
+    assert!(machines[0].0.jit_statistics().loops_executed > 0);
+    let measurements = elapsed.map(|mut samples| {
+        samples.sort_unstable();
+        samples[2]
+    });
+    eprintln!(
+        "JIT_NATIVE_LOOP target={} steps_per_sample={} jit_median_ns={} interpreter_median_ns={} speedup={:.3}",
+        std::env::consts::ARCH,
+        STEPS,
+        measurements[0],
+        measurements[1],
+        measurements[1] as f64 / measurements[0] as f64
+    );
+    eprintln!("native loop JIT: {:?}", machines[0].0.jit_statistics());
+}
+
+#[test]
+fn plain_code_snapshots_respect_a20_banks_and_bus_aliases() {
+    let mut memory = guest_core::memory::Memory::with_size(0x400000).unwrap();
+    memory.set_a20_enabled(false).unwrap();
+    memory.write(PhysAddr(0x100), PURE_LOOP).unwrap();
+    let mut actual = [0u8; 10];
+    assert!(
+        memory
+            .bus()
+            .read_plain_code(PhysAddr(0x100100), &mut actual)
+            .unwrap()
+    );
+    assert_eq!(actual, PURE_LOOP);
+    let mut crossing = [0xa5u8; 32];
+    assert!(
+        !memory
+            .bus()
+            .read_plain_code(PhysAddr(0xffff0), &mut crossing)
+            .unwrap()
+    );
+    assert_eq!(crossing, [0xa5; 32]);
+    // Equal endpoint decoding is insufficient when a large span crosses two
+    // A20 transitions: the interior still contains a discontiguous bank.
+    let mut two_banks = vec![0xa5u8; 0x200001];
+    assert!(
+        !memory
+            .bus()
+            .read_plain_code(PhysAddr(0), &mut two_banks)
+            .unwrap()
+    );
+    assert!(two_banks.iter().all(|&byte| byte == 0xa5));
+    memory.set_a20_enabled(true).unwrap();
+    assert!(
+        memory
+            .bus()
+            .read_plain_code(PhysAddr(0xffff0), &mut crossing)
+            .unwrap()
+    );
+}
