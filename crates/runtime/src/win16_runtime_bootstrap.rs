@@ -234,6 +234,7 @@ impl Win16State {
             callback_scheduler: callback_scheduler::Win16CallbackScheduler::default(),
             legacy_cpu_frames: Vec::new(),
             next_legacy_cpu_frame: 1,
+            task_event_waits: Vec::new(),
             active_dispatch_call_owner: None,
             active_dispatch_return: None,
             vm_start_tick: None,

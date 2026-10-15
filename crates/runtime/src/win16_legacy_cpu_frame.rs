@@ -230,6 +230,50 @@ impl Win16State {
             "retain Win16 callback target selector roots", error))
     }
 
+    /// A scheduler callback may restore CpuContext and revoke ordinary call
+    /// tickets. Require the exact caller register image and revalidate all
+    /// selector/backing roots before a narrow checkpoint ABI return. Floating
+    /// state and pending CPU events stay live under the callback owner's own
+    /// restoration policy; a kernel wait must not rewind them.
+    pub(super) fn prepare_legacy_cpu_checkpoint_return(
+        &self, id: u64, cpu: &x86_cpu::Cpu, memory: &Memory,
+        stamp: &x86_cpu::LegacyCpuCheckpointStamp, target: LegacyRegisterTransfer,
+    ) -> Result<x86_cpu::PreparedLegacyCheckpointTransfer, RuntimeError> {
+        let frame = self.legacy_cpu_frames.last().filter(|frame| frame.id == id)
+            .ok_or_else(|| RuntimeError::new(DiagnosticKind::InternalInvariant,
+                "task wait has no exact top CPU backing owner"))?;
+        if frame.saved_registers != cpu.regs {
+            return Err(RuntimeError::new(DiagnosticKind::GuestFault,
+                "task wait cannot return before its caller register image is restored"));
+        }
+        let mut expected = frame.saved_registers.clone();
+        let r = &target.registers;
+        expected.cs = r.cs; expected.set_ip(r.ip()); expected.set_sp(r.sp()); expected.set_ax(r.ax());
+        if &expected != r {
+            return Err(RuntimeError::new(DiagnosticKind::InternalInvariant,
+                "task wait return changed registers outside its word-return ABI"));
+        }
+        let binding_error = |error| RuntimeError::with_source(DiagnosticKind::GuestFault,
+            "revalidate retained task-wait selector roots", error);
+        let binding = Win16LegacyCpuBinding::new(self, memory, &frame.owner);
+        let saved = binding.capture(&frame.saved_registers).map_err(binding_error)?;
+        let current = binding.capture(&cpu.regs).map_err(binding_error)?;
+        let projected = binding.capture(r).map_err(binding_error)?;
+        let transfer = x86_cpu::LegacyBindingTransfer { current: &current, target: &projected,
+            current_registers: &cpu.regs, target_registers: r, stack_pointer: target.stack_pointer };
+        binding.revalidate(&saved, &current, &transfer).map_err(binding_error)?;
+        binding.revalidate(&saved, &projected, &transfer).map_err(binding_error)?;
+        let code = self.selectors.pointer_from_raw(guest_core::Selector(r.cs), r.ip())
+            .map_err(crate::runtime_error)?;
+        self.selectors.translate(code, win16_abi::Access::Execute, 1, memory)
+            .map_err(crate::runtime_error)?;
+        cpu.prepare_legacy_checkpoint_transfer(stamp, x86_cpu::LegacyCheckpointRegisters {
+            cs: r.cs, ip: r.ip(), ss: r.ss, sp: r.sp(), bp: r.bp(), si: r.si(), di: r.di(), ds: r.ds,
+            stack_pointer: target.stack_pointer,
+        }, r.ax()).map_err(|error| RuntimeError::with_source(DiagnosticKind::GuestFault,
+            "prepare checked task-wait ABI return", error))
+    }
+
     pub(super) fn restore_legacy_cpu_call_frame(
         &mut self, id: u64, cpu: &mut x86_cpu::Cpu, memory: &Memory,
         policy: CallEffectPolicy, boundary: CallResumeBoundary,
@@ -380,6 +424,7 @@ impl Win16State {
                 ended, id, cpu, dos, memory,
             )?;
         }
+        self.task_event_waits.clear();
         Ok(())
     }
 

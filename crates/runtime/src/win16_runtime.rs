@@ -4,6 +4,8 @@
 mod task;
 #[path = "win16_runtime_task_state.rs"]
 mod task_state;
+#[path = "win16_task_event_wait.rs"]
+mod task_event_wait;
 #[path = "win16_task_cleanup.rs"]
 mod task_cleanup;
 #[path = "win16_task_quiescence.rs"]
@@ -657,6 +659,7 @@ pub(crate) struct Win16State {
     callback_scheduler: callback_scheduler::Win16CallbackScheduler,
     legacy_cpu_frames: Vec<legacy_cpu_frame::Win16LegacyCpuFrame>,
     next_legacy_cpu_frame: u64,
+    task_event_waits: Vec<task_event_wait::PendingTaskEventWait>,
     active_dispatch_call_owner: Option<u64>,
     active_dispatch_return: Option<x86_cpu::LegacyRegisterTransfer>,
     vm_start_tick: Option<u32>,

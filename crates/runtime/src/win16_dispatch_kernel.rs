@@ -95,30 +95,9 @@ impl Win16State {
                 ));
             }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
-                win16_abi::Win16KernelRuntimeRequest::WaitEvent { task_handle },
-            )) => {
-                if task_handle != 0 {
-                    return Err(RuntimeError::new(
-                        Kind::CompatibilityGap,
-                        format!(
-                            "Win16 WaitEvent task handle 0x{task_handle:04X} has no task mapping"
-                        ),
-                    ));
-                }
-                if self
-                    .tasks
-                    .take_current_event()
-                    .map_err(crate::runtime_error)?
-                {
-                    self.sync_task_event_count(memory)?;
-                    0
-                } else {
-                    return Err(RuntimeError::new(
-                        Kind::CompatibilityGap,
-                        "Win16 WaitEvent would suspend, but no task event is posted",
-                    ));
-                }
-            }
+                win16_abi::Win16KernelRuntimeRequest::WaitEvent { .. },
+            )) => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "WaitEvent bypassed its owned CPU suspension boundary")),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
                 win16_abi::Win16KernelRuntimeRequest::PostEvent { task_handle },
             )) => {

@@ -240,6 +240,11 @@ impl Runtime {
             {
                 continue;
             }
+            if guest_dispatch_allowed && state.service_pending_task_event_wait(
+                &mut self.cpu, &mut self.dos, &mut self.memory, host,
+            )? {
+                continue;
+            }
             if self.cpu.take_pending_x87_irq13() {
                 self.ports.request_irq(13).map_err(crate::runtime_error)?;
             }

@@ -6,6 +6,7 @@ impl Win16State {
     pub(super) fn can_retire_task_selector_views(&self) -> bool {
         self.com_owner_guest_state_retired()
             && self.legacy_cpu_frames.is_empty()
+            && self.task_event_waits.is_empty()
             && self.window_teardown_state == WindowTeardownState::Closed
             && self.dde_runtime_quiesced
             && self.callback_scheduler.native_sources_quiescent()

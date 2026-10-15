@@ -98,6 +98,12 @@ impl Win16State {
         let (return_selector, return_offset, return_sp) =
             self.far_return(registers, memory, decoded.stack_cleanup.callee_pop_bytes)?;
         let return_to = (return_selector, return_offset, return_sp);
+        if let Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
+            win16_abi::Win16KernelRuntimeRequest::WaitEvent { task_handle },
+        )) = &decoded.request {
+            self.begin_task_event_wait(cpu, dos, memory, *task_handle, return_to)?;
+            return Ok(None);
+        }
         let request = match decoded.request {
             Win16ApiRequest::Ole1(request) => {
                 return self.begin_ole1_request(request, cpu, dos, memory, host,
