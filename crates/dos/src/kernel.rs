@@ -34,21 +34,17 @@ pub use system::{SYSTEM_BYTES, SYSTEM_SEGMENT};
 mod tests;
 
 #[cfg(test)]
-#[path = "ioctl_tests.rs"]
 mod ioctl_tests;
 
 #[cfg(test)]
-#[path = "nls_tests.rs"]
 mod nls_tests;
 
 #[cfg(test)]
-#[path = "nls_country_tests.rs"]
 mod nls_country_tests;
 
 #[cfg(test)]
 mod device_tests;
 #[cfg(test)]
-#[path = "disk_tests.rs"]
 mod disk_tests;
 #[cfg(test)]
 mod system_tests;

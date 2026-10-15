@@ -25,13 +25,13 @@ use crate::win16_runtime::pe32_dispatch::{
     Pe32ThunkDispatcher,
 };
 
-#[path = "attach.rs"]
+#[path = "group/attach.rs"]
 mod attach;
-#[path = "discovery.rs"]
+#[path = "group/discovery.rs"]
 mod discovery;
-#[path = "helpers.rs"]
+#[path = "group/helpers.rs"]
 mod helpers;
-#[path = "link.rs"]
+#[path = "group/link.rs"]
 mod link;
 
 pub(super) use attach::release_group_temporary_providers;

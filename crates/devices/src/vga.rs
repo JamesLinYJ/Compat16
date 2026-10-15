@@ -18,7 +18,6 @@ mod vbe_state;
 mod ports_tests;
 
 #[cfg(test)]
-#[path = "svga_tests.rs"]
 mod svga_tests;
 
 pub use frame::{VgaFrame, VgaFrameDecoder};
