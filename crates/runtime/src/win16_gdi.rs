@@ -119,6 +119,13 @@ impl GuestGdiHandles {
         true
     }
 
+    /// Retire every alias of the exact transferred region token. Reentrant
+    /// deletion/reuse of a guest word cannot remove a different new object.
+    pub(super) fn retire_object_aliases(&mut self, expected: Win16HostGdiObject) {
+        self.objects.retain(|_, object|
+            !matches!(object, GuestGdiObject::Object(current) if *current == expected));
+    }
+
     pub(super) fn dc(&self, handle: u16) -> Option<Win16HostDc> {
         match self.objects.get(&handle)? {
             GuestGdiObject::Dc(native) => Some(*native),

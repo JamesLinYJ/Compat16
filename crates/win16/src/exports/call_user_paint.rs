@@ -45,6 +45,13 @@ pub(super) fn decode(
                 window: word_argument(arguments, 0)?,
             }),
         )),
+        Win16ExportId::UserGetDcEx => Ok(Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::GetDcEx {
+                window: word_argument(arguments, 0)?,
+                region: word_argument(arguments, 1)?,
+                flags: dword_argument(arguments, 2)?,
+            },
+        ))),
         Win16ExportId::UserReleaseDc => Ok(Win16ApiRequest::User(super::Win16UserRequest::Window(
             super::Win16UserWindowRequest::ReleaseDc {
                 window: word_argument(arguments, 0)?,

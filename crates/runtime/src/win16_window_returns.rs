@@ -67,6 +67,7 @@ pub(in crate::win16_runtime) enum WindowReturn {
     AcquireWindowDc {
         guest_dc_reserved: u16,
         native_window: Win16HostWindow,
+        consumed_region: Option<crate::Win16HostGdiObject>,
     },
     EndPaint {
         guest_dc: u16,

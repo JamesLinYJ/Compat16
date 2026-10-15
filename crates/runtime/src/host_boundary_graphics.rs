@@ -25,6 +25,11 @@ macro_rules! graphics_runtime_host_ports {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 screen DC acquisition is unavailable"))
     }
+    fn win16_acquire_screen_dc_ex(&mut self, _region: Option<Win16HostGdiObject>, _flags: u32)
+        -> Result<Option<Win16HostDc>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 extended screen DC acquisition is unavailable"))
+    }
     fn win16_release_screen_dc(&mut self, _dc: Win16HostDc) -> Result<bool, RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 screen DC release is unavailable"))

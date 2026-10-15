@@ -219,6 +219,7 @@ pub(super) fn decode(
         | Win16ExportId::UserScrollWindowEx
         | Win16ExportId::UserGetDc
         | Win16ExportId::UserGetWindowDc
+        | Win16ExportId::UserGetDcEx
         | Win16ExportId::UserReleaseDc => user_paint_calls::decode(descriptor.id, &arguments)?,
         Win16ExportId::UserFillRect
         | Win16ExportId::UserDrawText

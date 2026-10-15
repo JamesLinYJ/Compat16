@@ -73,6 +73,29 @@ impl Win16Objects {
         Ok(Some(Win16RegionLease::new(token, snapshot)))
     }
 
+    /// Retire the original identity after USER accepted an independent clip
+    /// copy. Reentrant guest deletion is harmless: tokens are never reused.
+    pub(super) fn consume_region(&mut self, token: Win16HostGdiObject)
+        -> Result<(), RuntimeError> {
+        let Some(object) = self.objects.get(&token).cloned() else { return Ok(()); };
+        // SAFETY: The opaque identity still names this table's retained object.
+        if unsafe { GetObjectType(object.handle) } != OBJ_REGION as u32 {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "GetDCEx region transfer retained a different object type"));
+        }
+        if object.owned && !self.delete(token) {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "GetDCEx could not retire its transferred clipping region"));
+        }
+        if !object.owned {
+            // A callback's borrowed object still belongs to its native lender;
+            // USER took our independent copy, so only the guest alias expires.
+            self.objects.remove(&token);
+            self.by_native.remove(&(object.handle as usize));
+        }
+        Ok(())
+    }
+
     pub(super) fn commit_region(
         &self,
         token: Win16HostGdiObject,

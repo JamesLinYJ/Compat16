@@ -52,8 +52,87 @@ impl Win16State {
             WindowReturn::AcquireWindowDc {
                 guest_dc_reserved,
                 native_window,
+                consumed_region: None,
             },
             return_to,
+        )
+    }
+
+    pub(super) fn begin_user_get_dc_ex(
+        &mut self,
+        registers: &mut Registers,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+        window: u16,
+        region: u16,
+        flags: u32,
+        return_to: (u16, u16, u32),
+    ) -> Result<Option<u8>, RuntimeError> {
+        // USER ignores hrgnClip without either region flag. Never turn an
+        // ignored guest word into a host object identity.
+        let region = if flags & 0xc0 != 0 && region != 0 {
+            match self.guest_gdi.object(region) {
+                Some(region) => Some(region),
+                None => return self.complete_return(
+                    registers, return_to.0, return_to.1, return_to.2, 0,
+                    Win16ReturnKind::Word,
+                ),
+            }
+        } else { None };
+        let native_window = if window == 0 { None } else {
+            match self.window_handles.get(&window).copied() {
+                Some(window) => Some(window),
+                None => return self.complete_return(
+                    registers, return_to.0, return_to.1, return_to.2, 0,
+                    Win16ReturnKind::Word,
+                ),
+            }
+        };
+        let Some(guest_dc_reserved) = self.guest_gdi.reserve_dc() else {
+            return self.complete_return(
+                registers, return_to.0, return_to.1, return_to.2, 0,
+                Win16ReturnKind::Word,
+            );
+        };
+        if let Some(native_window) = native_window {
+            return self.begin_window_operation(
+                registers, memory, host,
+                Win16WindowOperation::AcquireWindowDcEx {
+                    window: native_window, region, flags,
+                },
+                WindowReturn::AcquireWindowDc {
+                    guest_dc_reserved, native_window, consumed_region: region,
+                },
+                return_to,
+            );
+        }
+        // Desktop DC acquisition cannot call a guest window procedure. Keep
+        // it on the runtime thread, matching the existing ReleaseDC(NULL).
+        let acquired = match host.win16_acquire_screen_dc_ex(region, flags) {
+            Ok(acquired) => acquired,
+            Err(error) => {
+                self.guest_gdi.cancel_dc(guest_dc_reserved);
+                return Err(error);
+            }
+        };
+        let dc = if let Some(native_dc) = acquired {
+            if let Some(region) = region { self.guest_gdi.retire_object_aliases(region); }
+            if !self.guest_gdi.bind_dc(guest_dc_reserved, native_dc) {
+                let released = host.win16_release_screen_dc(native_dc)?;
+                return Err(RuntimeError::new(Kind::InternalInvariant, if released {
+                    "GetDCEx lost its reserved guest HDC"
+                } else {
+                    "GetDCEx lost its reserved guest HDC and could not release the screen DC"
+                }));
+            }
+            guest_dc_reserved
+        } else {
+            self.guest_gdi.cancel_dc(guest_dc_reserved);
+            0
+        };
+        self.complete_return(
+            registers, return_to.0, return_to.1, return_to.2,
+            u32::from(dc), Win16ReturnKind::Word,
         )
     }
 

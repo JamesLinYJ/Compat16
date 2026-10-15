@@ -519,7 +519,7 @@ impl Win16State {
                         ),
                         (
                             WindowReturn::AcquireWindowDc {
-                                guest_dc_reserved, ..
+                                guest_dc_reserved, consumed_region, ..
                             },
                             Win16WindowResult::WindowDc(acquired),
                             WindowProjectionJournal::Api(
@@ -528,6 +528,7 @@ impl Win16State {
                         ) => super::completion_gdi::finish_acquire_dc(
                             *guest_dc_reserved,
                             *acquired,
+                            *consumed_region,
                             owner,
                             &mut access,
                         ),

@@ -450,6 +450,14 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::GetDcEx { window, region, flags },
+            )) => {
+                return self.begin_user_get_dc_ex(
+                    registers, memory, host, window, region, flags,
+                    (return_selector, return_offset, return_sp),
+                );
+            }
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::ReleaseDc { window, dc },
             )) => {
                 return self.begin_user_release_dc(

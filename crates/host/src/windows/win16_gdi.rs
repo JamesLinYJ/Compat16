@@ -178,6 +178,11 @@ impl Win16Dcs {
         self.lock().adopt_window_dc(window, whole_window, raw_hdc)
     }
 
+    pub(super) fn adopt_screen_dc(&self, native: HDC)
+        -> Result<Option<Win16HostDc>, RuntimeError> {
+        self.lock().record_screen_dc(native)
+    }
+
     pub(super) fn adopt_paint_dc(
         &self,
         window: Win16HostWindow,
@@ -325,8 +330,14 @@ impl Win16DcState {
         } else {
             GetDC(ptr::null_mut())
         } };
+        self.record_screen_dc(native)
+    }
+
+    fn record_screen_dc(&mut self, native: HDC)
+        -> Result<Option<Win16HostDc>, RuntimeError> {
         if native.is_null() { return Ok(None); }
         let Some(next_id) = self.next_id.checked_add(1) else {
+            // SAFETY: The unpublished screen DC was acquired on this thread.
             unsafe { ReleaseDC(ptr::null_mut(), native) };
             return Err(RuntimeError::new(Kind::ResourceExhausted,
                 "Win16 host device-context identity exhausted"));

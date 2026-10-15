@@ -66,6 +66,9 @@ pub(super) fn update_region_tokens(
     operation: &Win16WindowOperation,
 ) -> std::collections::BTreeSet<Win16HostGdiObject> {
     use runtime::Win16HostUpdateOperation as Update;
+    if let Win16WindowOperation::AcquireWindowDcEx { region, flags, .. } = operation {
+        return region.iter().copied().filter(|_| flags & 0xc0 != 0).collect();
+    }
     let Win16WindowOperation::UpdateRegion(update) = operation else {
         return Default::default();
     };
@@ -78,6 +81,33 @@ pub(super) fn update_region_tokens(
         | Update::ScrollDC { update_region, .. } => update_region.iter().copied().collect(),
         _ => Default::default(),
     }
+}
+
+pub(super) fn transferred_dc_region(operation: &Win16WindowOperation)
+    -> Option<Win16HostGdiObject> {
+    match operation {
+        Win16WindowOperation::AcquireWindowDcEx { region, flags, .. }
+            if flags & 0xc0 != 0 => *region,
+        _ => None,
+    }
+}
+
+pub(super) fn commit_dc_region(
+    objects: &mut Win16Objects,
+    region: Option<Win16HostGdiObject>,
+    result: &runtime::Win16WindowStep,
+) -> Result<(), RuntimeError> {
+    if let Some(region) = region {
+        match result {
+            runtime::Win16WindowStep::Complete(runtime::Win16WindowResult::WindowDc(Some(_))) => {
+                objects.consume_region(region)?;
+            }
+            runtime::Win16WindowStep::Complete(runtime::Win16WindowResult::WindowDc(None)) => {}
+            _ => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "GetDCEx region transfer has an unexpected native completion")),
+        }
+    }
+    Ok(())
 }
 
 pub(super) fn native_bitmap_tokens(

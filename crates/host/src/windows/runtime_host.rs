@@ -739,6 +739,15 @@ impl RuntimeHost for WindowsHost {
     fn win16_release_screen_dc(&mut self, dc: Win16HostDc) -> Result<bool, RuntimeError> {
         runtime_host_gdi::release_screen_dc(self, dc)
     }
+    fn win16_acquire_screen_dc_ex(
+        &mut self,
+        region: Option<runtime::Win16HostGdiObject>,
+        flags: u32,
+    ) -> Result<Option<Win16HostDc>, RuntimeError> {
+        super::win16_get_dc_ex::acquire_screen(
+            &self.win16_dcs, &mut self.win16_objects, region, flags,
+        )
+    }
     fn win16_cleanup_dc(&mut self, dc: Win16HostDc) -> Result<bool, RuntimeError> {
         runtime_host_gdi::cleanup_dc(self, dc)
     }

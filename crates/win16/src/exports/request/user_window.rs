@@ -277,6 +277,8 @@ pub enum Win16UserWindowRequest {
         window: u16,
     },
 
+    GetDcEx { window: u16, region: u16, flags: u32 },
+
     /// Release a device context previously acquired for a translated window.
     ReleaseDc {
         window: u16,

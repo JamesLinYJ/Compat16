@@ -389,6 +389,18 @@ pub(super) fn run_operation(
                 Win16WindowOperation::AcquireWindowDc { window: None, .. } => {
                     Ok(Win16WindowResult::WindowDc(None))
                 }
+                Win16WindowOperation::AcquireWindowDcEx { window, region, flags } => {
+                    let region = region.filter(|_| flags & 0xc0 != 0);
+                    let snapshot = region.and_then(|token| native_regions.get(&token))
+                        .and_then(Option::as_ref);
+                    if region.is_some() && snapshot.is_none() {
+                        Ok(Win16WindowResult::WindowDc(None))
+                    } else {
+                        super::super::win16_user_services_window_dc::acquire_window_dc_ex(
+                            state, window, snapshot, flags,
+                        ).map(Win16WindowResult::WindowDc)
+                    }
+                }
                 Win16WindowOperation::ReleaseWindowDc {
                     window: Some(window),
                     dc,

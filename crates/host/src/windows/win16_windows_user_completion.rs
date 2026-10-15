@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostWindowOperationId, Win16WindowStep};
 
-use super::operation_inputs::commit_update_region;
+use super::operation_inputs::{commit_dc_region, commit_update_region};
 use super::win16_windows_dde::{PendingSource, SharedRuntimeFailure};
 use super::{
     PendingGuestWorkContinuation, PendingModalGuestWorkContinuation, PendingUserCompletion,
@@ -458,7 +458,7 @@ impl Win16Windows {
                         "cached USER result disappeared before region output commit",
                     )
                 })?;
-                match pending.region_output.as_ref() {
+                let region_output = match pending.region_output.as_ref() {
                     Some((token, region)) => match &mut completion.step {
                         Win16WindowStep::Complete(result) => {
                             commit_update_region(objects, *token, region, result)
@@ -469,7 +469,10 @@ impl Win16Windows {
                         )),
                     },
                     None => Ok(()),
-                }
+                };
+                region_output.and_then(|()| {
+                    commit_dc_region(objects, pending.transferred_dc_region, &completion.step)
+                })
             };
             if let Err(error) = commit {
                 return self.retain_cached_user_completion_error(index, error);

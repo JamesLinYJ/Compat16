@@ -678,6 +678,14 @@ decl = { args = ["word", "word", "word"] }
 ordinal = 359
 name = "GetDCEx"
 decl = { args = ["word", "word", "long"] }
+binding = { rust_id = "UserGetDcEx", id_value = 1251, constant = "USER_GET_DC_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "region", type = "U16" },
+  { name = "flags", type = "U32" },
+]
 
 [[exports]]
 ordinal = 362

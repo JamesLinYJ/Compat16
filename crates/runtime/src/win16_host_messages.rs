@@ -462,6 +462,11 @@ pub enum Win16WindowOperation {
         window: Option<Win16HostWindow>,
         whole_window: bool,
     },
+    AcquireWindowDcEx {
+        window: Win16HostWindow,
+        region: Option<crate::Win16HostGdiObject>,
+        flags: u32,
+    },
     ReleaseWindowDc {
         window: Option<Win16HostWindow>,
         dc: Win16HostDc,
@@ -620,7 +625,7 @@ impl Win16WindowOperation {
             Self::ShellExecution(_) => Kind::ShellExecution,
             Self::BeginPaint { .. } => Kind::BeginPaint,
             Self::EndPaint { .. } => Kind::EndPaint,
-            Self::AcquireWindowDc { .. } => Kind::AcquireWindowDc,
+            Self::AcquireWindowDc { .. } | Self::AcquireWindowDcEx { .. } => Kind::AcquireWindowDc,
             Self::ReleaseWindowDc { .. } => Kind::ReleaseWindowDc,
             Self::Default { .. } => Kind::Default,
             Self::Send { .. } => Kind::Send,

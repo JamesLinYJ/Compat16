@@ -128,7 +128,8 @@ mod win16_window_text_context;
 mod win16_windows_dde;
 
 use operation_inputs::{
-    native_bitmap_tokens, toolbar_bitmap_tokens, update_region_output, update_region_tokens,
+    native_bitmap_tokens, toolbar_bitmap_tokens, transferred_dc_region,
+    update_region_output, update_region_tokens,
 };
 
 #[path = "win16_control_color_return.rs"]
@@ -188,6 +189,7 @@ struct PendingOperation {
     /// never read again while this slot is populated.
     completion: Option<PendingUserCompletion>,
     region_output: Option<(Win16HostGdiObject, Win16RegionLease)>,
+    transferred_dc_region: Option<Win16HostGdiObject>,
     control_color_return: Option<ControlColorReturnSlot>,
     wait_kind: Option<PendingWaitKind>,
     pending_guest_work: Option<PendingGuestWorkContinuation>,
@@ -536,6 +538,7 @@ impl Win16Windows {
                 .as_ref()
                 .map(|region| (token, region.clone()))
         });
+        let transferred_dc_region = transferred_dc_region(&operation);
         self.pending.try_reserve(1).map_err(|error| {
             RuntimeError::with_source(
                 Kind::ResourceExhausted,
@@ -606,6 +609,7 @@ impl Win16Windows {
             resumed_modal_work: None,
             completion: None,
             region_output,
+            transferred_dc_region,
             control_color_return,
             wait_kind,
             pending_guest_work: None,
