@@ -37,6 +37,7 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, plan: &MemoryLoop) {
     let initial = lowering::State::load(b, state_pointer);
     let head = b.create_block();
     let exit = b.create_block();
+    b.set_cold_block(exit);
     for _ in 0..10 {
         b.append_block_param(head, types::I32);
     }
@@ -89,13 +90,20 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, plan: &MemoryLoop) {
                     .ins()
                     .icmp(IntCC::UnsignedLessThanOrEqual, end, window_length);
                 let valid = b.ins().band(below, fits);
+                // Keep the address dependent on the check even on CPUs that
+                // speculate across the following branch. IntegerState is an
+                // owned 36-byte fallback, valid even for a one-byte window.
+                // Cranelift lowers this guard without a conditional branch.
+                let candidate = b.ins().iadd(buffer, relative);
+                let pointer = b
+                    .ins()
+                    .select_spectre_guard(valid, candidate, state_pointer);
                 let access = b.create_block();
                 let position = b.ins().iconst(types::I32, index as i64);
                 let values = args(&state, left, position);
                 b.ins().brif(valid, access, &[], exit, &values);
                 b.switch_to_block(access);
                 b.seal_block(access);
-                let pointer = b.ins().iadd(buffer, relative);
                 let ty = match width {
                     1 => types::I8,
                     2 => types::I16,

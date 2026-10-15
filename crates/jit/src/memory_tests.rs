@@ -66,6 +66,7 @@ fn guarded_memory_loop_commits_values_flags_and_precise_budget_positions() {
     for budget in 1..=20 {
         let mut state = input();
         let mut data = [1u8, 0, 0x80, 0x7f, 0xff, 0xff, 0x55, 0xaa];
+        let before = cache.statistics();
         let result = cache
             .execute(
                 &plan,
@@ -78,6 +79,21 @@ fn guarded_memory_loop_commits_values_flags_and_precise_budget_positions() {
             )
             .unwrap();
         assert_eq!(result.retired, budget.min(15));
+        let after = cache.statistics();
+        let fallthrough = u64::from(budget >= 15);
+        assert_eq!(
+            after.branches_fallthrough - before.branches_fallthrough,
+            fallthrough
+        );
+        assert_eq!(
+            after.branches_taken - before.branches_taken,
+            u64::from(result.retired / 5) - fallthrough
+        );
+        assert_eq!(
+            after.budget_exits - before.budget_exits,
+            u64::from(budget < 15)
+        );
+        assert_eq!(after.memory_window_exits, before.memory_window_exits);
         if budget >= 15 {
             assert_eq!(result.next_instruction, 5);
             assert_eq!(state.registers[0], 0xabcd_ffff);
@@ -97,6 +113,7 @@ fn window_miss_preserves_the_completed_prefix_and_never_crosses_a_slice() {
     warm(&mut cache, &plan);
     let mut state = input();
     let mut data = [1u8, 0, 0x77];
+    let before = cache.statistics();
     let result = cache
         .execute(
             &plan,
@@ -115,6 +132,12 @@ fn window_miss_preserves_the_completed_prefix_and_never_crosses_a_slice() {
             next_instruction: 0
         }
     );
+    assert_eq!(
+        cache.statistics().memory_window_exits - before.memory_window_exits,
+        1
+    );
+    assert_eq!(cache.statistics().branches_taken - before.branches_taken, 1);
+    assert_eq!(cache.statistics().budget_exits, before.budget_exits);
     assert_eq!(data, [2, 0, 0x77]);
     assert_eq!(state.registers[6], 0x302);
     assert_eq!(state.registers[1], 2);
@@ -212,4 +235,76 @@ fn memory_loop_artifacts_restore_without_capturing_buffer_addresses() {
         assert_eq!(cache.statistics().persistent_hits > 0, restored);
         assert_eq!(cache.statistics().persistent_writes > 0, !restored);
     }
+}
+
+#[test]
+fn memory_dispatch_does_not_survive_executable_cache_eviction() {
+    let original = plan();
+    let mut cache = MemoryLoopCache::default();
+    warm(&mut cache, &original);
+    let mut state = input();
+    let mut bytes = [1u8; 8];
+    assert!(
+        cache
+            .execute(
+                &original,
+                &mut state,
+                MemoryWindow {
+                    start: 0x300,
+                    bytes: &mut bytes
+                },
+                1
+            )
+            .is_some()
+    );
+    assert!(cache.statistics().loop_dispatch_hits > 0);
+    for displacement in 0..1024 {
+        let memory = ValueOperand::Memory {
+            address: Address::new(None, None, 1, displacement, 16).unwrap(),
+            bytes: 2,
+        };
+        let other = MemoryLoop::new(
+            vec![BlockInstruction::Memory(
+                MemoryInstruction::new(
+                    Operation::Move,
+                    ValueOperand::Register(register(0)),
+                    memory,
+                )
+                .unwrap(),
+            )],
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            cache.execute(
+                &other,
+                &mut state,
+                MemoryWindow {
+                    start: 0x300,
+                    bytes: &mut bytes
+                },
+                1
+            ),
+            None
+        );
+    }
+    assert_eq!(cache.statistics().cache_resets, 1);
+    let before = state;
+    let data = bytes;
+    assert_eq!(
+        cache.execute(
+            &original,
+            &mut state,
+            MemoryWindow {
+                start: 0x300,
+                bytes: &mut bytes
+            },
+            1
+        ),
+        None
+    );
+    assert_eq!(state, before);
+    assert_eq!(bytes, data);
+    warm(&mut cache, &original);
+    assert_eq!(cache.statistics().failures, 0);
 }

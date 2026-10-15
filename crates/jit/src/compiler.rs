@@ -217,6 +217,7 @@ fn emit_loop(
     let initial = lowering::State::load(b, pointer);
     let body = b.create_block();
     let exit = b.create_block();
+    b.set_cold_block(exit);
     for _ in 0..10 {
         b.append_block_param(body, types::I32);
     }

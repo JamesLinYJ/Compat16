@@ -454,6 +454,15 @@ impl Cpu {
             return Ok(None);
         }
         let original = bytes;
+        // A full scheduler quantum can stop at the backedge instead of
+        // returning into the middle of the body. Smaller budgets retain exact
+        // prefix exits for absolute limits and readiness checkpoints.
+        let per = ir.body_len() as u32 + 1;
+        let budget = if ready.budget == 256 {
+            ready.budget / per * per
+        } else {
+            ready.budget
+        };
         let Some(result) = self.jit.loops.memory.execute(
             ir,
             &mut output,
@@ -461,7 +470,7 @@ impl Cpu {
                 start,
                 bytes: &mut bytes,
             },
-            ready.budget,
+            budget,
         ) else {
             return Ok(None);
         };

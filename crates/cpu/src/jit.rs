@@ -18,6 +18,12 @@ pub enum ExecutionEngine {
 }
 #[derive(Clone, Copy, Debug, Default)]
 pub struct JitStatistics {
+    pub branches_taken: u64,
+    pub branches_fallthrough: u64,
+    pub budget_exits: u64,
+    pub memory_window_exits: u64,
+    pub loop_dispatch_hits: u64,
+
     pub memory_loops_compiled: u64,
     pub memory_loops_executed: u64,
     pub memory_instructions: u64,
@@ -139,6 +145,11 @@ impl IntegerTranslator {
                 .statistics()
                 .combined(self.loops.cache.statistics()).combined(self.loops.memory.statistics());
             JitStatistics {
+                branches_taken: stats.branches_taken,
+                branches_fallthrough: stats.branches_fallthrough,
+                budget_exits: stats.budget_exits,
+                memory_window_exits: stats.memory_window_exits,
+                loop_dispatch_hits: stats.loop_dispatch_hits,
                 memory_loops_compiled: stats.memory_loops_compiled,
                 memory_loops_executed: stats.memory_loops_executed,
                 memory_instructions: stats.memory_instructions,

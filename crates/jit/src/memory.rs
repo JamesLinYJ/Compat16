@@ -187,6 +187,7 @@ enum Entry {
 pub struct MemoryLoopCache {
     compiler: Compiler,
     entries: HashMap<MemoryLoop, Entry>,
+    last: Option<(MemoryLoop, MemoryFunction)>,
     statistics: Statistics,
 }
 impl MemoryLoopCache {
@@ -238,12 +239,45 @@ impl MemoryLoopCache {
             .statistics
             .memory_instructions
             .saturating_add(u64::from(result.retired));
+        // Reconstruct guest branch outcomes from exact retirement; no
+        // counters or host calls are inserted inside the generated loop.
+        let per = plan.body_len() as u32 + 1;
+        let fallthrough = u64::from(plan.condition.is_some() && result.next_instruction == per);
+        self.statistics.branches_taken = self
+            .statistics
+            .branches_taken
+            .saturating_add(u64::from(result.retired / per) - fallthrough);
+        self.statistics.branches_fallthrough = self
+            .statistics
+            .branches_fallthrough
+            .saturating_add(fallthrough);
+        if result.next_instruction != per {
+            if result.retired == budget.min(256) {
+                self.statistics.budget_exits = self.statistics.budget_exits.saturating_add(1);
+            } else {
+                self.statistics.memory_window_exits =
+                    self.statistics.memory_window_exits.saturating_add(1);
+            }
+        }
         Some(result)
     }
     fn ready(&mut self, plan: &MemoryLoop) -> Option<MemoryFunction> {
+        // Repeated execution of one hot loop avoids hash-table probes and
+        // reaches the same indirect target. Keys remain owned, and callers
+        // still validate current guest code and permissions independently.
+        if let Some((key, function)) = &self.last {
+            if key == plan {
+                self.statistics.loop_dispatch_hits =
+                    self.statistics.loop_dispatch_hits.saturating_add(1);
+                return Some(*function);
+            }
+        }
         if let Some(entry) = self.entries.get_mut(plan) {
             match entry {
-                Entry::Compiled(f) => return Some(*f),
+                Entry::Compiled(f) => {
+                    self.last = Some((plan.clone(), *f));
+                    return Some(*f);
+                }
                 Entry::Rejected => return None,
                 Entry::Cold(n) => {
                     *n = n.saturating_add(1);
@@ -264,6 +298,7 @@ impl MemoryLoopCache {
         match self.compiler.compile_memory_loop(plan) {
             Ok(code) => {
                 *self.entries.get_mut(plan)? = Entry::Compiled(code.function);
+                self.last = Some((plan.clone(), code.function));
                 self.statistics.compiled = self.statistics.compiled.saturating_add(1);
                 self.statistics.memory_loops_compiled =
                     self.statistics.memory_loops_compiled.saturating_add(1);
@@ -285,7 +320,10 @@ impl MemoryLoopCache {
         }
     }
     fn clear(&mut self) {
+        // Invalidate the direct dispatch before freeing any executable code.
+        self.last = None;
         self.entries.clear();
+        // SAFETY: Both dispatch paths are empty, and exclusive ownership excludes calls.
         unsafe {
             self.compiler.clear();
         }

@@ -39,6 +39,7 @@ enum Entry {
 pub struct LoopCache {
     compiler: Compiler,
     entries: HashMap<IntegerLoop, Entry>,
+    last: Option<(IntegerLoop, LoopFunction)>,
     statistics: Statistics,
 }
 impl LoopCache {
@@ -76,12 +77,38 @@ impl LoopCache {
             .statistics
             .loop_iterations
             .saturating_add(u64::from(outcome.iterations));
+        let fallthrough = u64::from(plan.condition.is_some() && !outcome.backedge_taken);
+        self.statistics.branches_taken = self
+            .statistics
+            .branches_taken
+            .saturating_add(u64::from(outcome.iterations) - fallthrough);
+        self.statistics.branches_fallthrough = self
+            .statistics
+            .branches_fallthrough
+            .saturating_add(fallthrough);
+        self.statistics.budget_exits = self
+            .statistics
+            .budget_exits
+            .saturating_add(u64::from(outcome.backedge_taken));
         Some(outcome)
     }
     fn ready(&mut self, plan: &IntegerLoop) -> Option<LoopFunction> {
+        // Repeated execution of one hot loop avoids hash-table probes and
+        // reaches the same indirect target. Keys remain owned, and callers
+        // still validate current guest code and permissions independently.
+        if let Some((key, function)) = &self.last {
+            if key == plan {
+                self.statistics.loop_dispatch_hits =
+                    self.statistics.loop_dispatch_hits.saturating_add(1);
+                return Some(*function);
+            }
+        }
         if let Some(entry) = self.entries.get_mut(plan) {
             match entry {
-                Entry::Compiled(function) => return Some(*function),
+                Entry::Compiled(function) => {
+                    self.last = Some((plan.clone(), *function));
+                    return Some(*function);
+                }
                 Entry::Rejected => return None,
                 Entry::Cold(count) => {
                     *count = count.saturating_add(1);
@@ -105,6 +132,7 @@ impl LoopCache {
         {
             Ok(compiled) => {
                 *self.entries.get_mut(plan)? = Entry::Compiled(compiled.function);
+                self.last = Some((plan.clone(), compiled.function));
                 self.statistics.compiled = self.statistics.compiled.saturating_add(1);
                 self.statistics.loops_compiled = self.statistics.loops_compiled.saturating_add(1);
                 self.statistics.persistent_hits = self
@@ -125,6 +153,8 @@ impl LoopCache {
         }
     }
     fn clear(&mut self) {
+        // Invalidate the direct dispatch before freeing any executable code.
+        self.last = None;
         self.entries.clear();
         // SAFETY: Exclusive ownership and cleared entries exclude live calls.
         unsafe {

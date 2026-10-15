@@ -33,6 +33,12 @@ const MAX_ENTRIES: usize = 1024;
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Statistics {
+    pub branches_taken: u64,
+    pub branches_fallthrough: u64,
+    pub budget_exits: u64,
+    pub memory_window_exits: u64,
+    pub loop_dispatch_hits: u64,
+
     pub memory_loops_compiled: u64,
     pub memory_loops_executed: u64,
     pub memory_instructions: u64,
@@ -53,6 +59,18 @@ pub struct Statistics {
 impl Statistics {
     pub fn combined(self, other: Self) -> Self {
         Self {
+            branches_taken: self.branches_taken.saturating_add(other.branches_taken),
+            branches_fallthrough: self
+                .branches_fallthrough
+                .saturating_add(other.branches_fallthrough),
+            budget_exits: self.budget_exits.saturating_add(other.budget_exits),
+            memory_window_exits: self
+                .memory_window_exits
+                .saturating_add(other.memory_window_exits),
+            loop_dispatch_hits: self
+                .loop_dispatch_hits
+                .saturating_add(other.loop_dispatch_hits),
+
             memory_loops_compiled: self
                 .memory_loops_compiled
                 .saturating_add(other.memory_loops_compiled),

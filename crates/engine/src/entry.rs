@@ -286,6 +286,9 @@ fn run() -> Result<u8, RuntimeError> {
             stats.persistent_hits, stats.persistent_writes);
         eprintln!("JIT loops: compiled={} executed={} iterations={}",
             stats.loops_compiled, stats.loops_executed, stats.loop_iterations);
+        eprintln!("JIT guest branches: taken={} fallthrough={} budget_exits={} window_exits={} loop_dispatch_hits={}",
+            stats.branches_taken, stats.branches_fallthrough, stats.budget_exits,
+            stats.memory_window_exits, stats.loop_dispatch_hits);
         eprintln!("JIT memory loops: compiled={} executed={} instructions={}",
             stats.memory_loops_compiled, stats.memory_loops_executed, stats.memory_instructions);
     }

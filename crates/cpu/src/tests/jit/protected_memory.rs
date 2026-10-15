@@ -174,6 +174,38 @@ fn protected_16_32_memory_loops_match_each_budget_and_high_eip() {
 }
 
 #[test]
+fn full_memory_quanta_return_to_the_loop_head_without_losing_budget_precision() {
+    let mut jit = Protected::new(16, ExecutionEngine::Jit, 0);
+    let mut reference = Protected::new(16, ExecutionEngine::Interpreter, 0);
+    jit.warm();
+    jit.initial.ecx = 1000;
+    reference.initial.ecx = 1000;
+    jit.reset();
+    reference.reset();
+    for _ in 0..2 {
+        assert_eq!(jit.run(256).unwrap(), Some(255));
+        assert_eq!(jit.cpu.regs.eip, 0);
+        for _ in 0..255 {
+            reference.step();
+        }
+        jit.equal(&reference);
+    }
+    for budget in 2..256 {
+        jit.reset();
+        reference.reset();
+        let before = jit.cpu.call_boundary_sequence;
+        let retired = jit.run(budget).unwrap().unwrap();
+        assert_eq!(retired, budget);
+        assert_eq!(jit.cpu.call_boundary_sequence - before, u64::from(retired));
+        for _ in 0..retired {
+            reference.step();
+        }
+        jit.equal(&reference);
+    }
+    assert!(jit.cpu.jit_statistics().loop_dispatch_hits > 0);
+}
+
+#[test]
 fn protected_window_exit_commits_prefix_then_resumes_in_the_next_window() {
     let mut jit = Protected::new(16, ExecutionEngine::Jit, 0);
     let mut reference = Protected::new(16, ExecutionEngine::Interpreter, 0);

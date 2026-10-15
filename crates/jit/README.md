@@ -91,6 +91,27 @@ format, and it does not claim Prism's optimization coverage.
   for this cache while leaving interpretation available. No executable pointer
   is shared across code owners or processes.
 
+## Host branch behavior
+
+The host processor predicts the branches in generated ARM64 or AMD64 code.
+The JIT keeps hot loop dispatch on a reusable direct path before hash-table
+lookup, marks loop exit blocks cold for Cranelift layout, and finishes full
+256-instruction RAM quanta at a backedge when possible. Smaller budgets still
+support precise prefix exits. The CPU continues validating code, permissions,
+events and canonical aliases on every dispatch.
+
+RAM addresses use Cranelift's `select_spectre_guard` before the bounds branch.
+Loads and stores depend on the checked selection; its fallback is the owned
+integer state, which is large enough even when the caller supplies a one-byte
+window. This retains the architectural exit and prevents branch speculation
+from supplying an unchecked memory-window address.
+
+`--jit-stats` reports taken/fallthrough guest loop branches, budget and RAM-window
+exits, and direct loop-dispatch hits. Outcomes are reconstructed once per
+quantum, without counter updates inside the generated loop. These are software
+execution counts, not hardware misprediction or performance-counter readings.
+Actual workload measurements decide whether a layout/dispatch change is useful.
+
 ## Persistent compilation artifacts
 
 The independent module exposes an opaque `Artifact` and an optional

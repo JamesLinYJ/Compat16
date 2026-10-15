@@ -315,6 +315,39 @@ fn budgeted_loops_match_checkpoint_arithmetic_and_stop_at_the_backedge() {
 }
 
 #[test]
+fn loop_dispatch_is_invalidated_before_executable_cache_eviction() {
+    let ax = Register::new(0, 2, false).unwrap();
+    let make = |value| {
+        IntegerLoop::new(
+            vec![Instruction::new(Operation::Add, ax, Operand::Immediate(value)).unwrap()],
+            None,
+        )
+        .unwrap()
+    };
+    let plan = make(0x1234);
+    let mut cache = LoopCache::default();
+    let input = IntegerState::default();
+    let (expected, _) = warm_loop(&mut cache, &plan, input, 1);
+    let mut actual = input;
+    assert!(cache.execute(&plan, &mut actual, 1).is_some());
+    assert_eq!(actual, expected);
+    assert!(cache.statistics().loop_dispatch_hits > 0);
+    assert!(cache.statistics().branches_taken > 0);
+    for value in 0..1024 {
+        let mut unchanged = input;
+        assert_eq!(cache.execute(&make(value), &mut unchanged, 1), None);
+        assert_eq!(unchanged, input);
+    }
+    assert_eq!(cache.statistics().cache_resets, 1);
+    let mut unchanged = input;
+    assert_eq!(cache.execute(&plan, &mut unchanged, 1), None);
+    assert_eq!(unchanged, input);
+    let (restored, _) = warm_loop(&mut cache, &plan, input, 1);
+    assert_eq!(restored, expected);
+    assert_eq!(cache.statistics().failures, 0);
+}
+
+#[test]
 fn jit_loop_conditions_cover_all_x86_status_relations() {
     use Condition::*;
     let conditions = [
