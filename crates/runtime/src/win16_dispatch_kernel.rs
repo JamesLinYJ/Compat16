@@ -112,28 +112,10 @@ impl Win16State {
                 },
             )) => u32::from(self.find_resource(module, &name, &resource_type, host)?),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Resources(
-                win16_abi::Win16KernelResourcesRequest::LoadResource { module, info },
-            )) => {
-                return self.begin_load_resource(
-                    registers,
-                    memory,
-                    host,
-                    module,
-                    info,
-                    (return_selector, return_offset, return_sp),
-                );
-            }
-            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Resources(
-                win16_abi::Win16KernelResourcesRequest::LockResource { data },
-            )) => {
-                return self.begin_lock_resource(
-                    registers,
-                    memory,
-                    host,
-                    data,
-                    (return_selector, return_offset, return_sp),
-                );
-            }
+                win16_abi::Win16KernelResourcesRequest::LoadResource { .. }
+                | win16_abi::Win16KernelResourcesRequest::LockResource { .. },
+            )) => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "resource loading requires the CPU-owned KERNEL dispatch route")),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Resources(
                 win16_abi::Win16KernelResourcesRequest::FreeResource { data },
             )) => {

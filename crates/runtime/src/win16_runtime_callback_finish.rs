@@ -136,7 +136,7 @@ impl Win16State {
             }
             CallbackKind::Mci => self.finish_mci_callback(cpu, memory, host),
             CallbackKind::Module => self.finish_module_callback(cpu, dos, memory, host),
-            CallbackKind::Resource => self.finish_resource_callback(&mut cpu.regs, memory, host),
+            CallbackKind::Resource => self.finish_resource_callback(cpu, dos, memory, host),
             CallbackKind::Asynchronous => {
                 let retirement = self.finish_asynchronous_guest_callback(cpu, dos, memory)?;
                 if retirement.source_bound || retirement.midi_source.is_some() {

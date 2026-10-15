@@ -830,14 +830,17 @@ impl Win16State {
             return Ok(if descriptor.present { u32::from(selector.raw().0) << 16 } else { 0 });
         }
         let Some(&handle) = self.global_handles.get(&guest_handle) else { return Ok(0); };
+        // Validate the complete returned selector before the heap can add a
+        // lock. An invariant/presence failure must leave no partial lock that
+        // a retried LockResource result would acquire a second time.
+        let selector = self.global_selectors.get(&guest_handle).copied().ok_or_else(||
+            RuntimeError::new(Kind::InternalInvariant, "Win16 global selector is missing"))?;
+        let descriptor = self.selectors.describe(selector).map_err(crate::runtime_error)?;
+        if !descriptor.present {
+            return Ok(0);
+        }
         match self.heap.global_lock(handle) {
             Ok(()) => {
-                let selector = self.global_selectors.get(&guest_handle).copied().ok_or_else(||
-                    RuntimeError::new(Kind::InternalInvariant, "Win16 global selector is missing"))?;
-                let descriptor = self.selectors.describe(selector).map_err(crate::runtime_error)?;
-                if !descriptor.present {
-                    return Ok(0);
-                }
                 // GlobalLock does not pin nondiscardable movable blocks in
                 // Win3.1 protected mode. Their stable guest selector is
                 // rebound by GlobalHeap whenever the allocation moves.

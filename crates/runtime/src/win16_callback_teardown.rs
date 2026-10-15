@@ -145,7 +145,7 @@ impl Win16State {
                 self.cancel_dde_callback_after_abort(ended, cpu, dos, memory, host)?
             }
             CallbackKind::Module => self.cancel_module_callback_for_teardown(ended, cpu, dos, memory)?,
-            CallbackKind::Resource => self.cancel_resource_callback_for_teardown(ended, cpu)?,
+            CallbackKind::Resource => self.cancel_resource_callback_for_teardown(ended, cpu, dos, memory)?,
             CallbackKind::Asynchronous => {
                 if self.callback_scheduler.asynchronous_top_source_bound() {
                     let (callback_id, callback_token) = self

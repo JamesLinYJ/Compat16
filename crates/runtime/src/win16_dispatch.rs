@@ -111,6 +111,12 @@ impl Win16State {
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
                 win16_abi::Win16KernelModulesRequest::FreeLibrary { module },
             )) => return self.begin_free_library(*module, cpu, dos, memory, host, return_to),
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Resources(
+                win16_abi::Win16KernelResourcesRequest::LoadResource { module, info },
+            )) => return self.begin_load_resource(cpu, dos, memory, host, *module, *info, return_to),
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Resources(
+                win16_abi::Win16KernelResourcesRequest::LockResource { data },
+            )) => return self.begin_lock_resource(cpu, dos, memory, host, *data, return_to),
             _ => {}
         }
         let request = match decoded.request {
