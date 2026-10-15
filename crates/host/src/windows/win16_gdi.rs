@@ -34,6 +34,14 @@ use windows_sys::Win32::Graphics::Gdi::{
 };
 use super::guest_text::GuestTextCodec;
 
+/// Complete this thread's batched drawing before another thread uses a shared
+/// HDC. GdiFlush drains the batch even when its BOOL reports a failed drawing
+/// command; that BOOL is not an inability to perform the synchronization.
+pub(super) fn flush_thread_batch() {
+    // SAFETY: GdiFlush has no arguments and operates on the calling thread.
+    unsafe { windows_sys::Win32::Graphics::Gdi::GdiFlush(); }
+}
+
 // Native fields actually populated by the Win16 public-layout conversion.
 const CONVERTED_DEVMODE_FIELDS: u32 = DM_ORIENTATION | DM_PAPERSIZE
     | DM_PAPERLENGTH | DM_PAPERWIDTH | DM_SCALE | DM_COPIES | DM_DEFAULTSOURCE
@@ -46,6 +54,7 @@ enum DcOrigin {
     Screen,
     Created,
     Metafile,
+    FunctionCallback { callback: runtime::Win16HostCallback },
     Window { window: Win16HostWindow, lease: WindowDcLease },
 }
 
@@ -206,6 +215,28 @@ impl Win16Dcs {
         raw_hdc: usize,
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
         self.lock().adopt_callback_dc(window, raw_hdc)
+    }
+
+    pub(super) fn adopt_function_dc(&self, callback: runtime::Win16HostCallback, raw_hdc: usize)
+        -> Result<Option<Win16HostDc>, RuntimeError> {
+        self.lock().record_borrowed_dc(DcOrigin::FunctionCallback { callback }, raw_hdc, None)
+    }
+
+    pub(super) fn is_function_dc(&self, token: Win16HostDc) -> bool {
+        self.lock().objects.get(&token)
+            .is_some_and(|dc| matches!(dc.origin, DcOrigin::FunctionCallback { .. }))
+    }
+
+    pub(super) fn retire_function_dc(&self, token: Win16HostDc,
+        callback: runtime::Win16HostCallback) -> bool {
+        let mut state = self.lock();
+        let Some(dc) = state.objects.get_mut(&token) else { return false; };
+        if !matches!(dc.origin, DcOrigin::FunctionCallback { callback: owner } if owner == callback) {
+            return false;
+        }
+        if dc.pin_count == 0 { state.objects.remove(&token); }
+        else { dc.retire_on_unpin = true; }
+        true
     }
 
     pub(super) fn cleanup(&self, token: Win16HostDc) -> bool {
@@ -396,6 +427,11 @@ impl Win16DcState {
         raw_hdc: usize,
         paint_info: Option<Win16NativePaintInfo>,
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
+        self.record_borrowed_dc(DcOrigin::Window { window, lease }, raw_hdc, paint_info)
+    }
+
+    fn record_borrowed_dc(&mut self, origin: DcOrigin, raw_hdc: usize,
+        paint_info: Option<Win16NativePaintInfo>) -> Result<Option<Win16HostDc>, RuntimeError> {
         if raw_hdc == 0 { return Ok(None); }
         let Some(next_id) = self.next_id.checked_add(1) else {
             return Err(RuntimeError::new(Kind::ResourceExhausted,
@@ -408,7 +444,7 @@ impl Win16DcState {
         let handle = raw_hdc;
         self.objects.insert(token, NativeDc {
             handle,
-            origin: DcOrigin::Window { window, lease },
+            origin,
             paint_info,
             pin_count: 0,
             release_pending: false,
@@ -480,7 +516,7 @@ impl Drop for Win16DcState {
                 DcOrigin::Metafile => { metafile::discard(native.handle()); }
                 DcOrigin::Screen => { ReleaseDC(ptr::null_mut(), native.handle()); }
                 // A borrowed window HDC must be released by its USER worker.
-                DcOrigin::Window { .. } => {}
+                DcOrigin::Window { .. } | DcOrigin::FunctionCallback { .. } => {}
             } };
         }
     }

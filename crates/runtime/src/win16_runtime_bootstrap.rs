@@ -210,7 +210,7 @@ impl Win16State {
             deferred_window_batches: super::window_operations::DeferredWindowBatches::default(),
             user_hooks: super::user_hooks::Win16UserHooks::default(),
             window_callbacks: Vec::new(), retired_window_payloads: Vec::new(),
-            window_property_callbacks: Vec::new(), loaded, heap, tasks,
+            native_function_callbacks: Vec::new(), loaded, heap, tasks,
             window_operations: Vec::new(), window_abort_receipt: None,
             window_dispatch_context: None,
             window_procedures: BTreeMap::new(),

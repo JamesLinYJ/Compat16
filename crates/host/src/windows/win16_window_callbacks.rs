@@ -1115,6 +1115,7 @@ fn dispatch_guest_callback_with_mdi(
             callback, window: identity.window, message: payload, source,
         },
     };
+    crate::windows::win16_gdi::flush_thread_batch();
     if active.response.send(Ok(step)).is_err() {
         remove_live_callback(state, callback);
         if guest_owned_drop_files {

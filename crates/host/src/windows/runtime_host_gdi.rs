@@ -234,7 +234,8 @@ pub(super) fn select_object(
     let Some(dc_use) = host.win16_dcs.lease_dc(dc)? else {
         return Ok(None);
     };
-    host.win16_objects.select(dc_use.native(), object)
+    let callback_scope = host.win16_dcs.is_function_dc(dc).then_some(dc);
+    host.win16_objects.select(dc_use.native(), object, callback_scope)
 }
 
 pub(super) fn delete_object(

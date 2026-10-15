@@ -272,6 +272,11 @@ impl Win16State {
         match host.win16_select_object(native_dc, native_object)? {
             Some(Win16SelectObjectResult::Recorded) => Ok(1),
             Some(Win16SelectObjectResult::RegionComplexity(value)) => Ok(value),
+            Some(Win16SelectObjectResult::CallbackBitmap { object, dc }) => {
+                self.retain_function_bitmap(dc, object)?;
+                if let Some(handle) = self.guest_gdi.existing_object(object) { return Ok(handle); }
+                Ok(self.guest_gdi.allocate(GuestGdiObject::Object(object)).unwrap_or(0))
+            }
             Some(Win16SelectObjectResult::Object(previous)) => {
                 if let Some(handle) = self.guest_gdi.existing_object(previous) { return Ok(handle); }
                 Ok(self.guest_gdi.allocate(GuestGdiObject::Object(previous)).unwrap_or(0))

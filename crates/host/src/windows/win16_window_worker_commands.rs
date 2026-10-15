@@ -43,6 +43,7 @@ pub(in crate::windows::win16_windows) enum WorkerCommand {
             Option<super::super::win16_gdi_bitmap_lease::Win16BitmapLease>,
         >,
         native_regions: BTreeMap<Win16HostGdiObject, Option<Win16RegionLease>>,
+        gray_string_brush: Option<super::super::win16_gray_string::BrushLease>,
         response: Sender<Result<Win16WindowStep, RuntimeError>>,
     },
     Resume {

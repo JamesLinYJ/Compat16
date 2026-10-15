@@ -719,6 +719,7 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
             native_font,
             toolbar_bitmap_leases,
             native_regions,
+            gray_string_brush,
             response,
         } => {
             operations::run_operation(
@@ -730,6 +731,7 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
                 native_font,
                 toolbar_bitmap_leases,
                 native_regions,
+                gray_string_brush,
                 response,
             );
         }

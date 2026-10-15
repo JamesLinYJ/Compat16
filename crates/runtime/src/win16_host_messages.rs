@@ -432,6 +432,14 @@ pub struct Win16HostMinMaxInfo {
 /// An owned request whose completion may follow synchronous guest callbacks.
 #[derive(Debug)]
 pub enum Win16WindowOperation {
+    GrayString {
+        dc: crate::Win16HostDc,
+        brush: Option<crate::Win16HostGdiObject>,
+        text: Option<Vec<u8>>,
+        count: i32,
+        x: i16, y: i16, width: i16, height: i16,
+        callback: bool,
+    },
     /// Pointer-free DDEML call executed on the same owner-thread continuation
     /// pump as USER. Guest handles remain runtime-only tokens.
     Dde(crate::Win16HostDdeCall),
@@ -564,6 +572,7 @@ pub enum Win16WindowOperation {
 /// verify that the proof belongs to the continuation it actually started.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16NativeWindowOperationKind {
+    GrayString,
     DefaultMdiChild,
     DefFrameProc,
     TranslateMDISysAccel,
@@ -607,6 +616,7 @@ impl Win16WindowOperation {
     pub fn native_operation_kind(&self) -> Win16NativeWindowOperationKind {
         use Win16NativeWindowOperationKind as Kind;
         match self {
+            Self::GrayString { .. } => Kind::GrayString,
             Self::DefFrameProc { .. } => Kind::DefFrameProc,
             Self::DefaultMdiChild { .. } => Kind::DefaultMdiChild,
             Self::TranslateMDISysAccel { .. } => Kind::TranslateMDISysAccel,
@@ -689,6 +699,7 @@ pub struct Win16WindowTerminalAck {
 /// copied from the worker's live callback owner before abort changes it.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16NativeCallbackSource {
+    GrayString { dc: crate::Win16HostDc },
     WindowMessage {
         window: Win16HostWindow,
         class: Option<Win16HostClass>,
@@ -810,6 +821,7 @@ impl Win16HostWindowCreationResult {
 
 #[derive(Debug)]
 pub enum Win16WindowResult {
+    GrayString(bool),
     /// A terminal native modal cancellation; worker code must place this in
     /// the abort receipt and never dispatch it as a guest API completion.
     NativeModalCancelled(Win16NativeModalCancellation),
@@ -1047,6 +1059,13 @@ pub enum Win16WindowStep {
         window: Win16HostWindow,
         name: crate::Win16HostPropertyCallbackName,
         data: u16,
+        source: Win16NativeCallbackSource,
+    },
+    GrayStringCallback {
+        operation_id: Win16HostWindowOperationId,
+        callback: Win16HostCallback,
+        dc: crate::Win16HostDc,
+        count: i16,
         source: Win16NativeCallbackSource,
     },
     /// The host applied native default processing because reverse marshalling

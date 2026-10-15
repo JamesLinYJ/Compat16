@@ -235,6 +235,8 @@ pub enum Win16HostAtomName<'a> {
 pub enum Win16SelectObjectResult {
     Recorded,
     Object(Win16HostGdiObject),
+    /// A private bitmap valid only while the exact native callback DC is live.
+    CallbackBitmap { object: Win16HostGdiObject, dc: Win16HostDc },
     RegionComplexity(u16),
 }
 

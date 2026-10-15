@@ -53,8 +53,10 @@ pub(super) struct Win16DibSectionOwner {
     length: u32,
     owner_thread: ThreadId,
     state: Mutex<AccessState>,
-    // This storage and its HBITMAP are restricted to the guest-runtime GDI
-    // thread. The Rc marker prevents accidental transfer to a worker thread.
+    // Mapping access and lifetime management stay on the guest-runtime GDI
+    // thread. Resumable USER drawing keeps !Send native-use guards there and
+    // serializes worker GDI access with callbacks and GdiFlush handoffs.
+    // The Rc marker prevents transferring this owner or its guards to a worker.
     _not_send: PhantomData<Rc<()>>,
 }
 

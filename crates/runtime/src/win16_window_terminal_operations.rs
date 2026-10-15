@@ -113,7 +113,7 @@ impl Win16State {
         if !self.callback_kinds.is_empty()
             || !self.callback_frame_ids.is_empty()
             || !self.window_callbacks.is_empty()
-            || !self.window_property_callbacks.is_empty()
+            || !self.native_function_callbacks.is_empty()
         {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "Win16 operation retirement requires the entire shared callback LIFO to be empty"));

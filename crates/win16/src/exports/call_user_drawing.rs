@@ -13,6 +13,16 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Win16ApiRequest, Win16Error> {
     match export {
+        Win16ExportId::UserGrayString => Ok(Win16ApiRequest::User(
+            super::Win16UserRequest::Drawing(super::Win16UserDrawingRequest::GrayString {
+                dc: word_argument(arguments, 0)?, brush: word_argument(arguments, 1)?,
+                procedure: dword_argument(arguments, 2)?, data: dword_argument(arguments, 3)?,
+                count: word_argument(arguments, 4)? as i16,
+                x: word_argument(arguments, 5)? as i16, y: word_argument(arguments, 6)? as i16,
+                width: word_argument(arguments, 7)? as i16,
+                height: word_argument(arguments, 8)? as i16,
+            }),
+        )),
         Win16ExportId::UserTabbedTextOut => {
             let count = word_argument(arguments, 4)? as i16;
             let tab_count = word_argument(arguments, 5)? as i16;

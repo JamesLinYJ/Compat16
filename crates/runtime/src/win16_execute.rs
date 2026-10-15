@@ -197,7 +197,7 @@ impl Runtime {
                 continue;
             }
             if guest_dispatch_allowed
-                && state.service_pending_window_property_callback(
+                && state.service_pending_native_function_callback(
                     &mut self.cpu,
                     &mut self.dos,
                     &mut self.memory,

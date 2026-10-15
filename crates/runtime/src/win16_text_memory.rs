@@ -54,6 +54,29 @@ impl PreparedTextWrite {
 }
 
 impl Win16State {
+    pub(super) fn read_z_string(
+        &self,
+        memory: &Memory,
+        far: u32,
+        maximum: usize,
+    ) -> Result<Option<Vec<u8>>, RuntimeError> {
+        if far == 0 { return Ok(None); }
+        let pointer = self.selectors.pointer_from_far(far).map_err(crate::runtime_error)?;
+        let descriptor = self.selectors.describe(pointer.selector()).map_err(crate::runtime_error)?;
+        let available = descriptor.limit.checked_sub(u32::from(pointer.offset()))
+            .and_then(|length| length.checked_add(1))
+            .ok_or_else(|| RuntimeError::new(Kind::GuestFault,
+                "Win16 string begins outside its selector"))?;
+        let count = usize::try_from(available).unwrap_or(usize::MAX).min(maximum);
+        let bytes = self.read_text_bytes(memory, pointer, count)?;
+        let end = bytes.iter().position(|byte| *byte == 0).ok_or_else(|| {
+            RuntimeError::new(Kind::GuestFault,
+                "Win16 string has no terminator within its selector")
+        })?;
+        Ok(Some(bytes[..end].to_vec()))
+    }
+
+
     fn text_chunks(
         &self,
         memory: &Memory,

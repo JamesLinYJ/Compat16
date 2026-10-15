@@ -88,7 +88,7 @@ impl Win16State {
         };
         self.require_callback_top(kind)?;
         let callback_transfer =
-            if matches!(kind, CallbackKind::Window | CallbackKind::WindowProperty) {
+            if matches!(kind, CallbackKind::Window | CallbackKind::NativeFunction) {
                 match cpu
                     .control_transfer()
                     .filter(|transfer| transfer.is_call_return())
@@ -121,8 +121,8 @@ impl Win16State {
             CallbackKind::UserHook => self.finish_user_hook_callback(cpu, dos, memory),
             CallbackKind::Ole1 => self.finish_ole1_callback(cpu, dos, memory, host),
             CallbackKind::Window => self.finish_window_callback(&mut cpu.regs, memory, host),
-            CallbackKind::WindowProperty => {
-                self.finish_window_property_callback(cpu, dos, memory, host)
+            CallbackKind::NativeFunction => {
+                self.finish_native_function_callback(cpu, dos, memory, host)
             }
             CallbackKind::Dde => match self.finish_dde_callback(cpu, dos, memory, host)? {
                 Win16DdeCallbackFinish::Resume { origin, step } => {

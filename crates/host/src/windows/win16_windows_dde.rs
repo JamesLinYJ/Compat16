@@ -173,6 +173,8 @@ impl Win16Windows {
         reply: Option<Win16WindowReply>,
         objects: &mut Win16Objects,
     ) -> Result<Win16WindowStep, RuntimeError> {
+        super::super::win16_gdi::flush_thread_batch();
+        self.refresh_pending_graphics(objects)?;
         let source = self.dde_sources.pending.last().copied().ok_or_else(|| {
             RuntimeError::new(
                 Kind::InternalInvariant,
@@ -285,6 +287,11 @@ impl Win16Windows {
                 }
                 let native_control_color_result =
                     super::control_color_return::native_control_color_result(objects, &reply)?;
+                if let Some(runtime::Win16NativeCallbackCancellation {
+                    source: runtime::Win16NativeCallbackSource::GrayString { dc }, ..
+                }) = awaiting_source {
+                    objects.retire_function_bitmaps(dc);
+                }
                 self.worker()?
                     .send(WorkerCommand::Resume {
                         id: operation_id,

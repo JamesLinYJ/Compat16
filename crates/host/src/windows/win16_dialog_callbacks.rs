@@ -355,6 +355,7 @@ fn dispatch_dialog_proc(hwnd: HWND, message: u32, w_param: WPARAM, l_param: LPAR
         creation_cookie: None,
         mdi_create_struct: None,
     });
+    crate::windows::win16_gdi::flush_thread_batch();
     if active
         .response
         .send(Ok(Win16WindowStep::DialogCallback {

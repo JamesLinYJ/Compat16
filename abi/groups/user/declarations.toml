@@ -240,6 +240,20 @@ decl = { args = ["word", "word", "word", "pointer"] }
 ordinal = 185
 name = "GrayString"
 decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "signed_word", "signed_word", "signed_word", "signed_word"] }
+binding = { rust_id = "UserGrayString", id_value = 1252, constant = "USER_GRAY_STRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "brush", type = "U16" },
+  { name = "procedure", type = "U32" },
+  { name = "data", type = "U32" },
+  { name = "count", type = "I16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "width", type = "I16" },
+  { name = "height", type = "I16" },
+]
 
 [[exports]]
 ordinal = 186

@@ -347,6 +347,7 @@ pub(in crate::win16_runtime) enum WindowApiProjectionJournal {
     WindowProperties(WindowPropertyProjection),
     QueryProcedure(ProcedureProjection),
     UserMessageBox(SimpleReturnProjectionPhase),
+    GrayString(SimpleReturnProjectionPhase),
     UserCursorAccelerator(CursorAcceleratorProjection),
     UserFamily(UserFamilyProjection),
     CommonControls {
@@ -695,6 +696,7 @@ impl WindowApiProjectionJournal {
                 unreachable!("message-call projections use their dedicated journal")
             }
             Return::UserMessageBox => Self::UserMessageBox(SimpleReturnProjectionPhase::Ready),
+            Return::GrayString { .. } => Self::GrayString(SimpleReturnProjectionPhase::Ready),
             Return::UpdateRegion(_) => {
                 unreachable!("update-region projections use their dedicated journal")
             }
@@ -867,6 +869,7 @@ impl WindowApiProjectionJournal {
                 | (Journal::QueryProcedure(_), Return::PrepareNativeSubclass { .. })
                 | (Journal::QueryProcedure(_), Return::NativeSubclass(_))
                 | (Journal::UserMessageBox(_), Return::UserMessageBox)
+                | (Journal::GrayString(_), Return::GrayString { .. })
                 | (
                     Journal::UserCursorAccelerator(_),
                     Return::UserCursorAccelerator(_)

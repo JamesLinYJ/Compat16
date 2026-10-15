@@ -137,6 +137,7 @@ impl Win16Windows {
                 source,
                 ..
             }
+            | Win16WindowStep::GrayStringCallback { operation_id, callback, source, .. }
             | Win16WindowStep::GuestTimerCallback {
                 operation_id,
                 callback,

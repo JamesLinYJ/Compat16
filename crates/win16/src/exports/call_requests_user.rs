@@ -223,6 +223,7 @@ pub(super) fn decode(
         | Win16ExportId::UserReleaseDc => user_paint_calls::decode(descriptor.id, &arguments)?,
         Win16ExportId::UserFillRect
         | Win16ExportId::UserDrawText
+        | Win16ExportId::UserGrayString
         | Win16ExportId::UserTabbedTextOut
         | Win16ExportId::UserGetTabbedTextExtent
         | Win16ExportId::UserInvertRect

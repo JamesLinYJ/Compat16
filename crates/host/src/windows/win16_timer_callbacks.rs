@@ -110,6 +110,7 @@ fn dispatch_timer_proc(hwnd: HWND, timer_id: usize, time: u32) {
         time,
         source,
     };
+    crate::windows::win16_gdi::flush_thread_batch();
     if active.response.send(Ok(step)).is_err() {
         remove_live_callback(&state, callback);
         fail_worker(&state, RuntimeError::new(Kind::HostFailure,

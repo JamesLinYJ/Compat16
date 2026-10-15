@@ -398,6 +398,10 @@ mod window_subclass;
 mod window_parent_observation;
 #[path = "win16_window_properties.rs"]
 mod window_properties;
+#[path = "win16_native_function_callback.rs"]
+mod native_function_callback;
+#[path = "win16_gray_string.rs"]
+mod gray_string;
 #[path = "win16_window_payloads.rs"]
 mod window_payloads;
 #[path = "win16_window_payload_input.rs"]
@@ -497,7 +501,7 @@ enum CallbackKind {
     UserHook,
     Ole1,
     Window,
-    WindowProperty,
+    NativeFunction,
     Dde,
     ClassicDde,
     Module,
@@ -671,7 +675,7 @@ pub(crate) struct Win16State {
     user_hooks: user_hooks::Win16UserHooks,
     window_callbacks: Vec<windows::WindowCallbackFrame>,
     retired_window_payloads: Vec<windows::RetiredWindowPayloadOwner>,
-    window_property_callbacks: Vec<window_properties::WindowPropertyCallbackFrame>,
+    native_function_callbacks: Vec<native_function_callback::NativeFunctionCallbackFrame>,
     window_operations: Vec<windows::WindowOperationFrame>,
     window_abort_receipt: Option<crate::Win16WindowAbortReceipt>,
     /// Captured only around real USER API dispatch; push_window_operation

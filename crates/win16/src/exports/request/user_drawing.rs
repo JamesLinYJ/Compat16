@@ -4,6 +4,10 @@ use super::super::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16UserDrawingRequest {
+    GrayString {
+        dc: u16, brush: u16, procedure: u32, data: u32, count: i16,
+        x: i16, y: i16, width: i16, height: i16,
+    },
     /// USER.81 copies an input RECT16; null is retained for a normal false result.
     FillRect {
         dc: u16,

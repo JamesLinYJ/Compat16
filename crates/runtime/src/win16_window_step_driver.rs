@@ -340,6 +340,18 @@ impl Win16State {
                     )?;
                     return Ok(());
                 }
+                Win16WindowStep::GrayStringCallback { operation_id, callback, dc, count, source } => {
+                    self.validate_native_window_callback_owner(operation_id, callback, source)?;
+                    if self.retain_gray_string_callback(registers, callback, dc, count,
+                        operation_id, source)? {
+                        return Ok(());
+                    }
+                    step = host.win16_window_resume(Some(Win16WindowReply {
+                        callback,
+                        result: crate::Win16HostMessageResult { dialog_result: None, value: 0,
+                            output: crate::Win16HostMessageOutput::None },
+                    }))?;
+                }
             }
         }
     }

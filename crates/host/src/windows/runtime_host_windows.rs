@@ -264,6 +264,14 @@ pub(super) fn win16_window_abort(
     host: &mut WindowsHost,
 ) -> Result<runtime::Win16WindowAbortReceipt, RuntimeError> {
     let result = host.win16_windows.abort();
+    if let Ok(receipt) = &result {
+        host.win16_windows.release_graphics_after_abort();
+        for callback in &receipt.cancelled_callbacks {
+            if let runtime::Win16NativeCallbackSource::GrayString { dc } = callback.source {
+                host.win16_objects.retire_function_bitmaps(dc);
+            }
+        }
+    }
     drain_win16_dde_diagnostics(host);
     result
 }

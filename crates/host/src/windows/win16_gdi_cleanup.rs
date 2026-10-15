@@ -19,7 +19,8 @@ impl Win16DcState {
             // Task cleanup has already closed native windows and callbacks;
             // retiring the guest alias does not transfer that lease to GDI or
             // authorize a ReleaseDC/DeleteDC call on another thread.
-            Some(DcOrigin::Window { .. }) => return Win16HostGdiCleanup::Borrowed,
+            Some(DcOrigin::Window { .. } | DcOrigin::FunctionCallback { .. }) =>
+                return Win16HostGdiCleanup::Borrowed,
             None => return Win16HostGdiCleanup::Absent,
         };
         if released { Win16HostGdiCleanup::Released } else { Win16HostGdiCleanup::Failed }

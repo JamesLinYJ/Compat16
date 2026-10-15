@@ -15,7 +15,7 @@ impl Win16State {
                 (callback.callback_id, callback.host_operation)).ok_or_else(||
                     RuntimeError::new(Kind::InternalInvariant,
                         "returned USER callback has no retained window callback frame"))?,
-            CallbackKind::WindowProperty => self.window_property_callbacks.last().map(|callback|
+            CallbackKind::NativeFunction => self.native_function_callbacks.last().map(|callback|
                 (callback.callback_id, Some(callback.host_operation))).ok_or_else(||
                     RuntimeError::new(Kind::InternalInvariant,
                         "returned property callback has no retained callback frame"))?,

@@ -86,6 +86,7 @@ pub(super) fn run_operation(
         Option<super::super::win16_gdi_bitmap_lease::Win16BitmapLease>,
     >,
     native_regions: BTreeMap<Win16HostGdiObject, Option<Win16RegionLease>>,
+    gray_string_brush: Option<super::super::win16_gray_string::BrushLease>,
     response: Sender<Result<Win16WindowStep, RuntimeError>>,
 ) {
     if state.borrow().aborted {
@@ -369,6 +370,10 @@ pub(super) fn run_operation(
                     super::super::win16_user_cursor_accelerator::execute(state, operation)
                         .map(Win16WindowResult::UserCursorAccelerator)
                 }
+                request @ Win16WindowOperation::GrayString { .. } => {
+                    super::super::win16_gray_string::execute(state, request, gray_string_brush.as_ref())
+                        .map(Win16WindowResult::GrayString)
+                }
                 Win16WindowOperation::BeginPaint { window } => {
                     super::super::win16_user_services_window_dc::begin_paint(state, window)
                         .map(|acquired| Win16WindowResult::Paint { acquired })
@@ -465,11 +470,13 @@ pub(super) fn run_operation(
             result.map(NativeModalOperationOutcome::Returned)
         }
     };
+    crate::windows::win16_gdi::flush_thread_batch();
     let result = finish_toolbar_bitmap_leases(state, id, result, toolbar_bitmap_leases);
     // Retire native input leases before publishing completion. Otherwise a
     // fast guest DeleteObject after Complete could observe a finished call as
     // still borrowing its region. Suspended callbacks retain this local map.
     drop(native_regions);
+    drop(gray_string_brush);
     let (balanced, stranded) = {
         let mut state = state.borrow_mut();
         if state
