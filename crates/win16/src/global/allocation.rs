@@ -95,7 +95,7 @@ impl GlobalHeap {
 
         let block = Block {
             base, size: logical_size, capacity: reserved_size, owner, guest_owner, flags,
-            global_lock_count: 0, fix_count: 0, page_lock_count: 0,
+            global_lock_count: 0, discard_transition_locks: false, fix_count: 0, page_lock_count: 0,
             segment_lock_count: 0, internal_pin_count: 0, selector_alias_count: 0,
             runtime_primary: None, selector: None,
             allocation_flags: persistent_global_flags(allocation_flags, flags),
@@ -136,6 +136,7 @@ impl GlobalHeap {
         let next_generation = generation.checked_add(1).ok_or(Win16Error::GenerationExhausted)?;
         let block = Block {
             base: PhysAddr(0), size: 0, capacity: 0, owner, guest_owner, flags, global_lock_count: 0,
+            discard_transition_locks: false,
             fix_count: 0, page_lock_count: 0, segment_lock_count: 0, internal_pin_count: 0,
             selector_alias_count: 0, runtime_primary: None, selector: None,
             allocation_flags: persistent_global_flags(
@@ -238,12 +239,13 @@ impl GlobalHeap {
 
     /// Records a Win3.1 GlobalLock on a live HGLOBAL. Nondiscardable objects
     /// remain addressable while their selector is rebound after heap moves;
-    /// only effectively discardable objects gain a guest-visible lock count.
+    /// discardable objects and objects managed across discard transitions
+    /// retain their guest-visible lock count until GlobalUnlock.
     pub fn global_lock(&mut self, handle: GlobalHandle) -> Result<(), Win16Error> {
         let block = self.lookup(handle)?;
         if block.discarded { return Err(Win16Error::InvalidHandle); }
         self.reserve_lru_slot(Some(handle.raw.0), block.flags, block.allocation_flags)?;
-        if !block.discardable() { return Ok(()); }
+        if !block.discardable() && !block.discard_transition_locks { return Ok(()); }
         if block.guest_lock_count() == u16::MAX {
             return Err(Win16Error::LockCountOverflow);
         }

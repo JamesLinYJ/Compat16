@@ -112,9 +112,10 @@ struct Block {
     owner: OwnerId,
     guest_owner: Option<GuestMemoryOwner>,
     flags: AllocationFlags,
-    /// Guest GlobalLock references. Win3.1 protected mode counts these only
-    /// while an effectively discardable object is locked.
+    /// Guest GlobalLock references. Ordinary nondiscardable objects need no
+    /// count; managed objects can also retain locks across discard transitions.
     global_lock_count: u16,
+    discard_transition_locks: bool,
     /// Guest GlobalFix references, independent of GlobalLock/GlobalUnlock.
     fix_count: u16,
     /// Win16 GlobalPageLock references are allocator pins, not GlobalFlags

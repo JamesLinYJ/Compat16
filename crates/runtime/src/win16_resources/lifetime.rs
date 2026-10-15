@@ -14,10 +14,15 @@ impl Win16State {
         if !info.movable {
             return Ok(());
         }
-        let discardable = references == 0
-            && self
-                .resource_metadata(key.module, key.info)
-                .is_some_and(ResourceMetadata::discardable);
+        let eligible = self
+            .resource_metadata(key.module, key.info)
+            .is_some_and(ResourceMetadata::discardable);
+        if eligible {
+            self.heap
+                .track_discard_transition_locks(identity)
+                .map_err(crate::runtime_error)?;
+        }
+        let discardable = references == 0 && eligible;
         self.heap
             .set_discardable(identity, discardable)
             .map_err(crate::runtime_error)
