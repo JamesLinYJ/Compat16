@@ -34,6 +34,19 @@ pub(super) fn arithmetic(
     lfield: Value,
     rfield: Value,
 ) -> ResultValues {
+    arithmetic_with_known_inputs(b, plan, left, right, lfield, rfield, [false; 2])
+}
+/// Only a dominating successful class guard or a checked result can certify
+/// an operand. Block-local SSA facts never survive a generated function call.
+pub(super) fn arithmetic_with_known_inputs(
+    b: &mut FunctionBuilder<'_>,
+    plan: FloatPlan,
+    left: Value,
+    right: Value,
+    lfield: Value,
+    rfield: Value,
+    known: [bool; 2],
+) -> ResultValues {
     let lexp = b.ins().band_imm_u(lfield, 0x7fff);
     let rexp = b.ins().band_imm_u(rfield, 0x7fff);
     let sign = b.ins().bxor(lfield, rfield);
@@ -68,10 +81,12 @@ pub(super) fn arithmetic(
         }
     };
     let mut result = round(b, plan, sig, tail, exponent, sign);
-    let lvalid = supported(b, left, lfield);
-    let rvalid = supported(b, right, rfield);
-    let inputs = b.ins().band(lvalid, rvalid);
-    result.valid = b.ins().band(result.valid, inputs);
+    for (index, (sig, field)) in [(left, lfield), (right, rfield)].into_iter().enumerate() {
+        if !known[index] {
+            let input = supported(b, sig, field);
+            result.valid = b.ins().band(result.valid, input);
+        }
+    }
     if plan.operation == FloatOperation::Divide {
         let nonzero = b.ins().icmp_imm_s(IntCC::NotEqual, right, 0);
         result.valid = b.ins().band(result.valid, nonzero);

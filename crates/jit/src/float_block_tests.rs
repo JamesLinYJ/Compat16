@@ -137,3 +137,63 @@ fn float_blocks_validate_offsets_indices_lengths_and_restore_persistent_artifact
     assert!(run().persistent_writes > 0);
     assert!(run().persistent_hits > 0);
 }
+
+#[test]
+fn floating_direct_dispatch_rechecks_modes_and_is_revoked_before_eviction() {
+    let block = FloatBlock::new(vec![
+        FloatInstruction::Binary {
+            operation: FloatOperation::Multiply,
+            destination: 0,
+            source: 1,
+            reverse: false,
+            pop: false,
+        };
+        2
+    ])
+    .unwrap();
+    let mut cache = FloatBlockCache::default();
+    warm(&mut cache, &block);
+    for control in [0x37f, 0x7f, 0x37f, 0x35f] {
+        for _ in 0..8 {
+            let mut state = input();
+            state.control = control;
+            state.values[0] = value((1 << 63) + 1, 0x3fff);
+            if cache
+                .execute(&block, &mut state, &mut [0; 256], 2)
+                .is_some()
+            {
+                assert_eq!(
+                    state.values[0].significand,
+                    (1 << 63) + u64::from(control & 0x300 != 0)
+                );
+                assert_eq!(state.status & 32, if control & 0x300 == 0 { 32 } else { 0 });
+            }
+        }
+    }
+    assert_eq!(cache.statistics().float_blocks_compiled, 2);
+    let equivalent = FloatBlock::new(block.instructions().to_vec()).unwrap();
+    assert_eq!(
+        cache.execute(&equivalent, &mut input(), &mut [0; 256], 2),
+        Some(2)
+    );
+    assert_eq!(cache.statistics().float_blocks_compiled, 2);
+    // Distinct, valid cold blocks fill the cache without compiling hundreds
+    // of functions. The oldest block's direct entry must also be revoked.
+    for index in 0..256 {
+        let offset = (index % 247) as u8;
+        let other = FloatBlock::new(vec![
+            FloatInstruction::Store80 {
+                offset,
+                pop: index >= 247,
+            };
+            2
+        ])
+        .unwrap();
+        assert_eq!(cache.execute(&other, &mut input(), &mut [0; 256], 2), None);
+    }
+    assert_eq!(cache.statistics().cache_resets, 1);
+    assert_eq!(cache.execute(&block, &mut input(), &mut [0; 256], 2), None);
+    warm(&mut cache, &block);
+    assert_eq!(cache.statistics().float_blocks_compiled, 3);
+    assert_eq!(cache.statistics().failures, 0);
+}

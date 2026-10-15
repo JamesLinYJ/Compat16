@@ -37,7 +37,9 @@ pub enum FloatInstruction {
 }
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct FloatBlock {
-    instructions: Vec<FloatInstruction>,
+    // Immutable shared IR makes a dispatch-key clone allocation-free. An
+    // unrelated equal block still uses structural equality, never identity alone.
+    instructions: Arc<[FloatInstruction]>,
 }
 impl FloatBlock {
     pub fn new(instructions: Vec<FloatInstruction>) -> Option<Self> {
@@ -58,7 +60,9 @@ impl FloatBlock {
         {
             return None;
         }
-        Some(Self { instructions })
+        Some(Self {
+            instructions: instructions.into(),
+        })
     }
     pub fn len(&self) -> usize {
         self.instructions.len()
@@ -94,6 +98,7 @@ enum Entry {
 pub struct FloatBlockCache {
     compiler: Compiler,
     entries: HashMap<FloatBlock, [Entry; 12]>,
+    last: Option<(FloatBlock, usize, FloatBlockFunction)>,
     statistics: Statistics,
 }
 impl FloatBlockCache {
@@ -113,19 +118,6 @@ impl FloatBlockCache {
         if budget == 0 || state.status & !state.control & 0x3f != 0 {
             return None;
         }
-        if self.entries.len() == 256 && !self.entries.contains_key(block) {
-            self.entries.clear();
-            // SAFETY: All pointers are private and exclusive calls cannot
-            // overlap eviction. Entries were removed before executable memory.
-            unsafe {
-                self.compiler.clear();
-            }
-            self.statistics.cache_resets = self.statistics.cache_resets.saturating_add(1);
-        }
-        if !self.entries.contains_key(block) {
-            self.entries.try_reserve(1).ok()?;
-            self.entries.insert(block.clone(), [Entry::Cold(0); 12]);
-        }
         let (precision, pc) = match (state.control >> 8) & 3 {
             0 => (24, 0),
             2 => (53, 1),
@@ -133,46 +125,15 @@ impl FloatBlockCache {
         };
         let rounding = ((state.control >> 10) & 3) as u8;
         let index = pc * 4 + usize::from(rounding);
-        let entries = self.entries.get_mut(block)?;
-        let function = match entries[index] {
-            Entry::Compiled(function) => function,
-            Entry::Rejected => return None,
-            Entry::Cold(count) => {
-                entries[index] = Entry::Cold(count + 1);
-                if count < 7 {
-                    return None;
-                }
-                match self.compiler.compile_float_block(
-                    block,
-                    FloatPlan {
-                        operation: FloatOperation::Add,
-                        precision,
-                        rounding,
-                    },
-                ) {
-                    Ok(code) => {
-                        entries[index] = Entry::Compiled(code.function);
-                        self.statistics.compiled = self.statistics.compiled.saturating_add(1);
-                        self.statistics.float_blocks_compiled =
-                            self.statistics.float_blocks_compiled.saturating_add(1);
-                        self.statistics.persistent_hits = self
-                            .statistics
-                            .persistent_hits
-                            .saturating_add(u64::from(code.cache_hit));
-                        self.statistics.persistent_writes = self
-                            .statistics
-                            .persistent_writes
-                            .saturating_add(code.cache_writes);
-                        code.function
-                    }
-                    Err(_) => {
-                        entries[index] = Entry::Rejected;
-                        self.statistics.failures = self.statistics.failures.saturating_add(1);
-                        return None;
-                    }
-                }
-            }
-        };
+        let function = self.ready(
+            block,
+            index,
+            FloatPlan {
+                operation: FloatOperation::Add,
+                precision,
+                rounding,
+            },
+        )?;
         let mut raw = BlockState { words: [0; 19] };
         for (i, value) in state.values.iter().enumerate() {
             raw.words[i * 2] = value.significand;
@@ -215,13 +176,82 @@ impl FloatBlockCache {
         }
         Some(retired)
     }
-}
-impl Drop for FloatBlockCache {
-    fn drop(&mut self) {
+    fn ready(
+        &mut self,
+        block: &FloatBlock,
+        index: usize,
+        plan: FloatPlan,
+    ) -> Option<FloatBlockFunction> {
+        // The owned key and precision/rounding index identify this compiler's
+        // private entry. Guest code/permissions remain the CPU owner's checks.
+        if let Some((key, mode, function)) = &self.last
+            && *mode == index
+            && (Arc::ptr_eq(&key.instructions, &block.instructions) || key == block)
+        {
+            return Some(*function);
+        }
+        if let Some(entries) = self.entries.get_mut(block) {
+            match entries[index] {
+                Entry::Compiled(function) => {
+                    self.last = Some((block.clone(), index, function));
+                    return Some(function);
+                }
+                Entry::Rejected => return None,
+                Entry::Cold(count) => {
+                    let count = count + 1;
+                    entries[index] = Entry::Cold(count);
+                    if count < 8 {
+                        return None;
+                    }
+                }
+            }
+        } else {
+            if self.entries.len() == 256 {
+                self.clear();
+                self.statistics.cache_resets = self.statistics.cache_resets.saturating_add(1);
+            }
+            self.entries.try_reserve(1).ok()?;
+            let mut entries = [Entry::Cold(0); 12];
+            entries[index] = Entry::Cold(1);
+            self.entries.insert(block.clone(), entries);
+            return None;
+        }
+        match self.compiler.compile_float_block(block, plan) {
+            Ok(code) => {
+                self.entries.get_mut(block)?[index] = Entry::Compiled(code.function);
+                self.last = Some((block.clone(), index, code.function));
+                self.statistics.compiled = self.statistics.compiled.saturating_add(1);
+                self.statistics.float_blocks_compiled =
+                    self.statistics.float_blocks_compiled.saturating_add(1);
+                self.statistics.persistent_hits = self
+                    .statistics
+                    .persistent_hits
+                    .saturating_add(u64::from(code.cache_hit));
+                self.statistics.persistent_writes = self
+                    .statistics
+                    .persistent_writes
+                    .saturating_add(code.cache_writes);
+                Some(code.function)
+            }
+            Err(_) => {
+                self.entries.get_mut(block)?[index] = Entry::Rejected;
+                self.statistics.failures = self.statistics.failures.saturating_add(1);
+                None
+            }
+        }
+    }
+    fn clear(&mut self) {
+        // Invalidate every dispatch path before releasing executable memory.
+        self.last = None;
         self.entries.clear();
-        // SAFETY: No pointer escapes and exclusive destruction cannot race calls.
+        // SAFETY: No pointer escapes; exclusive ownership excludes live calls.
         unsafe {
             self.compiler.clear();
         }
+    }
+}
+impl Drop for FloatBlockCache {
+    fn drop(&mut self) {
+        self.clear();
     }
 }

@@ -222,3 +222,130 @@ fn floating_block_guards_recheck_code_model_fpu_state_and_segment_permissions() 
     assert!(cpu.capture_context() != empty);
     assert!(cpu.capture_context() != before);
 }
+
+#[test]
+fn floating_hot_and_prefix_paths_match_after_reusing_every_stack_slot() {
+    // Repeat pushes/pops at every entry TOP, reusing each physical slot.
+    // Retain the original two operands and exercise reverse arithmetic.
+    let cycle = [
+        0xd9, 0xc0, // FLD ST(0)
+        0xd8, 0xc1, // FADD ST(0), ST(1)
+        0xd8, 0xe1, // FSUB ST(0), ST(1)
+        0xd9, 0xc9, // FXCH ST(1)
+        0xd8, 0xf9, // FDIVR ST(0), ST(1)
+        0xd8, 0xc9, // FMUL ST(0), ST(1)
+        0xd9, 0xc9, // FXCH ST(1)
+        0xdd, 0xd9, // FSTP ST(1)
+    ];
+    let mut program = cycle.repeat(4);
+    program.push(0xf4);
+    let (mut jit, mut memory) = machine(16, ExecutionEngine::Jit, &program);
+    let (mut reference, mut ram) = machine(16, ExecutionEngine::Interpreter, &program);
+    let initial = jit.x87.clone();
+    let registers = jit.regs.clone();
+    for pc in [0, 1, 2, 3] {
+        for rc in 0..4 {
+            jit.regs = registers.clone();
+            jit.x87 = initial.clone();
+            jit.x87.control_word = 0x7f | pc << 8 | rc << 10;
+            warm(&mut jit, &mut memory);
+            for top in 0..8 {
+                for masked in [true, false] {
+                    for budget in 1..=32 {
+                        jit.regs = registers.clone();
+                        jit.x87 = X87State::default();
+                        jit.x87.set_top(top);
+                        jit.x87.status_word |= 0xc700;
+                        jit.x87.control_word = 0x7f | pc << 8 | rc << 10;
+                        if !masked {
+                            jit.x87.control_word &= !32;
+                        }
+                        for i in 0..2 {
+                            jit.x87.write_st(
+                                i,
+                                Ext80 {
+                                    significand: (1 << 63) + 1 + u64::from(i),
+                                    sign_exponent: 0x3fff,
+                                },
+                            );
+                        }
+                        jit.pending_x87_irq13 = false;
+                        reference.regs = jit.regs.clone();
+                        reference.x87 = jit.x87.clone();
+                        reference.pending_x87_irq13 = false;
+                        reference.call_boundary_sequence = jit.call_boundary_sequence;
+                        let retired = run(&mut jit, &mut memory, budget).unwrap();
+                        if masked {
+                            assert_eq!(retired, budget);
+                        }
+                        interpret(&mut reference, &mut ram, retired);
+                        assert!(
+                            jit.capture_context() == reference.capture_context(),
+                            "pc={pc} rc={rc} top={top} masked={masked} budget={budget} retired={retired}\njit={:?}\nref={:?}",
+                            jit.x87,
+                            reference.x87
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn floating_facts_do_not_cross_calls_or_hide_zero_division_and_stack_overflow() {
+    let program = [
+        0xd8, 0xe0, // FSUB ST(0), ST(0): proves a supported zero
+        0xd9, 0xc0, // FLD ST(0): reuses the checked payload
+        0xd8, 0xf1, // FDIV ST(0), ST(1): zero / zero must leave JIT
+        0xf4,
+    ];
+    let (mut jit, mut memory) = machine(16, ExecutionEngine::Jit, &program);
+    let (mut reference, mut ram) = machine(16, ExecutionEngine::Interpreter, &program);
+    warm(&mut jit, &mut memory);
+    let original = jit.x87.clone();
+    let registers = jit.regs.clone();
+    for budget in [2, 3, 32] {
+        for case in 0..4 {
+            jit.regs = registers.clone();
+            jit.x87 = original.clone();
+            match case {
+                1 => jit.x87.empty_st(0),
+                2 => jit.x87.write_st(
+                    0,
+                    Ext80 {
+                        significand: 1,
+                        sign_exponent: 0,
+                    },
+                ),
+                3 => jit.x87.write_st(
+                    7,
+                    Ext80 {
+                        significand: 1 << 63,
+                        sign_exponent: 0x3fff,
+                    },
+                ), // Push would overflow.
+                _ => (),
+            }
+            reference.regs = jit.regs.clone();
+            reference.x87 = jit.x87.clone();
+            reference.call_boundary_sequence = jit.call_boundary_sequence;
+            let retired = run(&mut jit, &mut memory, budget).unwrap_or(0);
+            assert_eq!(
+                retired,
+                match case {
+                    0 => 2,
+                    3 => 1,
+                    _ => 0,
+                }
+            );
+            interpret(&mut reference, &mut ram, retired);
+            assert!(jit.capture_context() == reference.capture_context());
+            assert_eq!(
+                jit.step_with_context(&mut memory, &mut NoPorts, &RealModeSegments),
+                reference.step_with_context(&mut ram, &mut NoPorts, &RealModeSegments)
+            );
+            assert!(jit.capture_context() == reference.capture_context());
+        }
+    }
+}

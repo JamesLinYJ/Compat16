@@ -98,6 +98,15 @@ format, and it does not claim Prism's optimization coverage.
   the exact completed prefix. Unmasked PE commits its rounded result, records
   ES/B and exits before the next waiting instruction. Tags, TOP, C1, sticky
   status and saved instruction/data pointers retain their architectural roles.
+  A complete-budget path checks the precision mask once and removes repeated
+  budget/PE branches. A separate cold path retains exact short-budget and
+  unmasked-precision exits. Dominating operand and stack checks establish
+  per-path SSA facts, updated by slot writes/pops and discarded on return;
+  range checks and zero-divisor rejection remain at each arithmetic boundary.
+  Repeated blocks reuse an owned direct dispatch entry keyed by complete IR
+  and PC/RC, without rehashing the instruction vector. Immutable shared IR
+  also avoids vector allocations when switching blocks. Eviction clears this
+  entry before releasing executable memory; no code pointer leaves the cache.
   The CPU rechecks CR0 availability, pending exceptions, model, code bytes,
   segment permissions and event boundaries before every entry. RAM access uses
   fixed validated offsets into an exclusive 256-byte snapshot. The CPU currently
