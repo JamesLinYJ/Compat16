@@ -3,6 +3,7 @@ use super::*;
 use crate::x87_state::{Ext80, X87State};
 use guest_core::memory::Memory as OwnedMemory;
 mod memory;
+mod repeating;
 const CODE: u32 = 0x10000;
 const DATA: u32 = 0x50300;
 const REGISTERS: &[u8] = &[

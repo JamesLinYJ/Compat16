@@ -7,6 +7,7 @@ use crate::{
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(C)]
 pub struct Float80 {
     pub significand: u64,
     pub sign_exponent: u16,

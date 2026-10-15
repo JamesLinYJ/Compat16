@@ -4,7 +4,7 @@
 mod instructions;
 mod memory;
 mod state;
-use crate::{FloatBlock, floating::FloatPlan};
+use crate::{Float80, FloatBlock, FloatRegisters, floating::FloatPlan};
 use cranelift_codegen::ir::{InstBuilder, MemFlagsData, condcodes::IntCC, types};
 use cranelift_frontend::FunctionBuilder;
 use state::State;
@@ -14,21 +14,48 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, block: &FloatBlock, plan: FloatP
     let pointer = params[0];
     let memory = params[1];
     // Byte windows have alignment one; their constant RAM offsets may also
-    // be unaligned. Only BlockState loads/stores may assert aligned access.
+    // be unaligned. Only typed state fields may assert aligned access.
     let budget = params[2];
+    let live = block.input_register_mask();
+    let written = block.output_register_mask();
+    let zero = b.ins().iconst(types::I64, 0);
     let values = std::array::from_fn(|i| {
-        b.ins()
-            .load(types::I64, MemFlagsData::trusted(), pointer, (i * 8) as i32)
+        if live & (1 << (i / 2)) != 0 {
+            let (ty, offset) = if i % 2 == 0 {
+                (types::I64, std::mem::offset_of!(Float80, significand))
+            } else {
+                (types::I16, std::mem::offset_of!(Float80, sign_exponent))
+            };
+            let offset = std::mem::offset_of!(FloatRegisters, values)
+                + i / 2 * std::mem::size_of::<Float80>()
+                + offset;
+            let value = b
+                .ins()
+                .load(ty, MemFlagsData::trusted(), pointer, offset as i32);
+            if ty == types::I16 {
+                b.ins().uextend(types::I64, value)
+            } else {
+                value
+            }
+        } else {
+            zero
+        }
     });
+    let status_offset = std::mem::offset_of!(FloatRegisters, status) as i32;
+    let tags_offset = std::mem::offset_of!(FloatRegisters, tags) as i32;
+    let control_offset = std::mem::offset_of!(FloatRegisters, control) as i32;
     let status = b
         .ins()
-        .load(types::I64, MemFlagsData::trusted(), pointer, 128);
+        .load(types::I16, MemFlagsData::trusted(), pointer, status_offset);
+    let status = b.ins().uextend(types::I64, status);
     let tags = b
         .ins()
-        .load(types::I64, MemFlagsData::trusted(), pointer, 136);
+        .load(types::I16, MemFlagsData::trusted(), pointer, tags_offset);
+    let tags = b.ins().uextend(types::I64, tags);
     let control = b
         .ins()
-        .load(types::I64, MemFlagsData::trusted(), pointer, 144);
+        .load(types::I16, MemFlagsData::trusted(), pointer, control_offset);
+    let control = b.ins().uextend(types::I64, control);
     let origin = b.ins().ushr_imm_u(status, 11);
     let state = State {
         values,
@@ -38,10 +65,12 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, block: &FloatBlock, plan: FloatP
         top: 0,
         occupied: [None; 8],
         supported: [false; 8],
+        written,
     };
     let exit = b.create_block();
     b.set_cold_block(exit);
-    for _ in 0..18 {
+    let payload_words = written.count_ones() as usize * 2;
+    for _ in 0..payload_words + 2 {
         b.append_block_param(exit, types::I64);
     }
     b.append_block_param(exit, types::I32);
@@ -76,10 +105,38 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, block: &FloatBlock, plan: FloatP
     instructions::emit(b, block, plan, state, memory, budget, control, exit, false);
     b.switch_to_block(exit);
     let output = b.block_params(exit).to_vec();
-    for (i, value) in output[..18].iter().enumerate() {
-        b.ins()
-            .store(MemFlagsData::trusted(), *value, pointer, (i * 8) as i32);
+    // Unwritten payloads retain their original bytes in FloatRegisters. Keeping
+    // them out of the shared exit also removes their liveness at every guard.
+    let mut word = 0;
+    for slot in 0..8 {
+        if written & (1 << slot) == 0 {
+            continue;
+        }
+        for half in 0..2 {
+            let (value, offset) = if half == 0 {
+                (output[word], std::mem::offset_of!(Float80, significand))
+            } else {
+                (
+                    b.ins().ireduce(types::I16, output[word]),
+                    std::mem::offset_of!(Float80, sign_exponent),
+                )
+            };
+            let offset = std::mem::offset_of!(FloatRegisters, values)
+                + slot * std::mem::size_of::<Float80>()
+                + offset;
+            b.ins()
+                .store(MemFlagsData::trusted(), value, pointer, offset as i32);
+            word += 1;
+        }
     }
-    b.ins().return_(&[output[18]]);
+    for (value, offset) in [
+        (output[word], status_offset),
+        (output[word + 1], tags_offset),
+    ] {
+        let value = b.ins().ireduce(types::I16, value);
+        b.ins()
+            .store(MemFlagsData::trusted(), value, pointer, offset);
+    }
+    b.ins().return_(&[output[word + 2]]);
     b.seal_all_blocks();
 }

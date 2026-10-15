@@ -14,8 +14,8 @@ mod float_lowering;
 mod float_tests;
 mod floating;
 pub use float_blocks::{
-    FloatBlock, FloatBlockCache, FloatInstruction, FloatMemoryFormat, FloatRegisters,
-    MAX_FLOAT_BLOCK_INSTRUCTIONS,
+    FloatBlock, FloatBlockCache, FloatInstruction, FloatLoop, FloatLoopOutcome, FloatLoopPosition,
+    FloatMemoryFormat, FloatRegisters, MAX_FLOAT_BLOCK_INSTRUCTIONS,
 };
 pub use floating::{Float80, FloatCache, FloatOperation, FloatResult};
 mod ir;

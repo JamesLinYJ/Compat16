@@ -12,6 +12,7 @@ pub(super) struct State {
     pub top: usize,
     pub occupied: [Option<bool>; 8],
     pub supported: [bool; 8],
+    pub written: u8,
 }
 impl State {
     pub fn arguments(&self, b: &mut FunctionBuilder<'_>, retired: usize) -> Vec<BlockArg> {
@@ -23,6 +24,9 @@ impl State {
         let count = b.ins().iconst(types::I32, retired as i64);
         self.values
             .iter()
+            .enumerate()
+            .filter(|(word, _)| self.written & (1 << (word / 2)) != 0)
+            .map(|(_, value)| value)
             .copied()
             .chain([status, self.tags, count])
             .map(Into::into)
@@ -101,6 +105,7 @@ impl State {
     /// Every caller has checked the new payload's class (or constructs an
     /// exact constant). Range failures must branch out before this write.
     pub fn write(&mut self, b: &mut FunctionBuilder<'_>, slot: usize, sig: Value, field: Value) {
+        debug_assert_ne!(self.written & (1 << slot), 0);
         self.values[slot * 2] = sig;
         self.values[slot * 2 + 1] = field;
         let exp = b.ins().band_imm_u(field, 0x7fff);

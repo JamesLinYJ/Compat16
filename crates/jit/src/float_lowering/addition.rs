@@ -32,13 +32,24 @@ pub(super) fn emit(
     let distance = b.ins().isub(exponent, small_exp);
     let zero = b.ins().iconst(types::I64, 0);
     let below64 = b.ins().icmp_imm_s(IntCC::UnsignedLessThan, distance, 64);
-    let below128 = b.ins().icmp_imm_s(IntCC::UnsignedLessThan, distance, 128);
+    let near = b.create_block();
+    let far = b.create_block();
+    b.set_cold_block(far);
+    let aligned = b.create_block();
+    b.append_block_param(aligned, types::I64);
+    b.append_block_param(aligned, types::I64);
+    b.ins().brif(below64, near, &[], far, &[]);
+    b.switch_to_block(near);
+    // The usual exponent gap needs only two shifts. Do not calculate the
+    // far-tail jam and its sticky-bit recovery on this path.
     let same = b.ins().icmp_imm_s(IntCC::Equal, distance, 0);
     let negative_distance = b.ins().ineg(distance);
     let high = b.ins().ushr(small, distance);
-    let high = b.ins().select(below64, high, zero);
     let low_near = b.ins().ishl(small, negative_distance);
     let low_near = b.ins().select(same, zero, low_near);
+    b.ins().jump(aligned, &[high.into(), low_near.into()]);
+    b.switch_to_block(far);
+    let below128 = b.ins().icmp_imm_s(IntCC::UnsignedLessThan, distance, 128);
     // Shift counts in CLIF are modulo the word width. For distances >=64
     // distance mod64 is exactly the second word's shift count.
     let low_far = b.ins().ushr(small, distance);
@@ -49,7 +60,10 @@ pub(super) fn emit(
     let sticky = b.ins().icmp_imm_s(IntCC::NotEqual, small, 0);
     let sticky = b.ins().uextend(types::I64, sticky);
     let low_far = b.ins().select(below128, low_far, sticky);
-    let low = b.ins().select(below64, low_near, low_far);
+    b.ins().jump(aligned, &[zero.into(), low_far.into()]);
+    b.switch_to_block(aligned);
+    let operands = b.block_params(aligned);
+    let (high, low) = (operands[0], operands[1]);
     // Only one sign path can contribute to this result. In particular the
     // same-sign hot path needs no cancellation CLZ/variable shifts.
     let sum_path = b.create_block();

@@ -1,11 +1,12 @@
 //! Decode/certify linear floating blocks. All x87 architectural and guest
 //! memory authority stays here; compat16-jit receives only raw owned state.
+mod repeating;
 use super::mapping;
 use crate::{
     Cpu, CpuError, CpuModel, SegmentAccess, SegmentResolver,
     registers::{SegmentRegister, read_segment},
     x86_decode::{self, NormalizedInstruction, Operand},
-    x87_state::{Ext80, X87Tag},
+    x87_state::Ext80,
 };
 use compat16_jit::{
     FloatBlock, FloatBlockCache, FloatInstruction as I, FloatMemoryFormat, FloatOperation as O,
@@ -24,6 +25,7 @@ pub(super) struct Block {
     sites: Vec<Site>,
     next: u32,
     window: Option<(SegmentRegister, u32, bool)>,
+    tail: Option<repeating::Tail>,
 }
 impl Block {
     pub fn decode(
@@ -183,12 +185,23 @@ impl Block {
             cursor += decoded.instruction.len();
         }
         let ir = FloatBlock::new(instructions)?;
+        let next = ip + cursor as u32;
+        let tail = repeating::Tail::decode(bytes, ip, cursor, bits, protected, model, &ir).map(
+            |(tail, used)| {
+                cursor = used;
+                tail
+            },
+        );
+        if ir.len() == 1 && tail.is_none() {
+            return None;
+        }
         Some((
             Self {
                 ir,
                 sites,
-                next: ip + cursor as u32,
+                next,
                 window,
+                tail,
             },
             cursor,
         ))
@@ -208,9 +221,10 @@ impl Cpu {
         {
             return Ok(None);
         }
-        let mut bytes = [0u8; 256];
+        let mut bytes = None;
         let mut target = None;
         if let Some((segment, start, writes)) = block.window {
+            let mut window = [0u8; 256];
             if self.system.architectural_context_initialized
                 && self.system.cpl == 3
                 && self.system.cr0 & crate::system::CR0_AM != 0
@@ -240,65 +254,122 @@ impl Cpu {
             {
                 return Ok(None);
             }
-            if !memory.read_plain_data(address, &mut bytes, writes)? {
+            if !memory.read_plain_data(address, &mut window, writes)? {
                 return Ok(None);
             }
             target = Some((address, writes));
+            bytes = Some(window);
         }
-        let original = bytes;
+        let original = if target.is_some_and(|(_, writes)| writes) {
+            bytes
+        } else {
+            None
+        };
         let top = self.x87.top();
-        let values = std::array::from_fn(|i| {
+        let mut values = [compat16_jit::Float80 {
+            significand: 0,
+            sign_exponent: 0,
+        }; 8];
+        let mut inputs = block.ir.input_register_mask();
+        while inputs != 0 {
+            let i = inputs.trailing_zeros() as usize;
+            inputs &= inputs - 1;
             let v = self.x87.registers[(usize::from(top) + i) & 7];
-            compat16_jit::Float80 {
+            values[i] = compat16_jit::Float80 {
                 significand: v.significand,
                 sign_exponent: v.sign_exponent,
-            }
-        });
-        let tags = (0..8).fold(0u16, |word, i| {
-            word | ((self.x87.tag((usize::from(top) + i) & 7) as u16) << (i * 2))
-        });
+            };
+        }
+        let rotation = u32::from(top) * 2;
+        let tags = self.x87.tag_word.rotate_right(rotation);
         let mut state = FloatRegisters {
             values,
             status: self.x87.status_word,
             tags,
             control: self.x87.control_word,
         };
-        let Some(retired) = self
-            .jit
-            .loops
-            .float_blocks
-            .execute(&block.ir, &mut state, &mut bytes, budget)
-        else {
-            return Ok(None);
+        let mut integers = super::loops::state(self);
+        let loops = &mut self.jit.loops;
+        let (retired, last_float, last_memory, ip) = if let Some(tail) = &block.tail {
+            let per = tail.plan.instructions_per_iteration();
+            let budget = if budget == 256 {
+                budget / per * per
+            } else {
+                budget
+            };
+            let Some(output) = loops.float_blocks.execute_loop(
+                &tail.plan,
+                &mut state,
+                &mut integers,
+                &mut loops.cache,
+                bytes.as_mut(),
+                budget,
+            ) else {
+                return Ok(None);
+            };
+            let ip = match output.position {
+                compat16_jit::FloatLoopPosition::Floating(index) => {
+                    block.sites[usize::from(index)].ip
+                }
+                compat16_jit::FloatLoopPosition::IntegerTail => tail.start,
+                compat16_jit::FloatLoopPosition::Finished => tail.next,
+            };
+            (
+                output.retired,
+                usize::from(output.last_float),
+                output.last_memory.map(usize::from),
+                ip,
+            )
+        } else {
+            let retired = match bytes.as_mut() {
+                Some(bytes) => loops
+                    .float_blocks
+                    .execute(&block.ir, &mut state, bytes, budget),
+                None => loops
+                    .float_blocks
+                    .execute_registers(&block.ir, &mut state, budget),
+            };
+            let Some(retired) = retired else {
+                return Ok(None);
+            };
+            if retired == 0 {
+                return Ok(None);
+            }
+            let last_memory = block.sites[..retired as usize]
+                .iter()
+                .rposition(|s| s.data.is_some());
+            let ip = block
+                .sites
+                .get(retired as usize)
+                .map_or(block.next, |s| s.ip);
+            (retired, retired as usize - 1, last_memory, ip)
         };
         if retired == 0 {
             return Ok(None);
         }
-        if let Some((address, true)) = target
-            && original != bytes
+        if let (Some((address, true)), Some(bytes)) = (target, bytes.as_ref())
+            && original.as_ref() != Some(bytes)
         {
-            memory.write(address, &bytes)?;
+            memory.write(address, bytes)?;
         }
-        for i in 0..8 {
+        let mut outputs = block.ir.output_register_mask();
+        while outputs != 0 {
+            let i = outputs.trailing_zeros() as usize;
+            outputs &= outputs - 1;
             let physical = (usize::from(top) + i) & 7;
             let v = state.values[i];
             self.x87.registers[physical] = Ext80 {
                 significand: v.significand,
                 sign_exponent: v.sign_exponent,
             };
-            self.x87
-                .set_tag(physical, X87Tag::from_bits(state.tags >> (i * 2)));
         }
+        self.x87.tag_word = state.tags.rotate_left(rotation);
         self.x87.status_word = state.status;
-        let last = block.sites[retired as usize - 1];
+        let last = block.sites[last_float];
         self.x87.instruction_pointer = last.ip;
         self.x87.instruction_segment = self.regs.cs;
         self.x87.opcode = last.opcode;
-        if let Some(offset) = block.sites[..retired as usize]
-            .iter()
-            .rev()
-            .find_map(|s| s.data)
-        {
+        if let Some(offset) = last_memory.and_then(|index| block.sites[index].data) {
             let (segment, _, _) = block.window.expect("data site has window");
             self.x87.data_pointer = offset;
             self.x87.data_segment = read_segment(&self.regs, segment);
@@ -309,11 +380,6 @@ impl Cpu {
         {
             self.pending_x87_irq13 = true;
         }
-        let ip = block
-            .sites
-            .get(retired as usize)
-            .map_or(block.next, |s| s.ip);
-        let integers = super::loops::state(self);
         self.apply_loop(integers, retired, ip);
         Ok(Some(retired))
     }

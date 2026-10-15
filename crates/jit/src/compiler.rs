@@ -15,7 +15,7 @@ pub(crate) type Function = unsafe extern "C" fn(*mut IntegerState, *mut IntegerS
 pub(crate) type MemoryFunction =
     unsafe extern "C" fn(*mut IntegerState, *mut u8, u32, u32, u32) -> u64;
 pub(crate) type FloatBlockFunction =
-    unsafe extern "C" fn(*mut crate::float_blocks::BlockState, *mut u8, u32) -> u32;
+    unsafe extern "C" fn(*mut crate::FloatRegisters, *mut u8, u32) -> u32;
 pub(crate) enum FloatCompilation<'a> {
     Scalar(crate::floating::FloatPlan),
     Block(&'a crate::FloatBlock, crate::floating::FloatPlan),
