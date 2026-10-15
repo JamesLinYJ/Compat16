@@ -291,6 +291,10 @@ fn run() -> Result<u8, RuntimeError> {
             stats.memory_window_exits, stats.loop_dispatch_hits);
         eprintln!("JIT memory loops: compiled={} executed={} instructions={}",
             stats.memory_loops_compiled, stats.memory_loops_executed, stats.memory_instructions);
+        eprintln!("JIT linked regions: compiled={} executed={} instructions={} direct_links={}",
+            stats.regions_compiled, stats.regions_executed, stats.region_instructions, stats.direct_links);
+        eprintln!("JIT x87: compiled={} executed={} range_fallbacks={}",
+            stats.float_compiled, stats.float_executed, stats.float_fallbacks);
     }
     host.finish_output().map_err(|e| RuntimeError::with_source(Kind::HostFailure, "incomplete console output", e))?;
     Ok(result)

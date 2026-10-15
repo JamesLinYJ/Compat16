@@ -5,13 +5,26 @@
 
 mod artifact;
 mod compiler;
+mod float_lowering;
+#[cfg(test)]
+mod float_tests;
+mod floating;
+pub use floating::{Float80, FloatCache, FloatResult};
 mod ir;
 mod loops;
 mod memory;
 mod memory_lowering;
+mod region_lowering;
+#[cfg(test)]
+mod region_tests;
+mod regions;
 pub use memory::{
     Address, BlockInstruction, MemoryInstruction, MemoryLoop, MemoryLoopCache, MemoryOutcome,
     MemoryWindow, ValueOperand,
+};
+pub use regions::{
+    MAX_REGION_BLOCKS, MAX_REGION_INSTRUCTIONS, Region, RegionBlock, RegionBranch, RegionCache,
+    RegionOutcome, RegionPosition, RegionTarget,
 };
 mod lowering;
 pub use loops::{IntegerLoop, LoopCache, LoopOutcome};
@@ -33,6 +46,13 @@ const MAX_ENTRIES: usize = 1024;
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Statistics {
+    pub float_compiled: u64,
+    pub float_executed: u64,
+    pub float_fallbacks: u64,
+    pub regions_compiled: u64,
+    pub regions_executed: u64,
+    pub region_instructions: u64,
+    pub direct_links: u64,
     pub branches_taken: u64,
     pub branches_fallthrough: u64,
     pub budget_exits: u64,
@@ -59,6 +79,15 @@ pub struct Statistics {
 impl Statistics {
     pub fn combined(self, other: Self) -> Self {
         Self {
+            float_compiled: self.float_compiled.saturating_add(other.float_compiled),
+            float_executed: self.float_executed.saturating_add(other.float_executed),
+            float_fallbacks: self.float_fallbacks.saturating_add(other.float_fallbacks),
+            regions_compiled: self.regions_compiled.saturating_add(other.regions_compiled),
+            regions_executed: self.regions_executed.saturating_add(other.regions_executed),
+            region_instructions: self
+                .region_instructions
+                .saturating_add(other.region_instructions),
+            direct_links: self.direct_links.saturating_add(other.direct_links),
             branches_taken: self.branches_taken.saturating_add(other.branches_taken),
             branches_fallthrough: self
                 .branches_fallthrough

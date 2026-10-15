@@ -1,8 +1,8 @@
-# Integer JIT
+# JIT
 
 Windows ARM64 and AMD64 hosts translate frequently executed integer
 x86 instructions with Cranelift 0.136.2. The translator is connected to the
-ordinary CPU step. The CPU
+ordinary CPU step and bounded scheduler quanta. The CPU
 crate keeps `forbid(unsafe_code)`; the generated-code call is owned by this
 crate behind a pointer-free, constructor-checked integer IR.
 
@@ -63,8 +63,35 @@ format, and it does not claim Prism's optimization coverage.
   alignment-checking CPL3 execution and uncertified providers retain the checked
   path. A partial backing-store write is terminal and is never replayed.
   Each memory instruction preserves full flags for precise prefix exits.
+- `Region` / `RegionCache` links up to sixteen integer basic blocks and 64
+  guest instructions into one compiled control-flow graph. Conditional,
+  unconditional and sequential edges use direct compiled branches with SSA
+  state; there is no CPU callback, guest fetch or interpreter dispatch between
+  them. A full-block budget guard permits dead intermediate flag elimination.
+  Cold prefix paths materialize complete flags at every instruction boundary.
+  Every cycle spends budget, including branch-only blocks. Entry can resume
+  any instruction after a budget exit, so partial quanta need no interpreter
+  step. The CPU revalidates the complete original code span, model and segment
+  permissions before each entry, including resumes and remapped successors.
+  Discovery is restricted to a certified, nonwrapping span of at most 255
+  bytes. Overlapping instruction streams and unguarded near targets remain
+  interpreter work; an invalid target never retires its branch early.
+  Observed guest successors guide conditional edge order. Linking currently
+  covers register integer blocks; memory and x87 operations exit the region
+  precisely and retain their existing checked execution paths.
+- `FloatCache` compiles normal x87 multiplication using an exact 64-by-64-bit
+  integer product. Host multiply-low/multiply-high instructions retain all
+  128 product bits; explicit rounding produces an 80-bit result with 24/53/64
+  significant-bit precision, four rounding modes, PE and C1. It never substitutes
+  host `f64` for x87 arithmetic or changes the host FP environment. Normal
+  results avoid the APFloat arithmetic call; zero, subnormal, NaN, infinity,
+  unsupported encodings and overflow/underflow continue through that existing
+  implementation. Stack reads/pops, checked memory source conversion, saved
+  pointers, CR0 availability, pending exceptions and retirement stay in the CPU
+  x87 executor. This also covers FMULP and FIMUL through the shared multiply
+  boundary. No x87 instruction boundary is coalesced by this fast path.
 - Generated code addresses only exclusive nine-word integer states, bounded
-  owned checkpoint buffers and checked owned RAM windows. Guest register
+  owned checkpoint buffers, six-word floating arithmetic buffers and checked owned RAM windows. Guest register
   values cannot become host pointers. AL/AH and 16-bit writes retain
   unaffected register bits. Arithmetic computes CF/PF/AF/ZF/SF/OF; INC/DEC
   retain CF, and logical operations retain the interpreter's undefined AF.
@@ -76,7 +103,8 @@ format, and it does not claim Prism's optimization coverage.
   operands, preserving single device reads on interpreter fallback. Read/modify/
   write operations reuse the same prepared access, and flags commit only after
   a successful write. LOCK operations, memory XCHG, system instructions, control
-  transfers other than eligible loop backedges, strings, I/O and x87 continue
+  transfers other than eligible linked branches/backedges, strings, I/O and
+  remaining x87 arithmetic continue
   through the checked interpreter.
 - Single instructions become eligible on their 32nd execution; learned blocks
   become eligible on their second dispatch. At most 1,024 code entries and
@@ -86,9 +114,13 @@ format, and it does not claim Prism's optimization coverage.
   Compiled loops become eligible after eight cache dispatches and have their
   own bounded 1,024-entry cache. Loop and checkpoint signatures have distinct
   compiler keys and share the same authenticated persistence contract.
+  Linked regions use a separate 256-entry cache and become eligible after
+  eight dispatches. Floating multiplication has twelve precision/rounding
+  variants, each becoming eligible after 32 calls. They use the same compiler
+  relocation, private code ownership and authenticated persistence contracts.
 - Cranelift publishes writable code as executable and synchronizes the native
-  instruction cache. Compilation/publication failure disables JIT execution
-  for this cache while leaving interpretation available. No executable pointer
+  instruction cache. Compilation/publication failure leaves interpretation
+  available. No executable pointer
   is shared across code owners or processes.
 
 ## Host branch behavior
@@ -106,9 +138,11 @@ integer state, which is large enough even when the caller supplies a one-byte
 window. This retains the architectural exit and prevents branch speculation
 from supplying an unchecked memory-window address.
 
-`--jit-stats` reports taken/fallthrough guest loop branches, budget and RAM-window
-exits, and direct loop-dispatch hits. Outcomes are reconstructed once per
-quantum, without counter updates inside the generated loop. These are software
+`--jit-stats` reports taken/fallthrough guest branches, budget and RAM-window
+exits, direct loop-dispatch hits, linked-region instructions/direct links and x87
+multiply executions/range fallbacks. Loop outcomes are reconstructed once per
+quantum. Regions accumulate bounded software edge counts in SSA values and
+publish them once at exit. These are software
 execution counts, not hardware misprediction or performance-counter readings.
 Actual workload measurements decide whether a layout/dispatch change is useful.
 
@@ -150,7 +184,8 @@ speedup are separate evidence. Generated-code call counts include block heads;
 checkpoint hits count later instructions applied without another generated-code call.
 The ordinary step retains per-instruction validation. The opt-in loop path
 validates code once per bounded quantum. Paging, multiple data segments in
-one loop, general control flow, x87 and I/O compilation remain unsupported. Throughput measurements must identify their
+one RAM loop, indirect/far control transfers, most x87 arithmetic and I/O
+compilation remain unsupported. Throughput measurements must identify their
 host architecture; AMD64 execution under ARM64 Windows emulation is not native
 AMD64 performance evidence.
 

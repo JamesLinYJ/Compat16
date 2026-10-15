@@ -419,7 +419,7 @@ impl Cpu {
             let had_pending_exception = state.pending_unmasked_exceptions() != 0;
             let exception_flags_before = state.status_word & crate::x87_state::X87_EXCEPTION_FLAGS;
             let instruction = x86_decode::NormalizedInstruction::new(decoded);
-            match x87::execute(&mut regs, &mut bus, &mut state, &instruction) {
+            match x87::execute(&mut regs, &mut bus, &mut state, &instruction, &mut self.jit) {
                 Ok(true) => {}
                 Ok(false) => {
                     return Err(CpuError::UnsupportedOpcode {

@@ -3,6 +3,8 @@
 
 use super::*;
 mod protected_memory;
+mod linked;
+mod floating;
 use crate::ExecutionEngine;
 use crate::SegmentResolver;
 use crate::execution_boundary::{ExecutionBoundaryReport, ExecutionProgress};

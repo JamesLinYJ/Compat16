@@ -1,12 +1,12 @@
 //! Checked 16/32-bit register and RAM loops. Cpu::step remains one instruction.
-use super::{ExecutionEngine, mapping, translation};
+use super::{ExecutionEngine, mapping, regions, translation};
 use crate::{
     Cpu, CpuError, CpuExecutionMode, CpuModel, RealModeSegments, SegmentAccess, SegmentResolver,
     registers::SegmentRegister, x86_decode,
 };
 use compat16_jit::{
     Address, BlockInstruction, Condition, IntegerLoop, IntegerState, LoopCache, MemoryInstruction,
-    MemoryLoop, MemoryLoopCache, MemoryWindow, Register, ValueOperand,
+    MemoryLoop, MemoryLoopCache, MemoryWindow, RegionCache, RegionPosition, Register, ValueOperand,
 };
 use guest_core::{GuestMemory, PhysAddr};
 use std::{collections::HashMap, sync::Arc};
@@ -16,7 +16,10 @@ use x86_decoder::{Mnemonic, OpKind};
 pub(super) struct Loops {
     pub cache: LoopCache,
     pub memory: MemoryLoopCache,
+    pub regions: RegionCache,
+    pub profile: regions::Profile,
     probes: HashMap<u64, Probe>,
+    resume: Option<(u16, Arc<Plan>, RegionPosition)>,
 }
 #[derive(Default)]
 struct Probe {
@@ -24,6 +27,7 @@ struct Probe {
     plan: Option<Arc<Plan>>,
 }
 enum Body {
+    Linked(regions::Linked),
     Registers(IntegerLoop),
     Memory {
         ir: MemoryLoop,
@@ -31,6 +35,7 @@ enum Body {
     },
 }
 struct Plan {
+    start: u32,
     bytes: Vec<u8>,
     body: Body,
     sites: Vec<u32>,
@@ -43,6 +48,7 @@ struct Ready {
     address: PhysAddr,
     budget: u32,
     ip: u32,
+    entry: RegionPosition,
 }
 impl Loops {
     fn plan(
@@ -55,6 +61,7 @@ impl Loops {
         protected_ip: bool,
         memory: &impl GuestMemory,
         model: CpuModel,
+        cs: u16,
     ) -> Result<Option<Arc<Plan>>, CpuError> {
         if self.probes.len() == 1024 && !self.probes.contains_key(&key) {
             self.probes.clear();
@@ -104,6 +111,28 @@ impl Loops {
         let mut instructions = Vec::new();
         let mut sites = Vec::new();
         let mut memory_segment = None;
+        // Keep single self-loops on their smaller specialized compiler.
+        // Other graphs become one independently owned linked function.
+        let linked = |profile: &regions::Profile| -> Option<Arc<Plan>> {
+            let (body, used) = regions::Linked::decode(
+                &bytes[..length],
+                ip,
+                bits,
+                protected_ip,
+                model,
+                profile,
+                cs,
+            )?;
+            Some(Arc::new(Plan {
+                start: ip,
+                bytes: bytes[..used].to_vec(),
+                body: Body::Linked(body),
+                sites: Vec::new(),
+                model,
+                bits,
+                protected_ip,
+            }))
+        };
         for _ in 0..=compat16_jit::MAX_BLOCK_INSTRUCTIONS {
             let Some(decoded) = x86_decode::decode_plain(
                 &bytes[cursor..length],
@@ -129,7 +158,16 @@ impl Loops {
                     OpKind::NearBranch16 | OpKind::NearBranch32
                 ) || branch.near_branch_target() != u64::from(ip)
                 {
-                    return Ok(None);
+                    let target = branch.near_branch_target();
+                    if target < u64::from(ip) || target >= u64::from(ip) + length as u64 {
+                        // The region builder cannot retire an unguarded near
+                        // target. Avoid graph allocation for that same known
+                        // barrier on every probe of an x87 or device loop.
+                        return Ok(None);
+                    }
+                    let plan = linked(&self.profile);
+                    probe.plan = plan.clone();
+                    return Ok(plan);
                 }
                 let body = if let Some(segment) = memory_segment {
                     let Some(ir) = MemoryLoop::new(instructions, condition) else {
@@ -151,6 +189,7 @@ impl Loops {
                 };
                 sites.push(decoded.next_ip);
                 let plan = Arc::new(Plan {
+                    start: ip,
                     bytes: bytes[..cursor].to_vec(),
                     body,
                     sites,
@@ -170,10 +209,14 @@ impl Loops {
                 memory_segment = Some(segment);
                 instructions.push(BlockInstruction::Memory(ir));
             } else {
+                // No branch has been reached yet, so an unsupported operation
+                // leaves no alternate reachable block to discover or link.
                 return Ok(None);
             }
         }
-        Ok(None)
+        let plan = linked(&self.profile);
+        probe.plan = plan.clone();
+        Ok(plan)
     }
 }
 fn address_register(register: x86_decoder::Register, bits: u8) -> Option<Register> {
@@ -234,7 +277,7 @@ fn translate_memory(
         segment?,
     ))
 }
-fn branch_condition(mnemonic: Mnemonic) -> Option<Condition> {
+pub(super) fn branch_condition(mnemonic: Mnemonic) -> Option<Condition> {
     use Condition::*;
     Some(match mnemonic {
         Mnemonic::Jo => Overflow,
@@ -279,7 +322,7 @@ impl Cpu {
         max: u32,
     ) -> Result<Option<Ready>, CpuError> {
         if self.jit.engine != ExecutionEngine::Jit
-            || max < 2
+            || max == 0
             || self.system.cr0 & crate::system::CR0_PG != 0
             || self.regs.eflags & ((1 << 8) | (1 << 16) | (1 << 17)) != 0
             || self.system.debug.control & 0xff != 0
@@ -300,7 +343,7 @@ impl Cpu {
             return Ok(None);
         }
         let budget = u64::from(max.min(256)).min(u64::MAX - self.call_boundary_sequence) as u32;
-        if budget < 2 {
+        if budget == 0 {
             return Ok(None);
         }
         let architectural = self.system.architectural_context_initialized;
@@ -319,6 +362,36 @@ impl Cpu {
         } else {
             self.regs.eip
         };
+        if let Some((cs, plan, entry)) = self.jit.loops.resume.take()
+            && cs == self.regs.cs
+            && plan.model == self.model
+            && plan.bits == bits
+            && plan.protected_ip == protected_ip
+            && matches!(&plan.body, Body::Linked(body) if body.site(entry) == Some(ip))
+        {
+            let address = mapping::range(
+                self,
+                resolver,
+                SegmentRegister::Cs,
+                plan.start,
+                plan.bytes.len(),
+                SegmentAccess::Execute,
+            );
+            if let Some(address) = address {
+                let mut actual = [0u8; 255];
+                if memory.read_plain_code(address, &mut actual[..plan.bytes.len()])?
+                    && actual[..plan.bytes.len()] == plan.bytes
+                {
+                    return Ok(Some(Ready {
+                        plan,
+                        address,
+                        budget,
+                        ip,
+                        entry,
+                    }));
+                }
+            }
+        }
         let remaining = if bits == 16 && !protected_ip {
             0x10000 - u64::from(ip)
         } else {
@@ -339,6 +412,7 @@ impl Cpu {
             protected_ip,
             memory,
             self.model,
+            self.regs.cs,
         )?
         else {
             return Ok(None);
@@ -348,11 +422,16 @@ impl Cpu {
             address,
             budget,
             ip,
+            entry: RegionPosition::Block {
+                block: 0,
+                instruction: 0,
+            },
         }))
     }
     fn apply_loop(&mut self, state: IntegerState, retired: u32, ip: u32) {
         self.jit.cache.barrier();
         self.jit.current = None;
+        self.jit.loops.profile.barrier();
         [
             self.regs.eax,
             self.regs.ecx,
@@ -370,6 +449,23 @@ impl Cpu {
         self.invalidate_control_transfer_provenance();
     }
     fn execute_register_loop(&mut self, ready: &Ready) -> Option<u32> {
+        if let Body::Linked(body) = &ready.plan.body {
+            let mut output = state(self);
+            let result =
+                self.jit
+                    .loops
+                    .regions
+                    .execute(&body.ir, &mut output, ready.entry, ready.budget)?;
+            if result.retired == 0 {
+                return None;
+            }
+            let ip = body.site(result.next)?;
+            self.apply_loop(output, result.retired, ip);
+            if matches!(result.next, RegionPosition::Block { .. }) {
+                self.jit.loops.resume = Some((self.regs.cs, ready.plan.clone(), result.next));
+            }
+            return Some(result.retired);
+        }
         let Body::Registers(ir) = &ready.plan.body else {
             return None;
         };
@@ -414,6 +510,11 @@ impl Cpu {
         let Body::Memory { ir, segment } = &ready.plan.body else {
             return Ok(self.execute_register_loop(&ready));
         };
+        // Preserve the existing memory-loop single-step fallback. Exact
+        // one-instruction resumption is specific to linked integer regions.
+        if ready.budget < 2 {
+            return Ok(None);
+        }
         // No alignment fault may be hidden by the RAM snapshot. Legacy
         // selector projections retain their existing unknown-CPL contract.
         if self.system.architectural_context_initialized

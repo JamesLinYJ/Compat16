@@ -29,6 +29,7 @@ pub(crate) fn execute(
     bus: &mut impl CpuBus,
     state: &mut X87State,
     instruction: &NormalizedInstruction,
+    jit: &mut crate::jit::IntegerTranslator,
 ) -> Result<bool, CpuError> {
     let mnemonic = instruction.mnemonic;
     if instruction.decoded.x87_opcode.is_none() && mnemonic != Mnemonic::Wait {
@@ -61,7 +62,7 @@ pub(crate) fn execute(
         Mnemonic::Fcmovb | Mnemonic::Fcmovbe | Mnemonic::Fcmove | Mnemonic::Fcmovnb | Mnemonic::Fcmovnbe | Mnemonic::Fcmovne | Mnemonic::Fcmovnu | Mnemonic::Fcmovu |
         Mnemonic::Fsqrt | Mnemonic::Frndint | Mnemonic::Fscale | Mnemonic::Fxtract |
         Mnemonic::Fabs | Mnemonic::Fchs | Mnemonic::Ftst | Mnemonic::Fxam => {
-            arithmetic::execute(regs, bus, state, instruction)?
+            arithmetic::execute(regs, bus, state, instruction, jit)?
         }
         Mnemonic::Fld | Mnemonic::Fst | Mnemonic::Fstp | Mnemonic::Fild | Mnemonic::Fist | Mnemonic::Fistp | Mnemonic::Fisttp |
         Mnemonic::Fbld | Mnemonic::Fbstp | Mnemonic::Fld1 | Mnemonic::Fldl2t | Mnemonic::Fldl2e | Mnemonic::Fldpi |

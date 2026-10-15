@@ -7,6 +7,8 @@
 mod loops;
 #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
 mod mapping;
+#[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+mod regions;
 
 use crate::x86_decode::DecodedInstruction;
 use guest_core::Registers;
@@ -18,6 +20,13 @@ pub enum ExecutionEngine {
 }
 #[derive(Clone, Copy, Debug, Default)]
 pub struct JitStatistics {
+    pub float_compiled: u64,
+    pub float_executed: u64,
+    pub float_fallbacks: u64,
+    pub regions_compiled: u64,
+    pub regions_executed: u64,
+    pub region_instructions: u64,
+    pub direct_links: u64,
     pub branches_taken: u64,
     pub branches_fallthrough: u64,
     pub budget_exits: u64,
@@ -50,6 +59,8 @@ pub(super) struct IntegerTranslator {
     current: Option<compat16_jit::Instruction>,
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
     loops: loops::Loops,
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    floating: compat16_jit::FloatCache,
 }
 impl Default for IntegerTranslator {
     fn default() -> Self {
@@ -68,6 +79,8 @@ impl Default for IntegerTranslator {
             current: None,
             #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
             loops: loops::Loops::default(),
+            #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+            floating: compat16_jit::FloatCache::default(),
         }
     }
 }
@@ -92,6 +105,7 @@ impl IntegerTranslator {
                     ir
                 }
             };
+            self.loops.profile.observe(cs, decoded, self.current.is_some());
             if self.current.is_none() {
                 self.cache.barrier();
             }
@@ -106,6 +120,8 @@ impl IntegerTranslator {
     ) {
         self.loops.cache.set_artifact_store(store.clone());
         self.loops.memory.set_artifact_store(store.clone());
+        self.loops.regions.set_artifact_store(store.clone());
+        self.floating.set_artifact_store(store.clone());
         self.cache.set_artifact_store(store);
     }
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
@@ -143,8 +159,16 @@ impl IntegerTranslator {
             let stats = self
                 .cache
                 .statistics()
-                .combined(self.loops.cache.statistics()).combined(self.loops.memory.statistics());
+                .combined(self.loops.cache.statistics()).combined(self.loops.memory.statistics())
+                .combined(self.loops.regions.statistics()).combined(self.floating.statistics());
             JitStatistics {
+                float_compiled: stats.float_compiled,
+                float_executed: stats.float_executed,
+                float_fallbacks: stats.float_fallbacks,
+                regions_compiled: stats.regions_compiled,
+                regions_executed: stats.regions_executed,
+                region_instructions: stats.region_instructions,
+                direct_links: stats.direct_links,
                 branches_taken: stats.branches_taken,
                 branches_fallthrough: stats.branches_fallthrough,
                 budget_exits: stats.budget_exits,
@@ -172,6 +196,21 @@ impl IntegerTranslator {
         {
             JitStatistics::default()
         }
+    }
+    pub(crate) fn multiply_float(&mut self, left: crate::x87_state::Ext80,
+        right: crate::x87_state::Ext80, control: u16) -> Option<crate::x87_math::MathResult> {
+        #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+        {
+            if self.engine != ExecutionEngine::Jit { return None; }
+            let convert = |v: crate::x87_state::Ext80| compat16_jit::Float80 {
+                significand: v.significand, sign_exponent: v.sign_exponent };
+            let result = self.floating.multiply(convert(left), convert(right), control)?;
+            Some(crate::x87_math::MathResult { value: crate::x87_state::Ext80 {
+                significand: result.value.significand, sign_exponent: result.value.sign_exponent },
+                exceptions: result.exceptions, c1: result.c1, range: None })
+        }
+        #[cfg(not(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"))))]
+        { let _ = (left, right, control); None }
     }
     #[inline]
     pub(super) fn execute(&mut self, regs: &mut Registers, decoded: DecodedInstruction) -> bool {

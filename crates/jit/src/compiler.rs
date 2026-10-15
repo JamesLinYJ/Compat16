@@ -14,7 +14,9 @@ use std::sync::Arc;
 pub(crate) type Function = unsafe extern "C" fn(*mut IntegerState, *mut IntegerState);
 pub(crate) type MemoryFunction =
     unsafe extern "C" fn(*mut IntegerState, *mut u8, u32, u32, u32) -> u64;
+pub(crate) type FloatFunction = unsafe extern "C" fn(*mut crate::floating::FloatState) -> u32;
 pub(crate) type LoopFunction = unsafe extern "C" fn(*mut IntegerState, u32) -> u64;
+pub(crate) type RegionFunction = unsafe extern "C" fn(*mut IntegerState, u32, u32, *mut u32) -> u64;
 #[derive(Default)]
 pub(crate) struct Compiler {
     module: Option<JITModule>,
@@ -28,7 +30,7 @@ pub(crate) struct Compiled<F> {
 }
 impl Compiler {
     pub fn compile(&mut self, instructions: &[Instruction]) -> Result<Compiled<Function>, String> {
-        let code = self.compile_body(instructions, None, None)?;
+        let code = self.compile_body(instructions, None, None, None, None)?;
         // SAFETY: Checkpoint emission has the exact two-pointer C signature.
         Ok(Compiled {
             function: unsafe { std::mem::transmute::<*const u8, Function>(code.function) },
@@ -41,7 +43,7 @@ impl Compiler {
         instructions: &[Instruction],
         condition: Option<Condition>,
     ) -> Result<Compiled<LoopFunction>, String> {
-        let code = self.compile_body(instructions, Some(condition), None)?;
+        let code = self.compile_body(instructions, Some(condition), None, None, None)?;
         // SAFETY: Loop emission has the exact pointer/u32 -> u64 C signature.
         Ok(Compiled {
             function: unsafe { std::mem::transmute::<*const u8, LoopFunction>(code.function) },
@@ -53,10 +55,34 @@ impl Compiler {
         &mut self,
         plan: &crate::MemoryLoop,
     ) -> Result<Compiled<MemoryFunction>, String> {
-        let code = self.compile_body(&[], None, Some(plan))?;
+        let code = self.compile_body(&[], None, Some(plan), None, None)?;
         // SAFETY: Memory emission has exactly the private five-argument C signature.
         Ok(Compiled {
             function: unsafe { std::mem::transmute::<*const u8, MemoryFunction>(code.function) },
+            cache_hit: code.cache_hit,
+            cache_writes: code.cache_writes,
+        })
+    }
+    pub fn compile_region(
+        &mut self,
+        plan: &crate::Region,
+    ) -> Result<Compiled<RegionFunction>, String> {
+        let code = self.compile_body(&[], None, None, Some(plan), None)?;
+        // SAFETY: Region emission has this exact four-argument C signature.
+        Ok(Compiled {
+            function: unsafe { std::mem::transmute::<*const u8, RegionFunction>(code.function) },
+            cache_hit: code.cache_hit,
+            cache_writes: code.cache_writes,
+        })
+    }
+    pub fn compile_float(
+        &mut self,
+        plan: crate::floating::FloatPlan,
+    ) -> Result<Compiled<FloatFunction>, String> {
+        let code = self.compile_body(&[], None, None, None, Some(plan))?;
+        // SAFETY: Float emission has exactly the private one-pointer C signature.
+        Ok(Compiled {
+            function: unsafe { std::mem::transmute::<*const u8, FloatFunction>(code.function) },
             cache_hit: code.cache_hit,
             cache_writes: code.cache_writes,
         })
@@ -66,6 +92,8 @@ impl Compiler {
         instructions: &[Instruction],
         loop_condition: Option<Option<Condition>>,
         memory: Option<&crate::MemoryLoop>,
+        region: Option<&crate::Region>,
+        floating: Option<crate::floating::FloatPlan>,
     ) -> Result<Compiled<*const u8>, String> {
         if self.module.is_none() {
             self.module = Some(JITModule::new(
@@ -90,15 +118,15 @@ impl Compiler {
             .signature
             .params
             .push(AbiParam::new(pointer_type));
-        context
-            .func
-            .signature
-            .params
-            .push(AbiParam::new(if loop_condition.is_some() {
-                types::I32
-            } else {
-                pointer_type
-            }));
+        if floating.is_none() {
+            context.func.signature.params.push(AbiParam::new(
+                if loop_condition.is_some() || region.is_some() {
+                    types::I32
+                } else {
+                    pointer_type
+                },
+            ));
+        }
         if memory.is_some() {
             context
                 .func
@@ -106,7 +134,20 @@ impl Compiler {
                 .params
                 .extend([AbiParam::new(types::I32); 3]);
         }
-        if loop_condition.is_some() || memory.is_some() {
+        if region.is_some() {
+            context
+                .func
+                .signature
+                .params
+                .extend([AbiParam::new(types::I32), AbiParam::new(pointer_type)]);
+        }
+        if floating.is_some() {
+            context
+                .func
+                .signature
+                .returns
+                .push(AbiParam::new(types::I32));
+        } else if loop_condition.is_some() || memory.is_some() || region.is_some() {
             context
                 .func
                 .signature
@@ -124,7 +165,11 @@ impl Compiler {
             builder.switch_to_block(entry);
             builder.seal_block(entry);
             let state_pointer = builder.block_params(entry)[0];
-            if let Some(memory) = memory {
+            if let Some(plan) = floating {
+                crate::float_lowering::emit(&mut builder, plan);
+            } else if let Some(region) = region {
+                crate::region_lowering::emit(&mut builder, region);
+            } else if let Some(memory) = memory {
                 crate::memory_lowering::emit(&mut builder, memory);
             } else if let Some(condition) = loop_condition {
                 emit_loop(&mut builder, state_pointer, instructions, condition);
