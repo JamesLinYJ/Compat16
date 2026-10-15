@@ -359,6 +359,14 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<Result<runtime::Win16ModuleImage, u16>, RuntimeError> {
         runtime_host_diagnostics::read_win16_module(self, name, application_path)
     }
+    fn win16_read_task_module(
+        &mut self,
+        name: &[u8],
+        application_path: &[u8],
+        path: &runtime::Win16GuestPath,
+    ) -> Result<Result<runtime::Win16ModuleImage, u16>, RuntimeError> {
+        runtime_host_diagnostics::read_win16_task_module(self, name, application_path, path)
+    }
     fn win16_classify_character(
         &mut self,
         value: u8,

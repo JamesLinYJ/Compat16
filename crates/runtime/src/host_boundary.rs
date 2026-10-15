@@ -789,6 +789,21 @@ pub trait RuntimeHost:
             "host Win16 module file search is unavailable",
         ))
     }
+    /// KERNEL loader search with a path resolved in the calling Win16 task.
+    /// `path` includes the default DLL extension when the name omitted one;
+    /// only a simple `name` permits fallback to the Windows/system/app/PATH
+    /// directories. The host process current directory is not task state.
+    fn win16_read_task_module(
+        &mut self,
+        _name: &[u8],
+        _application_path: &[u8],
+        _path: &crate::Win16GuestPath,
+    ) -> Result<Result<Win16ModuleImage, u16>, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host task-aware Win16 module file search is unavailable",
+        ))
+    }
     /// Reports an informational or recoverable condition without changing
     /// guest registers or execution flow. Normal guest error codes stay quiet.
     fn report_diagnostic(&mut self, _diagnostic: &Diagnostic) {}

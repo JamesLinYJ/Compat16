@@ -106,7 +106,7 @@ impl Win16State {
             }
         }
         if depth >= MAX_MODULE_DEPTH { return Ok(Err(8)); }
-        let file = match host.win16_read_module(name, &self.module_path)? {
+        let file = match self.read_task_library(name, host)? {
             Ok(file) => file,
             Err(error) => {
                 let simple_name = !name.iter().any(|byte| *byte == b'/' || *byte == b'\\');
@@ -160,6 +160,40 @@ impl Win16State {
         }
         self.modules.records.get_mut(&handle).expect("discovered module").deps = deps;
         Ok(Ok(handle))
+    }
+
+    fn read_task_library(&self, name: &[u8], host: &mut impl RuntimeHost)
+        -> Result<Result<crate::Win16ModuleImage, u16>, RuntimeError> {
+        if name.is_empty() { return Ok(Err(2)); }
+        let resolved = (|| {
+            // Decode before inspecting punctuation: a DBCS trail byte can be
+            // a backslash. Normalize against the TDB's per-drive directories,
+            // keeping canonical cwd components out of the virtual alias map.
+            let mut text = host.decode_win16_ansi(name)?;
+            let leaf = text.rsplit(['\\', '/', ':']).next().unwrap_or("");
+            if leaf.is_empty() || text.contains('\0') { return Ok(None); }
+            if !leaf.contains('.') {
+                text.push_str(".DLL");
+            } else if leaf.ends_with('.') {
+                // A terminal period suppresses the default extension. DOS
+                // file lookup drops terminal periods from the final name.
+                text.truncate(text.trim_end_matches('.').len());
+                if text.rsplit(['\\', '/', ':']).next().unwrap_or("").is_empty() {
+                    return Ok(None);
+                }
+            }
+            self.kernel_file_system.resolve_guest_path_text(
+                self.current_task_owner()?, &text, false).map(Some)
+        })();
+        let path = match resolved {
+            Ok(Some(path)) => path,
+            Ok(None) => return Ok(Err(3)),
+            Err(error) if matches!(error.kind(), Kind::InvalidInput | Kind::GuestFault) => {
+                return Ok(Err(3));
+            }
+            Err(error) => return Err(error),
+        };
+        host.win16_read_task_module(name, &self.module_path, &path)
     }
 
     fn prepare_library(&mut self, file: crate::Win16ModuleImage, definition: NeModule,

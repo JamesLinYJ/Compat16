@@ -303,7 +303,16 @@ impl Win16KernelFileSystemState {
             let base = state
                 .current_directories
                 .get(&drive)
-                .ok_or_else(|| invariant("selected DOS drive has no retained directory"))?;
+                .ok_or_else(|| {
+                    if drive == state.current_drive {
+                        invariant("selected DOS drive has no retained directory")
+                    } else {
+                        // An explicit drive-relative input can name a drive
+                        // the task has never selected or mounted. This is a
+                        // pathname failure, not corrupt current-task state.
+                        invalid_path()
+                    }
+                })?;
             validate_canonical_path(base)?;
             if base.drive != drive {
                 return Err(invariant(
