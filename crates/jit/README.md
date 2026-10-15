@@ -18,11 +18,17 @@ format, and it does not claim Prism's optimization coverage.
   CPU feature checks run before translation. Cache keys contain normalized
   operations, register slices and immediates. A rewritten/remapped instruction
   therefore selects its current body, rather than a stale address-only entry.
-- Each translation unit currently retires one integer instruction.
+- Straight-line register-only sequences contain up to sixteen operations in
+  one SSA function. The recorder learns instructions already fetched by the
+  CPU; it does not fetch ahead. Generated code computes owned checkpoints.
+  Each later step validates its actual site, decoded operation and complete
+  input register/flag state before applying one checkpoint. Rewritten code,
+  changed state and control transfers discard predicted tails.
   The existing CPU boundary still owns EIP, RF, interrupt/debug shadows,
   breakpoint delivery, continuation stamps, event observation and instruction
   budgets. No block skips an observable instruction boundary.
-- Generated code addresses only an exclusive nine-word integer state. Guest
+- Generated code addresses only exclusive nine-word integer states and a
+  bounded owned checkpoint buffer. Guest
   register values cannot become native pointers. AL/AH and 16-bit writes retain
   unaffected register bits. Arithmetic computes CF/PF/AF/ZF/SF/OF; INC/DEC
   retain CF, and logical operations retain the interpreter's undefined AF.
@@ -35,27 +41,57 @@ format, and it does not claim Prism's optimization coverage.
   write operations reuse the same prepared access, and flags commit only after
   a successful write. LOCK operations, memory XCHG, system instructions, control
   transfers, strings, I/O and x87 continue through the checked interpreter.
-- An IR body becomes eligible on its 32nd execution. At most 1,024 entries live
+- Single instructions become eligible on their 32nd execution; learned blocks
+  become eligible on their second dispatch. At most 1,024 code entries and
+  1,024 trace plans live
   in one CPU's process-local cache. Eviction drops every private code pointer
   before freeing its module. No pointer escapes the cache owner.
 - Cranelift publishes writable code as executable and synchronizes the native
   instruction cache. Compilation/publication failure disables native execution
-  for this cache while leaving interpretation available. No disk cache or
-  generated code is shared across processes.
+  for this cache while leaving interpretation available. No executable pointer
+  is shared across code owners or processes.
+
+## Persistent compilation artifacts
+
+The independent module exposes an opaque `Artifact` and an optional
+`ArtifactStore`; it has no Windows, filesystem or runtime dependency. Cranelift's
+incremental compiler cache serializes relocatable compiled artifacts, with its
+own key covering IR, compiler version, target ISA, flags and CPU features.
+Restored artifacts pass through Cranelift relocation and executable publication.
+
+The Windows host stores artifacts under the account's LocalAppData directory,
+in `Compat16/Jit/v1`. Per-user DPAPI protection binds bytes to their compiler
+key; a versioned envelope and SHA-256 digest also check decrypted output.
+Guest plaintext cannot enter the unsafe authenticated-artifact restore API.
+The native host account is trusted: DPAPI is not a sandbox against native
+programs running as that same account. See Microsoft's
+[DPAPI contract](https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata).
+
+Reads are bounded, writes use a nonblocking process lock and atomic replacement,
+and storage is capped at 4,096 artifacts / 64 MiB with a 1 MiB payload limit.
+Missing, corrupt, incompatible or unavailable cache data falls back to ordinary
+compilation. Filesystem failures never become guest execution failures.
 
 ## Controls and evidence
 
 `--cpu-engine jit` is the Windows default. `--cpu-engine interpreter` disables
 native execution, including for DOS EXEC children and restored CPU owners.
-`--jit-stats` prints compilation, execution, failure and cache-reset counters
+`--no-jit-cache` disables disk persistence. The optional store is shared with
+DOS EXEC children and restored CPU owners; executable allocations remain private.
+`--jit-stats` prints compilation, execution, failure, block, checkpoint and
+persistence counters
 for the active CPU. Restoring a CPU owner creates a new nonarchitectural cache;
 these counters are not a lifetime aggregate across all subprocesses.
 
 Cargo checks establish Rust compilation. Native release builds, executed JIT
 counters, interpreter comparisons, original application acceptance and measured
-speedup are separate evidence. Multi-instruction block fusion, direct generated
-guest memory access and persistent module caches are not implemented in this
-version.
+speedup are separate evidence. Native-call counts include block heads;
+checkpoint hits count later instructions applied without another native call.
+Blocks currently cover pure register arithmetic, with per-instruction CPU
+validation retained. Direct generated guest memory access and fused guest
+control flow remain unsupported. Throughput measurements must identify their
+host architecture; AMD64 execution under ARM64 Windows emulation is not native
+AMD64 performance evidence.
 
 Additional registry license material is in
 [`LICENSES/JIT-DEPENDENCIES.txt`](../../LICENSES/JIT-DEPENDENCIES.txt), and the

@@ -20,6 +20,10 @@ pub(super) struct Entry {
 /// page/segment faults, remapping, and provider read side effects.
 pub(crate) struct DecodeCache {
     entries: [Option<Entry>; CACHE_SLOTS],
+    // Keep derived native IR out of the byte-fetch entries: interpreter hits
+    // should neither copy native metadata nor enlarge their hot cache lines.
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    integer_ir: [Option<Option<native_jit::Instruction>>; CACHE_SLOTS],
     // Test fixtures can retain this CPU/cache while suppressing both lookup
     // and insertion. Normal construction always enables reuse.
     #[cfg(test)]
@@ -30,6 +34,8 @@ impl Default for DecodeCache {
     fn default() -> Self {
         Self {
             entries: [None; CACHE_SLOTS],
+            #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+            integer_ir: [None; CACHE_SLOTS],
             #[cfg(test)]
             bypass: false,
         }
@@ -37,6 +43,31 @@ impl Default for DecodeCache {
 }
 
 impl DecodeCache {
+    // Consulted only immediately after successful checked decode. Replacing
+    // an entry clears its derived IR, so rewritten bytes, remapping and code
+    // width changes retain the decoder's existing invalidation contract.
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    pub(crate) fn integer_ir(&self, cs: u16, ip: u32) -> Option<Option<native_jit::Instruction>> {
+        #[cfg(test)]
+        if self.bypass { return None; }
+        let slot = Self::slot(cs, ip);
+        self.entries[slot]
+            .filter(|entry| entry.cs == cs && entry.ip == ip)
+            .and_then(|_| self.integer_ir[slot])
+    }
+
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    pub(crate) fn set_integer_ir(&mut self, cs: u16, ip: u32, ir: Option<native_jit::Instruction>) {
+        #[cfg(test)]
+        if self.bypass { return; }
+        let slot = Self::slot(cs, ip);
+        if let Some(entry) = self.entries[slot].as_ref()
+            && entry.cs == cs && entry.ip == ip
+        {
+            self.integer_ir[slot] = Some(ir);
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn is_empty(&self) -> bool {
         self.entries.iter().all(Option::is_none)
@@ -68,8 +99,11 @@ impl DecodeCache {
         bytes: [u8; MAX_INSTRUCTION_LENGTH],
         decoded: DecodedInstruction,
     ) {
-        self.entries[Self::slot(cs, decoded.start_ip)] = Some(Entry {
+        let slot = Self::slot(cs, decoded.start_ip);
+        self.entries[slot] = Some(Entry {
             cs, ip: decoded.start_ip, bits, protected_eip32, bytes, decoded,
         });
+        #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+        { self.integer_ir[slot] = None; }
     }
 }

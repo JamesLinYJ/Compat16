@@ -396,10 +396,16 @@ impl Cpu {
             // a fault in the return frame does not re-block NMI recognition.
             self.non_maskable_interrupt_blocked = false;
         }
+        self.jit.observe(decoded, self.regs.cs, &mut self.decode_cache);
         let transfer_candidate = decoded.control_transfer_candidate(self.regs.cs, self.regs.ss);
         let interrupt_shadow = decoded
             .creates_interrupt_shadow(self.regs.eflags & IF != 0, self.maskable_interrupt_shadow);
-        if decoded.is_x87() {
+        // This path accepts only nontrapping GPR/flag IR after fetch and model
+        // validation. It cannot touch the bus or segment/system state, so it
+        // needs no speculative full-register clone or unrelated executors.
+        // The common retirement and outer event boundary still run below.
+        let native_completed = self.jit.execute(&mut self.regs, decoded);
+        if !native_completed && decoded.is_x87() {
             let unavailable = if decoded.is_wait() {
                 bus.system().wait_instruction_unavailable()
             } else {
@@ -495,7 +501,9 @@ impl Cpu {
                 data_breakpoint_hits,
             });
         }
-        if let Some(instruction) = x86_decode::normalize_system_instruction(decoded) {
+        if !native_completed
+            && let Some(instruction) = x86_decode::normalize_system_instruction(decoded)
+        {
             let mut regs = self.regs.clone();
             execute::execute_system(&mut regs, &mut bus, &instruction)?;
             regs.eip = decoded.next_ip;
@@ -518,7 +526,8 @@ impl Cpu {
                 data_breakpoint_hits,
             });
         }
-        if let Some((next_ip, unfinished_repeat, data_breakpoint_hits)) =
+        if !native_completed
+            && let Some((next_ip, unfinished_repeat, data_breakpoint_hits)) =
             execute::execute_io(&mut self.regs, &mut bus, ports, decoded)?
         {
             self.regs.eip = next_ip;
@@ -542,7 +551,12 @@ impl Cpu {
         }
         let task_before = bus.system().task;
         let (outcome, next_ip, task_debug_trap, data_breakpoint_hits, progress) =
-            if execute::is_string_instruction(decoded) {
+            if native_completed {
+                (
+                    StepOutcome::Continue, decoded.next_ip, false,
+                    bus.take_data_breakpoint_hits(), ExecutionProgress::InstructionBodyCompleted,
+                )
+            } else if execute::is_string_instruction(decoded) {
             // REP commits each completed iteration. A later fault must retain
             // that progress alongside its memory/device side effects; replacing
             // the entire register context would undo only half the operation.
@@ -570,8 +584,7 @@ impl Cpu {
             // remain live; this is not a memory rollback mechanism.
             let mut regs = self.regs.clone();
             let (outcome, next_ip, task_debug) =
-                if self.jit.execute(&mut regs, decoded)
-                    || execute::execute_jit_memory(&mut self.jit, &mut regs, &mut bus, decoded)? {
+                if execute::execute_jit_memory(&mut self.jit, &mut regs, &mut bus, decoded)? {
                     (StepOutcome::Continue, decoded.next_ip, false)
                 } else { match execute::execute(&mut regs, &mut bus, decoded, self.model) {
                     Ok(result) => result,

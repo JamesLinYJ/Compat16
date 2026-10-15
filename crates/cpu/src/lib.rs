@@ -29,6 +29,8 @@ mod tests;
 mod x86_decode;
 mod jit;
 pub use jit::{ExecutionEngine, JitStatistics};
+#[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+pub use native_jit::{Artifact as JitArtifact, ArtifactStore as JitArtifactStore};
 mod x87;
 mod x87_math;
 mod x87_state;
@@ -216,6 +218,13 @@ impl Cpu {
 
     pub fn jit_statistics(&self) -> JitStatistics { self.jit.statistics() }
     pub fn execution_engine(&self) -> ExecutionEngine { self.jit.engine() }
+
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    pub fn set_jit_artifact_store(&mut self, store: Option<Arc<dyn JitArtifactStore>>) {
+        self.jit.set_artifact_store(store);
+    }
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    pub fn jit_artifact_store(&self) -> Option<Arc<dyn JitArtifactStore>> { self.jit.artifact_store() }
 
     pub(crate) fn normalize_model_eflags(&mut self) {
         self.regs.eflags = self.model.normalize_eflags(self.regs.eflags);

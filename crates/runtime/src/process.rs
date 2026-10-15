@@ -290,6 +290,8 @@ impl Runtime {
         let child_model = self.cpu.model();
         let mut child_cpu = Cpu::new_with_model(loaded.registers, child_model);
         child_cpu.set_execution_engine(self.cpu.execution_engine());
+        #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+        child_cpu.set_jit_artifact_store(self.cpu.jit_artifact_store());
         let parent_cpu = std::mem::replace(
             &mut self.cpu,
             child_cpu,

@@ -55,6 +55,12 @@ impl Runtime {
     /// Statistics for the currently active guest CPU and its process-local cache.
     pub fn jit_statistics(&self) -> crate::JitStatistics { self.cpu.jit_statistics() }
 
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    pub fn set_jit_artifact_store(&mut self, store: Option<std::sync::Arc<dyn crate::JitArtifactStore>>) {
+        self.cpu.set_jit_artifact_store(store.clone());
+        for frame in &mut self.process_frames { frame.cpu.set_jit_artifact_store(store.clone()); }
+    }
+
     /// Share one bounded executor across pure host-buffer work before execution.
     pub fn set_work_executor(&mut self, work: parallel_work::SharedExecutor) -> Result<(), RuntimeError> {
         if self.instructions != 0 {

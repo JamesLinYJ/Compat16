@@ -50,6 +50,7 @@ fn run() -> Result<u8, RuntimeError> {
     let mut complete_win16_io_trace = false;
     let mut execution_engine = runtime::ExecutionEngine::NativeJit;
     let mut jit_stats = false;
+    let mut jit_cache = true;
     while system_launch.is_none() {
         let Some(argument) = arguments.next() else { break; };
         match argument.to_str() {
@@ -62,6 +63,7 @@ fn run() -> Result<u8, RuntimeError> {
                 };
             }
             Some("--jit-stats") => jit_stats = true,
+            Some("--no-jit-cache") => jit_cache = false,
             Some("--trace-on-failure") => trace_on_failure = true,
             Some("--trace-file") => {
                 trace_file = Some(PathBuf::from(arguments.next()
@@ -122,7 +124,7 @@ fn run() -> Result<u8, RuntimeError> {
                     .map_err(|error| RuntimeError::with_source(Kind::InvalidInput, "invalid Win16 ANSI code page", error))?) };
             }
             Some("--help") | Some("-h") => {
-                println!("{command_name} [--max-instructions N] [--cpu-engine jit|interpreter] [--jit-stats] [--code-page 437|936] [--win16-code-page auto|N] [--trace-on-failure] [--trace-file PATH] [--watch-memory ADDRESS:LENGTH | --watch-win16-memory SELECTOR:OFFSET:LENGTH] [--dump-guest-memory PATH] [--trace-dos-services PATH] [--trace-win16-io PATH | --trace-win16-io-complete PATH] PROGRAM [DOS arguments]\nExample: --watch-memory 0x10000:16\nDOS/Win16 development runtime: COM/MZ and early NE execution; compatibility coverage is incomplete.");
+                println!("{command_name} [--max-instructions N] [--cpu-engine jit|interpreter] [--jit-stats] [--no-jit-cache] [--code-page 437|936] [--win16-code-page auto|N] [--trace-on-failure] [--trace-file PATH] [--watch-memory ADDRESS:LENGTH | --watch-win16-memory SELECTOR:OFFSET:LENGTH] [--dump-guest-memory PATH] [--trace-dos-services PATH] [--trace-win16-io PATH | --trace-win16-io-complete PATH] PROGRAM [DOS arguments]\nExample: --watch-memory 0x10000:16\nDOS/Win16 development runtime: COM/MZ and early NE execution; compatibility coverage is incomplete.");
                 return Ok(0);
             }
             Some(value) if value.starts_with('-') => return Err(RuntimeError::new(Kind::InvalidInput, format!("unknown option {value}"))),
@@ -195,6 +197,9 @@ fn run() -> Result<u8, RuntimeError> {
     };
     runtime.set_work_executor(std::sync::Arc::clone(&work))?;
     runtime.set_execution_engine(execution_engine);
+    if jit_cache && execution_engine == runtime::ExecutionEngine::NativeJit {
+        runtime.set_jit_artifact_store(host.jit_artifact_store());
+    }
     if trace_on_failure { runtime.enable_instruction_trace()?; }
     if let Some((address, length)) = memory_watch {
         runtime.watch_guest_memory(address, length)?;
@@ -276,6 +281,9 @@ fn run() -> Result<u8, RuntimeError> {
         let stats = runtime.jit_statistics();
         eprintln!("active CPU JIT: compiled={} executed={} failures={} cache_resets={}",
             stats.compiled, stats.executed, stats.failures, stats.cache_resets);
+        eprintln!("JIT blocks: compiled={} executed={} checkpoints={} invalidations={} persistent_hits={} persistent_writes={}",
+            stats.blocks_compiled, stats.blocks_executed, stats.checkpoint_hits, stats.block_invalidations,
+            stats.persistent_hits, stats.persistent_writes);
     }
     host.finish_output().map_err(|e| RuntimeError::with_source(Kind::HostFailure, "incomplete console output", e))?;
     Ok(result)

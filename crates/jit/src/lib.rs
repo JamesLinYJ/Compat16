@@ -1,19 +1,23 @@
-//! Native integer translation with a bounded, process-local code cache.
+//! Independent native integer blocks with checked state and cache ownership.
 //!
-//! This crate contains the generated-code call boundary. The x86 CPU crate
-//! remains entirely safe Rust. Code can only touch IntegerState; guest memory,
-//! guest pointers, native callbacks and guest exception delivery never enter
-//! generated code. Cranelift owns W^X publication and instruction-cache flushes.
+//! Generated code touches only owned IntegerState and checkpoint arrays. CPU
+//! decoding, guest memory, exception delivery and retirement remain outside.
 
+mod artifact;
+mod compiler;
 mod ir;
 mod lowering;
-use cranelift_codegen::ir::AbiParam;
-use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext};
-use cranelift_jit::{JITBuilder, JITModule};
-use cranelift_module::{Linkage, Module};
-pub use ir::{Condition, Instruction, IntegerState, Operand, Operation, Register};
-use std::collections::HashMap;
+#[cfg(test)]
+mod tests;
+mod trace;
 
+pub use artifact::{Artifact, ArtifactStore, MAX_ARTIFACT_BYTES};
+use compiler::{Compiler, Function};
+pub use ir::{Condition, Instruction, IntegerState, Operand, Operation, Register};
+use std::{collections::HashMap, sync::Arc};
+pub use trace::{TraceEngine, TraceSite};
+
+pub const MAX_BLOCK_INSTRUCTIONS: usize = 16;
 const HOT_THRESHOLD: u8 = 32;
 const MAX_ENTRIES: usize = 1024;
 
@@ -23,28 +27,32 @@ pub struct Statistics {
     pub executed: u64,
     pub failures: u64,
     pub cache_resets: u64,
+    pub blocks_compiled: u64,
+    pub blocks_executed: u64,
+    pub checkpoint_hits: u64,
+    pub block_invalidations: u64,
+    pub persistent_hits: u64,
+    pub persistent_writes: u64,
 }
 enum Entry {
     Cold(u8),
-    Compiled(unsafe extern "C" fn(*mut IntegerState)),
+    Compiled(Function),
     Rejected,
 }
 
-/// No function pointer escapes this owner. Exclusive execution prevents an
-/// eviction/free from racing an executing function, including destruction.
+/// Function pointers cannot escape. Exclusive calls prevent eviction/free
+/// from racing execution. Cache providers return authenticated artifacts.
 pub struct CodeCache {
-    module: Option<JITModule>,
-    entries: HashMap<Instruction, Entry>,
-    next_function: u64,
+    compiler: Compiler,
+    entries: HashMap<Vec<Instruction>, Entry>,
     statistics: Statistics,
     enabled: bool,
 }
 impl Default for CodeCache {
     fn default() -> Self {
         Self {
-            module: None,
+            compiler: Compiler::default(),
             entries: HashMap::new(),
-            next_function: 0,
             statistics: Statistics::default(),
             enabled: true,
         }
@@ -57,154 +65,132 @@ impl CodeCache {
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-
-    /// Returns false without changing the state for cold, unsupported or
-    /// failed compilation. The caller executes its interpreter in that case.
+    pub fn set_artifact_store(&mut self, store: Option<Arc<dyn ArtifactStore>>) {
+        self.compiler.store = store;
+    }
+    pub fn artifact_store(&self) -> Option<Arc<dyn ArtifactStore>> {
+        self.compiler.store.clone()
+    }
     pub fn execute(&mut self, instruction: Instruction, state: &mut IntegerState) -> bool {
-        let Some(function) = self.ready(instruction) else {
+        self.execute_block(&[instruction], state, &mut [IntegerState::default()])
+    }
+    /// Computes a complete pure-integer block and every intermediate state.
+    /// Cold/disabled/failing paths leave state and checkpoints unchanged.
+    /// Checkpoints grant no authority over guest instruction retirement.
+    pub fn execute_block(
+        &mut self,
+        instructions: &[Instruction],
+        state: &mut IntegerState,
+        checkpoints: &mut [IntegerState],
+    ) -> bool {
+        if instructions.is_empty()
+            || instructions.len() > MAX_BLOCK_INSTRUCTIONS
+            || checkpoints.len() < instructions.len()
+        {
+            return false;
+        }
+        let Some(function) = self.ready(instructions) else {
             return false;
         };
-        self.invoke(function, state);
+        self.invoke(function, state, checkpoints);
+        if instructions.len() > 1 {
+            self.statistics.blocks_executed = self.statistics.blocks_executed.saturating_add(1);
+        }
         true
     }
-
-    /// Resolve hotness and compilation before invoking the input provider.
-    /// Cold/failing paths never read operands, so interpreter fallback cannot
-    /// duplicate a device read. Provider errors precede native execution.
+    /// Compilation/hotness precedes operand reads, preserving single device
+    /// reads on interpreter fallback. Provider errors precede execution.
     pub fn execute_with<E>(
         &mut self,
         instruction: Instruction,
         input: impl FnOnce() -> Result<IntegerState, E>,
     ) -> Result<Option<IntegerState>, E> {
-        let Some(function) = self.ready(instruction) else {
+        let Some(function) = self.ready(&[instruction]) else {
             return Ok(None);
         };
         let mut state = input()?;
-        self.invoke(function, &mut state);
+        self.invoke(function, &mut state, &mut [IntegerState::default()]);
         Ok(Some(state))
     }
-
-    fn ready(
-        &mut self,
-        instruction: Instruction,
-    ) -> Option<unsafe extern "C" fn(*mut IntegerState)> {
+    fn ready(&mut self, instructions: &[Instruction]) -> Option<Function> {
         if !self.enabled {
             return None;
         }
-        if !self.entries.contains_key(&instruction) && self.entries.len() == MAX_ENTRIES {
-            self.clear();
-            self.statistics.cache_resets = self.statistics.cache_resets.saturating_add(1);
-        }
-        if !self.entries.contains_key(&instruction) && self.entries.try_reserve(1).is_err() {
-            return None;
-        }
-        let entry = self.entries.entry(instruction).or_insert(Entry::Cold(0));
-        let function = match entry {
-            Entry::Compiled(function) => *function,
-            Entry::Rejected => return None,
-            Entry::Cold(count) => {
-                *count = count.saturating_add(1);
-                if *count < HOT_THRESHOLD {
-                    return None;
-                }
-                match self.compile(instruction) {
-                    Ok(function) => {
-                        self.entries.insert(instruction, Entry::Compiled(function));
-                        self.statistics.compiled = self.statistics.compiled.saturating_add(1);
-                        function
-                    }
-                    Err(_) => {
-                        self.entries.insert(instruction, Entry::Rejected);
-                        self.statistics.failures = self.statistics.failures.saturating_add(1);
-                        // OS dynamic-code restrictions and compiler failures
-                        // leave the interpreter available; do not retry forever.
-                        self.enabled = false;
+        if let Some(entry) = self.entries.get_mut(instructions) {
+            match entry {
+                Entry::Compiled(function) => return Some(*function),
+                Entry::Rejected => return None,
+                Entry::Cold(count) => {
+                    *count = count.saturating_add(1);
+                    let threshold = if instructions.len() > 1 {
+                        2
+                    } else {
+                        HOT_THRESHOLD
+                    };
+                    if *count < threshold {
                         return None;
                     }
                 }
             }
-        };
-        Some(function)
+        } else {
+            if self.entries.len() == MAX_ENTRIES {
+                self.clear();
+                self.statistics.cache_resets = self.statistics.cache_resets.saturating_add(1);
+            }
+            self.entries.try_reserve(1).ok()?;
+            let mut key = Vec::new();
+            key.try_reserve_exact(instructions.len()).ok()?;
+            key.extend_from_slice(instructions);
+            self.entries.insert(key, Entry::Cold(1));
+            return None;
+        }
+        match self.compiler.compile(instructions) {
+            Ok(compiled) => {
+                *self.entries.get_mut(instructions)? = Entry::Compiled(compiled.function);
+                self.statistics.compiled = self.statistics.compiled.saturating_add(1);
+                self.statistics.blocks_compiled = self
+                    .statistics
+                    .blocks_compiled
+                    .saturating_add(u64::from(instructions.len() > 1));
+                self.statistics.persistent_hits = self
+                    .statistics
+                    .persistent_hits
+                    .saturating_add(u64::from(compiled.cache_hit));
+                self.statistics.persistent_writes = self
+                    .statistics
+                    .persistent_writes
+                    .saturating_add(compiled.cache_writes);
+                Some(compiled.function)
+            }
+            Err(_) => {
+                *self.entries.get_mut(instructions)? = Entry::Rejected;
+                self.statistics.failures = self.statistics.failures.saturating_add(1);
+                self.enabled = false;
+                None
+            }
+        }
     }
-
     fn invoke(
         &mut self,
-        function: unsafe extern "C" fn(*mut IntegerState),
+        function: Function,
         state: &mut IntegerState,
+        checkpoints: &mut [IntegerState],
     ) {
-        // SAFETY: This function was emitted from checked pointer-free IR, uses
-        // the native C ABI and accesses only this live exclusive IntegerState.
-        // Its module remains owned until after the call has returned.
+        // SAFETY: The bounded block's exact C signature accesses only these
+        // exclusive live buffers. Their lengths were checked before dispatch.
+        // Generated arithmetic is nontrapping and has no guest side effects.
+        // The owning module remains live and cannot be cleared during this call.
         unsafe {
-            function(state);
+            function(state, checkpoints.as_mut_ptr());
         }
         self.statistics.executed = self.statistics.executed.saturating_add(1);
     }
-
-    fn compile(
-        &mut self,
-        instruction: Instruction,
-    ) -> Result<unsafe extern "C" fn(*mut IntegerState), String> {
-        if self.module.is_none() {
-            self.module = Some(JITModule::new(
-                JITBuilder::with_flags(
-                    &[("opt_level", "speed"), ("enable_verifier", "true")],
-                    cranelift_module::default_libcall_names(),
-                )
-                .map_err(|error| error.to_string())?,
-            ));
-        }
-        let module = self.module.as_mut().expect("initialized module");
-        let name = format!("integer_{}", self.next_function);
-        self.next_function = self
-            .next_function
-            .checked_add(1)
-            .ok_or("function identity exhausted")?;
-        let mut context = module.make_context();
-        context.func.signature = module.make_signature();
-        context
-            .func
-            .signature
-            .params
-            .push(AbiParam::new(module.target_config().pointer_type()));
-        let id = module
-            .declare_function(&name, Linkage::Local, &context.func.signature)
-            .map_err(|error| error.to_string())?;
-        let mut frontend = FunctionBuilderContext::new();
-        {
-            let mut builder = FunctionBuilder::new(&mut context.func, &mut frontend);
-            let block = builder.create_block();
-            builder.append_block_params_for_function_params(block);
-            builder.switch_to_block(block);
-            builder.seal_block(block);
-            let pointer = builder.block_params(block)[0];
-            lowering::emit(&mut builder, pointer, instruction);
-            use cranelift_codegen::ir::InstBuilder;
-            builder.ins().return_(&[]);
-            builder.finalize(module.target_config());
-        }
-        module
-            .define_function(id, &mut context)
-            .map_err(|error| error.to_string())?;
-        module
-            .finalize_definitions()
-            .map_err(|error| error.to_string())?;
-        let pointer = module.get_finalized_function(id);
-        // SAFETY: The generated signature is exactly native C (*mut
-        // IntegerState)->void. Entry storage is private to the module owner.
-        Ok(unsafe {
-            std::mem::transmute::<*const u8, unsafe extern "C" fn(*mut IntegerState)>(pointer)
-        })
-    }
-
     fn clear(&mut self) {
         self.entries.clear();
-        if let Some(module) = self.module.take() {
-            // SAFETY: &mut self excludes execute(), pointers never escape,
-            // and all cached function pointers have just been discarded.
-            unsafe {
-                module.free_memory();
-            }
+        // SAFETY: No native pointer escapes; all entries are gone, and &mut
+        // self excludes an executing function, including during destruction.
+        unsafe {
+            self.compiler.clear();
         }
     }
 }

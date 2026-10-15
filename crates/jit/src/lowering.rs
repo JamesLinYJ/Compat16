@@ -4,13 +4,32 @@ use crate::{Condition, Instruction, Operand, Operation as Op, Register};
 use cranelift_codegen::ir::{InstBuilder, MemFlagsData, Value, condcodes::IntCC, types};
 use cranelift_frontend::FunctionBuilder;
 
-fn load(b: &mut FunctionBuilder<'_>, pointer: Value, register: Register) -> Value {
-    let value = b.ins().load(
-        types::I32,
-        MemFlagsData::trusted(),
-        pointer,
-        i32::from(register.index) * 4,
-    );
+pub(super) struct State {
+    pub words: [Value; 9],
+}
+impl State {
+    pub fn load(b: &mut FunctionBuilder<'_>, pointer: Value) -> Self {
+        Self {
+            words: std::array::from_fn(|index| {
+                b.ins().load(
+                    types::I32,
+                    MemFlagsData::trusted(),
+                    pointer,
+                    (index as i32) * 4,
+                )
+            }),
+        }
+    }
+    pub fn write_back(&self, b: &mut FunctionBuilder<'_>, pointer: Value) {
+        for (index, &value) in self.words.iter().enumerate() {
+            b.ins()
+                .store(MemFlagsData::trusted(), value, pointer, (index as i32) * 4);
+        }
+    }
+}
+
+fn load(b: &mut FunctionBuilder<'_>, state: &State, register: Register) -> Value {
+    let value = state.words[usize::from(register.index)];
     let value = if register.high8 {
         b.ins().ushr_imm_u(value, 8)
     } else {
@@ -18,15 +37,12 @@ fn load(b: &mut FunctionBuilder<'_>, pointer: Value, register: Register) -> Valu
     };
     b.ins().band_imm_u(value, i64::from(register.mask()))
 }
-fn store(b: &mut FunctionBuilder<'_>, pointer: Value, register: Register, value: Value) {
-    let offset = i32::from(register.index) * 4;
+fn store(b: &mut FunctionBuilder<'_>, state: &mut State, register: Register, value: Value) {
     let value = b.ins().band_imm_u(value, i64::from(register.mask()));
     let value = if register.bytes == 4 {
         value
     } else {
-        let old = b
-            .ins()
-            .load(types::I32, MemFlagsData::trusted(), pointer, offset);
+        let old = state.words[usize::from(register.index)];
         let shift = if register.high8 { 8 } else { 0 };
         let unchanged = b
             .ins()
@@ -34,8 +50,7 @@ fn store(b: &mut FunctionBuilder<'_>, pointer: Value, register: Register, value:
         let changed = b.ins().ishl_imm_u(value, i64::from(shift));
         b.ins().bor(unchanged, changed)
     };
-    b.ins()
-        .store(MemFlagsData::trusted(), value, pointer, offset);
+    state.words[usize::from(register.index)] = value;
 }
 fn flag(b: &mut FunctionBuilder<'_>, value: Value, shift: i64) -> Value {
     let bit = b.ins().uextend(types::I32, value);
@@ -50,21 +65,19 @@ fn signed(b: &mut FunctionBuilder<'_>, value: Value, bytes: u8) -> Value {
     b.ins().sextend(types::I64, value)
 }
 
-pub(super) fn emit(b: &mut FunctionBuilder<'_>, pointer: Value, instruction: Instruction) {
+pub(super) fn emit(b: &mut FunctionBuilder<'_>, state: &mut State, instruction: Instruction) {
     let register = instruction.destination;
-    let original = load(b, pointer, register);
+    let original = load(b, state, register);
     let source = match instruction.source {
-        Operand::Register(source) => load(b, pointer, source),
+        Operand::Register(source) => load(b, state, source),
         Operand::Immediate(value) => b
             .ins()
             .iconst(types::I32, i64::from(value & register.mask())),
     };
-    let old_flags = b
-        .ins()
-        .load(types::I32, MemFlagsData::trusted(), pointer, 32);
+    let old_flags = state.words[8];
     match instruction.operation {
         Op::ZeroExtend => {
-            store(b, pointer, register, source);
+            store(b, state, register, source);
             return;
         }
         Op::SignExtend => {
@@ -74,39 +87,39 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, pointer: Value, instruction: Ins
             };
             let value = signed(b, source, bytes);
             let value = b.ins().ireduce(types::I32, value);
-            store(b, pointer, register, value);
+            store(b, state, register, value);
             return;
         }
         Op::ByteSwap => {
             let value = b.ins().bswap(original);
-            store(b, pointer, register, value);
+            store(b, state, register, value);
             return;
         }
         Op::SetCondition(condition) => {
             let value = condition_value(b, old_flags, condition);
             let value = b.ins().uextend(types::I32, value);
-            store(b, pointer, register, value);
+            store(b, state, register, value);
             return;
         }
         Op::ConditionalMove(condition) => {
             let condition = condition_value(b, old_flags, condition);
             let value = b.ins().select(condition, source, original);
-            store(b, pointer, register, value);
+            store(b, state, register, value);
             return;
         }
         Op::Move => {
-            store(b, pointer, register, source);
+            store(b, state, register, source);
             return;
         }
         Op::Not => {
             let value = b.ins().bnot(original);
-            store(b, pointer, register, value);
+            store(b, state, register, value);
             return;
         }
         Op::Exchange => {
-            store(b, pointer, register, source);
+            store(b, state, register, source);
             if let Operand::Register(source) = instruction.source {
-                store(b, pointer, source, original);
+                store(b, state, source, original);
             }
             return;
         }
@@ -153,24 +166,20 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, pointer: Value, instruction: Ins
                 .icmp_imm_s(IntCC::UnsignedGreaterThan, wide, i64::from(register.mask()))
         };
         new_flags = flag(b, carry_bit, 0);
-        let sl = signed(b, left, register.bytes);
-        let sr = signed(b, right, register.bytes);
-        let sr = b.ins().iadd(sr, c);
-        let sum = if borrow {
-            b.ins().isub(sl, sr)
-        } else {
-            b.ins().iadd(sl, sr)
-        };
-        let minimum = -(1_i64 << (register.bytes * 8 - 1));
-        let low = b.ins().icmp_imm_s(IntCC::SignedLessThan, sum, minimum);
-        let high = b
-            .ins()
-            .icmp_imm_s(IntCC::SignedGreaterThan, sum, -minimum - 1);
-        let overflow = b.ins().bor(low, high);
-        let overflow = flag(b, overflow, 11);
-        new_flags = b.ins().bor(new_flags, overflow);
         let result = b.ins().ireduce(types::I32, wide);
         let result = b.ins().band_imm_u(result, i64::from(register.mask()));
+        // OF is a sign-bit relation, also for ADC/SBB's carry input. Keep it
+        // in the existing 32-bit SSA values instead of sign-extending twice
+        // and computing a second 64-bit sum plus two range comparisons.
+        let signs = b.ins().bxor(left, right);
+        let signs = if borrow { signs } else { b.ins().bnot(signs) };
+        let changed = b.ins().bxor(left, result);
+        let overflow = b.ins().band(signs, changed);
+        let overflow = b
+            .ins()
+            .ushr_imm_u(overflow, i64::from(register.bytes * 8 - 1));
+        let overflow = b.ins().ishl_imm_u(overflow, 11);
+        new_flags = b.ins().bor(new_flags, overflow);
         let aux = b.ins().bxor(left, right);
         let aux = b.ins().bxor(aux, result);
         let aux = b.ins().band_imm_u(aux, 0x10);
@@ -203,9 +212,9 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, pointer: Value, instruction: Ins
     let new_flags = b.ins().band_imm_u(new_flags, i64::from(mask));
     let flags = b.ins().bor(previous, new_flags);
     let flags = b.ins().bor_imm_u(flags, 2);
-    b.ins().store(MemFlagsData::trusted(), flags, pointer, 32);
+    state.words[8] = flags;
     if !matches!(instruction.operation, Op::Compare | Op::Test) {
-        store(b, pointer, register, result);
+        store(b, state, register, result);
     }
 }
 

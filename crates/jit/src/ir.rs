@@ -109,7 +109,13 @@ impl Instruction {
 /// The only memory generated code can address: nine owned 32-bit words.
 /// Ordering follows x86 register encoding, not the guest Registers Rust layout.
 #[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct IntegerState {
     pub registers: [u32; 8],
     pub flags: u32,
 }
+
+const _: () = {
+    assert!(std::mem::size_of::<IntegerState>() == 36);
+    assert!(std::mem::align_of::<IntegerState>() == 4);
+};

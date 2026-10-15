@@ -354,6 +354,8 @@ pub use diagnostics::{Diagnostic, DiagnosticKind, DiagnosticSeverity, RuntimeErr
 pub use load::MINIMUM_PSP_SEGMENT;
 pub use machine::{Runtime, RuntimeProgress};
 pub use x86_cpu::{ExecutionEngine, JitStatistics};
+#[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+pub use x86_cpu::{JitArtifact, JitArtifactStore};
 
 pub use guest_core::Registers as GuestRegisters;
 use xms::GuestFarPointer;

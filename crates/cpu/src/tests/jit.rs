@@ -481,3 +481,176 @@ fn native_retirement_preserves_single_step_observation_and_resume_authority() {
         );
     }
 }
+
+// Six pure operations followed by an interpreter boundary. Every operation is
+// compared at its own retirement, including the block's intermediate states.
+const BLOCK: &[u8] = &[
+    0x40, 0x11, 0xd8, 0x31, 0xc1, 0x66, 0x0f, 0xb6, 0xd4, 0x39, 0xc8, 0x0f, 0x9c, 0xc2, 0x90,
+];
+fn warm_block(pair: &mut [Fixture; 2]) {
+    code(pair, BLOCK);
+    for round in 0..40 {
+        input(pair, 0x7fff + round, 3, flags(round as usize));
+        for _ in 0..7 {
+            step(pair).outcome.unwrap();
+        }
+    }
+    let statistics = pair[0].cpu.jit_statistics();
+    assert!(statistics.blocks_executed > 0);
+    assert!(statistics.checkpoint_hits > 0);
+}
+
+#[test]
+fn fused_blocks_match_each_retirement_and_invalidate_changed_tails() {
+    let mut pair = pair();
+    warm_block(&mut pair);
+    for rewrite_code in [true, false] {
+        code(&mut pair, BLOCK);
+        input(&mut pair, 0x7fff, 3, flags(1));
+        step(&mut pair).outcome.unwrap();
+        let before = pair[0].cpu.jit_statistics();
+        for fixture in &mut pair {
+            if rewrite_code {
+                fixture.memory.ram.put(1, &[0x29]);
+            } else {
+                fixture.cpu.regs.ebx ^= 0x1234;
+            }
+        }
+        step(&mut pair).outcome.unwrap();
+        assert!(pair[0].cpu.jit_statistics().block_invalidations > before.block_invalidations);
+        assert_eq!(
+            pair[0].cpu.jit_statistics().checkpoint_hits,
+            before.checkpoint_hits
+        );
+        for _ in 0..5 {
+            step(&mut pair).outcome.unwrap();
+        }
+    }
+    eprintln!("blocks JIT: {:?}", pair[0].cpu.jit_statistics());
+}
+
+#[test]
+fn predicted_tail_still_requires_execute_permission_and_observes_single_step() {
+    let mut pair = pair();
+    warm_block(&mut pair);
+    input(&mut pair, 0x7fff, 3, flags(0));
+    step(&mut pair).outcome.unwrap();
+    let before = pair[0].cpu.regs.clone();
+    let hits = pair[0].cpu.jit_statistics().checkpoint_hits;
+    for fixture in &mut pair {
+        fixture.segments.deny_execute = true;
+    }
+    assert!(step(&mut pair).outcome.is_err());
+    assert_eq!(pair[0].cpu.regs, before);
+    assert_eq!(pair[0].cpu.jit_statistics().checkpoint_hits, hits);
+    for fixture in &mut pair {
+        fixture.segments.deny_execute = false;
+        fixture.cpu.regs.eflags |= crate::TF;
+    }
+    let events = pair.each_mut().map(|fixture| {
+        fixture.memory.trace.borrow_mut().clear();
+        let boundary = fixture.cpu.step_with_context_observing_events_report(
+            &mut fixture.memory,
+            &mut NoPorts,
+            &RealModeSegments,
+        );
+        assert_eq!(
+            boundary.progress,
+            ExecutionProgress::InstructionBodyCompleted
+        );
+        match boundary.outcome.unwrap() {
+            CpuObservedStepOutcome::EventDeferred(event) => event,
+            other => panic!("expected block single-step event, got {other:?}"),
+        }
+    });
+    assert_eq!(events[0].observation(), events[1].observation());
+    equal(&pair);
+    assert_eq!(pair[0].cpu.regs.eip, 3);
+    for (fixture, event) in pair.iter_mut().zip(events) {
+        assert!(
+            fixture
+                .cpu
+                .capture_deferred_event_observer_continuation(&event)
+                .is_ok()
+        );
+    }
+}
+
+#[test]
+fn long_blocks_split_and_memory_faults_remain_at_the_actual_instruction() {
+    let mut pair = pair();
+    let mut program = vec![0x40; 35];
+    program.extend([0x01, 0x1e, 0x00, 0x02, 0x90]);
+    code(&mut pair, &program);
+    for round in 0..40 {
+        input(&mut pair, round, 7, flags(0));
+        for _ in 0..37 {
+            step(&mut pair).outcome.unwrap();
+        }
+    }
+    assert!(pair[0].cpu.jit_statistics().blocks_executed > 0);
+    input(&mut pair, 0x7ff0, 7, flags(0));
+    for fixture in &mut pair {
+        fixture.memory.reject_data_read = true;
+    }
+    for _ in 0..35 {
+        step(&mut pair).outcome.unwrap();
+    }
+    let before = pair[0].cpu.regs.clone();
+    assert!(matches!(step(&mut pair).outcome, Err(CpuError::Memory(_))));
+    assert_eq!(pair[0].cpu.regs, before);
+}
+
+#[test]
+#[ignore = "explicit native throughput measurement; no timing pass threshold"]
+fn block_throughput_measurement() {
+    use std::time::Instant;
+    let operations = [
+        0x01, 0xd8, 0x11, 0xc1, 0x31, 0xd3, 0x29, 0xca, 0x40, 0x49, 0x0f, 0x95, 0xc2, 0x66, 0x0f,
+        0xb6, 0xdc,
+    ];
+    let mut program = operations.repeat(2);
+    program.extend([0xeb, (-(program.len() as i16 + 2)) as u8]);
+    let mut machines = [ExecutionEngine::NativeJit, ExecutionEngine::Interpreter].map(|engine| {
+        let (mut cpu, mut ram) = cpu_with(&program, 0x20000);
+        cpu.set_execution_engine(engine);
+        cpu.regs.eax = 0x1234;
+        cpu.regs.ebx = 0x5678;
+        for _ in 0..(128 * 17) {
+            cpu.step_with_context(&mut ram, &mut NoPorts, &RealModeSegments)
+                .unwrap();
+        }
+        (cpu, ram)
+    });
+    let mut elapsed = [Vec::new(), Vec::new()];
+    // Alternate order to reduce systematic bias from host load and clock
+    // changes. Both owners execute the same warmup and instruction counts.
+    for round in 0..5 {
+        for index in if round % 2 == 0 { [0, 1] } else { [1, 0] } {
+            let (cpu, ram) = &mut machines[index];
+            let start = Instant::now();
+            for _ in 0..(10_000 * 17) {
+                std::hint::black_box(
+                    cpu.step_with_context(ram, &mut NoPorts, &RealModeSegments)
+                        .unwrap(),
+                );
+            }
+            elapsed[index].push(start.elapsed().as_nanos());
+        }
+    }
+    let measurements = elapsed.map(|mut samples| {
+        samples.sort_unstable();
+        samples[2]
+    });
+    assert_eq!(machines[0].0.regs, machines[1].0.regs);
+    assert!(machines[0].0.jit_statistics().checkpoint_hits > 0);
+    assert_eq!(machines[0].0.jit_statistics().failures, 0);
+    eprintln!("throughput JIT: {:?}", machines[0].0.jit_statistics());
+    eprintln!(
+        "JIT_THROUGHPUT target={} steps_per_sample=170000 jit_median_ns={} interpreter_median_ns={} speedup={:.3}",
+        std::env::consts::ARCH,
+        measurements[0],
+        measurements[1],
+        measurements[1] as f64 / measurements[0] as f64
+    );
+}

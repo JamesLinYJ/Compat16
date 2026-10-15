@@ -29,6 +29,10 @@ cap-std.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 zerocopy.workspace = true
+sha2 = "=0.10.9"
+
+[target.'cfg(windows)'.dev-dependencies]
+native-jit = { path = "../jit" }
 
 [build-dependencies]
 windows-bindgen.workspace = true

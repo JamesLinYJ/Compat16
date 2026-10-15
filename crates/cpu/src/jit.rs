@@ -17,12 +17,20 @@ pub struct JitStatistics {
     pub executed: u64,
     pub failures: u64,
     pub cache_resets: u64,
+    pub blocks_compiled: u64,
+    pub blocks_executed: u64,
+    pub checkpoint_hits: u64,
+    pub block_invalidations: u64,
+    pub persistent_hits: u64,
+    pub persistent_writes: u64,
 }
 
 pub(super) struct IntegerTranslator {
     engine: ExecutionEngine,
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
-    cache: native_jit::CodeCache,
+    cache: native_jit::TraceEngine,
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    current: Option<native_jit::Instruction>,
 }
 impl Default for IntegerTranslator {
     fn default() -> Self {
@@ -36,11 +44,51 @@ impl Default for IntegerTranslator {
                 ExecutionEngine::Interpreter
             },
             #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
-            cache: native_jit::CodeCache::default(),
+            cache: native_jit::TraceEngine::default(),
+            #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+            current: None,
         }
     }
 }
 impl IntegerTranslator {
+    pub(super) fn observe(
+        &mut self,
+        decoded: DecodedInstruction,
+        cs: u16,
+        decode_cache: &mut crate::x86_decode::DecodeCache,
+    ) {
+        #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+        {
+            if self.engine != ExecutionEngine::NativeJit {
+                self.current = None;
+                return;
+            }
+            self.current = match decode_cache.integer_ir(cs, decoded.start_ip) {
+                Some(ir) => ir,
+                None => {
+                    let ir = native::translate(decoded);
+                    decode_cache.set_integer_ir(cs, decoded.start_ip, ir);
+                    ir
+                }
+            };
+            if self.current.is_none() {
+                self.cache.barrier();
+            }
+        }
+        #[cfg(not(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"))))]
+        let _ = (decoded, cs, decode_cache);
+    }
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    pub(super) fn set_artifact_store(
+        &mut self,
+        store: Option<std::sync::Arc<dyn native_jit::ArtifactStore>>,
+    ) {
+        self.cache.set_artifact_store(store);
+    }
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    pub(super) fn artifact_store(&self) -> Option<std::sync::Arc<dyn native_jit::ArtifactStore>> {
+        self.cache.artifact_store()
+    }
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
     pub(super) fn operation(
         &self,
@@ -75,6 +123,12 @@ impl IntegerTranslator {
                 executed: stats.executed,
                 failures: stats.failures,
                 cache_resets: stats.cache_resets,
+                blocks_compiled: stats.blocks_compiled,
+                blocks_executed: stats.blocks_executed,
+                checkpoint_hits: stats.checkpoint_hits,
+                block_invalidations: stats.block_invalidations,
+                persistent_hits: stats.persistent_hits,
+                persistent_writes: stats.persistent_writes,
             }
         }
         #[cfg(not(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"))))]
@@ -82,10 +136,11 @@ impl IntegerTranslator {
             JitStatistics::default()
         }
     }
+    #[inline]
     pub(super) fn execute(&mut self, regs: &mut Registers, decoded: DecodedInstruction) -> bool {
         #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
         {
-            let Some(instruction) = native::translate(decoded) else {
+            let Some(instruction) = self.current.take() else {
                 return false;
             };
             let mut state = native_jit::IntegerState {
@@ -94,7 +149,12 @@ impl IntegerTranslator {
                 ],
                 flags: regs.eflags,
             };
-            if !self.cache.execute(instruction, &mut state) {
+            let domain = u64::from(regs.cs) << 32;
+            let site = native_jit::TraceSite {
+                current: domain | u64::from(decoded.start_ip),
+                next: domain | u64::from(decoded.next_ip),
+            };
+            if !self.cache.execute(site, instruction, &mut state) {
                 return false;
             }
             [

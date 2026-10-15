@@ -8,6 +8,13 @@ mod win16_com_request_executor;
 mod win16_ole_native;
 mod win16_storage_ole;
 mod environment;
+mod jit_cache;
+
+impl WindowsHost {
+    pub fn jit_artifact_store(&self) -> Option<std::sync::Arc<dyn runtime::JitArtifactStore>> {
+        jit_cache::open_default()
+    }
+}
 mod process_command_line;
 pub use process_command_line::current_command_line;
 #[path = "windows/error_mapping.rs"]

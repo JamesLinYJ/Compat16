@@ -30,6 +30,7 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_Networking_WinSock",
     "Win32_Security",
     "Win32_Security_Authorization",
+    "Win32_Security_Cryptography",
     "Win32_System_Shutdown",
     "Win32_Storage_FileSystem",
     "Win32_Storage_Xps",
