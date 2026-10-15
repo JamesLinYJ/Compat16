@@ -77,7 +77,6 @@ fn multiply_uses_complete_product_and_declines_classes_and_range_results() {
     assert_eq!(result.value, value((1 << 63) + 3, 0x3fff));
     assert!(result.c1);
     for left in [
-        value(0, 0),
         value(1, 0),
         value(1 << 63, 0),
         value(1 << 63, 0x7fff),

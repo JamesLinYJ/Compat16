@@ -13,3 +13,6 @@ zerocopy.workspace = true
 
 [target.'cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))'.dependencies]
 compat16-jit = { path = "../jit" }
+
+[dev-dependencies]
+compat16-jit = { path = "../jit" }

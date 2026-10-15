@@ -4,6 +4,8 @@
 //! self-modifying/remapped code cannot reuse a different instruction's body.
 
 #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+mod floating;
+#[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
 mod loops;
 #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
 mod mapping;
@@ -20,6 +22,9 @@ pub enum ExecutionEngine {
 }
 #[derive(Clone, Copy, Debug, Default)]
 pub struct JitStatistics {
+    pub float_blocks_compiled: u64,
+    pub float_blocks_executed: u64,
+    pub float_block_instructions: u64,
     pub float_compiled: u64,
     pub float_executed: u64,
     pub float_fallbacks: u64,
@@ -105,7 +110,9 @@ impl IntegerTranslator {
                     ir
                 }
             };
-            self.loops.profile.observe(cs, decoded, self.current.is_some());
+            self.loops
+                .profile
+                .observe(cs, decoded, self.current.is_some());
             if self.current.is_none() {
                 self.cache.barrier();
             }
@@ -121,6 +128,7 @@ impl IntegerTranslator {
         self.loops.cache.set_artifact_store(store.clone());
         self.loops.memory.set_artifact_store(store.clone());
         self.loops.regions.set_artifact_store(store.clone());
+        self.loops.float_blocks.set_artifact_store(store.clone());
         self.floating.set_artifact_store(store.clone());
         self.cache.set_artifact_store(store);
     }
@@ -159,9 +167,15 @@ impl IntegerTranslator {
             let stats = self
                 .cache
                 .statistics()
-                .combined(self.loops.cache.statistics()).combined(self.loops.memory.statistics())
-                .combined(self.loops.regions.statistics()).combined(self.floating.statistics());
+                .combined(self.loops.cache.statistics())
+                .combined(self.loops.memory.statistics())
+                .combined(self.loops.regions.statistics())
+                .combined(self.floating.statistics())
+                .combined(self.loops.float_blocks.statistics());
             JitStatistics {
+                float_blocks_compiled: stats.float_blocks_compiled,
+                float_blocks_executed: stats.float_blocks_executed,
+                float_block_instructions: stats.float_block_instructions,
                 float_compiled: stats.float_compiled,
                 float_executed: stats.float_executed,
                 float_fallbacks: stats.float_fallbacks,
@@ -197,20 +211,57 @@ impl IntegerTranslator {
             JitStatistics::default()
         }
     }
-    pub(crate) fn multiply_float(&mut self, left: crate::x87_state::Ext80,
-        right: crate::x87_state::Ext80, control: u16) -> Option<crate::x87_math::MathResult> {
+    pub(crate) fn binary_float(
+        &mut self,
+        operation: crate::x87_math::BinaryOp,
+        left: crate::x87_state::Ext80,
+        right: crate::x87_state::Ext80,
+        control: u16,
+    ) -> Option<crate::x87_math::MathResult> {
         #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
         {
-            if self.engine != ExecutionEngine::Jit { return None; }
+            if self.engine != ExecutionEngine::Jit {
+                return None;
+            }
             let convert = |v: crate::x87_state::Ext80| compat16_jit::Float80 {
-                significand: v.significand, sign_exponent: v.sign_exponent };
-            let result = self.floating.multiply(convert(left), convert(right), control)?;
-            Some(crate::x87_math::MathResult { value: crate::x87_state::Ext80 {
-                significand: result.value.significand, sign_exponent: result.value.sign_exponent },
-                exceptions: result.exceptions, c1: result.c1, range: None })
+                significand: v.significand,
+                sign_exponent: v.sign_exponent,
+            };
+            let result = self.floating.binary(
+                match operation {
+                    crate::x87_math::BinaryOp::Add => compat16_jit::FloatOperation::Add,
+                    crate::x87_math::BinaryOp::Sub => compat16_jit::FloatOperation::Subtract,
+                    crate::x87_math::BinaryOp::Mul => compat16_jit::FloatOperation::Multiply,
+                    crate::x87_math::BinaryOp::Div => compat16_jit::FloatOperation::Divide,
+                },
+                convert(left),
+                convert(right),
+                control,
+            )?;
+            Some(crate::x87_math::MathResult {
+                value: crate::x87_state::Ext80 {
+                    significand: result.value.significand,
+                    sign_exponent: result.value.sign_exponent,
+                },
+                exceptions: result.exceptions,
+                c1: result.c1,
+                range: None,
+            })
         }
         #[cfg(not(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"))))]
-        { let _ = (left, right, control); None }
+        {
+            let _ = (operation, left, right, control);
+            None
+        }
+    }
+    #[cfg(all(test, windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    pub(crate) fn multiply_float(
+        &mut self,
+        left: crate::x87_state::Ext80,
+        right: crate::x87_state::Ext80,
+        control: u16,
+    ) -> Option<crate::x87_math::MathResult> {
+        self.binary_float(crate::x87_math::BinaryOp::Mul, left, right, control)
     }
     #[inline]
     pub(super) fn execute(&mut self, regs: &mut Registers, decoded: DecodedInstruction) -> bool {
@@ -377,10 +428,20 @@ impl crate::Cpu {
     /// Opt-in 16/32-bit checked segment execution, including RAM windows.
     /// The machine owner excludes per-instruction observers and services
     /// pending events first. No paging or MMIO access is coalesced.
-    pub fn try_run_jit_loop(&mut self, memory:&mut impl guest_core::GuestMemory, segments:&impl crate::SegmentResolver, budget:u32)->Result<Option<u32>,crate::CpuError>{
-        #[cfg(all(windows,any(target_arch="aarch64",target_arch="x86_64")))]
-        {self.try_loop_with_context(memory,segments,budget)}
-        #[cfg(not(all(windows,any(target_arch="aarch64",target_arch="x86_64"))))]
-        {let _=(memory,segments,budget);Ok(None)}
+    pub fn try_run_jit_loop(
+        &mut self,
+        memory: &mut impl guest_core::GuestMemory,
+        segments: &impl crate::SegmentResolver,
+        budget: u32,
+    ) -> Result<Option<u32>, crate::CpuError> {
+        #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+        {
+            self.try_loop_with_context(memory, segments, budget)
+        }
+        #[cfg(not(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"))))]
+        {
+            let _ = (memory, segments, budget);
+            Ok(None)
+        }
     }
 }

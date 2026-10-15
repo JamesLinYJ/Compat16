@@ -1,50 +1,103 @@
-//! An exact 64x64 -> 128-bit significand product, using host integer multiply
-//! high/low operations. Explicit discarded bits drive all x87 PC/RC modes.
-use crate::floating::FloatPlan;
-use cranelift_codegen::ir::{InstBuilder, MemFlagsData, condcodes::IntCC, types};
+//! Integer lowering of raw extended arithmetic. The pair (significand, tail)
+//! retains 64 explicit bits plus guard/sticky information through PC/RC.
+//! Host float types cannot express x87's precision and exponent combination.
+mod addition;
+mod division;
+use crate::floating::{FloatOperation, FloatPlan};
+use cranelift_codegen::ir::{InstBuilder, MemFlagsData, Value, condcodes::IntCC, types};
 use cranelift_frontend::FunctionBuilder;
 
-pub(super) fn emit(b: &mut FunctionBuilder<'_>, plan: FloatPlan) {
-    let entry = b.current_block().expect("float entry");
-    let pointer = b.block_params(entry)[0];
-    let left = b
+pub(super) struct ResultValues {
+    pub significand: Value,
+    pub field: Value,
+    pub flags: Value,
+    pub valid: Value,
+}
+pub(super) fn supported(b: &mut FunctionBuilder<'_>, significand: Value, field: Value) -> Value {
+    let exponent = b.ins().band_imm_u(field, 0x7fff);
+    let nonzero = b.ins().icmp_imm_s(IntCC::NotEqual, exponent, 0);
+    let finite = b
         .ins()
-        .load(types::I64, MemFlagsData::trusted(), pointer, 0);
-    let right = b
-        .ins()
-        .load(types::I64, MemFlagsData::trusted(), pointer, 8);
-    let fields = b
-        .ins()
-        .load(types::I64, MemFlagsData::trusted(), pointer, 16);
-    let lexp = b.ins().band_imm_u(fields, 0x7fff);
-    let rexp = b.ins().ushr_imm_u(fields, 16);
-    let rexp = b.ins().band_imm_u(rexp, 0x7fff);
-    let exponent = b.ins().iadd(lexp, rexp);
-    let exponent = b.ins().iadd_imm_s(exponent, -16383);
-    let low = b.ins().imul(left, right);
-    let high = b.ins().umulhi(left, right);
-    let top = b.ins().ushr_imm_u(high, 63);
-    let twice = b.ins().icmp_imm_s(IntCC::NotEqual, top, 0);
-    let shifted = b.ins().ishl_imm_u(high, 1);
-    let spill = b.ins().ushr_imm_u(low, 63);
-    let shifted = b.ins().bor(shifted, spill);
-    let significand = b.ins().select(twice, high, shifted);
-    let shifted_low = b.ins().ishl_imm_u(low, 1);
-    let remainder = b.ins().select(twice, low, shifted_low);
-    let exponent = b.ins().iadd(exponent, top);
-    let in_range = b.ins().icmp_imm_s(IntCC::SignedGreaterThan, exponent, 0);
+        .icmp_imm_s(IntCC::UnsignedLessThan, exponent, 0x7fff);
+    let explicit = b.ins().icmp_imm_s(IntCC::SignedLessThan, significand, 0);
+    let normal = b.ins().band(nonzero, finite);
+    let normal = b.ins().band(normal, explicit);
+    let combined = b.ins().bor(significand, exponent);
+    let zero = b.ins().icmp_imm_s(IntCC::Equal, combined, 0);
+    b.ins().bor(normal, zero)
+}
+pub(super) fn arithmetic(
+    b: &mut FunctionBuilder<'_>,
+    plan: FloatPlan,
+    left: Value,
+    right: Value,
+    lfield: Value,
+    rfield: Value,
+) -> ResultValues {
+    let lexp = b.ins().band_imm_u(lfield, 0x7fff);
+    let rexp = b.ins().band_imm_u(rfield, 0x7fff);
+    let sign = b.ins().bxor(lfield, rfield);
+    let sign = b.ins().band_imm_u(sign, 0x8000);
+    let (sig, tail, exponent, sign) = match plan.operation {
+        FloatOperation::Add | FloatOperation::Subtract => {
+            addition::emit(b, plan, left, right, (lexp, rexp), lfield, rfield)
+        }
+        FloatOperation::Multiply => {
+            let exponent = b.ins().iadd(lexp, rexp);
+            let exponent = b.ins().iadd_imm_s(exponent, -16383);
+            let low = b.ins().imul(left, right);
+            let high = b.ins().umulhi(left, right);
+            let top = b.ins().ushr_imm_u(high, 63);
+            let twice = b.ins().icmp_imm_s(IntCC::NotEqual, top, 0);
+            let shifted = b.ins().ishl_imm_u(high, 1);
+            let spill = b.ins().ushr_imm_u(low, 63);
+            let shifted = b.ins().bor(shifted, spill);
+            let sig = b.ins().select(twice, high, shifted);
+            let shifted_low = b.ins().ishl_imm_u(low, 1);
+            let tail = b.ins().select(twice, low, shifted_low);
+            let exponent = b.ins().iadd(exponent, top);
+            // A zero operand gives an exact signed zero at every precision.
+            let is_zero = b.ins().icmp_imm_s(IntCC::Equal, sig, 0);
+            let zero = b.ins().iconst(types::I64, 0);
+            let exponent = b.ins().select(is_zero, zero, exponent);
+            (sig, tail, exponent, sign)
+        }
+        FloatOperation::Divide => {
+            let (sig, tail, exponent) = division::emit(b, left, right, lexp, rexp);
+            (sig, tail, exponent, sign)
+        }
+    };
+    let mut result = round(b, plan, sig, tail, exponent, sign);
+    let lvalid = supported(b, left, lfield);
+    let rvalid = supported(b, right, rfield);
+    let inputs = b.ins().band(lvalid, rvalid);
+    result.valid = b.ins().band(result.valid, inputs);
+    if plan.operation == FloatOperation::Divide {
+        let nonzero = b.ins().icmp_imm_s(IntCC::NotEqual, right, 0);
+        result.valid = b.ins().band(result.valid, nonzero);
+    }
+    result
+}
+fn round(
+    b: &mut FunctionBuilder<'_>,
+    plan: FloatPlan,
+    significand: Value,
+    remainder: Value,
+    exponent: Value,
+    sign: Value,
+) -> ResultValues {
+    let nonzero_exp = b.ins().icmp_imm_s(IntCC::SignedGreaterThan, exponent, 0);
     let below_max = b.ins().icmp_imm_s(IntCC::SignedLessThan, exponent, 0x7fff);
-    let in_range = b.ins().band(in_range, below_max);
+    let in_range = b.ins().band(nonzero_exp, below_max);
+    let combined = b.ins().bor(significand, remainder);
+    let exact_zero = b.ins().icmp_imm_s(IntCC::Equal, combined, 0);
+    let in_range = b.ins().bor(in_range, exact_zero);
     let drop = 64 - plan.precision;
-    let discarded = b.ins().band_imm_u(significand, ((1u64 << drop) - 1) as i64);
+    let mask = (1u64 << drop) - 1;
+    let discarded = b.ins().band_imm_u(significand, mask as i64);
     let residue = b.ins().bor(discarded, remainder);
     let inexact = b.ins().icmp_imm_s(IntCC::NotEqual, residue, 0);
-    let truncation = b
-        .ins()
-        .band_imm_u(significand, !((1u64 << drop) - 1) as i64);
-    let rsign = b.ins().ushr_imm_u(fields, 16);
-    let sign = b.ins().bxor(fields, rsign);
-    let sign = b.ins().band_imm_u(sign, 0x8000);
+    let truncation = b.ins().band_imm_u(significand, !mask as i64);
     let negative = b.ins().icmp_imm_s(IntCC::NotEqual, sign, 0);
     let up = match plan.rounding {
         0 => {
@@ -85,35 +138,48 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, plan: FloatPlan) {
     let rounded = b.ins().select(carry, integer_bit, rounded);
     let carry = b.ins().uextend(types::I64, carry);
     let exponent = b.ins().iadd(exponent, carry);
+    let zero = b.ins().iconst(types::I64, 0);
+    let exponent = b.ins().select(exact_zero, zero, exponent);
     let final_in_range = b.ins().icmp_imm_s(IntCC::SignedLessThan, exponent, 0x7fff);
-    let mut valid = b.ins().band(in_range, final_in_range);
-    // Defensive validation of raw inputs also occurs inside the generated
-    // function; safe callers already exclude zero, NaN and pseudo encodings.
-    for (exponent, significand) in [(lexp, left), (rexp, right)] {
-        let normal = b.ins().icmp_imm_s(IntCC::UnsignedGreaterThan, exponent, 0);
-        let finite = b
-            .ins()
-            .icmp_imm_s(IntCC::UnsignedLessThan, exponent, 0x7fff);
-        let explicit = b.ins().icmp_imm_s(IntCC::SignedLessThan, significand, 0);
-        let normal = b.ins().band(normal, finite);
-        let normal = b.ins().band(normal, explicit);
-        valid = b.ins().band(valid, normal);
-    }
-    let success = b.create_block();
-    let fallback = b.create_block();
-    b.set_cold_block(fallback);
-    b.ins().brif(valid, success, &[], fallback, &[]);
-    b.switch_to_block(success);
-    let sign_exponent = b.ins().bor(sign, exponent);
+    let valid = b.ins().band(in_range, final_in_range);
+    let field = b.ins().bor(sign, exponent);
     let flags = b.ins().uextend(types::I64, inexact);
     let flags = b.ins().ishl_imm_u(flags, 5);
     let c1 = b.ins().uextend(types::I64, up);
     let c1 = b.ins().ishl_imm_u(c1, 16);
     let flags = b.ins().bor(flags, c1);
-    b.ins().store(MemFlagsData::trusted(), rounded, pointer, 24);
+    ResultValues {
+        significand: rounded,
+        field,
+        flags,
+        valid,
+    }
+}
+pub(super) fn emit(b: &mut FunctionBuilder<'_>, plan: FloatPlan) {
+    let entry = b.current_block().expect("float entry");
+    let pointer = b.block_params(entry)[0];
+    let left = b
+        .ins()
+        .load(types::I64, MemFlagsData::trusted(), pointer, 0);
+    let right = b
+        .ins()
+        .load(types::I64, MemFlagsData::trusted(), pointer, 8);
+    let fields = b
+        .ins()
+        .load(types::I64, MemFlagsData::trusted(), pointer, 16);
+    let rfield = b.ins().ushr_imm_u(fields, 16);
+    let result = arithmetic(b, plan, left, right, fields, rfield);
+    let success = b.create_block();
+    let fallback = b.create_block();
+    b.set_cold_block(fallback);
+    b.ins().brif(result.valid, success, &[], fallback, &[]);
+    b.switch_to_block(success);
     b.ins()
-        .store(MemFlagsData::trusted(), sign_exponent, pointer, 32);
-    b.ins().store(MemFlagsData::trusted(), flags, pointer, 40);
+        .store(MemFlagsData::trusted(), result.significand, pointer, 24);
+    b.ins()
+        .store(MemFlagsData::trusted(), result.field, pointer, 32);
+    b.ins()
+        .store(MemFlagsData::trusted(), result.flags, pointer, 40);
     let one = b.ins().iconst(types::I32, 1);
     b.ins().return_(&[one]);
     b.switch_to_block(fallback);

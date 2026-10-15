@@ -14,6 +14,12 @@ use std::sync::Arc;
 pub(crate) type Function = unsafe extern "C" fn(*mut IntegerState, *mut IntegerState);
 pub(crate) type MemoryFunction =
     unsafe extern "C" fn(*mut IntegerState, *mut u8, u32, u32, u32) -> u64;
+pub(crate) type FloatBlockFunction =
+    unsafe extern "C" fn(*mut crate::float_blocks::BlockState, *mut u8, u32) -> u32;
+pub(crate) enum FloatCompilation<'a> {
+    Scalar(crate::floating::FloatPlan),
+    Block(&'a crate::FloatBlock, crate::floating::FloatPlan),
+}
 pub(crate) type FloatFunction = unsafe extern "C" fn(*mut crate::floating::FloatState) -> u32;
 pub(crate) type LoopFunction = unsafe extern "C" fn(*mut IntegerState, u32) -> u64;
 pub(crate) type RegionFunction = unsafe extern "C" fn(*mut IntegerState, u32, u32, *mut u32) -> u64;
@@ -79,10 +85,32 @@ impl Compiler {
         &mut self,
         plan: crate::floating::FloatPlan,
     ) -> Result<Compiled<FloatFunction>, String> {
-        let code = self.compile_body(&[], None, None, None, Some(plan))?;
+        let code =
+            self.compile_body(&[], None, None, None, Some(FloatCompilation::Scalar(plan)))?;
         // SAFETY: Float emission has exactly the private one-pointer C signature.
         Ok(Compiled {
             function: unsafe { std::mem::transmute::<*const u8, FloatFunction>(code.function) },
+            cache_hit: code.cache_hit,
+            cache_writes: code.cache_writes,
+        })
+    }
+    pub fn compile_float_block(
+        &mut self,
+        block: &crate::FloatBlock,
+        plan: crate::floating::FloatPlan,
+    ) -> Result<Compiled<FloatBlockFunction>, String> {
+        let code = self.compile_body(
+            &[],
+            None,
+            None,
+            None,
+            Some(FloatCompilation::Block(block, plan)),
+        )?;
+        // SAFETY: Block emission has the exact owned-state/buffer/budget C signature.
+        Ok(Compiled {
+            function: unsafe {
+                std::mem::transmute::<*const u8, FloatBlockFunction>(code.function)
+            },
             cache_hit: code.cache_hit,
             cache_writes: code.cache_writes,
         })
@@ -93,7 +121,7 @@ impl Compiler {
         loop_condition: Option<Option<Condition>>,
         memory: Option<&crate::MemoryLoop>,
         region: Option<&crate::Region>,
-        floating: Option<crate::floating::FloatPlan>,
+        floating: Option<FloatCompilation<'_>>,
     ) -> Result<Compiled<*const u8>, String> {
         if self.module.is_none() {
             self.module = Some(JITModule::new(
@@ -141,6 +169,13 @@ impl Compiler {
                 .params
                 .extend([AbiParam::new(types::I32), AbiParam::new(pointer_type)]);
         }
+        if matches!(&floating, Some(FloatCompilation::Block(..))) {
+            context
+                .func
+                .signature
+                .params
+                .extend([AbiParam::new(pointer_type), AbiParam::new(types::I32)]);
+        }
         if floating.is_some() {
             context
                 .func
@@ -166,7 +201,14 @@ impl Compiler {
             builder.seal_block(entry);
             let state_pointer = builder.block_params(entry)[0];
             if let Some(plan) = floating {
-                crate::float_lowering::emit(&mut builder, plan);
+                match plan {
+                    FloatCompilation::Scalar(plan) => {
+                        crate::float_lowering::emit(&mut builder, plan)
+                    }
+                    FloatCompilation::Block(block, plan) => {
+                        crate::float_block_lowering::emit(&mut builder, block, plan)
+                    }
+                }
             } else if let Some(region) = region {
                 crate::region_lowering::emit(&mut builder, region);
             } else if let Some(memory) = memory {

@@ -7,7 +7,7 @@ const CODE: u32 = 0x10000;
 const PROGRAM: &[u8] = &[
     0x83, 0xc0, 3, 0xa8, 1, 0x74, 3, 0x83, 0xd3, 7, 0x49, 0x75, 0xf3, 0xf4,
 ];
-fn machine(bits: u32, engine: ExecutionEngine) -> (Cpu, OwnedMemory) {
+pub(super) fn machine(bits: u32, engine: ExecutionEngine) -> (Cpu, OwnedMemory) {
     let mut cpu = Cpu::new(Registers {
         eax: 0xabcd_1234,
         ebx: 0x9876_ffff,
@@ -52,7 +52,7 @@ fn machine(bits: u32, engine: ExecutionEngine) -> (Cpu, OwnedMemory) {
     memory.write(PhysAddr(CODE), PROGRAM).unwrap();
     (cpu, memory)
 }
-fn run(cpu: &mut Cpu, memory: &mut OwnedMemory, budget: u32) -> Option<u32> {
+pub(super) fn run(cpu: &mut Cpu, memory: &mut OwnedMemory, budget: u32) -> Option<u32> {
     cpu.try_run_jit_loop(memory, &RealModeSegments, budget)
         .unwrap()
 }

@@ -1,0 +1,139 @@
+use super::*;
+fn value(significand: u64, sign_exponent: u16) -> Float80 {
+    Float80 {
+        significand,
+        sign_exponent,
+    }
+}
+fn input() -> FloatRegisters {
+    FloatRegisters {
+        values: [value(1 << 63, 0x3fff); 8],
+        status: 0x4100,
+        tags: 0xfff0,
+        control: 0x37f,
+    }
+}
+fn warm(cache: &mut FloatBlockCache, block: &FloatBlock) {
+    compiler::Compiler::default()
+        .compile_float_block(
+            block,
+            crate::floating::FloatPlan {
+                operation: FloatOperation::Add,
+                precision: 64,
+                rounding: 0,
+            },
+        )
+        .unwrap();
+    for _ in 0..8 {
+        cache.execute(block, &mut input(), &mut [0; 256], 32);
+    }
+    assert_eq!(cache.statistics().failures, 0);
+}
+#[test]
+fn float_blocks_keep_exact_prefixes_stack_tags_and_owned_ram() {
+    let block = FloatBlock::new(vec![
+        FloatInstruction::Load80 { offset: 7 },
+        FloatInstruction::Binary {
+            operation: FloatOperation::Multiply,
+            destination: 0,
+            source: 1,
+            reverse: false,
+            pop: false,
+        },
+        FloatInstruction::Binary {
+            operation: FloatOperation::Add,
+            destination: 0,
+            source: 1,
+            reverse: false,
+            pop: false,
+        },
+        FloatInstruction::Store80 {
+            offset: 33,
+            pop: true,
+        },
+    ])
+    .unwrap();
+    let mut cache = FloatBlockCache::default();
+    warm(&mut cache, &block);
+    for budget in 1..=6 {
+        let mut state = input();
+        state.status |= 0x8080; // Raw restored summary with no pending flags.
+        let mut bytes = [0xa5u8; 256];
+        bytes[7..15].copy_from_slice(&((1u64 << 63) + 1).to_le_bytes());
+        bytes[15..17].copy_from_slice(&0x3fffu16.to_le_bytes());
+        let original = bytes;
+        let n = cache
+            .execute(&block, &mut state, &mut bytes, budget)
+            .unwrap();
+        assert_eq!(n, budget.min(4));
+        assert_eq!(state.status & 0x8080, 0);
+        assert_eq!(state.status & 0x3800, if budget < 4 { 7 << 11 } else { 0 });
+        if budget < 4 {
+            assert_eq!(bytes, original);
+            assert_eq!(state.tags & (3 << 14), 0);
+        } else {
+            assert_eq!(state.tags, 0xfff0);
+            assert_eq!(&bytes[33..41], &(1u64 << 63).to_le_bytes());
+            assert_eq!(&bytes[41..43], &0x4000u16.to_le_bytes());
+            bytes[33..43].copy_from_slice(&original[33..43]);
+            assert_eq!(bytes, original);
+        }
+    }
+}
+#[test]
+fn float_blocks_stop_before_special_or_empty_operands_and_after_unmasked_precision() {
+    let instruction = FloatInstruction::Binary {
+        operation: FloatOperation::Multiply,
+        destination: 0,
+        source: 1,
+        reverse: false,
+        pop: false,
+    };
+    let block = FloatBlock::new(vec![instruction; 3]).unwrap();
+    let mut cache = FloatBlockCache::default();
+    warm(&mut cache, &block);
+    let mut state = input();
+    state.tags |= 3;
+    let before = state;
+    assert_eq!(cache.execute(&block, &mut state, &mut [0; 256], 3), Some(0));
+    assert_eq!(state, before);
+    let mut state = input();
+    state.values[0] = value(1, 0);
+    let before = state;
+    assert_eq!(cache.execute(&block, &mut state, &mut [0; 256], 3), Some(0));
+    assert_eq!(state, before);
+    let mut state = input();
+    state.control &= !32;
+    state.values[0] = value((1 << 63) + 1, 0x3fff);
+    state.values[1] = state.values[0];
+    assert_eq!(cache.execute(&block, &mut state, &mut [0; 256], 3), Some(1));
+    assert_eq!(state.values[0], value((1 << 63) + 2, 0x3fff));
+    assert_eq!(state.status & 0x80a0, 0x80a0);
+    let before = state;
+    assert_eq!(cache.execute(&block, &mut state, &mut [0; 256], 3), None);
+    assert_eq!(state, before);
+}
+#[test]
+fn float_blocks_validate_offsets_indices_lengths_and_restore_persistent_artifacts() {
+    assert!(FloatBlock::new(vec![FloatInstruction::Exchange(8); 2]).is_none());
+    assert!(FloatBlock::new(vec![FloatInstruction::Load80 { offset: 247 }; 2]).is_none());
+    assert!(FloatBlock::new(vec![FloatInstruction::One; 33]).is_none());
+    assert!(FloatBlock::new(vec![FloatInstruction::One]).is_none());
+    let block = FloatBlock::new(vec![
+        FloatInstruction::LoadRegister(0),
+        FloatInstruction::StoreRegister {
+            destination: 1,
+            pop: true,
+        },
+    ])
+    .unwrap();
+    let store = Arc::new(crate::tests::Store::default());
+    let run = || {
+        let mut cache = FloatBlockCache::default();
+        cache.set_artifact_store(Some(store.clone()));
+        warm(&mut cache, &block);
+        cache.statistics()
+    };
+    assert!(run().persistent_writes > 0);
+    assert!(run().persistent_hits > 0);
+}

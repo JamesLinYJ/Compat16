@@ -5,11 +5,18 @@
 
 mod artifact;
 mod compiler;
+mod float_block_lowering;
+#[cfg(test)]
+mod float_block_tests;
+mod float_blocks;
 mod float_lowering;
 #[cfg(test)]
 mod float_tests;
 mod floating;
-pub use floating::{Float80, FloatCache, FloatResult};
+pub use float_blocks::{
+    FloatBlock, FloatBlockCache, FloatInstruction, FloatRegisters, MAX_FLOAT_BLOCK_INSTRUCTIONS,
+};
+pub use floating::{Float80, FloatCache, FloatOperation, FloatResult};
 mod ir;
 mod loops;
 mod memory;
@@ -46,6 +53,9 @@ const MAX_ENTRIES: usize = 1024;
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Statistics {
+    pub float_blocks_compiled: u64,
+    pub float_blocks_executed: u64,
+    pub float_block_instructions: u64,
     pub float_compiled: u64,
     pub float_executed: u64,
     pub float_fallbacks: u64,
@@ -79,6 +89,15 @@ pub struct Statistics {
 impl Statistics {
     pub fn combined(self, other: Self) -> Self {
         Self {
+            float_blocks_compiled: self
+                .float_blocks_compiled
+                .saturating_add(other.float_blocks_compiled),
+            float_blocks_executed: self
+                .float_blocks_executed
+                .saturating_add(other.float_blocks_executed),
+            float_block_instructions: self
+                .float_block_instructions
+                .saturating_add(other.float_block_instructions),
             float_compiled: self.float_compiled.saturating_add(other.float_compiled),
             float_executed: self.float_executed.saturating_add(other.float_executed),
             float_fallbacks: self.float_fallbacks.saturating_add(other.float_fallbacks),

@@ -1,4 +1,4 @@
-//! Exact extended-precision normal multiplication. Exceptional classes and
+//! Exact extended-precision arithmetic. Exceptional classes and
 //! range results decline before publishing output to the caller.
 use crate::{
     ArtifactStore, Statistics,
@@ -17,8 +17,17 @@ pub struct FloatResult {
     pub exceptions: u16,
     pub c1: bool,
 }
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum FloatOperation {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+}
+
 #[derive(Clone, Copy)]
 pub(crate) struct FloatPlan {
+    pub operation: FloatOperation,
     pub precision: u8,
     pub rounding: u8,
 }
@@ -34,14 +43,14 @@ enum Entry {
 }
 pub struct FloatCache {
     compiler: Compiler,
-    entries: [Entry; 12],
+    entries: [Entry; 48],
     statistics: Statistics,
 }
 impl Default for FloatCache {
     fn default() -> Self {
         Self {
             compiler: Compiler::default(),
-            entries: [Entry::Cold(0); 12],
+            entries: [Entry::Cold(0); 48],
             statistics: Statistics::default(),
         }
     }
@@ -53,16 +62,20 @@ impl FloatCache {
     pub fn set_artifact_store(&mut self, store: Option<Arc<dyn ArtifactStore>>) {
         self.compiler.store = store;
     }
-    /// Produces the same 80-bit normal product, precision flag and C1 as an
-    /// extended-precision multiply with x87 PC/RC. No host FP mode is used.
-    /// None means the owner must use its full software arithmetic semantics.
+    /// Exact 80-bit normal arithmetic, including zero results and PC/RC.
+    /// None requests the owner's full software semantics, without publishing
+    /// a partial result or changing the host floating-point environment.
     pub fn multiply(&mut self, left: Float80, right: Float80, control: u16) -> Option<FloatResult> {
-        let normal = |v: Float80| {
-            v.sign_exponent & 0x7fff != 0
-                && v.sign_exponent & 0x7fff != 0x7fff
-                && v.significand >> 63 != 0
-        };
-        if !normal(left) || !normal(right) {
+        self.binary(FloatOperation::Multiply, left, right, control)
+    }
+    pub fn binary(
+        &mut self,
+        operation: FloatOperation,
+        left: Float80,
+        right: Float80,
+        control: u16,
+    ) -> Option<FloatResult> {
+        if !supported(left) || !supported(right) {
             return None;
         }
         let (precision, index) = match (control >> 8) & 3 {
@@ -71,7 +84,7 @@ impl FloatCache {
             _ => (64, 2),
         };
         let rounding = ((control >> 10) & 3) as u8;
-        let index = index * 4 + usize::from(rounding);
+        let index = operation as usize * 12 + index * 4 + usize::from(rounding);
         let function = match self.entries[index] {
             Entry::Compiled(function) => function,
             Entry::Rejected => return None,
@@ -81,6 +94,7 @@ impl FloatCache {
                     return None;
                 }
                 match self.compiler.compile_float(FloatPlan {
+                    operation,
                     precision,
                     rounding,
                 }) {
@@ -144,4 +158,10 @@ impl Drop for FloatCache {
             self.compiler.clear();
         }
     }
+}
+
+fn supported(value: Float80) -> bool {
+    let exponent = value.sign_exponent & 0x7fff;
+    (exponent != 0 && exponent != 0x7fff && value.significand >> 63 != 0)
+        || (exponent == 0 && value.significand == 0)
 }

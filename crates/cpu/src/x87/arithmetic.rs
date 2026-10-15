@@ -155,10 +155,10 @@ fn execute_binary(
         _ => return Ok(false),
     };
     // Checked operand access and x87 stack/exception selection stay here.
-    // The independent JIT only computes normal 80-bit products; cold and
+    // The independent JIT only computes raw 80-bit arithmetic; cold and
     // exceptional paths reuse the full APFloat implementation exactly once.
-    let accelerated = if operation == BinaryOp::Mul && input_flags == 0 {
-        jit.multiply_float(lhs, rhs, state.control_word)
+    let accelerated = if input_flags == 0 {
+        jit.binary_float(operation, lhs, rhs, state.control_word)
     } else { None };
     let result = accelerated.unwrap_or_else(|| x87_math::binary_with_input_flags(
         operation, lhs, rhs, state.control_word, input_flags));

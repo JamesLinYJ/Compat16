@@ -5,6 +5,7 @@ use super::*;
 mod protected_memory;
 mod linked;
 mod floating;
+mod float_blocks;
 use crate::ExecutionEngine;
 use crate::SegmentResolver;
 use crate::execution_boundary::{ExecutionBoundaryReport, ExecutionProgress};

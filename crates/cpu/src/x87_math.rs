@@ -13,6 +13,8 @@ mod sqrt;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod jit_tests;
 
 use core::cmp::Ordering;
 
@@ -412,7 +414,7 @@ fn range_exception_flags(input_flags: u16, range: RegisterRangeResult) -> u16 {
 }
 
 fn exact_cancellation(op: BinaryOp, lhs: ApX87, rhs: ApX87) -> bool {
-    if !lhs.is_finite_non_zero() || !rhs.is_finite_non_zero() {
+    if !lhs.is_finite() || !rhs.is_finite() {
         return false;
     }
     match op {

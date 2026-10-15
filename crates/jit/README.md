@@ -79,19 +79,34 @@ format, and it does not claim Prism's optimization coverage.
   Observed guest successors guide conditional edge order. Linking currently
   covers register integer blocks; memory and x87 operations exit the region
   precisely and retain their existing checked execution paths.
-- `FloatCache` compiles normal x87 multiplication using an exact 64-by-64-bit
-  integer product. Host multiply-low/multiply-high instructions retain all
-  128 product bits; explicit rounding produces an 80-bit result with 24/53/64
-  significant-bit precision, four rounding modes, PE and C1. It never substitutes
-  host `f64` for x87 arithmetic or changes the host FP environment. Normal
-  results avoid the APFloat arithmetic call; zero, subnormal, NaN, infinity,
-  unsupported encodings and overflow/underflow continue through that existing
-  implementation. Stack reads/pops, checked memory source conversion, saved
-  pointers, CR0 availability, pending exceptions and retirement stay in the CPU
-  x87 executor. This also covers FMULP and FIMUL through the shared multiply
-  boundary. No x87 instruction boundary is coalesced by this fast path.
+- `FloatCache` compiles x87 add/subtract/multiply/divide on normal finite
+  operands and signed zeros. Addition aligns a jammed 128-bit significand and
+  normalizes deep cancellation. Multiplication retains the full 128-bit
+  product. Division uses two corrected radix-2^32 quotient digits and an exact
+  remainder, with a direct path for power-of-two divisors. Explicit rounding
+  preserves 24/53/64-bit precision, the extended exponent range, all four RC
+  modes, PE and C1. Host `f64` and the host FP environment are never used.
+  Subnormal, NaN, infinity, unsupported encoding and range cases retain the
+  existing APFloat implementation. Checked scalar memory conversion and
+  exception precedence stay in the CPU x87 executor, including integer-memory,
+  reversed and popping arithmetic forms.
+- `FloatBlock` / `FloatBlockCache` compiles 2–32 consecutive x87 operations into
+  one SSA function: register arithmetic, FLD/FST/FSTP registers, FXCH, FLD1,
+  FLDZ, FCHS/FABS and raw 80-bit loads/stores. Each arithmetic instruction rounds
+  separately; this does not fuse operations or erase intermediate precision
+  exceptions. Budget, special-value, empty-stack and stack-full exits publish
+  the exact completed prefix. Unmasked PE commits its rounded result, records
+  ES/B and exits before the next waiting instruction. Tags, TOP, C1, sticky
+  status and saved instruction/data pointers retain their architectural roles.
+  The CPU rechecks CR0 availability, pending exceptions, model, code bytes,
+  segment permissions and event boundaries before every entry. RAM access uses
+  fixed validated offsets into an exclusive 256-byte snapshot. The CPU currently
+  accepts absolute addresses within one certified data window, rejects code
+  aliases, and publishes RAM before CPU state. Paging, observers, MMIO and CPL3
+  alignment checking retain ordinary stepping. Floating blocks do not link
+  across integer control-flow edges or compile transcendental operations.
 - Generated code addresses only exclusive nine-word integer states, bounded
-  owned checkpoint buffers, six-word floating arithmetic buffers and checked owned RAM windows. Guest register
+  owned checkpoint buffers, six-word scalar and nineteen-word block floating buffers, and checked owned RAM windows. Guest register
   values cannot become host pointers. AL/AH and 16-bit writes retain
   unaffected register bits. Arithmetic computes CF/PF/AF/ZF/SF/OF; INC/DEC
   retain CF, and logical operations retain the interpreter's undefined AF.
@@ -115,8 +130,10 @@ format, and it does not claim Prism's optimization coverage.
   own bounded 1,024-entry cache. Loop and checkpoint signatures have distinct
   compiler keys and share the same authenticated persistence contract.
   Linked regions use a separate 256-entry cache and become eligible after
-  eight dispatches. Floating multiplication has twelve precision/rounding
-  variants, each becoming eligible after 32 calls. They use the same compiler
+  eight dispatches. Scalar floating arithmetic has twelve precision/rounding
+  variants per operation, each eligible after 32 calls. Floating blocks use a
+  separate 256-entry cache with twelve variants and an eight-dispatch threshold.
+  They use the same compiler
   relocation, private code ownership and authenticated persistence contracts.
 - Cranelift publishes writable code as executable and synchronizes the native
   instruction cache. Compilation/publication failure leaves interpretation
@@ -140,7 +157,7 @@ from supplying an unchecked memory-window address.
 
 `--jit-stats` reports taken/fallthrough guest branches, budget and RAM-window
 exits, direct loop-dispatch hits, linked-region instructions/direct links and x87
-multiply executions/range fallbacks. Loop outcomes are reconstructed once per
+arithmetic executions/range fallbacks and floating-block instruction counts. Loop outcomes are reconstructed once per
 quantum. Regions accumulate bounded software edge counts in SSA values and
 publish them once at exit. These are software
 execution counts, not hardware misprediction or performance-counter readings.
@@ -184,7 +201,7 @@ speedup are separate evidence. Generated-code call counts include block heads;
 checkpoint hits count later instructions applied without another generated-code call.
 The ordinary step retains per-instruction validation. The opt-in loop path
 validates code once per bounded quantum. Paging, multiple data segments in
-one RAM loop, indirect/far control transfers, most x87 arithmetic and I/O
+one RAM loop, indirect/far control transfers, exceptional/transcendental x87 and I/O
 compilation remain unsupported. Throughput measurements must identify their
 host architecture; AMD64 execution under ARM64 Windows emulation is not native
 AMD64 performance evidence.

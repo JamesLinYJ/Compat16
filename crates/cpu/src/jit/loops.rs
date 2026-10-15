@@ -17,6 +17,7 @@ pub(super) struct Loops {
     pub cache: LoopCache,
     pub memory: MemoryLoopCache,
     pub regions: RegionCache,
+    pub float_blocks: super::floating::Cache,
     pub profile: regions::Profile,
     probes: HashMap<u64, Probe>,
     resume: Option<(u16, Arc<Plan>, RegionPosition)>,
@@ -27,6 +28,7 @@ struct Probe {
     plan: Option<Arc<Plan>>,
 }
 enum Body {
+    Floating(super::floating::Block),
     Linked(regions::Linked),
     Registers(IntegerLoop),
     Memory {
@@ -209,8 +211,29 @@ impl Loops {
                 memory_segment = Some(segment);
                 instructions.push(BlockInstruction::Memory(ir));
             } else {
-                // No branch has been reached yet, so an unsupported operation
-                // leaves no alternate reachable block to discover or link.
+                if instructions.is_empty()
+                    && decoded.is_x87()
+                    && let Some((body, used)) = super::floating::Block::decode(
+                        &bytes[..length],
+                        ip,
+                        bits,
+                        protected_ip,
+                        model,
+                    )
+                {
+                    let plan = Arc::new(Plan {
+                        start: ip,
+                        bytes: bytes[..used].to_vec(),
+                        body: Body::Floating(body),
+                        sites: Vec::new(),
+                        model,
+                        bits,
+                        protected_ip,
+                    });
+                    probe.plan = Some(plan.clone());
+                    return Ok(Some(plan));
+                }
+                // No alternate reachable integer block exists past this barrier.
                 return Ok(None);
             }
         }
@@ -299,7 +322,7 @@ pub(super) fn branch_condition(mnemonic: Mnemonic) -> Option<Condition> {
         _ => return None,
     })
 }
-fn state(cpu: &Cpu) -> IntegerState {
+pub(super) fn state(cpu: &Cpu) -> IntegerState {
     IntegerState {
         registers: [
             cpu.regs.eax,
@@ -428,7 +451,7 @@ impl Cpu {
             },
         }))
     }
-    fn apply_loop(&mut self, state: IntegerState, retired: u32, ip: u32) {
+    pub(super) fn apply_loop(&mut self, state: IntegerState, retired: u32, ip: u32) {
         self.jit.cache.barrier();
         self.jit.current = None;
         self.jit.loops.profile.barrier();
@@ -507,6 +530,16 @@ impl Cpu {
         let Some(ready) = self.ready_loop(memory, resolver, max)? else {
             return Ok(None);
         };
+        if let Body::Floating(block) = &ready.plan.body {
+            return self.execute_float_block(
+                memory,
+                resolver,
+                block,
+                ready.address,
+                ready.plan.bytes.len(),
+                ready.budget,
+            );
+        }
         let Body::Memory { ir, segment } = &ready.plan.body else {
             return Ok(self.execute_register_loop(&ready));
         };

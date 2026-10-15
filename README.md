@@ -103,9 +103,10 @@ The architecture separates guest CPU execution, DOS / Win16 ABI translation, and
 
 Windows ARM64 and AMD64 builds use an independent, bounded Cranelift JIT for hot
 integer blocks, directly linked integer regions and budgeted checked RAM loops,
-with a per-user persistent compilation cache. Normal x87 multiplication also
-uses generated integer code to preserve its complete 80-bit result and x87
-rounding semantics. The CPU owns checked memory operands and exception
+with a per-user persistent compilation cache. Normal x87 add/subtract/multiply/divide use generated integer code with
+80-bit results and x87 rounding semantics. Bounded floating blocks keep register
+state in SSA across arithmetic, stack operations and certified raw 80-bit RAM
+loads/stores. The CPU owns checked memory operands and exception
 delivery; generated code computes only owned values and flags. Other instructions
 retain checked interpreter execution.
 Use `--cpu-engine interpreter` to disable JIT, `--no-jit-cache` to disable disk
