@@ -4,6 +4,8 @@ use super::super::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16GdiObjectsRequest {
+    CreateMetaFile { path: Option<Vec<u8>> },
+    CloseMetaFile { dc: u16 },
     GetMetaFile { path: Vec<u8> },
     PlayMetaFile { dc: u16, metafile: u16 },
     CopyMetaFile { metafile: u16, path: Option<Vec<u8>> },

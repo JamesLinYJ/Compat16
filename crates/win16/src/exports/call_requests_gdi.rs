@@ -15,7 +15,9 @@ pub(super) fn decode(
         return Ok(Some(Win16ApiRequest::PrintQueue(request)));
     }
     let request = match descriptor.id {
-        Win16ExportId::GdiGetMetaFile
+        Win16ExportId::GdiCreateMetaFile
+        | Win16ExportId::GdiCloseMetaFile
+        | Win16ExportId::GdiGetMetaFile
         | Win16ExportId::GdiPlayMetaFile
         | Win16ExportId::GdiCopyMetaFile
         | Win16ExportId::GdiDeleteMetaFile => {

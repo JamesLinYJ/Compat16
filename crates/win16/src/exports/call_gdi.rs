@@ -13,6 +13,12 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Win16ApiRequest, Win16Error> {
     let request = match export {
+        Win16ExportId::GdiCreateMetaFile => Win16ApiRequest::GdiObjects(
+            super::Win16GdiObjectsRequest::CreateMetaFile {
+                path: read_nullable_far_string(dword_argument(arguments, 0)?, selectors, memory)?,
+            }),
+        Win16ExportId::GdiCloseMetaFile => Win16ApiRequest::GdiObjects(
+            super::Win16GdiObjectsRequest::CloseMetaFile { dc: word_argument(arguments, 0)? }),
         Win16ExportId::GdiGetMetaFile => {
             Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::GetMetaFile {
                 path: super::read_far_string(dword_argument(arguments, 0)?, selectors, memory)?,

@@ -139,7 +139,10 @@ decl = { args = ["long"] }
 [[exports]]
 ordinal = 117
 name = "WindowFromDC"
-decl = { args = ["word"] }
+binding = { rust_id = "UserWindowFromDC", id_value = 1250, constant = "USER_WINDOW_FROM_DC" }
+[exports.call]
+returns = "word"
+params = [{ name = "dc", type = "U16" }]
 
 [[exports]]
 ordinal = 119

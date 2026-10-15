@@ -125,6 +125,7 @@ pub enum Win16WindowCall {
     IsZoomed { window: Win16WindowTarget },
     GetDlgCtrlId { window: Win16WindowTarget },
     GetDesktopWindow,
+    WindowFromDc { dc: crate::Win16HostDc },
     GetCursorPos,
     SetCursorPos { x: i16, y: i16 },
     ClipCursor { rect: Option<Win16HostRect> },

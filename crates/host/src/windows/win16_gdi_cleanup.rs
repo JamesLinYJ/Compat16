@@ -13,6 +13,7 @@ impl Win16DcState {
             Some(DcOrigin::Compatible | DcOrigin::Information | DcOrigin::Created) => {
                 self.delete(token)
             }
+            Some(DcOrigin::Metafile) => self.close_metafile(token).consumed,
             Some(DcOrigin::Screen) => self.release_screen(token),
             // USER owns window/paint/callback DC leases on its worker thread.
             // Task cleanup has already closed native windows and callbacks;

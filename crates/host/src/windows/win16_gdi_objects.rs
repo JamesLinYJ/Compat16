@@ -18,7 +18,7 @@ use runtime::{
 };
 use windows_sys::Win32::Graphics::Gdi::{
     CombineRgn, CreateRectRgn, CreateSolidBrush, DeleteObject, GetObjectType,
-    GetStockObject, SelectObject, HDC, HGDIOBJ, OBJ_BITMAP, OBJ_BRUSH, OBJ_REGION,
+    GetStockObject, SelectObject, HDC, HGDIOBJ, OBJ_BITMAP, OBJ_BRUSH, OBJ_REGION, OBJ_METADC,
     RGN_COPY, RGN_ERROR,
 };
 use super::win16_wing_dib_storage::Win16DibSectionOwner;
@@ -202,8 +202,12 @@ impl Win16Objects {
         // SAFETY: Both handles are live native GDI handles retained by their
         // host tables. GDI determines whether this object type is selectable.
         let object_type = unsafe { GetObjectType(object.handle) };
+        let recording = unsafe { GetObjectType(dc) } == OBJ_METADC as u32;
         let previous = unsafe { SelectObject(dc, object.handle) };
         if previous.is_null() || previous as isize == -1 { return Ok(None); }
+        // A metafile DC records a copy and returns TRUE, not a previous
+        // HGDIOBJ. Never intern that Boolean as a borrowed native object.
+        if recording { return Ok(Some(Win16SelectObjectResult::Recorded)); }
         if object_type == OBJ_REGION as u32 {
             return Ok(Some(Win16SelectObjectResult::RegionComplexity(previous as usize as u16)));
         }

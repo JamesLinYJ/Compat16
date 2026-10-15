@@ -257,6 +257,7 @@ pub enum Win16UserWindowRequest {
     },
 
     GetDesktopWindow,
+    WindowFromDC { dc: u16 },
 
     GetLastActivePopup {
         window: u16,

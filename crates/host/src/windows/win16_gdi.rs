@@ -2,6 +2,8 @@
 
 #[path = "win16_gdi_cleanup.rs"]
 mod cleanup;
+#[path = "win16_gdi_metafile.rs"]
+pub(super) mod metafile;
 #[path = "win16_gdi_update_region.rs"]
 mod update_region;
 #[path = "win16_gdi_dc_lease.rs"]
@@ -43,6 +45,7 @@ enum DcOrigin {
     Information,
     Screen,
     Created,
+    Metafile,
     Window { window: Win16HostWindow, lease: WindowDcLease },
 }
 
@@ -93,13 +96,14 @@ pub(super) struct Win16NativePaintInfo {
 
 struct Win16DcState {
     objects: BTreeMap<Win16HostDc, NativeDc>,
+    metafile_outputs: BTreeMap<Win16HostDc, Option<cap_std::fs::File>>,
     next_id: u64,
 }
 
 impl Win16Dcs {
     pub(super) fn with_text_codec(text_codec: super::guest_text::GuestTextCodec) -> Self {
         Self { text_codec, shared: Arc::new(Mutex::new(Win16DcState {
-            objects: BTreeMap::new(), next_id: 1,
+            objects: BTreeMap::new(), metafile_outputs: BTreeMap::new(), next_id: 1,
         })) }
     }
     pub(in crate::windows) fn text_codec(&self) -> super::guest_text::GuestTextCodec { self.text_codec }
@@ -462,6 +466,7 @@ impl Drop for Win16DcState {
                 DcOrigin::Compatible | DcOrigin::Information | DcOrigin::Created => {
                     DeleteDC(native.handle());
                 }
+                DcOrigin::Metafile => { metafile::discard(native.handle()); }
                 DcOrigin::Screen => { ReleaseDC(ptr::null_mut(), native.handle()); }
                 // A borrowed window HDC must be released by its USER worker.
                 DcOrigin::Window { .. } => {}

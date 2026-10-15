@@ -21,7 +21,9 @@ impl Win16State {
         let (return_selector, return_offset, return_sp) = return_to;
         let value = match request {
             Win16ApiRequest::GdiObjects(request @ (
-                win16_abi::Win16GdiObjectsRequest::GetMetaFile { .. }
+                win16_abi::Win16GdiObjectsRequest::CreateMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::CloseMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::GetMetaFile { .. }
                 | win16_abi::Win16GdiObjectsRequest::PlayMetaFile { .. }
                 | win16_abi::Win16GdiObjectsRequest::CopyMetaFile { .. }
                 | win16_abi::Win16GdiObjectsRequest::DeleteMetaFile { .. }

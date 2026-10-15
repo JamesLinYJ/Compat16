@@ -77,15 +77,7 @@ ordinal = 122
 name = "Resurrection"
 decl = { args = ["word", "word", "word", "word", "word", "word", "word"] }
 
-[[exports]]
-ordinal = 125
-name = "CreateMetaFile"
-decl = { args = ["string"] }
 
-[[exports]]
-ordinal = 126
-name = "CloseMetaFile"
-decl = { args = ["word"] }
 
 [[exports]]
 ordinal = 129

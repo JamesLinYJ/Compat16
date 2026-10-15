@@ -379,6 +379,7 @@ pub(super) fn decode(
         | Win16ExportId::UserShowOwnedPopups
         | Win16ExportId::UserIsZoomed
         | Win16ExportId::UserGetDlgCtrlID
+        | Win16ExportId::UserWindowFromDC
         | Win16ExportId::UserGetDesktopWindow
         | Win16ExportId::UserGetLastActivePopup
         | Win16ExportId::UserClientToScreen

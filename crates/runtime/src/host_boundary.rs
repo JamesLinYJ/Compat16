@@ -230,9 +230,10 @@ pub enum Win16HostAtomName<'a> {
     String(&'a [u8]),
 }
 
-/// Native SelectObject may return a previous object or a region complexity.
+/// SelectObject returns a previous object, region complexity, or recording success.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16SelectObjectResult {
+    Recorded,
     Object(Win16HostGdiObject),
     RegionComplexity(u16),
 }

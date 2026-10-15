@@ -344,6 +344,10 @@ pub(super) fn decode(
                 window: word_argument(arguments, 0)?,
             },
         )),
+        Win16ExportId::UserWindowFromDC => Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::WindowFromDC {
+                dc: word_argument(arguments, 0)?,
+            })),
         Win16ExportId::UserGetDesktopWindow => Win16ApiRequest::User(
             super::Win16UserRequest::Window(super::Win16UserWindowRequest::GetDesktopWindow),
         ),

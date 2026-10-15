@@ -158,7 +158,8 @@ impl Win16State {
                 win16_abi::Win16UserWindowRequest::GetDlgCtrlID { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
-                win16_abi::Win16UserWindowRequest::GetDesktopWindow,
+                win16_abi::Win16UserWindowRequest::GetDesktopWindow
+                | win16_abi::Win16UserWindowRequest::WindowFromDC { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetLastActivePopup { .. },

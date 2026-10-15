@@ -355,6 +355,15 @@ impl Win16State {
                 return_kind,
             ),
             Request::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::WindowFromDC { dc },
+            )) => {
+                let Some(dc) = self.guest_gdi.dc(dc) else {
+                    return self.complete_return(registers, return_to.0, return_to.1, return_to.2, 0, return_kind);
+                };
+                self.submit_value_call(registers, memory, host,
+                    Win16WindowCall::WindowFromDc { dc }, return_to, return_kind)
+            }
+            Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetDesktopWindow,
             )) => self.submit_value_call(
                 registers,

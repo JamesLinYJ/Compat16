@@ -21,6 +21,21 @@ impl Win16State {
     ) -> Result<u32, RuntimeError> {
         let maximum_bytes = memory.size_bytes().saturating_sub(METAHEADER_SIZE);
         let result = match request {
+            Request::CreateMetaFile { path } => return self.create_metafile_dc(path, host).map(u32::from),
+            Request::CloseMetaFile { dc } => {
+                let Some(native_dc) = self.guest_gdi.dc(dc) else { return Ok(0); };
+                let ResultValue::Closed { consumed, bits } = host.win16_metafile(Operation::Close { dc: native_dc, maximum_bytes })? else {
+                    return Err(invariant("metafile close returned a different result kind"));
+                };
+                if !consumed { return Ok(0); }
+                if !self.guest_gdi.forget_dc(dc, native_dc) {
+                    return Err(invariant("closed metafile DC lost its guest handle identity"));
+                }
+                // Close consumes the recording DC even if copying or allocating
+                // the HGLOBAL fails. A subsequent close cannot replay it.
+                let Some(bits) = bits else { return Ok(0); };
+                return self.allocate_metafile_global(&bits, METAHEADER_SIZE, registers, memory, host).map(u32::from);
+            }
             Request::GetMetaFile { path } => {
                 let Some(path) = self.metafile_path(&path, host)? else { return Ok(0); };
                 host.win16_metafile(Operation::Get { path, maximum_bytes })?
@@ -75,6 +90,44 @@ impl Win16State {
                 &bits, METAHEADER_SIZE, registers, memory, host,
             ).map(u32::from),
             None => Ok(0),
+        }
+    }
+
+    fn create_metafile_dc(
+        &mut self, path: Option<Vec<u8>>, host: &mut impl RuntimeHost,
+    ) -> Result<u16, RuntimeError> {
+        let path = match path {
+            Some(path) => match self.metafile_path(&path, host)? {
+                Some(path) => Some(path),
+                None => return Ok(0),
+            },
+            None => None,
+        };
+        // Reserve before creating/truncating a disk destination. An exhausted
+        // guest GDI table must not start an inaccessible recording.
+        let Some(reserved) = self.guest_gdi.reserve_dc() else { return Ok(0); };
+        let result = host.win16_metafile(Operation::Create { path });
+        let native = match result {
+            Ok(ResultValue::Created(Some(dc))) => dc,
+            other => {
+                if !self.guest_gdi.cancel_dc(reserved) {
+                    return Err(invariant("metafile factory lost its unpublished DC reservation"));
+                }
+                return match other {
+                    Ok(ResultValue::Created(None)) => Ok(0),
+                    Ok(_) => Err(invariant("metafile factory returned a different result kind")),
+                    Err(error) => Err(error),
+                };
+            }
+        };
+        if self.guest_gdi.bind_dc(reserved, native) { return Ok(reserved); }
+        let error = invariant("metafile factory could not bind its reserved DC");
+        let _ = self.guest_gdi.cancel_dc(reserved);
+        match host.win16_cleanup_dc_state(native) {
+            Ok(crate::Win16HostGdiCleanup::Released | crate::Win16HostGdiCleanup::Absent) => Err(error),
+            Ok(_) => Err(error.with_cleanup("retire unpublished metafile DC",
+                invariant("unpublished metafile recording remains owned by GDI"))),
+            Err(cleanup) => Err(error.with_cleanup("retire unpublished metafile DC", cleanup)),
         }
     }
 

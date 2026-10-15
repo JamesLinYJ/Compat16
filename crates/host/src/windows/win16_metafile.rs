@@ -5,24 +5,14 @@ use std::io::{Read, Write};
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostFileSystemPath,
     Win16HostMetafileOperation as Operation, Win16HostMetafileResult as ResultValue};
 use windows_sys::Win32::Graphics::Gdi::{
-    CopyMetaFileW, DeleteMetaFile, GetMetaFileBitsEx, HMETAFILE, PlayMetaFile, SetMetaFileBitsEx,
+    CreateMetaFileW, CopyMetaFileW, GetMetaFileBitsEx, PlayMetaFile, SetMetaFileBitsEx,
 };
 
 use crate::filesystem::Filesystem;
-use super::win16_gdi::Win16Dcs;
+use super::win16_gdi::{Win16Dcs, metafile::NativeMetafile};
 
 #[path = "win16_metafile_format.rs"]
 mod format;
-
-struct NativeMetafile(HMETAFILE);
-
-impl Drop for NativeMetafile {
-    fn drop(&mut self) {
-        // The only retained native handle is the private object returned by
-        // SetMetaFileBitsEx/CopyMetaFileW, never a guest handle or pointer.
-        unsafe { DeleteMetaFile(self.0); }
-    }
-}
 
 impl NativeMetafile {
     fn from_bits(bits: &[u8]) -> Option<Self> {
@@ -62,6 +52,38 @@ pub(super) fn execute(
     dcs: &Win16Dcs, filesystem: &mut Filesystem, operation: Operation,
 ) -> Result<ResultValue, RuntimeError> {
     match operation {
+        Operation::Create { path } => {
+            let output = match path {
+                Some(path) => {
+                    let Some(path) = confined_path(filesystem, path, true) else { return Ok(ResultValue::Created(None)); };
+                    let mut options = cap_std::fs::OpenOptions::new();
+                    options.write(true).create(true).truncate(true);
+                    let Ok(file) = filesystem.root.open_with(path, &options) else { return Ok(ResultValue::Created(None)); };
+                    Some(file)
+                }
+                None => None,
+            };
+            // Record with native GDI, but retain any already-open capability
+            // destination. Guest paths never reach a native filename reopen;
+            // the finalized stream is written through this exact file handle.
+            let native = unsafe { CreateMetaFileW(std::ptr::null()) };
+            Ok(ResultValue::Created(dcs.adopt_metafile(native, output)?))
+        }
+        Operation::Close { dc, maximum_bytes } => {
+            let closed = dcs.close_metafile(dc);
+            if !closed.consumed { return Ok(ResultValue::Closed { consumed: false, bits: None }); }
+            let bits = closed.metafile.and_then(|metafile| metafile.bits(
+                if closed.output.is_some() { u32::MAX } else { maximum_bytes }
+            ));
+            let bits = match (closed.output, bits) {
+                (Some(mut file), Some(bits)) => {
+                    if file.write_all(&bits).is_err() { None } else { Some(bits) }
+                }
+                (_, bits) => bits,
+            }.filter(|bits| bits.len() <= maximum_bytes as usize);
+            Ok(ResultValue::Closed { consumed: true, bits })
+        }
+
         Operation::Get { path, maximum_bytes } => {
             let Some(path) = confined_path(filesystem, path, false) else {
                 return Ok(ResultValue::Bits(None));

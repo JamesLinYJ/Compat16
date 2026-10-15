@@ -13,7 +13,7 @@ use runtime::{
     Win16WindowSearchClass, Win16WindowTarget, Win16WindowPlacement,
 };
 use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND, POINT, RECT};
-use windows_sys::Win32::Graphics::Gdi::{ClientToScreen, MapWindowPoints, ScreenToClient};
+use windows_sys::Win32::Graphics::Gdi::{ClientToScreen, MapWindowPoints, ScreenToClient, WindowFromDC};
 use windows_sys::Win32::System::WindowsProgramming::{WINNLSEnableIME, WINNLSGetEnableStatus};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     EnableWindow, GetActiveWindow, IsWindowEnabled, SetActiveWindow,
@@ -332,6 +332,14 @@ pub(super) fn execute(
                 *point = host_point(native);
             }
             ResultValue::Points(Some(points))
+        }
+        Call::WindowFromDc { dc } => {
+            let dcs = { state.borrow().dcs.clone() };
+            let Some(dc_use) = dcs.lease_dc(dc)? else { return Ok(ResultValue::Window(None)); };
+            // Cleanup ownership is not window association: a callback may
+            // supply a memory DC. Ask USER using the exact live native HDC.
+            let native = unsafe { WindowFromDC(dc_use.native()) };
+            ResultValue::Window(token_for_native(state, native)?)
         }
         Call::WindowFromPoint { point } => {
             let native = unsafe { WindowFromPoint(native_point(point)) };

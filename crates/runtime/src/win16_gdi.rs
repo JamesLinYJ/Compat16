@@ -263,6 +263,7 @@ impl Win16State {
         let Some(native_dc) = self.guest_gdi.dc(dc) else { return Ok(0); };
         let Some(native_object) = self.guest_gdi.object(object) else { return Ok(0); };
         match host.win16_select_object(native_dc, native_object)? {
+            Some(Win16SelectObjectResult::Recorded) => Ok(1),
             Some(Win16SelectObjectResult::RegionComplexity(value)) => Ok(value),
             Some(Win16SelectObjectResult::Object(previous)) => {
                 if let Some(handle) = self.guest_gdi.existing_object(previous) { return Ok(handle); }
