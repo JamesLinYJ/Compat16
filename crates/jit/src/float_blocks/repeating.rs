@@ -1,13 +1,15 @@
 //! Continue between compiled floating bodies and pure integer backedges
 //! within one owner-certified quantum. No guest decoding or services enter
 //! this module; a cold tail or short budget publishes the completed prefix.
+mod compiled;
 use super::{FloatBlock, FloatBlockCache, FloatInstruction as I, FloatRegisters};
 use crate::{IntegerLoop, IntegerState, LoopCache};
+pub(super) use compiled::Cache;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct FloatLoop {
-    body: FloatBlock,
-    tail: IntegerLoop,
+    pub(crate) body: FloatBlock,
+    pub(crate) tail: IntegerLoop,
     memory_prefix: [Option<u8>; crate::MAX_FLOAT_BLOCK_INSTRUCTIONS],
 }
 impl FloatLoop {
@@ -66,6 +68,13 @@ impl FloatBlockCache {
         budget: u32,
     ) -> Option<FloatLoopOutcome> {
         let budget = budget.min(4096);
+        if state.control & 0x20 != 0
+            && let Some(outcome) =
+                self.compiled_loops
+                    .execute(plan, state, integers, memory.as_deref_mut(), budget)
+        {
+            return (outcome.retired != 0).then_some(outcome);
+        }
         let mut output = FloatLoopOutcome {
             retired: 0,
             position: FloatLoopPosition::Floating(0),

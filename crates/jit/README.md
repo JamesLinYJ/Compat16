@@ -121,7 +121,21 @@ format, and it does not claim Prism's optimization coverage.
   accepts absolute addresses within one certified data window, rejects code
   aliases, and publishes RAM before CPU state. Paging, observers, MMIO and CPL3
   alignment checking retain ordinary stepping. Floating blocks do not link
-  across integer control-flow edges or compile transcendental operations.
+  across arbitrary integer control-flow edges or compile transcendental operations.
+- `FloatLoop` additionally compiles a floating body and its pure integer
+  conditional/unconditional backedge into one SSA loop when the body's net
+  TOP rotation is zero and precision exceptions are masked. Extended payloads,
+  tags, status and integer registers stay in SSA across iterations; there is
+  no generated-code return or cache lookup at the backedge. Every iteration
+  spends a bounded instruction budget. A cold prefix path retains short-budget
+  exits, and operand, stack and range guards publish the exact completed
+  prefix, including earlier RAM stores and integer iterations. Each floating
+  operation still rounds independently at the selected PC/RC. Unmasked
+  precision and cold compilation retain the separate checked block/tail path.
+  Combined loops have a separate bounded 256-entry cache, twelve PC/RC
+  variants, an eight-dispatch threshold and the same authenticated artifact
+  contract. The CPU adapter retains its code, RAM and event guards and
+  reconstructs the last floating instruction/data pointers from the exit.
 - Generated code addresses only exclusive nine-word integer states, bounded
   owned checkpoint buffers, six-word scalar and nineteen-word block floating buffers, and checked owned RAM windows. Guest register
   values cannot become host pointers. AL/AH and 16-bit writes retain

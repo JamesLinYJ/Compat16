@@ -11,8 +11,8 @@ use std::{collections::HashMap, sync::Arc};
 /// belong to the caller, not this independent compiler module.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct IntegerLoop {
-    instructions: Vec<Instruction>,
-    condition: Option<Condition>,
+    pub(crate) instructions: Vec<Instruction>,
+    pub(crate) condition: Option<Condition>,
 }
 impl IntegerLoop {
     pub fn new(instructions: Vec<Instruction>, condition: Option<Condition>) -> Option<Self> {

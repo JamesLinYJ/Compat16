@@ -95,7 +95,145 @@ fn repeating_float_bodies_keep_budgets_integer_backedges_and_exact_prefixes() {
             }
         );
     }
-    assert!(tails.statistics().loop_iterations > 0);
+    assert!(cache.statistics().loops_compiled > 0);
+    assert!(cache.statistics().loop_iterations > 0);
+    assert!(cache.statistics().loop_dispatch_hits > 0);
+    assert_eq!(cache.statistics().failures, 0);
+}
+
+#[test]
+fn fused_float_loop_dispatch_is_revoked_before_executable_eviction() {
+    let body = FloatBlock::new(vec![FloatInstruction::Negate, FloatInstruction::Absolute]).unwrap();
+    let tail = |value| {
+        IntegerLoop::new(
+            vec![
+                Instruction::new(
+                    Operation::Move,
+                    Register::new(0, 4, false).unwrap(),
+                    Operand::Immediate(value),
+                )
+                .unwrap(),
+            ],
+            None,
+        )
+        .unwrap()
+    };
+    let original = FloatLoop::new(body.clone(), tail(0)).unwrap();
+    let mut cache = FloatBlockCache::default();
+    let mut tails = LoopCache::default();
+    for _ in 0..16 {
+        cache.execute_loop(
+            &original,
+            &mut input(),
+            &mut IntegerState::default(),
+            &mut tails,
+            None,
+            256,
+        );
+    }
+    assert_eq!(cache.statistics().loops_compiled, 1);
+    for value in 1..=256 {
+        let other = FloatLoop::new(body.clone(), tail(value)).unwrap();
+        cache.execute_loop(
+            &other,
+            &mut input(),
+            &mut IntegerState::default(),
+            &mut tails,
+            None,
+            256,
+        );
+    }
+    let before = cache.statistics();
+    assert_eq!(before.cache_resets, 1);
+    cache.execute_loop(
+        &original,
+        &mut input(),
+        &mut IntegerState::default(),
+        &mut tails,
+        None,
+        256,
+    );
+    assert_eq!(cache.statistics().loops_executed, before.loops_executed);
+    for _ in 0..8 {
+        cache.execute_loop(
+            &original,
+            &mut input(),
+            &mut IntegerState::default(),
+            &mut tails,
+            None,
+            256,
+        );
+    }
+    assert_eq!(cache.statistics().loops_compiled, 2);
+    assert!(cache.statistics().loops_executed > before.loops_executed);
+    assert_eq!(cache.statistics().failures, 0);
+}
+
+#[test]
+fn fused_float_loops_reject_missing_ram_and_restore_persistent_code() {
+    let tail = IntegerLoop::new(
+        vec![
+            Instruction::new(
+                Operation::Decrement,
+                Register::new(1, 4, false).unwrap(),
+                Operand::Immediate(1),
+            )
+            .unwrap(),
+        ],
+        Some(Condition::NotEqual),
+    )
+    .unwrap();
+    let plan = FloatLoop::new(
+        FloatBlock::new(vec![FloatInstruction::Store80 {
+            offset: 9,
+            pop: false,
+        }])
+        .unwrap(),
+        tail,
+    )
+    .unwrap();
+    let store = Arc::new(crate::tests::Store::default());
+    let run = || {
+        let mut cache = FloatBlockCache::default();
+        cache.set_artifact_store(Some(store.clone()));
+        let mut tails = LoopCache::default();
+        for _ in 0..16 {
+            let mut floats = input();
+            let mut integers = IntegerState::default();
+            integers.registers[1] = 3;
+            let original = (floats, integers);
+            assert_eq!(
+                cache.execute_loop(&plan, &mut floats, &mut integers, &mut tails, None, 256),
+                None
+            );
+            assert_eq!((floats, integers), original);
+            let mut memory = [0xa5; 256];
+            let outcome = cache.execute_loop(
+                &plan,
+                &mut floats,
+                &mut integers,
+                &mut tails,
+                Some(&mut memory),
+                256,
+            );
+            if cache.statistics().loops_compiled != 0 {
+                let out = outcome.unwrap();
+                assert_eq!(out.retired, 9);
+                assert_eq!(out.position, FloatLoopPosition::Finished);
+                assert_eq!(out.last_memory, Some(0));
+                assert_eq!(integers.registers[1], 0);
+                assert_eq!(&memory[9..17], &(1u64 << 63).to_le_bytes());
+                assert_eq!(&memory[17..19], &0x3fffu16.to_le_bytes());
+                memory[9..19].fill(0xa5);
+                assert_eq!(memory, [0xa5; 256]);
+            }
+        }
+        assert_eq!(cache.statistics().loops_compiled, 1);
+        assert_eq!(cache.statistics().failures, 0);
+        cache.statistics()
+    };
+    assert!(run().persistent_writes > 0);
+    assert!(run().persistent_hits > 0);
 }
 #[test]
 fn register_entry_rejects_memory_ir_and_matches_window_execution_prefixes() {

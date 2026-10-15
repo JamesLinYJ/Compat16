@@ -14,7 +14,7 @@ pub(super) fn emit(
     control: Value,
     exit: Block,
     complete_masked: bool,
-) {
+) -> State {
     for (index, instruction) in block.instructions().iter().enumerate() {
         if !complete_masked {
             let enough = b
@@ -231,6 +231,5 @@ pub(super) fn emit(
             }
         }
     }
-    let args = state.arguments(b, block.len());
-    b.ins().jump(exit, &args);
+    state
 }

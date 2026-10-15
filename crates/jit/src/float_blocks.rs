@@ -159,16 +159,18 @@ enum Memory<'a> {
 #[derive(Default)]
 pub struct FloatBlockCache {
     compiler: Compiler,
+    compiled_loops: repeating::Cache,
     entries: HashMap<FloatBlock, [Entry; 12]>,
     last: Option<(FloatBlock, usize, FloatBlockFunction)>,
     statistics: Statistics,
 }
 impl FloatBlockCache {
     pub fn statistics(&self) -> Statistics {
-        self.statistics
+        self.statistics.combined(self.compiled_loops.statistics())
     }
     pub fn set_artifact_store(&mut self, store: Option<Arc<dyn ArtifactStore>>) {
-        self.compiler.store = store;
+        self.compiler.store = store.clone();
+        self.compiled_loops.set_artifact_store(store);
     }
     pub fn execute(
         &mut self,

@@ -16,8 +16,11 @@ pub(crate) type MemoryFunction =
     unsafe extern "C" fn(*mut IntegerState, *mut u8, u32, u32, u32) -> u64;
 pub(crate) type FloatBlockFunction =
     unsafe extern "C" fn(*mut crate::FloatRegisters, *mut u8, u32) -> u32;
+pub(crate) type FloatLoopFunction =
+    unsafe extern "C" fn(*mut crate::FloatRegisters, *mut IntegerState, *mut u8, u32) -> u64;
 pub(crate) enum FloatCompilation<'a> {
     Scalar(crate::floating::FloatPlan),
+    Loop(&'a crate::FloatLoop, crate::floating::FloatPlan),
     Block(&'a crate::FloatBlock, crate::floating::FloatPlan),
 }
 pub(crate) type FloatFunction = unsafe extern "C" fn(*mut crate::floating::FloatState) -> u32;
@@ -115,6 +118,25 @@ impl Compiler {
             cache_writes: code.cache_writes,
         })
     }
+    pub fn compile_float_loop(
+        &mut self,
+        loop_: &crate::FloatLoop,
+        plan: crate::floating::FloatPlan,
+    ) -> Result<Compiled<FloatLoopFunction>, String> {
+        let code = self.compile_body(
+            &[],
+            None,
+            None,
+            None,
+            Some(FloatCompilation::Loop(loop_, plan)),
+        )?;
+        // SAFETY: Loop emission uses this exact three-pointer/budget C signature.
+        Ok(Compiled {
+            function: unsafe { std::mem::transmute::<*const u8, FloatLoopFunction>(code.function) },
+            cache_hit: code.cache_hit,
+            cache_writes: code.cache_writes,
+        })
+    }
     fn compile_body(
         &mut self,
         instructions: &[Instruction],
@@ -176,7 +198,20 @@ impl Compiler {
                 .params
                 .extend([AbiParam::new(pointer_type), AbiParam::new(types::I32)]);
         }
-        if floating.is_some() {
+        if matches!(&floating, Some(FloatCompilation::Loop(..))) {
+            context.func.signature.params.extend([
+                AbiParam::new(pointer_type),
+                AbiParam::new(pointer_type),
+                AbiParam::new(types::I32),
+            ]);
+        }
+        if matches!(&floating, Some(FloatCompilation::Loop(..))) {
+            context
+                .func
+                .signature
+                .returns
+                .push(AbiParam::new(types::I64));
+        } else if floating.is_some() {
             context
                 .func
                 .signature
@@ -204,6 +239,9 @@ impl Compiler {
                 match plan {
                     FloatCompilation::Scalar(plan) => {
                         crate::float_lowering::emit(&mut builder, plan)
+                    }
+                    FloatCompilation::Loop(loop_, plan) => {
+                        crate::float_block_lowering::emit_loop(&mut builder, loop_, plan)
                     }
                     FloatCompilation::Block(block, plan) => {
                         crate::float_block_lowering::emit(&mut builder, block, plan)

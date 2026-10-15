@@ -3,9 +3,11 @@
 //! sticky precision, C1, and an unmasked precision exception's deferred state.
 mod instructions;
 mod memory;
+mod repeating;
+pub(super) use repeating::emit_loop;
 mod state;
 use crate::{Float80, FloatBlock, FloatRegisters, floating::FloatPlan};
-use cranelift_codegen::ir::{InstBuilder, MemFlagsData, condcodes::IntCC, types};
+use cranelift_codegen::ir::{Block, InstBuilder, MemFlagsData, Value, condcodes::IntCC, types};
 use cranelift_frontend::FunctionBuilder;
 use state::State;
 pub(super) fn emit(b: &mut FunctionBuilder<'_>, block: &FloatBlock, plan: FloatPlan) {
@@ -16,6 +18,52 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, block: &FloatBlock, plan: FloatP
     // Byte windows have alignment one; their constant RAM offsets may also
     // be unaligned. Only typed state fields may assert aligned access.
     let budget = params[2];
+    let (state, control) = load(b, block, pointer);
+    let written = block.output_register_mask();
+    let exit = exit(b, written);
+    // Ordinary programs mask PE. Validate that control and the complete
+    // budget once, keeping per-instruction prefix/PE checks on a cold path.
+    // Operand/range/stack exits remain precise on both paths.
+    let full = b.ins().icmp_imm_s(
+        IntCC::UnsignedGreaterThanOrEqual,
+        budget,
+        block.len() as i64,
+    );
+    let masked = b.ins().band_imm_u(control, 0x20);
+    let masked = b.ins().icmp_imm_s(IntCC::NotEqual, masked, 0);
+    let hot = b.ins().band(full, masked);
+    let complete = b.create_block();
+    let prefix = b.create_block();
+    b.set_cold_block(prefix);
+    b.ins().brif(hot, complete, &[], prefix, &[]);
+    b.switch_to_block(complete);
+    let complete_state = instructions::emit(
+        b,
+        block,
+        plan,
+        state.clone(),
+        memory,
+        budget,
+        control,
+        exit,
+        true,
+    );
+    let args = complete_state.arguments(b, block.len());
+    b.ins().jump(exit, &args);
+    b.switch_to_block(prefix);
+    let prefix_state =
+        instructions::emit(b, block, plan, state, memory, budget, control, exit, false);
+    let args = prefix_state.arguments(b, block.len());
+    b.ins().jump(exit, &args);
+    b.switch_to_block(exit);
+    let output = b.block_params(exit).to_vec();
+    write(b, pointer, written, &output);
+    let word = written.count_ones() as usize * 2;
+    b.ins().return_(&[output[word + 2]]);
+    b.seal_all_blocks();
+}
+
+fn load(b: &mut FunctionBuilder<'_>, block: &FloatBlock, pointer: Value) -> (State, Value) {
     let live = block.input_register_mask();
     let written = block.output_register_mask();
     let zero = b.ins().iconst(types::I64, 0);
@@ -67,44 +115,20 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, block: &FloatBlock, plan: FloatP
         supported: [false; 8],
         written,
     };
+    (state, control)
+}
+
+fn exit(b: &mut FunctionBuilder<'_>, written: u8) -> Block {
     let exit = b.create_block();
     b.set_cold_block(exit);
-    let payload_words = written.count_ones() as usize * 2;
-    for _ in 0..payload_words + 2 {
+    for _ in 0..written.count_ones() * 2 + 2 {
         b.append_block_param(exit, types::I64);
     }
     b.append_block_param(exit, types::I32);
-    // Ordinary programs mask PE. Validate that control and the complete
-    // budget once, keeping per-instruction prefix/PE checks on a cold path.
-    // Operand/range/stack exits remain precise on both paths.
-    let full = b.ins().icmp_imm_s(
-        IntCC::UnsignedGreaterThanOrEqual,
-        budget,
-        block.len() as i64,
-    );
-    let masked = b.ins().band_imm_u(control, 0x20);
-    let masked = b.ins().icmp_imm_s(IntCC::NotEqual, masked, 0);
-    let hot = b.ins().band(full, masked);
-    let complete = b.create_block();
-    let prefix = b.create_block();
-    b.set_cold_block(prefix);
-    b.ins().brif(hot, complete, &[], prefix, &[]);
-    b.switch_to_block(complete);
-    instructions::emit(
-        b,
-        block,
-        plan,
-        state.clone(),
-        memory,
-        budget,
-        control,
-        exit,
-        true,
-    );
-    b.switch_to_block(prefix);
-    instructions::emit(b, block, plan, state, memory, budget, control, exit, false);
-    b.switch_to_block(exit);
-    let output = b.block_params(exit).to_vec();
+    exit
+}
+
+fn write(b: &mut FunctionBuilder<'_>, pointer: Value, written: u8, output: &[Value]) {
     // Unwritten payloads retain their original bytes in FloatRegisters. Keeping
     // them out of the shared exit also removes their liveness at every guard.
     let mut word = 0;
@@ -130,13 +154,17 @@ pub(super) fn emit(b: &mut FunctionBuilder<'_>, block: &FloatBlock, plan: FloatP
         }
     }
     for (value, offset) in [
-        (output[word], status_offset),
-        (output[word + 1], tags_offset),
+        (
+            output[word],
+            std::mem::offset_of!(FloatRegisters, status) as i32,
+        ),
+        (
+            output[word + 1],
+            std::mem::offset_of!(FloatRegisters, tags) as i32,
+        ),
     ] {
         let value = b.ins().ireduce(types::I16, value);
         b.ins()
             .store(MemFlagsData::trusted(), value, pointer, offset);
     }
-    b.ins().return_(&[output[word + 2]]);
-    b.seal_all_blocks();
 }

@@ -5,6 +5,7 @@ fn program(bits: u32, kind: usize) -> Vec<u8> {
     let mut body = match kind {
         0 => vec![0xd8, 0xc1, 0xd8, 0xe1],
         1 => vec![0xd8, 0xc9],
+        3 => vec![0xd8, 0xc1, 0xd8, 0xe1, 0xd8, 0xf1],
         _ if bits == 32 => {
             let mut bytes = vec![0xd8, 0xc1, 0xd8, 0xe1, 0x67];
             bytes.extend_from_slice(&MEMORY[..12]);
@@ -26,7 +27,7 @@ fn program(bits: u32, kind: usize) -> Vec<u8> {
 #[test]
 fn floating_integer_loops_match_every_budget_and_recheck_the_entire_backedge() {
     for bits in [16, 32] {
-        for kind in 0..3 {
+        for kind in 0..4 {
             let code = program(bits, kind);
             for pc in [0, 2, 3] {
                 for rc in 0..4 {
@@ -37,6 +38,7 @@ fn floating_integer_loops_match_every_budget_and_recheck_the_entire_backedge() {
                     jit.regs.eflags |= 1;
                     jit.x87.control_word = 0x7f | pc << 8 | rc << 10;
                     warm(&mut jit, &mut memory);
+                    assert!(jit.jit_statistics().loops_compiled > 0);
                     let regs = jit.regs.clone();
                     let floating = jit.x87.clone();
                     let mut saved = [0; 256];
@@ -89,6 +91,55 @@ fn floating_integer_loops_match_every_budget_and_recheck_the_entire_backedge() {
             }
         }
     }
+}
+
+#[test]
+fn fused_float_loops_publish_ram_and_last_pointers_before_later_range_exit() {
+    // Duplicate, store/pop and multiply; the third multiplication overflows
+    // after two complete iterations and a memory-writing prefix.
+    let code = [
+        0xd9, 0xc0, 0xdb, 0x3e, 0x00, 0x03, 0xd8, 0xc9, 0x49, 0x75, 0xf5, 0xf4,
+    ];
+    let (mut jit, mut memory) = machine(16, ExecutionEngine::Jit, &code);
+    let (mut reference, mut ram) = machine(16, ExecutionEngine::Interpreter, &code);
+    jit.regs.ecx = 10;
+    warm(&mut jit, &mut memory);
+    assert!(jit.jit_statistics().loops_compiled > 0);
+    jit.x87.write_st(
+        0,
+        Ext80 {
+            significand: 1 << 63,
+            sign_exponent: 0x7ffc,
+        },
+    );
+    jit.x87.write_st(
+        1,
+        Ext80 {
+            significand: 1 << 63,
+            sign_exponent: 0x4000,
+        },
+    );
+    reference.regs = jit.regs.clone();
+    reference.x87 = jit.x87.clone();
+    reference.call_boundary_sequence = jit.call_boundary_sequence;
+    let retired = run(&mut jit, &mut memory, 256).unwrap();
+    assert_eq!(retired, 12);
+    interpret(&mut reference, &mut ram, retired);
+    assert!(jit.capture_context() == reference.capture_context());
+    assert_eq!(jit.call_boundary_sequence, reference.call_boundary_sequence);
+    let mut actual = [0; 256];
+    let mut expected = [0; 256];
+    memory.read(PhysAddr(DATA & !255), &mut actual).unwrap();
+    ram.read(PhysAddr(DATA & !255), &mut expected).unwrap();
+    assert_eq!(actual, expected);
+    assert_eq!(
+        &actual[0..10],
+        &Ext80 {
+            significand: 1 << 63,
+            sign_exponent: 0x7ffe
+        }
+        .to_le_bytes()
+    );
 }
 #[test]
 fn floating_integer_loops_stop_before_tail_for_unmasked_precision_and_irq13() {
