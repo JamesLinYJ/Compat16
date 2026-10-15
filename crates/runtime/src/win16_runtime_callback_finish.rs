@@ -135,7 +135,7 @@ impl Win16State {
                 self.finish_classic_dde_guest_callback(cpu, dos, memory, host)
             }
             CallbackKind::Mci => self.finish_mci_callback(cpu, memory, host),
-            CallbackKind::Module => self.finish_module_callback(cpu, memory, host),
+            CallbackKind::Module => self.finish_module_callback(cpu, dos, memory, host),
             CallbackKind::Resource => self.finish_resource_callback(&mut cpu.regs, memory, host),
             CallbackKind::Asynchronous => {
                 let retirement = self.finish_asynchronous_guest_callback(cpu, dos, memory)?;

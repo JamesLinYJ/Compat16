@@ -874,7 +874,7 @@ impl Runtime {
             if !self.cpu.interrupt_shadow_active()
                 && (returned_from_guest || turn.pump_host || turn.poll_sources)
             {
-                state.reap_modules(&mut self.cpu, &mut self.memory, host)?;
+                state.reap_modules(&mut self.cpu, &mut self.dos, &mut self.memory, host)?;
             }
         }
     }

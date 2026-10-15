@@ -481,7 +481,7 @@ fn code_module(runtime: &mut Runtime) -> (u16, u32) {
 fn reap(runtime: &mut Runtime, host: &mut ClassDataHost) {
     let state = runtime.win16.as_mut().unwrap();
     state.module_reap_pending = true;
-    state.reap_modules(&mut runtime.cpu, &mut runtime.memory, host).unwrap();
+    state.reap_modules(&mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, host).unwrap();
 }
 
 #[test]
@@ -501,7 +501,7 @@ fn class_data_procedure_old_class_code_outlives_selected_hwnd_but_displaced_subc
     for module in [old_module, subclass_module] {
         let return_to = (runtime.cpu.regs.cs, 0x12, u32::from(runtime.cpu.regs.sp()));
         runtime.win16.as_mut().unwrap().begin_free_library(module,
-            &mut runtime.cpu.regs, &mut runtime.memory, &mut host, return_to).unwrap();
+            &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut host, return_to).unwrap();
     }
     reap(&mut runtime, &mut host);
     for module in [old_module, subclass_module] {

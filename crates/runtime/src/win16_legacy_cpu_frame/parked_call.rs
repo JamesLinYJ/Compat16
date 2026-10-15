@@ -9,6 +9,7 @@ impl Win16State {
         parked_id: u64,
         caller_id: u64,
         cpu: &mut x86_cpu::Cpu,
+        policy: CallEffectPolicy,
         memory: &Memory,
     ) -> Result<bool, RuntimeError> {
         let mut parked = self.take_legacy_cpu_frame(parked_id)?;
@@ -49,7 +50,7 @@ impl Win16State {
                 .prepare_legacy_parked_resume_and_rearm_call(
                     wait,
                     call,
-                    CallEffectPolicy::RestoreSavedX87,
+                    policy,
                     &parked_binding,
                     &caller_binding,
                 )

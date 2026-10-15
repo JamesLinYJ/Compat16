@@ -460,14 +460,14 @@ fn callback_class_free_library_and_reaping_keep_callback_owned_registration() {
     let return_to = (runtime.cpu.regs.cs, 0x22, u32::from(runtime.cpu.regs.sp()));
     let state = runtime.win16.as_mut().unwrap();
     state.retire_window_handle(hwnd).unwrap();
-    state.begin_free_library(module_handle, &mut runtime.cpu.regs, &mut runtime.memory,
+    state.begin_free_library(module_handle, &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory,
         &mut host, return_to).unwrap();
     assert_eq!(state.modules.records[&module_handle].explicit_refs, 0);
     assert_eq!(state.modules.records[&module_handle].state, ModuleState::Ready);
     assert!(state.is_registered_class_atom(class.atom));
     assert!(host.unregistrations.is_empty());
     state.module_reap_pending = true;
-    state.reap_modules(&mut runtime.cpu, &mut runtime.memory, &mut host).unwrap();
+    state.reap_modules(&mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut host).unwrap();
     assert_eq!(state.modules.records[&module_handle].state, ModuleState::Ready);
     assert!(state.is_registered_class_atom(class.atom));
     assert!(state.selectors.describe(header_selector).is_ok());
@@ -476,7 +476,7 @@ fn callback_class_free_library_and_reaping_keep_callback_owned_registration() {
     return_callback(&mut runtime, &mut host, 0).unwrap();
     let state = runtime.win16.as_mut().unwrap();
     state.module_reap_pending = true;
-    state.reap_modules(&mut runtime.cpu, &mut runtime.memory, &mut host).unwrap();
+    state.reap_modules(&mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut host).unwrap();
     assert!(!state.is_registered_class_atom(class.atom));
     assert!(!state.modules.records.contains_key(&module_handle));
     assert!(state.selectors.describe(header_selector).is_err());

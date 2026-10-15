@@ -189,7 +189,35 @@ impl Win16State {
         convention: Win16FarCallbackConvention,
         return_kind: Win16FarCallbackReturn,
     ) -> Result<Win16FarCallbackFrame, RuntimeError> {
+        let entry = cpu.regs.clone();
+        self.enter_guest_far_callback_checked_with_registers(
+            cpu, dos, memory, procedure, arguments, convention, return_kind, entry,
+        )
+    }
+
+    /// Register-argument entries (such as NE LibMain/WEP) retain the original
+    /// caller separately from the prepared callee register image. Control and
+    /// stack registers cannot be replaced by this argument projection.
+    pub(super) fn enter_guest_far_callback_checked_with_registers(
+        &mut self,
+        cpu: &mut Cpu,
+        dos: &mut DosKernel,
+        memory: &mut Memory,
+        procedure: u32,
+        arguments: &[Win16FarCallbackArgument],
+        convention: Win16FarCallbackConvention,
+        return_kind: Win16FarCallbackReturn,
+        entry: Registers,
+    ) -> Result<Win16FarCallbackFrame, RuntimeError> {
         let caller = cpu.regs.clone();
+        if entry.cs != caller.cs || entry.eip != caller.eip
+            || entry.ss != caller.ss || entry.esp != caller.esp
+            || entry.eflags != caller.eflags
+        {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "Win16 FAR callback register arguments changed control or stack state"));
+        }
+
         let owner = self.capture_legacy_cpu_call_frame(cpu, dos, memory)?;
         let setup = (|| {
             let argument_bytes = arguments.iter().try_fold(0_u16, |total, argument| {
@@ -200,7 +228,7 @@ impl Win16State {
                 Kind::GuestFault, "Win16 callback frame exceeds the segmented stack limit"))?;
             let callback_sp = caller.sp().checked_sub(frame_bytes).ok_or_else(||
                 RuntimeError::new(Kind::GuestFault, "Win16 callback stack underflow"))?;
-            let mut callback = caller.clone();
+            let mut callback = entry.clone();
             callback.set_sp(callback_sp);
             callback.cs = (procedure >> 16) as u16;
             callback.set_ip(procedure as u16);
@@ -211,12 +239,16 @@ impl Win16State {
             gate.set_sp(returned_sp);
             self.retain_legacy_cpu_frame_roots(owner, &callback, dos, memory)?;
             self.retain_legacy_cpu_frame_roots(owner, &gate, dos, memory)?;
-            self.enter_guest_far_callback(&mut cpu.regs, memory, procedure, arguments,
-                convention, return_kind)
+            let mut entered = entry;
+            let mut frame = self.enter_guest_far_callback(&mut entered, memory, procedure,
+                arguments, convention, return_kind)?;
+            frame.saved = caller.clone();
+            Ok((frame, entered))
         })();
         match setup {
-            Ok(mut frame) => {
+            Ok((mut frame, entered)) => {
                 frame.cpu_owner = Some(owner);
+                cpu.regs = entered;
                 Ok(frame)
             }
             Err(primary) => {

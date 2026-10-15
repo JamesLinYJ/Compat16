@@ -462,7 +462,9 @@ impl Win16State {
             frame.pending_work.as_ref().and_then(|work| work.cpu_owner)
         }.ok_or_else(|| invalid_wait("parked USER work has no retained CPU owner"))?;
         if let Some(caller) = caller {
-            if self.restore_legacy_cpu_parked_frame_for_call(owner, caller, cpu, memory)? {
+            if self.restore_legacy_cpu_parked_frame_for_call(
+                owner, caller, cpu, x86_cpu::CallEffectPolicy::RestoreSavedX87, memory,
+            )? {
                 // Earlier synchronous WndProc returns precede this new caller
                 // boundary. A later callback will publish its own fresh event.
                 self.window_operations.last_mut().filter(|frame| frame.id == frame_id)
