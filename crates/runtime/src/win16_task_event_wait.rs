@@ -180,10 +180,10 @@ impl Win16State {
         self.poll_wave_events(memory, host, true)?;
         self.poll_sound(memory, host)?;
         if matches!(
-            self.dispatch_pending_netbios_notification(cpu, memory, host)?,
+            self.dispatch_pending_netbios_notification(cpu, dos, memory, host)?,
             super::netbios_async::NetbiosDispatch::CallbackEntered
-        ) || self.dispatch_pending_wave_function_callback(cpu, memory, host)?
-            || !self.dispatch_pending_midi_notification(cpu, memory, host)?
+        ) || self.dispatch_pending_wave_function_callback(cpu, dos, memory, host)?
+            || !self.dispatch_pending_midi_notification(cpu, dos, memory, host)?
             || self.dispatch_pending_toolhelp_notify(cpu, dos, memory)?
         {
             return Ok(false);
@@ -193,7 +193,7 @@ impl Win16State {
         }
         if let Some(event) = host.win16_take_guest_callback()? {
             return Ok(self
-                .begin_asynchronous_guest_callback(cpu, memory, event)?
+                .begin_asynchronous_guest_callback(cpu, dos, memory, event)?
                 .is_none());
         }
         if let Some(step) = host.win16_dde_poll_callback()? {

@@ -229,8 +229,18 @@ impl Win16State {
                     target).and_then(|()| self.release_legacy_cpu_frame(owner, dos, memory));
                 match cleanup {
                     Ok(()) => Err(primary),
-                    Err(cleanup) => Err(primary.with_cleanup(
-                        "rollback Win16 callback setup while retaining its first cause", cleanup)),
+                    Err(cleanup) => {
+                        let cause = std::sync::Arc::new(primary.with_cleanup(
+                            "rollback Win16 callback setup while retaining its first cause", cleanup));
+                        let failure = RuntimeError::with_source(cause.kind(),
+                            "Win16 callback pre-entry rollback retains its CPU roots",
+                            std::sync::Arc::clone(&cause));
+                        match self.record_failed_legacy_cpu_setup(owner, cpu, cause) {
+                            Ok(()) => Err(failure),
+                            Err(retain) => Err(failure.with_cleanup(
+                                "retain the exact failed callback setup owner", retain)),
+                        }
+                    }
                 }
             }
         }
@@ -244,6 +254,19 @@ impl Win16State {
         dos: &mut DosKernel,
         memory: &mut Memory,
         frame: &mut Win16FarCallbackFrame,
+    ) -> Result<u32, RuntimeError> {
+        self.finish_guest_far_callback_checked_with_policy(
+            cpu, dos, memory, frame, CallEffectPolicy::PreserveX87,
+        )
+    }
+
+    pub(super) fn finish_guest_far_callback_checked_with_policy(
+        &mut self,
+        cpu: &mut Cpu,
+        dos: &mut DosKernel,
+        memory: &mut Memory,
+        frame: &mut Win16FarCallbackFrame,
+        policy: CallEffectPolicy,
     ) -> Result<u32, RuntimeError> {
         if frame.terminal_aborted {
             return Err(RuntimeError::new(Kind::InternalInvariant,
@@ -264,7 +287,7 @@ impl Win16State {
                 stack_pointer: LegacyStackPointerTarget::RegisterValue,
             };
             self.restore_legacy_cpu_call_frame(owner, cpu, memory,
-                CallEffectPolicy::PreserveX87,
+                policy,
                 CallResumeBoundary::GuestCallReturn { transfer },
                 target)?;
         } else {

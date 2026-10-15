@@ -16,6 +16,9 @@ use crate::{
     system::CR0_PE,
 };
 
+mod parked_call;
+pub use parked_call::PreparedLegacyParkedCallResume;
+
 const EFLAGS_VM: u32 = 1 << 17;
 
 /// The logical stack pointer used by a checked final register transfer.
@@ -347,6 +350,17 @@ impl Cpu {
         prepared: LegacyPreparedState<B::Proof>,
         binding: &B,
     ) -> Result<(), LegacyCpuContinuationError<B::Error>> {
+        self.validate_prepared_legacy_resume(&prepared, binding)?;
+        claim_ticket(&prepared.consumed).map_err(LegacyCpuContinuationError::Cpu)?;
+        self.apply_legacy_resume(prepared);
+        Ok(())
+    }
+
+    fn validate_prepared_legacy_resume<B: LegacyCpuBinding>(
+        &self,
+        prepared: &LegacyPreparedState<B::Proof>,
+        binding: &B,
+    ) -> Result<(), LegacyCpuContinuationError<B::Error>> {
         self.check_legacy_origin(&prepared.origin).map_err(LegacyCpuContinuationError::Cpu)?;
         self.check_legacy_generation(prepared.generation)
             .map_err(LegacyCpuContinuationError::Cpu)?;
@@ -390,14 +404,16 @@ impl Cpu {
         binding.revalidate(&prepared.saved_binding, &target, &transfer)
             .map_err(LegacyCpuContinuationError::Binding)?;
 
-        claim_ticket(&prepared.consumed).map_err(LegacyCpuContinuationError::Cpu)?;
+        Ok(())
+    }
+
+    fn apply_legacy_resume<Proof>(&mut self, prepared: LegacyPreparedState<Proof>) {
         self.regs = prepared.target.registers;
         if prepared.policy == CallEffectPolicy::RestoreSavedX87 {
             self.x87 = prepared.saved.x87;
         }
         self.control_transfer = None;
         self.invalidate_control_transfer_provenance();
-        Ok(())
     }
 
     fn check_legacy_ticket<B>(

@@ -152,7 +152,7 @@ impl Win16State {
 
     /// Return true when the loop must reconsider the parked wait before CPU
     /// dispatch. An injected callback returns false so its actual guest code
-    /// runs; its full CPU restore precedes any subsequent wait continuation.
+    /// runs; its checked caller restore precedes the next wait continuation.
     pub(super) fn service_pending_window_guest_work(
         &mut self,
         cpu: &mut Cpu,
@@ -235,20 +235,20 @@ impl Win16State {
         self.poll_sound(memory, host)?;
 
         if matches!(
-            self.dispatch_pending_netbios_notification(cpu, memory, host)?,
+            self.dispatch_pending_netbios_notification(cpu, dos, memory, host)?,
             super::netbios_async::NetbiosDispatch::CallbackEntered
         ) {
             return Ok(false);
         }
-        if self.dispatch_pending_wave_function_callback(cpu, memory, host)? {
+        if self.dispatch_pending_wave_function_callback(cpu, dos, memory, host)? {
             // The exact host USER operation remains parked in its original
             // frame while this guest callback runs. Its terminal receipt
-            // restores the full interrupted context before this wait resumes.
+            // restores the interrupted registers/x87 before this wait resumes.
             return Ok(false);
         }
-        if !self.dispatch_pending_midi_notification(cpu, memory, host)? {
+        if !self.dispatch_pending_midi_notification(cpu, dos, memory, host)? {
             // The exact host USER wait remains parked while a MIDI callback
-            // owns its complete interrupted CPU context.
+            // owns the checked interrupted register and x87 continuation.
             return Ok(false);
         }
         if self.service_pending_window_dde_callback(
@@ -262,7 +262,7 @@ impl Win16State {
         }
         if let Some(event) = host.win16_take_guest_callback()? {
             let entered = self
-                .begin_asynchronous_guest_callback(cpu, memory, event)?
+                .begin_asynchronous_guest_callback(cpu, dos, memory, event)?
                 .is_some();
             return Ok(!entered);
         }
@@ -391,15 +391,15 @@ impl Win16State {
         self.poll_wave_events(memory, host, true)?;
         self.poll_sound(memory, host)?;
         if matches!(
-            self.dispatch_pending_netbios_notification(cpu, memory, host)?,
+            self.dispatch_pending_netbios_notification(cpu, dos, memory, host)?,
             super::netbios_async::NetbiosDispatch::CallbackEntered
         ) {
             return Ok(false);
         }
-        if self.dispatch_pending_wave_function_callback(cpu, memory, host)? {
+        if self.dispatch_pending_wave_function_callback(cpu, dos, memory, host)? {
             return Ok(false);
         }
-        if !self.dispatch_pending_midi_notification(cpu, memory, host)? {
+        if !self.dispatch_pending_midi_notification(cpu, dos, memory, host)? {
             // Keep the exact native modal continuation parked for the guest
             // MIDI callback and its source-identity return receipt.
             return Ok(false);
@@ -416,7 +416,7 @@ impl Win16State {
 
         if let Some(event) = host.win16_take_guest_callback()? {
             let entered = self
-                .begin_asynchronous_guest_callback(cpu, memory, event)?
+                .begin_asynchronous_guest_callback(cpu, dos, memory, event)?
                 .is_some();
             return Ok(!entered);
         }
@@ -452,21 +452,26 @@ impl Win16State {
         memory: &mut Memory,
         modal: bool,
     ) -> Result<(), RuntimeError> {
-        let owner = self
-            .window_operations
-            .last()
-            .and_then(|frame| {
-                if modal {
-                    frame
-                        .pending_modal_work
-                        .as_ref()
-                        .and_then(|work| work.cpu_owner)
-                } else {
-                    frame.pending_work.as_ref().and_then(|work| work.cpu_owner)
-                }
-            })
-            .ok_or_else(|| invalid_wait("parked USER work has no retained CPU owner"))?;
-        self.restore_legacy_cpu_parked_frame(owner, cpu, dos, memory)?;
+        let frame = self.window_operations.last()
+            .ok_or_else(|| invalid_wait("parked USER work lost its operation frame"))?;
+        let frame_id = frame.id;
+        let caller = frame.cpu_call_owner;
+        let owner = if modal {
+            frame.pending_modal_work.as_ref().and_then(|work| work.cpu_owner)
+        } else {
+            frame.pending_work.as_ref().and_then(|work| work.cpu_owner)
+        }.ok_or_else(|| invalid_wait("parked USER work has no retained CPU owner"))?;
+        if let Some(caller) = caller {
+            if self.restore_legacy_cpu_parked_frame_for_call(owner, caller, cpu, memory)? {
+                // Earlier synchronous WndProc returns precede this new caller
+                // boundary. A later callback will publish its own fresh event.
+                self.window_operations.last_mut().filter(|frame| frame.id == frame_id)
+                    .expect("checked wait resume retains its exact USER frame")
+                    .guest_return_transfer = None;
+            }
+        } else {
+            self.restore_legacy_cpu_parked_frame(owner, cpu, dos, memory)?;
+        }
         Ok(())
     }
 
@@ -585,7 +590,7 @@ impl Win16State {
         let owner = owner.ok_or_else(|| {
             invalid_wait("parked USER host result has no exact checked CPU owner")
         })?;
-        self.restore_legacy_cpu_parked_frame(owner, cpu, dos, memory)?;
+        self.restore_parked_window_work(cpu, dos, memory, modal)?;
         self.release_legacy_cpu_frame(owner, dos, memory)?;
 
         let frame = self

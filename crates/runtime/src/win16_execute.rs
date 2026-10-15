@@ -751,6 +751,7 @@ impl Runtime {
                     } else {
                         state.dispatch_pending_netbios_notification(
                             &mut self.cpu,
+                            &mut self.dos,
                             &mut self.memory,
                             host,
                         )?
@@ -765,6 +766,7 @@ impl Runtime {
                     } else {
                         state.dispatch_pending_wave_function_callback(
                             &mut self.cpu,
+                            &mut self.dos,
                             &mut self.memory,
                             host,
                         )?
@@ -776,7 +778,8 @@ impl Runtime {
                         false
                     } else {
                         let midi = state.dispatch_midi_notification_with_progress(
-                            &mut self.cpu, &mut self.memory, host,
+                            &mut self.cpu,
+                            &mut self.dos, &mut self.memory, host,
                         )?;
                         source_progress |= !matches!(midi, super::midi::MidiDispatch::Idle);
                         matches!(midi, super::midi::MidiDispatch::CallbackEntered)
@@ -805,6 +808,7 @@ impl Runtime {
                             source_progress = true;
                             state.begin_asynchronous_guest_callback(
                                 &mut self.cpu,
+                                &mut self.dos,
                                 &mut self.memory,
                                 event,
                             )?;

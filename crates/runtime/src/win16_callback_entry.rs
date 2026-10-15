@@ -1,6 +1,8 @@
 //! Typed asynchronous FAR-call callback entry.
 
-use guest_core::Registers;
+use guest_core::memory::Memory;
+use dos_kernel::DosKernel;
+use x86_cpu::{Cpu, CallEffectPolicy};
 
 use super::callback_scheduler::Win16AsynchronousCallbackArgument;
 use super::far_callback::{
@@ -37,15 +39,45 @@ impl Win16CallbackEntryFrame {
 }
 
 impl Win16State {
-    pub(super) fn finish_guest_callback_entry(
-        &self,
-        registers: &mut Registers,
-        frame: Win16CallbackEntryFrame,
+    pub(super) fn finish_guest_callback_entry_checked(
+        &mut self,
+        cpu: &mut Cpu,
+        dos: &mut DosKernel,
+        memory: &mut Memory,
+        frame: &mut Win16CallbackEntryFrame,
     ) -> Result<(), RuntimeError> {
         match frame {
             Win16CallbackEntryFrame::FarCall(frame) => {
-                self.finish_guest_far_callback(registers, frame).map(|_| ())
+                self.finish_guest_far_callback_checked_with_policy(
+                    cpu, dos, memory, frame, CallEffectPolicy::RestoreSavedX87,
+                ).map(|_| ())
             }
+        }
+    }
+
+    pub(super) fn release_guest_callback_entry_owner(
+        &mut self, frame: &mut Win16CallbackEntryFrame,
+        dos: &mut DosKernel, memory: &mut Memory,
+    ) -> Result<(), RuntimeError> {
+        match frame {
+            Win16CallbackEntryFrame::FarCall(frame) =>
+                self.release_guest_far_callback_owner(frame, dos, memory),
+        }
+    }
+
+    pub(super) fn abort_guest_callback_entry_after_task_execution_ended(
+        &mut self,
+        ended: &super::execute::Win16TaskExecutionEnded,
+        callback_id: super::CallbackFrameId,
+        cpu: &mut Cpu, dos: &mut DosKernel, memory: &mut Memory,
+        frame: &mut Win16CallbackEntryFrame,
+    ) -> Result<(), RuntimeError> {
+        match frame {
+            Win16CallbackEntryFrame::FarCall(frame) =>
+                self.abort_guest_far_callback_after_task_execution_ended(
+                    ended, super::CallbackKind::Asynchronous, callback_id,
+                    cpu, dos, memory, frame,
+                ),
         }
     }
 }

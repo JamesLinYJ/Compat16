@@ -158,7 +158,7 @@ impl Win16State {
                         })?;
                     self.prepare_wave_callback_terminal_retirement(callback_id, callback_token)?;
                 }
-                let retirement = self.cancel_asynchronous_callback_for_teardown(cpu)?;
+                let retirement = self.cancel_asynchronous_callback_for_teardown(ended, cpu, dos, memory)?;
                 if retirement.source_bound || retirement.midi_source.is_some() {
                     self.finish_pending_asynchronous_callback_retirement(host, retirement)?;
                 }

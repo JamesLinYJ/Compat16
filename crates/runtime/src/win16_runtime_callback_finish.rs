@@ -138,7 +138,7 @@ impl Win16State {
             CallbackKind::Module => self.finish_module_callback(cpu, memory, host),
             CallbackKind::Resource => self.finish_resource_callback(&mut cpu.regs, memory, host),
             CallbackKind::Asynchronous => {
-                let retirement = self.finish_asynchronous_guest_callback(cpu, memory)?;
+                let retirement = self.finish_asynchronous_guest_callback(cpu, dos, memory)?;
                 if retirement.source_bound || retirement.midi_source.is_some() {
                     self.validate_asynchronous_callback_retirement(retirement)?;
                     let retire_netbios_source = if let Some(identity) = retirement.midi_source {
@@ -160,7 +160,7 @@ impl Win16State {
                     // Retire the paired callback family frame only after the
                     // exact source ACK has succeeded. A NetBIOS tombstone is
                     // removed last, after its callback ID leaves the stack.
-                    self.complete_asynchronous_callback_retirement(retirement)?;
+                    self.complete_asynchronous_callback_retirement(dos, memory, retirement)?;
                     if retire_netbios_source {
                         self.complete_netbios_callback_frame(retirement)?;
                     }

@@ -168,7 +168,7 @@ impl Win16State {
     /// release this exact reservation or must retain it for rollback cleanup.
     pub(in crate::win16_runtime) fn dispatch_pending_wave_function_callback(
         &mut self,
-        cpu: &mut x86_cpu::Cpu,
+        cpu: &mut x86_cpu::Cpu, dos: &mut dos_kernel::DosKernel,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<bool, RuntimeError> {
@@ -192,7 +192,8 @@ impl Win16State {
                 return Ok(false);
             };
             match self.begin_asynchronous_guest_callback_request_source(
-                cpu, memory, request, true,
+                cpu,
+                dos, memory, request, true,
             ) {
                 Ok(Some(callback_id)) => {
                     self.bind_pending_wave_callback_frame(receipt, callback_id)?;

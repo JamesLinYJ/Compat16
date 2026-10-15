@@ -16,6 +16,7 @@ impl Win16State {
     pub(super) fn begin_asynchronous_guest_callback_entry_from_source(
         &mut self,
         cpu: &mut x86_cpu::Cpu,
+        dos: &mut dos_kernel::DosKernel,
         memory: &mut Memory,
         callback: Win16GuestCallbackToken,
         entry: Win16CallbackEntry,
@@ -105,7 +106,6 @@ impl Win16State {
             "retain asynchronous callback arguments",
             error,
         ))?;
-        let context = cpu.capture_context();
 
         if let Err(error) = validate_guest_callback_registration(
             &self.selectors, memory, registration,
@@ -156,8 +156,9 @@ impl Win16State {
                     }
                 }
                 let Win16GuestCallbackAbi::FarCall { convention, return_kind } = registration.abi;
-                match self.enter_guest_far_callback(
-                    &mut cpu.regs,
+                match self.enter_guest_far_callback_checked(
+                    cpu,
+                    dos,
                     memory,
                     registration.procedure,
                     &far_arguments,
@@ -177,7 +178,6 @@ impl Win16State {
             callback_token: callback,
             registration,
             active_call,
-            context,
             buffers,
             phase: AsynchronousCallbackPhase::Guest,
             return_failure: None,

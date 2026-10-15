@@ -1,4 +1,6 @@
 //! Runtime-owned caller and parked CPU frames with exact LIFO lease cleanup.
+#[path = "win16_legacy_cpu_frame/parked_call.rs"]
+mod parked_call;
 
 use dos_kernel::DosKernel;
 use guest_core::{memory::Memory, Registers};
@@ -29,7 +31,8 @@ enum Win16LegacyCpuContinuation {
     Call(Option<LegacyCpuCallContinuation<Win16LegacyCpuBindingProof>>),
     Parked(Option<LegacyCpuParkedContinuation<Win16LegacyCpuBindingProof>>, Registers),
     OwnerOnly,
-    /// Capture never installed a continuation or changed CPU state.
+    /// Capture failed without changing CPU state, or callback setup failed
+    /// before guest entry and its CPU state is unchanged/already restored.
     CaptureFailed { cause: std::sync::Arc<RuntimeError> },
 }
 
@@ -198,8 +201,25 @@ impl Win16State {
         Err(cause)
     }
 
-    /// Only failed captures may be removed before USER source retirement.
-    /// They never installed a CPU continuation and require no context restore.
+    pub(super) fn record_failed_legacy_cpu_setup(
+        &mut self, id: u64, cpu: &x86_cpu::Cpu,
+        cause: std::sync::Arc<RuntimeError>,
+    ) -> Result<(), RuntimeError> {
+        let frame = self.legacy_cpu_frames.last_mut().filter(|frame| frame.id == id)
+            .ok_or_else(|| RuntimeError::new(DiagnosticKind::InternalInvariant,
+                "failed callback setup lost its exact CPU backing owner"))?;
+        if !frame.restored && frame.saved_context != cpu.capture_context() {
+            return Err(RuntimeError::new(DiagnosticKind::InternalInvariant,
+                "failed pre-entry callback setup changed its retained CPU context"));
+        }
+        // No guest callback was entered. Keep partial lease-release work on
+        // the terminal pre-entry ledger instead of blocking an older USER owner.
+        frame.continuation = Win16LegacyCpuContinuation::CaptureFailed { cause };
+        Ok(())
+    }
+
+    /// Only failed pre-entry owners may be removed before USER retirement.
+    /// CPU state is unchanged/already restored; no guest return is synthesized.
     pub(super) fn retire_failed_legacy_cpu_captures(
         &mut self, _ended: &Win16TaskExecutionEnded,
         dos: &mut DosKernel, memory: &mut Memory,

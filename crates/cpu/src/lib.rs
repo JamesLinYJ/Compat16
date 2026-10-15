@@ -165,6 +165,7 @@ pub use legacy_continuation::{
     LegacyBindingTransfer, LegacyCpuBinding, LegacyCpuCallContinuation,
     LegacyCpuContinuationError, LegacyCpuParkedContinuation, LegacyRegisterTransfer,
     LegacyStackPointerTarget, PreparedLegacyCallResume, PreparedLegacyParkedResume,
+    PreparedLegacyParkedCallResume,
 };
 
 impl Cpu {
