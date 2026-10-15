@@ -29,7 +29,7 @@ pub use ne::{parse_ne, NeEntry, NeEntryKind, NeFixup, NeFixupAddressType, NeFixu
     NeImportModule, NeModule, NeNamedEntry, NeRelocationKind, NeResource, NeResourceId,
     NeResourceType, NeSegment, NeHeader};
 pub use ne_load::{
-    extract_ne_resource, load_ne_segments, ne_segment_allocation_size, plan_ne_segments,
+    extract_ne_resource, load_ne_segments, load_ne_segments_unlinked, ne_segment_allocation_size, plan_ne_segments,
     FarAddress, NeImportTarget, NeImportValue, NeLoadResolver, NeLoadedModule, NeLoadedSegment,
 };
 pub use ne_icon_table::{NeCursorResourceTable, NeIconResourceTable};

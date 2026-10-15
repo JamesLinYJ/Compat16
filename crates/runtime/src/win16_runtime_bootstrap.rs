@@ -53,45 +53,12 @@ impl Win16State {
                 )?;
             }
         }
-        let mut bindings = Vec::new();
-        let imports = |module_name: &[u8], target: &NeImportTarget| -> Result<NeImportValue, FormatError> {
-            let lookup = match target {
-                NeImportTarget::Ordinal(number) => ExportLookupTarget::Ordinal(*number),
-                NeImportTarget::Name(name) => ExportLookupTarget::Name(name),
-            };
-            if let Some(declaration) = win16_abi::exports::lookup_export_metadata(module_name, lookup) {
-                if let Some(value) = crate::win16_builtin_data_exports::lookup_builtin_data_export(
-                    declaration,
-                    builtin_data_exports.get(declaration.module),
-                    &runtime_selector_aliases,
-                    None,
-                    module_name,
-                    target,
-                )? {
-                    return Ok(value);
-                }
-            }
-            let index = match bindings.iter().position(|entry: &ImportBinding| entry.matches(module_name, target)) {
-                Some(index) => index,
-                None => {
-                    let binding = match lookup_export(module_name, lookup).filter(|descriptor|
-                        !(descriptor.module().eq_ignore_ascii_case("KERNEL")
-                            && (513..=518).contains(&descriptor.ordinal()))) {
-                        Some(descriptor) => ImportBinding::Supported(descriptor),
-                        None => ImportBinding::Unavailable {
-                            module: module_name.to_vec(), target: target.clone(),
-                        },
-                    };
-                    bindings.try_reserve(1).map_err(|_| FormatError::AllocationFailed)?;
-                    bindings.push(binding);
-                    bindings.len() - 1
-                }
-            };
-            let offset = index.checked_mul(2)
-                .and_then(|value| u16::try_from(value).ok())
-                .ok_or(FormatError::AllocationFailed)?;
-            Ok(NeImportValue::Address(FarAddress { selector: gate_selector, offset }))
-        };
+        let bindings = Vec::new();
+        // The task filesystem and complete DLL graph are not available yet.
+        // Bootstrap owns pristine segments; startup resolves typed function,
+        // selector and constant imports before any guest code may execute.
+        let imports = |_: &[u8], _: &NeImportTarget| Err(FormatError::InvalidNeLoad(
+            "unlinked Win16 bootstrap cannot resolve imports"));
         let mut resolver = Win16LoadResolver::new(
             selectors,
             PhysAddr(next_module_base),
@@ -99,7 +66,7 @@ impl Win16State {
             memory.len(),
             imports,
         ).map_err(crate::runtime_error)?;
-        let loaded = load_ne_segments(image, module, &mut resolver, memory).map_err(crate::runtime_error)?;
+        let loaded = formats::load_ne_segments_unlinked(image, module, &mut resolver, memory).map_err(crate::runtime_error)?;
         let loaded_segment_handles = loaded.segments.iter().zip(&module.segments)
             .map(|(loaded, segment)| {
                 let selector = loaded.selector.0;
@@ -255,6 +222,7 @@ impl Win16State {
             psp_selector, process_views, instance_selector, instance_handle, automatic_data,
             task_handles, first_task_handle: task_handle,
             module_path: program_path.to_vec(), user_queue: None, user_task_queue: None,
+            module_startup: module_calls::ModuleStartupState::Pending,
             next_app_notification_sequence: 1,
             modules: module_registry::ModuleRegistry::default(),
             external_selector_cleanup: Vec::new(), module_callbacks: Vec::new(),

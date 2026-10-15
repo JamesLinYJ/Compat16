@@ -2,7 +2,7 @@
 use super::*;
 
 impl Win16State {
-    fn publish_module_call(
+    pub(super) fn publish_module_call(
         &mut self,
         cpu: &Cpu,
         action: ModuleAction,
@@ -31,6 +31,7 @@ impl Win16State {
             queue,
             active: None,
             initialized: Vec::new(),
+            startup: false,
         });
         Ok(())
     }

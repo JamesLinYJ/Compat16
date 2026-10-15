@@ -31,6 +31,7 @@ impl Win16State {
             .expect("checked DLL callback source remains");
         let loading = matches!(frame.action, ModuleAction::Load { .. });
         if loading && returned == 0 {
+            self.detach_failed_startup_dependencies();
             let (return_address, created, initialized) = {
                 let frame = self.module_callbacks.last().ok_or_else(|| {
                     RuntimeError::new(
@@ -185,7 +186,7 @@ impl Win16State {
                         "initialized DLL disappeared before caller return",
                     )
                 })?;
-                let explicit_refs = record.explicit_refs.checked_add(1).ok_or_else(|| {
+                let explicit_refs = record.explicit_refs.checked_add(u16::from(!frame.startup)).ok_or_else(|| {
                     RuntimeError::new(
                         Kind::ResourceExhausted,
                         "Win16 module reference count overflow",
@@ -274,7 +275,7 @@ impl Win16State {
         memory: &mut Memory,
         plan: &ModuleCompletionPlan,
     ) -> Result<(), RuntimeError> {
-        let (resume, value, kind) = match plan {
+        let (mut resume, value, mut kind) = match plan {
             ModuleCompletionPlan::Load {
                 root,
                 previous_refs,
@@ -343,6 +344,21 @@ impl Win16State {
                 )
             }
         };
+        let startup = self.module_callbacks.last().expect("DLL completion source").startup;
+        let startup_result = if startup {
+            Some(match plan {
+                ModuleCompletionPlan::Load { .. } => ModuleStartupState::Ready,
+                ModuleCompletionPlan::LoadFailure { code, .. } => ModuleStartupState::Failed(*code),
+                ModuleCompletionPlan::Unload { failed_load: true, .. } => ModuleStartupState::Failed(0),
+                ModuleCompletionPlan::Unload { .. } => return Err(RuntimeError::new(
+                    Kind::InternalInvariant, "startup completed with an unrelated unload action")),
+            })
+        } else { None };
+        if startup {
+            // An executable entry has no API caller or callee-pop stack frame.
+            resume = true;
+            kind = Win16ReturnKind::Void;
+        }
         self.return_module_cpu_caller(cpu, dos, memory, resume, value, kind)?;
         // No guest or host callback can run between the checked CPU commit and
         // this infallible metadata commit. Owner-release retries use Returned.
@@ -358,6 +374,7 @@ impl Win16State {
                 .expect("validated DLL completion record remains")
                 .explicit_refs = *explicit_refs;
         }
+        if let Some(result) = startup_result { self.module_startup = result; }
         self.module_callbacks
             .last_mut()
             .expect("returned DLL completion source")

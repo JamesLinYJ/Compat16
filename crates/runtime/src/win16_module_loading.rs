@@ -15,6 +15,8 @@ const NE_MULTIPLE_DATA: u16 = 0x0002;
 const MAX_MODULE_DEPTH: usize = 256;
 const MODULE_HEADER_BYTES: u32 = 64;
 
+pub(super) type ModuleImportBindings = Vec<(Vec<u8>, NeImportTarget, NeImportValue)>;
+
 /// Physical removal may wait for the guest's matching UnlockSegment.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum ModuleRemoval {
@@ -378,58 +380,13 @@ impl Win16State {
 
     pub(super) fn relocate_libraries(&mut self, created: &[u16], memory: &mut Memory,
         host: &mut impl RuntimeHost) -> Result<Result<(), u16>, RuntimeError> {
-        use formats::NeFixupTarget;
         for &handle in created {
             let definition = self.modules.records[&handle].definition.as_ref()
                 .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant, "NE definition missing before relocation"))?.clone();
-            let mut imports = Vec::new();
-            for segment in &definition.segments {
-                for fixup in &segment.fixups {
-                    let (index, target) = match &fixup.target {
-                        NeFixupTarget::ImportOrdinal { module_index, ordinal } =>
-                            (*module_index, Win16ProcReference::Ordinal(*ordinal)),
-                        NeFixupTarget::ImportName { module_index, name } =>
-                            (*module_index, Win16ProcReference::Name(name.clone())),
-                        _ => continue,
-                    };
-                    let dependency = definition.imported_modules.iter().find(|entry| entry.index == index)
-                        .ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "NE import module index is invalid"))?;
-                    let owner = self.modules.by_name(&dependency.name)
-                        .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant, "discovered NE dependency is missing"))?;
-                    let address = match self.module_import_value(owner, &target, true) {
-                        Ok(Some(value)) => value,
-                        Ok(None) => {
-                            host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
-                                format!("Win16 library import from {} is absent; returning bad-format load failure",
-                                    String::from_utf8_lossy(&dependency.name))));
-                            return Ok(Err(11));
-                        }
-                        Err(error @ FormatError::NeDataImportFailure { .. }) => {
-                            host.report_diagnostic(&Diagnostic::warning(
-                                Kind::CompatibilityGap,
-                                "Win16 library has an unsupported required data import; returning bad-format load failure",
-                            ).with_cause(error));
-                            return Ok(Err(11));
-                        }
-                        Err(FormatError::UnsupportedNeFeature(detail)) => {
-                            let symbol = match &target {
-                                Win16ProcReference::Ordinal(ordinal) => format!("#{ordinal}"),
-                                Win16ProcReference::Name(name) => String::from_utf8_lossy(name).into_owned(),
-                            };
-                            host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
-                                format!("Win16 library import {}!{symbol} is unsupported ({detail}); returning bad-format load failure",
-                                    String::from_utf8_lossy(&dependency.name))));
-                            return Ok(Err(11));
-                        }
-                        Err(error) => return Err(crate::runtime_error(error)),
-                    };
-                    let target = match target {
-                        Win16ProcReference::Ordinal(ordinal) => NeImportTarget::Ordinal(ordinal),
-                        Win16ProcReference::Name(name) => NeImportTarget::Name(name),
-                    };
-                    imports.push((dependency.name.clone(), target, address));
-                }
-            }
+            let imports = match self.resolve_module_import_bindings(&definition, host)? {
+                Ok(imports) => imports,
+                Err(code) => return Ok(Err(code)),
+            };
             let record = self.modules.records.get_mut(&handle)
                 .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant, "NE relocation record is missing"))?;
             let plan = record.loaded.as_ref()
@@ -458,6 +415,67 @@ impl Win16State {
             self.queue_toolhelp_module_segments_loaded(handle)?;
         }
         Ok(Ok(()))
+    }
+
+
+    pub(super) fn resolve_module_import_bindings(&mut self, definition: &NeModule,
+        host: &mut impl RuntimeHost) -> Result<Result<ModuleImportBindings, u16>, RuntimeError> {
+        use formats::NeFixupTarget;
+        let mut imports = Vec::new();
+        for segment in &definition.segments {
+            for fixup in &segment.fixups {
+                let (index, target) = match &fixup.target {
+                    NeFixupTarget::ImportOrdinal { module_index, ordinal } =>
+                        (*module_index, Win16ProcReference::Ordinal(*ordinal)),
+                    NeFixupTarget::ImportName { module_index, name } =>
+                        (*module_index, Win16ProcReference::Name(name.clone())),
+                    _ => continue,
+                };
+                let dependency = definition.imported_modules.iter().find(|entry| entry.index == index)
+                    .ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "NE import module index is invalid"))?;
+                let owner = self.modules.by_name(&dependency.name)
+                    .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant, "discovered NE dependency is missing"))?;
+                let address = match self.module_import_value(owner, &target, true) {
+                    Ok(Some(value)) => value,
+                    Ok(None) => {
+                        host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
+                            format!("Win16 library import from {} is absent; returning bad-format load failure",
+                                String::from_utf8_lossy(&dependency.name))));
+                        return Ok(Err(11));
+                    }
+                    Err(error @ FormatError::NeDataImportFailure { .. }) => {
+                        host.report_diagnostic(&Diagnostic::warning(
+                            Kind::CompatibilityGap,
+                            "Win16 library has an unsupported required data import; returning bad-format load failure",
+                        ).with_cause(error));
+                        return Ok(Err(11));
+                    }
+                    Err(FormatError::UnsupportedNeFeature(detail)) => {
+                        let symbol = match &target {
+                            Win16ProcReference::Ordinal(ordinal) => format!("#{ordinal}"),
+                            Win16ProcReference::Name(name) => String::from_utf8_lossy(name).into_owned(),
+                        };
+                        host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
+                            format!("Win16 library import {}!{symbol} is unsupported ({detail}); returning bad-format load failure",
+                                String::from_utf8_lossy(&dependency.name))));
+                        return Ok(Err(11));
+                    }
+                    Err(error) => return Err(crate::runtime_error(error)),
+                };
+                let target = match target {
+                    Win16ProcReference::Ordinal(ordinal) => NeImportTarget::Ordinal(ordinal),
+                    Win16ProcReference::Name(name) => NeImportTarget::Name(name),
+                };
+                if !imports.iter().any(|(name, symbol, _): &(Vec<u8>, NeImportTarget, NeImportValue)|
+                    name.eq_ignore_ascii_case(&dependency.name) && symbol == &target)
+                {
+                    imports.try_reserve(1).map_err(|error| RuntimeError::with_source(
+                        Kind::ResourceExhausted, "reserve resolved NE import bindings", error))?;
+                    imports.push((dependency.name.clone(), target, address));
+                }
+            }
+        }
+        Ok(Ok(imports))
     }
 
     pub(super) fn module_entry(&mut self, handle: u16, target: &Win16ProcReference,
@@ -676,11 +694,11 @@ impl Win16State {
 
     pub(super) fn module_initialization_order(&self, root: u16, created: &[u16]) -> Vec<u16> {
         fn visit(state: &Win16State, handle: u16, created: &[u16], visited: &mut BTreeSet<u16>, out: &mut Vec<u16>) {
-            if !created.contains(&handle) || !visited.insert(handle) { return; }
+            if !visited.insert(handle) { return; }
             if let Some(module) = state.modules.records.get(&handle) {
                 for &dependency in &module.deps { visit(state, dependency, created, visited, out); }
             }
-            out.push(handle);
+            if created.contains(&handle) { out.push(handle); }
         }
         let mut order = Vec::new();
         visit(self, root, created, &mut BTreeSet::new(), &mut order);

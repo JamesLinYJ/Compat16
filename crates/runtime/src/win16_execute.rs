@@ -118,6 +118,7 @@ impl Runtime {
             if state.vm_start_tick.is_none() {
                 state.vm_start_tick = Some(host.win16_get_tick_count()?);
             }
+            state.begin_program_modules(&mut self.cpu, &mut self.dos, &mut self.memory, host)?;
         }
         if self.instructions == 0 {
             if let Some(state) = self.win16.as_ref() {
@@ -138,6 +139,7 @@ impl Runtime {
         let mut scheduler = schedule::ExecutionSchedule::new(self.instructions);
         loop {
             self.check_memory_storage()?;
+            if let Some(state) = self.win16.as_ref() { state.check_program_modules()?; }
             if self.instructions >= instruction_limit {
                 return Err(RuntimeError::new(
                     Kind::ExecutionLimit,

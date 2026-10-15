@@ -13,7 +13,17 @@ mod entry;
 mod finish;
 #[path = "win16_module_calls/cpu.rs"]
 mod cpu;
+#[path = "win16_module_calls/startup.rs"]
+mod startup;
 use cpu::ModuleCpuOwners;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum ModuleStartupState {
+    Pending,
+    Loading,
+    Ready,
+    Failed(u16),
+}
 
 enum ModuleAction {
     Discover { created: Vec<u16> },
@@ -74,6 +84,9 @@ pub(super) struct ModuleCallFrame {
     queue: VecDeque<u16>,
     active: Option<u16>,
     initialized: Vec<u16>,
+    /// Startup restores an exact parked entry context, without a Pascal API
+    /// return or an explicit LoadLibrary reference on the executable.
+    startup: bool,
 }
 
 impl Win16State {

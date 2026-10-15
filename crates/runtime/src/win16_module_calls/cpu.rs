@@ -167,6 +167,7 @@ impl Win16State {
                     "DLL retirement precedes its checked caller return",
                 )
             })?;
+        let startup = frame.startup;
         if let Some(caller) = frame.cpu.caller {
             self.release_legacy_cpu_frame(caller, dos, memory)?;
             self.module_callbacks
@@ -179,7 +180,9 @@ impl Win16State {
         self.module_callbacks
             .pop()
             .expect("exact DLL source retained through final retirement");
-        Ok(())
+        // A failed startup must stop at this callback boundary, before the
+        // execute loop can poll or enter another queued guest callback.
+        if startup { self.check_program_modules() } else { Ok(()) }
     }
 
     pub(in crate::win16_runtime) fn cancel_module_callback_for_teardown(
@@ -260,6 +263,9 @@ impl Win16State {
             ModuleAction::Unload { modules, .. } => modules,
         };
         let modules = copy_module_handles(modules, "retain terminal DLL retirement plan")?;
+        if frame.phase != ModuleCallPhase::Returned {
+            self.detach_failed_startup_dependencies();
+        }
         self.rollback_modules(&modules)?;
         self.module_reap_pending = true;
         self.retire_callback_binding(CallbackKind::Module, id)?;
