@@ -669,6 +669,29 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<(), DosHostError> {
         self.win16_files.set_write_time(file, time, date)
     }
+    fn win16_file_dos_access(&mut self, file: Win16HostFile) -> Result<DosFileAccess, DosHostError> {
+        self.win16_files.dos_access(file)
+    }
+    fn win16_dos_file_read(
+        &mut self, file: Win16HostFile, output: &mut [u8],
+    ) -> Result<usize, DosHostError> {
+        self.win16_files.dos_read(file, output)
+    }
+    fn win16_dos_file_write(
+        &mut self, file: Win16HostFile, input: &[u8],
+    ) -> Result<usize, DosHostError> {
+        self.win16_files.dos_write(file, input)
+    }
+    fn win16_dos_file_seek(
+        &mut self, file: Win16HostFile, offset: i32, origin: DosSeekOrigin,
+    ) -> Result<u32, DosHostError> {
+        self.win16_files.dos_seek(file, offset, origin)
+    }
+    fn win16_dos_file_close(
+        &mut self, file: Win16HostFile,
+    ) -> Result<runtime::Win16HostFileClose, DosHostError> {
+        self.win16_files.close_checked(file)
+    }
     fn win16_drive_kind(
         &mut self,
         drive: u16,

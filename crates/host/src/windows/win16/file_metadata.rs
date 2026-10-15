@@ -1,11 +1,10 @@
 //! Scalar DOS metadata on the exact retained Win16 open description.
 //! No pathname reopening, access escalation, or cursor movement is allowed.
 
-use super::{Win16Files, Win16NativeFile};
-use crate::windows::{invalid, os_error};
+use super::{Win16Files, file_error};
+use crate::windows::invalid;
 use dos_kernel::{DosErrorCode, DosHostError};
 use runtime::Win16HostFile;
-use std::io;
 use windows_sys::Win32::Foundation::{
     ERROR_INVALID_FUNCTION, FILETIME, GENERIC_WRITE, GetLastError, HANDLE,
 };
@@ -16,25 +15,8 @@ use windows_sys::Win32::Storage::FileSystem::{
 use windows_sys::Win32::System::SystemInformation::GetSystemTimeAsFileTime;
 
 impl Win16Files {
-    fn metadata_handle(&self, file: Win16HostFile) -> Result<(HANDLE, Option<u32>), DosHostError> {
-        let entry = self
-            .files
-            .get(&file)
-            .ok_or_else(|| invalid(DosErrorCode::InvalidHandle))?;
-        let handle = match entry.native {
-            Win16NativeFile::NativeHandle(handle) => handle,
-            Win16NativeFile::Ordinary(hfile) => {
-                // Only the typed native legacy HFILE can use this conversion.
-                // Neither a guest HFILE nor a decoded LZ token is a HANDLE.
-                super::super::win16_compat_calls_lzexpand::hfile_as_kernel_handle(hfile)
-            }
-            Win16NativeFile::LzHandle(_) => return Err(invalid(DosErrorCode::InvalidFunction)),
-        };
-        Ok((handle, entry.access))
-    }
-
     pub(in crate::windows) fn commit(&self, file: Win16HostFile) -> Result<(), DosHostError> {
-        let (handle, access) = self.metadata_handle(file)?;
+        let (handle, access) = self.ordinary_handle(file)?;
         // SAFETY: The table retains this HANDLE throughout the synchronous
         // type query and flush. Exclusive host dispatch serializes its close.
         match unsafe { GetFileType(handle) } {
@@ -53,7 +35,7 @@ impl Win16Files {
         // for unknown legacy access rather than treating AccessDenied as clean.
         // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers
         if unsafe { FlushFileBuffers(handle) } == 0 {
-            return Err(metadata_error(unsafe { GetLastError() }));
+            return Err(file_error(unsafe { GetLastError() }));
         }
         Ok(())
     }
@@ -62,8 +44,8 @@ impl Win16Files {
         &self,
         file: Win16HostFile,
     ) -> Result<(u16, u16), DosHostError> {
-        let (handle, _) = self.metadata_handle(file)?;
-        let ticks = last_write_ticks(handle).map_err(metadata_error)?;
+        let (handle, _) = self.ordinary_handle(file)?;
+        let ticks = last_write_ticks(handle).map_err(file_error)?;
         crate::filesystem::dos_write_time_from_ticks(ticks)
     }
 
@@ -73,7 +55,7 @@ impl Win16Files {
         time: u16,
         date: u16,
     ) -> Result<(), DosHostError> {
-        let (handle, _) = self.metadata_handle(file)?;
+        let (handle, _) = self.ordinary_handle(file)?;
         // DOS File_Times returns immediately for device objects on AL=1;
         // no calendar validation or host timestamp update takes place there.
         // LZ streams were rejected by their explicit type above.
@@ -89,17 +71,9 @@ impl Win16Files {
         // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfiletime
         // SAFETY: The retained HANDLE and initialized FILETIME remain live.
         if unsafe { SetFileTime(handle, std::ptr::null(), std::ptr::null(), &last_write) } == 0 {
-            return Err(metadata_error(unsafe { GetLastError() }));
+            return Err(file_error(unsafe { GetLastError() }));
         }
         Ok(())
-    }
-}
-
-fn metadata_error(code: u32) -> DosHostError {
-    if code == ERROR_INVALID_FUNCTION {
-        invalid(DosErrorCode::InvalidFunction)
-    } else {
-        os_error(io::Error::from_raw_os_error(code as i32))
     }
 }
 

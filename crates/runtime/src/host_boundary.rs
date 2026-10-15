@@ -1315,6 +1315,48 @@ pub trait RuntimeHost:
     ) -> Result<(), dos_kernel::DosHostError> {
         Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
     }
+    /// Query the owned open mode before DOS inspects a caller buffer. This
+    /// is authoritative host state, never a guest-writable SFT projection.
+    fn win16_file_dos_access(
+        &mut self,
+        _file: Win16HostFile,
+    ) -> Result<dos_kernel::DosFileAccess, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// DOS transfers borrow host-owned buffers, never guest addresses. Keep
+    /// short reads/writes, and validate access even for a zero-byte transfer.
+    fn win16_dos_file_read(
+        &mut self,
+        _file: Win16HostFile,
+        _output: &mut [u8],
+    ) -> Result<usize, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// Empty disk writes truncate/extend at the current position. Empty
+    /// character-device writes do not apply disk truncation semantics.
+    fn win16_dos_file_write(
+        &mut self,
+        _file: Win16HostFile,
+        _input: &[u8],
+    ) -> Result<usize, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// DOS Start offsets use all 32 bits; Current/End offsets are signed.
+    /// Reject an unrepresentable target before changing the shared cursor.
+    fn win16_dos_file_seek(
+        &mut self,
+        _file: Win16HostFile,
+        _offset: i32,
+        _origin: dos_kernel::DosSeekOrigin,
+    ) -> Result<u32, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    fn win16_dos_file_close(
+        &mut self,
+        _file: Win16HostFile,
+    ) -> Result<Win16HostFileClose, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
     fn win16_lz_start(&mut self) -> Result<i16, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,

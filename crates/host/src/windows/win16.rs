@@ -1,6 +1,7 @@
 //! Native Windows services requested by the Win16 guest ABI.
 
 pub(super) mod file_metadata;
+mod dos_file_io;
 
 use super::bindings::{_lclose, _llseek, _lread, _lwrite, LZClose, LZRead, LZSeek};
 #[cfg(test)]
@@ -102,6 +103,26 @@ impl Win16Files {
 
     pub(super) fn native_file(&self, file: Win16HostFile) -> Option<Win16NativeFile> {
         self.files.get(&file).map(|entry| entry.native)
+    }
+
+    fn ordinary_handle(
+        &self,
+        file: Win16HostFile,
+    ) -> Result<(HANDLE, Option<u32>), dos_kernel::DosHostError> {
+        let entry = self.files.get(&file)
+            .ok_or_else(|| super::invalid(dos_kernel::DosErrorCode::InvalidHandle))?;
+        let handle = match entry.native {
+            Win16NativeFile::NativeHandle(handle) => handle,
+            Win16NativeFile::Ordinary(hfile) => {
+                // Only a typed native legacy HFILE can use this conversion.
+                // A guest HFILE and a decoded LZ token are never HANDLEs.
+                super::win16_compat_calls_lzexpand::hfile_as_kernel_handle(hfile)
+            }
+            Win16NativeFile::LzHandle(_) => {
+                return Err(super::invalid(dos_kernel::DosErrorCode::InvalidFunction));
+            }
+        };
+        Ok((handle, entry.access))
     }
 
     #[cfg(test)]
@@ -378,20 +399,25 @@ impl Win16Files {
         &mut self,
         file: Win16HostFile,
     ) -> Result<Win16HostFileClose, RuntimeError> {
-        let Some(native) = self.native_file(file) else {
-            return Ok(Win16HostFileClose {
-                closed: false,
-                consumed_source: None,
-            });
-        };
+        Ok(self.close_checked(file).unwrap_or(Win16HostFileClose {
+            closed: false,
+            consumed_source: None,
+        }))
+    }
+
+    pub(super) fn close_checked(
+        &mut self,
+        file: Win16HostFile,
+    ) -> Result<Win16HostFileClose, dos_kernel::DosHostError> {
+        let native = self.native_file(file)
+            .ok_or_else(|| super::invalid(dos_kernel::DosErrorCode::InvalidHandle))?;
         let consumed_source = match native {
             Win16NativeFile::Ordinary(handle) => {
                 // SAFETY: The HFILE is still owned here; failed close keeps it for retry.
                 if unsafe { _lclose(handle) } == -1 {
-                    return Ok(Win16HostFileClose {
-                        closed: false,
-                        consumed_source: None,
-                    });
+                    return Err(file_error(unsafe {
+                        windows_sys::Win32::Foundation::GetLastError()
+                    }));
                 }
                 None
             }
@@ -399,10 +425,9 @@ impl Win16Files {
                 // SAFETY: The HANDLE is still owned here; a failed close
                 // keeps it in the table so the caller can retry.
                 if unsafe { CloseHandle(handle) } == 0 {
-                    return Ok(Win16HostFileClose {
-                        closed: false,
-                        consumed_source: None,
-                    });
+                    return Err(file_error(unsafe {
+                        windows_sys::Win32::Foundation::GetLastError()
+                    }));
                 }
                 None
             }
@@ -473,6 +498,14 @@ impl Drop for Win16Files {
                 close_native(entry.native);
             }
         }
+    }
+}
+
+fn file_error(code: u32) -> dos_kernel::DosHostError {
+    if code == windows_sys::Win32::Foundation::ERROR_INVALID_FUNCTION {
+        super::invalid(dos_kernel::DosErrorCode::InvalidFunction)
+    } else {
+        super::os_error(std::io::Error::from_raw_os_error(code as i32))
     }
 }
 

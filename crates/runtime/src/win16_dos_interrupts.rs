@@ -15,6 +15,8 @@ use super::Win16State;
 
 #[path = "win16_dos_interrupts/file_metadata.rs"]
 mod file_metadata;
+#[path = "win16_dos_interrupts/file_io.rs"]
+mod file_io;
 
 /// A resolved protected-mode destination for one software interrupt.
 ///
@@ -48,6 +50,9 @@ pub(super) fn dispatch_int21(
 ) -> Result<DosAction, RuntimeError> {
     let service = regs.ah();
     if file_metadata::dispatch(state, dos, regs, memory, host)? {
+        return Ok(DosAction::Continue);
+    }
+    if file_io::dispatch(state, dos, regs, memory, host)? {
         return Ok(DosAction::Continue);
     }
     if matches!(service, 0x0e | 0x19 | 0x3b | 0x47) {
