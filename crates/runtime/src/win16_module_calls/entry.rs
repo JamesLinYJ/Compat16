@@ -151,7 +151,7 @@ impl Win16State {
         Ok(None)
     }
 
-    fn module_unload_order(&self, modules: &[u16]) -> VecDeque<u16> {
+    pub(super) fn module_unload_order(&self, modules: &[u16]) -> VecDeque<u16> {
         let mut order = Vec::new();
         for &handle in modules {
             for next in self.module_initialization_order(handle, modules) {
@@ -164,18 +164,19 @@ impl Win16State {
         order.into()
     }
 
-    fn prepare_module_unload(&mut self, order: VecDeque<u16>) -> Result<(), RuntimeError> {
+    pub(super) fn prepare_module_unload(&mut self, order: VecDeque<u16>) -> Result<(), RuntimeError> {
         let frame = self.module_callbacks.last_mut().ok_or_else(|| {
             RuntimeError::new(
                 Kind::InternalInvariant,
                 "DLL unload preparation lost its source owner",
             )
         })?;
-        let ModuleAction::Unload { modules, .. } = &frame.action else {
-            return Err(RuntimeError::new(
+        let modules = match &frame.action {
+            ModuleAction::Unload { modules, .. } | ModuleAction::TaskExit { modules, .. } => modules,
+            _ => return Err(RuntimeError::new(
                 Kind::InternalInvariant,
                 "DLL unload preparation has a different loader action",
-            ));
+            )),
         };
         for handle in modules {
             let record = self.modules.records.get_mut(handle).ok_or_else(|| {
@@ -202,6 +203,7 @@ impl Win16State {
     ) -> Result<(), RuntimeError> {
         if !self.module_reap_pending
             || !self.module_callbacks.is_empty()
+            || self.toolhelp_task_exit.pending_id().is_some()
             || cpu.interrupt_shadow_active()
         {
             return Ok(());

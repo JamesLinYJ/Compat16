@@ -261,6 +261,10 @@ impl Win16State {
             }
             ModuleAction::Load { .. } => &[],
             ModuleAction::Unload { modules, .. } => modules,
+            // These are pre-existing process modules, not allocations owned
+            // by the exit frame. Native/older callback roots keep them until
+            // the ordinary post-execution global resource teardown.
+            ModuleAction::TaskExit { .. } => &[],
         };
         let modules = copy_module_handles(modules, "retain terminal DLL retirement plan")?;
         if frame.phase != ModuleCallPhase::Returned {

@@ -15,7 +15,10 @@ mod finish;
 mod cpu;
 #[path = "win16_module_calls/startup.rs"]
 mod startup;
+#[path = "win16_module_calls/task_exit.rs"]
+mod task_exit;
 use cpu::ModuleCpuOwners;
+use super::toolhelp_notify_exit::TaskExitModuleScope;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum ModuleStartupState {
@@ -30,6 +33,7 @@ enum ModuleAction {
     LoadFailure { code: u16, created: Vec<u16> },
     Load { root: u16, created: Vec<u16> },
     Unload { modules: Vec<u16>, failed_load: bool, resume: bool },
+    TaskExit { modules: Vec<u16>, scope: TaskExitModuleScope },
 }
 
 enum ModuleCompletionPlan {
@@ -45,6 +49,7 @@ enum ModuleCompletionPlan {
         failed_load: bool,
         resume: bool,
     },
+    TaskExit { modules: Vec<u16>, scope: TaskExitModuleScope },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -435,9 +440,18 @@ impl Win16State {
                 self.pop_module_call_front(handle)?;
                 continue;
             }
+            // KERNEL31 CallWEP skips pre-3.0 libraries and modules whose
+            // LibMain was never entered. Ready data/resource-only images
+            // must not gain a synthetic WEP invocation just by exporting it.
+            let started = record.definition.as_ref().is_some_and(|definition|
+                definition.header.expected_windows_version >= 0x0300
+                    && definition.header.flags & 0x8000 != 0)
+                && record.loaded.as_ref().is_some_and(|loaded| loaded.code_entry.is_some());
             let entry = if loading { record.loaded.as_ref().and_then(|loaded| loaded.code_entry) }
-                else { self.module_entry(handle, &Win16ProcReference::Name(b"WEP".to_vec()), false)
-                    .map_err(crate::runtime_error)? };
+                else if started {
+                    self.module_entry(handle, &Win16ProcReference::Name(b"WEP".to_vec()), false)
+                        .map_err(crate::runtime_error)?
+                } else { None };
             let Some(entry) = entry else {
                 let frame = self.module_callbacks.last_mut().ok_or_else(|| RuntimeError::new(
                     Kind::InternalInvariant, "DLL continuation frame is missing"))?;

@@ -212,6 +212,10 @@ impl Win16State {
                 failed_load: *failed_load,
                 resume: *resume,
             }),
+            ModuleAction::TaskExit { modules, scope } => Ok(ModuleCompletionPlan::TaskExit {
+                modules: copy_module_handles(modules, "retain task-exit DLL completion owners")?,
+                scope: *scope,
+            }),
             ModuleAction::Discover { .. } => Err(RuntimeError::new(
                 Kind::InternalInvariant,
                 "DLL discovery has no completed load result",
@@ -299,6 +303,15 @@ impl Win16State {
                 self.rollback_modules(modules)?;
                 (false, u32::from(*code), Win16ReturnKind::Word)
             }
+            ModuleCompletionPlan::TaskExit { modules, scope } => {
+                let callback = self.module_callbacks.last().expect("DLL completion source").callback_id;
+                self.toolhelp_task_exit.validate_module_cleanup_return(*scope, callback)?;
+                if modules.iter().any(|handle| !self.modules.records.contains_key(handle)) {
+                    return Err(RuntimeError::new(Kind::InternalInvariant,
+                        "task-exit DLL completion lost a retained module"));
+                }
+                (true, 0, Win16ReturnKind::Void)
+            }
             ModuleCompletionPlan::Unload {
                 modules,
                 failed_load,
@@ -352,6 +365,8 @@ impl Win16State {
                 ModuleCompletionPlan::Unload { failed_load: true, .. } => ModuleStartupState::Failed(0),
                 ModuleCompletionPlan::Unload { .. } => return Err(RuntimeError::new(
                     Kind::InternalInvariant, "startup completed with an unrelated unload action")),
+                ModuleCompletionPlan::TaskExit { .. } => return Err(RuntimeError::new(
+                    Kind::InternalInvariant, "startup completed with a task-exit DLL action")),
             })
         } else { None };
         if startup {
@@ -375,6 +390,18 @@ impl Win16State {
                 .explicit_refs = *explicit_refs;
         }
         if let Some(result) = startup_result { self.module_startup = result; }
+        if let ModuleCompletionPlan::TaskExit { modules, scope } = plan {
+            // WEP has returned, but older window/CPU/native callback roots
+            // can still refer to these segments. Leave physical ownership
+            // with ordinary process teardown after guest execution ends.
+            for handle in modules {
+                let record = self.modules.records.get_mut(handle).expect("retained exit DLL");
+                record.state = ModuleState::Retired;
+                record.wep_called = true;
+            }
+            let callback = self.module_callbacks.last().expect("DLL completion source").callback_id;
+            self.toolhelp_task_exit.module_cleanup_returned(*scope, callback)?;
+        }
         self.module_callbacks
             .last_mut()
             .expect("returned DLL completion source")
