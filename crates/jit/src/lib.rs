@@ -1,14 +1,22 @@
-//! Independent native integer blocks with checked state and cache ownership.
+//! Independent compiled integer blocks with checked state and cache ownership.
 //!
-//! Generated code touches only owned IntegerState and checkpoint arrays. CPU
+//! Generated code touches only owned integer state, checkpoints and bounded RAM windows. CPU
 //! decoding, guest memory, exception delivery and retirement remain outside.
 
 mod artifact;
 mod compiler;
 mod ir;
 mod loops;
+mod memory;
+mod memory_lowering;
+pub use memory::{
+    Address, BlockInstruction, MemoryInstruction, MemoryLoop, MemoryLoopCache, MemoryOutcome,
+    MemoryWindow, ValueOperand,
+};
 mod lowering;
 pub use loops::{IntegerLoop, LoopCache, LoopOutcome};
+#[cfg(test)]
+mod memory_tests;
 #[cfg(test)]
 mod tests;
 mod trace;
@@ -25,6 +33,9 @@ const MAX_ENTRIES: usize = 1024;
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Statistics {
+    pub memory_loops_compiled: u64,
+    pub memory_loops_executed: u64,
+    pub memory_instructions: u64,
     pub loops_compiled: u64,
     pub loops_executed: u64,
     pub loop_iterations: u64,
@@ -42,6 +53,15 @@ pub struct Statistics {
 impl Statistics {
     pub fn combined(self, other: Self) -> Self {
         Self {
+            memory_loops_compiled: self
+                .memory_loops_compiled
+                .saturating_add(other.memory_loops_compiled),
+            memory_loops_executed: self
+                .memory_loops_executed
+                .saturating_add(other.memory_loops_executed),
+            memory_instructions: self
+                .memory_instructions
+                .saturating_add(other.memory_instructions),
             loops_compiled: self.loops_compiled.saturating_add(other.loops_compiled),
             loops_executed: self.loops_executed.saturating_add(other.loops_executed),
             loop_iterations: self.loop_iterations.saturating_add(other.loop_iterations),
@@ -215,7 +235,7 @@ impl CodeCache {
     }
     fn clear(&mut self) {
         self.entries.clear();
-        // SAFETY: No native pointer escapes; all entries are gone, and &mut
+        // SAFETY: No executable pointer escapes; all entries are gone, and &mut
         // self excludes an executing function, including during destruction.
         unsafe {
             self.compiler.clear();

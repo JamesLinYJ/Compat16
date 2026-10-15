@@ -24,6 +24,10 @@ pub trait MemoryStorage {
     fn read_plain_code(&self, _offset: u32, _output: &mut [u8]) -> Result<bool, MemoryError> {
         Ok(false)
     }
+    /// Unobserved RAM with distinct byte identities at distinct storage offsets,
+    /// including permission to coalesce writeback of the
+    /// unchanged parts of the snapshot. See GuestMemory::read_plain_data.
+    fn read_plain_data(&self, _offset: u32, _output: &mut [u8], _writable: bool) -> Result<bool, MemoryError> { Ok(false) }
 
     /// Read a checked range beginning at `offset` into `output`.
     fn read(&self, offset: u32, output: &mut [u8]) -> Result<(), MemoryError>;
@@ -55,6 +59,15 @@ pub(super) enum MemoryBacking {
 }
 
 impl MemoryBacking {
+    pub(super) fn read_plain_data(&self, offset: u32, output: &mut [u8], writable: bool) -> Result<bool, MemoryError> {
+        match self {
+            Self::Owned(_) => self.read_plain_code(offset,output),
+            Self::External { storage, fixed_length } => {
+                checked_storage_range(offset,output.len(),*fixed_length as usize)?;
+                storage.read_plain_data(offset,output,writable)
+            }
+        }
+    }
     pub(super) fn read_plain_code(&self, offset: u32, output: &mut [u8]) -> Result<bool, MemoryError> {
         match self {
             Self::Owned(bytes) => {

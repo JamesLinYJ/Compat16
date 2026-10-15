@@ -91,6 +91,14 @@ pub trait GuestMemory {
     fn read_plain_code(&self, _address: PhysAddr, _bytes: &mut [u8]) -> Result<bool, MemoryError> {
         Ok(false)
     }
+    /// Optional unobserved RAM snapshot that also permits coalescing later
+    /// writes of unchanged bytes within this exact range. MMIO, shared or
+    /// per-access observed storage must decline. The CPU separately checks
+    /// guest permissions; backing failures retain their terminal contract.
+    fn read_plain_data(&self, _address: PhysAddr, _bytes: &mut [u8], _writable: bool) -> Result<bool, MemoryError> { Ok(false) }
+    /// Canonical byte identity for a contiguous unobserved RAM range. Used
+    /// only for alias exclusion; this is a guest offset, never a host pointer.
+    fn plain_ram_identity(&self, _address: PhysAddr, _length: usize) -> Option<PhysAddr> { None }
     fn is_empty(&self) -> bool { self.len() == 0 }
     fn validate_read(&self, address: PhysAddr, length: usize) -> Result<(), MemoryError> {
         let length32 = u32::try_from(length).map_err(|_| MemoryError::AddressOverflow)?;
@@ -148,6 +156,8 @@ impl<T: GuestMemory + ?Sized> GuestMemory for &mut T {
     fn read_plain_code(&self, address: PhysAddr, bytes: &mut [u8]) -> Result<bool, MemoryError> {
         (**self).read_plain_code(address, bytes)
     }
+    fn read_plain_data(&self, address: PhysAddr, bytes: &mut [u8], writable: bool) -> Result<bool, MemoryError> { (**self).read_plain_data(address,bytes,writable) }
+    fn plain_ram_identity(&self, address: PhysAddr, length: usize) -> Option<PhysAddr> { (**self).plain_ram_identity(address,length) }
     fn is_empty(&self) -> bool { (**self).is_empty() }
     fn validate_read(&self, address: PhysAddr, length: usize) -> Result<(), MemoryError> {
         (**self).validate_read(address, length)

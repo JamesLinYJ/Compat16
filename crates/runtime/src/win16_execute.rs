@@ -188,7 +188,7 @@ impl Runtime {
                 .process_frames
                 .last()
                 .is_some_and(crate::process::ProcessFrame::is_win16_dos_child)
-                && !state.pe32_dispatch.has_active_call();
+                && state.dde_guest_contexts.is_empty() && !state.pe32_dispatch.has_active_call();
             if guest_dispatch_allowed
                 && state.retry_mci_callback_progress(&mut self.cpu, &mut self.memory, host)?
             {
@@ -552,7 +552,25 @@ impl Runtime {
                 };
                 let instruction_address = (self.cpu.regs.cs, self.cpu.regs.ip());
                 let before_stack = (self.cpu.regs.ss, self.cpu.regs.sp());
-                let outcome = crate::cpu_execution::step_observing_events(
+                // Compiler quanta cannot contain a call/return, service gate
+                // or CPU event. Keep active continuation/observer workflows
+                // on individual steps and preserve the readiness deadline.
+                let quantum = instruction_limit.saturating_sub(self.instructions)
+                    .min(scheduler.instruction_quantum(self.instructions)) as u32;
+                let allow_jit = self.instruction_trace.is_none() && self.memory_write_watch.is_none()
+                    && !callback_gate && !native_procedure_gate && !service_gate
+                    && state.callback_kinds.is_empty() && state.far_returns.is_empty()
+                    && state.module_callbacks.is_empty() && state.resource_callbacks.is_empty()
+                    && state.interrupt_returns.is_empty() && state.toolhelp_interrupt_frames.is_empty()
+                    && state.toolhelp_notify_frames.is_empty() && state.dde_context_restores.is_empty()
+                    && state.dde_guest_contexts.is_empty() && !state.pe32_dispatch.has_active_call();
+                let retired = if allow_jit {
+                    self.cpu.try_run_jit_loop(&mut self.memory.bus(), &context, quantum)
+                        .map_err(crate::runtime_error)?
+                } else { None };
+                let outcome = if retired.is_some() {
+                    CpuObservedStepOutcome::Executed(StepOutcome::Continue)
+                } else { crate::cpu_execution::step_observing_events(
                     &mut self.cpu,
                     self.memory.bus(),
                     &mut self.ports,
@@ -566,9 +584,9 @@ impl Runtime {
                         instruction_address.0,
                         instruction_address.1,
                     ))
-                })?;
+                })? };
                 crate::machine::check_memory_storage(&self.memory)?;
-                self.instructions += 1;
+                self.instructions += u64::from(retired.unwrap_or(1));
                 if self.cpu.allows_real_mode_service_intercepts() {
                     state.observe_control_transfer(
                         self.cpu.control_transfer(),
@@ -678,7 +696,7 @@ impl Runtime {
                     let running_dos_child = self.process_frames.last()
                         .is_some_and(crate::process::ProcessFrame::is_win16_dos_child);
                     let guest_dispatch_allowed =
-                        !running_dos_child && !state.pe32_dispatch.has_active_call();
+                        !running_dos_child && state.dde_guest_contexts.is_empty() && !state.pe32_dispatch.has_active_call();
                     let callback_dispatch_allowed = guest_dispatch_allowed
                         && self.cpu.allows_real_mode_service_intercepts()
                         && state.callback_kinds.is_empty()

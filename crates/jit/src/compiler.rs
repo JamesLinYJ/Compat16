@@ -12,6 +12,8 @@ use cranelift_module::{Linkage, Module, ModuleReloc};
 use std::sync::Arc;
 
 pub(crate) type Function = unsafe extern "C" fn(*mut IntegerState, *mut IntegerState);
+pub(crate) type MemoryFunction =
+    unsafe extern "C" fn(*mut IntegerState, *mut u8, u32, u32, u32) -> u64;
 pub(crate) type LoopFunction = unsafe extern "C" fn(*mut IntegerState, u32) -> u64;
 #[derive(Default)]
 pub(crate) struct Compiler {
@@ -26,7 +28,7 @@ pub(crate) struct Compiled<F> {
 }
 impl Compiler {
     pub fn compile(&mut self, instructions: &[Instruction]) -> Result<Compiled<Function>, String> {
-        let code = self.compile_body(instructions, None)?;
+        let code = self.compile_body(instructions, None, None)?;
         // SAFETY: Checkpoint emission has the exact two-pointer C signature.
         Ok(Compiled {
             function: unsafe { std::mem::transmute::<*const u8, Function>(code.function) },
@@ -39,10 +41,22 @@ impl Compiler {
         instructions: &[Instruction],
         condition: Option<Condition>,
     ) -> Result<Compiled<LoopFunction>, String> {
-        let code = self.compile_body(instructions, Some(condition))?;
+        let code = self.compile_body(instructions, Some(condition), None)?;
         // SAFETY: Loop emission has the exact pointer/u32 -> u64 C signature.
         Ok(Compiled {
             function: unsafe { std::mem::transmute::<*const u8, LoopFunction>(code.function) },
+            cache_hit: code.cache_hit,
+            cache_writes: code.cache_writes,
+        })
+    }
+    pub fn compile_memory_loop(
+        &mut self,
+        plan: &crate::MemoryLoop,
+    ) -> Result<Compiled<MemoryFunction>, String> {
+        let code = self.compile_body(&[], None, Some(plan))?;
+        // SAFETY: Memory emission has exactly the private five-argument C signature.
+        Ok(Compiled {
+            function: unsafe { std::mem::transmute::<*const u8, MemoryFunction>(code.function) },
             cache_hit: code.cache_hit,
             cache_writes: code.cache_writes,
         })
@@ -51,6 +65,7 @@ impl Compiler {
         &mut self,
         instructions: &[Instruction],
         loop_condition: Option<Option<Condition>>,
+        memory: Option<&crate::MemoryLoop>,
     ) -> Result<Compiled<*const u8>, String> {
         if self.module.is_none() {
             self.module = Some(JITModule::new(
@@ -84,7 +99,14 @@ impl Compiler {
             } else {
                 pointer_type
             }));
-        if loop_condition.is_some() {
+        if memory.is_some() {
+            context
+                .func
+                .signature
+                .params
+                .extend([AbiParam::new(types::I32); 3]);
+        }
+        if loop_condition.is_some() || memory.is_some() {
             context
                 .func
                 .signature
@@ -102,7 +124,9 @@ impl Compiler {
             builder.switch_to_block(entry);
             builder.seal_block(entry);
             let state_pointer = builder.block_params(entry)[0];
-            if let Some(condition) = loop_condition {
+            if let Some(memory) = memory {
+                crate::memory_lowering::emit(&mut builder, memory);
+            } else if let Some(condition) = loop_condition {
                 emit_loop(&mut builder, state_pointer, instructions, condition);
             } else {
                 let checkpoints = builder.block_params(entry)[1];
@@ -171,7 +195,7 @@ impl Compiler {
     /// All cached entry pointers must be discarded before this call.
     pub unsafe fn clear(&mut self) {
         if let Some(module) = self.module.take() {
-            // SAFETY: The sole owner cleared entries and excludes native calls.
+            // SAFETY: The sole owner cleared entries and excludes generated-code calls.
             unsafe {
                 module.free_memory();
             }
@@ -179,7 +203,7 @@ impl Compiler {
     }
 }
 
-// SSA block parameters keep all guest values in native registers across the
+// SSA block parameters keep all guest values in host registers across the
 // backedge. No checkpoint stores, guest fetches, callbacks or memory effects
 // occur in the body. The owner must validate code and event budgets first.
 fn emit_loop(

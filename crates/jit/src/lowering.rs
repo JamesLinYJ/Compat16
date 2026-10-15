@@ -28,7 +28,7 @@ impl State {
     }
 }
 
-fn load(b: &mut FunctionBuilder<'_>, state: &State, register: Register) -> Value {
+pub(super) fn load(b: &mut FunctionBuilder<'_>, state: &State, register: Register) -> Value {
     let value = state.words[usize::from(register.index)];
     let value = if register.high8 {
         b.ins().ushr_imm_u(value, 8)
@@ -37,7 +37,7 @@ fn load(b: &mut FunctionBuilder<'_>, state: &State, register: Register) -> Value
     };
     b.ins().band_imm_u(value, i64::from(register.mask()))
 }
-fn store(b: &mut FunctionBuilder<'_>, state: &mut State, register: Register, value: Value) {
+pub(super) fn store(b: &mut FunctionBuilder<'_>, state: &mut State, register: Register, value: Value) {
     let value = b.ins().band_imm_u(value, i64::from(register.mask()));
     let value = if register.bytes == 4 {
         value

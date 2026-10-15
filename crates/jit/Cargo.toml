@@ -1,5 +1,5 @@
 [package]
-name = "native-jit"
+name = "compat16-jit"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

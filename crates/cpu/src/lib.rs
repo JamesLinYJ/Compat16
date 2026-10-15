@@ -30,7 +30,7 @@ mod x86_decode;
 mod jit;
 pub use jit::{ExecutionEngine, JitStatistics};
 #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
-pub use native_jit::{Artifact as JitArtifact, ArtifactStore as JitArtifactStore};
+pub use compat16_jit::{Artifact as JitArtifact, ArtifactStore as JitArtifactStore};
 mod x87;
 mod x87_math;
 mod x87_state;
@@ -210,7 +210,7 @@ impl Cpu {
         self.model
     }
 
-    /// Select interpreter-only execution or the native hot-integer translator.
+    /// Select interpreter-only execution or the hot-integer JIT translator.
     /// Single-step execution retains its normal boundary; opt-in integer loops
     /// retire an exact bounded count through the machine scheduler.
     pub fn set_execution_engine(&mut self, engine: ExecutionEngine) {

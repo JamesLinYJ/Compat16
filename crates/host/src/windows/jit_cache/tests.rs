@@ -1,5 +1,5 @@
 use super::*;
-use native_jit::{CodeCache, Instruction, IntegerState, Operand, Operation, Register, Statistics};
+use compat16_jit::{CodeCache, Instruction, IntegerState, Operand, Operation, Register, Statistics};
 use std::process::Command;
 
 struct Scratch(PathBuf);
@@ -120,7 +120,7 @@ fn persistent_child() {
 }
 
 #[test]
-fn encrypted_native_artifact_survives_two_fresh_processes() {
+fn encrypted_jit_artifact_survives_two_fresh_processes() {
     let scratch = Scratch::new();
     for phase in ["write", "read"] {
         let output = Command::new(std::env::current_exe().unwrap())

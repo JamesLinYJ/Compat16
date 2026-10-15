@@ -1,4 +1,4 @@
-//! Budgeted native loops over pure integer IR; no guest or host services.
+//! Budgeted compiled loops over pure integer IR; no guest or host services.
 
 use crate::compiler::{Compiler, LoopFunction};
 use crate::{
@@ -49,7 +49,7 @@ impl LoopCache {
         self.compiler.store = store;
     }
     /// The owner must guard the complete code span and exclude events for this
-    /// quantum. Cold/invalid requests leave state unchanged. Every native call
+    /// quantum. Cold/invalid requests leave state unchanged. Every generated-code call
     /// has a finite cap even when a guest backedge is unconditional.
     pub fn execute(
         &mut self,

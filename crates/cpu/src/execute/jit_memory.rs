@@ -1,4 +1,4 @@
-//! Checked operand ingress/writeback for independent native integer bodies.
+//! Checked operand ingress/writeback for independent compiled integer bodies.
 
 use crate::{
     CpuError, jit::IntegerTranslator, memory_access::CpuBus, x86_decode::DecodedInstruction,
@@ -13,7 +13,7 @@ pub(crate) fn execute(
 ) -> Result<bool, CpuError> {
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
     {
-        native::execute(translator, regs, bus, decoded)
+        translation::execute(translator, regs, bus, decoded)
     }
     #[cfg(not(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"))))]
     {
@@ -23,7 +23,7 @@ pub(crate) fn execute(
 }
 
 #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
-mod native {
+mod translation {
     use super::super::operand::{
         operand_width, prepare_operand, read_operand, read_prepared_operand, write_operand,
         write_prepared_operand,
@@ -33,7 +33,7 @@ mod native {
         memory_access::AccessKind,
         x86_decode::{NormalizedInstruction, Operand},
     };
-    use native_jit::{Instruction, IntegerState, Operand as IrOperand, Operation as Op, Register};
+    use compat16_jit::{Instruction, IntegerState, Operand as IrOperand, Operation as Op, Register};
 
     pub(super) fn execute(
         translator: &mut IntegerTranslator,

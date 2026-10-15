@@ -145,6 +145,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "compat16-jit"
+version = "0.1.0"
+dependencies = [
+ "cranelift-codegen",
+ "cranelift-control",
+ "cranelift-frontend",
+ "cranelift-jit",
+ "cranelift-module",
+]
+
+[[package]]
 name = "core_detect"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -555,12 +566,12 @@ version = "0.1.0"
 dependencies = [
  "cap-std",
  "compat-services",
+ "compat16-jit",
  "devices",
  "dos-kernel",
  "formats",
  "graphics",
  "guest-core",
- "native-jit",
  "parallel-work",
  "runtime",
  "serde",
@@ -699,17 +710,6 @@ name = "multiversion_no_op"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
-
-[[package]]
-name = "native-jit"
-version = "0.1.0"
-dependencies = [
- "cranelift-codegen",
- "cranelift-control",
- "cranelift-frontend",
- "cranelift-jit",
- "cranelift-module",
-]
 
 [[package]]
 name = "native-loader"
@@ -1431,9 +1431,9 @@ dependencies = [
 name = "x86-cpu"
 version = "0.1.0"
 dependencies = [
+ "compat16-jit",
  "guest-core",
  "iced-x86",
- "native-jit",
  "rustc_apfloat",
  "zerocopy",
 ]

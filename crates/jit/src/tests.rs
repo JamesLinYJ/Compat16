@@ -2,7 +2,7 @@ use super::*;
 use std::sync::Mutex;
 
 #[derive(Default)]
-struct Store(Mutex<HashMap<[u8; 32], Artifact>>);
+pub(crate) struct Store(Mutex<HashMap<[u8; 32], Artifact>>);
 impl ArtifactStore for Store {
     fn load(&self, key: &[u8; 32]) -> Option<Artifact> {
         self.0.lock().ok()?.get(key).cloned()
@@ -315,7 +315,7 @@ fn budgeted_loops_match_checkpoint_arithmetic_and_stop_at_the_backedge() {
 }
 
 #[test]
-fn native_loop_conditions_cover_all_x86_status_relations() {
+fn jit_loop_conditions_cover_all_x86_status_relations() {
     use Condition::*;
     let conditions = [
         Overflow,

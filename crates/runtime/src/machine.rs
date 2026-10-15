@@ -410,8 +410,8 @@ impl Runtime {
                 }
             }
             self.check_memory_storage()?;
-            // Pure register loops have no service calls or memory/device
-            // effects. Rejoin the scheduler after at most 256 instructions;
+            // Eligible loops contain only register operations and certified
+            // private RAM accesses. Rejoin after at most 256 instructions;
             // never cross the existing host-pump or absolute budget boundary.
             // Firmware and DOS service segments keep instruction dispatch.
             let quantum = instruction_limit.saturating_sub(self.instructions)
@@ -420,7 +420,7 @@ impl Runtime {
                 && self.cpu.regs.cs != dos_kernel::SYSTEM_SEGMENT
                 && (u32::from(self.cpu.regs.cs) << 4) + 0xffff < 0xa0000
             {
-                if let Some(retired) = self.cpu.try_run_integer_loop(&self.memory.bus(), quantum)
+                if let Some(retired) = self.cpu.try_run_jit_loop(&mut self.memory.bus(), &x86_cpu::RealModeSegments, quantum)
                     .map_err(runtime_error)?
                 {
                     self.instructions += u64::from(retired);

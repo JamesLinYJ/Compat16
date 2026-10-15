@@ -1,4 +1,4 @@
-# Native integer JIT
+# Integer JIT
 
 Windows ARM64 and AMD64 hosts translate frequently executed integer
 x86 instructions with Cranelift 0.136.2. The translator is connected to the
@@ -8,7 +8,7 @@ crate behind a pointer-free, constructor-checked integer IR.
 
 Microsoft describes [Prism](https://learn.microsoft.com/en-us/windows/arm/apps-on-arm-x86-emulation)
 as JIT translation of x86 blocks to ARM64 with reusable translated-code caches.
-This implementation applies native translation and cache reuse to Compat16's
+This implementation applies JIT translation and cache reuse to Compat16's
 16/32-bit execution model. It does not depend on Prism or its private cache
 format, and it does not claim Prism's optimization coverage.
 
@@ -28,33 +28,49 @@ format, and it does not claim Prism's optimization coverage.
   breakpoint delivery, continuation stamps, event observation and instruction
   budgets. This single-step path retains every observable instruction boundary.
 - A separate `IntegerLoop` / `LoopCache` compiles up to sixteen register
-  operations and a conditional or unconditional backedge into a native SSA
-  loop. Values stay in native registers, intermediate dead flags are omitted,
+  operations and a conditional or unconditional backedge into a compiled SSA
+  loop. Values stay in host registers, intermediate dead flags are omitted,
   and only the exit state is written. There are no intermediate checkpoint
   stores. This interface has no CPU, filesystem or Windows dependency.
-  The CPU adapter accepts only ordinary real-address CS caches with no paging,
-  debugging, pending CPU event, interrupt shadow or incomplete REP. It checks
+  The CPU adapter supports 16/32-bit real-address and protected segment caches,
+  and explicitly certified Win16 selector projections. It rechecks segment
+  permissions, CPL/RPL, limits and CPU model features without speculative guest
+  faults. Paging, debugging, pending CPU events, interrupt shadows and incomplete
+  REP retain ordinary stepping. It checks
   the complete current code span on every dispatch, including the branch,
   and counts every body instruction and backedge without exceeding the budget.
   A provider must explicitly certify stable, unobserved RAM snapshots; device
-  memory and custom observers retain ordered fetches. Native process-memory
+  memory and custom observers retain ordered fetches. Host process-memory
   snapshots use checked OS copies; no guest address becomes a host pointer.
   The DOS scheduler dispatches at most 256 instructions per quantum, then
   resamples its time-driven device clock and arbitrates interrupts. Quanta
   also stop at the absolute budget and the existing 4,096-instruction host pump.
-  Firmware/DOS service segments, instruction history and write watches keep
-  single stepping. Protected-mode and Win16 observer execution retain the
-  original per-instruction path. This changes host-time sampling granularity,
-  not the instruction counts or guest timer input frequency; it is not a
-  cycle-accurate timing claim.
-- Generated code addresses only exclusive nine-word integer states and a
-  bounded owned checkpoint buffer. Guest
-  register values cannot become native pointers. AL/AH and 16-bit writes retain
+  The Win16 scheduler also dispatches eligible loops, capped by its next
+  readiness checkpoint (at most 64 instructions) and the absolute budget.
+  Service gates, instruction history, write watches and active guest callback
+  continuations keep single stepping. Host-time sampling follows these bounded
+  quanta; guest timer input frequency and instruction counts retain their
+  contracts. This is not a cycle-accurate timing claim.
+- `MemoryLoop` / `MemoryLoopCache` adds checked 8/16/32-bit loads, stores and
+  arithmetic with 16/32-bit effective addresses. Generated code receives an
+  exclusive owned byte slice, never a mapping of guest memory. Every access
+  checks its complete width against that window. Budget/window exits publish
+  the completed prefix and identify the next instruction; the ordinary CPU
+  handles any subsequent fault. The CPU adapter snapshots 256 bytes only when
+  the provider certifies unobserved RAM and permits coalesced writeback. It
+  checks full-window read/write permissions and canonical code/data identities,
+  rejecting self-modifying aliases including A20 aliases. MMIO, shared storage,
+  alignment-checking CPL3 execution and uncertified providers retain the checked
+  path. A partial backing-store write is terminal and is never replayed.
+  Each memory instruction preserves full flags for precise prefix exits.
+- Generated code addresses only exclusive nine-word integer states, bounded
+  owned checkpoint buffers and checked owned RAM windows. Guest register
+  values cannot become host pointers. AL/AH and 16-bit writes retain
   unaffected register bits. Arithmetic computes CF/PF/AF/ZF/SF/OF; INC/DEC
   retain CF, and logical operations retain the interpreter's undefined AF.
 - MOV/MOVZX/MOVSX, ADD/ADC, SUB/SBB, AND/OR/XOR, CMP/TEST, INC/DEC, NEG/NOT,
   register XCHG/BSWAP and all sixteen SETcc/CMOVcc conditions are supported.
-  CMOV still requires support from the selected guest CPU model. Integer memory
+  CMOV still requires support from the selected guest CPU model. Single-step integer memory
   operands pass through the CPU's existing checked access plans; generated code
   receives only their values. Cold/failing compilation returns before reading
   operands, preserving single device reads on interpreter fallback. Read/modify/
@@ -67,11 +83,11 @@ format, and it does not claim Prism's optimization coverage.
   1,024 trace plans live
   in one CPU's process-local cache. Eviction drops every private code pointer
   before freeing its module. No pointer escapes the cache owner.
-  Native loops become eligible after eight cache dispatches and have their
+  Compiled loops become eligible after eight cache dispatches and have their
   own bounded 1,024-entry cache. Loop and checkpoint signatures have distinct
   compiler keys and share the same authenticated persistence contract.
 - Cranelift publishes writable code as executable and synchronizes the native
-  instruction cache. Compilation/publication failure disables native execution
+  instruction cache. Compilation/publication failure disables JIT execution
   for this cache while leaving interpretation available. No executable pointer
   is shared across code owners or processes.
 
@@ -99,22 +115,21 @@ compilation. Filesystem failures never become guest execution failures.
 ## Controls and evidence
 
 `--cpu-engine jit` is the Windows default. `--cpu-engine interpreter` disables
-native execution, including for DOS EXEC children and restored CPU owners.
+JIT execution, including for DOS EXEC children and restored CPU owners.
 `--no-jit-cache` disables disk persistence. The optional store is shared with
 DOS EXEC children and restored CPU owners; executable allocations remain private.
-`--jit-stats` prints compilation, execution, failure, block, checkpoint, loop, iteration and
+`--jit-stats` prints compilation, execution, failure, block, checkpoint, loop, iteration, RAM-window instruction and
 persistence counters
 for the active CPU. Restoring a CPU owner creates a new nonarchitectural cache;
 these counters are not a lifetime aggregate across all subprocesses.
 
 Cargo checks establish Rust compilation. Native release builds, executed JIT
 counters, interpreter comparisons, original application acceptance and measured
-speedup are separate evidence. Native-call counts include block heads;
-checkpoint hits count later instructions applied without another native call.
-The ordinary step retains per-instruction validation. The opt-in real-address
-loop path validates code once per bounded quantum; direct generated guest
-memory access, protected-mode loop fusion, x87 and I/O compilation remain
-unsupported. Throughput measurements must identify their
+speedup are separate evidence. Generated-code call counts include block heads;
+checkpoint hits count later instructions applied without another generated-code call.
+The ordinary step retains per-instruction validation. The opt-in loop path
+validates code once per bounded quantum. Paging, multiple data segments in
+one loop, general control flow, x87 and I/O compilation remain unsupported. Throughput measurements must identify their
 host architecture; AMD64 execution under ARM64 Windows emulation is not native
 AMD64 performance evidence.
 

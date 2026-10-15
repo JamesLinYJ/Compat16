@@ -1,4 +1,4 @@
-//! Windows account authentication plus bounded, key-bound native cache data.
+//! Windows account authentication plus bounded, key-bound JIT cache data.
 
 use runtime::JitArtifact;
 use sha2::{Digest, Sha256};
@@ -47,7 +47,7 @@ pub(super) fn restore(key: &[u8; 32], ciphertext: &[u8]) -> Option<JitArtifact> 
     let mut body = Vec::new();
     body.try_reserve_exact(bytes.len()).ok()?;
     body.extend_from_slice(bytes);
-    // SAFETY: Store accepts only immutable artifacts emitted by native-jit.
+    // SAFETY: Store accepts only immutable artifacts emitted by compat16-jit.
     // DPAPI's account MAC, key-specific entropy, versioned envelope and digest
     // all validated before any native-code deserialization. Native code under
     // this logon account is trusted; guest file writes cannot forge this path.
@@ -68,7 +68,7 @@ fn crypt(protect: bool, key: &[u8; 32], input: &[u8]) -> Option<Vec<u8>> {
     if input.len() > MAX_PAYLOAD + 16 * 1024 {
         return None;
     }
-    let mut entropy_bytes = Vec::from(&b"Compat16/native-jit/artifact/v1/"[..]);
+    let mut entropy_bytes = Vec::from(&b"Compat16/jit/artifact/v1/"[..]);
     entropy_bytes.extend_from_slice(key);
     let input = CRYPT_INTEGER_BLOB {
         cbData: u32::try_from(input.len()).ok()?,

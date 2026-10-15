@@ -1,7 +1,7 @@
 JIT registry dependency notices
 ===============================
 
-Additional normal/build dependency packages reachable from native-jit, including target-specific edges. Packages already listed in DEPENDENCIES.txt retain that file's license material. This is a workspace graph inventory, not a claim that every listed package is linked into every architecture. All root license/notice/copyright files from each added registry package are reproduced. Identical files are SHA-256 deduplicated. For Wasmtime subcrates whose registry package omits the shared LICENSE, the license from cranelift-jit at the identical .cargo_vcs_info revision is included explicitly.
+Additional normal/build dependency packages reachable from compat16-jit, including target-specific edges. Packages already listed in DEPENDENCIES.txt retain that file's license material. This is a workspace graph inventory, not a claim that every listed package is linked into every architecture. All root license/notice/copyright files from each added registry package are reproduced. Identical files are SHA-256 deduplicated. For Wasmtime subcrates whose registry package omits the shared LICENSE, the license from cranelift-jit at the identical .cargo_vcs_info revision is included explicitly.
 
 Package inventory
 -----------------

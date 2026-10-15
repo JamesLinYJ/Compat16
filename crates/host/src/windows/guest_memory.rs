@@ -138,6 +138,11 @@ impl MemoryStorage for GuestMemoryStorage {
         self.read(offset, output)?;
         Ok(true)
     }
+    fn read_plain_data(&self, offset: u32, output: &mut [u8], _writable: bool) -> Result<bool, MemoryError> {
+        // The private reservation has no write observers and cannot be
+        // mutated by another Rust thread or reentrant callback in a quantum.
+        self.read_plain_code(offset,output)
+    }
 
     fn read(&self, offset: u32, output: &mut [u8]) -> Result<(), MemoryError> {
         let length = self.region.checked_length(offset, output.len())?;

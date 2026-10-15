@@ -1,11 +1,11 @@
-//! Integrity boundary for serialized native compilation artifacts.
+//! Integrity boundary for serialized JIT compilation artifacts.
 
 use cranelift_codegen::incremental_cache::CacheKvStore;
 use std::{borrow::Cow, sync::Arc};
 
 pub const MAX_ARTIFACT_BYTES: usize = 1024 * 1024;
 
-/// Native code serialized by the pinned compiler for this exact cache key.
+/// Compiled code serialized by the pinned compiler for this exact cache key.
 /// Safe providers can retain or encrypt this value, but cannot change its key
 /// or bytes. Restoring bytes requires an explicit host integrity guarantee.
 #[derive(Clone)]

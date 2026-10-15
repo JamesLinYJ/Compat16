@@ -1,7 +1,8 @@
-//! Native execution versus the existing interpreter, including checked access
+//! JIT execution versus the existing interpreter, including checked access
 //! and retirement. This comparison is not an independent x86 semantics oracle.
 
 use super::*;
+mod protected_memory;
 use crate::ExecutionEngine;
 use crate::SegmentResolver;
 use crate::execution_boundary::{ExecutionBoundaryReport, ExecutionProgress};
@@ -119,35 +120,35 @@ impl Fixture {
 }
 fn pair() -> [Fixture; 2] {
     [
-        Fixture::new(ExecutionEngine::NativeJit),
+        Fixture::new(ExecutionEngine::Jit),
         Fixture::new(ExecutionEngine::Interpreter),
     ]
 }
 fn equal(pair: &[Fixture; 2]) {
-    let [native, interpreter] = pair;
-    assert_eq!(native.cpu.regs, interpreter.cpu.regs);
-    assert!(native.cpu.capture_context() == interpreter.cpu.capture_context());
+    let [jit, interpreter] = pair;
+    assert_eq!(jit.cpu.regs, interpreter.cpu.regs);
+    assert!(jit.cpu.capture_context() == interpreter.cpu.capture_context());
     assert_eq!(
-        native.cpu.call_boundary_sequence,
+        jit.cpu.call_boundary_sequence,
         interpreter.cpu.call_boundary_sequence
     );
     assert_eq!(
-        native.cpu.control_transfer_sequence,
+        jit.cpu.control_transfer_sequence,
         interpreter.cpu.control_transfer_sequence
     );
-    assert_eq!(native.memory.ram.bytes, interpreter.memory.ram.bytes);
+    assert_eq!(jit.memory.ram.bytes, interpreter.memory.ram.bytes);
     // Includes instruction fetches and data callbacks, so cold fallback and
     // warm execution must both preserve the exact read/write sequence.
     assert_eq!(
-        *native.memory.trace.borrow(),
+        *jit.memory.trace.borrow(),
         *interpreter.memory.trace.borrow()
     );
-    assert_eq!(native.cpu.jit_statistics().failures, 0);
+    assert_eq!(jit.cpu.jit_statistics().failures, 0);
     assert_eq!(interpreter.cpu.jit_statistics().executed, 0);
 }
 fn step(pair: &mut [Fixture; 2]) -> ExecutionBoundaryReport<StepOutcome> {
-    let [native, interpreter] = pair;
-    let a = native.step();
+    let [jit, interpreter] = pair;
+    let a = jit.step();
     let b = interpreter.step();
     assert_eq!(a.outcome, b.outcome);
     assert_eq!(a.progress, b.progress);
@@ -241,7 +242,7 @@ fn exercise(pair: &mut [Fixture; 2], bytes: &[u8]) {
     }
     assert!(
         pair[0].cpu.jit_statistics().executed > before,
-        "no native execution: {bytes:02x?}"
+        "no jit execution: {bytes:02x?}"
     );
 }
 
@@ -307,7 +308,7 @@ fn all_conditions_match_for_each_status_flag_combination() {
 }
 
 #[test]
-fn checked_memory_accesses_match_in_cold_and_native_paths() {
+fn checked_memory_accesses_match_in_cold_and_jit_paths() {
     let mut pair = pair();
     for opcode in [0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x84, 0x88] {
         for bytes in [
@@ -371,7 +372,7 @@ fn hot_memory_faults_preserve_registers_flags_and_access_order() {
 }
 
 #[test]
-fn rewritten_remapped_and_denied_code_cannot_reuse_stale_native_body() {
+fn rewritten_remapped_and_denied_code_cannot_reuse_stale_jit_body() {
     let mut pair = pair();
     exercise(&mut pair, &[0xb8, 0x34, 0x12]);
     for bytes in [
@@ -423,14 +424,14 @@ fn interpreter_switch_and_guest_model_checks_still_apply() {
     input(&mut pair, 1, 2, flags(0));
     step(&mut pair).outcome.unwrap();
     assert_eq!(pair[0].cpu.jit_statistics().executed, before);
-    pair[0].cpu.set_execution_engine(ExecutionEngine::NativeJit);
+    pair[0].cpu.set_execution_engine(ExecutionEngine::Jit);
     input(&mut pair, 1, 2, flags(0));
     step(&mut pair).outcome.unwrap();
     assert!(pair[0].cpu.jit_statistics().executed > before);
     for fixture in &mut pair {
         fixture.cpu = Cpu::new_with_model(fixture.cpu.regs.clone(), CpuModel::I486);
     }
-    pair[0].cpu.set_execution_engine(ExecutionEngine::NativeJit);
+    pair[0].cpu.set_execution_engine(ExecutionEngine::Jit);
     pair[1]
         .cpu
         .set_execution_engine(ExecutionEngine::Interpreter);
@@ -446,7 +447,7 @@ fn interpreter_switch_and_guest_model_checks_still_apply() {
 }
 
 #[test]
-fn native_retirement_preserves_single_step_observation_and_resume_authority() {
+fn jit_retirement_preserves_single_step_observation_and_resume_authority() {
     let mut pair = pair();
     exercise(&mut pair, &[0x01, 0xd8]);
     input(&mut pair, 0x7fff, 1, flags(0) | crate::TF | (1 << 16));
@@ -602,7 +603,7 @@ fn long_blocks_split_and_memory_faults_remain_at_the_actual_instruction() {
 }
 
 #[test]
-#[ignore = "explicit native throughput measurement; no timing pass threshold"]
+#[ignore = "explicit jit throughput measurement; no timing pass threshold"]
 fn block_throughput_measurement() {
     use std::time::Instant;
     let operations = [
@@ -611,7 +612,7 @@ fn block_throughput_measurement() {
     ];
     let mut program = operations.repeat(2);
     program.extend([0xeb, (-(program.len() as i16 + 2)) as u8]);
-    let mut machines = [ExecutionEngine::NativeJit, ExecutionEngine::Interpreter].map(|engine| {
+    let mut machines = [ExecutionEngine::Jit, ExecutionEngine::Interpreter].map(|engine| {
         let (mut cpu, mut ram) = cpu_with(&program, 0x20000);
         cpu.set_execution_engine(engine);
         cpu.regs.eax = 0x1234;
@@ -669,7 +670,7 @@ fn plain_loop(engine: ExecutionEngine) -> (Cpu, guest_core::memory::Memory) {
     cpu.reset_real_mode_segments_from_visible_registers()
         .unwrap();
     cpu.set_execution_engine(engine);
-    if engine == ExecutionEngine::NativeJit {
+    if engine == ExecutionEngine::Jit {
         let original = cpu.regs.clone();
         let mut compiled = false;
         for _ in 0..64 {
@@ -685,8 +686,8 @@ fn plain_loop(engine: ExecutionEngine) -> (Cpu, guest_core::memory::Memory) {
 }
 
 #[test]
-fn native_loop_budgets_and_exit_state_match_every_retired_instruction() {
-    let (mut jit, ram) = plain_loop(ExecutionEngine::NativeJit);
+fn jit_loop_budgets_and_exit_state_match_every_retired_instruction() {
+    let (mut jit, ram) = plain_loop(ExecutionEngine::Jit);
     let (mut interpreter, mut reference) = plain_loop(ExecutionEngine::Interpreter);
     for count in [1, 2, 41, 1000] {
         for budget in (0..32).chain([255, 256, u32::MAX]) {
@@ -726,8 +727,8 @@ fn native_loop_budgets_and_exit_state_match_every_retired_instruction() {
 }
 
 #[test]
-fn rewritten_native_loops_and_unobservable_memory_providers_fall_back() {
-    let (mut jit, mut ram) = plain_loop(ExecutionEngine::NativeJit);
+fn rewritten_jit_loops_and_unobservable_memory_providers_fall_back() {
+    let (mut jit, mut ram) = plain_loop(ExecutionEngine::Jit);
     let (mut interpreter, mut reference) = plain_loop(ExecutionEngine::Interpreter);
     ram.write(PhysAddr(0), &[0x48]).unwrap(); // DEC AX replaces INC AX.
     reference.write(PhysAddr(0), &[0x48]).unwrap();
@@ -767,8 +768,8 @@ fn rewritten_native_loops_and_unobservable_memory_providers_fall_back() {
 }
 
 #[test]
-fn native_loops_preserve_debug_event_shadow_and_continuation_boundaries() {
-    let (mut cpu, ram) = plain_loop(ExecutionEngine::NativeJit);
+fn jit_loops_preserve_debug_event_shadow_and_continuation_boundaries() {
+    let (mut cpu, ram) = plain_loop(ExecutionEngine::Jit);
     for guard in 0..12 {
         let saved = cpu.capture_context();
         match guard {
@@ -805,8 +806,8 @@ fn native_loops_preserve_debug_event_shadow_and_continuation_boundaries() {
 }
 
 #[test]
-fn native_loop_lookahead_does_not_replace_precise_fetch_or_model_faults() {
-    let (mut cpu, mut memory) = plain_loop(ExecutionEngine::NativeJit);
+fn jit_loop_lookahead_does_not_replace_precise_fetch_or_model_faults() {
+    let (mut cpu, mut memory) = plain_loop(ExecutionEngine::Jit);
     let cmov = [0x0f, 0x45, 0xc3, 0x49, 0x75, 0xfa];
     memory.write(PhysAddr(0), &cmov).unwrap();
     let mut strict = Cpu::new_with_model(
@@ -850,11 +851,11 @@ fn native_loop_lookahead_does_not_replace_precise_fetch_or_model_faults() {
 }
 
 #[test]
-#[ignore = "explicit budgeted native-loop throughput measurement"]
-fn native_loop_throughput_measurement() {
+#[ignore = "explicit budgeted jit-loop throughput measurement"]
+fn jit_loop_throughput_measurement() {
     use std::time::Instant;
     let mut machines = [
-        plain_loop(ExecutionEngine::NativeJit),
+        plain_loop(ExecutionEngine::Jit),
         plain_loop(ExecutionEngine::Interpreter),
     ];
     // Both engines execute the same finite instruction budget. A jump back to
@@ -903,14 +904,14 @@ fn native_loop_throughput_measurement() {
         samples[2]
     });
     eprintln!(
-        "JIT_NATIVE_LOOP target={} steps_per_sample={} jit_median_ns={} interpreter_median_ns={} speedup={:.3}",
+        "JIT_LOOP target={} steps_per_sample={} jit_median_ns={} interpreter_median_ns={} speedup={:.3}",
         std::env::consts::ARCH,
         STEPS,
         measurements[0],
         measurements[1],
         measurements[1] as f64 / measurements[0] as f64
     );
-    eprintln!("native loop JIT: {:?}", machines[0].0.jit_statistics());
+    eprintln!("jit loop JIT: {:?}", machines[0].0.jit_statistics());
 }
 
 #[test]

@@ -21,6 +21,11 @@ pub trait SegmentResolver {
     fn code_bits(&self) -> u32 { 16 }
     fn stack32(&self) -> bool { false }
     fn protected_mode(&self) -> bool { false }
+    /// Optional metadata-only certification of one contiguous, permitted
+    /// selector range. No guest reads, callbacks or CPU state changes may
+    /// occur. Mutable mappings must be checked anew at every JIT dispatch.
+    /// This does not infer architectural mode or CPL for legacy selectors.
+    fn jit_range(&self, _segment: u16, _offset: u32, _length: usize, _access: crate::SegmentAccess) -> Option<PhysAddr> { None }
     /// Return architectural execution mode only when the machine owns that
     /// state. The legacy `protected_mode` hint is not sufficient evidence.
     fn execution_mode(&self) -> Option<CpuExecutionMode> { None }

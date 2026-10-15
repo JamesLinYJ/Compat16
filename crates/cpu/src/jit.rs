@@ -1,10 +1,12 @@
-//! Native execution adapter for decoded integer instructions. Instruction fetch,
+//! JIT execution adapter for decoded integer instructions. Instruction fetch,
 //! model checks, exception delivery, continuation stamps and retirement stay
 //! in step.rs. IR keys include immediates and register widths, so re-decoding
 //! self-modifying/remapped code cannot reuse a different instruction's body.
 
 #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
 mod loops;
+#[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+mod mapping;
 
 use crate::x86_decode::DecodedInstruction;
 use guest_core::Registers;
@@ -12,10 +14,13 @@ use guest_core::Registers;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ExecutionEngine {
     Interpreter,
-    NativeJit,
+    Jit,
 }
 #[derive(Clone, Copy, Debug, Default)]
 pub struct JitStatistics {
+    pub memory_loops_compiled: u64,
+    pub memory_loops_executed: u64,
+    pub memory_instructions: u64,
     pub loops_compiled: u64,
     pub loops_executed: u64,
     pub loop_iterations: u64,
@@ -34,9 +39,9 @@ pub struct JitStatistics {
 pub(super) struct IntegerTranslator {
     engine: ExecutionEngine,
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
-    cache: native_jit::TraceEngine,
+    cache: compat16_jit::TraceEngine,
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
-    current: Option<native_jit::Instruction>,
+    current: Option<compat16_jit::Instruction>,
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
     loops: loops::Loops,
 }
@@ -47,12 +52,12 @@ impl Default for IntegerTranslator {
                 windows,
                 any(target_arch = "aarch64", target_arch = "x86_64")
             )) {
-                ExecutionEngine::NativeJit
+                ExecutionEngine::Jit
             } else {
                 ExecutionEngine::Interpreter
             },
             #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
-            cache: native_jit::TraceEngine::default(),
+            cache: compat16_jit::TraceEngine::default(),
             #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
             current: None,
             #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
@@ -69,14 +74,14 @@ impl IntegerTranslator {
     ) {
         #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
         {
-            if self.engine != ExecutionEngine::NativeJit {
+            if self.engine != ExecutionEngine::Jit {
                 self.current = None;
                 return;
             }
             self.current = match decode_cache.integer_ir(cs, decoded.start_ip) {
                 Some(ir) => ir,
                 None => {
-                    let ir = native::translate(decoded);
+                    let ir = translation::translate(decoded);
                     decode_cache.set_integer_ir(cs, decoded.start_ip, ir);
                     ir
                 }
@@ -91,28 +96,29 @@ impl IntegerTranslator {
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
     pub(super) fn set_artifact_store(
         &mut self,
-        store: Option<std::sync::Arc<dyn native_jit::ArtifactStore>>,
+        store: Option<std::sync::Arc<dyn compat16_jit::ArtifactStore>>,
     ) {
         self.loops.cache.set_artifact_store(store.clone());
+        self.loops.memory.set_artifact_store(store.clone());
         self.cache.set_artifact_store(store);
     }
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
-    pub(super) fn artifact_store(&self) -> Option<std::sync::Arc<dyn native_jit::ArtifactStore>> {
+    pub(super) fn artifact_store(&self) -> Option<std::sync::Arc<dyn compat16_jit::ArtifactStore>> {
         self.cache.artifact_store()
     }
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
     pub(super) fn operation(
         &self,
         mnemonic: x86_decoder::Mnemonic,
-    ) -> Option<native_jit::Operation> {
-        native::operation(mnemonic)
+    ) -> Option<compat16_jit::Operation> {
+        translation::operation(mnemonic)
     }
     #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
     pub(super) fn execute_with<E>(
         &mut self,
-        instruction: native_jit::Instruction,
-        input: impl FnOnce() -> Result<native_jit::IntegerState, E>,
-    ) -> Result<Option<native_jit::IntegerState>, E> {
+        instruction: compat16_jit::Instruction,
+        input: impl FnOnce() -> Result<compat16_jit::IntegerState, E>,
+    ) -> Result<Option<compat16_jit::IntegerState>, E> {
         self.cache.execute_with(instruction, input)
     }
     pub(super) fn engine(&self) -> ExecutionEngine {
@@ -121,7 +127,7 @@ impl IntegerTranslator {
     pub(super) fn set_engine(&mut self, engine: ExecutionEngine) {
         self.engine = engine;
         #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
-        self.cache.set_enabled(engine == ExecutionEngine::NativeJit);
+        self.cache.set_enabled(engine == ExecutionEngine::Jit);
         #[cfg(not(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"))))]
         let _ = engine;
     }
@@ -131,8 +137,11 @@ impl IntegerTranslator {
             let stats = self
                 .cache
                 .statistics()
-                .combined(self.loops.cache.statistics());
+                .combined(self.loops.cache.statistics()).combined(self.loops.memory.statistics());
             JitStatistics {
+                memory_loops_compiled: stats.memory_loops_compiled,
+                memory_loops_executed: stats.memory_loops_executed,
+                memory_instructions: stats.memory_instructions,
                 loops_compiled: stats.loops_compiled,
                 loops_executed: stats.loops_executed,
                 loop_iterations: stats.loop_iterations,
@@ -160,14 +169,14 @@ impl IntegerTranslator {
             let Some(instruction) = self.current.take() else {
                 return false;
             };
-            let mut state = native_jit::IntegerState {
+            let mut state = compat16_jit::IntegerState {
                 registers: [
                     regs.eax, regs.ecx, regs.edx, regs.ebx, regs.esp, regs.ebp, regs.esi, regs.edi,
                 ],
                 flags: regs.eflags,
             };
             let domain = u64::from(regs.cs) << 32;
-            let site = native_jit::TraceSite {
+            let site = compat16_jit::TraceSite {
                 current: domain | u64::from(decoded.start_ip),
                 next: domain | u64::from(decoded.next_ip),
             };
@@ -189,9 +198,9 @@ impl IntegerTranslator {
 }
 
 #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
-mod native {
+mod translation {
     use crate::x86_decode::{DecodedInstruction, NormalizedInstruction, Operand};
-    use native_jit::{Condition, Instruction, Operand as IrOperand, Operation, Register};
+    use compat16_jit::{Condition, Instruction, Operand as IrOperand, Operation, Register};
     use x86_decoder::Mnemonic;
 
     pub(super) fn translate(decoded: DecodedInstruction) -> Option<Instruction> {
@@ -304,12 +313,24 @@ impl crate::Cpu {
     ) -> Result<Option<u32>, crate::CpuError> {
         #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
         {
-            self.try_integer_loop_native(memory, max_instructions)
+            self.try_integer_loop_compiled(memory, max_instructions)
         }
         #[cfg(not(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"))))]
         {
             let _ = (memory, max_instructions);
             Ok(None)
         }
+    }
+}
+
+impl crate::Cpu {
+    /// Opt-in 16/32-bit checked segment execution, including RAM windows.
+    /// The machine owner excludes per-instruction observers and services
+    /// pending events first. No paging or MMIO access is coalesced.
+    pub fn try_run_jit_loop(&mut self, memory:&mut impl guest_core::GuestMemory, segments:&impl crate::SegmentResolver, budget:u32)->Result<Option<u32>,crate::CpuError>{
+        #[cfg(all(windows,any(target_arch="aarch64",target_arch="x86_64")))]
+        {self.try_loop_with_context(memory,segments,budget)}
+        #[cfg(not(all(windows,any(target_arch="aarch64",target_arch="x86_64"))))]
+        {let _=(memory,segments,budget);Ok(None)}
     }
 }

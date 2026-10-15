@@ -48,7 +48,7 @@ fn run() -> Result<u8, RuntimeError> {
     let mut dos_service_trace = None;
     let mut win16_io_trace = None;
     let mut complete_win16_io_trace = false;
-    let mut execution_engine = runtime::ExecutionEngine::NativeJit;
+    let mut execution_engine = runtime::ExecutionEngine::Jit;
     let mut jit_stats = false;
     let mut jit_cache = true;
     while system_launch.is_none() {
@@ -56,7 +56,7 @@ fn run() -> Result<u8, RuntimeError> {
         match argument.to_str() {
             Some("--cpu-engine") => {
                 execution_engine = match arguments.next().as_deref().and_then(|text| text.to_str()) {
-                    Some("jit") => runtime::ExecutionEngine::NativeJit,
+                    Some("jit") => runtime::ExecutionEngine::Jit,
                     Some("interpreter") => runtime::ExecutionEngine::Interpreter,
                     _ => return Err(RuntimeError::new(Kind::InvalidInput,
                         "--cpu-engine requires jit or interpreter")),
@@ -197,7 +197,7 @@ fn run() -> Result<u8, RuntimeError> {
     };
     runtime.set_work_executor(std::sync::Arc::clone(&work))?;
     runtime.set_execution_engine(execution_engine);
-    if jit_cache && execution_engine == runtime::ExecutionEngine::NativeJit {
+    if jit_cache && execution_engine == runtime::ExecutionEngine::Jit {
         runtime.set_jit_artifact_store(host.jit_artifact_store());
     }
     if trace_on_failure { runtime.enable_instruction_trace()?; }
@@ -286,6 +286,8 @@ fn run() -> Result<u8, RuntimeError> {
             stats.persistent_hits, stats.persistent_writes);
         eprintln!("JIT loops: compiled={} executed={} iterations={}",
             stats.loops_compiled, stats.loops_executed, stats.loop_iterations);
+        eprintln!("JIT memory loops: compiled={} executed={} instructions={}",
+            stats.memory_loops_compiled, stats.memory_loops_executed, stats.memory_instructions);
     }
     host.finish_output().map_err(|e| RuntimeError::with_source(Kind::HostFailure, "incomplete console output", e))?;
     Ok(result)

@@ -404,8 +404,8 @@ impl Cpu {
         // validation. It cannot touch the bus or segment/system state, so it
         // needs no speculative full-register clone or unrelated executors.
         // The common retirement and outer event boundary still run below.
-        let native_completed = self.jit.execute(&mut self.regs, decoded);
-        if !native_completed && decoded.is_x87() {
+        let jit_completed = self.jit.execute(&mut self.regs, decoded);
+        if !jit_completed && decoded.is_x87() {
             let unavailable = if decoded.is_wait() {
                 bus.system().wait_instruction_unavailable()
             } else {
@@ -501,7 +501,7 @@ impl Cpu {
                 data_breakpoint_hits,
             });
         }
-        if !native_completed
+        if !jit_completed
             && let Some(instruction) = x86_decode::normalize_system_instruction(decoded)
         {
             let mut regs = self.regs.clone();
@@ -526,7 +526,7 @@ impl Cpu {
                 data_breakpoint_hits,
             });
         }
-        if !native_completed
+        if !jit_completed
             && let Some((next_ip, unfinished_repeat, data_breakpoint_hits)) =
             execute::execute_io(&mut self.regs, &mut bus, ports, decoded)?
         {
@@ -551,7 +551,7 @@ impl Cpu {
         }
         let task_before = bus.system().task;
         let (outcome, next_ip, task_debug_trap, data_breakpoint_hits, progress) =
-            if native_completed {
+            if jit_completed {
                 (
                     StepOutcome::Continue, decoded.next_ip, false,
                     bus.take_data_breakpoint_hits(), ExecutionProgress::InstructionBodyCompleted,

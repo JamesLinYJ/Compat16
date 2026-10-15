@@ -12,4 +12,4 @@ rustc_apfloat = "=0.2.3"
 zerocopy.workspace = true
 
 [target.'cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))'.dependencies]
-native-jit = { path = "../jit" }
+compat16-jit = { path = "../jit" }
