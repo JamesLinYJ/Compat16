@@ -15,6 +15,7 @@ pub enum EngineLoadError {
     Load { path: std::path::PathBuf, source: io::Error },
     MissingExport { name: &'static str, source: io::Error },
     IncompatibleVersion(u32),
+    ProcessLifetime(io::Error),
 }
 
 impl fmt::Display for EngineLoadError {
@@ -26,6 +27,7 @@ impl fmt::Display for EngineLoadError {
             Self::Load { path, source } => write!(f, "load execution module {}: {source}", path.display()),
             Self::MissingExport { name, source } => write!(f, "resolve execution-module export {name}: {source}"),
             Self::IncompatibleVersion(version) => write!(f, "execution-module ABI version {version} is unsupported; expected version 1"),
+            Self::ProcessLifetime(error) => write!(f, "retain execution module through process termination: {error}"),
         }
     }
 }
@@ -35,6 +37,7 @@ impl std::error::Error for EngineLoadError {
         match self {
             Self::ExecutablePath(source) | Self::Load { source, .. }
             | Self::MissingExport { source, .. } => Some(source),
+            Self::ProcessLifetime(source) => Some(source),
             _ => None,
         }
     }
