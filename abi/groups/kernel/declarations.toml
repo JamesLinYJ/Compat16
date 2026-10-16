@@ -266,6 +266,13 @@ kind = "stub"
 ordinal = 121
 name = "LocalShrink"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
+binding = { rust_id = "KernelLocalShrink", id_value = 1253, constant = "KERNEL_LOCAL_SHRINK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "heap", type = "U16" },
+  { name = "minimum", type = "U16" },
+]
 
 [[exports]]
 ordinal = 122

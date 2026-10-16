@@ -2,6 +2,7 @@ use crate::{next_object_id, Win16Error};
 use guest_core::{GuestMemory, PhysAddr, Selector};
 
 mod allocation;
+mod contraction;
 mod allocation_views;
 mod descriptor;
 mod exact_slot;

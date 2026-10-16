@@ -109,7 +109,7 @@ impl Win16State {
     /// Preflight every cached main-image lease before automatic-data growth.
     /// The selector generation, base, and flags stay fixed; only the lease's
     /// extent snapshot may advance from the exact current size.
-    pub(super) fn preflight_module_image_extent_growth(
+    pub(super) fn preflight_module_image_extent_change(
         &self,
         module: u16,
         primary: SelectorRef,
@@ -118,7 +118,7 @@ impl Win16State {
         old_size: u32,
         new_size: u32,
     ) -> Result<(), RuntimeError> {
-        if old_size == 0 || new_size <= old_size {
+        if old_size == 0 || new_size == 0 || new_size == old_size {
             return Err(RuntimeError::new(crate::DiagnosticKind::InternalInvariant,
                 "invalid checked module-image extent transition"));
         }
@@ -142,7 +142,7 @@ impl Win16State {
 
     /// Advance only the exact primary image leases preflighted above. This is
     /// infallible and allocation-free after the selector extent commits.
-    pub(super) fn commit_module_image_extent_growth(
+    pub(super) fn commit_module_image_extent_change(
         &mut self,
         module: u16,
         primary: SelectorRef,

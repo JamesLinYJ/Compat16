@@ -37,6 +37,37 @@ enum Win16LegacyCpuContinuation {
 }
 
 impl Win16State {
+    /// Keep current and restorable code/stack positions inside an owned data
+    /// extent when LocalShrink contracts its complete selector views.
+    pub(super) fn retained_data_floor(&self, base: guest_core::PhysAddr, old_size: u32,
+        current: &Registers, return_sp: u32) -> u32 {
+        let start = u64::from(base.0);
+        let end = start + u64::from(old_size);
+        let mut floor = 0;
+        let mut include = |registers: &Registers, return_sp: Option<u32>| {
+            let stack = u32::from(registers.sp()).saturating_add(4)
+                .max(return_sp.unwrap_or(0));
+            for (selector, offset) in [(registers.cs, u32::from(registers.ip()) + 1),
+                (registers.ss, stack)] {
+                let Ok(reference) = self.selectors.reference(guest_core::Selector(selector)) else { continue; };
+                let Ok(descriptor) = self.selectors.describe(reference) else { continue; };
+                let segment = u64::from(descriptor.base.0);
+                if segment < start || segment >= end { continue; }
+                let required = (segment - start).saturating_add(u64::from(offset))
+                    .min(u64::from(old_size)) as u32;
+                floor = floor.max(required);
+            }
+        };
+        include(current, Some(return_sp));
+        for frame in &self.legacy_cpu_frames {
+            include(&frame.saved_registers, None);
+            if let Win16LegacyCpuContinuation::Parked(_, registers) = &frame.continuation {
+                include(registers, None);
+            }
+        }
+        floor
+    }
+
     /// Compare against the retained owner snapshot, not the guest CPU state
     /// which may currently be executing a nested callback.
     pub(super) fn legacy_cpu_frame_matches_context(&self, id: u64, context: &CpuContext) -> bool {

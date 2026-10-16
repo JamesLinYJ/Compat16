@@ -185,6 +185,7 @@ pub(super) fn decode(
         | Win16ExportId::KernelLocalHandle
         | Win16ExportId::KernelLocalFlags
         | Win16ExportId::KernelLocalCompact
+        | Win16ExportId::KernelLocalShrink
         | Win16ExportId::KernelLocalHandleDelta
         | Win16ExportId::KernelLocalCountFree
         | Win16ExportId::KernelLocalHeapSize => {

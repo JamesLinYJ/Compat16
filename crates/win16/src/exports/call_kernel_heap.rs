@@ -105,6 +105,11 @@ pub(super) fn decode(
                 handle: word_argument(arguments, 0)?,
             }),
         ),
+        Win16ExportId::KernelLocalShrink => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::LocalHeap(super::Win16KernelLocalHeapRequest::LocalShrink {
+                heap: word_argument(arguments, 0)?, minimum: word_argument(arguments, 1)?,
+            }),
+        ),
         Win16ExportId::KernelLocalCompact => {
             Win16ApiRequest::Kernel(super::Win16KernelRequest::LocalHeap(
                 super::Win16KernelLocalHeapRequest::LocalCompact {

@@ -469,7 +469,7 @@ impl LocalHeap<'_> {
         self.write_entry(HandleEntry { handle, addr: 0, flags: 0xff, lock: 0xff })
     }
 
-    fn allocate_extent(&mut self, extent: u16, flags: u16) -> Result<Option<u16>, LocalHeapError> {
+    pub(super) fn allocate_extent(&mut self, extent: u16, flags: u16) -> Result<Option<u16>, LocalHeapError> {
         self.allocate_extent_protected(extent, flags, None)
     }
 

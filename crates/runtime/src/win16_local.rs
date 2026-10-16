@@ -209,7 +209,17 @@ impl Win16State {
                 };
             }
         };
-        let result = operation.execute(&mut heap);
+        let mut result = operation.execute(&mut heap);
+        if matches!(&result, Ok(0)) && operation.growth_request(&heap).map_err(|error|
+            RuntimeError::with_source(Kind::GuestFault,
+                "validate local heap retained-tail request", error))?.is_some() {
+            match heap.reclaim_reserved_tail() {
+                Ok(true) => result = operation.execute(&mut heap),
+                Ok(false) | Err(LocalHeapError::OutOfMemory) => {}
+                Err(error) => return Err(RuntimeError::with_source(Kind::GuestFault,
+                    "re-admit a previously shrunken local heap tail", error)),
+            }
+        }
         let growth_request = if matches!(&result, Ok(0)) {
             operation.growth_request(&heap).map_err(|error|
                 RuntimeError::with_source(Kind::GuestFault,

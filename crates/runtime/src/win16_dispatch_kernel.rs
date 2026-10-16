@@ -249,6 +249,9 @@ impl Win16State {
                 win16_abi::Win16KernelLocalHeapRequest::LocalFlags { handle },
             )) => self.local_operation(registers.ds, LocalOperation::Flags { handle }, memory)?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::LocalHeap(
+                win16_abi::Win16KernelLocalHeapRequest::LocalShrink { heap, minimum },
+            )) => self.kernel_local_shrink(registers, heap, minimum, return_sp, memory)?,
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::LocalHeap(
                 win16_abi::Win16KernelLocalHeapRequest::LocalCompact { minimum },
             )) => {
                 self.local_operation(registers.ds, LocalOperation::Compact { minimum }, memory)?

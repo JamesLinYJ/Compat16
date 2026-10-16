@@ -587,10 +587,23 @@ impl GlobalHeap {
         memory: &impl GuestMemory,
     ) -> Result<(), Win16Error> {
         let block = self.lookup(handle)?;
-        if block.owner != expected_owner { return Err(Win16Error::InvalidHandle); }
         if block.internal_pin_count == 0 { return Err(Win16Error::Locked); }
+        if new_size < expected_size { return Err(Win16Error::InvalidSize); }
+        self.resize_reserved_in_place(handle, expected_owner, expected_size, new_size, selectors, memory)
+    }
+
+    /// Resize the visible extent of an owned, resident allocation while its
+    /// private reservation and base remain fixed. Runtime callers authorize
+    /// saved CPU bindings before committing a contraction.
+    pub fn resize_reserved_in_place(
+        &mut self, handle: GlobalHandle, expected_owner: OwnerId,
+        expected_size: u32, new_size: u32, selectors: &mut SelectorTable,
+        memory: &impl GuestMemory,
+    ) -> Result<(), Win16Error> {
+        let block = self.lookup(handle)?;
+        if block.owner != expected_owner { return Err(Win16Error::InvalidHandle); }
         if block.discarded { return Err(Win16Error::InvalidHandle); }
-        if block.size != expected_size || new_size < expected_size || new_size > block.capacity {
+        if block.size != expected_size || new_size == 0 || new_size > block.capacity {
             return Err(Win16Error::InvalidSize);
         }
         let selector = block.selector.ok_or(Win16Error::InvalidSelector)?;
@@ -608,7 +621,11 @@ impl GlobalHeap {
         // metadata nor this block's logical size changes.
         let entry = self.blocks_by_handle.get_mut(&handle.raw.0)
             .ok_or(Win16Error::InvalidHandle)?;
-        selectors.extend_allocation_in_place(block.base, block.size, new_size, memory)?;
+        if new_size > block.size {
+            selectors.extend_allocation_in_place(block.base, block.size, new_size, memory)?;
+        } else {
+            selectors.contract_allocation_in_place(block.base, block.size, new_size, memory)?;
+        }
         entry.size = new_size;
         Ok(())
     }

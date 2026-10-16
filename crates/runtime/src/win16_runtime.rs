@@ -26,6 +26,8 @@ mod legacy_cpu_binding;
 mod legacy_cpu_frame;
 #[path = "win16_local.rs"]
 mod local_heap;
+#[path = "win16_local_shrink.rs"]
+mod local_shrink;
 #[path = "win16_local_atoms.rs"]
 mod local_atoms;
 #[path = "win16_data_growth.rs"]

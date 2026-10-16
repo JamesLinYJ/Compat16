@@ -14,6 +14,10 @@ use crate::{DiagnosticKind, RuntimeError};
 /// adjacent capacity. Selector and heap handles preserve allocation generations.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::win16_runtime) enum AutomaticDataOwner {
+    Global {
+        allocation: GlobalHandle, selector: SelectorRef, owner: guest_core::OwnerId,
+        base: guest_core::PhysAddr, capacity: u32,
+    },
     Main {
         module: u16,
         selector: SelectorRef,
@@ -34,27 +38,29 @@ pub(in crate::win16_runtime) enum AutomaticDataOwner {
 }
 
 impl AutomaticDataOwner {
-    pub(super) fn selector(self) -> SelectorRef {
+    pub(in crate::win16_runtime) fn selector(self) -> SelectorRef {
         match self {
-            Self::Main { selector, .. } | Self::Library { selector, .. } => selector,
+            Self::Main { selector, .. } | Self::Library { selector, .. }
+                | Self::Global { selector, .. } => selector,
         }
     }
 
     pub(super) fn base(self) -> guest_core::PhysAddr {
         match self {
-            Self::Main { base, .. } | Self::Library { base, .. } => base,
+            Self::Main { base, .. } | Self::Library { base, .. } | Self::Global { base, .. } => base,
         }
     }
 
     pub(in crate::win16_runtime) fn capacity(self) -> u32 {
         match self {
-            Self::Main { capacity, .. } | Self::Library { capacity, .. } => capacity,
+            Self::Main { capacity, .. } | Self::Library { capacity, .. }
+                | Self::Global { capacity, .. } => capacity,
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct AutomaticDataGrowthReceipt {
+pub(super) struct DataExtentReceipt {
     owner: AutomaticDataOwner,
     reference: SelectorRef,
     extent_before: u32,
@@ -68,12 +74,12 @@ pub(super) struct AutomaticDataGrowthReceipt {
 struct LegacyCpuGrowthUpdate {
     frame_index: usize,
     root_index: usize,
-    receipt: AutomaticDataGrowthReceipt,
+    receipt: DataExtentReceipt,
 }
 
 /// All allocations and owner checks complete before the allocator mutates
 /// guest bytes or selector metadata.
-pub(in crate::win16_runtime) struct LegacyCpuDataGrowthPlan {
+pub(in crate::win16_runtime) struct LegacyCpuDataResizePlan {
     updates: Vec<LegacyCpuGrowthUpdate>,
 }
 
@@ -84,8 +90,8 @@ pub(super) fn prepare(
     new_size: u32,
     targets: &[(SelectorRef, DescriptorInfo)],
     memory: &Memory,
-) -> Result<LegacyCpuDataGrowthPlan, Win16LegacyCpuBindingError> {
-    if old_size == 0 || new_size <= old_size || new_size > owner.capacity() {
+) -> Result<LegacyCpuDataResizePlan, Win16LegacyCpuBindingError> {
+    if old_size == 0 || new_size == 0 || new_size == old_size || new_size > owner.capacity() {
         return Err(Win16LegacyCpuBindingError::BackingChanged { segment: 1 });
     }
     let primary = owner.selector();
@@ -153,7 +159,7 @@ pub(super) fn prepare(
         }
     }
 
-    let mut plan = LegacyCpuDataGrowthPlan { updates: Vec::new() };
+    let mut plan = LegacyCpuDataResizePlan { updates: Vec::new() };
     for (frame_index, frame) in state.legacy_cpu_frames.iter_mut().enumerate() {
         for (root_index, root) in frame.owner.roots.iter_mut().enumerate() {
             let target = targets.iter()
@@ -188,7 +194,7 @@ pub(super) fn prepare(
                 .ok_or(Win16LegacyCpuBindingError::BackingChanged { segment: 1 })?;
             let mut after = before;
             if target.is_some() { after.limit = new_size - 1; }
-            let receipt = AutomaticDataGrowthReceipt {
+            let receipt = DataExtentReceipt {
                 owner,
                 reference: root.reference,
                 extent_before: old_size,
@@ -220,7 +226,7 @@ pub(super) fn prepare(
 }
 
 /// Appends only preallocated receipts after selector and allocator commit.
-pub(super) fn commit(state: &mut Win16State, plan: LegacyCpuDataGrowthPlan) {
+pub(super) fn commit(state: &mut Win16State, plan: LegacyCpuDataResizePlan) {
     for update in plan.updates {
         let frame = &mut state.legacy_cpu_frames[update.frame_index];
         let root = &mut frame.owner.roots[update.root_index];
@@ -261,7 +267,7 @@ fn growth_history_ends_at(root: &OwnedSelectorRoot, owner: AutomaticDataOwner) -
 
 pub(super) fn root_history_is_current(root: &OwnedSelectorRoot) -> bool {
     if root.growths.is_empty() { return root.lease.identity() == root.backing; }
-    let mut previous: Option<AutomaticDataGrowthReceipt> = None;
+    let mut previous: Option<DataExtentReceipt> = None;
     for receipt in &root.growths {
         if !valid_growth_receipt(root.reference, *receipt)
             || previous.is_some_and(|prior|
@@ -289,7 +295,7 @@ pub(super) fn root_snapshot_is_authorized(
     if root.growths.is_empty() {
         return descriptor == root.descriptor && backing == root.backing;
     }
-    let mut previous: Option<AutomaticDataGrowthReceipt> = None;
+    let mut previous: Option<DataExtentReceipt> = None;
     let mut found = false;
     for receipt in &root.growths {
         if !valid_growth_receipt(root.reference, *receipt)
@@ -317,7 +323,7 @@ pub(super) fn root_snapshot_is_authorized(
 
 fn valid_growth_receipt(
     reference: SelectorRef,
-    receipt: AutomaticDataGrowthReceipt,
+    receipt: DataExtentReceipt,
 ) -> bool {
     if receipt.reference != reference
         || receipt.before.selector != reference.raw()
@@ -331,7 +337,7 @@ fn valid_growth_receipt(
         return false;
     }
     if receipt.extent_before == 0
-        || receipt.extent_after <= receipt.extent_before
+        || receipt.extent_after == 0 || receipt.extent_after == receipt.extent_before
         || receipt.extent_after > receipt.owner.capacity()
         || grow_backing_identity(
             receipt.owner, receipt.owner.base(), receipt.backing_before,
@@ -355,7 +361,7 @@ fn valid_growth_receipt(
         let start = u64::from(receipt.before.base.0);
         let end = start.checked_add(u64::from(receipt.before.limit) + 1);
         let image_start = u64::from(base.0);
-        let image_end = image_start.checked_add(u64::from(size));
+        let image_end = image_start.checked_add(u64::from(size.min(receipt.extent_after)));
         start >= image_start && end.is_some_and(|end| image_end.is_some_and(|image_end| end <= image_end))
     }
 }
@@ -377,7 +383,7 @@ fn grow_backing_identity(
                 module: backing_module, primary, base: backing_base,
                 size, segment_flags: backing_flags,
             },
-        ) if old_size < new_size && module == backing_module && selector == primary && base == backing_base
+        ) if old_size != new_size && new_size != 0 && module == backing_module && selector == primary && base == backing_base
             && segment_flags == backing_flags && size == old_size
             && new_size <= capacity => Some(SelectorBackingIdentity::ModuleImage {
                 module: backing_module, primary, base: backing_base,
@@ -393,10 +399,17 @@ fn grow_backing_identity(
             },
         ) if module == backing_module && allocation == backing_allocation
             && segment_flags == backing_flags && new_size <= capacity
-            && old_size < new_size => Some(SelectorBackingIdentity::GlobalHeap {
+            && old_size != new_size && new_size != 0 => Some(SelectorBackingIdentity::GlobalHeap {
                 allocation: backing_allocation, module: Some(backing_module),
                 ne_segment_flags: Some(backing_flags),
             }),
+        (
+            AutomaticDataOwner::Global { allocation, capacity, .. },
+            SelectorBackingIdentity::GlobalHeap {
+                allocation: backing_allocation, module: None, ne_segment_flags: None,
+            },
+        ) if allocation == backing_allocation && old_size != new_size && new_size != 0
+            && new_size <= capacity => Some(backing),
         _ => None,
     }
 }

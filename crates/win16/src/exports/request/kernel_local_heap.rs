@@ -2,6 +2,7 @@
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16KernelLocalHeapRequest {
+    LocalShrink { heap: u16, minimum: u16 },
     /// Initialize a local heap inside the caller-supplied Win16 selector.
     /// Offsets remain WORDs; the runtime supplies the active DS and validates
     /// the local-heap range without converting it to a host pointer here.

@@ -18,6 +18,7 @@ mod compact;
 mod growth;
 mod handles;
 mod operations;
+mod shrink;
 mod write_tracking;
 
 pub use atoms::LocalAtomEntry;
@@ -54,7 +55,11 @@ const ARENA_FREE_NEXT_OFFSET: usize = 0x08;
 // LOCALHEAPINFO offsets, from the compared packed declaration.
 const HEAP_ITEMS_OFFSET: usize = 0x04;
 const HEAP_FIRST_OFFSET: usize = 0x06;
+// Private high-water boundary: shrinking must not make a later allocation
+// consume application data beyond the heap's previously admitted arena range.
+const HEAP_RESERVED_END_OFFSET: usize = 0x08;
 const HEAP_LAST_OFFSET: usize = 0x0a;
+const HEAP_OWNS_TAIL_OFFSET: usize = 0x0c;
 const HEAP_TABLE_OFFSET: usize = 0x14;
 const HEAP_HANDLE_DELTA_OFFSET: usize = 0x18;
 const HEAP_NOTIFY_OFFSET: usize = 0x1e;
@@ -237,6 +242,29 @@ impl<'a> LocalHeap<'a> {
     /// guest memory.
     pub fn compact(&mut self, minimum: u16) -> Result<u16, LocalHeapError> {
         self.transaction(|heap| heap.compact_inner(minimum, 0))
+    }
+
+    /// Shrink the heap towards its initial LocalInit extent. Fixed blocks,
+    /// locked movable blocks and heap metadata retain their addresses.
+    pub fn shrink(&mut self, minimum: u16) -> Result<u16, LocalHeapError> {
+        let result = self.transaction(|heap| heap.shrink_inner(minimum))?;
+        self.last = read_word(self.dgroup, usize::from(self.info) + HEAP_LAST_OFFSET)
+            .ok_or(LocalHeapError::CorruptHeapInfo { offset: usize::from(self.info) })?;
+        Ok(result)
+    }
+
+    /// Segment extent sufficient to retain the terminal header, rounded for
+    /// the allocator's four-byte alignment and bounded by the current segment.
+    pub fn retained_segment_bytes(&self) -> usize {
+        (usize::from(self.last) + MIN_ARENA_EXTENT).min(self.dgroup.len())
+    }
+
+    pub fn first_offset(&self) -> u16 { self.first }
+
+    /// Only LocalInit's tail-reserve form, or an explicit range ending at
+    /// the segment's final byte, admits the containing segment's whole tail.
+    pub fn owns_segment_tail(&self) -> bool {
+        read_word(self.dgroup, usize::from(self.info) + HEAP_OWNS_TAIL_OFFSET) == Some(1)
     }
 
     /// Queries (`delta == 0`) or sets the number of entries used by future
@@ -659,13 +687,16 @@ pub fn prepare_local_heap_init(
     let mut heap_info_bytes = [0; LOCAL_HEAP_INFO_BYTES];
     put_word(&mut heap_info_bytes, HEAP_ITEMS_OFFSET, 4);
     put_word(&mut heap_info_bytes, HEAP_FIRST_OFFSET, layout.first_arena);
+    put_word(&mut heap_info_bytes, HEAP_RESERVED_END_OFFSET, layout.last_arena);
     put_word(&mut heap_info_bytes, HEAP_LAST_OFFSET, layout.last_arena);
+    put_word(&mut heap_info_bytes, HEAP_OWNS_TAIL_OFFSET,
+        u16::from(start == 0 || heap_end.checked_add(1) == Some(dgroup_bytes)));
     put_word(&mut heap_info_bytes, HEAP_HANDLE_DELTA_OFFSET, 0x20);
     put_word(&mut heap_info_bytes, HEAP_EXPANSION_EXTRA_OFFSET, 0x0200);
     put_word(
         &mut heap_info_bytes,
         HEAP_MINIMUM_SIZE_OFFSET,
-        layout.free_arena_bytes,
+        layout.last_arena + LOCAL_ARENA_BYTES as u16 - layout.first_arena,
     );
     put_word(&mut heap_info_bytes, HEAP_MAGIC_OFFSET, LOCAL_HEAP_MAGIC);
 

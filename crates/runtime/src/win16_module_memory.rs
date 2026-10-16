@@ -127,7 +127,7 @@ impl ModuleAllocation {
         })
     }
 
-    pub(super) fn extend_in_place(
+    pub(super) fn resize_in_place(
         &self,
         heap: &mut GlobalHeap,
         selectors: &mut SelectorTable,
@@ -139,7 +139,7 @@ impl ModuleAllocation {
             return Err(RuntimeError::new(DiagnosticKind::InternalInvariant,
                 "Win16 data growth lost its module lifetime pin"));
         }
-        heap.grow_reserved_in_place(self.handle, MODULE_ALLOCATION_OWNER,
+        heap.resize_reserved_in_place(self.handle, MODULE_ALLOCATION_OWNER,
             old_size, new_size, selectors, memory).map_err(crate::runtime_error)
     }
 

@@ -15,9 +15,9 @@ use crate::{DiagnosticKind, RuntimeError};
 
 #[path = "win16_legacy_cpu_growth.rs"]
 mod growth;
-pub(super) use growth::{AutomaticDataOwner, LegacyCpuDataGrowthPlan};
+pub(super) use growth::{AutomaticDataOwner, LegacyCpuDataResizePlan};
 use growth::{
-    AutomaticDataGrowthReceipt, root_history_is_current, root_snapshot_is_authorized,
+    DataExtentReceipt, root_history_is_current, root_snapshot_is_authorized,
 };
 
 #[derive(Debug)]
@@ -128,7 +128,7 @@ struct OwnedSelectorRoot {
     descriptor: DescriptorInfo,
     backing: SelectorBackingIdentity,
     lease: SelectorBackingLease,
-    growths: Vec<AutomaticDataGrowthReceipt>,
+    growths: Vec<DataExtentReceipt>,
 }
 
 /// Non-cloneable frame owner. Callers must retain it until explicit release.
@@ -288,21 +288,21 @@ impl Win16State {
 
     /// Prebuild exact saved-proof transitions before the checked allocator
     /// transaction changes guest bytes or selector metadata.
-    pub(super) fn prepare_legacy_cpu_data_growth(
+    pub(super) fn prepare_legacy_cpu_data_resize(
         &mut self,
         owner: AutomaticDataOwner,
         old_size: u32,
         new_size: u32,
         targets: &[(SelectorRef, DescriptorInfo)],
         memory: &Memory,
-    ) -> Result<LegacyCpuDataGrowthPlan, Win16LegacyCpuBindingError> {
+    ) -> Result<LegacyCpuDataResizePlan, Win16LegacyCpuBindingError> {
         growth::prepare(self, owner, old_size, new_size, targets, memory)
     }
 
     /// Applies only preallocated receipts after selector/heap commit.
-    pub(super) fn commit_legacy_cpu_data_growth(
+    pub(super) fn commit_legacy_cpu_data_resize(
         &mut self,
-        plan: LegacyCpuDataGrowthPlan,
+        plan: LegacyCpuDataResizePlan,
     ) {
         growth::commit(self, plan)
     }
