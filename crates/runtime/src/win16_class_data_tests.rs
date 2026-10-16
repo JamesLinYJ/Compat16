@@ -66,6 +66,8 @@ struct ClassDataHost {
     subclass_set_succeeded: bool,
     subclass_sources: Vec<std::sync::Arc<crate::Win16WindowSourceRetiredProof>>,
     subclass_consumed: Vec<u64>,
+    subclass_callback_source: Option<crate::Win16NativeCallbackSource>,
+    subclass_replies: Vec<crate::Win16WindowReply>,
 }
 
 impl DosHost for ClassDataHost {
@@ -107,6 +109,31 @@ impl RuntimeHost for ClassDataHost {
         let kind = operation.native_operation_kind();
         let native = self.subclass_window.expect("unexpected native USER operation");
         let previous = Win16HostProcedure(0x1234_5678_9abc_def0);
+        let callback_message = match &operation {
+            crate::Win16WindowOperation::Send { window, message } => Some((*window, message.clone())),
+            crate::Win16WindowOperation::MessageCall(crate::Win16MessageCall::SendMessage {
+                window, message: 0x100, w_param, l_param: crate::Win16MessageParam::Scalar(l_param), ..
+            }) => Some((*window, crate::Win16HostMessage::Scalar {
+                kind: crate::Win16ScalarMessage::KeyDown, w_param: *w_param, l_param: *l_param,
+            })),
+            _ => None,
+        };
+        if let Some((window, message)) = callback_message {
+            assert_eq!(window, native);
+            let operation_id = crate::Win16HostWindowOperationId(self.subclass_sources.len() as u64 + 1);
+            self.subclass_sources.push(std::sync::Arc::new(crate::Win16WindowSourceRetiredProof {
+                operation: crate::Win16NativeWindowOperationProof { operation_id, kind },
+                worker_generation: 1, state: crate::Win16NativeWindowOperationState::Returned,
+            }));
+            return Ok(crate::Win16WindowStep::Started {
+                operation_id, worker_generation: 1, kind,
+                step: Box::new(crate::Win16WindowStep::NativeSubclassCallback {
+                    operation_id, callback: crate::Win16HostCallback(operation_id.0),
+                    window, message,
+                    source: self.subclass_callback_source.expect("test callback source"),
+                }),
+            });
+        }
         let result = match operation {
             crate::Win16WindowOperation::QuerySubclassProcedure { window } => {
                 assert_eq!(window, native);
@@ -135,6 +162,22 @@ impl RuntimeHost for ClassDataHost {
             step: Box::new(crate::Win16WindowStep::SourceRetired {
                 proof, result: Box::new(crate::Win16WindowStep::Complete(result)),
             }),
+        })
+    }
+    fn win16_window_resume(&mut self, reply: Option<crate::Win16WindowReply>)
+        -> Result<crate::Win16WindowStep, RuntimeError> {
+        let reply = reply.expect("native subclass callback reply");
+        let proof = self.subclass_sources.last().cloned().ok_or_else(|| RuntimeError::new(
+            Kind::HostFailure, "test host has no active native subclass callback operation"))?;
+        assert_eq!(reply.callback.0, proof.operation.operation_id.0);
+        let result = if proof.operation.kind == crate::Win16NativeWindowOperationKind::MessageCall {
+            crate::Win16WindowResult::MessageCall(crate::Win16MessageCallResult::Long(reply.result.value as i32))
+        } else {
+            crate::Win16WindowResult::Message(Some(reply.result.clone()))
+        };
+        self.subclass_replies.push(reply);
+        Ok(crate::Win16WindowStep::SourceRetired {
+            proof, result: Box::new(crate::Win16WindowStep::Complete(result)),
         })
     }
     fn win16_window_source_retirement(&mut self,

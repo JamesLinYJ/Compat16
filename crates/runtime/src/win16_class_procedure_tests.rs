@@ -12,6 +12,142 @@ use win16_abi::{Access, AccessRights};
 const GCL_WNDPROC: i16 = -24;
 const GWL_WNDPROC: i16 = -4;
 
+fn enter_native_subclass_send(runtime: &mut Runtime, host: &mut ClassDataHost, hwnd: u16, message: u16)
+    -> Result<Option<u8>, RuntimeError>
+{
+    let descriptor = lookup_export(b"USER", ExportLookupTarget::Ordinal(111)).unwrap();
+    let stack = runtime.cpu.regs.sp();
+    let mut bytes = Vec::from(0x12_u16.to_le_bytes());
+    bytes.extend_from_slice(&runtime.cpu.regs.cs.to_le_bytes());
+    bytes.extend_from_slice(&0x1234_5678_u32.to_le_bytes());
+    bytes.extend_from_slice(&0x1357_u16.to_le_bytes());
+    bytes.extend_from_slice(&message.to_le_bytes());
+    bytes.extend_from_slice(&hwnd.to_le_bytes());
+    let state = runtime.win16.as_mut().unwrap();
+    let pointer = state.selectors.pointer_from_raw(Selector(runtime.cpu.regs.ss), stack).unwrap();
+    state.selectors.write(&mut runtime.memory, pointer, &bytes).unwrap();
+    let slot = state.bindings.len();
+    state.bindings.push(ImportBinding::Supported(descriptor));
+    runtime.cpu.regs.cs = state.gate_selector.0;
+    runtime.cpu.regs.set_ip((slot * 2) as u16);
+    state.dispatch(&mut runtime.cpu, &mut runtime.memory, &mut runtime.dos, host, 0)
+}
+
+#[test]
+fn class_data_native_subclass_enters_guest_and_resumes_the_exact_send_message_caller() {
+    for (registered, message) in [(false, 0x100_u16), (false, 0x401), (true, 0x100), (true, 0x401)] {
+        let mut runtime = fixture();
+        let native = Win16HostWindow(0x5555);
+        let mut host = ClassDataHost {
+            subclass_window: Some(native), subclass_set_succeeded: true,
+            subclass_callback_source: Some(crate::Win16NativeCallbackSource::WindowMessage {
+                window: native, class: None, message: u32::from(message),
+            }),
+            ..Default::default()
+        };
+        let class = registered.then(|| named_class(&mut runtime, &mut host, b"NativeEntry", 4));
+        let state = runtime.win16.as_mut().unwrap();
+        let hwnd = state.allocate_window_handle(native).unwrap();
+        state.initialize_window_data(hwnd, class.map(|class| class.class), 0x2222, false, None).unwrap();
+        let root = state.window_class_root(hwnd);
+        let target = procedure(&runtime, 0x40);
+        assert_ne!(call(&mut runtime, &mut host, 136, hwnd, GWL_WNDPROC, Some(target)), 0);
+        let caller = (runtime.cpu.regs.cs, runtime.cpu.regs.sp());
+        enter_native_subclass_send(&mut runtime, &mut host, hwnd, message).unwrap();
+        let state = runtime.win16.as_ref().unwrap();
+        let frame = state.window_callbacks.last().unwrap();
+        assert_eq!(frame.class_root, root);
+        assert_eq!(frame.callback_address, target);
+        assert_eq!((runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.ax()),
+            ((target >> 16) as u16, target as u16, 0x2222));
+        let pointer = state.selectors.pointer_from_raw(Selector(runtime.cpu.regs.ss), runtime.cpu.regs.sp()).unwrap();
+        let mut arguments = [0; 14];
+        state.selectors.read(&runtime.memory, pointer, &mut arguments).unwrap();
+        assert_eq!(&arguments[4..8], &0x1234_5678_u32.to_le_bytes());
+        assert_eq!(&arguments[8..10], &0x1357_u16.to_le_bytes());
+        assert_eq!(&arguments[10..12], &message.to_le_bytes());
+        assert_eq!(&arguments[12..14], &hwnd.to_le_bytes());
+        // A nested real service gate advances the CPU boundary sequence.
+        let callback_sp = runtime.cpu.regs.sp();
+        runtime.cpu.regs.set_sp(callback_sp - 12);
+        assert_eq!(call(&mut runtime, &mut host, 135, hwnd, GWL_WNDPROC, None), target);
+        runtime.cpu.regs.set_sp(callback_sp);
+        return_saved_procedure(&mut runtime, &mut host, 0x89ab_cdef);
+        assert_eq!((runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.sp()),
+            (caller.0, 0x12, caller.1 + 14));
+        let state = runtime.win16.as_ref().unwrap();
+        assert_eq!(state.window_class_root(hwnd), root);
+        assert!(state.window_callbacks.is_empty());
+        assert!(state.window_operations.is_empty());
+        assert!(state.legacy_cpu_frames.is_empty());
+        assert_eq!(host.subclass_replies.len(), 1);
+        assert_eq!(host.subclass_replies[0].result.value, 0x89ab_cdef);
+        host.subclass_consumed.sort_unstable();
+        assert_eq!(host.subclass_consumed, [1, 2, 3]);
+    }
+}
+
+#[test]
+fn class_data_native_subclass_rejects_a_different_window_or_class_route_before_guest_entry() {
+    for wrong_window in [false, true] {
+        let mut runtime = fixture();
+        let native = Win16HostWindow(0x5555);
+        let mut host = ClassDataHost {
+            subclass_window: Some(native), subclass_set_succeeded: true,
+            ..Default::default()
+        };
+        let class = named_class(&mut runtime, &mut host, b"WrongSource", 4);
+        let state = runtime.win16.as_mut().unwrap();
+        let hwnd = state.allocate_window_handle(native).unwrap();
+        state.initialize_window_data(hwnd, Some(class.class), 0x2222, false, None).unwrap();
+        let target = procedure(&runtime, 0x40);
+        call(&mut runtime, &mut host, 136, hwnd, GWL_WNDPROC, Some(target));
+        host.subclass_callback_source = Some(crate::Win16NativeCallbackSource::WindowMessage {
+            window: if wrong_window { Win16HostWindow(0x6666) } else { native },
+            class: (!wrong_window).then_some(class.class), message: 0x100,
+        });
+        assert!(enter_native_subclass_send(&mut runtime, &mut host, hwnd, 0x100).is_err());
+        let state = runtime.win16.as_ref().unwrap();
+        let frame = state.window_callbacks.last().unwrap();
+        assert_eq!(frame.entry_phase, crate::win16_runtime::windows::WindowCallbackEntryPhase::SetupFailed);
+        assert!(frame.setup_error.is_some());
+        assert_eq!(state.window_class_root(hwnd), WindowClassRoot::Class(class.class));
+        assert_eq!(state.native_subclass_procedure(hwnd), Some((target, 0x2222)));
+        assert_eq!(state.window_operations.len(), 1, "failed setup retains its cancellable native owner");
+        assert!(host.subclass_replies.is_empty());
+        host.subclass_consumed.sort_unstable();
+        assert_eq!(host.subclass_consumed, [1, 2]);
+    }
+}
+
+#[test]
+fn class_data_registered_callback_still_requires_its_exact_native_class_source() {
+    for mismatch in 0..3 {
+        let mut runtime = fixture();
+        let mut host = ClassDataHost::default();
+        let class = named_class(&mut runtime, &mut host, b"SelectedClass", 4);
+        let other = named_class(&mut runtime, &mut host, b"SameFarOtherClass", 4);
+        assert_eq!(class.info.lpfn_wnd_proc, other.info.lpfn_wnd_proc);
+        let hwnd = window(&mut runtime, class, 1);
+        let state = runtime.win16.as_mut().unwrap();
+        let native = state.window_handles[&hwnd];
+        let procedure = state.window_procedures[&hwnd];
+        let source = crate::Win16NativeCallbackSource::WindowMessage {
+            window: if mismatch == 2 { Win16HostWindow(0x6666) } else { native },
+            class: match mismatch { 0 => None, 1 => Some(other.class), _ => Some(class.class) },
+            message: 0x100,
+        };
+        assert!(state.begin_host_window_callback(&mut runtime.cpu.regs, &mut runtime.memory,
+            &mut host, crate::Win16HostWindowOperationId(1), crate::Win16HostCallback(2),
+            native, hwnd, procedure, crate::Win16HostMessage::Scalar {
+                kind: crate::Win16ScalarMessage::KeyDown, w_param: 7, l_param: 9,
+            }, None, source, false).is_err());
+        assert_eq!(state.window_class_root(hwnd), WindowClassRoot::Class(class.class));
+        assert_eq!(state.window_callbacks.last().unwrap().entry_phase,
+            crate::win16_runtime::windows::WindowCallbackEntryPhase::SetupFailed);
+    }
+}
+
 #[test]
 fn class_data_native_subclass_callback_preserves_the_window_class_provenance() {
     for registered in [false, true] {

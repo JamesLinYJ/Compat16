@@ -267,7 +267,9 @@ impl Win16State {
                     });
                     self.begin_host_procedure_callback(
                         registers, memory, host, operation_id, callback, native,
-                        window, address, instance, root, message, None, source, destroyed,
+                        window, address, instance,
+                        super::callback_entry::WindowProcedureSource::NativeSubclass(root),
+                        message, None, source, destroyed,
                     )?;
                     return Ok(());
                 }

@@ -4,6 +4,13 @@ use std::sync::Arc;
 
 use super::*;
 
+/// A native subclass bridge proves its installed procedure, not the HWND's
+/// registered class. Keep that route distinct from a class WndProc callback.
+pub(super) enum WindowProcedureSource {
+    RegisteredClass(Win16HostClass),
+    NativeSubclass(WindowClassRoot),
+}
+
 impl Win16State {
     pub(super) fn reserve_window_callback_frame(
         &mut self,
@@ -47,7 +54,7 @@ impl Win16State {
         self.begin_host_procedure_callback(
             registers, memory, host, operation_id, callback, native_window,
             window, procedure.address, procedure.instance,
-            WindowClassRoot::Class(procedure.class), message, creation, source, destroyed,
+            WindowProcedureSource::RegisteredClass(procedure.class), message, creation, source, destroyed,
         )
     }
 
@@ -56,7 +63,7 @@ impl Win16State {
         host: &mut impl RuntimeHost,
         operation_id: crate::Win16HostWindowOperationId,
         callback: Win16HostCallback, native_window: Win16HostWindow,
-        window: u16, address: u32, instance: u16, expected_root: WindowClassRoot,
+        window: u16, address: u32, instance: u16, procedure_source: WindowProcedureSource,
         message: Win16HostMessage, creation: Option<&WindowCreateRequest>,
         source: crate::Win16NativeCallbackSource, destroyed: bool,
     ) -> Result<(), RuntimeError> {
@@ -69,11 +76,24 @@ impl Win16State {
             _ => None,
         };
         let callback_id = self.reserve_window_callback_frame()?;
-        let class_root = if WindowClassRoot::from_native_message(source, native_window) == expected_root {
-            expected_root
-        } else {
-            WindowClassRoot::Unresolved
+        let (expected_root, source_valid) = match procedure_source {
+            WindowProcedureSource::RegisteredClass(class) => {
+                let root = WindowClassRoot::Class(class);
+                (root, WindowClassRoot::from_native_message(source, native_window) == root)
+            }
+            WindowProcedureSource::NativeSubclass(root) => {
+                let valid = matches!(source, crate::Win16NativeCallbackSource::WindowMessage {
+                    window: native, class: None, ..
+                } if native == native_window)
+                    && self.window_handles.get(&window) == Some(&native_window)
+                    && self.native_subclass_procedure(window) == Some((address, instance))
+                    && self.window_class_root(window) == root;
+                (root, valid)
+            }
         };
+        // Unresolved is legitimate provenance for an existing native control;
+        // it is not evidence that callback source validation failed.
+        let class_root = if source_valid { expected_root } else { WindowClassRoot::Unresolved };
         let frame = WindowCallbackFrame {
             callback_id,
             saved: registers.clone(),
@@ -122,9 +142,9 @@ impl Win16State {
 
         let setup = (|| {
             self.refresh_pending_window_parents(host)?;
-            if class_root == WindowClassRoot::Unresolved {
+            if !source_valid {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
-                    "native WndProc source differs from its exact selected class registration"));
+                    "native WndProc source differs from its exact selected procedure owner"));
             }
             self.record_window_class_root(window, native_window, class_root)?;
             self.check_window_callback(registers, address, memory)?;
