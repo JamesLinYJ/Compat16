@@ -21,6 +21,9 @@ decl = { args = ["long"] }
 ordinal = 29
 name = "Yield"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelYield", id_value = 1259, constant = "KERNEL_YIELD" }
+[exports.call]
+returns = "void"
 
 [[exports]]
 ordinal = 32

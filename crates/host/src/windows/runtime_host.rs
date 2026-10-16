@@ -25,6 +25,11 @@ fn windows_error_code_description(native_error: Option<u32>) -> String {
 }
 
 impl RuntimeHost for WindowsHost {
+    fn win16_yield_thread(&mut self) -> Result<(), RuntimeError> {
+        std::thread::yield_now();
+        Ok(())
+    }
+
     fn win16_com_owner(&mut self) -> Result<runtime::Win16ComHostOwnerIdentity, RuntimeError> {
         self.win16_windows.com_owner()
     }

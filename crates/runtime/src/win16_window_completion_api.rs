@@ -536,6 +536,7 @@ pub(super) fn finish_message_call(
     }
     if *phase == Phase::Ready {
         let projected = match (continuation, result) {
+            (Call::Yield, ResultValue::Yielded) => (0, Win16ReturnKind::Void),
             (Call::Boolean { return_kind } | Call::WaitMessage { return_kind },
                 ResultValue::Boolean(result)) => (u32::from(*result), *return_kind),
             (Call::Window { return_kind }, ResultValue::Window(window)) => {

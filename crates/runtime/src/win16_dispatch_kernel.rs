@@ -26,6 +26,9 @@ impl Win16State {
         let preserve_registers = descriptor.id
             == win16_abi::Win16ExportId::KernelGlobalChangeLockCount;
         let value = match request {
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
+                win16_abi::Win16KernelRuntimeRequest::Yield,
+            )) => return self.begin_kernel_yield(registers, memory, host, return_to),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Atoms(request)) => {
                 u32::from(self.local_atom_request(registers.ds, request, memory, host)?)
             }

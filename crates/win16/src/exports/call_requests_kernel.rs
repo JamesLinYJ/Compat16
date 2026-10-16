@@ -89,7 +89,8 @@ pub(super) fn decode(
             .ok_or(Win16Error::InvalidRange)?;
             Win16ApiRequest::KernelProfileSection(request)
         }
-        Win16ExportId::KernelGetVersion
+        Win16ExportId::KernelYield
+        | Win16ExportId::KernelGetVersion
         | Win16ExportId::KernelGetCurrentTask
         | Win16ExportId::KernelGetDriveType
         | Win16ExportId::KernelSetErrorMode

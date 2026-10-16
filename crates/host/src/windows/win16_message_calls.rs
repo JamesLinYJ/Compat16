@@ -24,6 +24,9 @@ use super::win16_window_callbacks::host_timer_proc;
 use super::win16_window_worker as worker_window;
 use super::win16_window_worker::WorkerState;
 
+#[path = "win16_kernel_yield.rs"]
+mod kernel_yield;
+
 const WM_COMMAND: u16 = 0x0111;
 const WM_TIMER: u16 = 0x0113;
 const WM_ACTIVATEAPP: u16 = 0x001c;
@@ -80,6 +83,7 @@ pub(super) fn execute(
         _ => {}
     }
     match call {
+        Win16MessageCall::Yield { task_queue } => kernel_yield::execute(state, task_queue),
         Win16MessageCall::SendBroadcast { kind, w_param, l_param } => {
             let Some((message, native_w, native_l)) = broadcast_arguments(state, kind, w_param, l_param)?
                 else { return Ok(Win16MessageCallResult::Long(0)); };

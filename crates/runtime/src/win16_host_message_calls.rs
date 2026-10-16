@@ -11,6 +11,9 @@ use crate::win16_runtime::guest_ranges::GuestOutputRange;
 /// A USER operation executed on the dedicated native window thread.
 #[derive(Clone, Debug)]
 pub enum Win16MessageCall {
+    /// Receive pending sent messages for this exact task without removing a
+    /// posted message, then offer the native thread's remaining time slice.
+    Yield { task_queue: crate::Win16HostTaskQueue },
     /// HWND_BROADCAST is an explicit target, never an opaque window token.
     /// Only a classified scalar message may reach unrelated native windows.
     SendBroadcast {
@@ -86,6 +89,7 @@ pub enum Win16MessageCall {
 /// Result from one native USER message/input operation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16MessageCallResult {
+    Yielded,
     Boolean(bool),
     Window(Option<Win16HostWindow>),
     Dword(u32),
@@ -99,6 +103,7 @@ pub enum Win16MessageCallResult {
 /// timer-ID translation belong to the Win16 ABI, not USER's native handle.
 #[derive(Debug)]
 pub(crate) enum Win16MessageCallContinuation {
+    Yield,
     Boolean { return_kind: win16_abi::Win16ReturnKind },
     /// Keep queue waits distinct so guest work cannot complete a BOOL call.
     WaitMessage { return_kind: win16_abi::Win16ReturnKind },

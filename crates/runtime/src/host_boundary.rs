@@ -912,6 +912,13 @@ pub trait RuntimeHost:
             "host USER window enumeration is unavailable",
         ))
     }
+    /// Yield the executing host thread for a Win16 task without a USER queue.
+    fn win16_yield_thread(&mut self) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host thread yielding is unavailable",
+        ))
+    }
     fn win16_unregister_window_class(
         &mut self,
         _class: Win16HostClass,

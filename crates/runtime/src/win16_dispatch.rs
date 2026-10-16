@@ -181,9 +181,12 @@ impl Win16State {
         let dispatch_route = super::dispatch_routes::route_for_request(&request);
         let call_owner = if matches!(dispatch_route,
             super::dispatch_routes::DispatchRoute::User)
-            // These library families also suspend through the shared USER
+            // Queue-backed KERNEL.Yield and these library families also use USER's
             // operation stack. Capture their real caller before that stack
             // consumes it; module routing alone does not describe callbacks.
+            || (matches!(&request, Win16ApiRequest::Kernel(
+                win16_abi::Win16KernelRequest::Runtime(win16_abi::Win16KernelRuntimeRequest::Yield)))
+                && self.kernel_yield_queue()?.is_some())
             || matches!(&request, Win16ApiRequest::Dde(_)
                 | Win16ApiRequest::Commdlg(_)
                 | Win16ApiRequest::Commctrl(_)

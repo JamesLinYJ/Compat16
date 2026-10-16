@@ -30,6 +30,8 @@ mod local_heap;
 mod local_shrink;
 #[path = "win16_stack_switch.rs"]
 mod stack_switch;
+#[path = "win16_kernel_yield.rs"]
+mod kernel_yield;
 #[path = "win16_local_atoms.rs"]
 mod local_atoms;
 #[path = "win16_data_growth.rs"]
