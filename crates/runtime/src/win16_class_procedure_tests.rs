@@ -13,6 +13,34 @@ const GCL_WNDPROC: i16 = -24;
 const GWL_WNDPROC: i16 = -4;
 
 #[test]
+fn class_data_native_subclass_callback_preserves_the_window_class_provenance() {
+    for registered in [false, true] {
+        let mut runtime = fixture();
+        let native = Win16HostWindow(0x5555);
+        let mut host = ClassDataHost {
+            subclass_window: Some(native), subclass_set_succeeded: true,
+            ..Default::default()
+        };
+        let class = registered.then(|| named_class(&mut runtime, &mut host, b"NativeControl", 4));
+        let state = runtime.win16.as_mut().unwrap();
+        let hwnd = state.allocate_window_handle(native).unwrap();
+        state.initialize_window_data(hwnd, class.map(|class| class.class), 0x2222, false, None).unwrap();
+        let root = state.window_class_root(hwnd);
+        let replacement = procedure(&runtime, 0x40);
+        assert_ne!(call(&mut runtime, &mut host, 136, hwnd, GWL_WNDPROC, Some(replacement)), 0);
+        let state = runtime.win16.as_mut().unwrap();
+        let (target, address, instance, callback_root) = state.native_subclass_callback_owner(native).unwrap();
+        assert_eq!((target, address, instance), (hwnd, replacement, 0x2222));
+        assert_eq!(callback_root, root);
+        state.record_window_class_root(target, native, callback_root).unwrap();
+        assert_eq!(state.window_class_root(hwnd), root);
+        assert_eq!(state.window_host_class(hwnd), class.map(|class| class.class));
+        assert!(state.window_operations.is_empty());
+        assert!(state.legacy_cpu_frames.is_empty());
+    }
+}
+
+#[test]
 fn class_data_native_subclass_sync_followup_returns_without_redispatching_the_gate() {
     for succeeded in [false, true] {
         let mut runtime = fixture();

@@ -204,6 +204,11 @@ try {
     # Three <=16s observed attempts + 2/4s delays + two <=3s observations
     # leave room for the default 30s guest run inside the 3-minute CI step.
     $archiveBytes = $null
+    # Resolve the fixed origin once before opening its HTTPS connection. Cold
+    # Windows runners can otherwise report transient NoData while a separate
+    # DNS observation immediately succeeds. This only warms the same OS cache;
+    # the request still uses the original hostname, routing and TLS checks.
+    $result.sourceDnsObservation = Get-SourceDnsObservation
     for ($number = 1; $number -le 3; $number++) {
         $attempt = [ordered]@{ number = $number; source = $source
             startedUtc = [DateTime]::UtcNow.ToString('o'); elapsedMilliseconds = $null

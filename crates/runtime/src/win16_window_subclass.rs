@@ -1,4 +1,4 @@
-//! Guest procedure ownership for existing native controls, without a class.
+//! Guest procedure ownership for existing native controls.
 
 use guest_core::{Registers, memory::Memory};
 use win16_abi::{Access, Win16ReturnKind};
@@ -180,6 +180,9 @@ impl Win16State {
         let (address, instance) = self.native_subclass_procedure(window).ok_or_else(||
             RuntimeError::new(Kind::InternalInvariant,
                 "native subclass callback has no explicit guest procedure owner"))?;
-        Ok((window, address, instance, WindowClassRoot::NoRegistration))
+        // Subclassing changes the procedure, not the HWND's class provenance.
+        // A native procedure can belong to a retained Win16 class registration;
+        // an unresolved native control likewise supplies no proof of absence.
+        Ok((window, address, instance, self.window_class_root(window)))
     }
 }
