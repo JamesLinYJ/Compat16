@@ -154,6 +154,8 @@ pub enum Win16UserRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16KernelRequest {
+    SwitchStackTo { stack_selector: u16, stack_pointer: u16, stack_top: u16 },
+    SwitchStackBack { context: crate::Win16RegisterContext },
     /// Far Pascal arguments; completion requires a checked CPU transfer.
     Catch { buffer: u32 },
     Throw { buffer: u32, value: u16 },

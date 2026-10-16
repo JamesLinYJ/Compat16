@@ -367,16 +367,16 @@ impl Win16State {
             if handle == current {
                 entry.stack_segment = registers.ss;
                 entry.stack_pointer = registers.sp();
-                let read_instance_word = |offset: usize| -> u16 {
-                    let Ok(pointer) = self.selectors.pointer_from_raw(Selector(registers.ds), offset as u16)
+                let read_stack_word = |offset: usize| -> u16 {
+                    let Ok(pointer) = self.selectors.pointer_from_raw(Selector(registers.ss), offset as u16)
                     else { return 0; };
                     let mut bytes = [0; 2];
                     self.selectors.read(memory, pointer, &mut bytes).ok().map(|()|
                         u16::from_le_bytes(bytes)).unwrap_or(0)
                 };
-                entry.stack_top = read_instance_word(INSTANCE_DATA_STACK_TOP_OFFSET);
-                entry.stack_minimum = read_instance_word(INSTANCE_DATA_STACK_MINIMUM_OFFSET);
-                entry.stack_bottom = read_instance_word(INSTANCE_DATA_STACK_BOTTOM_OFFSET);
+                entry.stack_top = read_stack_word(INSTANCE_DATA_STACK_TOP_OFFSET);
+                entry.stack_minimum = read_stack_word(INSTANCE_DATA_STACK_MINIMUM_OFFSET);
+                entry.stack_bottom = read_stack_word(INSTANCE_DATA_STACK_BOTTOM_OFFSET);
             }
             if let Some(record) = self.modules.records.get(&module) {
                 copy_terminated(&mut entry.module_name, &record.name);

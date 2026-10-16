@@ -214,11 +214,23 @@ decl = { args = ["word"] }
 ordinal = 108
 name = "SwitchStackTo"
 decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
+binding = { rust_id = "KernelSwitchStackTo", id_value = 1257, constant = "KERNEL_SWITCH_STACK_TO" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "stack_selector", type = "U16" },
+  { name = "stack_pointer", type = "U16" },
+  { name = "stack_top", type = "U16" },
+]
 
 [[exports]]
 ordinal = 109
 name = "SwitchStackBack"
 decl = { attributes = ["register"] }
+binding = { rust_id = "KernelSwitchStackBack", id_value = 1258, constant = "KERNEL_SWITCH_STACK_BACK" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
 
 [[exports]]
 ordinal = 110

@@ -72,6 +72,16 @@ impl Win16State {
         )
         .map_err(crate::runtime_error)?;
         match decoded.request {
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::SwitchStackTo {
+                stack_selector, stack_pointer, stack_top,
+            }) => {
+                self.switch_stack_to(cpu, memory, dos, stack_selector, stack_pointer, stack_top)?;
+                return Ok(None);
+            }
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::SwitchStackBack { context }) => {
+                self.switch_stack_back(cpu, memory, dos, context)?;
+                return Ok(None);
+            }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Catch { buffer }) => {
                 self.catch_guest(cpu, memory, dos, buffer)?;
                 return Ok(None);

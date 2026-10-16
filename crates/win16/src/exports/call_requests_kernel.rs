@@ -168,7 +168,15 @@ pub(super) fn decode(
         Win16ExportId::KernelGetWinFlags => Win16ApiRequest::Kernel(
             super::Win16KernelRequest::Runtime(super::Win16KernelRuntimeRequest::GetWinFlags),
         ),
-        Win16ExportId::KernelInitTask => return Err(Win16Error::UnsupportedRegisterContextExport),
+        Win16ExportId::KernelInitTask | Win16ExportId::KernelSwitchStackBack =>
+            return Err(Win16Error::UnsupportedRegisterContextExport),
+        Win16ExportId::KernelSwitchStackTo => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::SwitchStackTo {
+                stack_selector: word_argument(arguments, 0)?,
+                stack_pointer: word_argument(arguments, 1)?,
+                stack_top: word_argument(arguments, 2)?,
+            },
+        ),
         Win16ExportId::KernelGlobalAlloc
         | Win16ExportId::KernelGlobalFree
         | Win16ExportId::KernelGlobalLock
