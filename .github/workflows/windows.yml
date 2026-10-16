@@ -67,6 +67,11 @@ jobs:
           cargo --version
           if ($LASTEXITCODE -ne 0) { throw 'The pinned Cargo did not start.' }
 
+      - name: Validate Win16 startup diagnostic contracts
+        id: startup_contracts
+        timeout-minutes: 3
+        run: .\scripts\test-win16-startup-diagnostics.ps1
+
       - name: Run existing compatibility tests
         # A cold native ARM64 runner compiles both test harnesses and runs the
         # full suite here. Keep a bound without cancelling its final filters.
@@ -879,11 +884,12 @@ jobs:
         timeout-minutes: 25
         run: .\scripts\build.ps1 -Architecture $env:BUILD_ARCHITECTURE -NonInteractive
 
-      - name: Diagnose real PFE Win16 startup prefix
+      - name: Validate real PFE Win16 startup
         id: real_win16_pfe
         # Original public Win16 application, pinned and downloaded into the
-        # disposable runner only. Gaps/faults/timeouts remain step failures.
-        if: ${{ !cancelled() && steps.native_release.outcome == 'success' }}
+        # disposable runner only. Require visible-window and guest-callback
+        # evidence; download failures, gaps and timeouts stay step failures.
+        if: ${{ !cancelled() && steps.native_release.outcome == 'success' && steps.startup_contracts.outcome == 'success' }}
         timeout-minutes: 3
         env:
           NATIVE_RUNNER_LABEL: ${{ matrix.runner }}
@@ -894,7 +900,7 @@ jobs:
         timeout-minutes: 3
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: pfe-win16-prefix-${{ matrix.architecture }}-${{ github.run_attempt }}
+          name: pfe-win16-startup-${{ matrix.architecture }}-${{ github.run_attempt }}
           # Exact text allowlist; never upload the parent fixture directory,
           # downloaded archive, original package, guest image, or memory dump.
           path: |

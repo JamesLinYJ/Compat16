@@ -48,12 +48,16 @@ foreach ($directory in @($resultsDirectory, $originalDirectory, $workingDirector
 }
 # Only this directory is eligible for CI artifact upload; never upload $scratch.
 if ($env:GITHUB_OUTPUT) { "results-directory=$resultsDirectory" >> $env:GITHUB_OUTPUT }
+Add-Type -Path (Join-Path $PSScriptRoot 'win16-startup/ContainedProcess.cs')
+Add-Type -Path (Join-Path $PSScriptRoot 'win16-startup/WindowReadiness.cs')
+Import-Module (Join-Path $PSScriptRoot 'win16-startup/pfe-evidence.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'win16-startup/source-curl.psm1') -Force
 
 $source = 'https://www.lancaster.ac.uk/~steveb/cpaap/pfe/pfe101.zip'
 $archiveHash = '75156260f361e3dc88dbbf340edc36369d8f80bac658482b5c680e1da8985288'
 $executableHash = '2affadbd7ad74f63311c72b099a73ca536c0980f07b064432e980cfea3a9388f'
 $result = [ordered]@{
-    fixture = 'PFE 1.01 Win16'; status = 'harness-failed'; scope = 'startup-prefix only'
+    fixture = 'PFE 1.01 Win16'; status = 'harness-failed'; scope = 'startup message loop and WndProc responsiveness only'
     architecture = $Architecture; runner = $RunnerLabel; source = $source
     archiveSha256 = $archiveHash; executableSha256 = $executableHash
     instructionLimit = $InstructionLimit; timeoutSeconds = $TimeoutSeconds
@@ -61,6 +65,7 @@ $result = [ordered]@{
     processTreeCleaned = $false; initTaskCrossing = $false; warnings = @(); error = $null
     sourceOutcome = 'not-attempted'; sourceVerified = $false; sourceAttempts = @()
     sourceDnsObservation = $null; sourceTransportObservation = $null; executionAttempted = $false
+    windowObservation = $null; startupEvidence = $null
 }
 function Protect-ResultText([string]$Text) {
     foreach ($pair in @(@($scratch, '<fixture>'), @($repositoryRoot, '<repository>'),
@@ -125,9 +130,7 @@ function Get-SourceTransportObservation {
     $presence = [ordered]@{}
     # Windows environment names are case-insensitive. Record only state flags;
     # never enumerate the environment or retain/log these values in the receipt.
-    foreach ($name in @('HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
-            'CURL_HOME', 'XDG_CONFIG_HOME', 'CURL_CA_BUNDLE', 'CURL_SSL_BACKEND',
-            'SSL_CERT_FILE', 'SSL_CERT_DIR', 'SSLKEYLOGFILE', 'DOTNET_SYSTEM_NET_DISABLEIPV6')) {
+    foreach ($name in (Get-PfeTransportEnvironmentNames)) {
         $value = [Environment]::GetEnvironmentVariable($name, 'Process')
         $presence[$name] = [ordered]@{ present = $null -ne $value; nonempty = -not [string]::IsNullOrEmpty($value) }
         $value = $null
@@ -201,7 +204,7 @@ namespace Compat16.PfeProbe {
 try {
     # No redirects, credentials, alternate mirrors, certificate bypass, or
     # unbounded response buffering. Only typed transport/DNS/timeouts retry.
-    # Three <=16s observed attempts + 2/4s delays + two <=3s observations
+    # Bounded HTTP attempts, observations and one equivalent OS transport
     # leave room for the default 30s guest run inside the 3-minute CI step.
     $archiveBytes = $null
     # Resolve the fixed origin once before opening its HTTPS connection. Cold
@@ -210,7 +213,7 @@ try {
     # the request still uses the original hostname, routing and TLS checks.
     $result.sourceDnsObservation = Get-SourceDnsObservation
     for ($number = 1; $number -le 3; $number++) {
-        $attempt = [ordered]@{ number = $number; source = $source
+        $attempt = [ordered]@{ number = $number; source = $source; transport = 'dotnet-http'
             startedUtc = [DateTime]::UtcNow.ToString('o'); elapsedMilliseconds = $null
             outcome = 'requesting'; retryable = $false; httpStatus = $null
             exceptionType = $null; socketError = $null; error = $null }
@@ -264,16 +267,37 @@ try {
                 $result.sourceDnsObservation = Get-SourceDnsObservation
                 $result.sourceTransportObservation = Get-SourceTransportObservation
             }
-            throw "PFE source retrieval stopped before execution: $($attempt.outcome). $($attempt.error)"
+            break
         }
         Start-Sleep -Seconds (2 * $number)
     }
+    if ($null -eq $archiveBytes -and $attempt.outcome -ceq 'dns-failure') {
+        $fallback = Invoke-PfeSystemCurl -Source $source -RawDirectory $rawDirectory -ProfileDirectory $profileDirectory `
+            -Observation $result.sourceTransportObservation -FailureOutcome $attempt.outcome
+        $result.sourceTransportObservation.alternateTransportReason = $fallback.policy
+        if ($fallback.attempted) {
+            $result.sourceTransportObservation.alternateTransport = $fallback.transport
+            $result.sourceTransportObservation['alternateAddressFamily'] = $fallback.addressFamily
+            $result.sourceAttempts += [pscustomobject]@{ number = $result.sourceAttempts.Count + 1; source = $source
+                transport = $fallback.transport; elapsedMilliseconds = $fallback.elapsedMilliseconds
+                outcome = $fallback.outcome; exitCode = $fallback.exitCode }
+            $result.sourceOutcome = $fallback.outcome
+            if ($fallback.outcome -ceq 'downloaded') { $archiveBytes = $fallback.bytes }
+        }
+    }
+    if ($null -eq $archiveBytes) {
+        $result.status = if ($result.sourceOutcome -in @('dns-failure','connection-failure','timeout','alternate-unavailable')) {
+            'source-unavailable'
+        } else { 'source-rejected' }
+        throw "PFE source retrieval stopped before execution: $($result.sourceOutcome)."
+    }
     $archivePath = Join-Path $scratch 'pfe101.zip'
-    [IO.File]::WriteAllBytes($archivePath, $archiveBytes)
-    if ($archiveBytes.Length -ne 558157 -or (Get-FileHash -LiteralPath $archivePath).Hash -ine $archiveHash) {
+    try { $archiveBytes = Get-PfePinnedArchiveBytes $archiveBytes 558157 $archiveHash }
+    catch {
         $result.status = 'source-rejected'; $result.sourceOutcome = 'integrity-rejected'
         throw 'Archive identity mismatch; refusing extraction and execution.'
     }
+    [IO.File]::WriteAllBytes($archivePath, $archiveBytes)
     $members = @{
         'CHANGES.TXT' = 89057; 'FAQ.TXT' = 26401; 'FILE.DIZ' = 288
         'PFE.EXE' = 555520; 'PFE.HLP' = 358924; 'PFEDOS.EXE' = 13747
@@ -324,159 +348,7 @@ try {
     # Atomic job assignment at creation also covers parent cancellation before
     # CreateProcess returns. The handle allowlist excludes the job/CI handles.
     # Job objects: https://learn.microsoft.com/windows/win32/procthread/job-objects
-    Add-Type -TypeDefinition @'
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-namespace Compat16.PfeProbe {
-    public sealed class Outcome {
-        public uint ExitCode; public long ElapsedMilliseconds; public string StopReason;
-        public bool ProcessTreeCleaned;
-    }
-    public static class ContainedProcess {
-        [StructLayout(LayoutKind.Sequential)] struct Security {
-            public int Length; public IntPtr Descriptor; public int Inherit;
-        }
-        [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] struct Startup {
-            public int Size; public string Reserved, Desktop, Title;
-            public uint X, Y, XSize, YSize, XCountChars, YCountChars, FillAttribute, Flags;
-            public ushort ShowWindow, ReservedSize; public IntPtr ReservedBytes, Input, Output, Error;
-        }
-        [StructLayout(LayoutKind.Sequential)] struct StartupEx { public Startup Startup; public IntPtr Attributes; }
-        [StructLayout(LayoutKind.Sequential)] struct ProcessInfo { public IntPtr Process, Thread; public uint ProcessId, ThreadId; }
-        [StructLayout(LayoutKind.Sequential)] struct BasicLimit {
-            public long ProcessTime, JobTime; public uint Flags;
-            public UIntPtr MinimumWorkingSet, MaximumWorkingSet; public uint ActiveProcessLimit;
-            public UIntPtr Affinity; public uint PriorityClass, SchedulingClass;
-        }
-        [StructLayout(LayoutKind.Sequential)] struct IoCounters { public ulong A, B, C, D, E, F; }
-        [StructLayout(LayoutKind.Sequential)] struct ExtendedLimit {
-            public BasicLimit Basic; public IoCounters Io;
-            public UIntPtr ProcessMemory, JobMemory, PeakProcessMemory, PeakJobMemory;
-        }
-        [StructLayout(LayoutKind.Sequential)] struct Accounting {
-            public long UserTime, KernelTime, PeriodUserTime, PeriodKernelTime;
-            public uint PageFaults, TotalProcesses, ActiveProcesses, TerminatedProcesses;
-        }
-        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern IntPtr CreateJobObjectW(IntPtr attributes, string name);
-        [DllImport("kernel32.dll", SetLastError=true)] static extern bool SetInformationJobObject(IntPtr job, int infoClass, ref ExtendedLimit info, uint size);
-        [DllImport("kernel32.dll", SetLastError=true)] static extern bool QueryInformationJobObject(IntPtr job, int infoClass, out Accounting info, uint size, IntPtr returned);
-        [DllImport("kernel32.dll", SetLastError=true)] static extern bool TerminateJobObject(IntPtr job, uint code);
-        [DllImport("kernel32.dll", SetLastError=true)] static extern bool TerminateProcess(IntPtr process, uint code);
-        [DllImport("kernel32.dll", SetLastError=true)] static extern uint ResumeThread(IntPtr thread);
-        [DllImport("kernel32.dll", SetLastError=true)] static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
-        [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetExitCodeProcess(IntPtr process, out uint code);
-        [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
-        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern IntPtr CreateFileW(string path, uint access, uint share, ref Security security, uint creation, uint flags, IntPtr template);
-        [DllImport("kernel32.dll", SetLastError=true)] static extern bool InitializeProcThreadAttributeList(IntPtr list, int count, uint flags, ref IntPtr size);
-        [DllImport("kernel32.dll", SetLastError=true)] static extern bool UpdateProcThreadAttribute(IntPtr list, uint flags, IntPtr attribute, IntPtr value, IntPtr size, IntPtr previous, IntPtr returned);
-        [DllImport("kernel32.dll")] static extern void DeleteProcThreadAttributeList(IntPtr list);
-        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern bool CreateProcessW(string app, StringBuilder command, IntPtr processAttributes, IntPtr threadAttributes, bool inherit, uint flags, IntPtr environment, string directory, ref StartupEx startup, out ProcessInfo process);
-        static void Check(bool ok, string operation) { if (!ok) throw new Win32Exception(Marshal.GetLastWin32Error(), operation); }
-        static string Quote(string value) {
-            var text = new StringBuilder("\""); int slashes = 0;
-            foreach (char c in value) {
-                if (c == '\\') { slashes++; continue; }
-                text.Append('\\', c == '"' ? slashes * 2 + 1 : slashes); text.Append(c); slashes = 0;
-            }
-            return text.Append('\\', slashes * 2).Append('"').ToString();
-        }
-        public static Outcome Run(string executable, string[] args, string directory,
-                string[] environment, string[] outputPaths, int timeoutSeconds) {
-            var outcome = new Outcome(); var handles = new List<IntPtr>();
-            IntPtr job = IntPtr.Zero, attributes = IntPtr.Zero, handleList = IntPtr.Zero, jobList = IntPtr.Zero, env = IntPtr.Zero;
-            var pi = new ProcessInfo(); bool initialized = false, assigned = false;
-            var timer = new Stopwatch();
-            try {
-                job = CreateJobObjectW(IntPtr.Zero, null); Check(job != IntPtr.Zero, "CreateJobObject");
-                var limits = new ExtendedLimit();
-                limits.Basic.Flags = 0x2000; // KILL_ON_JOB_CLOSE, with neither breakaway flag.
-                Check(SetInformationJobObject(job, 9, ref limits, (uint)Marshal.SizeOf<ExtendedLimit>()), "SetInformationJobObject");
-                var security = new Security { Length = Marshal.SizeOf<Security>(), Inherit = 1 };
-                foreach (string path in new [] { "NUL", outputPaths[0], outputPaths[1] }) {
-                    bool input = path == "NUL";
-                    IntPtr handle = CreateFileW(path, input ? 0x80000000u : 0x40000000u, 3,
-                        ref security, input ? 3u : 1u, 0x80, IntPtr.Zero);
-                    Check(handle != new IntPtr(-1), "Create redirected standard handle"); handles.Add(handle);
-                }
-                IntPtr size = IntPtr.Zero;
-                InitializeProcThreadAttributeList(IntPtr.Zero, 2, 0, ref size);
-                if (size == IntPtr.Zero) throw new InvalidOperationException("No process attribute-list size.");
-                attributes = Marshal.AllocHGlobal(size);
-                Check(InitializeProcThreadAttributeList(attributes, 2, 0, ref size), "InitializeProcThreadAttributeList"); initialized = true;
-                handleList = Marshal.AllocHGlobal(IntPtr.Size * handles.Count);
-                for (int i = 0; i < handles.Count; i++) Marshal.WriteIntPtr(handleList, i * IntPtr.Size, handles[i]);
-                Check(UpdateProcThreadAttribute(attributes, 0, new IntPtr(0x20002), handleList,
-                    new IntPtr(IntPtr.Size * handles.Count), IntPtr.Zero, IntPtr.Zero), "Set inherited handle allowlist");
-                // PROC_THREAD_ATTRIBUTE_JOB_LIST (Windows 10+): assignment is
-                // part of process creation, leaving no uncontained orphan gap.
-                jobList = Marshal.AllocHGlobal(IntPtr.Size); Marshal.WriteIntPtr(jobList, job);
-                Check(UpdateProcThreadAttribute(attributes, 0, new IntPtr(0x2000D), jobList,
-                    new IntPtr(IntPtr.Size), IntPtr.Zero, IntPtr.Zero), "Set atomic process job membership");
-                Array.Sort(environment, StringComparer.OrdinalIgnoreCase);
-                env = Marshal.StringToHGlobalUni(string.Join("\0", environment) + "\0\0");
-                var startup = new StartupEx { Attributes = attributes };
-                startup.Startup.Size = Marshal.SizeOf<StartupEx>(); startup.Startup.Flags = 0x100;
-                startup.Startup.Input = handles[0]; startup.Startup.Output = handles[1]; startup.Startup.Error = handles[2];
-                var command = new StringBuilder(Quote(executable));
-                foreach (string arg in args) command.Append(' ').Append(Quote(arg));
-                // Suspended + Unicode environment + extended startup + no console.
-                Check(CreateProcessW(executable, command, IntPtr.Zero, IntPtr.Zero, true,
-                    0x08080404, env, directory, ref startup, out pi), "Create suspended launcher");
-                assigned = true;
-                timer.Start(); Check(ResumeThread(pi.Thread) != uint.MaxValue, "Resume launcher");
-                while (true) {
-                    uint wait = WaitForSingleObject(pi.Process, 100);
-                    Check(wait != uint.MaxValue, "Wait for launcher");
-                    long bytes = 0;
-                    foreach (string path in outputPaths) if (File.Exists(path)) bytes += new FileInfo(path).Length;
-                    if (bytes > 8 * 1024 * 1024) { outcome.StopReason = "output-limit"; break; }
-                    if (wait == 0) { outcome.StopReason = "exited"; break; }
-                    if (timer.Elapsed.TotalSeconds >= timeoutSeconds) { outcome.StopReason = "timeout"; break; }
-                }
-                outcome.ElapsedMilliseconds = timer.ElapsedMilliseconds;
-                if (outcome.StopReason != "exited") Check(TerminateJobObject(job, 125), "Terminate bounded process tree");
-                Check(WaitForSingleObject(pi.Process, 5000) == 0, "Wait for terminated launcher");
-                Check(GetExitCodeProcess(pi.Process, out outcome.ExitCode), "Get launcher exit code");
-            } finally {
-                try {
-                    if (assigned) {
-                        // Also reap helpers left behind after normal launcher exit.
-                        Check(TerminateJobObject(job, 125), "Clean up process tree");
-                        var cleanup = Stopwatch.StartNew();
-                        while (true) {
-                            Accounting accounting;
-                            Check(QueryInformationJobObject(job, 1, out accounting, (uint)Marshal.SizeOf<Accounting>(), IntPtr.Zero), "Verify process-tree cleanup");
-                            if (accounting.ActiveProcesses == 0) { outcome.ProcessTreeCleaned = true; break; }
-                            if (cleanup.Elapsed.TotalSeconds >= 5) throw new InvalidOperationException("Process-tree cleanup did not complete.");
-                            Thread.Sleep(50);
-                        }
-                    } else if (pi.Process != IntPtr.Zero) {
-                        Check(TerminateProcess(pi.Process, 125), "Terminate unassigned suspended launcher");
-                        Check(WaitForSingleObject(pi.Process, 5000) == 0, "Wait for unassigned launcher cleanup");
-                    }
-                } finally {
-                    if (job != IntPtr.Zero) CloseHandle(job); // kill-on-close fallback, including exceptional exits
-                    if (pi.Thread != IntPtr.Zero) CloseHandle(pi.Thread);
-                    if (pi.Process != IntPtr.Zero) CloseHandle(pi.Process);
-                    foreach (IntPtr handle in handles) CloseHandle(handle);
-                    if (initialized) DeleteProcThreadAttributeList(attributes);
-                    if (attributes != IntPtr.Zero) Marshal.FreeHGlobal(attributes);
-                    if (handleList != IntPtr.Zero) Marshal.FreeHGlobal(handleList);
-                    if (jobList != IntPtr.Zero) Marshal.FreeHGlobal(jobList);
-                    if (env != IntPtr.Zero) Marshal.FreeHGlobal(env);
-                }
-            }
-            return outcome;
-        }
-    }
-}
-'@
+
     $stdout = Join-Path $rawDirectory 'stdout.txt'
     $stderr = Join-Path $rawDirectory 'stderr.txt'
     $failureTrace = Join-Path $rawDirectory 'failure.txt'
@@ -495,10 +367,23 @@ namespace Compat16.PfeProbe {
     )
     $arguments = @('--max-instructions', [string]$InstructionLimit, '--trace-file', $failureTrace,
         '--trace-win16-io-complete', $serviceTrace, (Join-Path $workingDirectory 'PFE.EXE'))
-    # True means entering the launch attempt, not proof guest instructions ran.
+    $windowProbe = New-Object Compat16.PfeProbe.WindowReadiness
+    $probeClock = [Diagnostics.Stopwatch]::StartNew()
+    $sequence = [Func[long]]{ Get-PfeTraceSequence (Get-PfeLiveTrace $serviceTrace) }
+    $readiness = [Func[IntPtr,int]]{
+        param([IntPtr]$job)
+        $traceSnapshot = Get-PfeLiveTrace $serviceTrace
+        $windowProbe.Observe($job, $probeClock.ElapsedMilliseconds,
+            (Get-PfeMessageLoopSeen $traceSnapshot), $sequence)
+    }
+    # Entering the launch attempt alone is not proof of guest execution.
     $result.executionAttempted = $true
     $run = [Compat16.PfeProbe.ContainedProcess]::Run((Join-Path $runtimeDirectory 'compat16.exe'),
-        $arguments, $workingDirectory, $childEnvironment, @($stdout, $stderr, $failureTrace, $serviceTrace), $TimeoutSeconds)
+        $arguments, $workingDirectory, $childEnvironment, @($stdout, $stderr, $failureTrace, $serviceTrace),
+        $TimeoutSeconds, $readiness)
+    $result.windowObservation = [ordered]@{ visibleFrames = $windowProbe.VisibleFrameCount
+        visibleDialogs = $windowProbe.VisibleDialogCount; failure = $windowProbe.Failure
+        nullProbes = @($windowProbe.Probes.ToArray()) }
     $result.exitCode = $run.ExitCode
     $result.elapsedMilliseconds = $run.ElapsedMilliseconds
     $result.processTreeCleaned = $run.ProcessTreeCleaned
@@ -511,41 +396,26 @@ namespace Compat16.PfeProbe {
     }
     if ($rawBytes -gt 8MB) { $result.status = 'output-limit' }
     else {
-        # Extract bounded diagnostic facts even when the process was stopped.
-        # A completed InitTask pair does not change a timeout into a pass.
         $errorText = [IO.File]::ReadAllText($stderr)
         $services = if (Test-Path -LiteralPath $serviceTrace) { [IO.File]::ReadAllText($serviceTrace) } else { '' }
         $trace = if (Test-Path -LiteralPath $failureTrace) { [IO.File]::ReadAllText($failureTrace) } else { '' }
         $result.warnings = @($errorText -split '\r?\n' | Where-Object { $_ -match '\[warn/' })
-        # The InitTask register-context handler completes synchronously. Other
-        # dispatch-return rows may merely transfer control into a guest callback.
-        # Require terminated rows: job termination can interrupt a trace write.
-        $entryPattern = '(?m)^[#@]\d+ service-boundary stage=dispatch-enter module=KERNEL name=InitTask ordinal=91 instruction=(\d+) guest=([0-9A-F]{4}:[0-9A-F]{4})\r?\n'
-        $entry = [regex]::Match($services, $entryPattern)
-        if ($entry.Success) {
-            $returnPattern = '(?m)^[#@]\d+ service-boundary stage=dispatch-return module=KERNEL name=InitTask ordinal=91 instruction=' +
-                [regex]::Escape($entry.Groups[1].Value) + ' guest=' + [regex]::Escape($entry.Groups[2].Value) + '\r?\n'
-            $result.initTaskCrossing = [regex]::IsMatch($services.Substring($entry.Index + $entry.Length), $returnPattern)
-        }
-    }
-    if ($result.status -eq 'exited') {
-        $terminalPattern = '(?m)^runtime: \[warn/execution_limit\] after ' + $InstructionLimit +
-            ' instructions, CS:IP=[0-9A-F]{4}:[0-9A-F]{4}: Win16 instruction budget exhausted\r?$'
-        $savedPattern = '(?m)^\[warn/execution_limit\] after ' + $InstructionLimit +
-            ' instructions, CS:IP=[0-9A-F]{4}:[0-9A-F]{4}: Win16 instruction budget exhausted\r?$'
-        $badEvidence = ($errorText + "`n" + $trace) -match '\[(?:error|critical)/|\[warn/(?:host_failure|internal_invariant)\]' -or
-            $services -match 'service-boundary stage=dispatch-error'
-        if ($run.ExitCode -eq 125 -and $run.ProcessTreeCleaned -and $result.initTaskCrossing -and
-            $errorText -match $terminalPattern -and $trace -match $savedPattern -and -not $badEvidence) {
-            $result.status = 'startup-prefix-observed'
-        } elseif (($errorText + $trace) -match '\[(?:error|critical)/compatibility_gap\]') {
+        $evidence = Get-PfeStartupEvidence -SourceVerified $result.sourceVerified -Run $run -WindowProbe $windowProbe `
+            -Services $services -Stderr $errorText -FailureTrace $trace -OutputBytes $rawBytes
+        $result.initTaskCrossing = $evidence.initTaskCrossing
+        $result.startupEvidence = $evidence
+        if ($evidence.accepted) { $result.status = 'startup-message-loop-observed' }
+        elseif (($errorText + $trace) -match '\[(?:error|critical)/compatibility_gap\]') {
             $result.status = 'compatibility-gap'
         } elseif (($errorText + $trace) -match '\[(?:error|critical)/guest_fault\]') {
             $result.status = 'guest-fault'
-        } elseif ($run.ExitCode -eq 0) {
+        } elseif ($run.StopReason -eq 'exited' -and $run.ExitCode -eq 0) {
             $result.status = 'early-exit-inconclusive'
-        } else { $result.status = 'runtime-failed-or-evidence-incomplete' }
+        } elseif ($run.StopReason -eq 'window-responsive') {
+            $result.status = 'window-response-without-guest-evidence'
+        }
     }
+
 } catch {
     if ($result.status -notin @('source-unavailable', 'source-rejected')) { $result.status = 'harness-failed' }
     $result.error = Protect-ResultText $_.Exception.Message
@@ -578,7 +448,7 @@ namespace Compat16.PfeProbe {
     Write-Host ("PFE Win16 diagnostic: {0}; evidence: {1}" -f $result.status, $resultsDirectory)
     foreach ($warning in $result.warnings) { Write-Host $warning }
 }
-if ($result.status -ne 'startup-prefix-observed') {
-    throw "PFE Win16 diagnostic did not establish the startup prefix: $($result.status). $($result.error)"
+if ($result.status -ne 'startup-message-loop-observed') {
+    throw "PFE Win16 diagnostic did not establish responsive startup: $($result.status). $($result.error)"
 }
-Write-Host 'Observed the bounded startup prefix and InitTask crossing only; application compatibility is not established.'
+Write-Host 'Observed a visible owned frame, GetMessage and guest WM_NULL round trips; editing, saving and normal exit remain unvalidated.'
