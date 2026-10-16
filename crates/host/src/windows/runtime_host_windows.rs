@@ -51,7 +51,17 @@ pub(super) fn win16_window_begin(
     host: &mut WindowsHost,
     operation: Win16WindowOperation,
 ) -> Result<Win16WindowStep, RuntimeError> {
-    let result = host.win16_windows.begin(operation, &mut host.win16_objects);
+    if matches!(&operation, Win16WindowOperation::GetMessage { .. }
+        | Win16WindowOperation::MessageCall(runtime::Win16MessageCall::WaitMessage
+            | runtime::Win16MessageCall::Yield { .. })) {
+        if let Some(reporter) = &host.program_load_reporter { reporter.ready()?; }
+    }
+    let win_exec = if let Win16WindowOperation::ShellExecution(
+        ref call @ runtime::Win16HostShellExecutionOperation::WinExec { .. }
+    ) = operation {
+        Some(super::win16_program_launch::prepare(host, call)?)
+    } else { None };
+    let result = host.win16_windows.begin(operation, &mut host.win16_objects, win_exec);
     drain_win16_dde_diagnostics(host);
     result
 }

@@ -919,6 +919,11 @@ pub trait RuntimeHost:
             "host thread yielding is unavailable",
         ))
     }
+    /// Report executable linking/LibMain completion to an optional launch owner.
+    /// `Err(0)` is a failed initialization, distinct from a loaded program.
+    fn win16_program_load_result(&mut self, _result: Result<(), u16>) -> Result<(), RuntimeError> {
+        Ok(())
+    }
     fn win16_unregister_window_class(
         &mut self,
         _class: Win16HostClass,

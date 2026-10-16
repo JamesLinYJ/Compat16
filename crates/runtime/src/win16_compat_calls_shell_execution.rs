@@ -475,6 +475,8 @@ impl Win16State {
                     directory: &directory,
                     show,
                 });
+                let directory = self.kernel_file_system.current_directory_canonical(owner)?.clone();
+                let environment = self.compat.environment_list_bytes(&self.selectors, memory)?;
                 let identity = match self.reserve_external_application(ExternalApplicationKind::Activation) {
                     Ok(identity) => identity,
                     Err(error) if error.kind() == Kind::ResourceExhausted => {
@@ -486,7 +488,8 @@ impl Win16State {
                 self.begin_reserved_shell_operation(
                     registers, memory, host,
                     Win16WindowOperation::ShellExecution(Win16HostShellExecutionOperation::WinExec {
-                        command_line, directory, show,
+                        command_line, directory, application_path: self.module_path.clone(),
+                        environment, owner, show,
                     }),
                     identity, ExternalApplicationKind::Activation,
                     WindowReturn::ShellExecution(Win16ShellExecutionContinuation {

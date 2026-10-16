@@ -715,6 +715,7 @@ pub(crate) struct Win16State {
     external_selector_cleanup: Vec<external_application::ExternalSelectorReservation>,
     module_callbacks: Vec<module_calls::ModuleCallFrame>,
     module_startup: module_calls::ModuleStartupState,
+    program_load_reported: bool,
     resources: resources::ResourceState,
     resource_handlers: BTreeMap<(u16, usize), u32>,
     resource_callbacks: Vec<resource_calls::ResourceCallFrame>,

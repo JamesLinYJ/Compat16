@@ -484,6 +484,7 @@ impl Win16Windows {
         &mut self,
         operation: Win16WindowOperation,
         objects: &mut Win16Objects,
+        win_exec: Option<Result<super::win16_program_launch::PreparedLaunch, u16>>,
     ) -> Result<Win16WindowStep, RuntimeError> {
         if self.aborted {
             return Err(RuntimeError::new(
@@ -590,6 +591,7 @@ impl Win16Windows {
         let command = WorkerCommand::Begin {
             id,
             operation,
+            win_exec,
             control_color_return: control_color_return.clone(),
             native_bitmaps,
             native_font,

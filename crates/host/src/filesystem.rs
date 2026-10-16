@@ -462,7 +462,7 @@ impl Filesystem {
 
 /// Device names are special in Win32 even when a suffix or trailing dot is
 /// present. Reject these path components before they reach a filesystem API.
-fn is_reserved_device_name(component: &str) -> bool {
+pub(crate) fn is_reserved_device_name(component: &str) -> bool {
     let trimmed = component.trim_end_matches([' ', '.']);
     let base = trimmed.split('.').next().unwrap_or("").to_ascii_uppercase();
     matches!(

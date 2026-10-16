@@ -78,6 +78,7 @@ pub(super) fn run_operation(
     state: &Rc<RefCell<WorkerState>>,
     id: u64,
     operation: Win16WindowOperation,
+    win_exec: Option<Result<crate::windows::win16_program_launch::PreparedLaunch, u16>>,
     control_color_return: Option<ControlColorReturnSlot>,
     native_bitmaps: BTreeMap<Win16HostGdiObject, Option<usize>>,
     native_font: Option<(Win16HostGdiObject, usize)>,
@@ -200,7 +201,7 @@ pub(super) fn run_operation(
             user_services::execute(state, id, operation, control_color_return.as_ref())
         }
         Win16WindowOperation::ShellExecution(operation) => {
-            super::super::win16_shell_execution::execute(state, id, operation)
+            super::super::win16_shell_execution::execute(state, id, operation, win_exec)
         }
         operation => {
             let result = match operation {

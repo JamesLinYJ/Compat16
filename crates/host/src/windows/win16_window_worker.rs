@@ -714,6 +714,7 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
         WorkerCommand::Begin {
             id,
             operation,
+            win_exec,
             control_color_return,
             native_bitmaps,
             native_font,
@@ -726,6 +727,7 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
                 state,
                 id,
                 operation,
+                win_exec,
                 control_color_return,
                 native_bitmaps,
                 native_font,

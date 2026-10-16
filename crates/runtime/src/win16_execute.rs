@@ -84,6 +84,18 @@ fn observe_service_boundary(
 }
 
 impl Runtime {
+    /// Configure the initial WinMain display command before any guest linking
+    /// or execution. The live TDB word is the source consumed by InitTask.
+    pub fn set_win16_startup_show_command(&mut self, command: u16) -> Result<(), RuntimeError> {
+        let state = self.win16.as_ref().ok_or_else(|| RuntimeError::new(
+            Kind::InvalidInput, "a Win16 display command requires a Win16 executable"))?;
+        if self.instructions != 0 || state.module_startup != super::module_calls::ModuleStartupState::Pending {
+            return Err(RuntimeError::new(Kind::InvalidInput,
+                "Win16 startup display command cannot change after linking begins"));
+        }
+        state.set_startup_show_command(command, &mut self.memory)
+    }
+
     /// Execute NE code with selector-based address translation. The Win16
     /// service gate is the only path from guest calls to native host APIs.
     pub(crate) fn run_win16(
@@ -91,7 +103,20 @@ impl Runtime {
         host: &mut impl RuntimeHost,
         instruction_limit: u64,
     ) -> Result<u8, RuntimeError> {
-        let result = self.run_win16_inner(host, instruction_limit);
+        let mut result = self.run_win16_inner(host, instruction_limit);
+        // A rejected DLL initialization ends at its checked callback return,
+        // before the next loop iteration can publish the stored load result.
+        // Preserve that exact KERNEL error before teardown retires its state.
+        if let Some(state) = self.win16.as_mut()
+            && let Err(report) = state.report_program_load(host)
+        {
+            result = Err(match result {
+                Ok(_) => report,
+                Err(operation) => operation.with_cleanup(
+                    "Win16 execution and startup reporting both failed", report,
+                ),
+            });
+        }
         let result = self.finish_win16_teardown(result, host, instruction_limit);
         match self.memory.storage_failure() {
             Some(error) => {
@@ -118,7 +143,9 @@ impl Runtime {
             if state.vm_start_tick.is_none() {
                 state.vm_start_tick = Some(host.win16_get_tick_count()?);
             }
-            state.begin_program_modules(&mut self.cpu, &mut self.dos, &mut self.memory, host)?;
+            let linked = state.begin_program_modules(&mut self.cpu, &mut self.dos, &mut self.memory, host);
+            state.report_program_load(host)?;
+            linked?;
         }
         if self.instructions == 0 {
             if let Some(state) = self.win16.as_ref() {
@@ -139,7 +166,10 @@ impl Runtime {
         let mut scheduler = schedule::ExecutionSchedule::new(self.instructions);
         loop {
             self.check_memory_storage()?;
-            if let Some(state) = self.win16.as_ref() { state.check_program_modules()?; }
+            if let Some(state) = self.win16.as_mut() {
+                state.report_program_load(host)?;
+                state.check_program_modules()?;
+            }
             if self.instructions >= instruction_limit {
                 return Err(RuntimeError::new(
                     Kind::ExecutionLimit,

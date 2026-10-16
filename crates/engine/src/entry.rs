@@ -22,6 +22,15 @@ fn run() -> Result<u8, RuntimeError> {
 
 #[cfg(windows)]
 fn run() -> Result<u8, RuntimeError> {
+    let child = host_services::windows::GuestChildLaunch::from_process_arguments()?;
+    let result = run_program(child.as_ref());
+    if let (Some(child), Err(error)) = (&child, &result) { child.report_failure(error); }
+    if let (Some(child), Ok(_)) = (&child, &result) { child.reporter().ready()?; }
+    result
+}
+
+#[cfg(windows)]
+fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Result<u8, RuntimeError> {
     use std::path::PathBuf;
     use formats::parse_ne;
     use host_services::windows::{encode, ConsolePolicy, WindowsHost};
@@ -30,16 +39,17 @@ fn run() -> Result<u8, RuntimeError> {
     let command_name = std::env::current_exe().ok()
         .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
         .unwrap_or_else(|| "launcher".to_owned());
-    let system_launch = crate::system_launch::parse(
+    let system_launch = if child.is_some() { None } else { crate::system_launch::parse(
         &host_services::windows::current_command_line()?,
-    )?;
+    )? };
     let mut arguments = std::env::args_os().skip(1);
     // Interactive applications may wait indefinitely for input. An execution
     // budget is a diagnostic option, not the default process lifetime.
     let mut limit = u64::MAX;
-    let mut code_page = 437u32;
-    let mut ansi_code_page = None;
-    let mut program = system_launch.as_ref().map(|launch| launch.program.clone());
+    let mut code_page = child.map_or(437, |child| child.dos_code_page);
+    let mut ansi_code_page = child.map(|child| child.ansi_code_page);
+    let mut program = child.map(|child| child.program.clone())
+        .or_else(|| system_launch.as_ref().map(|launch| launch.program.clone()));
     let mut trace_on_failure = false;
     let mut trace_file = None;
     let mut memory_watch = None;
@@ -48,10 +58,12 @@ fn run() -> Result<u8, RuntimeError> {
     let mut dos_service_trace = None;
     let mut win16_io_trace = None;
     let mut complete_win16_io_trace = false;
-    let mut execution_engine = runtime::ExecutionEngine::Jit;
+    let mut execution_engine = if child.is_some_and(|child| child.interpreter) {
+        runtime::ExecutionEngine::Interpreter
+    } else { runtime::ExecutionEngine::Jit };
     let mut jit_stats = false;
-    let mut jit_cache = true;
-    while system_launch.is_none() {
+    let mut jit_cache = child.is_none_or(|child| child.jit_cache);
+    while child.is_none() && system_launch.is_none() {
         let Some(argument) = arguments.next() else { break; };
         match argument.to_str() {
             Some("--cpu-engine") => {
@@ -134,7 +146,9 @@ fn run() -> Result<u8, RuntimeError> {
     let program = program.ok_or_else(|| RuntimeError::new(Kind::InvalidInput,
         format!("usage: {command_name} PROGRAM [DOS arguments]")))?
         .canonicalize().map_err(|e| RuntimeError::with_source(Kind::HostFailure, "resolve program path", e))?;
-    let tail = if let Some(launch) = system_launch {
+    let tail = if let Some(child) = child {
+        child.command_tail.clone()
+    } else if let Some(launch) = system_launch {
         let command = String::from_utf16(&launch.command).map_err(|error|
             RuntimeError::with_source(Kind::InvalidInput, "system command contains invalid UTF-16", error))?;
         encode(&command, code_page)
@@ -146,8 +160,16 @@ fn run() -> Result<u8, RuntimeError> {
                 .map_err(|e| RuntimeError::with_source(Kind::InvalidInput, "command encoding", e))?
         }
     };
-    let bytes = std::fs::read(&program).map_err(|e| RuntimeError::with_source(Kind::HostFailure, "read program image", e))?;
+    let bytes = if let Some(child) = child { std::borrow::Cow::Borrowed(child.image.as_slice()) } else {
+        std::borrow::Cow::Owned(std::fs::read(&program)
+            .map_err(|e| RuntimeError::with_source(Kind::HostFailure, "read program image", e))?)
+    };
     let is_win16 = parse_ne(&bytes).is_ok();
+    if child.is_some() && parse_ne(&bytes).is_ok_and(|module|
+        module.header.flags & 0x8000 != 0 || module.header.target_os != 2) {
+        return Err(RuntimeError::new(Kind::InvalidInput,
+            "WinExec requires a Windows executable, not a library or another NE target"));
+    }
     // Preserve the caller's output paths before host initialization establishes
     // the guest program's working directory for native relative file APIs.
     for path in [&mut trace_file, &mut guest_memory_dump, &mut dos_service_trace, &mut win16_io_trace] {
@@ -156,7 +178,9 @@ fn run() -> Result<u8, RuntimeError> {
                 Kind::HostFailure, "resolve diagnostic output path", error))?;
         }
     }
-    let directory = program.parent().ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "program has no parent directory"))?;
+    let directory = if let Some(child) = child { child.directory.as_path() } else {
+        program.parent().ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "program has no parent directory"))?
+    };
     let text_profile = crate::program_encoding::resolve(&bytes, ansi_code_page);
     // Declared first so every runtime/host owner retires before the executor.
     let work = std::sync::Arc::new(parallel_work::BoundedExecutor::new());
@@ -166,6 +190,8 @@ fn run() -> Result<u8, RuntimeError> {
     let mut host = WindowsHost::new_with_console_policy(
         directory, code_page, ansi_code_page, console_policy,
     ).map_err(|e| RuntimeError::with_source(Kind::HostFailure, "host initialization", e))?;
+    host.set_child_execution_options(execution_engine == runtime::ExecutionEngine::Interpreter, jit_cache);
+    if let Some(child) = child { host.set_program_load_reporter(child.reporter()); }
     host.set_work_executor(std::sync::Arc::clone(&work));
     if let Some(profile) = &text_profile {
         crate::program_encoding::report(&mut host, profile);
@@ -176,6 +202,7 @@ fn run() -> Result<u8, RuntimeError> {
     }
     let virtual_path = host.dos_program_path(&program).map_err(|error|
         RuntimeError::with_source(Kind::HostFailure, "map executable to its DOS path", error))?;
+    let environment = if let Some(child) = child { child.environment.clone() } else {
     let (environment, environment_report) = host.inherited_environment()
         .map_err(|error| RuntimeError::with_source(Kind::HostFailure, "inherit DOS process environment", error))?;
     let replacement_count = environment_report.replacement_entries;
@@ -184,6 +211,8 @@ fn run() -> Result<u8, RuntimeError> {
             "{replacement_count} inherited environment entries contain characters unavailable in code page {code_page}; Windows substituted default characters",
         )));
     }
+    environment
+    };
     let mut runtime = if is_win16 {
         let win16_path = host.win16_main_module_path(&program)?;
         // Guest instructions and native API calls have separate execution
@@ -195,6 +224,9 @@ fn run() -> Result<u8, RuntimeError> {
     } else {
         Runtime::load_with_environment(&bytes, &tail, &virtual_path, &environment)?
     };
+    if is_win16 {
+        if let Some(child) = child { runtime.set_win16_startup_show_command(child.show)?; }
+    }
     runtime.set_work_executor(std::sync::Arc::clone(&work))?;
     runtime.set_execution_engine(execution_engine);
     if jit_cache && execution_engine == runtime::ExecutionEngine::Jit {
@@ -209,6 +241,9 @@ fn run() -> Result<u8, RuntimeError> {
             return Err(RuntimeError::new(Kind::InvalidInput, "choose one memory watch range"));
         }
         runtime.watch_win16_memory(selector, offset, length)?;
+    }
+    if !is_win16 {
+        if let Some(child) = child { child.reporter().report(Ok(()))?; }
     }
     let result = runtime.run(&mut host, limit).map_err(|e| {
         let progress = runtime.progress();

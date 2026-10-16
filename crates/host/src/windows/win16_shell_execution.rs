@@ -12,7 +12,7 @@ use runtime::{
     Win16WindowResult, Win16WindowTarget,
 };
 use windows_sys::Win32::Foundation::{
-    ERROR_ACCESS_DENIED, ERROR_BAD_EXE_FORMAT, ERROR_ELEVATION_REQUIRED, ERROR_FILE_NOT_FOUND,
+    ERROR_ACCESS_DENIED, ERROR_ELEVATION_REQUIRED, ERROR_FILE_NOT_FOUND,
     ERROR_NOT_ENOUGH_MEMORY, ERROR_OUTOFMEMORY,
     ERROR_PATH_NOT_FOUND, ERROR_SHARING_VIOLATION, GetLastError, HWND, MAX_PATH,
 };
@@ -32,7 +32,8 @@ use paths::{
     AnsiInputConversion, PathEncodingOutcome, lossless_executable_path, resolve_executable_input,
 };
 
-use super::super::guest_text::GuestTextCodec;
+use crate::windows::win16_program_launch;
+use win16_program_launch::native_error_code as win_exec_error;
 use super::super::win16_images::Win16IconLease;
 use super::win16_window_worker::WorkerState;
 use super::win16_windows_dde::allocate_shared_identity;
@@ -103,10 +104,13 @@ pub(super) fn execute(
     state: &Rc<RefCell<WorkerState>>,
     operation_id: u64,
     operation: Win16HostShellExecutionOperation,
+    prepared: Option<Result<win16_program_launch::PreparedLaunch, u16>>,
 ) -> Result<super::super::win16_modal::NativeModalOperationOutcome, RuntimeError> {
     match operation {
-        Win16HostShellExecutionOperation::WinExec { command_line, directory, show } => {
-            win_exec(state, &command_line, &directory, show).map(|result|
+        Win16HostShellExecutionOperation::WinExec { show, .. } => {
+            let prepared = prepared.ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
+                "WinExec reached USER without an owned executable preparation"))?;
+            win_exec(state, prepared, show).map(|result|
                 super::super::win16_modal::NativeModalOperationOutcome::Returned(
                     Win16WindowResult::ShellExecution(Win16HostShellExecutionResult::WinExec(result)),
                 ))
@@ -200,23 +204,13 @@ pub(super) fn execute(
 
 fn win_exec(
     state: &Rc<RefCell<WorkerState>>,
-    command_line: &[u8],
-    directory: &str,
+    prepared: Result<win16_program_launch::PreparedLaunch, u16>,
     show: u16,
 ) -> Result<Result<Win16HostShellActivation, Win16HostWinExecFailure>, RuntimeError> {
-    let codec = state.borrow().text_codec;
-    let mut command = match codec.to_wide_z(command_line) {
-        Ok(command) if command.len() > 1 && command.len() <= 32_767 => command,
-        Ok(_) => return Ok(Err(Win16HostWinExecFailure { code: 11, native_error: None })),
-        Err(error) if error.kind() == Kind::InvalidInput =>
-            return Ok(Err(Win16HostWinExecFailure { code: 11, native_error: None })),
-        Err(error) => return Err(error),
+    let mut prepared = match prepared {
+        Ok(value) => value,
+        Err(code) => return Ok(Err(Win16HostWinExecFailure { code, native_error: None })),
     };
-    let mut cwd: Vec<u16> = directory.encode_utf16().collect();
-    if cwd.is_empty() || cwd.contains(&0) {
-        return Ok(Err(Win16HostWinExecFailure { code: 3, native_error: None }));
-    }
-    cwd.push(0);
     let token = {
         let source = Arc::clone(&state.borrow().identity_source);
         Win16HostProcess(allocate_shared_identity(&source)?)
@@ -227,13 +221,38 @@ fn win_exec(
             Kind::ResourceExhausted, "reserve WinExec process lease", error))?;
         worker.shell_processes.push(ProcessLease { token, handle: None });
     }
+    if prepared.guest {
+        let launched = win16_program_launch::launch(&prepared, show, || receive_win_exec_sends(state));
+        return match launched {
+            Ok(Ok(handle)) => {
+                let mut worker = state.borrow_mut();
+                let lease = worker.shell_processes.iter_mut().find(|lease| lease.token == token)
+                    .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
+                        "guest WinExec lost its reserved process identity"))?;
+                lease.handle = Some(handle);
+                Ok(Ok(Win16HostShellActivation::ProcessStarted { process: token }))
+            }
+            Ok(Err(failure)) => {
+                retire_process_reservation(state, token);
+                Ok(Err(failure))
+            }
+            Err(error) => {
+                retire_process_reservation(state, token);
+                Err(error)
+            }
+        };
+    }
+    use std::os::windows::ffi::OsStrExt;
+    let cwd: Vec<u16> = prepared.directory.as_os_str().encode_wide().chain([0]).collect();
+    let application: Vec<u16> = prepared.program.as_os_str().encode_wide().chain([0]).collect();
+    let command = &mut prepared.native_command;
     let mut startup = STARTUPINFOW::default();
     startup.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
     startup.dwFlags = STARTF_USESHOWWINDOW;
     startup.wShowWindow = show;
     let mut process = PROCESS_INFORMATION::default();
     let created = unsafe { CreateProcessW(
-        std::ptr::null(), command.as_mut_ptr(), std::ptr::null(), std::ptr::null(), 0, 0,
+        application.as_ptr(), command.as_mut_ptr(), std::ptr::null(), std::ptr::null(), 0, 0,
         std::ptr::null(), cwd.as_ptr(), &startup, &mut process,
     ) };
     if created == 0 {
@@ -242,8 +261,7 @@ fn win_exec(
             let result = shell_execute_for_elevation(
                 state,
                 token,
-                codec,
-                command_line,
+                command,
                 &cwd,
                 show,
             );
@@ -253,14 +271,7 @@ fn win_exec(
             return result;
         }
         retire_process_reservation(state, token);
-        let code = match error {
-            ERROR_FILE_NOT_FOUND => 2,
-            ERROR_PATH_NOT_FOUND => 3,
-            ERROR_ACCESS_DENIED => 5,
-            ERROR_NOT_ENOUGH_MEMORY | ERROR_OUTOFMEMORY => 8,
-            ERROR_BAD_EXE_FORMAT => 11,
-            _ => 31,
-        };
+        let code = win_exec_error(error);
         return Ok(Err(Win16HostWinExecFailure { code, native_error: Some(error) }));
     }
     let owned = unsafe { OwnedHandle::from_raw_handle(process.hProcess as RawHandle) };
@@ -275,16 +286,36 @@ fn win_exec(
     Ok(Ok(Win16HostShellActivation::ProcessStarted { process: token }))
 }
 
+fn receive_win_exec_sends(state: &Rc<RefCell<WorkerState>>) -> Result<(), RuntimeError> {
+    use super::win16_guest_notifications as notifications;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{MSG, PeekMessageW, PM_NOREMOVE, PM_QS_SENDMESSAGE};
+    if state.borrow().aborted {
+        return Err(RuntimeError::new(Kind::HostFailure, "WinExec startup was canceled"));
+    }
+    // LibMain may synchronously send to a parent window. Keep the ordinary
+    // resumable USER owner active and leave its posted guest messages queued.
+    notifications::requeue_deferred()?;
+    let queue = notifications::require_bound_queue(notifications::current_queue());
+    let _scope = queue.map(|queue| notifications::guest_retrieval_scope(queue,
+        PM_NOREMOVE | PM_QS_SENDMESSAGE)).transpose()?;
+    let mut message = MSG::default();
+    unsafe { PeekMessageW(&mut message, std::ptr::null_mut(), 0, 0, PM_NOREMOVE | PM_QS_SENDMESSAGE); }
+    if state.borrow().aborted || queue.is_some_and(|queue|
+        notifications::require_bound_queue(Some(queue)) != Some(queue)) {
+        return Err(RuntimeError::new(Kind::HostFailure,
+            "WinExec lost its USER owner during a synchronous callback"));
+    }
+    Ok(())
+}
+
 fn shell_execute_for_elevation(
     state: &Rc<RefCell<WorkerState>>,
     token: Win16HostProcess,
-    codec: GuestTextCodec,
-    command_line: &[u8],
+    command: &[u16],
     cwd: &[u16],
     show: u16,
 ) -> Result<Result<Win16HostShellActivation, Win16HostWinExecFailure>, RuntimeError> {
-    let command = codec.to_wide_z(command_line)?;
-    let Some((file, parameters)) = split_win_exec_command_line(&command) else {
+    let Some((file, parameters)) = split_win_exec_command_line(command) else {
         return Ok(Err(Win16HostWinExecFailure {
             code: 31,
             native_error: Some(ERROR_ELEVATION_REQUIRED),

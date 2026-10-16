@@ -17,6 +17,8 @@ impl WindowsHost {
 }
 mod process_command_line;
 pub use process_command_line::current_command_line;
+mod win16_program_launch;
+pub use win16_program_launch::{GuestChildLaunch, ProgramLoadReporter};
 #[path = "windows/error_mapping.rs"]
 mod error_mapping;
 pub(crate) use error_mapping::{invalid, os_error};
@@ -194,6 +196,8 @@ pub enum ConsolePolicy {
 }
 
 pub struct WindowsHost {
+    program_load_reporter: Option<ProgramLoadReporter>,
+    child_execution: win16_program_launch::ExecutionOptions,
     win16_format_work: parallel_work::SharedExecutor,
     win16_work_generation: Arc<AtomicU64>,
     win16_callback_sender: runtime::Win16GuestCallbackSender,
@@ -361,6 +365,8 @@ impl WindowsHost {
             .map_err(|error| DosHostError::with_source(DosErrorCode::GeneralFailure, error))?;
         let win16_work_generation = multimedia_wake.generation_observer();
         Ok(Self {
+            program_load_reporter: None,
+            child_execution: win16_program_launch::ExecutionOptions::default(),
             win16_format_work: Arc::new(parallel_work::BoundedExecutor::new()),
             win16_work_generation,
             filesystem,

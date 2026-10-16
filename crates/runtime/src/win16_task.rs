@@ -6,6 +6,7 @@ use win16_abi::{prepare_local_heap_init, Access, SegmentedPointer, Win16Register
 use win16_abi::task_database::{
     INSTANCE_DATA_STACK_BOTTOM_OFFSET, INSTANCE_DATA_STACK_MINIMUM_OFFSET,
     INSTANCE_DATA_STACK_TOP_OFFSET, TASK_DATABASE_ERROR_MODE_OFFSET,
+    TASK_DATABASE_SHOW_COMMAND_OFFSET,
 };
 
 use super::Win16State;
@@ -15,7 +16,6 @@ use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost};
 const STACK_GUARD_BYTES: u32 = 150;
 const PSP_COMMAND_LENGTH: u16 = 0x80;
 const PSP_COMMAND_TEXT: u16 = 0x81;
-const DEFAULT_CMD_SHOW: u32 = 1;
 
 struct TaskPatch {
     address: PhysAddr,
@@ -24,6 +24,15 @@ struct TaskPatch {
 }
 
 impl Win16State {
+    pub(super) fn set_startup_show_command(
+        &self, command: u16, memory: &mut Memory,
+    ) -> Result<(), RuntimeError> {
+        let task = self.current_task_handle()?;
+        let pointer = self.selectors.pointer_from_raw(Selector(task),
+            TASK_DATABASE_SHOW_COMMAND_OFFSET as u16).map_err(crate::runtime_error)?;
+        self.selectors.write(memory, pointer, &command.to_le_bytes()).map_err(crate::runtime_error)
+    }
+
     pub(super) fn set_error_mode(
         &self,
         mode: u16,
@@ -50,6 +59,12 @@ impl Win16State {
         registers: &mut Registers,
         memory: &mut Memory,
     ) -> Result<(), RuntimeError> {
+        let task = self.current_task_handle()?;
+        let show_pointer = self.selectors.pointer_from_raw(Selector(task),
+            TASK_DATABASE_SHOW_COMMAND_OFFSET as u16).map_err(crate::runtime_error)?;
+        let mut show_bytes = [0_u8; 2];
+        self.selectors.read(memory, show_pointer, &mut show_bytes).map_err(crate::runtime_error)?;
+        let show_command = u16::from_le_bytes(show_bytes);
         let stack = self.selectors.pointer_from_raw(Selector(context.ss), context.esp as u16)
             .map_err(crate::runtime_error)?;
         // The application calls KERNEL.91 with a far CALL. Decode only its
@@ -158,7 +173,7 @@ impl Win16State {
         returned.eax = u32::from(self.psp_selector.raw().0);
         returned.ebx = u32::from(command_offset);
         returned.ecx = u32::from(stack_top);
-        returned.edx = DEFAULT_CMD_SHOW;
+        returned.edx = u32::from(show_command);
         returned.esi = 0;
         returned.edi = u32::from(self.instance_handle);
         returned.es = self.psp_selector.raw().0;

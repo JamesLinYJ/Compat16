@@ -35,6 +35,7 @@ pub(in crate::windows::win16_windows) enum WorkerCommand {
     Begin {
         id: u64,
         operation: Win16WindowOperation,
+        win_exec: Option<Result<crate::windows::win16_program_launch::PreparedLaunch, u16>>,
         control_color_return: Option<ControlColorReturnSlot>,
         native_bitmaps: BTreeMap<Win16HostGdiObject, Option<usize>>,
         native_font: Option<(Win16HostGdiObject, usize)>,

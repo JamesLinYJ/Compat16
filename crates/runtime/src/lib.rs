@@ -375,6 +375,7 @@ pub use win16_runtime::messages_mdi::{
     Win16MdiEndpoint,
 };
 pub use win16_runtime::kernel_file_system::{
+    Win16KernelFileSystemState,
     Win16HostDiskSpace, Win16HostFileSystemCall, Win16HostFileSystemOperation,
     Win16HostFileSystemResult, Win16HostFindData, Win16HostFindFirst,
     Win16HostSearchId, Win16CanonicalPath, Win16GuestPath, Win16HostFileSystemPath,

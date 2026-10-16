@@ -25,7 +25,14 @@ fn windows_error_code_description(native_error: Option<u32>) -> String {
 }
 
 impl RuntimeHost for WindowsHost {
+    fn win16_program_load_result(&mut self, result: Result<(), u16>) -> Result<(), RuntimeError> {
+        if let Some(reporter) = &self.program_load_reporter {
+            reporter.report(result)?;
+        }
+        Ok(())
+    }
     fn win16_yield_thread(&mut self) -> Result<(), RuntimeError> {
+        if let Some(reporter) = &self.program_load_reporter { reporter.ready()?; }
         std::thread::yield_now();
         Ok(())
     }

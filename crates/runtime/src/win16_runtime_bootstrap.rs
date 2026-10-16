@@ -223,6 +223,7 @@ impl Win16State {
             task_handles, first_task_handle: task_handle,
             module_path: program_path.to_vec(), user_queue: None, user_task_queue: None,
             module_startup: module_calls::ModuleStartupState::Pending,
+            program_load_reported: false,
             next_app_notification_sequence: 1,
             modules: module_registry::ModuleRegistry::default(),
             external_selector_cleanup: Vec::new(), module_callbacks: Vec::new(),

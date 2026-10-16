@@ -17,7 +17,14 @@ pub struct Win16HostWinExecFailure {
 
 #[derive(Clone, Debug)]
 pub enum Win16HostShellExecutionOperation {
-    WinExec { command_line: Vec<u8>, directory: String, show: u16 },
+    WinExec {
+        command_line: Vec<u8>,
+        directory: crate::Win16CanonicalPath,
+        application_path: Vec<u8>,
+        environment: Vec<u8>,
+        owner: crate::Win16HostTaskOwner,
+        show: u16,
+    },
     DragAcceptFiles { owner: Win16WindowTarget, accept: bool },
     Execute {
         owner: Win16WindowTarget,

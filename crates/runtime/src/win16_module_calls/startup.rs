@@ -7,6 +7,24 @@ use super::*;
 mod image;
 
 impl Win16State {
+    pub(in crate::win16_runtime) fn report_program_load(
+        &mut self,
+        host: &mut impl RuntimeHost,
+    ) -> Result<(), RuntimeError> {
+        if self.program_load_reported { return Ok(()); }
+        let result = match self.module_startup {
+            ModuleStartupState::Ready if self.module_callbacks.iter().any(|frame| frame.startup) => {
+                return Ok(());
+            }
+            ModuleStartupState::Ready => Ok(()),
+            ModuleStartupState::Failed(code) => Err(code),
+            _ => return Ok(()),
+        };
+        host.win16_program_load_result(result)?;
+        self.program_load_reported = true;
+        Ok(())
+    }
+
     pub(in crate::win16_runtime) fn begin_program_modules(
         &mut self,
         cpu: &mut Cpu,
