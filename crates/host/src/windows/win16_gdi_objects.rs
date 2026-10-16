@@ -1,6 +1,11 @@
 //! Native GDI object identities and their ownership.
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, sync::{Arc, atomic::{AtomicBool, Ordering}}};
+
+#[path = "win16_class_brush.rs"]
+mod class_brush;
+pub(super) use class_brush::NativeClassBackground;
+use class_brush::Win16ClassBrush;
 
 #[path = "win16_gdi_region_lease.rs"]
 mod win16_gdi_region_lease;
@@ -35,10 +40,13 @@ struct NativeObject {
     handle: HGDIOBJ,
     ownership: ObjectOwnership,
     dib_owner: Option<Arc<Win16DibSectionOwner>>,
+    retired: Arc<AtomicBool>,
 }
 
 impl NativeObject {
-    fn is_owned(&self) -> bool { self.ownership == ObjectOwnership::Owned }
+    fn is_owned(&self) -> bool {
+        self.ownership == ObjectOwnership::Owned && !self.retired.load(Ordering::Acquire)
+    }
 }
 
 pub(super) struct Win16Objects {
@@ -52,11 +60,37 @@ impl Win16Objects {
         Self { objects: BTreeMap::new(), by_native: BTreeMap::new(), next_id: 1 }
     }
 
+    fn live_object(&self, token: &Win16HostGdiObject) -> Option<&NativeObject> {
+        self.objects.get(token).filter(|object| !object.retired.load(Ordering::Acquire))
+    }
+
+    fn existing_native_token(&mut self, native: usize) -> Option<Win16HostGdiObject> {
+        let token = *self.by_native.get(&native)?;
+        if self.live_object(&token).is_some() { return Some(token); }
+        self.objects.remove(&token);
+        self.by_native.remove(&native);
+        None
+    }
+
+    pub(super) fn class_background(&self, token: Win16HostGdiObject)
+        -> Option<NativeClassBackground>
+    {
+        let object = self.live_object(&token)?;
+        // SAFETY: Only a live object incarnation in this table is inspected.
+        if unsafe { GetObjectType(object.handle) } != OBJ_BRUSH as u32 { return None; }
+        Some(NativeClassBackground {
+            handle: object.handle as usize,
+            brush: Some(Win16ClassBrush {
+                handle: object.handle as usize, retired: Arc::clone(&object.retired),
+            }),
+        })
+    }
+
     pub(super) fn lease_region(
         &self,
         token: Win16HostGdiObject,
     ) -> Result<Option<Win16RegionLease>, RuntimeError> {
-        let Some(object) = self.objects.get(&token) else { return Ok(None); };
+        let Some(object) = self.live_object(&token) else { return Ok(None); };
         // SAFETY: `object.handle` is the native object from this table;
         // GetObjectType returns zero for a stale handle.
         if unsafe { GetObjectType(object.handle) } != OBJ_REGION as u32 {
@@ -88,7 +122,7 @@ impl Win16Objects {
     /// copy. Reentrant guest deletion is harmless: tokens are never reused.
     pub(super) fn consume_region(&mut self, token: Win16HostGdiObject)
         -> Result<(), RuntimeError> {
-        let Some(object) = self.objects.get(&token).cloned() else { return Ok(()); };
+        let Some(object) = self.live_object(&token).cloned() else { return Ok(()); };
         // SAFETY: The opaque identity still names this table's retained object.
         if unsafe { GetObjectType(object.handle) } != OBJ_REGION as u32 {
             return Err(RuntimeError::new(Kind::InternalInvariant,
@@ -116,7 +150,7 @@ impl Win16Objects {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "Win16 region snapshot was committed to a different object token"));
         }
-        let Some(object) = self.objects.get(&token) else { return Ok(None); };
+        let Some(object) = self.live_object(&token) else { return Ok(None); };
         // SAFETY: The token still resolves to this table's native object;
         // type-check again because the guest may have deleted it in flight.
         if unsafe { GetObjectType(object.handle) } != OBJ_REGION as u32 {
@@ -138,7 +172,7 @@ impl Win16Objects {
     fn intern_borrowed_in_callback(&mut self, native: HGDIOBJ,
         callback: Option<runtime::Win16HostDc>) -> Result<Win16HostGdiObject, RuntimeError> {
         let identity = native as usize;
-        if let Some(&token) = self.by_native.get(&identity) { return Ok(token); }
+        if let Some(token) = self.existing_native_token(identity) { return Ok(token); }
         let next_id = self.next_id.checked_add(1).ok_or_else(|| RuntimeError::new(
             Kind::ResourceExhausted, "Win16 host GDI object identity exhausted",
         ))?;
@@ -150,6 +184,7 @@ impl Win16Objects {
                 callback.map(ObjectOwnership::CallbackBitmap).unwrap_or(ObjectOwnership::Borrowed)
             } else { ObjectOwnership::Borrowed },
             dib_owner: None,
+            retired: Arc::new(AtomicBool::new(false)),
         });
         self.by_native.insert(identity, token);
         Ok(token)
@@ -197,6 +232,7 @@ impl Win16Objects {
             handle: native.cast(),
             ownership: ObjectOwnership::Owned,
             dib_owner: None,
+            retired: Arc::new(AtomicBool::new(false)),
         });
         self.by_native.insert(native as usize, token);
         Ok(Some(token))
@@ -210,8 +246,8 @@ impl Win16Objects {
     ) -> Result<Option<Win16HostGdiObject>, RuntimeError> {
         if native.is_null() { return Ok(None); }
         let identity = native as usize;
-        if let Some(&token) = self.by_native.get(&identity) {
-            if self.objects.get(&token).is_some_and(|object|
+        if let Some(token) = self.existing_native_token(identity) {
+            if self.live_object(&token).is_some_and(|object|
                 matches!(object.ownership, ObjectOwnership::CallbackBitmap(_))) {
                 // A newly-created owned bitmap is a different lifetime even
                 // if GDI recycled a private callback bitmap's native bits.
@@ -236,6 +272,7 @@ impl Win16Objects {
             handle: native,
             ownership: ObjectOwnership::Owned,
             dib_owner: None,
+            retired: Arc::new(AtomicBool::new(false)),
         });
         self.by_native.insert(identity, token);
         Ok(Some(token))
@@ -247,7 +284,7 @@ impl Win16Objects {
         token: Win16HostGdiObject,
         callback_scope: Option<runtime::Win16HostDc>,
     ) -> Result<Option<Win16SelectObjectResult>, RuntimeError> {
-        let Some(object) = self.objects.get(&token) else { return Ok(None); };
+        let Some(object) = self.live_object(&token) else { return Ok(None); };
         // SAFETY: Both handles are live native GDI handles retained by their
         // host tables. GDI determines whether this object type is selectable.
         let object_type = unsafe { GetObjectType(object.handle) };
@@ -261,7 +298,7 @@ impl Win16Objects {
             return Ok(Some(Win16SelectObjectResult::RegionComplexity(previous as usize as u16)));
         }
         let token = self.intern_borrowed_in_callback(previous, callback_scope)?;
-        Ok(Some(match self.objects.get(&token).map(|object| object.ownership) {
+        Ok(Some(match self.live_object(&token).map(|object| object.ownership) {
             Some(ObjectOwnership::CallbackBitmap(dc)) =>
                 Win16SelectObjectResult::CallbackBitmap { object: token, dc },
             _ => Win16SelectObjectResult::Object(token),
@@ -293,8 +330,8 @@ impl Win16Objects {
             ));
         }
         let identity = native as usize;
-        if let Some(&token) = self.by_native.get(&identity) {
-            let Some(object) = self.objects.get(&token) else {
+        if let Some(token) = self.existing_native_token(identity) {
+            let Some(object) = self.live_object(&token) else {
                 return Err(RuntimeError::new(
                     Kind::InternalInvariant,
                     "Win16 native GDI reverse index lost a DIB bitmap",
@@ -322,6 +359,7 @@ impl Win16Objects {
             handle: native.cast(),
             ownership: ObjectOwnership::Owned,
             dib_owner: Some(owner),
+            retired: Arc::new(AtomicBool::new(false)),
         });
         self.by_native.insert(identity, token);
         Ok(Some(token))
@@ -332,20 +370,20 @@ impl Win16Objects {
         native: HGDIOBJ,
     ) -> Option<Arc<Win16DibSectionOwner>> {
         let token = self.by_native.get(&(native as usize))?;
-        self.objects.get(token)?.dib_owner.as_ref().map(Arc::clone)
+        self.live_object(token)?.dib_owner.as_ref().map(Arc::clone)
     }
 
     pub(super) fn dib_owner(
         &self,
         token: Win16HostGdiObject,
     ) -> Option<Arc<Win16DibSectionOwner>> {
-        self.objects.get(&token)?.dib_owner.as_ref().map(Arc::clone)
+        self.live_object(&token)?.dib_owner.as_ref().map(Arc::clone)
     }
 
     /// Legacy region-cleanup path. Its callers create and validate a region
     /// immediately before deletion, so no WinG DIB lifetime gate is involved.
     pub(super) fn delete(&mut self, token: Win16HostGdiObject) -> bool {
-        let Some(object) = self.objects.get(&token).cloned() else { return false; };
+        let Some(object) = self.live_object(&token).cloned() else { return false; };
         if !object.is_owned() || object.dib_owner.is_some() { return false; }
         let handle = object.handle;
         // SAFETY: Owned objects are created by this host adapter. Borrowed
@@ -360,7 +398,7 @@ impl Win16Objects {
     /// Typed guest deletion owns WinG DIB phase changes and native receipts.
     pub(super) fn delete_owned(&mut self, token: Win16HostGdiObject)
         -> Result<bool, RuntimeError> {
-        let Some(object) = self.objects.get(&token).cloned() else { return Ok(false); };
+        let Some(object) = self.live_object(&token).cloned() else { return Ok(false); };
         if !object.is_owned() { return Ok(false); }
         let handle = object.handle;
         let delete_lease = match &object.dib_owner {
@@ -384,7 +422,7 @@ impl Win16Objects {
     /// reducing them to an untyped cleanup result.
     pub(super) fn cleanup_owned(&mut self, token: Win16HostGdiObject)
         -> Result<Win16HostGdiCleanup, RuntimeError> {
-        let Some(object) = self.objects.get(&token).cloned() else {
+        let Some(object) = self.live_object(&token).cloned() else {
             return Ok(Win16HostGdiCleanup::Absent);
         };
         if !object.is_owned() {
@@ -398,7 +436,7 @@ impl Win16Objects {
     }
 
     pub(super) fn native_brush(&self, token: Win16HostGdiObject) -> Option<HGDIOBJ> {
-        let native = self.objects.get(&token)?.handle;
+        let native = self.live_object(&token)?.handle;
         // SAFETY: The token resolves to a retained native object handle.
         (unsafe { GetObjectType(native) } == OBJ_BRUSH as u32).then_some(native)
     }
@@ -407,7 +445,7 @@ impl Win16Objects {
         &self,
         token: Win16HostGdiObject,
     ) -> Option<windows_sys::Win32::Graphics::Gdi::HRGN> {
-        let native = self.objects.get(&token)?.handle;
+        let native = self.live_object(&token)?.handle;
         // SAFETY: The token resolves to a retained native object handle.
         (unsafe { GetObjectType(native) } == OBJ_REGION as u32).then_some(native.cast())
     }
@@ -424,7 +462,7 @@ impl Win16Objects {
         &self,
         token: Win16HostGdiObject,
     ) -> Option<windows_sys::Win32::Graphics::Gdi::HBITMAP> {
-        let native = self.objects.get(&token)?.handle;
+        let native = self.live_object(&token)?.handle;
         // SAFETY: The token resolves to a retained native object handle.
         (unsafe { GetObjectType(native) } == OBJ_BITMAP as u32).then_some(native.cast())
     }
@@ -433,14 +471,14 @@ impl Win16Objects {
         &self,
         token: Win16HostGdiObject,
     ) -> Option<windows_sys::Win32::Graphics::Gdi::HPALETTE> {
-        let native = self.objects.get(&token)?.handle;
+        let native = self.live_object(&token)?.handle;
         // SAFETY: The token resolves to a retained native GDI object handle.
         (unsafe { GetObjectType(native) } == windows_sys::Win32::Graphics::Gdi::OBJ_PAL as u32)
             .then_some(native.cast())
     }
 
     pub(super) fn unrealize(&self, token: Win16HostGdiObject) -> bool {
-        let Some(object) = self.objects.get(&token) else { return false; };
+        let Some(object) = self.live_object(&token) else { return false; };
         // Windows 3.1 SDK WINDOWS.H:1379 takes HGDIOBJ and returns BOOL.
         // The mapped object's ownership and identity remain unchanged; Windows
         // owns palette/brush realization state, so no guest-side cache is needed.
@@ -451,7 +489,7 @@ impl Win16Objects {
     pub(super) fn native_font(
         &self, token: Win16HostGdiObject,
     ) -> Option<windows_sys::Win32::Graphics::Gdi::HFONT> {
-        let native = self.objects.get(&token)?.handle;
+        let native = self.live_object(&token)?.handle;
         // SAFETY: This is a mapped GDI handle, not a guest address. Windows
         // validates its type; the application retains ownership of the font.
         (unsafe { GetObjectType(native) } == windows_sys::Win32::Graphics::Gdi::OBJ_FONT as u32)

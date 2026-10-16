@@ -189,6 +189,18 @@ pub enum Win16ClassBackground {
     Brush(Win16HostGdiObject),
 }
 
+/// One class resource a guest replacement installs on the native class that
+/// its windows are created from. The variant selects the field and the payload
+/// is the new resource; `None` clears it, matching a zero guest handle.
+/// Ordinary `DefWindowProc` defaults read these native class fields, so the
+/// runtime never publishes a guest replacement the host did not accept.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostClassResource {
+    Icon(Option<Win16HostIcon>),
+    Cursor(Option<Win16HostCursor>),
+    Background(Option<Win16ClassBackground>),
+}
+
 /// A Windows predefined control class exposed through a runtime-owned alias.
 /// Its native class name and procedure stay on the host side.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -895,6 +907,22 @@ pub trait RuntimeHost:
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
             "host Win16 window class registration is unavailable",
+        ))
+    }
+    /// Replace one resource on the native class that `window` belongs to.
+    /// `window` must be a live host window of `class`; the host must confirm
+    /// that exact pairing and never substitute another class or a borrowed
+    /// HWND alias. `Ok(false)` means the replacement was refused and no class
+    /// field changed, so the runtime keeps the previous guest value.
+    fn win16_replace_class_resource(
+        &mut self,
+        _class: Win16HostClass,
+        _window: Win16HostWindow,
+        _resource: Win16HostClassResource,
+    ) -> Result<bool, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 class resource replacement is unavailable",
         ))
     }
     fn win16_system_class_info(

@@ -27,8 +27,8 @@ mod parent_callback_tests;
 use super::super::{ImportBinding, test_support::tiny_ne_executable, windows::WindowProcedure};
 use crate::{
     Diagnostic, DiagnosticKind as Kind, Runtime, RuntimeError, RuntimeHost,
-    Win16ClassBackground, Win16HostClass, Win16HostClassSpec, Win16HostCursor,
-    Win16HostGdiObject, Win16HostIcon, Win16HostProcedure, Win16HostSystemClass,
+    Win16ClassBackground, Win16HostClass, Win16HostClassResource, Win16HostClassSpec,
+    Win16HostCursor, Win16HostGdiObject, Win16HostIcon, Win16HostProcedure, Win16HostSystemClass,
     Win16HostSystemClassInfo, Win16HostWindow, Win16RegisteredClass,
 };
 use devices::{keyboard::KeyStroke, video::ConsoleSnapshot};
@@ -56,6 +56,9 @@ struct ClassDataHost {
     registration_result: HostResult,
     unregistrations: Vec<Win16HostClass>,
     unregistration_result: HostResult,
+    class_resources: Vec<(Win16HostClass, Win16HostWindow, Win16HostClassResource)>,
+    resource_attempts: usize,
+    resource_result: HostResult,
     diagnostics: Vec<Kind>,
     atom_name: Option<(u16, Vec<u8>)>,
     dbcs_case: bool,
@@ -132,6 +135,22 @@ impl RuntimeHost for ClassDataHost {
             HostResult::Error => Err(RuntimeError::new(Kind::HostFailure,
                 "test class removal failure")),
         }
+    }
+    fn win16_replace_class_resource(
+        &mut self, class: Win16HostClass, window: Win16HostWindow,
+        resource: Win16HostClassResource,
+    ) -> Result<bool, RuntimeError> {
+        assert!(self.registrations.iter().any(|(_, registered)| registered.class == class),
+            "class resource replacement must name a registered class");
+        self.resource_attempts += 1;
+        match self.resource_result {
+            HostResult::Refused => return Ok(false),
+            HostResult::Error => return Err(RuntimeError::new(Kind::HostFailure,
+                "test class resource replacement failure")),
+            HostResult::Success => {},
+        }
+        self.class_resources.push((class, window, resource));
+        Ok(true)
     }
     fn win16_global_get_atom_name(&mut self, atom: u16, capacity: u16)
         -> Result<(Vec<u8>, u16), RuntimeError>
@@ -423,32 +442,210 @@ fn class_data_wndproc_remains_the_registered_procedure_after_window_subclassing(
 }
 
 #[test]
-fn class_data_unsupported_negative_fields_and_widths_report_gaps_without_mutation() {
+fn class_data_uncommitted_fields_and_long_only_word_accesses_report_gaps() {
     let mut runtime = fixture();
     let mut host = ClassDataHost::default();
     let class = named_class(&mut runtime, &mut host, b"Unsupported", 4);
     let hwnd = window(&mut runtime, class, 1);
     assert_eq!(call(&mut runtime, &mut host, 132, hwnd, 0, Some(0x7654_3210)), 0);
-    for index in [-32, -26, -24, -20, -18, -16, -14, -12, -10, -8, -1, i16::MIN] {
+    // SetClassWord refuses the fields whose storage the registration already
+    // committed, and narrows nothing: the two LONG fields have no WORD setter,
+    // and the LONG module-handle form has no USER-level refusal to report.
+    for index in [-32, -26, -24, -20, -18, -8, -1, i16::MIN] {
         gap(&mut runtime, &mut host, 130, hwnd, index, Some(0xffff));
-        if !matches!(index, -24 | -8) {
-            gap(&mut runtime, &mut host, 132, hwnd, index, Some(u32::MAX));
-        }
     }
-    for index in [-32, -26, -20, -18, -14, -12, -10] {
+    for index in [-32, -26, -20, -18, -16, -14, -12, -10, -1, i16::MIN] {
+        gap(&mut runtime, &mut host, 132, hwnd, index, Some(u32::MAX));
+    }
+    // Cross-width WORD access to a LONG field is not yet implemented.
+    for index in [-24, -8] {
+        gap(&mut runtime, &mut host, 129, hwnd, index, None);
+    }
+    for index in [-1, i16::MIN] {
+        gap(&mut runtime, &mut host, 129, hwnd, index, None);
         gap(&mut runtime, &mut host, 131, hwnd, index, None);
     }
-    gap(&mut runtime, &mut host, 129, hwnd, -24, None);
-    for index in [-16, -8, -1, i16::MIN] {
-        gap(&mut runtime, &mut host, 129, hwnd, index, None);
-        if index != -8 { gap(&mut runtime, &mut host, 131, hwnd, index, None); }
-    }
-    for (index, value) in [(-32, class.atom), (-26, class.info.style), (-20, 4), (-18, 6),
-        (-14, 0), (-12, 0), (-10, 0)] {
-        assert_eq!(call(&mut runtime, &mut host, 129, hwnd, index, None), u32::from(value));
-    }
-    assert_eq!(call(&mut runtime, &mut host, 131, hwnd, -24, None), class.info.lpfn_wnd_proc);
+    assert!(host.class_resources.is_empty());
     assert_eq!(call(&mut runtime, &mut host, 131, hwnd, 0, None), 0x7654_3210);
+}
+
+#[test]
+fn class_data_word_fields_do_not_invent_cross_width_long_access_semantics() {
+    let mut runtime = fixture();
+    let mut host = ClassDataHost::default();
+    let module = runtime.win16.as_ref().unwrap().modules.main;
+    let mut info = class_info(&runtime, 0);
+    let icon = Win16HostIcon(0x1122_3344_5566_aa11);
+    let cursor = Win16HostCursor(0x2233_4455_6677_bb22);
+    let brush = Win16HostGdiObject(0x3344_5566_7788_cc33);
+    let state = runtime.win16.as_mut().unwrap();
+    info.h_icon = state.guest_images.allocate_icon(icon).unwrap().0;
+    info.h_cursor = state.guest_images.allocate_cursor(cursor).unwrap();
+    info.hbr_background = state.guest_gdi.allocate_object(brush).unwrap();
+    let class = register(&mut runtime, &mut host, info, Win16ClassName::Name(b"Widths".to_vec()));
+    let hwnd = window(&mut runtime, class, 1);
+    // A shared constant table does not make a LONG read a zero-extended WORD.
+    // The documented WORD access works; cross-width access must report a gap.
+    for (index, value) in [(-32, class.atom), (-26, info.style), (-20, 0), (-18, 6),
+        (-16, module), (-14, info.h_icon), (-12, info.h_cursor), (-10, info.hbr_background)] {
+        let expected = u32::from(value);
+        assert_eq!(call(&mut runtime, &mut host, 129, hwnd, index, None), expected,
+            "GetClassWord reports field {index}");
+        gap(&mut runtime, &mut host, 131, hwnd, index, None);
+    }
+}
+
+#[test]
+fn class_data_setclassword_module_handle_reports_the_owner_without_replacing_it() {
+    let mut runtime = fixture();
+    let mut host = ClassDataHost::default();
+    let class = named_class(&mut runtime, &mut host, b"Module", 0);
+    let hwnd = window(&mut runtime, class, 1);
+    let owner = runtime.win16.as_ref().unwrap().modules.main;
+    assert_ne!(owner, class.info.h_instance,
+        "the module handle must not be confused with its instance/data selector");
+    assert_eq!(call(&mut runtime, &mut host, 129, hwnd, -16, None), u32::from(owner));
+    // USER keeps its own refusal for this index, so a replacement reports the
+    // current handle and leaves the class owner alone.
+    for replacement in [0_u32, 0x4321, u32::MAX] {
+        assert_eq!(call(&mut runtime, &mut host, 130, hwnd, -16, Some(replacement)),
+            u32::from(owner));
+        assert_eq!(call(&mut runtime, &mut host, 129, hwnd, -16, None), u32::from(owner));
+    }
+    assert!(host.class_resources.is_empty());
+    assert!(host.diagnostics.is_empty());
+}
+
+#[test]
+fn class_data_resource_replacement_publishes_the_guest_encoding_after_the_host_accepts() {
+    let mut runtime = fixture();
+    let mut host = ClassDataHost::default();
+    let class = named_class(&mut runtime, &mut host, b"Resources", 0);
+    let first = window(&mut runtime, class, 1);
+    let second = window(&mut runtime, class, 2);
+    let icon = Win16HostIcon(0x1122_3344_5566_aa11);
+    let cursor = Win16HostCursor(0x2233_4455_6677_bb22);
+    let brush = Win16HostGdiObject(0x3344_5566_7788_cc33);
+    let (icon_handle, cursor_handle, brush_handle) = {
+        let state = runtime.win16.as_mut().unwrap();
+        (state.guest_images.allocate_icon(icon).unwrap().0,
+            state.guest_images.allocate_cursor(cursor).unwrap(),
+            state.guest_gdi.allocate_object(brush).unwrap())
+    };
+    assert_eq!(call(&mut runtime, &mut host, 130, first, -14, Some(u32::from(icon_handle))), 0);
+    assert_eq!(call(&mut runtime, &mut host, 130, first, -12, Some(u32::from(cursor_handle))), 0);
+    assert_eq!(call(&mut runtime, &mut host, 130, first, -10, Some(u32::from(brush_handle))), 0);
+    assert_eq!(call(&mut runtime, &mut host, 130, first, -10, Some(3)),
+        u32::from(brush_handle));
+    // Class fields are shared: another window of the same class reports them.
+    for (index, handle) in [(-14, u32::from(icon_handle)), (-12, u32::from(cursor_handle)),
+        (-10, 3)] {
+        assert_eq!(call(&mut runtime, &mut host, 129, second, index, None), handle);
+    }
+    let native = Win16HostWindow(0xfedc_0000_0000 + 1);
+    assert_eq!(host.class_resources, vec![
+        (class.class, native, Win16HostClassResource::Icon(Some(icon))),
+        (class.class, native, Win16HostClassResource::Cursor(Some(cursor))),
+        (class.class, native,
+            Win16HostClassResource::Background(Some(Win16ClassBackground::Brush(brush)))),
+        (class.class, native, Win16HostClassResource::Background(
+            Some(Win16ClassBackground::SystemColor(2)))),
+    ]);
+    // Clearing a field is a replacement too, and reports the previous handle.
+    for (index, previous) in [(-14, u32::from(icon_handle)), (-12, u32::from(cursor_handle)),
+        (-10, 3)] {
+        assert_eq!(call(&mut runtime, &mut host, 130, first, index, Some(0)), previous);
+        assert_eq!(call(&mut runtime, &mut host, 129, first, index, None), 0);
+    }
+    assert!(host.class_resources.iter().skip(4).all(|entry| matches!(entry.2,
+        Win16HostClassResource::Icon(None) | Win16HostClassResource::Cursor(None)
+            | Win16HostClassResource::Background(None))));
+    assert_eq!(host.class_resources.len(), 7);
+    assert!(host.diagnostics.is_empty());
+}
+
+#[test]
+fn class_data_resource_replacement_publishes_nothing_the_host_refused() {
+    let mut runtime = fixture();
+    let mut host = ClassDataHost::default();
+    let mut info = class_info(&runtime, 0);
+    let icon = Win16HostIcon(0x1122_3344_5566_aa11);
+    let state = runtime.win16.as_mut().unwrap();
+    info.h_icon = state.guest_images.allocate_icon(icon).unwrap().0;
+    let class = register(&mut runtime, &mut host, info, Win16ClassName::Name(b"Atomic".to_vec()));
+    let hwnd = window(&mut runtime, class, 1);
+    let replacement = runtime.win16.as_mut().unwrap().guest_images
+        .allocate_icon(Win16HostIcon(0x1122_3344_5566_bb22)).unwrap().0;
+    host.resource_result = HostResult::Refused;
+    assert_eq!(call(&mut runtime, &mut host, 130, hwnd, -14, Some(u32::from(replacement))), 0);
+    assert_eq!(host.resource_attempts, 1, "a valid replacement must reach host refusal");
+    assert!(host.diagnostics.contains(&Kind::CompatibilityGap));
+    assert!(host.class_resources.is_empty());
+    host.diagnostics.clear();
+    host.resource_result = HostResult::Error;
+    let error = runtime.win16.as_mut().unwrap().access_class_data(
+        win16_abi::Win16ClassDataRequest::SetClassWord {
+            window: hwnd, index: -14, value: replacement,
+        }, &runtime.memory, &mut host).unwrap_err();
+    assert_eq!(error.kind(), Kind::HostFailure);
+    assert_eq!(host.resource_attempts, 2, "a valid replacement must reach host error");
+    host.resource_result = HostResult::Success;
+    assert_eq!(call(&mut runtime, &mut host, 129, hwnd, -14, None), u32::from(info.h_icon));
+    let (cursor_handle, dc_handle) = {
+        let state = runtime.win16.as_mut().unwrap();
+        (state.guest_images.allocate_cursor(Win16HostCursor(0x3344)).unwrap(),
+            state.guest_gdi.allocate_dc(crate::Win16HostDc(0x5566)).unwrap())
+    };
+    // A live handle of the wrong namespace is not interchangeable with the
+    // requested image or brush, even when its numeric value is valid.
+    for (index, handle) in [(-14, cursor_handle), (-12, info.h_icon), (-10, dc_handle)] {
+        assert_eq!(call(&mut runtime, &mut host, 130, hwnd, index, Some(u32::from(handle))), 0);
+        assert_eq!(host.resource_attempts, 2);
+        assert!(host.diagnostics.contains(&Kind::CompatibilityGap));
+        host.diagnostics.clear();
+    }
+    // A guest handle with no owned resource has nothing to publish either.
+    for (index, handle) in [(-14, 0x7777_u32), (-12, 0x7777), (-10, 0x7777)] {
+        assert_eq!(call(&mut runtime, &mut host, 130, hwnd, index, Some(handle)), 0);
+        assert!(host.diagnostics.contains(&Kind::CompatibilityGap));
+        host.diagnostics.clear();
+    }
+    assert!(host.class_resources.is_empty());
+    assert_eq!(host.resource_attempts, 2, "invalid guest handles must not reach the host");
+    assert_eq!(call(&mut runtime, &mut host, 129, hwnd, -14, None), u32::from(info.h_icon));
+}
+
+#[test]
+fn class_data_resource_replacement_reaches_only_the_selected_windows_own_class() {
+    let mut runtime = fixture();
+    let mut host = ClassDataHost::default();
+    let first = named_class(&mut runtime, &mut host, b"First", 0);
+    let second = named_class(&mut runtime, &mut host, b"Second", 0);
+    let a = window(&mut runtime, first, 1);
+    let b = window(&mut runtime, second, 2);
+    let icon = Win16HostIcon(0x44);
+    let icon_handle = {
+        let state = runtime.win16.as_mut().unwrap();
+        state.guest_images.allocate_icon(icon).unwrap().0
+    };
+    assert_eq!(call(&mut runtime, &mut host, 130, b, -14, Some(u32::from(icon_handle))), 0);
+    assert_eq!(call(&mut runtime, &mut host, 129, b, -14, None), u32::from(icon_handle));
+    assert_eq!(call(&mut runtime, &mut host, 129, a, -14, None), 0,
+        "the other registration keeps its own class resources");
+    assert_eq!(host.class_resources, vec![(second.class,
+        Win16HostWindow(0xfedc_0000_0000 + 2), Win16HostClassResource::Icon(Some(icon)))]);
+    // A predefined class has no guest registration metadata to publish, but its
+    // private native fields are still not reachable through this accessor.
+    let state = runtime.win16.as_mut().unwrap();
+    let builtin = state.resolve_window_class_for_create(0,
+        &Win16ClassName::Name(b"BUTTON".to_vec()), &mut host).unwrap().unwrap();
+    let button = state.allocate_window_handle(Win16HostWindow(0xb0b0)).unwrap();
+    state.initialize_window_data(button, Some(builtin.host_class), builtin.instance, false, Some(8))
+        .unwrap();
+    host.diagnostics.clear();
+    assert_eq!(call(&mut runtime, &mut host, 130, button, -14, Some(u32::from(icon_handle))), 0);
+    assert!(host.diagnostics.contains(&Kind::CompatibilityGap));
+    assert_eq!(host.class_resources.len(), 1);
 }
 
 #[test]

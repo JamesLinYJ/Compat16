@@ -7,13 +7,15 @@ use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostClass, Win16HostClassSpec,
     Win16HostSystemClass, Win16RegisteredClass,
 };
+use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND};
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    RegisterClassExW, UnregisterClassW, WNDCLASSEXW,
+    GetClassLongPtrW, RegisterClassExW, SetClassLongPtrW, UnregisterClassW, WNDCLASSEXW,
 };
 
 use super::super::win16_window_callbacks::host_window_proc;
-use super::{NativeClass, WorkerState};
+use super::{NativeClass, NativeClassResource, WorkerState};
+use crate::windows::win16_gdi_objects::NativeClassBackground;
 
 // Win16 SDK 3.0 DLGTEMPLATE requires a custom dialog class to reserve the
 // 30-byte DLGWINDOWEXTRA area. Win32's DefDlgProc uses its native class extra
@@ -26,7 +28,7 @@ pub(super) fn register_class(
     spec: Win16HostClassSpec,
     icon: usize,
     cursor: usize,
-    background: usize,
+    background: NativeClassBackground,
 ) -> Result<Option<Win16RegisteredClass>, RuntimeError> {
     if state.borrow().aborted { return Ok(None); }
     if spec.class_extra < 0 || spec.window_extra < 0 { return Ok(None); }
@@ -38,6 +40,7 @@ pub(super) fn register_class(
             system_class: true,
             system_class_kind: Some(system_class),
             native_extras: None,
+            background: RefCell::new(NativeClassBackground::default()),
         }));
         // Atom zero marks an internal alias; it is never returned by a guest
         // RegisterClass operation or inserted in the guest class registry.
@@ -58,6 +61,7 @@ pub(super) fn register_class(
     let native_class = Rc::new(NativeClass {
         name, instance, system_class: false, system_class_kind: None,
         native_extras: Some((class_extra, window_extra)),
+        background: RefCell::new(background),
     });
     let wide_name = native_class.name.iter().map(|byte| u16::from(*byte)).collect::<Vec<_>>();
     let class = WNDCLASSEXW {
@@ -69,7 +73,7 @@ pub(super) fn register_class(
         hInstance: instance,
         hIcon: icon as _,
         hCursor: cursor as _,
-        hbrBackground: background as _,
+        hbrBackground: native_class.background.borrow().handle as _,
         lpszClassName: wide_name.as_ptr(),
         ..WNDCLASSEXW::default()
     };
@@ -93,8 +97,78 @@ pub(super) fn unregister_class(
     // SAFETY: This class name and module identify a class registered here.
     let wide_name = class.name.iter().map(|byte| u16::from(*byte)).collect::<Vec<_>>();
     if unsafe { UnregisterClassW(wide_name.as_ptr(), class.instance) } == 0 { return false; }
+    if let Some(brush) = &class.background.borrow().brush {
+        brush.retire();
+    }
     state.borrow_mut().classes.remove(&token);
     true
+}
+
+/// Replace one resource on the native class that already registered `class`.
+///
+/// The runtime names the class by its opaque token and supplies one live HWND
+/// of it. Both are re-checked against the worker's own window-identity record,
+/// so a stale token, a borrowed HWND alias of another class, or a window that
+/// has already retired cannot redirect the native replacement.
+pub(super) fn replace_class_resource(
+    state: &Rc<RefCell<WorkerState>>,
+    class: Win16HostClass,
+    window: runtime::Win16HostWindow,
+    resource: NativeClassResource,
+) -> Result<bool, RuntimeError> {
+    let Some(hwnd) = super::super::win16_window_identity::resolve_user_window(state, window)
+        else { return Ok(false); };
+    let registration = {
+        let state = state.borrow();
+        if state.aborted { return Ok(false); }
+        let Some(registration) = state.classes.get(&class) else { return Ok(false); };
+        if registration.system_class { return Ok(false); }
+        let matches = state.windows_by_native.get(&(hwnd as usize)).is_some_and(|identity| {
+            identity.owned && identity.window == window && identity.class == Some(class)
+        });
+        if !matches { return Ok(false); }
+        Rc::clone(registration)
+    };
+    let field = resource.field();
+    let requested = resource.value();
+    let previous = read_class_resource(hwnd, field)?;
+    // A zero previous icon can be replaced successfully while USER's internal
+    // icon work leaves ERROR_INVALID_HANDLE in LastError. Native readback,
+    // rather than that ambiguous zero return, confirms the installed value.
+    // SAFETY: This is the verified, owned class HWND on its USER worker.
+    unsafe { SetClassLongPtrW(hwnd, field, requested as isize) };
+    if super::super::win16_window_identity::resolve_user_window(state, window) != Some(hwnd) {
+        return Err(RuntimeError::new(Kind::HostFailure,
+            "native class resource replacement lost its window incarnation"));
+    }
+    let installed = read_class_resource(hwnd, field)?;
+    if installed != requested {
+        if installed != previous {
+            return Err(RuntimeError::new(Kind::HostFailure,
+                "native class resource replacement left an unexpected class value"));
+        }
+        // A refusal is reported only after confirming the old value remains.
+        return Ok(false);
+    }
+    if let NativeClassResource::Background(background) = resource {
+        // Replacing a brush leaves the old one live. Only unregistering the
+        // class retires its then-current native brush incarnation.
+        *registration.background.borrow_mut() = background;
+    }
+    Ok(true)
+}
+
+fn read_class_resource(hwnd: HWND, field: i32) -> Result<usize, RuntimeError> {
+    // SAFETY: Callers resolve this live HWND and select only pointer-valued
+    // icon, cursor or background class fields. Zero is a valid empty field.
+    unsafe { SetLastError(0) };
+    let value = unsafe { GetClassLongPtrW(hwnd, field) };
+    let error = unsafe { GetLastError() };
+    if value == 0 && error != 0 {
+        return Err(RuntimeError::with_source(Kind::HostFailure,
+            "read native class resource field", std::io::Error::from_raw_os_error(error as i32)));
+    }
+    Ok(value)
 }
 
 pub(in super::super) fn shutdown_all(state: &Rc<RefCell<WorkerState>>) -> Result<(), RuntimeError> {

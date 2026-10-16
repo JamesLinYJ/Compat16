@@ -60,7 +60,7 @@ impl NativeQueries {
             },
             icon: 0,
             cursor: 0,
-            background: 0,
+            background: Default::default(),
             response,
         }).unwrap_or_else(|_| panic!("send predefined class registration"));
         assert!(receive.recv_timeout(Duration::from_secs(10))

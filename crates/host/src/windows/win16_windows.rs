@@ -163,7 +163,8 @@ use runtime::{
     Win16WindowStep, Win16WindowTerminalAck, Win16WindowTerminalSourceTop,
 };
 use win16_window_worker::{
-    NativeDropRetirementQueue, NativeDropRetirementQueueHandle, WindowWorker, WorkerCommand,
+    NativeClassResource, NativeDropRetirementQueue, NativeDropRetirementQueueHandle,
+    WindowWorker, WorkerCommand,
 };
 pub(super) use win16_windows_dde::allocate_shared_identity;
 use win16_windows_dde::{DdeSourceLedger, PendingSource};

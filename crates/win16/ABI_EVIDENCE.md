@@ -589,6 +589,75 @@ native USER check reads actual HWND menus to verify independent instances and
 that clearing the next default leaves existing menus intact. These are
 component checks, separate from original-application acceptance.
 
+## USER.129-132 class field access at its declared width
+
+`WINDOWS.H:2949-2952` declares `GetClassWord`/`SetClassWord` with WORD results
+and `GetClassLong`/`SetClassLong` with LONG results, and `WINDOWS.H:2954-2966`
+publishes one offset list "for GetClassLong() and GetClassWord()". Only
+`GCL_WNDPROC` and `GCL_MENUNAME` are 32-bit class-structure fields; the class
+style, the two allocation sizes, the module handle, the icon, the cursor, the
+background and the atom are WORD fields. NT 3.5 `MVDM/WOW16/USER/USER.INC`
+places them in that order, and `WINMISC1.ASM` serves both accessors from one
+`GetWC2`/`SetWC2` pair over the shared index.
+
+The original [SDK GetClassWord/GetClassLong and SetClassWord/SetClassLong
+entries](https://www.pcjs.org/documents/books/mspl13/win/w3sdkr1/) describe
+the WORD and LONG predefined fields separately. A shared constants table
+does not establish a zero-extension or truncation rule for cross-width access.
+`GetWC2` reads `[bx]` and `[bx+2]` unconditionally; for example,
+`GetClassLong(GCW_HICON)` can include the cursor field in its high word.
+Cross-width support needs a checked representation of that adjacency and
+translation of every affected resource. Until that is implemented, both
+cross-width directions remain explicit gaps rather than dropping those bits.
+
+`SetClassWord(GCW_HMODULE)` keeps USER's own refusal: `WINMISC1.ASM` returns
+the current module handle and never replaces it (Bug #5138, Designer 2.0), so
+the runtime reports the class owner and leaves it alone. The LONG form has no
+such guard in USER, and class ownership is a runtime invariant, so it stays a
+reported gap. The allocation-size, style and atom fields report a gap as well:
+the registration already committed them, and reporting a successful replacement
+would be an invented result.
+
+The reported `GCW_HMODULE` is the owning module header handle, resolved through
+the loaded-module registry from the class's normalized owning instance; it is
+not the instance/data-selector value. `USER.INC` names the field `uclshModule`,
+and `WINMISC1.ASM` explicitly distinguishes module from instance handles in
+the refusal's compatibility rationale.
+
+`SetClassWord` does replace the class icon, cursor and background,
+because ordinary `DefWindowProc` defaulting reads those class fields for every
+window of the class. The runtime resolves the guest handle to an owned resource
+and has the native USER worker apply it to the registered class before
+publishing the guest WORD. Native refusal preserves the old guest field and
+reports zero. A worker transport error stops dispatch without publishing a
+guest result; it is not a claim that an unobserved native mutation rolled back.
+Clearing a field is a replacement with a zero handle. The worker verifies the
+exact property-bound HWND incarnation and its owned registration before use.
+It also checks that incarnation and reads the native field back after the
+setter. A native USER probe confirmed that replacing a null class icon can
+return zero and leave `ERROR_INVALID_HANDLE` even though the icon was installed;
+the final class value establishes publication or unchanged-field refusal.
+An unobservable or unexpected outcome is a host error, not a fabricated rollback.
+
+Focused runtime checks cover the Pascal API frames, the width boundary, the
+module-handle refusal, the guest encodings and the atomic refusal path. An
+opt-in native USER check applies a replacement through the worker and reads the
+actual `GCLP_*` class fields back, including a mismatched incarnation-cookie
+refusal. A native resolver check rejects icon/cursor token type confusion,
+non-brush GDI objects and retired tokens; registration and replacement share
+those resolvers. These are component checks, separate from original-application
+acceptance.
+
+Native class backgrounds share an incarnation retirement flag with the GDI
+identity table. [WNDCLASSEXW's background-brush contract](https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-wndclassexw)
+specifies deletion by USER when the class is unregistered. After a successful
+unregister, the worker acknowledges an actual brush deletion before replying;
+host lookup and cleanup then reject that retired token. Replacing or clearing
+the background does not retire the displaced brush, and surviving stock/system
+brushes keep their aliases. Both initial registration and replacement carry
+this ownership identity. The native check covers failed unregister, displaced
+brushes, current custom-brush deletion and stock-brush survival.
+
 ## KERNEL.16 GlobalReAlloc guest locks
 
 `WINDOWS.H:602` declares `HGLOBAL WINAPI GlobalReAlloc(HGLOBAL, DWORD, UINT)`;

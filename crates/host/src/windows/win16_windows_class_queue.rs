@@ -3,11 +3,16 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use runtime::{
-    Win16ClassBackground, Win16HostClass, Win16HostClassSpec, Win16HostTaskQueue,
-    Win16RegisteredClass,
+    Win16ClassBackground, Win16HostClass, Win16HostClassSpec, Win16HostCursor, Win16HostIcon,
+    Win16HostTaskQueue, Win16RegisteredClass,
 };
 
 use super::*;
+use crate::windows::win16_gdi_objects::NativeClassBackground;
+
+#[cfg(test)]
+#[path = "win16_class_resource_resolver_tests.rs"]
+mod class_resource_resolver_tests;
 
 static NEXT_CLASS_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -63,38 +68,10 @@ impl Win16Windows {
                 "Win16 native window worker has been aborted",
             ));
         }
-        let icon = match spec.icon {
-            Some(token) => match images.native_icon(token)? {
-                Some(native) => native as usize,
-                None => return Ok(None),
-            },
-            None => 0,
-        };
-        let cursor = match spec.cursor {
-            Some(token) => match images.native_cursor(token)? {
-                Some(native) => native as usize,
-                None => return Ok(None),
-            },
-            None => 0,
-        };
-        let background = match spec.background {
-            Some(Win16ClassBackground::SystemColor(color)) => {
-                // GetSysColorBrush is OS-owned and remains valid without a
-                // matching DeleteObject. The numeric value is host-private.
-                let handle = unsafe {
-                    windows_sys::Win32::Graphics::Gdi::GetSysColorBrush(i32::from(color))
-                };
-                if handle.is_null() {
-                    return Ok(None);
-                }
-                handle as usize
-            }
-            Some(Win16ClassBackground::Brush(token)) => match objects.native_brush(token) {
-                Some(native) => native as usize,
-                None => return Ok(None),
-            },
-            None => 0,
-        };
+        let Some(icon) = resolve_icon(spec.icon, images)? else { return Ok(None); };
+        let Some(cursor) = resolve_cursor(spec.cursor, images)? else { return Ok(None); };
+        let Some(background) = resolve_background(spec.background, objects)
+            else { return Ok(None); };
         let id = NEXT_CLASS_ID
             .try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
                 value.checked_add(1)
@@ -118,6 +95,49 @@ impl Win16Windows {
         response
             .recv()
             .map_err(|_| worker_stopped("register Win16 class"))?
+    }
+
+    /// Replace one resource on the native class `window` belongs to. The
+    /// native handle is resolved here, so the worker receives only an opaque
+    /// resource value and never a runtime-owned guest handle.
+    pub(in crate::windows) fn replace_class_resource(
+        &mut self,
+        class: Win16HostClass,
+        window: runtime::Win16HostWindow,
+        resource: runtime::Win16HostClassResource,
+        images: &Win16Images,
+        objects: &Win16Objects,
+    ) -> Result<bool, RuntimeError> {
+        if self.aborted {
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "Win16 native window worker has been aborted",
+            ));
+        }
+        let native = match resource {
+            runtime::Win16HostClassResource::Icon(icon) => {
+                let Some(value) = resolve_icon(icon, images)? else { return Ok(false); };
+                NativeClassResource::Icon(value)
+            }
+            runtime::Win16HostClassResource::Cursor(cursor) => {
+                let Some(value) = resolve_cursor(cursor, images)? else { return Ok(false); };
+                NativeClassResource::Cursor(value)
+            }
+            runtime::Win16HostClassResource::Background(background) => {
+                let Some(value) = resolve_background(background, objects) else { return Ok(false); };
+                NativeClassResource::Background(value)
+            }
+        };
+        let (reply, response) = std::sync::mpsc::channel();
+        self.send(WorkerCommand::ReplaceClassResource {
+            class,
+            window,
+            resource: native,
+            response: reply,
+        })?;
+        response
+            .recv()
+            .map_err(|_| worker_stopped("replace a Win16 class resource"))?
     }
 
     pub(in crate::windows) fn initialize_user_queue(&mut self) -> Result<(), RuntimeError> {
@@ -209,5 +229,50 @@ impl Win16Windows {
             return false;
         }
         response.recv().unwrap_or(false)
+    }
+}
+
+/// Resolve an opaque host icon token into its native handle. `None`
+/// means the host holds no such image, so the replacement must not proceed.
+fn resolve_icon(
+    icon: Option<Win16HostIcon>,
+    images: &Win16Images,
+) -> Result<Option<usize>, RuntimeError> {
+    match icon {
+        Some(token) => Ok(images.native_icon(token)?.map(|native| native as usize)),
+        // A cleared field keeps the native class field NULL.
+        None => Ok(Some(0)),
+    }
+}
+
+/// The cursor counterpart of `resolve_icon`.
+fn resolve_cursor(
+    cursor: Option<Win16HostCursor>,
+    images: &Win16Images,
+) -> Result<Option<usize>, RuntimeError> {
+    match cursor {
+        Some(token) => Ok(images.native_cursor(token)?.map(|native| native as usize)),
+        None => Ok(Some(0)),
+    }
+}
+
+/// Resolve a guest class background into the brush the native class stores.
+/// A system color uses the OS-owned brush the registration path also uses.
+fn resolve_background(
+    background: Option<Win16ClassBackground>,
+    objects: &Win16Objects,
+) -> Option<NativeClassBackground> {
+    match background {
+        Some(Win16ClassBackground::SystemColor(color)) => {
+            // SAFETY: GetSysColorBrush only reads the host's color table.
+            let handle = unsafe {
+                windows_sys::Win32::Graphics::Gdi::GetSysColorBrush(i32::from(color))
+            };
+            if handle.is_null() { None } else { Some(NativeClassBackground::shared(handle as usize)) }
+        }
+        Some(Win16ClassBackground::Brush(token)) => {
+            objects.class_background(token)
+        }
+        None => Some(NativeClassBackground::default()),
     }
 }

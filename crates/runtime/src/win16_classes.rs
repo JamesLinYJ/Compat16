@@ -25,6 +25,9 @@ mod procedure;
 #[path = "win16_class_menu.rs"]
 mod menu;
 
+#[path = "win16_class_resource.rs"]
+mod resource;
+
 #[path = "win16_class_lookup.rs"]
 mod lookup;
 
@@ -124,14 +127,16 @@ impl GuestWindowClasses {
             .extra_bytes.as_mut_slice())
     }
 
-    /// Return copied guest metadata and the actual registration atom. The
-    /// source name atom can differ, and neither atom is a native pointer.
+    /// Return copied guest metadata, the actual registration atom and the
+    /// owning module instance. The source name atom can differ, and neither
+    /// atom is a native pointer. The owning instance still needs module-handle
+    /// normalization for `GCW_HMODULE`; it is not itself that module handle.
     pub(super) fn guest_class_info(
         &self,
         host_class: Win16HostClass,
-    ) -> Option<(u16, WndClass16)> {
+    ) -> Option<(u16, WndClass16, u16)> {
         let entry = self.entries.iter().find(|entry| entry.host_class == host_class)?;
-        Some((entry.atom, entry.info))
+        Some((entry.atom, entry.info, entry.instance))
     }
 
     /// Resolve only class aliases backed by an exact predefined system class.

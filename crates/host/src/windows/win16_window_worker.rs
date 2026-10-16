@@ -41,8 +41,9 @@ pub(super) use state::{
     DialogControlCreationRoute, DialogRootCreationRoute, DialogRoute, DragListOrigin,
     DragListSidecar, LiveCallback, NativeCallbackContext, NativeClass, NativeClassicDdeQuiescence,
     NativeCreateCookie, NativeDropCallbackClaim, NativeDropCallbackResolution, NativeDropOwner,
-    NativeDropRetirementQueue, NativeDropRetirementQueueHandle, NativeTimerRecord,
-    NativeWindowIdentity, PendingCreation, PendingDialogRoute, PendingWindowMenuRetirement,
+    NativeClassResource, NativeDropRetirementQueue, NativeDropRetirementQueueHandle,
+    NativeTimerRecord, NativeWindowIdentity, PendingCreation, PendingDialogRoute,
+    PendingWindowMenuRetirement,
     TerminalProofSnapshot, Win16GuestTimerPost, WorkerState,
 };
 
@@ -710,6 +711,15 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
         }
         WorkerCommand::UnregisterClass { class, response } => {
             let _ = response.send(lifecycle::unregister_class(state, class));
+        }
+        WorkerCommand::ReplaceClassResource {
+            class,
+            window,
+            resource,
+            response,
+        } => {
+            let result = lifecycle::replace_class_resource(state, class, window, resource);
+            let _ = response.send(result);
         }
         WorkerCommand::Begin {
             id,

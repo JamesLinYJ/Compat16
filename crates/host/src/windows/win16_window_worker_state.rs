@@ -9,6 +9,7 @@ use runtime::{
     RuntimeError, Win16CreationId, Win16HostCallback, Win16HostClass, Win16HostCreationData,
     Win16HostMenu, Win16HostWindow, Win16WindowStep,
 };
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::os::windows::io::OwnedHandle;
 use std::rc::Rc;
@@ -31,6 +32,38 @@ pub(in crate::windows::win16_windows) struct NativeClass {
     pub(in crate::windows::win16_windows) system_class_kind: Option<runtime::Win16HostSystemClass>,
     /// Actual native storage capacity, distinct from guest sidecar lengths.
     pub(in crate::windows::win16_windows) native_extras: Option<(i32, i32)>,
+    pub(in crate::windows::win16_windows) background:
+        RefCell<crate::windows::win16_gdi_objects::NativeClassBackground>,
+}
+
+/// One resolved class resource on its way to the native USER call. The value
+/// is a resolved native resource handle or zero for "clear"; a guest
+/// WORD or a runtime token never crosses this boundary.
+#[derive(Clone)]
+pub(in crate::windows::win16_windows) enum NativeClassResource {
+    Icon(usize),
+    Cursor(usize),
+    Background(crate::windows::win16_gdi_objects::NativeClassBackground),
+}
+
+impl NativeClassResource {
+    /// The Win32 class-field index this resource replaces.
+    pub(in crate::windows::win16_windows) fn field(&self) -> i32 {
+        match self {
+            Self::Icon(_) => windows_sys::Win32::UI::WindowsAndMessaging::GCLP_HICON,
+            Self::Cursor(_) => windows_sys::Win32::UI::WindowsAndMessaging::GCLP_HCURSOR,
+            Self::Background(_) => {
+                windows_sys::Win32::UI::WindowsAndMessaging::GCLP_HBRBACKGROUND
+            }
+        }
+    }
+
+    pub(in crate::windows::win16_windows) fn value(&self) -> usize {
+        match self {
+            Self::Icon(value) | Self::Cursor(value) => *value,
+            Self::Background(value) => value.handle,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]

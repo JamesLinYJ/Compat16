@@ -504,6 +504,14 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<bool, RuntimeError> {
         runtime_host_windows::win16_unregister_window_class(self, class)
     }
+    fn win16_replace_class_resource(
+        &mut self,
+        class: Win16HostClass,
+        window: runtime::Win16HostWindow,
+        resource: runtime::Win16HostClassResource,
+    ) -> Result<bool, RuntimeError> {
+        runtime_host_windows::win16_replace_class_resource(self, class, window, resource)
+    }
     fn win16_window_begin(
         &mut self,
         operation: Win16WindowOperation,

@@ -21,7 +21,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 use super::super::win16_window_worker::{
-    NativeDropRetirementQueue, WindowWorker, WorkerCommand, WorkerState,
+    NativeClassResource, NativeDropRetirementQueue, WindowWorker, WorkerCommand, WorkerState,
 };
 use crate::windows::{guest_text::GuestTextCodec, win16_gdi::Win16Dcs, win16_images::Win16Images};
 
@@ -97,7 +97,7 @@ impl Fixture {
                 },
                 icon: 0,
                 cursor: 0,
-                background: 0,
+                background: Default::default(),
                 response,
             })
             .unwrap_or_else(|_| panic!("register guest class command"));
@@ -276,6 +276,10 @@ impl Drop for Fixture {
 // Reuse the opt-in, serialized USER worker fixture for class-menu payloads.
 #[path = "win16_class_menu_native_tests.rs"]
 mod class_menu_native_tests;
+
+// Reuse the same fixture for native class resource replacement.
+#[path = "win16_class_resource_native_tests.rs"]
+mod class_resource_native_tests;
 
 #[test]
 #[ignore = "requires native Windows USER; creates a hidden window without interactive input"]

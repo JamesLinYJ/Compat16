@@ -47,6 +47,21 @@ pub(super) fn win16_unregister_window_class(
     Ok(host.win16_windows.unregister_class(class))
 }
 
+pub(super) fn win16_replace_class_resource(
+    host: &mut WindowsHost,
+    class: Win16HostClass,
+    window: runtime::Win16HostWindow,
+    resource: runtime::Win16HostClassResource,
+) -> Result<bool, RuntimeError> {
+    host.win16_windows.replace_class_resource(
+        class,
+        window,
+        resource,
+        &host.win16_images,
+        &host.win16_objects,
+    )
+}
+
 pub(super) fn win16_window_begin(
     host: &mut WindowsHost,
     operation: Win16WindowOperation,

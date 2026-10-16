@@ -25,12 +25,18 @@ pub(in crate::windows::win16_windows) enum WorkerCommand {
         spec: Win16HostClassSpec,
         icon: usize,
         cursor: usize,
-        background: usize,
+        background: crate::windows::win16_gdi_objects::NativeClassBackground,
         response: Sender<Result<Option<Win16RegisteredClass>, RuntimeError>>,
     },
     UnregisterClass {
         class: Win16HostClass,
         response: Sender<bool>,
+    },
+    ReplaceClassResource {
+        class: Win16HostClass,
+        window: runtime::Win16HostWindow,
+        resource: NativeClassResource,
+        response: Sender<Result<bool, RuntimeError>>,
     },
     Begin {
         id: u64,
