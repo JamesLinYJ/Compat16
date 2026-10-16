@@ -2,6 +2,8 @@
 
 #[path = "win16_gdi_char_width.rs"]
 mod char_width;
+#[path = "win16_gdi_glyph_outline.rs"]
+mod glyph_outline;
 
 use std::ffi::c_void;
 use std::ptr;
@@ -31,6 +33,8 @@ pub(super) fn execute(
     use ResultValue as Value;
 
     match operation {
+        Op::GetGlyphOutline { dc, character, format, matrix, byte_count, copy_buffer } =>
+            glyph_outline::execute(dcs, dc, character, format, matrix, byte_count, copy_buffer),
         Op::SetBoundsRect { dc, rect, flags } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else {
                 return Ok(Value::Dword(0));

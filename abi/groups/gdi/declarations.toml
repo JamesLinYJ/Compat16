@@ -582,6 +582,18 @@ decl = { attributes = [], args = ["word", "pointer", "pointer"] }
 ordinal = 309
 name = "GetGlyphOutline"
 decl = { attributes = [], args = ["word", "word", "word", "pointer", "long", "pointer", "pointer"] }
+binding = { rust_id = "GdiGetGlyphOutline", id_value = 1256, constant = "GDI_GET_GLYPH_OUTLINE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "character", type = "U16" },
+  { name = "format", type = "U16" },
+  { name = "metrics", type = "FarOutputBuffer" },
+  { name = "byte_count", type = "U32" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "matrix", type = "FarBuffer" },
+]
 
 [[exports]]
 ordinal = 310

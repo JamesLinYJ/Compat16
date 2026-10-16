@@ -2,6 +2,20 @@
 
 use crate::{Win16DrawingRect, Win16HostDc, Win16HostGdiObject};
 
+/// Native glyph metrics, kept separate from the SDK 3.1 12-byte record.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Win16HostGlyphMetrics {
+    pub black_box_x: u32,
+    pub black_box_y: u32,
+    pub origin_x: i32,
+    pub origin_y: i32,
+    pub cell_inc_x: i16,
+    pub cell_inc_y: i16,
+}
+
+/// GGO_GLYPH_INDEX and GGO_UNHINTED modify the underlying output mode.
+pub(crate) fn glyph_metrics_only(format: u16) -> bool { format & !0x0180 == 0 }
+
 /// One native ABC width returned by Windows. Runtime narrows these fields to
 /// the Windows 3.1 `ABC` layout before writing guest memory.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -40,6 +54,10 @@ pub enum Win16HostGdiIdentity {
 /// guest structures into owned values.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16GdiServicesOperation {
+    GetGlyphOutline {
+        dc: Win16HostDc, character: u16, format: u16, matrix: [u32; 4],
+        byte_count: u32, copy_buffer: bool,
+    },
     SetBoundsRect {
         dc: Win16HostDc,
         rect: Option<Win16DrawingRect>,
@@ -102,6 +120,11 @@ pub enum Win16GdiServicesOperation {
 /// RECT/SIZE fields and packs the legacy GetAspectRatioFilter DWORD.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16GdiServicesResult {
+    GlyphOutline {
+        result: u32,
+        metrics: Option<Win16HostGlyphMetrics>,
+        bytes: Vec<u8>,
+    },
     Dword(u32),
     Bool(bool),
     BoundsRect {

@@ -16,6 +16,15 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Option<Request>, Win16Error> {
     let request = match export {
+        Win16ExportId::GdiGetGlyphOutline => Request::GetGlyphOutline {
+            dc: word_argument(arguments, 0)?,
+            character: word_argument(arguments, 1)?,
+            format: word_argument(arguments, 2)?,
+            metrics: dword_argument(arguments, 3)?,
+            byte_count: dword_argument(arguments, 4)?,
+            buffer: dword_argument(arguments, 5)?,
+            matrix: dword_argument(arguments, 6)?,
+        },
         Win16ExportId::GdiSetBoundsRect => {
             let rect = gdi_drawing_calls::read_optional_rect(
                 dword_argument(arguments, 1)?,

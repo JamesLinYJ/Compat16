@@ -11,6 +11,10 @@ pub enum Win16FontResourceInput {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16GdiServicesRequest {
+    GetGlyphOutline {
+        dc: u16, character: u16, format: u16, metrics: u32,
+        byte_count: u32, buffer: u32, matrix: u32,
+    },
     SetBoundsRect {
         dc: u16,
         rect: Option<Rect16>,

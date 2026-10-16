@@ -243,7 +243,7 @@ pub use win16_host_spool::{
 };
 pub use win16_host_gdi_services::{
     Win16GdiServicesOperation, Win16GdiServicesResult, Win16HostAbcWidth,
-    Win16HostGdiIdentity, Win16HostKerningPair, Win16HostRasterizerCaps,
+    Win16HostGdiIdentity, Win16HostGlyphMetrics, Win16HostKerningPair, Win16HostRasterizerCaps,
 };
 mod win16_host_gdi_objects;
 mod win16_host_keyboard;

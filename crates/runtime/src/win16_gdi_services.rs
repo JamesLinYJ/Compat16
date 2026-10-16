@@ -1,5 +1,8 @@
 //! Runtime translation for Win16 GDI DC state, font queries, and object tests.
 
+#[path = "win16_glyph_outline.rs"]
+mod glyph_outline;
+
 use guest_core::memory::Memory;
 use win16_abi::{
     Access, Win16FontResourceInput, Win16GdiServicesRequest as Request, Win16ModuleReference,
@@ -66,6 +69,8 @@ impl Win16State {
         use ResultValue as Value;
 
         match request {
+            request @ Req::GetGlyphOutline { .. } =>
+                self.execute_glyph_outline(request, memory, host),
             Req::SetBoundsRect { dc, rect, flags } => {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
