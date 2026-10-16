@@ -1,5 +1,8 @@
 //! Win16 HICON/HCURSOR handles and NE image resource resolution.
 
+#[path = "win16_image_copy.rs"]
+mod copying;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use formats::{NeCursorResourceTable, NeIconResourceTable, NeResourceId};

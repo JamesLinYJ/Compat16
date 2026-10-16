@@ -4,6 +4,8 @@ use super::super::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16UserResourcesRequest {
+    CopyIcon { instance: u16, icon: u16 },
+    CopyCursor { instance: u16, cursor: u16 },
     LoadBitmap { instance: u16, name: Win16ResourceName },
     CreateIcon {
         instance: u16, width: i16, height: i16, planes: u8, bits_per_pixel: u8,

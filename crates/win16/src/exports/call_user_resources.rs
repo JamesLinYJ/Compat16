@@ -15,6 +15,16 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Win16ApiRequest, Win16Error> {
     Ok(match export {
+        Win16ExportId::UserCopyIcon => Win16ApiRequest::User(super::Win16UserRequest::Resources(
+            super::Win16UserResourcesRequest::CopyIcon {
+                instance: word_argument(arguments, 0)?, icon: word_argument(arguments, 1)?,
+            },
+        )),
+        Win16ExportId::UserCopyCursor => Win16ApiRequest::User(super::Win16UserRequest::Resources(
+            super::Win16UserResourcesRequest::CopyCursor {
+                instance: word_argument(arguments, 0)?, cursor: word_argument(arguments, 1)?,
+            },
+        )),
         Win16ExportId::UserCreateIcon => Win16ApiRequest::User(super::Win16UserRequest::Resources(
             super::Win16UserResourcesRequest::CreateIcon {
                 instance: word_argument(arguments, 0)?, width: word_argument(arguments, 1)? as i16,

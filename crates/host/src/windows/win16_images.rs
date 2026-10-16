@@ -22,6 +22,8 @@ const WINDOWS_3_RESOURCE_VERSION: u32 = 0x0003_0000;
 
 #[path = "win16_image_masks.rs"]
 mod masks;
+#[path = "win16_image_copy.rs"]
+mod copying;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum ImageKind { Icon, Cursor }

@@ -420,6 +420,8 @@ pub(super) fn decode(
         | Win16ExportId::UserLoadBitmap
         | Win16ExportId::UserCreateIcon
         | Win16ExportId::UserCreateCursor
+        | Win16ExportId::UserCopyIcon
+        | Win16ExportId::UserCopyCursor
         | Win16ExportId::UserLoadIcon => {
             user_resource_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }

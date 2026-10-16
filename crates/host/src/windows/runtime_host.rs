@@ -853,6 +853,10 @@ impl RuntimeHost for WindowsHost {
     fn win16_release_icon(&mut self, icon: Win16HostIcon) -> Result<(), RuntimeError> {
         self.win16_images.release_icon(icon)
     }
+    fn win16_copy_icon(&mut self, icon: Win16HostIcon)
+        -> Result<Option<Win16HostIcon>, RuntimeError> {
+        self.win16_images.copy_icon(icon)
+    }
     fn win16_load_system_cursor(
         &mut self,
         id: u16,
@@ -870,6 +874,10 @@ impl RuntimeHost for WindowsHost {
     }
     fn win16_release_cursor(&mut self, cursor: Win16HostCursor) -> Result<(), RuntimeError> {
         self.win16_images.release_cursor(cursor)
+    }
+    fn win16_copy_cursor(&mut self, cursor: Win16HostCursor)
+        -> Result<Option<Win16HostCursor>, RuntimeError> {
+        self.win16_images.copy_cursor(cursor)
     }
     fn win16_global_add_atom(&mut self, name: Win16HostAtomName<'_>) -> Result<u16, RuntimeError> {
         self.win16_atoms.add(self.win16_dcs.text_codec(), name)

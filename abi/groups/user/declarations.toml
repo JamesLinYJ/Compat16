@@ -715,11 +715,25 @@ decl = { args = ["pointer", "word", "word", "word", "word"] }
 ordinal = 368
 name = "CopyIcon"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "UserCopyIcon", id_value = 1254, constant = "USER_COPY_ICON" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "icon", type = "U16" },
+]
 
 [[exports]]
 ordinal = 369
 name = "CopyCursor"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "UserCopyCursor", id_value = 1255, constant = "USER_COPY_CURSOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "cursor", type = "U16" },
+]
 
 [[exports]]
 ordinal = 372

@@ -250,6 +250,10 @@ impl Win16State {
                 request @ (win16_abi::Win16UserResourcesRequest::CreateIcon { .. }
                     | win16_abi::Win16UserResourcesRequest::CreateCursor { .. }),
             )) => u32::from(self.create_image_masks(request, memory, host)?),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Resources(
+                request @ (win16_abi::Win16UserResourcesRequest::CopyIcon { .. }
+                    | win16_abi::Win16UserResourcesRequest::CopyCursor { .. }),
+            )) => u32::from(self.copy_user_image(request, host)?),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Messages(
                 win16_abi::Win16UserMessagesRequest::SetMessageQueue { message_count },
             )) => u32::from(self.set_message_queue(message_count, host)?),

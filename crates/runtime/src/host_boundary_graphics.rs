@@ -118,6 +118,12 @@ macro_rules! graphics_runtime_host_ports {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 icon release is unavailable"))
     }
+    /// Copy into a new owned image identity, independent of the source owner.
+    fn win16_copy_icon(&mut self, _icon: Win16HostIcon)
+        -> Result<Option<Win16HostIcon>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 icon copying is unavailable"))
+    }
     fn win16_load_system_cursor(&mut self, _id: u16) -> Result<Option<Win16HostCursor>, RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 system cursor lookup is unavailable"))
@@ -133,6 +139,12 @@ macro_rules! graphics_runtime_host_ports {
     fn win16_release_cursor(&mut self, _cursor: Win16HostCursor) -> Result<(), RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 cursor release is unavailable"))
+    }
+    /// Preserve the cursor shape and hotspot in a new owned image identity.
+    fn win16_copy_cursor(&mut self, _cursor: Win16HostCursor)
+        -> Result<Option<Win16HostCursor>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 cursor copying is unavailable"))
     }
     };
 }
