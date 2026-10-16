@@ -2,9 +2,9 @@
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16KernelStringsRequest {
-    /// Return a bounded NUL-terminated string length. A null input is retained
-    /// as `None` and has the Win16 zero result.
-    StringLength { text: Option<Vec<u8>> },
+    /// Checked ANSI byte count excluding NUL, with zero for a null input.
+    /// DBCS lead and trail bytes each contribute one to the Win16 word result.
+    StringLength { byte_count: u16 },
 
     /// Copy a checked source string to the raw guest destination FAR pointer.
     /// The runtime validates and commits the guest write after sizing it.

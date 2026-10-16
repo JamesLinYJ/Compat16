@@ -15,14 +15,21 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     GetCapture, GetFocus, GetKeyboardState, ReleaseCapture, SetCapture, SetFocus, SetKeyboardState,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetInputState, GetMessagePos, GetMessageTime, GetQueueStatus, KillTimer, PostMessageW,
-    PostThreadMessageW, SendMessageW, SetTimer, TIMERPROC,
+    GetInputState, GetMessageExtraInfo, GetMessagePos, GetMessageTime, GetQueueStatus, HWND_BROADCAST, InSendMessage, ReplyMessage,
+    KillTimer, PostMessageW, PostThreadMessageW, SendMessageW, SetTimer, TIMERPROC,
 };
 
 use super::win16_message_loop::{self, WaitResult};
 use super::win16_window_callbacks::host_timer_proc;
 use super::win16_window_worker as worker_window;
 use super::win16_window_worker::WorkerState;
+
+#[path = "win16_kernel_yield.rs"]
+mod kernel_yield;
+
+#[cfg(test)]
+#[path = "win16_reply_message_tests.rs"]
+mod reply_message_tests;
 
 const WM_COMMAND: u16 = 0x0111;
 const WM_TIMER: u16 = 0x0113;
@@ -80,6 +87,19 @@ pub(super) fn execute(
         _ => {}
     }
     match call {
+        Win16MessageCall::Yield { task_queue } => kernel_yield::execute(state, task_queue),
+        Win16MessageCall::SendBroadcast { kind, w_param, l_param } => {
+            let Some((message, native_w, native_l)) = broadcast_arguments(state, kind, w_param, l_param)?
+                else { return Ok(Win16MessageCallResult::Long(0)); };
+            let result = unsafe { SendMessageW(HWND_BROADCAST, message, native_w, native_l) };
+            Ok(Win16MessageCallResult::Long(result as i32))
+        }
+        Win16MessageCall::PostBroadcast { kind, w_param, l_param } => {
+            let Some((message, native_w, native_l)) = broadcast_arguments(state, kind, w_param, l_param)?
+                else { return Ok(Win16MessageCallResult::Boolean(false)); };
+            let succeeded = unsafe { PostMessageW(HWND_BROADCAST, message, native_w, native_l) } != 0;
+            Ok(Win16MessageCallResult::Boolean(succeeded))
+        }
         Win16MessageCall::SendMessage {
             window,
             message,
@@ -158,7 +178,10 @@ pub(super) fn execute(
                 )?;
                 return Ok(Win16MessageCallResult::Boolean(succeeded));
             }
-            let mut native_w = usize::from(w_param);
+            let Some(mut native_w) = super::win16_character_messages::to_native(state,
+                u32::from(message), w_param)? else {
+                    return Ok(Win16MessageCallResult::Boolean(false));
+                };
             let native_l = match l_param {
                 Win16MessageParam::Scalar(value) | Win16MessageParam::GuestBits(value) => {
                     (value as i32) as isize
@@ -339,8 +362,12 @@ pub(super) fn execute(
             Ok(Win16MessageCallResult::Boolean(succeeded))
         }
         Win16MessageCall::SetFocus { window } => {
-            let Some(hwnd) = resolve_window(state, window) else {
-                return Ok(Win16MessageCallResult::Window(None));
+            let hwnd = match window {
+                None => std::ptr::null_mut(),
+                Some(window) => match resolve_window(state, window) {
+                    Some(hwnd) => hwnd,
+                    None => return Ok(Win16MessageCallResult::Window(None)),
+                },
             };
             let old = unsafe { SetFocus(hwnd) };
             Ok(Win16MessageCallResult::Window(window_token(state, old)?))
@@ -373,6 +400,33 @@ pub(super) fn execute(
         Win16MessageCall::GetMessageTime => {
             Ok(Win16MessageCallResult::Long(unsafe { GetMessageTime() }))
         }
+        Win16MessageCall::GetMessageExtraInfo => {
+            // SDK LPARAM is a 32-bit LONG here. Keep its low 32 bits as queue
+            // metadata, without treating native LONG_PTR bits as a pointer.
+            Ok(Win16MessageCallResult::Long(unsafe {
+                GetMessageExtraInfo() as i32
+            }))
+        }
+        Win16MessageCall::InSendMessage => {
+            // wait_for_guest_reply executes nested Begin commands inline on
+            // the still-live native WndProc stack, preserving its send context.
+            // Capture it now; completion retries only project this saved BOOL.
+            Ok(Win16MessageCallResult::Boolean(unsafe {
+                InSendMessage() != 0
+            }))
+        }
+        Win16MessageCall::ReplyMessage { result } => {
+            // Nested Begin commands execute on the suspended native WndProc
+            // stack. Native BOOL is only an internal completion receipt: the
+            // Windows 3.1 entrypoint returns void and preserves guest AX/DX.
+            // Let USER retain the actual send context, including an outer
+            // cross-thread send inherited by nested same-thread callbacks.
+            // Do not copy guest outputs here: early ReplyMessage does not
+            // perform WM_GETTEXT's normal return-time buffer copyback.
+            Ok(Win16MessageCallResult::Boolean(unsafe {
+                ReplyMessage(result as isize) != 0
+            }))
+        }
         Win16MessageCall::GetInputState => Ok(Win16MessageCallResult::Boolean(
             unsafe { GetInputState() } != 0,
         )),
@@ -392,6 +446,25 @@ pub(super) fn execute(
             Ok(Win16MessageCallResult::Boolean(succeeded))
         }
     }
+}
+
+fn broadcast_arguments(
+    state: &Rc<RefCell<WorkerState>>,
+    kind: Win16ScalarMessage,
+    w_param: u16,
+    l_param: u32,
+) -> Result<Option<(u32, WPARAM, LPARAM)>, RuntimeError> {
+    // Revalidate at the host boundary: no guest window identity authorizes
+    // dereferencing a FARPROC, drawing handle, or pointer in a broadcast.
+    if !kind.broadcast_parameters_are_scalar(w_param, l_param) {
+        return Err(RuntimeError::new(
+            Kind::InvalidInput,
+            "Win16 broadcast parameters require a non-scalar native adapter",
+        ));
+    }
+    let message = u32::from(kind as u16);
+    Ok(super::win16_character_messages::to_native(state, message, w_param)?
+        .map(|native_w| (message, native_w, (l_param as i32) as isize)))
 }
 
 fn resolve_window(state: &Rc<RefCell<WorkerState>>, window: Win16HostWindow) -> Option<HWND> {
@@ -475,7 +548,9 @@ fn message_arguments(
             if Win16ScalarMessage::from_raw(message).is_none() {
                 return Ok(None);
             }
-            (usize::from(w_param), (value as i32) as isize)
+            let Some(native_w) = super::win16_character_messages::to_native(state,
+                u32::from(message), w_param)? else { return Ok(None); };
+            (native_w, (value as i32) as isize)
         }
         Win16MessageParam::GuestBits(value) => {
             if message < WM_USER || !has_guest_proc(state, window, hwnd, guest_class) {

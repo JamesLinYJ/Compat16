@@ -16,6 +16,8 @@ pub(super) fn decode(
     }
 
     let request = match (export.ordinal(), arguments) {
+        (92, [Win16Argument::Byte(drive)]) =>
+            Win16KernelPathInfoRequest::GetTempDrive { drive: *drive },
         (134, [Win16Argument::Dword(output), Win16Argument::Word(capacity)]) =>
             Win16KernelPathInfoRequest::GetWindowsDirectory {
                 output: *output, capacity: *capacity,
@@ -36,11 +38,15 @@ pub(super) fn decode(
                 output: *output,
             }
         }
-        (97 | 134 | 135, _) => return Err(Win16Error::InvalidRange),
+        (92 | 97 | 134 | 135, _) => return Err(Win16Error::InvalidRange),
         _ => return Ok(None),
     };
     Ok(Some(request))
 }
+
+#[cfg(test)]
+#[path = "call_get_temp_drive_tests.rs"]
+mod get_temp_drive_tests;
 
 /// LPCSTR in the SDK prototype is an ordinary FAR string. Stop at the end of
 /// its first selector instead of following a huge-pointer segment chain.

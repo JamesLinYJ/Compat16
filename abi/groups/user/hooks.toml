@@ -1,0 +1,86 @@
+module = "USER"
+
+[[exports]]
+ordinal = 121
+name = "SetWindowsHook"
+binding = { rust_id = "UserSetWindowsHook", id_value = 47, constant = "USER_SET_WINDOWS_HOOK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "hook_type", type = "I16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 123
+name = "CallMsgFilter"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "UserCallMsgFilter", id_value = 48, constant = "USER_CALL_MSG_FILTER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "message", type = "FarPointer" },
+  { name = "code", type = "I16" },
+]
+
+[[exports]]
+ordinal = 234
+name = "UnhookWindowsHook"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "UserUnhookWindowsHook", id_value = 49, constant = "USER_UNHOOK_WINDOWS_HOOK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "hook_type", type = "I16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 235
+name = "DefHookProc"
+binding = { rust_id = "UserDefHookProc", id_value = 50, constant = "USER_DEF_HOOK_PROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "code", type = "I16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
+  { name = "hook_slot", type = "FarPointer" },
+]
+
+[[exports]]
+ordinal = 291
+name = "SetWindowsHookEx"
+binding = { rust_id = "UserSetWindowsHookEx", id_value = 51, constant = "USER_SET_WINDOWS_HOOK_EX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "hook_type", type = "I16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "instance", type = "U16" },
+  { name = "task", type = "U16" },
+]
+
+[[exports]]
+ordinal = 292
+name = "UnhookWindowsHookEx"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "UserUnhookWindowsHookEx", id_value = 52, constant = "USER_UNHOOK_WINDOWS_HOOK_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "hook", type = "U32", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 293
+name = "CallNextHookEx"
+binding = { rust_id = "UserCallNextHookEx", id_value = 53, constant = "USER_CALL_NEXT_HOOK_EX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "hook", type = "U32", encoding = "segmented_pointer" },
+  { name = "code", type = "I16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
+]

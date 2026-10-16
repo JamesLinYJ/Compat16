@@ -1,0 +1,296 @@
+module = "KERNEL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 74
+name = "OpenFile"
+binding = { rust_id = "KernelOpenFile", id_value = 188, constant = "KERNEL_OPEN_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "reopen", type = "FarOutputBuffer", encoding = "long" },
+  { name = "style", type = "U16" },
+]
+
+[[exports]]
+ordinal = 81
+name = "_lclose"
+binding = { rust_id = "KernelLclose", id_value = 198, constant = "KERNEL_LCLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "file_handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 82
+name = "_lread"
+binding = { rust_id = "KernelLread", id_value = 190, constant = "KERNEL_LREAD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "file_handle", type = "U16" },
+  { name = "buffer", type = "FarOutputBuffer", encoding = "segmented_pointer" },
+  { name = "count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 83
+name = "_lcreat"
+binding = { rust_id = "KernelLcreat", id_value = 199, constant = "KERNEL_LCREAT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "attributes", type = "U16" },
+]
+
+[[exports]]
+ordinal = 84
+name = "_llseek"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLlseek", id_value = 191, constant = "KERNEL_LLSEEK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "file_handle", type = "U16" },
+  { name = "offset", type = "I32" },
+  { name = "origin", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 85
+name = "_lopen"
+binding = { rust_id = "KernelLopen", id_value = 187, constant = "KERNEL_LOPEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "mode", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 86
+name = "_lwrite"
+binding = { rust_id = "KernelLwrite", id_value = 200, constant = "KERNEL_LWRITE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "file_handle", type = "U16" },
+  { name = "buffer", type = "FarBuffer" },
+  { name = "count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 97
+name = "GetTempFileName"
+binding = { rust_id = "KernelGetTempFileName", id_value = 1146, constant = "KERNEL_GET_TEMP_FILE_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "drive", type = "U16" },
+  { name = "prefix", type = "NullableFarString" },
+  { name = "unique", type = "U16" },
+  { name = "path", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 130
+name = "FileCDR"
+decl = { attributes = [] }
+binding = { rust_id = "KernelFileCdr", id_value = 1134, constant = "KERNEL_FILE_CDR" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "procedure", type = "FarPointer" },
+]
+
+[[exports]]
+ordinal = 134
+name = "GetWindowsDirectory"
+binding = { rust_id = "KernelGetWindowsDirectory", id_value = 1147, constant = "KERNEL_GET_WINDOWS_DIRECTORY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 135
+name = "GetSystemDirectory"
+binding = { rust_id = "KernelGetSystemDirectory", id_value = 1148, constant = "KERNEL_GET_SYSTEM_DIRECTORY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 136
+name = "GetDriveType"
+binding = { rust_id = "KernelGetDriveType", id_value = 158, constant = "KERNEL_GET_DRIVE_TYPE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "drive", type = "U16" },
+]
+
+[[exports]]
+ordinal = 144
+name = "CreateDirectory"
+binding = { rust_id = "KernelCreateDirectory", id_value = 1135, constant = "KERNEL_CREATE_DIRECTORY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString", encoding = "pointer" },
+  { name = "security_attributes", type = "FarPointer" },
+]
+
+[[exports]]
+ordinal = 145
+name = "RemoveDirectory"
+binding = { rust_id = "KernelRemoveDirectory", id_value = 1136, constant = "KERNEL_REMOVE_DIRECTORY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 146
+name = "DeleteFile"
+binding = { rust_id = "KernelDeleteFile", id_value = 1137, constant = "KERNEL_DELETE_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 199
+name = "SetHandleCount"
+binding = { rust_id = "KernelSetHandleCount", id_value = 154, constant = "KERNEL_SET_HANDLE_COUNT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "requested_count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 349
+name = "_hread"
+decl = { attributes = [] }
+binding = { rust_id = "KernelHread", id_value = 202, constant = "KERNEL_HREAD" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "file_handle", type = "U16" },
+  { name = "buffer", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "count", type = "I32" },
+]
+
+[[exports]]
+ordinal = 350
+name = "_hwrite"
+decl = { attributes = [] }
+binding = { rust_id = "KernelHwrite", id_value = 203, constant = "KERNEL_HWRITE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "file_handle", type = "U16" },
+  { name = "buffer", type = "FarBuffer" },
+  { name = "count", type = "I32" },
+]
+
+[[exports]]
+ordinal = 411
+name = "GetCurrentDirectory"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetCurrentDirectory", id_value = 1138, constant = "KERNEL_GET_CURRENT_DIRECTORY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "capacity", type = "U32" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 412
+name = "SetCurrentDirectory"
+binding = { rust_id = "KernelSetCurrentDirectory", id_value = 1139, constant = "KERNEL_SET_CURRENT_DIRECTORY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 413
+name = "FindFirstFile"
+binding = { rust_id = "KernelFindFirstFile", id_value = 1140, constant = "KERNEL_FIND_FIRST_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "search_file", type = "FarString", encoding = "pointer" },
+  { name = "find_data", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 414
+name = "FindNextFile"
+binding = { rust_id = "KernelFindNextFile", id_value = 1141, constant = "KERNEL_FIND_NEXT_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "search_handle", type = "U16" },
+  { name = "find_data", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 415
+name = "FindClose"
+binding = { rust_id = "KernelFindClose", id_value = 1142, constant = "KERNEL_FIND_CLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "search_handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 420
+name = "GetFileAttributes"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetFileAttributes", id_value = 1143, constant = "KERNEL_GET_FILE_ATTRIBUTES" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "path", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 421
+name = "SetFileAttributes"
+binding = { rust_id = "KernelSetFileAttributes", id_value = 1144, constant = "KERNEL_SET_FILE_ATTRIBUTES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString", encoding = "pointer" },
+  { name = "attributes", type = "U32" },
+]
+
+[[exports]]
+ordinal = 422
+name = "GetDiskFreeSpace"
+binding = { rust_id = "KernelGetDiskFreeSpace", id_value = 1145, constant = "KERNEL_GET_DISK_FREE_SPACE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "root_path", type = "NullableFarString", encoding = "pointer" },
+  { name = "sectors_per_cluster", type = "FarOutputBuffer" },
+  { name = "bytes_per_sector", type = "FarOutputBuffer" },
+  { name = "free_clusters", type = "FarOutputBuffer" },
+  { name = "total_clusters", type = "FarOutputBuffer" },
+]

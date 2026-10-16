@@ -16,6 +16,21 @@ const MAX_CLASS_NAME_BYTES: usize = 255;
 // for a class background; Win16 passes COLOR_* + 1 as an HBRUSH value.
 const LAST_SYSTEM_COLOR_INDEX: u16 = 30;
 
+#[path = "win16_unregister_class.rs"]
+mod unregister;
+
+#[path = "win16_class_procedure.rs"]
+mod procedure;
+
+#[path = "win16_class_menu.rs"]
+mod menu;
+
+#[path = "win16_class_resource.rs"]
+mod resource;
+
+#[path = "win16_class_lookup.rs"]
+mod lookup;
+
 struct GuestWindowClass {
     instance: u16,
     atom: u16,
@@ -24,7 +39,15 @@ struct GuestWindowClass {
     host_class: Win16HostClass,
     lower_name: Option<Vec<u8>>,
     info: WndClass16,
+    /// Owned resource identity used by future window/dialog creations. The
+    /// original FAR bits in info.lpsz_menu_name remain the guest LONG result.
     menu_name: Option<Win16ResourceName>,
+    /// Guest cbClsExtra bytes belong to this registration, not its HWNDs.
+    /// They never alias native superclass/private class storage.
+    extra_bytes: Vec<u8>,
+    /// Old class FARs returned by SetClassLong remain callable until this
+    /// registration is removed, even after the selected HWND has retired.
+    procedure_roots: Vec<u32>,
 }
 
 pub(super) struct ResolvedWindowClass {
@@ -32,6 +55,8 @@ pub(super) struct ResolvedWindowClass {
     pub system_kind: Option<Win16HostSystemClass>,
     pub wnd_proc: u32,
     pub has_menu_resource: bool,
+    /// The registration owner supplies class resources and owns its WNDPROC.
+    /// A CS_GLOBALCLASS window may be created by a different module.
     pub instance: u16,
     pub window_extra_bytes: usize,
 }
@@ -90,6 +115,28 @@ impl GuestWindowClasses {
         }
         let entry = self.system_classes.iter().find(|entry| entry.host_class == host_class)?;
         usize::try_from(entry.metadata.spec.window_extra).ok()
+    }
+
+    /// Only guest registrations have a Win16 class-data layout. Predefined
+    /// aliases must not expose the native class's private extra bytes.
+    pub(super) fn guest_class_extra_mut(
+        &mut self,
+        host_class: Win16HostClass,
+    ) -> Option<&mut [u8]> {
+        Some(self.entries.iter_mut().find(|entry| entry.host_class == host_class)?
+            .extra_bytes.as_mut_slice())
+    }
+
+    /// Return copied guest metadata, the actual registration atom and the
+    /// owning module instance. The source name atom can differ, and neither
+    /// atom is a native pointer. The owning instance still needs module-handle
+    /// normalization for `GCW_HMODULE`; it is not itself that module handle.
+    pub(super) fn guest_class_info(
+        &self,
+        host_class: Win16HostClass,
+    ) -> Option<(u16, WndClass16, u16)> {
+        let entry = self.entries.iter().find(|entry| entry.host_class == host_class)?;
+        Some((entry.atom, entry.info, entry.instance))
     }
 
     /// Resolve only class aliases backed by an exact predefined system class.
@@ -182,13 +229,9 @@ impl Win16State {
             Win16ClassName::Name(bytes) => Some(host.win16_ansi_lower_string(bytes)?),
             Win16ClassName::Atom(_) => None,
         };
-        let registered = self.window_classes.entries.iter().find(|entry| {
-            Some(entry.instance) == owner && match &name {
-                Win16ClassName::Atom(atom) => *atom == entry.atom
-                    || entry.source_name_atom == Some(*atom),
-                Win16ClassName::Name(_) => entry.lower_name.as_ref() == lower_name.as_ref(),
-            }
-        }).map(|entry| entry.info);
+        let registered = self.window_classes.registered_class_index(
+            owner, &name, lower_name.as_deref(),
+        ).map(|index| self.window_classes.entries[index].info);
         let info = if let Some(info) = registered { info } else {
             let Win16ClassName::Name(bytes) = &name else { return Ok(0); };
             let Some(kind) = system_control_class(bytes) else { return Ok(0); };
@@ -253,10 +296,9 @@ impl Win16State {
             return Ok(0);
         }
         let lower_name = Some(host.win16_ansi_lower_string(&class_name)?);
-        if self.window_classes.entries.iter().any(|entry| {
-            entry.instance == owner && (entry.lower_name.as_ref() == lower_name.as_ref()
-                || source_name_atom.is_some() && entry.source_name_atom == source_name_atom)
-        }) {
+        if self.window_classes.registration_conflicts(
+            owner, info.style, lower_name.as_deref(), source_name_atom,
+        ) {
             return Ok(0);
         }
         self.window_classes.entries.try_reserve(1).map_err(|_| RuntimeError::new(
@@ -282,6 +324,14 @@ impl Win16State {
                 None => return Ok(0),
             }
         };
+        // Reserve and zero guest-owned class bytes before native registration.
+        // A failed allocation must not leave a native class without its guest
+        // storage. Removing the acknowledged registration releases both.
+        let extra_len = info.cb_cls_extra as usize; // nonnegative checked above
+        let mut extra_bytes = Vec::new();
+        extra_bytes.try_reserve_exact(extra_len).map_err(|_| RuntimeError::new(
+            Kind::ResourceExhausted, "Win16 class extra-data storage cannot grow"))?;
+        extra_bytes.resize(extra_len, 0);
         let Some(registered) = host.win16_register_window_class(Win16HostClassSpec {
             style: info.style,
             class_extra: info.cb_cls_extra,
@@ -295,7 +345,7 @@ impl Win16State {
             instance: owner, atom: registered.atom,
             source_name_atom, name: class_name,
             host_class: registered.class,
-            lower_name, info, menu_name,
+            lower_name, info, menu_name, extra_bytes, procedure_roots: Vec::new(),
         });
         Ok(registered.atom)
     }
@@ -326,19 +376,15 @@ impl Win16State {
             Win16ClassName::Name(bytes) => Some(host.win16_ansi_lower_string(bytes)?),
             Win16ClassName::Atom(_) => None,
         };
-        let class = self.window_classes.entries.iter().find(|class| {
-            class.instance == owner && match name {
-                Win16ClassName::Atom(atom) => class.atom == *atom
-                    || class.source_name_atom == Some(*atom),
-                Win16ClassName::Name(_) => class.lower_name.as_ref() == lower.as_ref(),
-            }
-        });
+        let class = self.window_classes.registered_class_index(
+            Some(owner), name, lower.as_deref(),
+        ).map(|index| &self.window_classes.entries[index]);
         Ok(class.map(|class| ResolvedWindowClass {
             host_class: class.host_class,
             system_kind: None,
             wnd_proc: class.info.lpfn_wnd_proc,
             has_menu_resource: class.menu_name.is_some(),
-            instance: owner,
+            instance: class.instance,
             window_extra_bytes: usize::try_from(class.info.cb_wnd_extra).unwrap_or(0),
         }))
     }
@@ -437,7 +483,8 @@ impl Win16State {
     }
     pub(super) fn class_code_references(&self) -> Vec<u32> {
         self.window_classes.entries.iter()
-            .map(|class| class.info.lpfn_wnd_proc)
+            .flat_map(|class| std::iter::once(class.info.lpfn_wnd_proc)
+                .chain(class.procedure_roots.iter().copied()))
             .collect()
     }
 
@@ -459,7 +506,10 @@ impl Win16State {
             };
             for index in (0..self.window_classes.entries.len()).rev() {
                 let class = &self.window_classes.entries[index];
-                if class.instance != instance {
+                if class.instance != instance
+                    || self.window_class_retention(class.host_class)
+                        != unregister::WindowClassRetention::Unretained
+                {
                     continue;
                 }
                 if host.win16_unregister_window_class(class.host_class)? {

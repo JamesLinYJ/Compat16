@@ -178,7 +178,22 @@ pub(super) fn decode_cached(
     start_ip: u32,
     cache: &mut DecodeCache,
 ) -> Result<DecodedInstruction, CpuError> {
+    #[cfg(test)]
+    if cache.bypass {
+        return decode(bus, cs, start_ip);
+    }
     decode_inner(bus, cs, start_ip, Some(cache))
+}
+
+/// Decode only a provider-certified plain code snapshot. It grants no fetch
+/// permission and never replaces the ordinary byte-ordered fault path.
+#[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+pub(crate) fn decode_plain(bytes: &[u8], start_ip: u32, bits: u32, protected_eip32: bool) -> Option<DecodedInstruction> {
+    let mut decoder = Decoder::with_ip(bits, bytes, u64::from(start_ip), DecoderOptions::MOV_TR);
+    let instruction = decoder.decode();
+    if decoder.last_error() != DecoderError::None || instruction.is_invalid() { return None; }
+    let bytes = &bytes[..instruction.len()];
+    Some(DecodedInstruction { instruction, opcode: bytes[0], operand32: (bits==16)==has_operand_size_override(bytes), x87_opcode: x87_opcode(bytes), start_ip, next_ip: start_ip.wrapping_add(instruction.len() as u32) & if bits==16 && !protected_eip32 {0xffff} else {u32::MAX} })
 }
 
 fn decode_inner(

@@ -1,0 +1,157 @@
+module = "SOUND"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "OpenSound"
+binding = { rust_id = "SoundOpen", id_value = 1061, constant = "SOUND_OPEN" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 2
+name = "CloseSound"
+decl = { attributes = [] }
+binding = { rust_id = "SoundClose", id_value = 1062, constant = "SOUND_CLOSE" }
+[exports.call]
+returns = "void"
+
+[[exports]]
+ordinal = 3
+name = "SetVoiceQueueSize"
+binding = { rust_id = "SoundSetVoiceQueueSize", id_value = 1063, constant = "SOUND_SET_VOICE_QUEUE_SIZE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+]
+
+[[exports]]
+ordinal = 4
+name = "SetVoiceNote"
+binding = { rust_id = "SoundSetVoiceNote", id_value = 1064, constant = "SOUND_SET_VOICE_NOTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+  { name = "third", type = "U16" },
+  { name = "fourth", type = "U16" },
+]
+
+[[exports]]
+ordinal = 5
+name = "SetVoiceAccent"
+binding = { rust_id = "SoundSetVoiceAccent", id_value = 1065, constant = "SOUND_SET_VOICE_ACCENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+  { name = "third", type = "U16" },
+  { name = "fourth", type = "U16" },
+  { name = "fifth", type = "U16" },
+]
+
+[[exports]]
+ordinal = 6
+name = "SetVoiceEnvelope"
+binding = { rust_id = "SoundSetVoiceEnvelope", id_value = 1066, constant = "SOUND_SET_VOICE_ENVELOPE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+  { name = "third", type = "U16" },
+]
+
+[[exports]]
+ordinal = 7
+name = "SetSoundNoise"
+binding = { rust_id = "SoundSetSoundNoise", id_value = 1067, constant = "SOUND_SET_SOUND_NOISE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+]
+
+[[exports]]
+ordinal = 8
+name = "SetVoiceSound"
+binding = { rust_id = "SoundSetVoiceSound", id_value = 1068, constant = "SOUND_SET_VOICE_SOUND" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "voice", type = "U16" },
+  { name = "frequency", type = "U32" },
+  { name = "duration", type = "U16" },
+]
+
+[[exports]]
+ordinal = 9
+name = "StartSound"
+binding = { rust_id = "SoundStart", id_value = 1069, constant = "SOUND_START" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 10
+name = "StopSound"
+binding = { rust_id = "SoundStop", id_value = 1070, constant = "SOUND_STOP" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 11
+name = "WaitSoundState"
+binding = { rust_id = "SoundWaitState", id_value = 1071, constant = "SOUND_WAIT_STATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U16" },
+]
+
+[[exports]]
+ordinal = 12
+name = "SyncAllVoices"
+binding = { rust_id = "SoundSyncAllVoices", id_value = 1072, constant = "SOUND_SYNC_ALL_VOICES" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 13
+name = "CountVoiceNotes"
+binding = { rust_id = "SoundCountVoiceNotes", id_value = 1073, constant = "SOUND_COUNT_VOICE_NOTES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U16" },
+]
+
+[[exports]]
+ordinal = 14
+name = "GetThresholdEvent"
+decl = { attributes = [] }
+binding = { rust_id = "SoundGetThresholdEvent", id_value = 1074, constant = "SOUND_GET_THRESHOLD_EVENT" }
+[exports.call]
+returns = "far_pointer"
+
+[[exports]]
+ordinal = 15
+name = "GetThresholdStatus"
+binding = { rust_id = "SoundGetThresholdStatus", id_value = 1075, constant = "SOUND_GET_THRESHOLD_STATUS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 16
+name = "SetVoiceThreshold"
+binding = { rust_id = "SoundSetVoiceThreshold", id_value = 1076, constant = "SOUND_SET_VOICE_THRESHOLD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+]

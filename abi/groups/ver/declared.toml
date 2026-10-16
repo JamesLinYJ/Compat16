@@ -1,0 +1,6 @@
+module = "VER"
+
+[[exports]]
+ordinal = 20
+name = "GETFILEVERSIONINFORAW"
+kind = "stub"

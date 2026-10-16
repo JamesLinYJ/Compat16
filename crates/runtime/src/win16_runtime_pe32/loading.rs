@@ -16,7 +16,7 @@ use super::{
     query_default_extension_needed,
 };
 
-#[path = "loading/group/mod.rs"]
+#[path = "loading/group.rs"]
 mod group;
 
 #[derive(Clone, Debug)]

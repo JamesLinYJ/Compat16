@@ -1,0 +1,16 @@
+module = "OLE2NLS"
+
+[[exports]]
+ordinal = 9
+name = "RegisterNLSInfoChanged"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 11
+name = "LIBMAIN"
+kind = "stub"
+
+[[exports]]
+ordinal = 12
+name = "NOTIFYWINDOWPROC"
+kind = "stub"

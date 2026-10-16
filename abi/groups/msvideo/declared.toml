@@ -1,0 +1,334 @@
+module = "MSVIDEO"
+
+[[exports]]
+ordinal = 2
+name = "VideoForWindowsVersion"
+
+[[exports]]
+ordinal = 3
+name = "DllEntryPoint"
+decl = { args = ["long", "word", "word", "word", "long", "word"] }
+
+[[exports]]
+ordinal = 20
+name = "videoGetNumDevs"
+
+[[exports]]
+ordinal = 21
+name = "videoGetErrorText"
+decl = { args = ["word", "word", "string", "word"] }
+
+[[exports]]
+ordinal = 22
+name = "VideoCapDriverDescAndVer"
+decl = { args = ["word", "pointer", "word", "pointer", "word"] }
+
+[[exports]]
+ordinal = 28
+name = "videoOpen"
+decl = { args = ["pointer", "long", "long"] }
+
+[[exports]]
+ordinal = 29
+name = "videoClose"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 30
+name = "videoDialog"
+decl = { args = ["word", "word", "long"] }
+
+[[exports]]
+ordinal = 31
+name = "videoFrame"
+decl = { args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 32
+name = "videoConfigure"
+decl = { args = ["word", "word", "long", "pointer", "pointer", "long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 33
+name = "videoConfigureStorage"
+decl = { args = ["word", "string", "long"] }
+
+[[exports]]
+ordinal = 34
+name = "videoGetChannelCaps"
+decl = { args = ["word", "pointer", "long"] }
+
+[[exports]]
+ordinal = 35
+name = "videoUpdate"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 40
+name = "videoStreamAddBuffer"
+decl = { args = ["word", "pointer", "long"] }
+
+[[exports]]
+ordinal = 41
+name = "videoStreamFini"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 42
+name = "videoStreamGetError"
+decl = { args = ["word", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 43
+name = "videoStreamGetPosition"
+decl = { args = ["word", "pointer", "long"] }
+
+[[exports]]
+ordinal = 44
+name = "videoStreamInit"
+decl = { args = ["word", "long", "long", "long", "long"] }
+
+[[exports]]
+ordinal = 46
+name = "videoStreamPrepareHeader"
+decl = { args = ["word", "pointer", "long"] }
+
+[[exports]]
+ordinal = 47
+name = "videoStreamReset"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 49
+name = "videoStreamStart"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 50
+name = "videoStreamStop"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 51
+name = "videoStreamUnprepareHeader"
+decl = { args = ["word", "pointer", "long"] }
+
+[[exports]]
+ordinal = 52
+name = "videoStreamAllocHdrAndBuffer"
+decl = { args = ["word", "pointer", "long"] }
+
+[[exports]]
+ordinal = 53
+name = "videoStreamFreeHdrAndBuffer"
+decl = { args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 60
+name = "videoMessage"
+decl = { args = ["word", "word", "long", "long"] }
+
+[[exports]]
+ordinal = 102
+name = "DrawDibOpen"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 103
+name = "DrawDibClose"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 104
+name = "DrawDibBegin"
+decl = { attributes = ["ret16"], args = ["word", "word", "signed_word", "signed_word", "pointer", "signed_word", "signed_word", "word"] }
+
+[[exports]]
+ordinal = 105
+name = "DrawDibEnd"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 106
+name = "DrawDibDraw"
+decl = { attributes = ["ret16"], args = ["word", "word", "signed_word", "signed_word", "signed_word", "signed_word", "pointer", "pointer", "signed_word", "signed_word", "signed_word", "signed_word", "word"] }
+
+[[exports]]
+ordinal = 108
+name = "DrawDibGetPalette"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 110
+name = "DrawDibSetPalette"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 111
+name = "DRAWDIBCHANGEPALETTE"
+kind = "stub"
+
+[[exports]]
+ordinal = 112
+name = "DrawDibRealize"
+decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 113
+name = "DRAWDIBTIME"
+kind = "stub"
+
+[[exports]]
+ordinal = 114
+name = "DrawDibProfileDisplay"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 115
+name = "STRETCHDIB"
+kind = "stub"
+
+[[exports]]
+ordinal = 118
+name = "DrawDibStart"
+decl = { attributes = ["ret16"], args = ["word", "long"] }
+
+[[exports]]
+ordinal = 119
+name = "DrawDibStop"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 120
+name = "DRAWDIBGETBUFFER"
+kind = "stub"
+
+[[exports]]
+ordinal = 200
+name = "ICInfo"
+decl = { attributes = ["ret16"], args = ["long", "long", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 201
+name = "ICInstall"
+decl = { attributes = ["ret16"], args = ["long", "long", "long", "pointer", "word"] }
+
+[[exports]]
+ordinal = 202
+name = "ICRemove"
+decl = { attributes = ["ret16"], args = ["long", "long", "word"] }
+
+[[exports]]
+ordinal = 203
+name = "ICOpen"
+decl = { attributes = ["ret16"], args = ["long", "long", "word"] }
+
+[[exports]]
+ordinal = 204
+name = "ICClose"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 205
+name = "ICSendMessage"
+decl = { args = ["word", "word", "long", "long"] }
+
+[[exports]]
+ordinal = 206
+name = "ICOpenFunction"
+decl = { attributes = ["ret16"], args = ["long", "long", "word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 207
+name = "_ICMessage"
+decl = { type = "varargs", args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 212
+name = "ICGetInfo"
+decl = { args = ["word", "segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 213
+name = "ICLocate"
+decl = { attributes = ["ret16"], args = ["long", "long", "pointer", "pointer", "word"] }
+
+[[exports]]
+ordinal = 224
+name = "_ICCompress"
+decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "long", "long", "long", "segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 230
+name = "_ICDecompress"
+decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 232
+name = "_ICDrawBegin"
+decl = { type = "cdecl", args = ["word", "long", "word", "word", "word", "signed_word", "signed_word", "signed_word", "signed_word", "segmented_pointer", "signed_word", "signed_word", "signed_word", "signed_word", "long", "long"] }
+
+[[exports]]
+ordinal = 234
+name = "_ICDraw"
+decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "long", "long"] }
+
+[[exports]]
+ordinal = 239
+name = "ICGetDisplayFormat"
+decl = { attributes = ["ret16"], args = ["word", "pointer", "pointer", "signed_word", "signed_word", "signed_word"] }
+
+[[exports]]
+ordinal = 240
+name = "ICIMAGECOMPRESS"
+kind = "stub"
+
+[[exports]]
+ordinal = 241
+name = "ICIMAGEDECOMPRESS"
+kind = "stub"
+
+[[exports]]
+ordinal = 242
+name = "ICCOMPRESSORCHOOSE"
+kind = "stub"
+
+[[exports]]
+ordinal = 243
+name = "ICCOMPRESSORFREE"
+kind = "stub"
+
+[[exports]]
+ordinal = 244
+name = "ICSEQCOMPRESSFRAMESTART"
+kind = "stub"
+
+[[exports]]
+ordinal = 245
+name = "ICSEQCOMPRESSFRAMEEND"
+kind = "stub"
+
+[[exports]]
+ordinal = 246
+name = "ICSEQCOMPRESSFRAME"
+kind = "stub"
+
+[[exports]]
+ordinal = 250
+name = "_MCIWndCreate"
+decl = { type = "cdecl", args = ["word", "word", "long", "string"] }
+
+[[exports]]
+ordinal = 251
+name = "_MCIWndRegisterClass"
+decl = { type = "cdecl" }
+
+[[exports]]
+ordinal = 252
+name = "GETOPENFILENAMEPREVIEW"
+kind = "stub"
+
+[[exports]]
+ordinal = 253
+name = "GETSAVEFILENAMEPREVIEW"
+kind = "stub"

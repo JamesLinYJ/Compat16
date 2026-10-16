@@ -1,0 +1,6 @@
+module = "OLE2PROX"
+
+[[exports]]
+ordinal = 1
+name = "DLLGETCLASSOBJECT"
+kind = "stub"

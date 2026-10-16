@@ -1,0 +1,94 @@
+module = "LZEXPAND"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "LZCopy"
+decl = { attributes = [] }
+binding = { rust_id = "LzexpandLzCopy", id_value = 600, constant = "LZEXPAND_LZ_COPY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "source", type = "I16", encoding = "word" },
+  { name = "destination", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 2
+name = "LZOpenFile"
+binding = { rust_id = "LzexpandLzOpenFile", id_value = 601, constant = "LZEXPAND_LZ_OPEN_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "ofstruct", type = "FarOutputBuffer" },
+  { name = "style", type = "U16" },
+]
+
+[[exports]]
+ordinal = 3
+name = "LZInit"
+binding = { rust_id = "LzexpandLzInit", id_value = 602, constant = "LZEXPAND_LZ_INIT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "file", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 4
+name = "LZSeek"
+decl = { attributes = [] }
+binding = { rust_id = "LzexpandLzSeek", id_value = 603, constant = "LZEXPAND_LZ_SEEK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "file", type = "I16", encoding = "word" },
+  { name = "offset", type = "I32" },
+  { name = "origin", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 5
+name = "LZRead"
+binding = { rust_id = "LzexpandLzRead", id_value = 604, constant = "LZEXPAND_LZ_READ" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "file", type = "I16", encoding = "word" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 6
+name = "LZClose"
+binding = { rust_id = "LzexpandLzClose", id_value = 605, constant = "LZEXPAND_LZ_CLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "file", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 8
+name = "CopyLZFile"
+decl = { attributes = [] }
+binding = { rust_id = "LzexpandCopyLzFile", id_value = 607, constant = "LZEXPAND_COPY_LZ_FILE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "source", type = "I16", encoding = "word" },
+  { name = "destination", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 10
+name = "GetExpandedName"
+binding = { rust_id = "LzexpandGetExpandedName", id_value = 609, constant = "LZEXPAND_GET_EXPANDED_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "source", type = "FarString" },
+  { name = "output", type = "FarOutputBuffer" },
+]

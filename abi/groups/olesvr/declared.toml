@@ -1,0 +1,56 @@
+module = "OLESVR"
+
+[[exports]]
+ordinal = 21
+name = "SRVRWNDPROC"
+kind = "stub"
+
+[[exports]]
+ordinal = 22
+name = "DOCWNDPROC"
+kind = "stub"
+
+[[exports]]
+ordinal = 23
+name = "ITEMWNDPROC"
+kind = "stub"
+
+[[exports]]
+ordinal = 24
+name = "SENDDATAMSG"
+kind = "stub"
+
+[[exports]]
+ordinal = 25
+name = "FINDITEMWND"
+kind = "stub"
+
+[[exports]]
+ordinal = 27
+name = "TERMINATECLIENTS"
+kind = "stub"
+
+[[exports]]
+ordinal = 28
+name = "TERMINATEDOCCLIENTS"
+kind = "stub"
+
+[[exports]]
+ordinal = 29
+name = "DELETECLIENTINFO"
+kind = "stub"
+
+[[exports]]
+ordinal = 30
+name = "SENDRENAMEMSG"
+kind = "stub"
+
+[[exports]]
+ordinal = 31
+name = "ENUMFORTERMINATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 32
+name = "DllEntryPoint"
+decl = { attributes = ["ret16"], args = ["long", "word", "word", "word", "long", "word"] }

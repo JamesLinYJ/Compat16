@@ -1,0 +1,13 @@
+module = "COMPOBJ"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 18
+name = "IsEqualGUID"
+binding = { rust_id = "CompobjIsEqualGuid", id_value = 591, constant = "COMPOBJ_IS_EQUAL_GUID" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "left", type = "FarBuffer" },
+  { name = "right", type = "FarBuffer" },
+]

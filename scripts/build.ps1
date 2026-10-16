@@ -115,6 +115,7 @@ try {
         'LICENSE',
         'LICENSES\NOTICE.txt',
         'LICENSES\DEPENDENCIES.txt',
+        'LICENSES\JIT-DEPENDENCIES.txt',
         'LICENSES\Microsoft-MS-DOS-MIT.txt'
     )
     $architectureSummary = ($architectures | ForEach-Object { Get-ArchitectureLabel $_ }) -join ', '

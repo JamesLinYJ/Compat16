@@ -26,6 +26,9 @@ pub fn decode_export_call_with_register_context(
                     context: register_context,
                 },
                 Win16ExportId::KernelInitTask => Win16ApiRequest::InitTask { context: register_context },
+                Win16ExportId::KernelSwitchStackBack => Win16ApiRequest::Kernel(
+                    Win16KernelRequest::SwitchStackBack { context: register_context },
+                ),
                 _ => return Err(Win16Error::UnsupportedRegisterContextExport),
             };
             let stack_cleanup = match descriptor.stack_cleanup {

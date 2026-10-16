@@ -112,9 +112,10 @@ struct Block {
     owner: OwnerId,
     guest_owner: Option<GuestMemoryOwner>,
     flags: AllocationFlags,
-    /// Guest GlobalLock references. Win3.1 protected mode counts these only
-    /// while an effectively discardable object is locked.
+    /// Guest GlobalLock references. Ordinary nondiscardable objects need no
+    /// count; managed objects can also retain locks across discard transitions.
     global_lock_count: u16,
+    discard_transition_locks: bool,
     /// Guest GlobalFix references, independent of GlobalLock/GlobalUnlock.
     fix_count: u16,
     /// Win16 GlobalPageLock references are allocator pins, not GlobalFlags
@@ -308,8 +309,8 @@ impl GlobalHeap {
     }
 
     /// Reallocate with the Win16 `GMEM_MODIFY` and discard transitions applied
-    /// before the ordinary resize path. A zero size discards only a movable,
-    /// discardable, unlocked block; otherwise it leaves the allocation intact.
+    /// before the ordinary resize path. An already-discarded zero-size handle
+    /// is returned unchanged before `GMEM_MODIFY` is considered.
     pub fn realloc_global(
         &mut self,
         handle: GlobalHandle,
@@ -322,15 +323,20 @@ impl GlobalHeap {
     ) -> Result<GlobalHandle, Win16Error> {
         let block = self.lookup(handle)?;
         if block.runtime_primary != primary { return Err(Win16Error::StaleSelector); }
+        if new_size == 0 && block.discarded { return Ok(handle); }
         if flags & GMEM_MODIFY != 0 {
-            let changed = GMEM_MOVEABLE | GMEM_NOCOMPACT | GMEM_NODISCARD
-                | GMEM_DISCARDABLE | GMEM_DDESHARE;
+            // Win16 GMEM_MODIFY may make a fixed block movable, but cannot
+            // reverse that transition. Only movable blocks change their
+            // discardability; sharing is also a one-way ownership change.
             let next_flags = AllocationFlags {
-                movable: flags & GMEM_MOVEABLE != 0,
+                movable: block.flags.movable || flags & GMEM_MOVEABLE != 0,
                 ..block.flags
             };
-            let next_allocation_flags =
-                (block.allocation_flags & !changed) | (flags & changed);
+            let mut next_allocation_flags = block.allocation_flags | (flags & GMEM_DDESHARE);
+            if next_flags.movable {
+                next_allocation_flags = (next_allocation_flags & !GMEM_DISCARDABLE)
+                    | (flags & GMEM_DISCARDABLE) | GMEM_MOVEABLE;
+            }
             self.reserve_lru_slot(Some(handle.raw.0), next_flags, next_allocation_flags)?;
             let entry = self.blocks_by_handle.get_mut(&handle.raw.0)
                 .ok_or(Win16Error::InvalidHandle)?;
@@ -339,7 +345,8 @@ impl GlobalHeap {
             self.sync_lru_membership(handle.raw.0)?;
             return Ok(handle);
         }
-        if new_size == 0 && flags & GMEM_MOVEABLE != 0 {
+        if new_size == 0 {
+            if flags & GMEM_MOVEABLE == 0 { return Err(Win16Error::InvalidSize); }
             selector_updates.try_reserve(selectors.slot_capacity())
                 .map_err(|_| Win16Error::OutOfMemory)?;
             match self.discard(handle, selectors) {
@@ -348,12 +355,15 @@ impl GlobalHeap {
             }
             return Ok(handle);
         }
-        // A zero-byte resize without the movable discard request keeps a
-        // minimum resident block; it is not an implicit discard operation.
-        let new_size = if new_size == 0 { 32 } else { new_size };
 
         self.validate_memory(memory)?;
-        if block.is_pinned() { return Err(Win16Error::Locked); }
+        // A same-sized resident allocation needs no writes or descriptor
+        // changes, even while a guest lock or retained host view is active.
+        if new_size == block.size { return Ok(handle); }
+        // Guest GlobalLock/GlobalFix counts constrain relocation, not an
+        // in-place resize. Internal, page and selector-alias leases retain
+        // backing ranges and must still prevent any size or base change.
+        if self.retention_pin_count(handle)? != 0 { return Err(Win16Error::Locked); }
         selector_updates.try_reserve(selectors.slot_capacity())
             .map_err(|_| Win16Error::OutOfMemory)?;
         if block.discarded {
@@ -393,7 +403,6 @@ impl GlobalHeap {
             return Ok(handle);
         }
 
-        if new_size == block.size { return Ok(handle); }
         let initialize_extension = flags & GMEM_ZEROINIT != 0 || block.flags.zero_init;
         if self.can_fit_at(block.base, new_size, Some(handle.raw.0)) {
             let new_length = usize::try_from(new_size).map_err(|_| Win16Error::OutOfMemory)?;
@@ -442,7 +451,16 @@ impl GlobalHeap {
             return Ok(handle);
         }
 
-        if !block.flags.movable { return Err(Win16Error::OutOfMemory); }
+        // The Win16 caller may explicitly permit moving a guest-locked block.
+        // The retained backing leases above are never overridden by this flag.
+        if block.reported_lock_count() != 0 && flags & GMEM_MOVEABLE == 0 {
+            return Err(Win16Error::Locked);
+        }
+        // Win16 GMEM_MOVEABLE permits relocation of a fixed block for this
+        // resize; only GMEM_MODIFY can convert a fixed allocation to movable.
+        if !block.flags.movable && flags & GMEM_MOVEABLE == 0 {
+            return Err(Win16Error::OutOfMemory);
+        }
         let new_base = self.find_range(new_size).ok_or(Win16Error::OutOfMemory)?;
         let target_len = usize::try_from(new_size).map_err(|_| Win16Error::OutOfMemory)?;
         memory.validate_write(new_base, target_len)?;
@@ -569,10 +587,23 @@ impl GlobalHeap {
         memory: &impl GuestMemory,
     ) -> Result<(), Win16Error> {
         let block = self.lookup(handle)?;
-        if block.owner != expected_owner { return Err(Win16Error::InvalidHandle); }
         if block.internal_pin_count == 0 { return Err(Win16Error::Locked); }
+        if new_size < expected_size { return Err(Win16Error::InvalidSize); }
+        self.resize_reserved_in_place(handle, expected_owner, expected_size, new_size, selectors, memory)
+    }
+
+    /// Resize the visible extent of an owned, resident allocation while its
+    /// private reservation and base remain fixed. Runtime callers authorize
+    /// saved CPU bindings before committing a contraction.
+    pub fn resize_reserved_in_place(
+        &mut self, handle: GlobalHandle, expected_owner: OwnerId,
+        expected_size: u32, new_size: u32, selectors: &mut SelectorTable,
+        memory: &impl GuestMemory,
+    ) -> Result<(), Win16Error> {
+        let block = self.lookup(handle)?;
+        if block.owner != expected_owner { return Err(Win16Error::InvalidHandle); }
         if block.discarded { return Err(Win16Error::InvalidHandle); }
-        if block.size != expected_size || new_size < expected_size || new_size > block.capacity {
+        if block.size != expected_size || new_size == 0 || new_size > block.capacity {
             return Err(Win16Error::InvalidSize);
         }
         let selector = block.selector.ok_or(Win16Error::InvalidSelector)?;
@@ -590,7 +621,11 @@ impl GlobalHeap {
         // metadata nor this block's logical size changes.
         let entry = self.blocks_by_handle.get_mut(&handle.raw.0)
             .ok_or(Win16Error::InvalidHandle)?;
-        selectors.extend_allocation_in_place(block.base, block.size, new_size, memory)?;
+        if new_size > block.size {
+            selectors.extend_allocation_in_place(block.base, block.size, new_size, memory)?;
+        } else {
+            selectors.contract_allocation_in_place(block.base, block.size, new_size, memory)?;
+        }
         entry.size = new_size;
         Ok(())
     }

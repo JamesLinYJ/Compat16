@@ -11,8 +11,12 @@ mod win16_common_controls_dc_retention;
 mod win16_common_controls_drag_list;
 #[path = "win16_control_outputs.rs"]
 mod win16_control_outputs;
+#[path = "win16_cursor_clip.rs"]
+mod win16_cursor_clip;
 #[path = "win16_deferred_native_messages.rs"]
 mod win16_deferred_native_messages;
+#[path = "win16_dialog_icon_controls.rs"]
+mod win16_dialog_icon_controls;
 #[path = "win16_dialog_callbacks.rs"]
 mod win16_dialog_callbacks;
 #[path = "win16_gdi_bitmap_lease.rs"]
@@ -25,6 +29,12 @@ mod win16_ime_profiles;
 mod win16_mdi_pending_creation;
 #[path = "win16_native_procedures.rs"]
 mod win16_native_procedures;
+#[path = "win16_window_instances.rs"]
+mod win16_window_instances;
+#[path = "win16_character_messages.rs"]
+mod win16_character_messages;
+#[path = "win16_subclass_send.rs"]
+mod win16_subclass_send;
 #[path = "win16_owner_draw_callbacks.rs"]
 mod win16_owner_draw_callbacks;
 #[path = "win16_shell_execution.rs"]
@@ -81,7 +91,7 @@ mod win16_message_calls;
 #[path = "win16_message_loop.rs"]
 mod win16_message_loop;
 #[path = "win16_user_cursor_accelerator.rs"]
-mod win16_user_cursor_accelerator;
+pub(super) mod win16_user_cursor_accelerator;
 #[path = "win16_user_services_clipboard.rs"]
 mod win16_user_services_clipboard;
 #[path = "win16_user_services_controls.rs"]
@@ -104,6 +114,8 @@ mod win16_window_enumeration;
 mod win16_window_geometry;
 #[path = "win16_window_ops.rs"]
 mod win16_window_ops;
+#[path = "win16_window_caret.rs"]
+mod win16_window_caret;
 #[path = "win16_window_position.rs"]
 mod win16_window_position;
 #[path = "win16_window_properties.rs"]
@@ -116,8 +128,15 @@ mod win16_window_text_context;
 mod win16_windows_dde;
 
 use operation_inputs::{
-    native_bitmap_tokens, toolbar_bitmap_tokens, update_region_output, update_region_tokens,
+    native_bitmap_tokens, toolbar_bitmap_tokens, transferred_dc_region,
+    update_region_output, update_region_tokens,
 };
+#[path = "win16_gray_string.rs"]
+mod win16_gray_string;
+#[path = "win16_metafile_enumeration.rs"]
+pub(in crate::windows) mod metafile_enumeration;
+#[path = "win16_windows_graphics.rs"]
+mod graphics;
 
 #[path = "win16_control_color_return.rs"]
 mod control_color_return;
@@ -146,7 +165,8 @@ use runtime::{
     Win16WindowStep, Win16WindowTerminalAck, Win16WindowTerminalSourceTop,
 };
 use win16_window_worker::{
-    NativeDropRetirementQueue, NativeDropRetirementQueueHandle, WindowWorker, WorkerCommand,
+    NativeClassResource, NativeDropRetirementQueue, NativeDropRetirementQueueHandle,
+    WindowWorker, WorkerCommand,
 };
 pub(super) use win16_windows_dde::allocate_shared_identity;
 use win16_windows_dde::{DdeSourceLedger, PendingSource};
@@ -176,6 +196,9 @@ struct PendingOperation {
     /// never read again while this slot is populated.
     completion: Option<PendingUserCompletion>,
     region_output: Option<(Win16HostGdiObject, Win16RegionLease)>,
+    transferred_dc_region: Option<Win16HostGdiObject>,
+    graphics: Option<graphics::DrawingLease>,
+    metafile: Option<Arc<metafile_enumeration::MetafileSession>>,
     control_color_return: Option<ControlColorReturnSlot>,
     wait_kind: Option<PendingWaitKind>,
     pending_guest_work: Option<PendingGuestWorkContinuation>,
@@ -236,6 +259,7 @@ struct TerminalShutdownRetirementProof {
 /// native state itself never leaves the worker thread.
 pub(super) struct Win16Windows {
     worker: Option<WindowWorker>,
+    dcs: Win16Dcs,
     worker_start_error: Option<Arc<RuntimeError>>,
     pending: Vec<PendingOperation>,
     dde_sources: DdeSourceLedger,
@@ -270,7 +294,7 @@ impl Win16Windows {
             };
         let native_drop_retirements = NativeDropRetirementQueue::shared();
         let worker = WindowWorker::spawn(
-            dcs,
+            dcs.clone(),
             images,
             Arc::clone(&identity_source),
             oem_text_codec,
@@ -279,6 +303,7 @@ impl Win16Windows {
         match worker {
             Ok(worker) => Self {
                 worker: Some(worker),
+                dcs,
                 worker_start_error: None,
                 pending: Vec::new(),
                 dde_sources: DdeSourceLedger::default(),
@@ -295,6 +320,7 @@ impl Win16Windows {
             },
             Err(error) => Self {
                 worker: None,
+                dcs,
                 worker_start_error: Some(Arc::new(error)),
                 pending: Vec::new(),
                 dde_sources: DdeSourceLedger::default(),
@@ -462,6 +488,7 @@ impl Win16Windows {
         &mut self,
         operation: Win16WindowOperation,
         objects: &mut Win16Objects,
+        win_exec: Option<Result<super::win16_program_launch::PreparedLaunch, u16>>,
     ) -> Result<Win16WindowStep, RuntimeError> {
         if self.aborted {
             return Err(RuntimeError::new(
@@ -472,6 +499,12 @@ impl Win16Windows {
         let operation = match operation {
             Win16WindowOperation::Dde(call) => return self.begin_dde_inner(call),
             operation => operation,
+        };
+        self.refresh_pending_graphics(objects)?;
+        let graphics = match &operation {
+            Win16WindowOperation::EnumMetafile { dc, .. } | Win16WindowOperation::GrayString { dc, .. } =>
+                Some(graphics::DrawingLease::capture(&self.dcs, objects, *dc)?),
+            _ => None,
         };
         let control_color_return =
             operation_control_color_message(&operation).then(ControlColorReturnSlot::new);
@@ -490,6 +523,7 @@ impl Win16Windows {
         let worker_generation = worker.worker_generation();
         let id = allocate_shared_identity(&self.identity_source)?;
         let (reply, response) = mpsc::channel();
+        let metafile = metafile_enumeration::prepare(&operation, id)?;
         let native_font = match &operation {
             Win16WindowOperation::Default { message, .. }
             | Win16WindowOperation::DefFrameProc { message, .. }
@@ -524,6 +558,7 @@ impl Win16Windows {
                 .as_ref()
                 .map(|region| (token, region.clone()))
         });
+        let transferred_dc_region = transferred_dc_region(&operation);
         self.pending.try_reserve(1).map_err(|error| {
             RuntimeError::with_source(
                 Kind::ResourceExhausted,
@@ -552,14 +587,23 @@ impl Win16Windows {
                 win16_gdi_bitmap_lease::Win16BitmapLease::snapshot(*token, bitmap)
             });
         }
+        let gray_string_brush = match &operation {
+            Win16WindowOperation::GrayString { brush: Some(brush), .. } =>
+                win16_gray_string::BrushLease::capture(objects, *brush),
+            _ => None,
+        };
+        super::win16_gdi::flush_thread_batch();
         let command = WorkerCommand::Begin {
             id,
             operation,
+            win_exec,
             control_color_return: control_color_return.clone(),
             native_bitmaps,
             native_font,
             toolbar_bitmap_leases,
             native_regions,
+            gray_string_brush,
+            metafile: metafile.clone(),
             response: reply,
         };
         if let Err(command) = worker.send_begin(command) {
@@ -594,6 +638,9 @@ impl Win16Windows {
             resumed_modal_work: None,
             completion: None,
             region_output,
+            transferred_dc_region,
+            graphics,
+            metafile,
             control_color_return,
             wait_kind,
             pending_guest_work: None,
@@ -646,6 +693,19 @@ impl Win16Windows {
             ));
         }
         self.worker()?.query_window_liveness(window)
+    }
+
+    pub(super) fn host_window_parent(
+        &self,
+        window: Win16HostWindow,
+    ) -> Result<runtime::Win16HostWindowParentObservation, RuntimeError> {
+        if self.aborted {
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "exact Win16 window parent is unavailable after USER worker abort",
+            ));
+        }
+        self.worker()?.query_window_parent(window)
     }
 
     pub(super) fn resume(

@@ -1,0 +1,273 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "MessageBox"
+binding = { rust_id = "UserMessageBox", id_value = 234, constant = "USER_MESSAGE_BOX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "owner", type = "U16" },
+  { name = "text", type = "FarString" },
+  { name = "caption", type = "FarString" },
+  { name = "style", type = "U16" },
+]
+
+[[exports]]
+ordinal = 6
+name = "PostQuitMessage"
+binding = { rust_id = "UserPostQuitMessage", id_value = 219, constant = "USER_POST_QUIT_MESSAGE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "exit_code", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 10
+name = "SetTimer"
+binding = { rust_id = "UserSetTimer", id_value = 438, constant = "USER_SET_TIMER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "timer_id", type = "U16" },
+  { name = "interval", type = "U16" },
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 12
+name = "KillTimer"
+binding = { rust_id = "UserKillTimer", id_value = 439, constant = "USER_KILL_TIMER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "timer_id", type = "U16" },
+]
+
+[[exports]]
+ordinal = 18
+name = "SetCapture"
+binding = { rust_id = "UserSetCapture", id_value = 440, constant = "USER_SET_CAPTURE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 22
+name = "SetFocus"
+binding = { rust_id = "UserSetFocus", id_value = 442, constant = "USER_SET_FOCUS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 101
+name = "SendDlgItemMessage"
+decl = { attributes = [] }
+binding = { rust_id = "UserSendDlgItemMessage", id_value = 446, constant = "USER_SEND_DLG_ITEM_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "id", type = "I16", encoding = "word" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
+]
+
+[[exports]]
+ordinal = 104
+name = "MessageBeep"
+binding = { rust_id = "UserMessageBeep", id_value = 224, constant = "USER_MESSAGE_BEEP" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "beep_type", type = "U16" },
+]
+
+[[exports]]
+ordinal = 108
+name = "GetMessage"
+binding = { rust_id = "UserGetMessage", id_value = 220, constant = "USER_GET_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "message", type = "FarOutputBuffer" },
+  { name = "window", type = "U16" },
+  { name = "min_message", type = "U16" },
+  { name = "max_message", type = "U16" },
+]
+
+[[exports]]
+ordinal = 109
+name = "PeekMessage"
+binding = { rust_id = "UserPeekMessage", id_value = 221, constant = "USER_PEEK_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "message", type = "FarOutputBuffer" },
+  { name = "window", type = "U16" },
+  { name = "min_message", type = "U16" },
+  { name = "max_message", type = "U16" },
+  { name = "remove", type = "U16" },
+]
+
+[[exports]]
+ordinal = 110
+name = "PostMessage"
+binding = { rust_id = "UserPostMessage", id_value = 444, constant = "USER_POST_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
+]
+
+[[exports]]
+ordinal = 111
+name = "SendMessage"
+decl = { attributes = [] }
+binding = { rust_id = "UserSendMessage", id_value = 445, constant = "USER_SEND_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
+]
+
+[[exports]]
+ordinal = 113
+name = "TranslateMessage"
+binding = { rust_id = "UserTranslateMessage", id_value = 222, constant = "USER_TRANSLATE_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "message", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 114
+name = "DispatchMessage"
+decl = { attributes = [] }
+binding = { rust_id = "UserDispatchMessage", id_value = 223, constant = "USER_DISPATCH_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "message", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 116
+name = "PostAppMessage"
+binding = { rust_id = "UserPostAppMessage", id_value = 448, constant = "USER_POST_APP_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "task", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
+]
+
+[[exports]]
+ordinal = 118
+name = "RegisterWindowMessage"
+binding = { rust_id = "UserRegisterWindowMessage", id_value = 474, constant = "USER_REGISTER_WINDOW_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "name", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 122
+name = "CallWindowProc"
+decl = { attributes = [] }
+binding = { rust_id = "UserCallWindowProc", id_value = 451, constant = "USER_CALL_WINDOW_PROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "I32" },
+]
+
+[[exports]]
+ordinal = 222
+name = "GetKeyboardState"
+binding = { rust_id = "UserGetKeyboardState", id_value = 452, constant = "USER_GET_KEYBOARD_STATE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "state", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 223
+name = "SetKeyboardState"
+binding = { rust_id = "UserSetKeyboardState", id_value = 453, constant = "USER_SET_KEYBOARD_STATE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "state", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 266
+name = "SetMessageQueue"
+binding = { rust_id = "UserSetMessageQueue", id_value = 246, constant = "USER_SET_MESSAGE_QUEUE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "message_count", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 334
+name = "GetQueueStatus"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetQueueStatus", id_value = 455, constant = "USER_GET_QUEUE_STATUS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 420
+name = "_wsprintf"
+binding = { rust_id = "UserWsprintf", id_value = 480, constant = "USER_WSPRINTF" }
+[exports.call]
+kind = "variable_stack"
+convention = "varargs"
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "format", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 421
+name = "wvsprintf"
+binding = { rust_id = "UserWvsprintf", id_value = 481, constant = "USER_WVSPRINTF" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "format", type = "FarString" },
+  { name = "arguments", type = "FarBuffer" },
+]

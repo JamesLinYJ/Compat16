@@ -1,0 +1,116 @@
+module = "WINSPOOL"
+
+[[exports]]
+ordinal = 1
+name = "DEVBITBLT"
+kind = "stub"
+
+[[exports]]
+ordinal = 2
+name = "COLORINFO"
+kind = "stub"
+
+[[exports]]
+ordinal = 3
+name = "CONTROL"
+kind = "stub"
+
+[[exports]]
+ordinal = 4
+name = "DISABLE"
+kind = "stub"
+
+[[exports]]
+ordinal = 5
+name = "ENABLE"
+kind = "stub"
+
+[[exports]]
+ordinal = 6
+name = "ENUMDFONTS"
+kind = "stub"
+
+[[exports]]
+ordinal = 7
+name = "ENUMOBJ"
+kind = "stub"
+
+[[exports]]
+ordinal = 8
+name = "OUTPUT"
+kind = "stub"
+
+[[exports]]
+ordinal = 9
+name = "PIXEL"
+kind = "stub"
+
+[[exports]]
+ordinal = 10
+name = "REALIZEOBJECT"
+kind = "stub"
+
+[[exports]]
+ordinal = 11
+name = "STRBLT"
+kind = "stub"
+
+[[exports]]
+ordinal = 12
+name = "SCANLR"
+kind = "stub"
+
+[[exports]]
+ordinal = 13
+name = "DeviceMode"
+decl = { args = ["word", "word", "string", "string"] }
+
+[[exports]]
+ordinal = 14
+name = "DEVEXTTEXTOUT"
+kind = "stub"
+
+[[exports]]
+ordinal = 15
+name = "DEVGETCHARWIDTH"
+kind = "stub"
+
+[[exports]]
+ordinal = 19
+name = "DEVICEBITMAPBITS"
+kind = "stub"
+
+[[exports]]
+ordinal = 20
+name = "CREATEDIBITMAP"
+kind = "stub"
+
+[[exports]]
+ordinal = 21
+name = "SETDIBITSTODEVICE"
+kind = "stub"
+
+[[exports]]
+ordinal = 28
+name = "STRETCHDIB"
+kind = "stub"
+
+[[exports]]
+ordinal = 90
+name = "ExtDeviceMode"
+decl = { args = ["word", "word", "pointer", "string", "string", "pointer", "string", "word"] }
+
+[[exports]]
+ordinal = 92
+name = "QUERYDEVICENAMES"
+kind = "stub"
+
+[[exports]]
+ordinal = 94
+name = "DEVINSTALL"
+kind = "stub"
+
+[[exports]]
+ordinal = 1000
+name = "ADVANCEDSETUPDIALOG"
+kind = "stub"

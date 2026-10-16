@@ -1,0 +1,230 @@
+module = "GDI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 8
+name = "SetTextCharacterExtra"
+binding = { rust_id = "GdiSetTextCharacterExtra", id_value = 329, constant = "GDI_SET_TEXT_CHARACTER_EXTRA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "extra", type = "I16" },
+]
+
+[[exports]]
+ordinal = 9
+name = "SetTextColor"
+decl = { attributes = [] }
+binding = { rust_id = "GdiSetTextColor", id_value = 303, constant = "GDI_SET_TEXT_COLOR" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "color", type = "U32" },
+]
+
+[[exports]]
+ordinal = 10
+name = "SetTextJustification"
+binding = { rust_id = "GdiSetTextJustification", id_value = 331, constant = "GDI_SET_TEXT_JUSTIFICATION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "extra", type = "I16" },
+  { name = "breaks", type = "I16" },
+]
+
+[[exports]]
+ordinal = 33
+name = "TextOut"
+binding = { rust_id = "GdiTextOut", id_value = 307, constant = "GDI_TEXT_OUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "text", type = "FarBuffer", encoding = "string" },
+  { name = "count", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 56
+name = "CreateFont"
+binding = { rust_id = "GdiCreateFont", id_value = 323, constant = "GDI_CREATE_FONT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "height", type = "I16" },
+  { name = "width", type = "I16" },
+  { name = "escapement", type = "I16" },
+  { name = "orientation", type = "I16" },
+  { name = "weight", type = "I16" },
+  { name = "italic", type = "U16" },
+  { name = "underline", type = "U16" },
+  { name = "strikeout", type = "U16" },
+  { name = "char_set", type = "U16" },
+  { name = "out_precision", type = "U16" },
+  { name = "clip_precision", type = "U16" },
+  { name = "quality", type = "U16" },
+  { name = "pitch_and_family", type = "U16" },
+  { name = "face_name", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 57
+name = "CreateFontIndirect"
+binding = { rust_id = "GdiCreateFontIndirect", id_value = 324, constant = "GDI_CREATE_FONT_INDIRECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "logfont", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 70
+name = "EnumFonts"
+binding = { rust_id = "GdiEnumFonts", id_value = 266, constant = "GDI_ENUM_FONTS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "face_name", type = "NullableFarString" },
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "parameter", type = "I32" },
+]
+
+[[exports]]
+ordinal = 89
+name = "GetTextCharacterExtra"
+binding = { rust_id = "GdiGetTextCharacterExtra", id_value = 330, constant = "GDI_GET_TEXT_CHARACTER_EXTRA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 90
+name = "GetTextColor"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetTextColor", id_value = 385, constant = "GDI_GET_TEXT_COLOR" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 91
+name = "GetTextExtent"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetTextExtent", id_value = 310, constant = "GDI_GET_TEXT_EXTENT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "text", type = "FarBuffer" },
+  { name = "count", type = "I16" },
+]
+
+[[exports]]
+ordinal = 92
+name = "GetTextFace"
+binding = { rust_id = "GdiGetTextFace", id_value = 315, constant = "GDI_GET_TEXT_FACE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "count", type = "I16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 93
+name = "GetTextMetrics"
+binding = { rust_id = "GdiGetTextMetrics", id_value = 314, constant = "GDI_GET_TEXT_METRICS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 308
+name = "GetOutlineTextMetrics"
+binding = { rust_id = "GdiGetOutlineTextMetrics", id_value = 313, constant = "GDI_GET_OUTLINE_TEXT_METRICS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 330
+name = "EnumFontFamilies"
+binding = { rust_id = "GdiEnumFontFamilies", id_value = 267, constant = "GDI_ENUM_FONT_FAMILIES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "face_name", type = "NullableFarString" },
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "parameter", type = "I32" },
+]
+
+[[exports]]
+ordinal = 345
+name = "GetTextAlign"
+binding = { rust_id = "GdiGetTextAlign", id_value = 356, constant = "GDI_GET_TEXT_ALIGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 346
+name = "SetTextAlign"
+binding = { rust_id = "GdiSetTextAlign", id_value = 357, constant = "GDI_SET_TEXT_ALIGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "alignment", type = "U16" },
+]
+
+[[exports]]
+ordinal = 351
+name = "ExtTextOut"
+binding = { rust_id = "GdiExtTextOut", id_value = 358, constant = "GDI_EXT_TEXT_OUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "options", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+  { name = "text", type = "FarBuffer", encoding = "string" },
+  { name = "count", type = "U16" },
+  { name = "spacing", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 471
+name = "GetTextExtentPoint"
+binding = { rust_id = "GdiGetTextExtentPoint", id_value = 360, constant = "GDI_GET_TEXT_EXTENT_POINT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "text", type = "FarBuffer" },
+  { name = "count", type = "I16" },
+  { name = "size", type = "FarOutputBuffer" },
+]

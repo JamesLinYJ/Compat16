@@ -8,8 +8,17 @@ mod win16_com_request_executor;
 mod win16_ole_native;
 mod win16_storage_ole;
 mod environment;
+mod jit_cache;
+
+impl WindowsHost {
+    pub fn jit_artifact_store(&self) -> Option<std::sync::Arc<dyn runtime::JitArtifactStore>> {
+        jit_cache::open_default()
+    }
+}
 mod process_command_line;
 pub use process_command_line::current_command_line;
+mod win16_program_launch;
+pub use win16_program_launch::{GuestChildLaunch, ProgramLoadReporter};
 #[path = "windows/error_mapping.rs"]
 mod error_mapping;
 pub(crate) use error_mapping::{invalid, os_error};
@@ -24,9 +33,14 @@ mod service_trace;
 mod vga_window;
 mod win16;
 mod win16_open_file;
+mod win16_file_paths;
+mod win16_file_devices;
+mod win16_lz_file_paths;
 mod win16_common;
 mod win16_drawing;
 mod win16_gdi;
+mod win16_get_dc_ex;
+mod win16_metafile;
 mod win16_gdi_bitmap_transfer;
 mod win16_gdi_device;
 mod win16_gdi_services;
@@ -57,6 +71,7 @@ mod win16_wing_dib_use;
 mod multimedia_wake;
 mod win16_printer;
 mod win16_profile_sections;
+mod win16_private_profile;
 mod win16_registered_names;
 mod win16_wing_brush;
 
@@ -106,6 +121,13 @@ mod win16_dde;
 #[path = "windows/win16_classic_dde_wire.rs"]
 mod win16_classic_dde_wire;
 mod win16_images;
+mod win16_dialog_icon_retention;
+#[cfg(test)]
+#[path = "windows/win16_dialog_static_creation_probe_tests.rs"]
+mod dialog_static_creation_probe_tests;
+#[cfg(test)]
+#[path = "windows/win16_static_icon_ownership_probe_tests.rs"]
+mod static_icon_ownership_probe_tests;
 mod win16_keyboard;
 #[path = "windows/win16_modal.rs"]
 mod win16_modal;
@@ -124,8 +146,9 @@ use devices::keyboard::KeyStroke;
 use devices::mouse::MouseInput;
 use devices::video::ConsoleSnapshot;
 use dos_kernel::{
-    DosDirectoryEntry, DosDiskSpace, DosErrorCode, DosFileAccess, DosFileSharing, DosHost,
-    DosHostError, DosHostFile, DosHostSearch, DosSeekOrigin,
+    DosDirectoryEntry, DosDiskSpace, DosErrorCode, DosFileAccess, DosFileOpenRequest,
+    DosFileOpenResult, DosFileSharing, DosHost, DosHostError, DosHostFile, DosHostSearch,
+    DosSeekOrigin,
 };
 use mouse::{MouseMapper, map_button_state};
 use runtime::{
@@ -173,6 +196,8 @@ pub enum ConsolePolicy {
 }
 
 pub struct WindowsHost {
+    program_load_reporter: Option<ProgramLoadReporter>,
+    child_execution: win16_program_launch::ExecutionOptions,
     win16_format_work: parallel_work::SharedExecutor,
     win16_work_generation: Arc<AtomicU64>,
     win16_callback_sender: runtime::Win16GuestCallbackSender,
@@ -340,6 +365,8 @@ impl WindowsHost {
             .map_err(|error| DosHostError::with_source(DosErrorCode::GeneralFailure, error))?;
         let win16_work_generation = multimedia_wake.generation_observer();
         Ok(Self {
+            program_load_reporter: None,
+            child_execution: win16_program_launch::ExecutionOptions::default(),
             win16_format_work: Arc::new(parallel_work::BoundedExecutor::new()),
             win16_work_generation,
             filesystem,
@@ -717,6 +744,14 @@ impl DosHost for WindowsHost {
     ) -> Result<dos_kernel::DosFileStatus, DosHostError> {
         self.filesystem.file_status(file)
     }
+    fn file_set_write_time(
+        &mut self,
+        file: DosHostFile,
+        time: u16,
+        date: u16,
+    ) -> Result<(), DosHostError> {
+        self.filesystem.file_set_write_time(file, time, date)
+    }
     fn guest_code_page(&self) -> CodePage {
         self.filesystem.guest_code_page()
     }
@@ -727,6 +762,17 @@ impl DosHost for WindowsHost {
         if let Some(byte) = self.dos_extended_byte.take() {
             output[0] = byte;
             return Ok(1);
+        }
+        if self.original_input_mode.is_none()
+            && self.keys.is_empty()
+            && !self.vga_window.is_active()
+        {
+            crate::ioctl::validate_redirected_input(self.input)?;
+            // DOS Function 3FH returns zero bytes at file EOF. Redirected
+            // bytes, including NUL, must not become extended keyboard events.
+            // Microsoft MS-DOS 4.0 Programmer's Reference, Function 3FH:
+            // https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/
+            return io::stdin().read(output).map_err(os_error);
         }
         let key = self
             .key(true)?
@@ -768,6 +814,16 @@ impl DosHost for WindowsHost {
     fn file_create(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
         self.filesystem.file_create(path, attributes)
     }
+    fn file_create_new(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
+        self.filesystem.file_create_new(path, attributes)
+    }
+    fn file_extended_open(
+        &mut self,
+        path: &[u8],
+        request: DosFileOpenRequest,
+    ) -> Result<DosFileOpenResult, DosHostError> {
+        self.filesystem.file_extended_open(path, request)
+    }
     fn file_open(
         &mut self,
         path: &[u8],
@@ -794,8 +850,14 @@ impl DosHost for WindowsHost {
     fn file_close(&mut self, file: DosHostFile) -> Result<(), DosHostError> {
         self.filesystem.file_close(file)
     }
+    fn file_commit(&mut self, file: DosHostFile) -> Result<(), DosHostError> {
+        self.filesystem.file_commit(file)
+    }
     fn file_read(&mut self, file: DosHostFile, output: &mut [u8]) -> Result<usize, DosHostError> {
         self.filesystem.file_read(file, output)
+    }
+    fn file_input_status(&mut self, file: DosHostFile) -> Result<bool, DosHostError> {
+        self.filesystem.file_input_status(file)
     }
     fn file_write(&mut self, file: DosHostFile, input: &[u8]) -> Result<usize, DosHostError> {
         self.filesystem.file_write(file, input)

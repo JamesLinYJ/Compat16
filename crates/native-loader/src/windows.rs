@@ -4,7 +4,8 @@ use std::io;
 use std::os::windows::ffi::OsStrExt;
 use windows_sys::Win32::Foundation::{FreeLibrary, HMODULE};
 use windows_sys::Win32::System::LibraryLoader::{
-    GetProcAddress, LoadLibraryExW,
+    GetModuleHandleExW, GetProcAddress, LoadLibraryExW,
+    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_PIN,
     LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR, LOAD_LIBRARY_SEARCH_SYSTEM32,
 };
 use super::EngineLoadError;
@@ -13,9 +14,30 @@ struct LoadedModule(HMODULE);
 
 impl Drop for LoadedModule {
     fn drop(&mut self) {
-        // SAFETY: this module owns one successful LoadLibraryExW reference;
-        // all calls have returned before the owner leaves run_engine.
+        // SAFETY: this owner balances one loader reference. A validated engine
+        // is pinned separately, so balancing these references cannot unmap
+        // code still needed by process/thread-exit callbacks.
         unsafe { FreeLibrary(self.0); }
+    }
+}
+
+impl LoadedModule {
+    fn retain_for_process(&self) -> Result<Self, EngineLoadError> {
+        let mut retained = std::ptr::null_mut();
+        // SAFETY: the owned HMODULE is a live mapped image base. FROM_ADDRESS
+        // makes this argument an address in that image, not a UTF-16 string.
+        // PIN retains the image through Windows process teardown, including
+        // Rust TLS destructors and system callbacks after the scalar entry
+        // returns. Runtime objects and explicitly owned workers still retire
+        // normally before that return; only the code image has process scope.
+        let ok = unsafe { GetModuleHandleExW(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
+            self.0.cast::<u16>(), &mut retained,
+        ) };
+        if ok == 0 {
+            return Err(EngineLoadError::ProcessLifetime(io::Error::last_os_error()));
+        }
+        Ok(Self(retained))
     }
 }
 
@@ -49,6 +71,10 @@ pub(super) fn run_engine() -> Result<i32, EngineLoadError> {
         })?;
     // SAFETY: ABI version 1 defines this scalar-only system entry signature.
     let entry: unsafe extern "system" fn() -> i32 = unsafe { std::mem::transmute(entry_address) };
+    // Pin only after validating both exports and the scalar ABI version.
+    // Returning from entry is not proof that every OS-owned exit callback
+    // has finished with this Rust DLL's code or thread-local storage.
+    let _process_lifetime = module.retain_for_process()?;
     // SAFETY: the core owns and destroys runtime resources before returning.
     // This module reference outlives the full execution and UI-worker callbacks.
     let status = unsafe { entry() };

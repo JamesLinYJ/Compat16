@@ -21,6 +21,7 @@ pub(super) enum Win16FarCallbackArgument {
     Word(u16),
     Dword(u32),
     GuestPointer { far: u32, access: Access, bytes: u32 },
+    HugeGuestPointer { far: u32, access: Access, bytes: u32 },
 }
 
 /// For arguments listed in prototype order, Pascal places the last parameter
@@ -102,6 +103,9 @@ impl Win16State {
             .map_err(crate::runtime_error)?;
 
         for argument in arguments {
+            if let Win16FarCallbackArgument::HugeGuestPointer { far, access, bytes } = *argument {
+                self.validate_callback_buffer(memory, far, access, bytes)?;
+            }
             if let Win16FarCallbackArgument::GuestPointer { far, access, bytes } = *argument {
                 let pointer = self.selectors.pointer_from_far(far)
                     .map_err(crate::runtime_error)?;
@@ -123,6 +127,7 @@ impl Win16State {
                     cursor += 2;
                 }
                 Win16FarCallbackArgument::Dword(value)
+                | Win16FarCallbackArgument::HugeGuestPointer { far: value, .. }
                 | Win16FarCallbackArgument::GuestPointer { far: value, .. } => {
                     bytes[cursor..cursor + 4].copy_from_slice(&value.to_le_bytes());
                     cursor += 4;
@@ -189,7 +194,35 @@ impl Win16State {
         convention: Win16FarCallbackConvention,
         return_kind: Win16FarCallbackReturn,
     ) -> Result<Win16FarCallbackFrame, RuntimeError> {
+        let entry = cpu.regs.clone();
+        self.enter_guest_far_callback_checked_with_registers(
+            cpu, dos, memory, procedure, arguments, convention, return_kind, entry,
+        )
+    }
+
+    /// Register-argument entries (such as NE LibMain/WEP) retain the original
+    /// caller separately from the prepared callee register image. Control and
+    /// stack registers cannot be replaced by this argument projection.
+    pub(super) fn enter_guest_far_callback_checked_with_registers(
+        &mut self,
+        cpu: &mut Cpu,
+        dos: &mut DosKernel,
+        memory: &mut Memory,
+        procedure: u32,
+        arguments: &[Win16FarCallbackArgument],
+        convention: Win16FarCallbackConvention,
+        return_kind: Win16FarCallbackReturn,
+        entry: Registers,
+    ) -> Result<Win16FarCallbackFrame, RuntimeError> {
         let caller = cpu.regs.clone();
+        if entry.cs != caller.cs || entry.eip != caller.eip
+            || entry.ss != caller.ss || entry.esp != caller.esp
+            || entry.eflags != caller.eflags
+        {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "Win16 FAR callback register arguments changed control or stack state"));
+        }
+
         let owner = self.capture_legacy_cpu_call_frame(cpu, dos, memory)?;
         let setup = (|| {
             let argument_bytes = arguments.iter().try_fold(0_u16, |total, argument| {
@@ -200,7 +233,7 @@ impl Win16State {
                 Kind::GuestFault, "Win16 callback frame exceeds the segmented stack limit"))?;
             let callback_sp = caller.sp().checked_sub(frame_bytes).ok_or_else(||
                 RuntimeError::new(Kind::GuestFault, "Win16 callback stack underflow"))?;
-            let mut callback = caller.clone();
+            let mut callback = entry.clone();
             callback.set_sp(callback_sp);
             callback.cs = (procedure >> 16) as u16;
             callback.set_ip(procedure as u16);
@@ -211,12 +244,16 @@ impl Win16State {
             gate.set_sp(returned_sp);
             self.retain_legacy_cpu_frame_roots(owner, &callback, dos, memory)?;
             self.retain_legacy_cpu_frame_roots(owner, &gate, dos, memory)?;
-            self.enter_guest_far_callback(&mut cpu.regs, memory, procedure, arguments,
-                convention, return_kind)
+            let mut entered = entry;
+            let mut frame = self.enter_guest_far_callback(&mut entered, memory, procedure,
+                arguments, convention, return_kind)?;
+            frame.saved = caller.clone();
+            Ok((frame, entered))
         })();
         match setup {
-            Ok(mut frame) => {
+            Ok((mut frame, entered)) => {
                 frame.cpu_owner = Some(owner);
+                cpu.regs = entered;
                 Ok(frame)
             }
             Err(primary) => {
@@ -229,8 +266,18 @@ impl Win16State {
                     target).and_then(|()| self.release_legacy_cpu_frame(owner, dos, memory));
                 match cleanup {
                     Ok(()) => Err(primary),
-                    Err(cleanup) => Err(primary.with_cleanup(
-                        "rollback Win16 callback setup while retaining its first cause", cleanup)),
+                    Err(cleanup) => {
+                        let cause = std::sync::Arc::new(primary.with_cleanup(
+                            "rollback Win16 callback setup while retaining its first cause", cleanup));
+                        let failure = RuntimeError::with_source(cause.kind(),
+                            "Win16 callback pre-entry rollback retains its CPU roots",
+                            std::sync::Arc::clone(&cause));
+                        match self.record_failed_legacy_cpu_setup(owner, cpu, cause) {
+                            Ok(()) => Err(failure),
+                            Err(retain) => Err(failure.with_cleanup(
+                                "retain the exact failed callback setup owner", retain)),
+                        }
+                    }
                 }
             }
         }
@@ -244,6 +291,36 @@ impl Win16State {
         dos: &mut DosKernel,
         memory: &mut Memory,
         frame: &mut Win16FarCallbackFrame,
+    ) -> Result<u32, RuntimeError> {
+        self.finish_guest_far_callback_checked_with_policy(
+            cpu, dos, memory, frame, CallEffectPolicy::PreserveX87,
+        )
+    }
+
+    pub(super) fn finish_guest_far_callback_checked_with_policy(
+        &mut self,
+        cpu: &mut Cpu,
+        dos: &mut DosKernel,
+        memory: &mut Memory,
+        frame: &mut Win16FarCallbackFrame,
+        policy: CallEffectPolicy,
+    ) -> Result<u32, RuntimeError> {
+        self.finish_guest_far_callback_return(cpu, dos, memory, frame, policy, false)
+    }
+
+    /// Compose a proved callback RETF with its enclosing native API owner.
+    /// The CPU issues AdapterReturn only after the checked restore commits;
+    /// the outer continuation must not reuse the consumed raw RETF marker.
+    pub(super) fn finish_native_function_far_callback(
+        &mut self, cpu: &mut Cpu, dos: &mut DosKernel, memory: &mut Memory,
+        frame: &mut Win16FarCallbackFrame,
+    ) -> Result<u32, RuntimeError> {
+        self.finish_guest_far_callback_return(cpu, dos, memory, frame, CallEffectPolicy::PreserveX87, true)
+    }
+
+    fn finish_guest_far_callback_return(
+        &mut self, cpu: &mut Cpu, dos: &mut DosKernel, memory: &mut Memory,
+        frame: &mut Win16FarCallbackFrame, policy: CallEffectPolicy, parent_return: bool,
     ) -> Result<u32, RuntimeError> {
         if frame.terminal_aborted {
             return Err(RuntimeError::new(Kind::InternalInvariant,
@@ -263,10 +340,13 @@ impl Win16State {
                 registers: frame.saved.clone(),
                 stack_pointer: LegacyStackPointerTarget::RegisterValue,
             };
-            self.restore_legacy_cpu_call_frame(owner, cpu, memory,
-                CallEffectPolicy::PreserveX87,
-                CallResumeBoundary::GuestCallReturn { transfer },
-                target)?;
+            if parent_return {
+                self.return_legacy_cpu_call_frame(owner, cpu, memory, policy,
+                    CallResumeBoundary::GuestCallReturn { transfer }, target)?;
+            } else {
+                self.restore_legacy_cpu_call_frame(owner, cpu, memory, policy,
+                    CallResumeBoundary::GuestCallReturn { transfer }, target)?;
+            }
         } else {
             cpu.regs = frame.saved.clone();
         }
@@ -289,8 +369,9 @@ impl Win16State {
     }
 
     /// Abort an entered FAR callback only after the owning Win16 execution
-    /// loop has ended. The terminal CPU frame restores the complete captured
+    /// loop has ended. An unfinished CPU frame restores the complete captured
     /// architecture state and retires its roots without claiming a guest RETF.
+    /// An already-returned, released owner only seals terminal payload cleanup.
     pub(in crate::win16_runtime) fn abort_guest_far_callback_after_task_execution_ended(
         &mut self,
         ended: &super::execute::Win16TaskExecutionEnded,
@@ -312,6 +393,13 @@ impl Win16State {
                 Err(RuntimeError::new(Kind::InternalInvariant,
                     "terminally aborted FAR callback retained its CPU owner identity"))
             };
+        }
+        // A checked guest return can release its CPU owner before family
+        // payload cleanup fails. Its cached result remains needed for a normal
+        // finish retry, but terminal cleanup must not restore that CPU twice.
+        if frame.cpu_restored && frame.returned_value.is_some() && frame.cpu_owner.is_none() {
+            frame.terminal_aborted = true;
+            return Ok(());
         }
         let owner = frame.cpu_owner.ok_or_else(|| RuntimeError::new(
             Kind::InternalInvariant,
@@ -357,7 +445,11 @@ impl Win16FarCallbackArgument {
     fn stack_size(self) -> u16 {
         match self {
             Self::Word(_) => 2,
-            Self::Dword(_) | Self::GuestPointer { .. } => 4,
+            Self::Dword(_) | Self::GuestPointer { .. } | Self::HugeGuestPointer { .. } => 4,
         }
     }
 }
+
+#[cfg(test)]
+#[path = "win16_far_callback_tests.rs"]
+mod tests;

@@ -9,7 +9,13 @@ use super::*;
 mod events;
 #[path = "win16_dde_shutdown_receipts.rs"]
 mod receipts;
-use receipts::{push_failure_once, reserve_receipt_for_pending_owner};
+#[cfg(test)]
+#[path = "win16_dde_shutdown_completion_tests.rs"]
+mod completion_tests;
+use receipts::{
+    completed_transfer_receipt, push_failure_once, reserve_receipt_for_pending_owner,
+    seed_completed_transfer_receipt,
+};
 
 const ABORT_POLL_WINDOW: Duration = Duration::from_millis(250);
 
@@ -245,6 +251,20 @@ impl Win16DdeHost {
                 "DDE operation retirement changed its exact host instance identity",
             ));
         }
+        if proof.cancellation.status == Win16DdeOperationCancellationStatus::NativeCompleteReturned {
+            let completed_guard = completed_transfer_receipt(operation, operation_record)?;
+            let exact_guard = match (completed_guard.as_ref(), proof.transfer_guard.as_ref()) {
+                (None, None) => true,
+                (Some(expected), Some(actual)) => same_transfer_guard(expected, actual),
+                _ => false,
+            };
+            if !exact_guard {
+                return Err(RuntimeError::new(
+                    Kind::InternalInvariant,
+                    "DDE returned operation ACK changed its actual completed transfer disposition",
+                ));
+            }
+        }
         let operation_phase_matches = match proof.cancellation.status {
             Win16DdeOperationCancellationStatus::NativeCompleteError => {
                 operation_record.request_phase
@@ -413,13 +433,38 @@ impl Win16DdeHost {
                 Some(runtime::Win16DdeOperationRequestPhase::NativeCompleteReturned)
                     if record.completed_result.is_some() =>
                 {
-                    upsert_operation(
-                        receipt,
-                        *operation,
-                        record.instance,
-                        Win16DdeOperationCancellationStatus::NativeCompleteReturned,
-                        None,
-                    );
+                    // Abort event processing may already have recorded a
+                    // different truthful terminal disposition (including
+                    // NotEntered). Keep that evidence stable across polls.
+                    let already_terminal = receipt.cancelled_operations.iter().any(|entry| {
+                        entry.operation == *operation
+                            && !matches!(entry.status,
+                                Win16DdeOperationCancellationStatus::Requested
+                                    | Win16DdeOperationCancellationStatus::Retained
+                                    | Win16DdeOperationCancellationStatus::NativeCompleteReturned)
+                    });
+                    if !already_terminal {
+                        upsert_operation(
+                            receipt,
+                            *operation,
+                            record.instance,
+                            Win16DdeOperationCancellationStatus::NativeCompleteReturned,
+                            None,
+                        );
+                        if let Err(error) = seed_completed_transfer_receipt(
+                            *operation, record, receipt,
+                        ) {
+                            record_failure(
+                                receipt,
+                                Win16DdeAbortPhase::ReconcileRuntimeLedger,
+                                None,
+                                Some(*operation),
+                                record.instance,
+                                Win16DdeCleanupStatus::Unresolved,
+                                error,
+                            );
+                        }
+                    }
                 }
                 Some(runtime::Win16DdeOperationRequestPhase::NativeCompleteReturned) => {
                     let error = Arc::new(RuntimeError::new(

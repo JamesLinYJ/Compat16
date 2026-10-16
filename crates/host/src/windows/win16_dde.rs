@@ -10,6 +10,9 @@ mod operation_lifecycle;
 mod shutdown;
 #[path = "win16_dde_worker.rs"]
 mod worker;
+#[cfg(test)]
+#[path = "win16_dde_test_support.rs"]
+mod test_support;
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
@@ -95,9 +98,13 @@ pub(super) struct WorkerShutdownReport {
 #[derive(Clone)]
 struct PendingDdeOperationRecord {
     instance: Option<Win16HostDdeInstance>,
+    /// Original ClientTransaction input survives removal of the active native
+    /// transfer guard so shutdown can prove the actual returned disposition.
+    transfer_data: Option<Win16HostDdeData>,
     request_phase: Option<Win16DdeOperationRequestPhase>,
     failure: Option<Arc<RuntimeError>>,
     completed_result: Option<Win16HostDdeResult>,
+    source_retirement_failure: Option<Arc<Win16DdeOperationStartedFailure>>,
 }
 
 pub(super) enum DdeBeginFailure {
@@ -279,6 +286,7 @@ impl Win16DdeHost {
         }
         self.pending_operations.insert(operation);
         let instance = match &call {
+            Win16HostDdeCall::Initialize { existing, .. } => *existing,
             Win16HostDdeCall::ClientTransaction { instance, .. }
             | Win16HostDdeCall::AbandonTransaction { instance, .. }
             | Win16HostDdeCall::PostAdvise { instance, .. }
@@ -295,13 +303,21 @@ impl Win16DdeHost {
             | Win16HostDdeCall::Connect { instance, .. } => Some(*instance),
             _ => None,
         };
+        let transfer_data = match &call {
+            Win16HostDdeCall::ClientTransaction {
+                data: Win16HostDdeTransactionData::Data(data), ..
+            } => Some(*data),
+            _ => None,
+        };
         self.pending_operation_instances.insert(
             operation,
             PendingDdeOperationRecord {
                 instance,
+                transfer_data,
                 request_phase: None,
                 failure: None,
                 completed_result: None,
+                source_retirement_failure: None,
             },
         );
         if let Win16HostDdeCall::ClientTransaction {
@@ -336,9 +352,11 @@ impl Win16DdeHost {
                     .entry(operation)
                     .or_insert_with(|| PendingDdeOperationRecord {
                         instance,
+                        transfer_data,
                         request_phase: Some(Win16DdeOperationRequestPhase::SubmittedPending),
                         failure: None,
                         completed_result: None,
+                        source_retirement_failure: None,
                     });
                 let phase = record
                     .request_phase

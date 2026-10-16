@@ -7,6 +7,7 @@ use guest_core::{
 
 use crate::{
     Cpu, CpuError, IF, RealModeSegments, SegmentResolver, StepOutcome, execute,
+    execution_boundary::{ExecutionBoundaryReport, ExecutionProgress},
     interrupt_delivery::{CpuEvent, EventSource, deliver_event_checked, exception_event},
     memory_access::{AccessSite, CpuBus, CpuMemoryAccess, DataBreakpointHits},
     registers::SegmentRegister,
@@ -18,6 +19,7 @@ use x86_decoder::Mnemonic;
 const EFLAGS_RF: u32 = 1 << 16;
 
 struct StepBoundary {
+    progress: ExecutionProgress,
     outcome: StepOutcome,
     interrupt_source: Option<EventSource>,
     instruction_opcode: u8,
@@ -49,16 +51,26 @@ impl Cpu {
         ports: &mut impl PortIo,
         segments: &impl SegmentResolver,
     ) -> Result<crate::CpuObservedStepOutcome, CpuError> {
+        self.step_with_context_observing_events_report(memory, ports, segments).outcome
+    }
+
+    pub(crate) fn step_with_context_observing_events_report(
+        &mut self,
+        memory: &mut impl GuestMemory,
+        ports: &mut impl PortIo,
+        segments: &impl SegmentResolver,
+    ) -> ExecutionBoundaryReport<crate::CpuObservedStepOutcome> {
         self.deferred_cpu_event = None;
         self.defer_cpu_events = true;
-        let outcome = self.step_with_context(memory, ports, segments);
+        let report = self.step_with_context_report(memory, ports, segments);
         self.defer_cpu_events = false;
-        match (outcome, self.deferred_cpu_event.take()) {
+        let outcome = match (report.outcome, self.deferred_cpu_event.take()) {
             (Ok(_), Some(event)) => Ok(crate::CpuObservedStepOutcome::EventDeferred(event)),
             (Ok(outcome), None) => Ok(crate::CpuObservedStepOutcome::Executed(outcome)),
             (Err(error), None) => Err(error),
             (Err(error), Some(_)) => Err(error),
-        }
+        };
+        ExecutionBoundaryReport { progress: report.progress, outcome }
     }
 
     /// The machine owner supplies code/stack sizes and checked segment aliases.
@@ -67,6 +79,27 @@ impl Cpu {
         memory: &mut impl GuestMemory,
         ports: &mut impl PortIo,
         segments: &impl SegmentResolver,
+    ) -> Result<StepOutcome, CpuError> {
+        self.step_with_context_report(memory, ports, segments).outcome
+    }
+
+    pub(crate) fn step_with_context_report(
+        &mut self,
+        memory: &mut impl GuestMemory,
+        ports: &mut impl PortIo,
+        segments: &impl SegmentResolver,
+    ) -> ExecutionBoundaryReport<StepOutcome> {
+        let mut progress = ExecutionProgress::NoInstruction;
+        let outcome = self.step_with_context_inner(memory, ports, segments, &mut progress);
+        ExecutionBoundaryReport { progress, outcome }
+    }
+
+    fn step_with_context_inner(
+        &mut self,
+        memory: &mut impl GuestMemory,
+        ports: &mut impl PortIo,
+        segments: &impl SegmentResolver,
+        progress: &mut ExecutionProgress,
     ) -> Result<StepOutcome, CpuError> {
         let Some(next_sequence) = self.next_call_boundary_sequence() else {
             self.call_boundary_sequence_exhausted = true;
@@ -160,6 +193,9 @@ impl Cpu {
         let resumes_repeat_iteration = self.intermediate_rep_boundary;
         self.intermediate_rep_boundary = false;
         let debug_shadow_was_active = self.debug_exception_shadow;
+        // Faults may preserve partial REP or task-switch effects. Only a
+        // successful executor boundary can promote this to completed progress.
+        *progress = ExecutionProgress::InstructionIncomplete;
         match self.step_instruction(memory, ports, segments, resumes_repeat_iteration) {
             Err(CpuError::FloatException)
                 if self.system.architectural_context_initialized
@@ -210,6 +246,13 @@ impl Cpu {
             }
             Err(error) => Err(error),
             Ok(boundary) => {
+                // Preserve body progress even if the following architectural
+                // delivery faults, redirects execution, or defers an event.
+                *progress = boundary.progress;
+                debug_assert_eq!(
+                    boundary.progress == ExecutionProgress::RepeatPartial,
+                    self.intermediate_rep_boundary,
+                );
                 if std::mem::replace(&mut self.pending_task_debug_trap, false) {
                     self.system.debug.status |= 1 << 15;
                     let event = CpuEvent {
@@ -353,10 +396,16 @@ impl Cpu {
             // a fault in the return frame does not re-block NMI recognition.
             self.non_maskable_interrupt_blocked = false;
         }
+        self.jit.observe(decoded, self.regs.cs, &mut self.decode_cache);
         let transfer_candidate = decoded.control_transfer_candidate(self.regs.cs, self.regs.ss);
         let interrupt_shadow = decoded
             .creates_interrupt_shadow(self.regs.eflags & IF != 0, self.maskable_interrupt_shadow);
-        if decoded.is_x87() {
+        // This path accepts only nontrapping GPR/flag IR after fetch and model
+        // validation. It cannot touch the bus or segment/system state, so it
+        // needs no speculative full-register clone or unrelated executors.
+        // The common retirement and outer event boundary still run below.
+        let jit_completed = self.jit.execute(&mut self.regs, decoded);
+        if !jit_completed && decoded.is_x87() {
             let unavailable = if decoded.is_wait() {
                 bus.system().wait_instruction_unavailable()
             } else {
@@ -370,7 +419,7 @@ impl Cpu {
             let had_pending_exception = state.pending_unmasked_exceptions() != 0;
             let exception_flags_before = state.status_word & crate::x87_state::X87_EXCEPTION_FLAGS;
             let instruction = x86_decode::NormalizedInstruction::new(decoded);
-            match x87::execute(&mut regs, &mut bus, &mut state, &instruction) {
+            match x87::execute(&mut regs, &mut bus, &mut state, &instruction, &mut self.jit) {
                 Ok(true) => {}
                 Ok(false) => {
                     return Err(CpuError::UnsupportedOpcode {
@@ -401,6 +450,7 @@ impl Cpu {
                             self.debug_exception_shadow,
                         );
                         return Ok(StepBoundary {
+                            progress: ExecutionProgress::InstructionBodyCompleted,
                             outcome: StepOutcome::Continue,
                             interrupt_source: None,
                             instruction_opcode: 0,
@@ -443,6 +493,7 @@ impl Cpu {
                 self.debug_exception_shadow,
             );
             return Ok(StepBoundary {
+                progress: ExecutionProgress::InstructionBodyCompleted,
                 outcome: StepOutcome::Continue,
                 interrupt_source: None,
                 instruction_opcode: 0,
@@ -450,7 +501,9 @@ impl Cpu {
                 data_breakpoint_hits,
             });
         }
-        if let Some(instruction) = x86_decode::normalize_system_instruction(decoded) {
+        if !jit_completed
+            && let Some(instruction) = x86_decode::normalize_system_instruction(decoded)
+        {
             let mut regs = self.regs.clone();
             execute::execute_system(&mut regs, &mut bus, &instruction)?;
             regs.eip = decoded.next_ip;
@@ -465,6 +518,7 @@ impl Cpu {
                 self.debug_exception_shadow,
             );
             return Ok(StepBoundary {
+                progress: ExecutionProgress::InstructionBodyCompleted,
                 outcome: StepOutcome::Continue,
                 interrupt_source: None,
                 instruction_opcode: 0,
@@ -472,7 +526,8 @@ impl Cpu {
                 data_breakpoint_hits,
             });
         }
-        if let Some((next_ip, unfinished_repeat, data_breakpoint_hits)) =
+        if !jit_completed
+            && let Some((next_ip, unfinished_repeat, data_breakpoint_hits)) =
             execute::execute_io(&mut self.regs, &mut bus, ports, decoded)?
         {
             self.regs.eip = next_ip;
@@ -482,6 +537,7 @@ impl Cpu {
             self.debug_exception_shadow = !debug_shadow_was_active
                 && decoded.creates_debug_exception_shadow();
             return Ok(StepBoundary {
+                progress: ExecutionProgress::after_repeat(unfinished_repeat),
                 outcome: StepOutcome::Continue,
                 interrupt_source: None,
                 instruction_opcode: 0,
@@ -494,15 +550,23 @@ impl Cpu {
             });
         }
         let task_before = bus.system().task;
-        let (outcome, next_ip, task_debug_trap, data_breakpoint_hits) =
-            if execute::is_string_instruction(decoded) {
+        let (outcome, next_ip, task_debug_trap, data_breakpoint_hits, progress) =
+            if jit_completed {
+                (
+                    StepOutcome::Continue, decoded.next_ip, false,
+                    bus.take_data_breakpoint_hits(), ExecutionProgress::InstructionBodyCompleted,
+                )
+            } else if execute::is_string_instruction(decoded) {
             // REP commits each completed iteration. A later fault must retain
             // that progress alongside its memory/device side effects; replacing
             // the entire register context would undo only half the operation.
             match execute::execute_string_boundary(&mut self.regs, &mut bus, decoded) {
                 Ok((next_ip, unfinished_repeat, data_breakpoint_hits)) => {
                     self.intermediate_rep_boundary = unfinished_repeat;
-                    (StepOutcome::Continue, next_ip, false, data_breakpoint_hits)
+                    (
+                        StepOutcome::Continue, next_ip, false, data_breakpoint_hits,
+                        ExecutionProgress::after_repeat(unfinished_repeat),
+                    )
                 }
                 Err(error) => {
                     // Intel SDM Vol. 2B, REP: repeated CMPS/SCAS restore the
@@ -520,7 +584,9 @@ impl Cpu {
             // remain live; this is not a memory rollback mechanism.
             let mut regs = self.regs.clone();
             let (outcome, next_ip, task_debug) =
-                match execute::execute(&mut regs, &mut bus, decoded, self.model) {
+                if execute::execute_jit_memory(&mut self.jit, &mut regs, &mut bus, decoded)? {
+                    (StepOutcome::Continue, decoded.next_ip, false)
+                } else { match execute::execute(&mut regs, &mut bus, decoded, self.model) {
                     Ok(result) => result,
                     Err(error @ CpuError::TaskSwitchCommitted { target_ip, .. }) => {
                         regs.eip = target_ip;
@@ -529,10 +595,13 @@ impl Cpu {
                         return Err(error);
                     }
                     Err(error) => return Err(error),
-                };
+                } };
             self.regs = regs;
             let data_breakpoint_hits = bus.take_data_breakpoint_hits();
-            (outcome, next_ip, task_debug, data_breakpoint_hits)
+            (
+                outcome, next_ip, task_debug, data_breakpoint_hits,
+                ExecutionProgress::InstructionBodyCompleted,
+            )
         };
         let restores_flags_image = matches!(
             decoded.instruction.mnemonic(),
@@ -572,6 +641,7 @@ impl Cpu {
             self.debug_exception_shadow,
         );
         Ok(StepBoundary {
+            progress,
             outcome,
             interrupt_source,
             instruction_opcode: decoded.opcode,

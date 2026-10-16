@@ -134,6 +134,34 @@ pub(super) fn execute_device(
     )
 }
 
+pub(super) fn execute_metafile(
+    host: &mut WindowsHost,
+    operation: runtime::Win16HostMetafileOperation,
+) -> Result<runtime::Win16HostMetafileResult, RuntimeError> {
+    use runtime::{Win16HostMetafileOperation as Op, Win16HostMetafileResult as Value};
+    match operation {
+        Op::CallbackTable { callback } => return host.win16_windows.metafile_callback_table(callback, &mut host.win16_objects),
+        Op::CommitCallbackTable { callback, objects } => {
+            host.win16_windows.commit_metafile_table(callback, &objects, &host.win16_objects, true)?;
+            return Ok(Value::TableCommitted);
+        }
+        _ => {}
+    }
+    let callback = match &operation { Op::PlayRecord { callback, .. } => *callback, _ => None };
+    let dcs = &host.win16_dcs;
+    let filesystem = &mut host.filesystem;
+    let result = win16_wing_dib_use::with_metafile(
+        dcs,
+        &mut host.win16_objects,
+        operation,
+        |objects, operation| win16_metafile::execute(dcs, objects, filesystem, operation),
+    )?;
+    if let (Some(callback), Value::Record { objects, .. }) = (callback, &result) {
+        host.win16_windows.commit_metafile_table(callback, objects, &host.win16_objects, false)?;
+    }
+    Ok(result)
+}
+
 pub(super) fn create_compatible_dc(
     host: &mut WindowsHost,
     source: Option<Win16HostDc>,
@@ -178,12 +206,31 @@ pub(super) fn device_caps(
     host.win16_dcs.device_caps(dc, index)
 }
 
+pub(super) fn enum_objects(
+    host: &mut WindowsHost,
+    dc: Win16HostDc,
+    object_type: i16,
+) -> Result<Vec<runtime::Win16HostGdiObjectRecord>, RuntimeError> {
+    let Some(dc_use) = host.win16_dcs.lease_dc(dc)? else {
+        return Ok(Vec::new());
+    };
+    host.win16_objects.enum_objects(dc_use.native(), object_type)
+}
+
 pub(super) fn enum_fonts(
     host: &mut WindowsHost,
     dc: Win16HostDc,
     face: Option<&[u8]>,
 ) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
     host.win16_dcs.enum_fonts(dc, face)
+}
+
+pub(super) fn enum_font_families(
+    host: &mut WindowsHost,
+    dc: Win16HostDc,
+    face: Option<&[u8]>,
+) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+    host.win16_dcs.enum_font_families(dc, face)
 }
 
 pub(super) fn stock_object(
@@ -201,7 +248,8 @@ pub(super) fn select_object(
     let Some(dc_use) = host.win16_dcs.lease_dc(dc)? else {
         return Ok(None);
     };
-    host.win16_objects.select(dc_use.native(), object)
+    let callback_scope = host.win16_dcs.is_function_dc(dc).then_some(dc);
+    host.win16_objects.select(dc_use.native(), object, callback_scope)
 }
 
 pub(super) fn delete_object(

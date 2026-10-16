@@ -14,6 +14,37 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Win16ApiRequest, Win16Error> {
     let request = match id {
+        Win16ExportId::UserCreateCaret => Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::CreateCaret {
+                window: word_argument(arguments, 0)?,
+                bitmap: word_argument(arguments, 1)?,
+                width: word_argument(arguments, 2)? as i16,
+                height: word_argument(arguments, 3)? as i16,
+            }),
+        ),
+        Win16ExportId::UserDestroyCaret => Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::DestroyCaret),
+        ),
+        Win16ExportId::UserSetCaretPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::SetCaretPos {
+                x: word_argument(arguments, 0)? as i16,
+                y: word_argument(arguments, 1)? as i16,
+            }),
+        ),
+        Win16ExportId::UserHideCaret | Win16ExportId::UserShowCaret => {
+            let window = word_argument(arguments, 0)?;
+            let request = if id == Win16ExportId::UserHideCaret {
+                super::Win16UserWindowRequest::HideCaret { window }
+            } else {
+                super::Win16UserWindowRequest::ShowCaret { window }
+            };
+            Win16ApiRequest::User(super::Win16UserRequest::Window(request))
+        }
+        Win16ExportId::UserGetCaretPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::GetCaretPos {
+                point: dword_argument(arguments, 0)?,
+            }),
+        ),
         Win16ExportId::UserGetWindowPlacement | Win16ExportId::UserSetWindowPlacement => {
             let window = word_argument(arguments, 0)?;
             let placement = dword_argument(arguments, 1)?;
@@ -24,11 +55,48 @@ pub(super) fn decode(
             };
             Win16ApiRequest::User(super::Win16UserRequest::Geometry(request))
         }
+        Win16ExportId::UserSetCursorPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::SetCursorPos {
+                x: word_argument(arguments, 0)? as i16,
+                y: word_argument(arguments, 1)? as i16,
+            }),
+        ),
+        Win16ExportId::UserClipCursor => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::ClipCursor {
+                rect: dword_argument(arguments, 0)?,
+            }),
+        ),
+        Win16ExportId::UserGetClipCursor => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::GetClipCursor {
+                rect: dword_argument(arguments, 0)?,
+            }),
+        ),
         Win16ExportId::UserGetCursorPos => Win16ApiRequest::User(
             super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::GetCursorPos {
                 point: dword_argument(arguments, 0)?,
             }),
         ),
+        Win16ExportId::UserCloseWindow => Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::CloseWindow {
+                window: word_argument(arguments, 0)?,
+            },
+        )),
+        Win16ExportId::UserFlashWindow => Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::FlashWindow {
+                window: word_argument(arguments, 0)?,
+                invert: word_argument(arguments, 1)?,
+            },
+        )),
+        Win16ExportId::UserOpenIcon => Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::OpenIcon {
+                window: word_argument(arguments, 0)?,
+            },
+        )),
+        Win16ExportId::UserArrangeIconicWindows => Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::ArrangeIconicWindows {
+                window: word_argument(arguments, 0)?,
+            },
+        )),
         Win16ExportId::UserIsIconic => Win16ApiRequest::User(super::Win16UserRequest::Window(
             super::Win16UserWindowRequest::IsIconic {
                 window: word_argument(arguments, 0)?,
@@ -46,6 +114,19 @@ pub(super) fn decode(
                     super::Win16UserGeometryRequest::GetClientRect { window, rect },
                 ))
             }
+        }
+        Win16ExportId::UserUnregisterClass => {
+            let far_name = dword_argument(arguments, 0)?;
+            let class_name = if far_name >> 16 == 0 {
+                Win16ClassName::Atom(far_name as u16)
+            } else {
+                Win16ClassName::Name(read_far_string(far_name, selectors, memory)?)
+            };
+            Win16ApiRequest::User(super::Win16UserRequest::Window(
+                super::Win16UserWindowRequest::UnregisterClass {
+                    class_name, instance: word_argument(arguments, 1)?,
+                },
+            ))
         }
         Win16ExportId::UserRegisterClass => {
             let far_class = dword_argument(arguments, 0)?;
@@ -168,6 +249,11 @@ pub(super) fn decode(
                 window: word_argument(arguments, 0)?,
             },
         )),
+        Win16ExportId::UserGetWindowTask => Win16ApiRequest::User(super::Win16UserRequest::Window(
+            super::Win16UserWindowRequest::GetWindowTask {
+                window: word_argument(arguments, 0)?,
+            },
+        )),
         Win16ExportId::UserIsWindowVisible => Win16ApiRequest::User(
             super::Win16UserRequest::Window(super::Win16UserWindowRequest::IsWindowVisible {
                 window: word_argument(arguments, 0)?,
@@ -258,6 +344,10 @@ pub(super) fn decode(
                 window: word_argument(arguments, 0)?,
             },
         )),
+        Win16ExportId::UserWindowFromDC => Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::WindowFromDC {
+                dc: word_argument(arguments, 0)?,
+            })),
         Win16ExportId::UserGetDesktopWindow => Win16ApiRequest::User(
             super::Win16UserRequest::Window(super::Win16UserWindowRequest::GetDesktopWindow),
         ),
@@ -278,12 +368,42 @@ pub(super) fn decode(
                 point: dword_argument(arguments, 1)?,
             }),
         ),
+        Win16ExportId::UserMapWindowPoints => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::MapWindowPoints {
+                from: word_argument(arguments, 0)?,
+                to: word_argument(arguments, 1)?,
+                points: dword_argument(arguments, 2)?,
+                count: word_argument(arguments, 3)?,
+            }),
+        ),
         Win16ExportId::UserWindowFromPoint => {
             let (x, y) = unpack_point(dword_argument(arguments, 0)?);
             Win16ApiRequest::User(super::Win16UserRequest::Geometry(
                 super::Win16UserGeometryRequest::WindowFromPoint { x, y },
             ))
         }
+        Win16ExportId::UserBeginDeferWindowPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::BeginDeferWindowPos {
+                count: word_argument(arguments, 0)? as i16,
+            }),
+        ),
+        Win16ExportId::UserDeferWindowPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::DeferWindowPos {
+                batch: word_argument(arguments, 0)?,
+                window: word_argument(arguments, 1)?,
+                insert_after: word_argument(arguments, 2)?,
+                x: word_argument(arguments, 3)? as i16,
+                y: word_argument(arguments, 4)? as i16,
+                width: word_argument(arguments, 5)? as i16,
+                height: word_argument(arguments, 6)? as i16,
+                flags: word_argument(arguments, 7)?,
+            }),
+        ),
+        Win16ExportId::UserEndDeferWindowPos => Win16ApiRequest::User(
+            super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::EndDeferWindowPos {
+                batch: word_argument(arguments, 0)?,
+            }),
+        ),
         Win16ExportId::UserSetWindowPos => Win16ApiRequest::User(
             super::Win16UserRequest::Geometry(super::Win16UserGeometryRequest::SetWindowPos {
                 window: word_argument(arguments, 0)?,
@@ -373,3 +493,31 @@ pub(super) fn decode(
 fn unpack_point(packed: u32) -> (i16, i16) {
     (packed as u16 as i16, (packed >> 16) as u16 as i16)
 }
+
+#[cfg(test)]
+#[path = "call_set_parent_tests.rs"]
+mod set_parent_tests;
+
+#[cfg(test)]
+#[path = "call_open_icon_tests.rs"]
+mod open_icon_tests;
+
+#[cfg(test)]
+#[path = "call_get_window_task_tests.rs"]
+mod get_window_task_tests;
+
+#[cfg(test)]
+#[path = "call_close_window_tests.rs"]
+mod close_window_tests;
+
+#[cfg(test)]
+#[path = "call_arrange_iconic_windows_tests.rs"]
+mod arrange_iconic_windows_tests;
+
+#[cfg(test)]
+#[path = "call_get_clip_cursor_tests.rs"]
+mod get_clip_cursor_tests;
+
+#[cfg(test)]
+#[path = "call_flash_window_tests.rs"]
+mod flash_window_tests;

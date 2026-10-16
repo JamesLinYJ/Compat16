@@ -91,6 +91,14 @@ pub enum Win16GdiTextRequest {
         parameter: i32,
     },
 
+    /// Enumerate families with an ENUMLOGFONT16 callback record.
+    EnumFontFamilies {
+        dc: u16,
+        face_name: Option<Vec<u8>>,
+        callback: u32,
+        parameter: i32,
+    },
+
     /// Set the guest DC background color; returns the previous COLORREF in DX:AX.
     SetBkColor {
         dc: u16,
@@ -126,8 +134,14 @@ pub enum Win16GdiTextRequest {
         count: i16,
     },
 
-    /// Copy TEXTMETRIC16 into the raw guest output address after complete
-    /// 31-byte write preflight in the runtime.
+    /// Query outline size or copy a bounded packed outline-metric prefix.
+    GetOutlineTextMetrics {
+        dc: u16,
+        count: u16,
+        output: u32,
+    },
+
+    /// Copy TEXTMETRIC16 after complete 31-byte runtime write preflight.
     GetTextMetrics {
         dc: u16,
         output: u32,

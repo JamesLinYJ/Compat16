@@ -119,6 +119,13 @@ impl GuestGdiHandles {
         true
     }
 
+    /// Retire every alias of the exact transferred region token. Reentrant
+    /// deletion/reuse of a guest word cannot remove a different new object.
+    pub(super) fn retire_object_aliases(&mut self, expected: Win16HostGdiObject) {
+        self.objects.retain(|_, object|
+            !matches!(object, GuestGdiObject::Object(current) if *current == expected));
+    }
+
     pub(super) fn dc(&self, handle: u16) -> Option<Win16HostDc> {
         match self.objects.get(&handle)? {
             GuestGdiObject::Dc(native) => Some(*native),
@@ -263,7 +270,13 @@ impl Win16State {
         let Some(native_dc) = self.guest_gdi.dc(dc) else { return Ok(0); };
         let Some(native_object) = self.guest_gdi.object(object) else { return Ok(0); };
         match host.win16_select_object(native_dc, native_object)? {
+            Some(Win16SelectObjectResult::Recorded) => Ok(1),
             Some(Win16SelectObjectResult::RegionComplexity(value)) => Ok(value),
+            Some(Win16SelectObjectResult::CallbackBitmap { object, dc }) => {
+                self.retain_function_bitmap(dc, object)?;
+                if let Some(handle) = self.guest_gdi.existing_object(object) { return Ok(handle); }
+                Ok(self.guest_gdi.allocate(GuestGdiObject::Object(object)).unwrap_or(0))
+            }
             Some(Win16SelectObjectResult::Object(previous)) => {
                 if let Some(handle) = self.guest_gdi.existing_object(previous) { return Ok(handle); }
                 Ok(self.guest_gdi.allocate(GuestGdiObject::Object(previous)).unwrap_or(0))

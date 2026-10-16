@@ -11,6 +11,7 @@ use std::sync::Arc;
 mod arith;
 mod error;
 mod execute;
+mod execution_boundary;
 mod flags;
 mod guest_descriptor_lease;
 mod interrupt;
@@ -26,6 +27,10 @@ mod task_switch;
 #[cfg(test)]
 mod tests;
 mod x86_decode;
+mod jit;
+pub use jit::{ExecutionEngine, JitStatistics};
+#[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+pub use compat16_jit::{Artifact as JitArtifact, ArtifactStore as JitArtifactStore};
 mod x87;
 mod x87_math;
 mod x87_state;
@@ -102,6 +107,7 @@ pub struct Cpu {
     // Nonarchitectural reuse, deliberately excluded from CpuContext. Every
     // hit is checked against bytes fetched from the current memory context.
     decode_cache: x86_decode::DecodeCache,
+    jit: jit::IntegerTranslator,
     model: CpuModel,
     x87: x87_state::X87State,
     pending_x87_irq13: bool,
@@ -150,11 +156,16 @@ pub use call_continuation::{
     CpuEventObserverCompletionError, CpuEventObserverContinuation,
     CpuParkedContinuation, PreparedCallResume, PreparedParkedResume,
 };
+mod legacy_checkpoint;
+pub use legacy_checkpoint::{
+    LegacyCheckpointRegisters, LegacyCpuCheckpointStamp, PreparedLegacyCheckpointTransfer,
+};
 mod legacy_continuation;
 pub use legacy_continuation::{
     LegacyBindingTransfer, LegacyCpuBinding, LegacyCpuCallContinuation,
     LegacyCpuContinuationError, LegacyCpuParkedContinuation, LegacyRegisterTransfer,
     LegacyStackPointerTarget, PreparedLegacyCallResume, PreparedLegacyParkedResume,
+    PreparedLegacyParkedCallResume,
 };
 
 impl Cpu {
@@ -170,6 +181,7 @@ impl Cpu {
         Self {
             regs,
             decode_cache: x86_decode::DecodeCache::default(),
+            jit: jit::IntegerTranslator::default(),
             model,
             x87: x87_state::X87State::default(),
             pending_x87_irq13: false,
@@ -198,6 +210,23 @@ impl Cpu {
     pub const fn model(&self) -> CpuModel {
         self.model
     }
+
+    /// Select interpreter-only execution or the hot-integer JIT translator.
+    /// Single-step execution retains its normal boundary; opt-in integer loops
+    /// retire an exact bounded count through the machine scheduler.
+    pub fn set_execution_engine(&mut self, engine: ExecutionEngine) {
+        self.jit.set_engine(engine);
+    }
+
+    pub fn jit_statistics(&self) -> JitStatistics { self.jit.statistics() }
+    pub fn execution_engine(&self) -> ExecutionEngine { self.jit.engine() }
+
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    pub fn set_jit_artifact_store(&mut self, store: Option<Arc<dyn JitArtifactStore>>) {
+        self.jit.set_artifact_store(store);
+    }
+    #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+    pub fn jit_artifact_store(&self) -> Option<Arc<dyn JitArtifactStore>> { self.jit.artifact_store() }
 
     pub(crate) fn normalize_model_eflags(&mut self) {
         self.regs.eflags = self.model.normalize_eflags(self.regs.eflags);

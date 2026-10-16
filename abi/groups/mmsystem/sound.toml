@@ -1,0 +1,24 @@
+module = "MMSYSTEM"
+
+[[exports]]
+ordinal = 2
+name = "sndPlaySound"
+binding = { rust_id = "MultimediaSndPlaySound", id_value = 1059, constant = "MMSYSTEM_SND_PLAY_SOUND" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "sound_name", type = "FarPointer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 3
+name = "PlaySound"
+binding = { rust_id = "MultimediaPlaySound", id_value = 1060, constant = "MMSYSTEM_PLAY_SOUND" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "sound_name", type = "FarPointer" },
+  { name = "module", type = "U16" },
+  { name = "flags", type = "U32" },
+]

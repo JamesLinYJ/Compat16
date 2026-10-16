@@ -1,0 +1,107 @@
+module = "KERNEL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 60
+name = "FindResource"
+binding = { rust_id = "KernelFindResource", id_value = 167, constant = "KERNEL_FIND_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "module", type = "U16" },
+  { name = "name", type = "ResourceName" },
+  { name = "resource_type", type = "ResourceName" },
+]
+
+[[exports]]
+ordinal = 61
+name = "LoadResource"
+binding = { rust_id = "KernelLoadResource", id_value = 168, constant = "KERNEL_LOAD_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "module", type = "U16" },
+  { name = "info", type = "U16" },
+]
+
+[[exports]]
+ordinal = 62
+name = "LockResource"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLockResource", id_value = 169, constant = "KERNEL_LOCK_RESOURCE" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "data", type = "U16" },
+]
+
+[[exports]]
+ordinal = 63
+name = "FreeResource"
+binding = { rust_id = "KernelFreeResource", id_value = 170, constant = "KERNEL_FREE_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "data", type = "U16" },
+]
+
+[[exports]]
+ordinal = 64
+name = "AccessResource"
+binding = { rust_id = "KernelAccessResource", id_value = 171, constant = "KERNEL_ACCESS_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "module", type = "U16" },
+  { name = "info", type = "U16" },
+]
+
+[[exports]]
+ordinal = 65
+name = "SizeofResource"
+decl = { attributes = [] }
+binding = { rust_id = "KernelSizeofResource", id_value = 172, constant = "KERNEL_SIZEOF_RESOURCE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "module", type = "U16" },
+  { name = "info", type = "U16" },
+]
+
+[[exports]]
+ordinal = 66
+name = "AllocResource"
+binding = { rust_id = "KernelAllocResource", id_value = 173, constant = "KERNEL_ALLOC_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "module", type = "U16" },
+  { name = "info", type = "U16" },
+  { name = "size", type = "U32" },
+]
+
+[[exports]]
+ordinal = 67
+name = "SetResourceHandler"
+decl = { attributes = [] }
+binding = { rust_id = "KernelSetResourceHandler", id_value = 174, constant = "KERNEL_SET_RESOURCE_HANDLER" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "module", type = "U16" },
+  { name = "type_name", type = "ResourceName" },
+  { name = "handler", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 456
+name = "DefResourceHandler"
+decl = { attributes = [] }
+binding = { rust_id = "KernelDefResourceHandler", id_value = 181, constant = "KERNEL_DEF_RESOURCE_HANDLER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "data", type = "U16" },
+  { name = "module", type = "U16" },
+  { name = "info", type = "U16" },
+]

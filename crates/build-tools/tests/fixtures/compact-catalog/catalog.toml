@@ -1,0 +1,12 @@
+version = 2
+groups = ["sample.toml"]
+types = ["types.toml"]
+name_resolutions = []
+
+[defaults]
+architecture = "win16"
+ordinal_source = "explicit"
+
+[[modules]]
+id = "SAMPLE"
+source_module = "sample.dll"

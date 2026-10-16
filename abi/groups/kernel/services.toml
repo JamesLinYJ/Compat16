@@ -1,0 +1,235 @@
+module = "KERNEL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 27
+name = "GetModuleName"
+binding = { rust_id = "KernelGetModuleName", id_value = 85, constant = "KERNEL_GET_MODULE_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "module", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 77
+name = "Reserved1"
+decl = { attributes = [] }
+binding = { rust_id = "KernelReserved1", id_value = 88, constant = "KERNEL_RESERVED1" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "pointer", type = "U32", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 78
+name = "Reserved2"
+decl = { attributes = [] }
+binding = { rust_id = "KernelReserved2", id_value = 89, constant = "KERNEL_RESERVED2" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "start", type = "U32", encoding = "segmented_pointer" },
+  { name = "current", type = "U32", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 79
+name = "Reserved3"
+decl = { attributes = [] }
+binding = { rust_id = "KernelReserved3", id_value = 90, constant = "KERNEL_RESERVED3" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "string_or_char", type = "FarStringOrChar" },
+]
+
+[[exports]]
+ordinal = 80
+name = "Reserved4"
+decl = { attributes = [] }
+binding = { rust_id = "KernelReserved4", id_value = 91, constant = "KERNEL_RESERVED4" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "string_or_char", type = "FarStringOrChar" },
+]
+
+[[exports]]
+ordinal = 87
+name = "Reserved5"
+binding = { rust_id = "KernelReserved5", id_value = 284, constant = "KERNEL_RESERVED5" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "left", type = "FarString" },
+  { name = "right", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 88
+name = "lstrcpy"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLstrcpy", id_value = 285, constant = "KERNEL_LSTRCPY" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "destination", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "source", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 89
+name = "lstrcat"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLstrcat", id_value = 286, constant = "KERNEL_LSTRCAT" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "destination", type = "FarBuffer", encoding = "segmented_string" },
+  { name = "source", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 90
+name = "lstrlen"
+binding = { rust_id = "KernelLstrlen", id_value = 287, constant = "KERNEL_LSTRLEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "text", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 107
+name = "SetErrorMode"
+binding = { rust_id = "KernelSetErrorMode", id_value = 155, constant = "KERNEL_SET_ERROR_MODE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "mode", type = "U16" },
+]
+
+[[exports]]
+ordinal = 133
+name = "GetExePtr"
+binding = { rust_id = "KernelGetExePtr", id_value = 93, constant = "KERNEL_GET_EXE_PTR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 167
+name = "GetExpWinVer"
+binding = { rust_id = "KernelGetExpWinVer", id_value = 96, constant = "KERNEL_GET_EXP_WIN_VER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "module", type = "U16" },
+]
+
+[[exports]]
+ordinal = 320
+name = "IsTask"
+binding = { rust_id = "KernelIsTask", id_value = 97, constant = "KERNEL_IS_TASK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "task", type = "U16" },
+]
+
+[[exports]]
+ordinal = 334
+name = "IsBadReadPtr"
+binding = { rust_id = "KernelIsBadReadPtr", id_value = 98, constant = "KERNEL_IS_BAD_READ_PTR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "length", type = "U16" },
+]
+
+[[exports]]
+ordinal = 335
+name = "IsBadWritePtr"
+binding = { rust_id = "KernelIsBadWritePtr", id_value = 99, constant = "KERNEL_IS_BAD_WRITE_PTR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "length", type = "U16" },
+]
+
+[[exports]]
+ordinal = 336
+name = "IsBadCodePtr"
+binding = { rust_id = "KernelIsBadCodePtr", id_value = 100, constant = "KERNEL_IS_BAD_CODE_PTR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 337
+name = "IsBadStringPtr"
+binding = { rust_id = "KernelIsBadStringPtr", id_value = 101, constant = "KERNEL_IS_BAD_STRING_PTR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "maximum", type = "U16" },
+]
+
+[[exports]]
+ordinal = 346
+name = "IsBadHugeReadPtr"
+binding = { rust_id = "KernelIsBadHugeReadPtr", id_value = 102, constant = "KERNEL_IS_BAD_HUGE_READ_PTR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "length", type = "U32" },
+]
+
+[[exports]]
+ordinal = 347
+name = "IsBadHugeWritePtr"
+binding = { rust_id = "KernelIsBadHugeWritePtr", id_value = 103, constant = "KERNEL_IS_BAD_HUGE_WRITE_PTR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "pointer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "length", type = "U32" },
+]
+
+[[exports]]
+ordinal = 352
+name = "lstrcatn"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLstrcatn", id_value = 104, constant = "KERNEL_LSTRCATN" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "destination", type = "FarPointer", encoding = "segmented_string" },
+  { name = "source", type = "FarString" },
+  { name = "limit", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 353
+name = "lstrcpyn"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLstrcpyn", id_value = 105, constant = "KERNEL_LSTRCPYN" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "destination", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "source", type = "FarString" },
+  { name = "limit", type = "I16", encoding = "word" },
+]

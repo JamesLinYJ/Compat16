@@ -4,6 +4,7 @@
 //! pins, and post-USER invalidation are retired from the same exact snapshot.
 
 use std::cell::RefCell;
+use std::collections::BTreeSet;
 use std::rc::Rc;
 
 use runtime::{
@@ -11,7 +12,7 @@ use runtime::{
     Win16HostWindowRetirementReceipt,
 };
 use windows_sys::Win32::Foundation::HWND;
-use windows_sys::Win32::UI::WindowsAndMessaging::{GetParent, IsWindow};
+use windows_sys::Win32::UI::WindowsAndMessaging::{GetAncestor, GetWindow, GA_PARENT, GW_OWNER, IsWindow};
 
 use super::{NativeWindowIdentity, WorkerState, remove_window_maps, retire_clipboard_viewer};
 
@@ -262,7 +263,7 @@ pub(in crate::windows::win16_windows) fn snapshot_window_retirement_candidates(
     root: Win16HostWindow,
     root_hwnd: HWND,
 ) -> Result<Vec<NativeWindowRetirementCandidate>, RuntimeError> {
-    let descendants = descendants_of(state, root, root_hwnd);
+    let descendants = descendants_of(state, root, root_hwnd)?;
     let mut candidates = Vec::new();
     candidates.try_reserve_exact(descendants.len()).map_err(|error| {
         RuntimeError::with_source(
@@ -365,43 +366,87 @@ pub(super) fn descendants_of(
     state: &Rc<RefCell<WorkerState>>,
     root: Win16HostWindow,
     root_hwnd: HWND,
-) -> Vec<(Win16HostWindow, HWND)> {
+) -> Result<Vec<(Win16HostWindow, HWND)>, RuntimeError> {
     let windows = {
         let state = state.borrow();
-        state
-            .windows
-            .iter()
-            .map(|(token, hwnd)| (*token, *hwnd))
-            .collect::<Vec<_>>()
+        state.windows.iter().map(|(token, hwnd)| (*token, *hwnd)).collect::<Vec<_>>()
     };
-    let maximum_depth = windows.len();
-    windows
-        .into_iter()
-        .filter(|(token, hwnd)| {
-            let exact_retained_root = *token == root
-                && *hwnd == root_hwnd
-                && super::native_windows::native_window_is_destruction_target(
-                    state, root, root_hwnd,
-                );
-            if !exact_retained_root
-                && super::super::win16_window_identity::resolve(state, *token) != Some(*hwnd)
-            {
-                return false;
-            }
-            if *token == root || *hwnd == root_hwnd {
-                return true;
-            }
-            let mut parent = *hwnd;
-            for _ in 0..=maximum_depth {
-                parent = unsafe { GetParent(parent) };
-                if parent.is_null() {
-                    return false;
-                }
-                if parent == root_hwnd {
-                    return true;
-                }
-            }
-            false
-        })
-        .collect()
+    let mut descendants = Vec::new();
+    for (token, hwnd) in windows {
+        let exact_retained_root = token == root && hwnd == root_hwnd
+            && super::native_windows::native_window_is_destruction_target(state, root, root_hwnd);
+        if !exact_retained_root
+            && super::super::win16_window_identity::resolve(state, token) != Some(hwnd)
+        {
+            continue;
+        }
+        // Both actual-parent and owner relationships can cause destruction.
+        // Foreign intermediate HWNDs need not have guest aliases. Exhaustion
+        // is an error before USER, never evidence that a candidate is outside
+        // the native destruction closure.
+        let reaches_root = token == root || hwnd == root_hwnd
+            || reaches_destruction_root(hwnd as usize, root_hwnd as usize, 65_536, |current| {
+                [unsafe { GetAncestor(current as HWND, GA_PARENT) } as usize,
+                    unsafe { GetWindow(current as HWND, GW_OWNER) } as usize]
+            })?;
+        if reaches_root { descendants.push((token, hwnd)); }
+    }
+    Ok(descendants)
+}
+
+fn reaches_destruction_root(
+    start: usize,
+    root: usize,
+    maximum_nodes: usize,
+    mut links: impl FnMut(usize) -> [usize; 2],
+) -> Result<bool, RuntimeError> {
+    let mut pending = vec![start];
+    let mut visited = BTreeSet::new();
+    while let Some(current) = pending.pop() {
+        if current == root { return Ok(true); }
+        if current == 0 || visited.contains(&current) { continue; }
+        if visited.len() >= maximum_nodes {
+            return Err(RuntimeError::new(Kind::ResourceExhausted,
+                "native parent/owner destruction graph exceeds its bounded traversal"));
+        }
+        visited.insert(current);
+        for parent in links(current) {
+            if parent == root && parent != 0 { return Ok(true); }
+            if parent != 0 && !visited.contains(&parent) { pending.push(parent); }
+        }
+    }
+    Ok(false)
+}
+
+#[cfg(test)]
+mod destruction_graph_tests {
+    use super::*;
+
+    #[test]
+    fn both_actual_parent_and_owner_paths_reach_the_root() {
+        for reverse in [false, true] {
+            let reached = reaches_destruction_root(1, 9, 8, |node| {
+                let edges = match node { 1 => [2, 3], 2 => [4, 0], 3 => [0, 9], _ => [0, 0] };
+                if reverse { [edges[1], edges[0]] } else { edges }
+            }).unwrap();
+            assert!(reached);
+        }
+    }
+
+    #[test]
+    fn cycles_and_shared_ancestors_terminate_without_false_retirement_evidence() {
+        let mut queries = 0;
+        assert!(!reaches_destruction_root(1, 9, 3, |node| {
+            queries += 1;
+            match node { 1 => [2, 3], 2 => [1, 3], _ => [2, 1] }
+        }).unwrap());
+        assert_eq!(queries, 3);
+    }
+
+    #[test]
+    fn traversal_bound_is_an_error_not_an_absent_relationship() {
+        let error = reaches_destruction_root(1, 9, 2, |node| [node + 1, 0]).unwrap_err();
+        assert_eq!(error.kind(), Kind::ResourceExhausted);
+        assert!(reaches_destruction_root(1, 3, 2, |node| [node + 1, 0]).unwrap());
+    }
 }

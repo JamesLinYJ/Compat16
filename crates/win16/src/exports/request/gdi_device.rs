@@ -52,6 +52,7 @@ pub struct DocInfo16 {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GdiDeviceRequest {
+    Escape { dc: u16, escape: i16, input_size: i16, input: u32, output: u32 },
     GetObject { object: u16, count: i16, output: u32 },
     GetBitmapBits { bitmap: u16, byte_count: i32, output: u32 },
     SetBitmapBits { bitmap: u16, byte_count: i32, bytes: Vec<u8> },

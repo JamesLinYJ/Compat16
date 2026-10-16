@@ -9,19 +9,27 @@ impl Win16State {
         memory: &mut Memory,
     ) -> Result<(u32, Win16ReturnKind), RuntimeError> {
         loop {
-            let (phase, value, window, native_window, procedure) = self.window_operations.last()
+            let (phase, value, window, native_window, procedure, change) = self.window_operations.last()
                 .filter(|frame| frame.id == frame_id)
                 .and_then(|frame| {
                     let completion = frame.completion.as_ref()?;
-                    let WindowReturn::QueryProcedure { window, native_window } =
-                        &completion.continuation else { return None; };
-                    let Win16WindowResult::Procedure(procedure) = &completion.result else {
-                        return None;
+                    let (window, native_window, change) = match &completion.continuation {
+                        WindowReturn::QueryProcedure { window, native_window }
+                        | WindowReturn::PrepareNativeSubclass { window, native_window, .. } =>
+                            (*window, *native_window, None),
+                        WindowReturn::NativeSubclass(change) =>
+                            (change.window, change.native, Some(*change)),
+                        _ => return None,
+                    };
+                    let procedure = match &completion.result {
+                        Win16WindowResult::Procedure(procedure)
+                        | Win16WindowResult::SubclassProcedure { procedure, .. } => *procedure,
+                        _ => return None,
                     };
                     let WindowProjectionJournal::Api(
                         WindowApiProjectionJournal::QueryProcedure(owner),
                     ) = &completion.journal.projection else { return None; };
-                    Some((owner.phase, owner.value, *window, *native_window, *procedure))
+                    Some((owner.phase, owner.value, window, native_window, procedure, change))
                 })
                 .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
                     "QueryWindowProcedure projection lost its exact result and phase owner"))?;
@@ -29,7 +37,9 @@ impl Win16State {
             use super::operation_frame::ProcedureProjectionPhase as Phase;
             match phase {
                 Phase::Ready => {
-                    let value = if self.window_handles.get(&window) == Some(&native_window) {
+                    let value = if let Some(change) = change {
+                        self.project_native_subclass_change(change, procedure.is_some())?
+                    } else if self.window_handles.get(&window) == Some(&native_window) {
                         match procedure {
                             Some(procedure) => self.native_procedure_gate(procedure, memory)?,
                             None => 0,
@@ -79,7 +89,9 @@ impl Win16State {
         }
     }
 
-    pub(super) fn project_create_window_completion(
+    // Runtime-only projection entrypoint also used to verify nested creation
+    // reconciliation without fabricating a native source-retirement proof.
+    pub(in crate::win16_runtime) fn project_create_window_completion(
         &mut self,
         frame_id: u64,
     ) -> Result<(u32, Win16ReturnKind), RuntimeError> {

@@ -1,5 +1,6 @@
 use crate::ne_checked::{checked_file_range, zeroed_buffer};
 use crate::ne_entrypoints::{build_entry_points, build_loaded_module};
+use crate::ne_prologs::patch_windows_prologs;
 use crate::ne_reloc::{apply_fixups, resolve_fixups};
 use crate::ne_segments::{allocation_size, expand_segment};
 use crate::{FormatError, GuestMemoryRollbackFailure, NeModule, NeResource};
@@ -161,6 +162,8 @@ pub fn ne_segment_allocation_size(
 ///
 /// Segment data and relocation chains are fully staged before guest memory is
 /// changed. Chain sites are read from the unrelocated expanded segment image.
+/// Recognized Windows-target entry prologs are adapted to the assigned data
+/// selector or instance-callback AX contract before relocation writes.
 /// Fixup records are applied in file order: repeated additive fixups accumulate,
 /// and later overlapping non-additive fixups overwrite earlier values.
 pub fn load_ne_segments(
@@ -169,8 +172,33 @@ pub fn load_ne_segments(
     resolver: &mut impl NeLoadResolver,
     memory: &mut impl GuestMemory,
 ) -> Result<NeLoadedModule, FormatError> {
+    load_ne_segments_in_phase(bytes, module, resolver, memory, true)
+}
+
+/// Allocate and copy pristine NE segments without resolving imports or
+/// applying prolog/relocation patches. The returned metadata is a selector
+/// plan, not an executable image. The caller must finish [`load_ne_segments`]
+/// using those same borrowed selectors before any guest instruction runs.
+/// This supports loaders whose filesystem/ABI providers become available
+/// only after the initial process and its checked address space exist.
+pub fn load_ne_segments_unlinked(
+    bytes: &[u8],
+    module: &NeModule,
+    resolver: &mut impl NeLoadResolver,
+    memory: &mut impl GuestMemory,
+) -> Result<NeLoadedModule, FormatError> {
+    load_ne_segments_in_phase(bytes, module, resolver, memory, false)
+}
+
+fn load_ne_segments_in_phase(
+    bytes: &[u8],
+    module: &NeModule,
+    resolver: &mut impl NeLoadResolver,
+    memory: &mut impl GuestMemory,
+    link: bool,
+) -> Result<NeLoadedModule, FormatError> {
     let mut allocated = Vec::<Selector>::new();
-    let result = load_ne_segments_inner(bytes, module, resolver, memory, &mut allocated);
+    let result = load_ne_segments_inner(bytes, module, resolver, memory, &mut allocated, link);
     if result.is_err() {
         for selector in allocated.iter().rev().copied() {
             resolver.release_segment(selector);
@@ -271,6 +299,7 @@ fn load_ne_segments_inner(
     resolver: &mut impl NeLoadResolver,
     memory: &mut impl GuestMemory,
     allocated: &mut Vec<Selector>,
+    link: bool,
 ) -> Result<NeLoadedModule, FormatError> {
     let allocation_sizes = validated_segment_allocation_sizes(module)?;
     let mut selectors = Vec::new();
@@ -306,8 +335,14 @@ fn load_ne_segments_inner(
     }
 
     let entry_points = build_entry_points(module, &selectors, &allocation_sizes)?;
-    let resolved_fixups = resolve_fixups(module, &selectors, &allocation_sizes, &entry_points, resolver, &images)?;
-    apply_fixups(&mut images, &resolved_fixups)?;
+    if link {
+        let resolved_fixups = resolve_fixups(module, &selectors, &allocation_sizes, &entry_points, resolver, &images)?;
+        // Keep chain links pristine during resolution. As in the Windows NE
+        // loading sequence implemented by Wine's NE_LoadSegment, prolog patches
+        // precede relocation writes, so an overlapping relocation still wins.
+        patch_windows_prologs(module, &selectors, &mut images)?;
+        apply_fixups(&mut images, &resolved_fixups)?;
+    }
 
     let mut staged = Vec::new();
     staged.try_reserve_exact(module.segments.len()).map_err(|_| FormatError::AllocationFailed)?;

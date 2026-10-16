@@ -1,0 +1,56 @@
+module = "STRESS"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 2
+name = "AllocMem"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 3
+name = "FreeAllMem"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 6
+name = "AllocFileHandles"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 7
+name = "UnAllocFileHandles"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 8
+name = "GetFreeFileHandles"
+
+[[exports]]
+ordinal = 10
+name = "AllocDiskSpace"
+decl = { args = ["long", "word"] }
+
+[[exports]]
+ordinal = 11
+name = "UnAllocDiskSpace"
+decl = { attributes = [], args = ["word"] }
+
+[[exports]]
+ordinal = 12
+name = "AllocUserMem"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 13
+name = "FreeAllUserMem"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 14
+name = "AllocGDIMem"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 15
+name = "FreeAllGDIMem"
+decl = { attributes = [] }

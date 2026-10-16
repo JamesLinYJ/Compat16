@@ -44,6 +44,7 @@ impl Win16AcceleratorLease {
 
 #[derive(Clone, Debug)]
 pub(super) enum Win16UserCursorAcceleratorContinuation {
+    GetCursor,
     SetCursor,
     ShowCursor,
     WinHelp,
@@ -143,6 +144,18 @@ impl Win16State {
         return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
         match request {
+            Win16UserCursorAcceleratorRequest::GetCursor => self.begin_window_operation(
+                registers,
+                memory,
+                host,
+                Win16WindowOperation::UserCursorAccelerator(
+                    Win16HostUserCursorAcceleratorOperation::GetCursor,
+                ),
+                WindowReturn::UserCursorAccelerator(
+                    Win16UserCursorAcceleratorContinuation::GetCursor,
+                ),
+                return_to,
+            ),
             Win16UserCursorAcceleratorRequest::SetCursor { cursor } => {
                 let host_cursor = if cursor == 0 {
                     None

@@ -1,0 +1,90 @@
+module = "OLE2NLS"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "GetUserDefaultLCID"
+decl = { attributes = [] }
+binding = { rust_id = "Ole2NlsGetUserDefaultLcid", id_value = 1126, constant = "OLE2NLS_GET_USER_DEFAULT_LCID" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 2
+name = "GetSystemDefaultLCID"
+decl = { attributes = [] }
+binding = { rust_id = "Ole2NlsGetSystemDefaultLcid", id_value = 1127, constant = "OLE2NLS_GET_SYSTEM_DEFAULT_LCID" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 3
+name = "GetUserDefaultLangID"
+binding = { rust_id = "Ole2NlsGetUserDefaultLangId", id_value = 1128, constant = "OLE2NLS_GET_USER_DEFAULT_LANG_ID" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 4
+name = "GetSystemDefaultLangID"
+binding = { rust_id = "Ole2NlsGetSystemDefaultLangId", id_value = 1129, constant = "OLE2NLS_GET_SYSTEM_DEFAULT_LANG_ID" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 5
+name = "GetLocaleInfoA"
+decl = { attributes = [] }
+binding = { rust_id = "Ole2NlsGetLocaleInfoA", id_value = 1130, constant = "OLE2NLS_GET_LOCALE_INFO_A" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "locale", type = "U32" },
+  { name = "info_type", type = "U32" },
+  { name = "data", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 6
+name = "LCMapStringA"
+binding = { rust_id = "Ole2NlsLcMapStringA", id_value = 1131, constant = "OLE2NLS_LC_MAP_STRING_A" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "locale", type = "U32" },
+  { name = "flags", type = "U32" },
+  { name = "source", type = "FarBuffer" },
+  { name = "source_count", type = "I16", encoding = "word" },
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "destination_capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 7
+name = "GetStringTypeA"
+binding = { rust_id = "Ole2NlsGetStringTypeA", id_value = 1132, constant = "OLE2NLS_GET_STRING_TYPE_A" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "locale", type = "U32" },
+  { name = "info_type", type = "U32" },
+  { name = "source", type = "FarBuffer", encoding = "string" },
+  { name = "source_count", type = "I16", encoding = "word" },
+  { name = "character_types", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 8
+name = "CompareStringA"
+binding = { rust_id = "Ole2NlsCompareStringA", id_value = 1133, constant = "OLE2NLS_COMPARE_STRING_A" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "locale", type = "U32" },
+  { name = "flags", type = "U32" },
+  { name = "left", type = "FarBuffer", encoding = "string" },
+  { name = "left_count", type = "I16", encoding = "word" },
+  { name = "right", type = "FarBuffer", encoding = "string" },
+  { name = "right_count", type = "I16", encoding = "word" },
+]

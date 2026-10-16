@@ -1,0 +1,393 @@
+module = "MMSYSTEM"
+
+[[exports]]
+ordinal = 401
+name = "waveOutGetNumDevs"
+binding = { rust_id = "MmsystemWaveOutGetNumDevs", id_value = 978, constant = "MMSYSTEM_WAVE_OUT_GET_NUM_DEVS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 402
+name = "waveOutGetDevCaps"
+binding = { rust_id = "MmsystemWaveOutGetDevCaps", id_value = 979, constant = "MMSYSTEM_WAVE_OUT_GET_DEV_CAPS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "capabilities", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 403
+name = "waveOutGetErrorText"
+binding = { rust_id = "MmsystemWaveOutGetErrorText", id_value = 980, constant = "MMSYSTEM_WAVE_OUT_GET_ERROR_TEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "error", type = "U16" },
+  { name = "text", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 404
+name = "waveOutOpen"
+binding = { rust_id = "MmsystemWaveOutOpen", id_value = 981, constant = "MMSYSTEM_WAVE_OUT_OPEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle_out", type = "FarOutputBuffer" },
+  { name = "device", type = "U16" },
+  { name = "format", type = "FarBuffer" },
+  { name = "callback", type = "U32" },
+  { name = "instance", type = "U32" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 405
+name = "waveOutClose"
+binding = { rust_id = "MmsystemWaveOutClose", id_value = 982, constant = "MMSYSTEM_WAVE_OUT_CLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 406
+name = "waveOutPrepareHeader"
+binding = { rust_id = "MmsystemWaveOutPrepareHeader", id_value = 983, constant = "MMSYSTEM_WAVE_OUT_PREPARE_HEADER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 407
+name = "waveOutUnprepareHeader"
+binding = { rust_id = "MmsystemWaveOutUnprepareHeader", id_value = 984, constant = "MMSYSTEM_WAVE_OUT_UNPREPARE_HEADER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 408
+name = "waveOutWrite"
+binding = { rust_id = "MmsystemWaveOutWrite", id_value = 985, constant = "MMSYSTEM_WAVE_OUT_WRITE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 409
+name = "waveOutPause"
+binding = { rust_id = "MmsystemWaveOutPause", id_value = 986, constant = "MMSYSTEM_WAVE_OUT_PAUSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 410
+name = "waveOutRestart"
+binding = { rust_id = "MmsystemWaveOutRestart", id_value = 987, constant = "MMSYSTEM_WAVE_OUT_RESTART" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 411
+name = "waveOutReset"
+binding = { rust_id = "MmsystemWaveOutReset", id_value = 988, constant = "MMSYSTEM_WAVE_OUT_RESET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 412
+name = "waveOutGetPosition"
+binding = { rust_id = "MmsystemWaveOutGetPosition", id_value = 989, constant = "MMSYSTEM_WAVE_OUT_GET_POSITION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "time", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 413
+name = "waveOutGetPitch"
+binding = { rust_id = "MmsystemWaveOutGetPitch", id_value = 990, constant = "MMSYSTEM_WAVE_OUT_GET_PITCH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "value", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 414
+name = "waveOutSetPitch"
+binding = { rust_id = "MmsystemWaveOutSetPitch", id_value = 991, constant = "MMSYSTEM_WAVE_OUT_SET_PITCH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "value", type = "U32" },
+]
+
+[[exports]]
+ordinal = 415
+name = "waveOutGetVolume"
+binding = { rust_id = "MmsystemWaveOutGetVolume", id_value = 992, constant = "MMSYSTEM_WAVE_OUT_GET_VOLUME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device_id", type = "U16" },
+  { name = "value", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 416
+name = "waveOutSetVolume"
+binding = { rust_id = "MmsystemWaveOutSetVolume", id_value = 993, constant = "MMSYSTEM_WAVE_OUT_SET_VOLUME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device_id", type = "U16" },
+  { name = "value", type = "U32" },
+]
+
+[[exports]]
+ordinal = 417
+name = "waveOutGetPlaybackRate"
+binding = { rust_id = "MmsystemWaveOutGetPlaybackRate", id_value = 994, constant = "MMSYSTEM_WAVE_OUT_GET_PLAYBACK_RATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "value", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 418
+name = "waveOutSetPlaybackRate"
+binding = { rust_id = "MmsystemWaveOutSetPlaybackRate", id_value = 995, constant = "MMSYSTEM_WAVE_OUT_SET_PLAYBACK_RATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "value", type = "U32" },
+]
+
+[[exports]]
+ordinal = 419
+name = "waveOutBreakLoop"
+binding = { rust_id = "MmsystemWaveOutBreakLoop", id_value = 996, constant = "MMSYSTEM_WAVE_OUT_BREAK_LOOP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 420
+name = "waveOutGetID"
+binding = { rust_id = "MmsystemWaveOutGetID", id_value = 997, constant = "MMSYSTEM_WAVE_OUT_GET_ID" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "device_id", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 421
+name = "waveOutMessage"
+binding = { rust_id = "MmsystemWaveOutMessage", id_value = 998, constant = "MMSYSTEM_WAVE_OUT_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "device_or_handle", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "parameter1", type = "U32" },
+  { name = "parameter2", type = "U32" },
+]
+
+[[exports]]
+ordinal = 501
+name = "waveInGetNumDevs"
+binding = { rust_id = "MmsystemWaveInGetNumDevs", id_value = 999, constant = "MMSYSTEM_WAVE_IN_GET_NUM_DEVS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 502
+name = "waveInGetDevCaps"
+binding = { rust_id = "MmsystemWaveInGetDevCaps", id_value = 1000, constant = "MMSYSTEM_WAVE_IN_GET_DEV_CAPS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "capabilities", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 503
+name = "waveInGetErrorText"
+binding = { rust_id = "MmsystemWaveInGetErrorText", id_value = 1001, constant = "MMSYSTEM_WAVE_IN_GET_ERROR_TEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "error", type = "U16" },
+  { name = "text", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 504
+name = "waveInOpen"
+binding = { rust_id = "MmsystemWaveInOpen", id_value = 1002, constant = "MMSYSTEM_WAVE_IN_OPEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle_out", type = "FarOutputBuffer" },
+  { name = "device", type = "U16" },
+  { name = "format", type = "FarBuffer" },
+  { name = "callback", type = "U32" },
+  { name = "instance", type = "U32" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 505
+name = "waveInClose"
+binding = { rust_id = "MmsystemWaveInClose", id_value = 1003, constant = "MMSYSTEM_WAVE_IN_CLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 506
+name = "waveInPrepareHeader"
+binding = { rust_id = "MmsystemWaveInPrepareHeader", id_value = 1004, constant = "MMSYSTEM_WAVE_IN_PREPARE_HEADER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 507
+name = "waveInUnprepareHeader"
+binding = { rust_id = "MmsystemWaveInUnprepareHeader", id_value = 1005, constant = "MMSYSTEM_WAVE_IN_UNPREPARE_HEADER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 508
+name = "waveInAddBuffer"
+binding = { rust_id = "MmsystemWaveInAddBuffer", id_value = 1006, constant = "MMSYSTEM_WAVE_IN_ADD_BUFFER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 509
+name = "waveInStart"
+binding = { rust_id = "MmsystemWaveInStart", id_value = 1007, constant = "MMSYSTEM_WAVE_IN_START" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 510
+name = "waveInStop"
+binding = { rust_id = "MmsystemWaveInStop", id_value = 1008, constant = "MMSYSTEM_WAVE_IN_STOP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 511
+name = "waveInReset"
+binding = { rust_id = "MmsystemWaveInReset", id_value = 1009, constant = "MMSYSTEM_WAVE_IN_RESET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 512
+name = "waveInGetPosition"
+binding = { rust_id = "MmsystemWaveInGetPosition", id_value = 1010, constant = "MMSYSTEM_WAVE_IN_GET_POSITION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "time", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 513
+name = "waveInGetID"
+binding = { rust_id = "MmsystemWaveInGetID", id_value = 1011, constant = "MMSYSTEM_WAVE_IN_GET_ID" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "device_id", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 514
+name = "waveInMessage"
+binding = { rust_id = "MmsystemWaveInMessage", id_value = 1012, constant = "MMSYSTEM_WAVE_IN_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "device_or_handle", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "parameter1", type = "U32" },
+  { name = "parameter2", type = "U32" },
+]

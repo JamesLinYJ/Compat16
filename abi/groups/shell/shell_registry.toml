@@ -1,0 +1,86 @@
+module = "SHELL"
+
+[[exports]]
+ordinal = 1
+name = "RegOpenKey"
+binding = { rust_id = "ShellRegOpenKey", id_value = 145, constant = "SHELL_REG_OPEN_KEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "root", type = "U32" },
+  { name = "subkey", type = "FarString" },
+  { name = "result_key", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 2
+name = "RegCreateKey"
+binding = { rust_id = "ShellRegCreateKey", id_value = 146, constant = "SHELL_REG_CREATE_KEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "root", type = "U32" },
+  { name = "subkey", type = "FarString" },
+  { name = "result_key", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 3
+name = "RegCloseKey"
+binding = { rust_id = "ShellRegCloseKey", id_value = 147, constant = "SHELL_REG_CLOSE_KEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "key", type = "U32" },
+]
+
+[[exports]]
+ordinal = 4
+name = "RegDeleteKey"
+binding = { rust_id = "ShellRegDeleteKey", id_value = 148, constant = "SHELL_REG_DELETE_KEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "root", type = "U32" },
+  { name = "subkey", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 5
+name = "RegSetValue"
+binding = { rust_id = "ShellRegSetValue", id_value = 149, constant = "SHELL_REG_SET_VALUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "key", type = "U32" },
+  { name = "subkey", type = "FarString" },
+  { name = "value_type", type = "U32" },
+  { name = "value", type = "FarBuffer", encoding = "string" },
+  { name = "byte_count", type = "U32" },
+]
+
+[[exports]]
+ordinal = 6
+name = "RegQueryValue"
+binding = { rust_id = "ShellRegQueryValue", id_value = 150, constant = "SHELL_REG_QUERY_VALUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "key", type = "U32" },
+  { name = "subkey", type = "FarString" },
+  { name = "value", type = "FarOutputBuffer" },
+  { name = "byte_count", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 7
+name = "RegEnumKey"
+binding = { rust_id = "ShellRegEnumKey", id_value = 151, constant = "SHELL_REG_ENUM_KEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "key", type = "U32" },
+  { name = "index", type = "U32" },
+  { name = "name", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U32" },
+]

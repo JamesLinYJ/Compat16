@@ -1,0 +1,22 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 457
+name = "DestroyIcon"
+binding = { rust_id = "UserDestroyIcon", id_value = 669, constant = "USER_DESTROY_ICON" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "image", type = "U16" },
+]
+
+[[exports]]
+ordinal = 458
+name = "DestroyCursor"
+binding = { rust_id = "UserDestroyCursor", id_value = 670, constant = "USER_DESTROY_CURSOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "image", type = "U16" },
+]

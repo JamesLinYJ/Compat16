@@ -1,0 +1,664 @@
+module = "OLECLI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 2
+name = "OleDelete"
+binding = { rust_id = "Ole1Delete", id_value = 731, constant = "OLE1_DELETE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 3
+name = "OleSaveToStream"
+binding = { rust_id = "Ole1SaveToStream", id_value = 732, constant = "OLE1_SAVE_TO_STREAM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "stream", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 4
+name = "OleLoadFromStream"
+binding = { rust_id = "Ole1LoadFromStream", id_value = 733, constant = "OLE1_LOAD_FROM_STREAM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "stream", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "class_name", type = "FarString" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 6
+name = "OleClone"
+binding = { rust_id = "Ole1Clone", id_value = 734, constant = "OLE1_CLONE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 7
+name = "OLECOPYFROMLINK"
+binding = { rust_id = "Ole1CopyFromLink", id_value = 735, constant = "OLE1_COPY_FROM_LINK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "class_name", type = "FarString" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 8
+name = "OleEqual"
+binding = { rust_id = "Ole1Equal", id_value = 736, constant = "OLE1_EQUAL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "left", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "right", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 9
+name = "OleQueryLinkFromClip"
+binding = { rust_id = "Ole1QueryLinkFromClip", id_value = 737, constant = "OLE1_QUERY_LINK_FROM_CLIP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "render", type = "U16" },
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 10
+name = "OleQueryCreateFromClip"
+binding = { rust_id = "Ole1QueryCreateFromClip", id_value = 738, constant = "OLE1_QUERY_CREATE_FROM_CLIP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "render", type = "U16" },
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 11
+name = "OleCreateLinkFromClip"
+binding = { rust_id = "Ole1CreateLinkFromClip", id_value = 739, constant = "OLE1_CREATE_LINK_FROM_CLIP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+  { name = "render", type = "U16" },
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 12
+name = "OleCreateFromClip"
+binding = { rust_id = "Ole1CreateFromClip", id_value = 740, constant = "OLE1_CREATE_FROM_CLIP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+  { name = "render", type = "U16" },
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 13
+name = "OleCopyToClipboard"
+binding = { rust_id = "Ole1CopyToClipboard", id_value = 741, constant = "OLE1_COPY_TO_CLIPBOARD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 14
+name = "OleQueryType"
+binding = { rust_id = "Ole1QueryType", id_value = 742, constant = "OLE1_QUERY_TYPE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "object_type", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 15
+name = "OleSetHostNames"
+binding = { rust_id = "Ole1SetHostNames", id_value = 743, constant = "OLE1_SET_HOST_NAMES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "application_name", type = "FarString" },
+  { name = "document_name", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 16
+name = "OleSetTargetDevice"
+binding = { rust_id = "Ole1SetTargetDevice", id_value = 744, constant = "OLE1_SET_TARGET_DEVICE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "target_device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 17
+name = "OleSetBounds"
+binding = { rust_id = "Ole1SetBounds", id_value = 745, constant = "OLE1_SET_BOUNDS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "bounds", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 18
+name = "OleQueryBounds"
+binding = { rust_id = "Ole1QueryBounds", id_value = 746, constant = "OLE1_QUERY_BOUNDS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "bounds", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 19
+name = "OleDraw"
+binding = { rust_id = "Ole1Draw", id_value = 747, constant = "OLE1_DRAW" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "dc", type = "U16" },
+  { name = "object_bounds", type = "FarBuffer" },
+  { name = "clip_bounds", type = "FarBuffer" },
+  { name = "metafile_dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 20
+name = "OleQueryOpen"
+binding = { rust_id = "Ole1QueryOpen", id_value = 748, constant = "OLE1_QUERY_OPEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 21
+name = "OleActivate"
+binding = { rust_id = "Ole1Activate", id_value = 749, constant = "OLE1_ACTIVATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "verb", type = "U16" },
+  { name = "show", type = "U16" },
+  { name = "take_focus", type = "U16" },
+  { name = "parent", type = "U16" },
+  { name = "bounds", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 22
+name = "OleUpdate"
+binding = { rust_id = "Ole1Update", id_value = 750, constant = "OLE1_UPDATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 23
+name = "OleReconnect"
+binding = { rust_id = "Ole1Reconnect", id_value = 751, constant = "OLE1_RECONNECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 24
+name = "OleGetLinkUpdateOptions"
+binding = { rust_id = "Ole1GetLinkUpdateOptions", id_value = 752, constant = "OLE1_GET_LINK_UPDATE_OPTIONS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "options", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 25
+name = "OleSetLinkUpdateOptions"
+binding = { rust_id = "Ole1SetLinkUpdateOptions", id_value = 753, constant = "OLE1_SET_LINK_UPDATE_OPTIONS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "options", type = "U16" },
+]
+
+[[exports]]
+ordinal = 26
+name = "OleEnumFormats"
+binding = { rust_id = "Ole1EnumFormats", id_value = 754, constant = "OLE1_ENUM_FORMATS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 27
+name = "OleClose"
+binding = { rust_id = "Ole1Close", id_value = 755, constant = "OLE1_CLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 28
+name = "OleGetData"
+binding = { rust_id = "Ole1GetData", id_value = 756, constant = "OLE1_GET_DATA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "format", type = "U16" },
+  { name = "data_handle", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 29
+name = "OleSetData"
+binding = { rust_id = "Ole1SetData", id_value = 757, constant = "OLE1_SET_DATA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "format", type = "U16" },
+  { name = "data_handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 30
+name = "OLEQUERYPROTOCOL"
+decl = { attributes = [] }
+binding = { rust_id = "Ole1QueryProtocol", id_value = 758, constant = "OLE1_QUERY_PROTOCOL" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "protocol", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 31
+name = "OLEQUERYOUTOFDATE"
+binding = { rust_id = "Ole1QueryOutOfDate", id_value = 759, constant = "OLE1_QUERY_OUT_OF_DATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 32
+name = "OLEOBJECTCONVERT"
+binding = { rust_id = "Ole1ObjectConvert", id_value = 760, constant = "OLE1_OBJECT_CONVERT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "class_name", type = "FarString" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 33
+name = "OLECREATEFROMTEMPLATE"
+binding = { rust_id = "Ole1CreateFromTemplate", id_value = 761, constant = "OLE1_CREATE_FROM_TEMPLATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "template_name", type = "FarString" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+  { name = "render", type = "U16" },
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 34
+name = "OleCreate"
+binding = { rust_id = "Ole1Create", id_value = 762, constant = "OLE1_CREATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "document_name", type = "FarString" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+  { name = "render", type = "U16" },
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 35
+name = "OleQueryReleaseStatus"
+binding = { rust_id = "Ole1QueryReleaseStatus", id_value = 763, constant = "OLE1_QUERY_RELEASE_STATUS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 36
+name = "OleQueryReleaseError"
+binding = { rust_id = "Ole1QueryReleaseError", id_value = 764, constant = "OLE1_QUERY_RELEASE_ERROR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 37
+name = "OleQueryReleaseMethod"
+binding = { rust_id = "Ole1QueryReleaseMethod", id_value = 765, constant = "OLE1_QUERY_RELEASE_METHOD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 38
+name = "OleCreateFromFile"
+binding = { rust_id = "Ole1CreateFromFile", id_value = 766, constant = "OLE1_CREATE_FROM_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "file_name", type = "FarString" },
+  { name = "native_type", type = "FarString" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+  { name = "render", type = "U16" },
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 39
+name = "OLECREATELINKFROMFILE"
+binding = { rust_id = "Ole1CreateLinkFromFile", id_value = 767, constant = "OLE1_CREATE_LINK_FROM_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "file_name", type = "FarString" },
+  { name = "native_type", type = "FarString" },
+  { name = "link_source", type = "FarString" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+  { name = "render", type = "U16" },
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 40
+name = "OleRelease"
+binding = { rust_id = "Ole1Release", id_value = 768, constant = "OLE1_RELEASE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 41
+name = "OleRegisterClientDoc"
+binding = { rust_id = "Ole1RegisterClientDoc", id_value = 769, constant = "OLE1_REGISTER_CLIENT_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "document_name", type = "FarString" },
+  { name = "reserved", type = "I32" },
+  { name = "document_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 42
+name = "OleRevokeClientDoc"
+binding = { rust_id = "Ole1RevokeClientDoc", id_value = 770, constant = "OLE1_REVOKE_CLIENT_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "document", type = "I32" },
+]
+
+[[exports]]
+ordinal = 43
+name = "OleRenameClientDoc"
+binding = { rust_id = "Ole1RenameClientDoc", id_value = 771, constant = "OLE1_RENAME_CLIENT_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "document", type = "I32" },
+  { name = "document_name", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 44
+name = "OleRevertClientDoc"
+binding = { rust_id = "Ole1RevertClientDoc", id_value = 772, constant = "OLE1_REVERT_CLIENT_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "document", type = "I32" },
+]
+
+[[exports]]
+ordinal = 45
+name = "OleSavedClientDoc"
+binding = { rust_id = "Ole1SavedClientDoc", id_value = 773, constant = "OLE1_SAVED_CLIENT_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "document", type = "I32" },
+]
+
+[[exports]]
+ordinal = 46
+name = "OleRename"
+binding = { rust_id = "Ole1Rename", id_value = 774, constant = "OLE1_RENAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "name", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 47
+name = "OleEnumObjects"
+binding = { rust_id = "Ole1EnumObjects", id_value = 775, constant = "OLE1_ENUM_OBJECTS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "document", type = "I32" },
+  { name = "object_inout", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 48
+name = "OleQueryName"
+binding = { rust_id = "Ole1QueryName", id_value = 776, constant = "OLE1_QUERY_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "name", type = "FarOutputBuffer", encoding = "string" },
+  { name = "capacity", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 49
+name = "OleSetColorScheme"
+binding = { rust_id = "Ole1SetColorScheme", id_value = 777, constant = "OLE1_SET_COLOR_SCHEME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "palette", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 50
+name = "OLEREQUESTDATA"
+binding = { rust_id = "Ole1RequestData", id_value = 778, constant = "OLE1_REQUEST_DATA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 54
+name = "OleLockServer"
+binding = { rust_id = "Ole1LockServer", id_value = 779, constant = "OLE1_LOCK_SERVER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "server_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 55
+name = "OleUnlockServer"
+binding = { rust_id = "Ole1UnlockServer", id_value = 780, constant = "OLE1_UNLOCK_SERVER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "server", type = "I32" },
+]
+
+[[exports]]
+ordinal = 56
+name = "OleQuerySize"
+binding = { rust_id = "Ole1QuerySize", id_value = 781, constant = "OLE1_QUERY_SIZE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 57
+name = "OLEEXECUTE"
+binding = { rust_id = "Ole1Execute", id_value = 782, constant = "OLE1_EXECUTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "command_data", type = "U16" },
+  { name = "command_length", type = "U16" },
+]
+
+[[exports]]
+ordinal = 58
+name = "OleCreateInvisible"
+binding = { rust_id = "Ole1CreateInvisible", id_value = 783, constant = "OLE1_CREATE_INVISIBLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "document_name", type = "FarString" },
+  { name = "client_document", type = "I32" },
+  { name = "item_name", type = "FarString" },
+  { name = "object_output", type = "FarOutputBuffer" },
+  { name = "render", type = "U16" },
+  { name = "format", type = "U16" },
+  { name = "invisible", type = "U16" },
+]
+
+[[exports]]
+ordinal = 59
+name = "OleQueryClientVersion"
+decl = { attributes = [] }
+binding = { rust_id = "Ole1QueryClientVersion", id_value = 784, constant = "OLE1_QUERY_CLIENT_VERSION" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 60
+name = "OleIsDcMeta"
+binding = { rust_id = "Ole1IsDcMeta", id_value = 785, constant = "OLE1_IS_DC_META" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]

@@ -168,6 +168,11 @@ impl Win16Segments<'_> {
 }
 
 impl SegmentResolver for Win16Segments<'_> {
+    fn jit_range(&self, selector: u16, offset: u32, length: usize, access: SegmentAccess) -> Option<PhysAddr> {
+        let pointer = self.selectors.pointer_from_raw(Selector(selector), u16::try_from(offset).ok()?).ok()?;
+        let access = match access { SegmentAccess::Read => Access::Read, SegmentAccess::Write => Access::Write, SegmentAccess::Execute => Access::Execute };
+        self.selectors.address_within(pointer, access, length, self.memory_len).ok()
+    }
     fn resolve(&self, selector: u16, offset: u32, _address32: bool) -> Result<PhysAddr, CpuError> {
         self.address(selector, offset, Access::Read)
     }

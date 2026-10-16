@@ -1,0 +1,22 @@
+module = "TOOLHELP"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 71
+name = "SystemHeapInfo"
+binding = { rust_id = "ToolhelpSystemHeapInfo", id_value = 727, constant = "TOOLHELP_SYSTEM_HEAP_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 72
+name = "MemManInfo"
+binding = { rust_id = "ToolhelpMemManInfo", id_value = 728, constant = "TOOLHELP_MEMMAN_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]

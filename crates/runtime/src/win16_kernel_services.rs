@@ -75,7 +75,7 @@ impl Win16State {
                     u32::from(self.kernel_get_exe_version())
                 }
                 Win16KernelModuleRequest::GetExpWinVer { module } => {
-                    u32::from(self.kernel_get_exp_win_ver(module, host))
+                    self.kernel_get_exp_win_ver(module, host)
                 }
             },
             Win16ApiRequest::KernelString(request) => match request {

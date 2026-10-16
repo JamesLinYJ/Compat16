@@ -1,0 +1,91 @@
+module = "GDI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 30
+name = "SaveDC"
+binding = { rust_id = "GdiSaveDc", id_value = 340, constant = "GDI_SAVE_DC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 39
+name = "RestoreDC"
+binding = { rust_id = "GdiRestoreDc", id_value = 344, constant = "GDI_RESTORE_DC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "saved", type = "I16" },
+]
+
+[[exports]]
+ordinal = 52
+name = "CreateCompatibleDC"
+binding = { rust_id = "GdiCreateCompatibleDc", id_value = 259, constant = "GDI_CREATE_COMPATIBLE_DC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "source", type = "U16" },
+]
+
+[[exports]]
+ordinal = 53
+name = "CreateDC"
+binding = { rust_id = "GdiCreateDc", id_value = 311, constant = "GDI_CREATE_DC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "driver", type = "NullableFarString" },
+  { name = "device", type = "NullableFarString" },
+  { name = "output", type = "NullableFarString" },
+  { name = "init_data", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 68
+name = "DeleteDC"
+binding = { rust_id = "GdiDeleteDc", id_value = 260, constant = "GDI_DELETE_DC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 79
+name = "GetDCOrg"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetDcOrg", id_value = 380, constant = "GDI_GET_DC_ORG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 80
+name = "GetDeviceCaps"
+binding = { rust_id = "GdiGetDeviceCaps", id_value = 264, constant = "GDI_GET_DEVICE_CAPS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "index", type = "I16" },
+]
+
+[[exports]]
+ordinal = 153
+name = "CreateIC"
+binding = { rust_id = "GdiCreateIc", id_value = 312, constant = "GDI_CREATE_IC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "driver", type = "NullableFarString" },
+  { name = "device", type = "NullableFarString" },
+  { name = "output", type = "NullableFarString" },
+  { name = "init_data", type = "FarBuffer" },
+]

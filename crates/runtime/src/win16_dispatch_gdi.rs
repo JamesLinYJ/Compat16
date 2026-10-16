@@ -20,6 +20,24 @@ impl Win16State {
     ) -> Result<Option<u8>, RuntimeError> {
         let (return_selector, return_offset, return_sp) = return_to;
         let value = match request {
+            Win16ApiRequest::GdiObjects(request @ (
+                win16_abi::Win16GdiObjectsRequest::CreateMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::CloseMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::GetMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::PlayMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::PlayMetaFileRecord { .. }
+                | win16_abi::Win16GdiObjectsRequest::CopyMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::DeleteMetaFile { .. }
+            )) => self.execute_metafile(request, &mut cpu.regs, memory, host)?,
+            Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::EnumMetaFile {
+                dc, metafile, procedure, parameter,
+            }) => return self.begin_enum_metafile(&mut cpu.regs, memory, host,
+                dc, metafile, procedure, parameter, return_to),
+            Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::EnumObjects {
+                dc, object_type, callback, parameter,
+            }) => return self.begin_enum_objects(
+                cpu, dos, memory, host, dc, object_type, callback, parameter, return_to,
+            ),
             Win16ApiRequest::GdiDevice(request) => {
                 self.execute_gdi_device(request, memory, host)?
             }
@@ -467,6 +485,11 @@ impl Win16State {
                 output,
                 init_data,
             }) => u32::from(self.create_ic(driver, device, output, init_data, memory, host)?),
+            Win16ApiRequest::GdiText(win16_abi::Win16GdiTextRequest::GetOutlineTextMetrics {
+                dc,
+                count,
+                output,
+            }) => u32::from(self.get_outline_text_metrics(dc, count, output, memory, host)?),
             Win16ApiRequest::GdiText(win16_abi::Win16GdiTextRequest::GetTextMetrics {
                 dc,
                 output,
@@ -494,12 +517,62 @@ impl Win16State {
                     dos,
                     memory,
                     host,
+                    super::font_callback::FontEnumerationMode::Fonts,
                     dc,
                     face_name.as_deref(),
                     callback,
                     parameter,
                     (return_selector, return_offset, return_sp),
                 );
+            }
+            Win16ApiRequest::GdiText(win16_abi::Win16GdiTextRequest::EnumFontFamilies {
+                dc,
+                face_name,
+                callback,
+                parameter,
+            }) => {
+                return self.begin_enum_fonts(
+                    cpu,
+                    dos,
+                    memory,
+                    host,
+                    super::font_callback::FontEnumerationMode::Families,
+                    dc,
+                    face_name.as_deref(),
+                    callback,
+                    parameter,
+                    (return_selector, return_offset, return_sp),
+                );
+            }
+            Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::GetMetaFileBits {
+                metafile,
+            }) => {
+                // The WOW16 GDI entry checks GlobalHandle's AX, then returns
+                // the input unchanged. In particular a selector alias is not
+                // replaced by the canonical HGLOBAL from that DWORD query.
+                if self.global_handle_of(metafile) as u16 != 0 { u32::from(metafile) } else { 0 }
+            }
+            Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::SetMetaFileBits {
+                bits,
+            }) => {
+                // GDI.160's actual WOW16 assembly entry returns hBits as-is;
+                // the distinct .196 entry below performs the shared conversion.
+                u32::from(bits)
+            }
+            Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::SetMetaFileBitsBetter {
+                bits,
+            }) => {
+                use super::global_memory::GlobalMemoryCaller;
+                use win16_abi::global::{GMEM_DDESHARE, GMEM_MODIFY};
+                // This allocation becomes shared on behalf of GDI, whose
+                // builtin module has an identity but no guest code selector.
+                let caller = self.modules.by_name(b"GDI")
+                    .map(GlobalMemoryCaller::BuiltinModule);
+                let result = self.kernel_global_realloc_with_caller(
+                    bits, 0, GMEM_MODIFY | GMEM_DDESHARE, caller, memory, host,
+                )?;
+                super::dispatch_kernel::finish_global_heap_call(&mut cpu.regs);
+                u32::from(result)
             }
             Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::GetStockObject {
                 index,
@@ -559,3 +632,11 @@ impl Win16State {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "win16_gdi_rectangle_predicate_tests.rs"]
+mod rectangle_predicate_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_set_rect_rgn_tests.rs"]
+mod set_rect_rgn_tests;

@@ -1,0 +1,31 @@
+module = "SHELL"
+
+[[exports]]
+ordinal = 33
+name = "AboutDlgProc"
+decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 101
+name = "DllEntryPoint"
+decl = { args = ["long", "word", "word", "word", "long", "word"] }
+
+[[exports]]
+ordinal = 102
+name = "RegisterShellHook"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 103
+name = "ShellHookProc"
+decl = { args = ["word", "word", "long"] }
+
+[[exports]]
+ordinal = 157
+name = "RESTARTDIALOG"
+kind = "stub"
+
+[[exports]]
+ordinal = 401
+name = "SHCHECKDRIVE"
+kind = "stub"

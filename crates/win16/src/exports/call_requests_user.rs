@@ -23,6 +23,19 @@ pub(super) fn decode(
         | Win16ExportId::UserCallNextHookEx => {
             return user_hooks_calls::decode(descriptor.id, arguments).map(Some);
         }
+        Win16ExportId::UserIsChild => Win16ApiRequest::User(Win16UserRequest::ChildLookup(
+            Win16UserChildLookupRequest::IsChild {
+                parent: word_argument(arguments, 0)?, child: word_argument(arguments, 1)?,
+            })),
+        Win16ExportId::UserChildWindowFromPoint => Win16ApiRequest::User(Win16UserRequest::ChildLookup(
+            Win16UserChildLookupRequest::ChildWindowFromPoint {
+                parent: word_argument(arguments, 0)?, point: dword_argument(arguments, 1)?,
+            })),
+        Win16ExportId::UserChildWindowFromPointEx => Win16ApiRequest::User(Win16UserRequest::ChildLookup(
+            Win16UserChildLookupRequest::ChildWindowFromPointEx {
+                parent: word_argument(arguments, 0)?, point: dword_argument(arguments, 1)?,
+                flags: word_argument(arguments, 2)?,
+            })),
         Win16ExportId::UserDefFrameProc => Win16ApiRequest::User(Win16UserRequest::Mdi(
             Win16UserMdiRequest::DefFrameProc {
                 frame: word_argument(arguments, 0)?, mdi_client: word_argument(arguments, 1)?,
@@ -69,7 +82,8 @@ pub(super) fn decode(
         Win16ExportId::UserWvsprintf => {
             super::call_user_string_format::decode_wvsprintf(arguments, selectors, memory)?
         }
-        Win16ExportId::UserSetCursor
+        Win16ExportId::UserGetCursor
+        | Win16ExportId::UserSetCursor
         | Win16ExportId::UserShowCursor
         | Win16ExportId::UserWinHelp
         | Win16ExportId::UserLoadAccelerators
@@ -90,7 +104,14 @@ pub(super) fn decode(
         | Win16ExportId::UserEnumProps => {
             call_window_properties::decode(descriptor.id, &arguments, selectors, memory)?
         }
-        Win16ExportId::UserGetWindowWord
+        Win16ExportId::UserGetClassWord
+        | Win16ExportId::UserSetClassWord
+        | Win16ExportId::UserGetClassLong
+        | Win16ExportId::UserSetClassLong => Win16ApiRequest::ClassData(
+            class_data::decode_class_data(descriptor.ordinal(), arguments)?,
+        ),
+        Win16ExportId::UserSetParent
+        | Win16ExportId::UserGetWindowWord
         | Win16ExportId::UserSetWindowWord
         | Win16ExportId::UserGetWindowLong
         | Win16ExportId::UserSetWindowLong => Win16ApiRequest::WindowData(
@@ -98,6 +119,22 @@ pub(super) fn decode(
         ),
         Win16ExportId::UserDestroyIcon | Win16ExportId::UserDestroyCursor => {
             Win16ApiRequest::DestroyImage(decode_destroy_image(descriptor.ordinal(), &arguments)?)
+        }
+        Win16ExportId::UserIsCharAlpha | Win16ExportId::UserIsCharAlphaNumeric
+        | Win16ExportId::UserIsCharUpper | Win16ExportId::UserIsCharLower => {
+            use super::Win16CharacterClassification as Classification;
+            let classification = match descriptor.id {
+                Win16ExportId::UserIsCharAlpha => Classification::Alpha,
+                Win16ExportId::UserIsCharAlphaNumeric => Classification::AlphaNumeric,
+                Win16ExportId::UserIsCharUpper => Classification::Upper,
+                _ => Classification::Lower,
+            };
+            Win16ApiRequest::User(super::Win16UserRequest::Ansi(
+                super::Win16UserAnsiRequest::ClassifyCharacter {
+                    value: word_argument(&arguments, 0)? as u8,
+                    classification,
+                },
+            ))
         }
         Win16ExportId::UserAnsiLower => Win16ApiRequest::User(super::Win16UserRequest::Ansi(
             super::Win16UserAnsiRequest::AnsiLower {
@@ -156,6 +193,9 @@ pub(super) fn decode(
         | Win16ExportId::UserPostAppMessage
         | Win16ExportId::UserGetMessagePos
         | Win16ExportId::UserGetMessageTime
+        | Win16ExportId::UserGetMessageExtraInfo
+        | Win16ExportId::UserInSendMessage
+        | Win16ExportId::UserReplyMessage
         | Win16ExportId::UserCallWindowProc
         | Win16ExportId::UserGetKeyboardState
         | Win16ExportId::UserSetKeyboardState
@@ -176,12 +216,17 @@ pub(super) fn decode(
         | Win16ExportId::UserRedrawWindow
         | Win16ExportId::UserLockWindowUpdate
         | Win16ExportId::UserScrollWindow
+        | Win16ExportId::UserScrollDC
         | Win16ExportId::UserScrollWindowEx
         | Win16ExportId::UserGetDc
         | Win16ExportId::UserGetWindowDc
+        | Win16ExportId::UserGetDcEx
         | Win16ExportId::UserReleaseDc => user_paint_calls::decode(descriptor.id, &arguments)?,
         Win16ExportId::UserFillRect
         | Win16ExportId::UserDrawText
+        | Win16ExportId::UserGrayString
+        | Win16ExportId::UserTabbedTextOut
+        | Win16ExportId::UserGetTabbedTextExtent
         | Win16ExportId::UserInvertRect
         | Win16ExportId::UserFrameRect
         | Win16ExportId::UserDrawIcon
@@ -290,7 +335,11 @@ pub(super) fn decode(
         | Win16ExportId::UserCheckMenuRadioItem => {
             call_menus::decode(descriptor.id, &arguments, selectors, memory)?
         }
-        Win16ExportId::UserIsIconic
+        Win16ExportId::UserCloseWindow
+        | Win16ExportId::UserArrangeIconicWindows
+        | Win16ExportId::UserFlashWindow
+        | Win16ExportId::UserOpenIcon
+        | Win16ExportId::UserIsIconic
         | Win16ExportId::UserGetWindowRect
         | Win16ExportId::UserGetClientRect
         | Win16ExportId::UserEnableWindow
@@ -298,6 +347,7 @@ pub(super) fn decode(
         | Win16ExportId::UserBringWindowToTop
         | Win16ExportId::UserGetParent
         | Win16ExportId::UserIsWindow
+        | Win16ExportId::UserGetWindowTask
         | Win16ExportId::UserIsWindowVisible
         | Win16ExportId::UserFindWindow
         | Win16ExportId::UserDestroyWindow
@@ -308,6 +358,7 @@ pub(super) fn decode(
         | Win16ExportId::UserGetTopWindow
         | Win16ExportId::UserGetNextWindow
         | Win16ExportId::UserRegisterClass
+        | Win16ExportId::UserUnregisterClass
         | Win16ExportId::UserCreateWindow
         | Win16ExportId::UserCreateWindowEx
         | Win16ExportId::UserShowWindow
@@ -324,21 +375,36 @@ pub(super) fn decode(
         | Win16ExportId::UserInflateRect
         | Win16ExportId::UserIntersectRect
         | Win16ExportId::UserSetWindowPos
+        | Win16ExportId::UserBeginDeferWindowPos
+        | Win16ExportId::UserDeferWindowPos
+        | Win16ExportId::UserEndDeferWindowPos
         | Win16ExportId::UserGetWindow
         | Win16ExportId::UserShowOwnedPopups
         | Win16ExportId::UserIsZoomed
         | Win16ExportId::UserGetDlgCtrlID
+        | Win16ExportId::UserWindowFromDC
         | Win16ExportId::UserGetDesktopWindow
         | Win16ExportId::UserGetLastActivePopup
         | Win16ExportId::UserClientToScreen
+        | Win16ExportId::UserGetClipCursor
+        | Win16ExportId::UserClipCursor
+        | Win16ExportId::UserSetCursorPos
         | Win16ExportId::UserGetCursorPos
+        | Win16ExportId::UserCreateCaret
+        | Win16ExportId::UserDestroyCaret
+        | Win16ExportId::UserSetCaretPos
+        | Win16ExportId::UserHideCaret
+        | Win16ExportId::UserShowCaret
+        | Win16ExportId::UserGetCaretPos
         | Win16ExportId::UserGetWindowPlacement
         | Win16ExportId::UserSetWindowPlacement
         | Win16ExportId::UserScreenToClient
+        | Win16ExportId::UserMapWindowPoints
         | Win16ExportId::UserWindowFromPoint => {
             call_window_ops::decode(descriptor.id, &arguments, selectors, memory)?
         }
         Win16ExportId::UserGetTickCount
+        | Win16ExportId::UserGetTimerResolution
         | Win16ExportId::UserWNetGetCaps
         | Win16ExportId::UserGetCurrentTime
         | Win16ExportId::UserMessageBeep
@@ -355,6 +421,8 @@ pub(super) fn decode(
         | Win16ExportId::UserLoadBitmap
         | Win16ExportId::UserCreateIcon
         | Win16ExportId::UserCreateCursor
+        | Win16ExportId::UserCopyIcon
+        | Win16ExportId::UserCopyCursor
         | Win16ExportId::UserLoadIcon => {
             user_resource_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
@@ -381,10 +449,31 @@ pub(super) fn decode(
         | Win16ExportId::UserSetCaretBlinkTime
         | Win16ExportId::UserGetCaretBlinkTime
         | Win16ExportId::UserGetSysColor
-        | Win16ExportId::UserGetDialogBaseUnits => {
+        | Win16ExportId::UserGetDialogBaseUnits
+        | Win16ExportId::UserAnyPopup => {
             win16_service_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
         _ => return Ok(None),
     };
     Ok(Some(request))
 }
+
+#[cfg(test)]
+#[path = "call_class_data_tests.rs"]
+mod class_data_tests;
+
+#[cfg(test)]
+#[path = "call_unregister_class_tests.rs"]
+mod unregister_class_tests;
+
+#[cfg(test)]
+#[path = "call_child_lookup_tests.rs"]
+mod child_lookup_tests;
+
+#[cfg(test)]
+#[path = "call_set_window_pos_tests.rs"]
+mod set_window_pos_tests;
+
+#[cfg(test)]
+#[path = "call_character_classification_tests.rs"]
+mod character_classification_tests;

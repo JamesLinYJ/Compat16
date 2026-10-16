@@ -1,0 +1,42 @@
+module = "SHELL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 20
+name = "ShellExecute"
+binding = { rust_id = "ShellExecute", id_value = 657, constant = "SHELL_EXECUTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "owner", type = "U16" },
+  { name = "operation", type = "NullableFarString" },
+  { name = "file", type = "FarString" },
+  { name = "parameters", type = "NullableFarString" },
+  { name = "directory", type = "NullableFarString" },
+  { name = "show", type = "I16" },
+]
+
+[[exports]]
+ordinal = 21
+name = "FindExecutable"
+binding = { rust_id = "ShellFindExecutable", id_value = 658, constant = "SHELL_FIND_EXECUTABLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "file", type = "FarString" },
+  { name = "directory", type = "NullableFarString" },
+  { name = "result_path", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 22
+name = "ShellAbout"
+binding = { rust_id = "ShellAbout", id_value = 659, constant = "SHELL_ABOUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "owner", type = "U16" },
+  { name = "app", type = "FarString", encoding = "pointer" },
+  { name = "other_stuff", type = "NullableFarString", encoding = "pointer" },
+  { name = "icon", type = "U16" },
+]

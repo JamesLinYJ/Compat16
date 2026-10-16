@@ -482,7 +482,9 @@ pub(super) fn handle_modal_message(
         (callbacks_enabled, wndproc || dlgproc)
     };
     if !callbacks_enabled { return defer_modal_message(message); }
-    if guest_route { return Ok(false); }
+    if guest_route || super::win16_native_procedures::is_subclassed(worker, window) {
+        return Ok(false);
+    }
 
     // A stock/native window has no guest callback thunk to unwrap the marker.
     // Consume the exact sidecar here, then let USER see a defined scalar

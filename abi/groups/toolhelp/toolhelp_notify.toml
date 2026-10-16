@@ -1,0 +1,24 @@
+module = "TOOLHELP"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 73
+name = "NotifyRegister"
+binding = { rust_id = "ToolhelpNotifyRegister", id_value = 729, constant = "TOOLHELP_NOTIFY_REGISTER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "task", type = "U16" },
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 74
+name = "NotifyUnRegister"
+binding = { rust_id = "ToolhelpNotifyUnregister", id_value = 730, constant = "TOOLHELP_NOTIFY_UNREGISTER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "task", type = "U16" },
+]

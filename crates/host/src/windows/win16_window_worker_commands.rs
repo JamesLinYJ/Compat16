@@ -25,16 +25,23 @@ pub(in crate::windows::win16_windows) enum WorkerCommand {
         spec: Win16HostClassSpec,
         icon: usize,
         cursor: usize,
-        background: usize,
+        background: crate::windows::win16_gdi_objects::NativeClassBackground,
         response: Sender<Result<Option<Win16RegisteredClass>, RuntimeError>>,
     },
     UnregisterClass {
         class: Win16HostClass,
         response: Sender<bool>,
     },
+    ReplaceClassResource {
+        class: Win16HostClass,
+        window: runtime::Win16HostWindow,
+        resource: NativeClassResource,
+        response: Sender<Result<bool, RuntimeError>>,
+    },
     Begin {
         id: u64,
         operation: Win16WindowOperation,
+        win_exec: Option<Result<crate::windows::win16_program_launch::PreparedLaunch, u16>>,
         control_color_return: Option<ControlColorReturnSlot>,
         native_bitmaps: BTreeMap<Win16HostGdiObject, Option<usize>>,
         native_font: Option<(Win16HostGdiObject, usize)>,
@@ -43,6 +50,8 @@ pub(in crate::windows::win16_windows) enum WorkerCommand {
             Option<super::super::win16_gdi_bitmap_lease::Win16BitmapLease>,
         >,
         native_regions: BTreeMap<Win16HostGdiObject, Option<Win16RegionLease>>,
+        gray_string_brush: Option<super::super::win16_gray_string::BrushLease>,
+        metafile: Option<Arc<super::super::metafile_enumeration::MetafileSession>>,
         response: Sender<Result<Win16WindowStep, RuntimeError>>,
     },
     Resume {
@@ -65,6 +74,15 @@ pub(in crate::windows::win16_windows) enum WorkerCommand {
     QueryWindowLiveness {
         window: Win16HostWindow,
         response: Sender<Result<Win16HostWindowLiveness, RuntimeError>>,
+    },
+    QueryWindowParent {
+        window: Win16HostWindow,
+        response: Sender<Result<runtime::Win16HostWindowParentObservation, RuntimeError>>,
+    },
+    #[cfg(test)]
+    TestWindowData {
+        run: fn(&Rc<RefCell<WorkerState>>),
+        response: Sender<std::thread::Result<()>>,
     },
     Abort {
         request_id: u64,

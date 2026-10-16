@@ -276,6 +276,19 @@ pub enum Win16DrawingOperation {
         rect: Option<Win16DrawingRect>,
         flags: u32,
     },
+    UserTabbedTextOut {
+        dc: Win16HostDc,
+        x: i32,
+        y: i32,
+        text: Vec<u8>,
+        tab_stops: Vec<i32>,
+        tab_origin: i32,
+    },
+    UserGetTabbedTextExtent {
+        dc: Win16HostDc,
+        text: Vec<u8>,
+        tab_stops: Vec<i32>,
+    },
 }
 
 /// Native results are kept wider here; the Win16 runtime applies the export's
@@ -296,6 +309,8 @@ pub enum Win16DrawingResult {
     Points { success: bool, points: Vec<Win16DrawingPoint> },
     SaveDc(i32),
     DrawText { height: i32, rect: Option<Win16DrawingRect> },
+    /// Tabbed USER text APIs already return packed WORD width and height.
+    PackedTextExtent(u32),
     Path {
         count: i32,
         points: Vec<Win16DrawingPoint>,

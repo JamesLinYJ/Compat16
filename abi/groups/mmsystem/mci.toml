@@ -1,0 +1,168 @@
+module = "MMSYSTEM"
+
+[[exports]]
+ordinal = 701
+name = "mciSendCommand"
+binding = { rust_id = "MciSendCommand", id_value = 827, constant = "MMSYSTEM_MCI_SEND_COMMAND" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "device_id", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "flags", type = "U32" },
+  { name = "parameters", type = "FarBuffer", encoding = "long" },
+]
+
+[[exports]]
+ordinal = 702
+name = "mciSendString"
+binding = { rust_id = "MciSendString", id_value = 828, constant = "MMSYSTEM_MCI_SEND_STRING" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "command", type = "FarString" },
+  { name = "output", type = "FarBuffer" },
+  { name = "capacity", type = "U16" },
+  { name = "callback", type = "U16" },
+]
+
+[[exports]]
+ordinal = 703
+name = "mciGetDeviceID"
+binding = { rust_id = "MciGetDeviceId", id_value = 829, constant = "MMSYSTEM_MCI_GET_DEVICE_ID" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "name", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 705
+name = "mciLoadCommandResource"
+binding = { rust_id = "MciLoadCommandResource", id_value = 830, constant = "MMSYSTEM_MCI_LOAD_COMMAND_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "resource", type = "ResourceName" },
+  { name = "resource_type", type = "U16" },
+]
+
+[[exports]]
+ordinal = 706
+name = "mciGetErrorString"
+binding = { rust_id = "MciGetErrorString", id_value = 831, constant = "MMSYSTEM_MCI_GET_ERROR_STRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "error", type = "U32" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 707
+name = "mciSetDriverData"
+binding = { rust_id = "MciSetDriverData", id_value = 832, constant = "MMSYSTEM_MCI_SET_DRIVER_DATA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device_id", type = "U16" },
+  { name = "data", type = "U32" },
+]
+
+[[exports]]
+ordinal = 708
+name = "mciGetDriverData"
+binding = { rust_id = "MciGetDriverData", id_value = 833, constant = "MMSYSTEM_MCI_GET_DRIVER_DATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "device_id", type = "U16" },
+]
+
+[[exports]]
+ordinal = 710
+name = "mciDriverYield"
+binding = { rust_id = "MciDriverYield", id_value = 834, constant = "MMSYSTEM_MCI_DRIVER_YIELD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device_id", type = "U16" },
+]
+
+[[exports]]
+ordinal = 711
+name = "mciDriverNotify"
+binding = { rust_id = "MciDriverNotify", id_value = 835, constant = "MMSYSTEM_MCI_DRIVER_NOTIFY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "device_id", type = "U16" },
+  { name = "status", type = "U16" },
+]
+
+[[exports]]
+ordinal = 712
+name = "mciExecute"
+binding = { rust_id = "MciExecute", id_value = 836, constant = "MMSYSTEM_MCI_EXECUTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "command", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 713
+name = "mciFreeCommandResource"
+binding = { rust_id = "MciFreeCommandResource", id_value = 837, constant = "MMSYSTEM_MCI_FREE_COMMAND_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device_id", type = "U16" },
+]
+
+[[exports]]
+ordinal = 714
+name = "mciSetYieldProc"
+binding = { rust_id = "MciSetYieldProc", id_value = 838, constant = "MMSYSTEM_MCI_SET_YIELD_PROC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device_id", type = "U16" },
+  { name = "procedure", type = "FarPointer" },
+  { name = "data", type = "U32" },
+]
+
+[[exports]]
+ordinal = 715
+name = "mciGetDeviceIDFromElementID"
+binding = { rust_id = "MciGetDeviceIdFromElement", id_value = 839, constant = "MMSYSTEM_MCI_GET_DEVICE_ID_FROM_ELEMENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "element_id", type = "U32" },
+  { name = "device_type", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 716
+name = "mciGetYieldProc"
+binding = { rust_id = "MciGetYieldProc", id_value = 840, constant = "MMSYSTEM_MCI_GET_YIELD_PROC" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "device_id", type = "U16" },
+  { name = "data", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 717
+name = "mciGetCreatorTask"
+binding = { rust_id = "MciGetCreatorTask", id_value = 841, constant = "MMSYSTEM_MCI_GET_CREATOR_TASK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device_id", type = "U16" },
+]

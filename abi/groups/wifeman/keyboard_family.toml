@@ -1,0 +1,12 @@
+module = "WIFEMAN"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 23
+name = "MiscIsDBCSLeadByte"
+binding = { rust_id = "WifemanMiscIsDbcsLeadByte", id_value = 144, constant = "WIFEMAN_MISC_IS_DBCS_LEAD_BYTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U16" },
+]

@@ -1,0 +1,7 @@
+module = "DISPDIB"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "DisplayDib"
+decl = { args = ["pointer", "pointer", "word"] }

@@ -281,7 +281,7 @@ impl Win16State {
             .segments
             .iter()
             .find(|segment| segment.number == number)?;
-        let alignment_shift = definition.header.alignment_shift;
+        let alignment_shift = definition.header.segment_alignment_shift();
         if alignment_shift > 15 {
             return None;
         }

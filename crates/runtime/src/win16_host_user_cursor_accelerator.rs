@@ -38,6 +38,7 @@ pub enum Win16HostHelpData {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16HostUserCursorAcceleratorOperation {
+    GetCursor,
     SetCursor {
         cursor: Option<Win16HostCursor>,
     },
@@ -62,6 +63,7 @@ pub enum Win16HostUserCursorAcceleratorOperation {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16HostUserCursorAcceleratorResult {
+    GetCursor(Option<Win16HostCursor>),
     SetCursor(Option<Win16HostCursor>),
     /// Retain native USER's complete `int` result until the runtime applies
     /// the Win16 16-bit return slot, preserving its low-word bit pattern.

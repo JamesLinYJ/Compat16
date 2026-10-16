@@ -22,7 +22,7 @@ pub(super) fn get_profile_section(
     section: Option<&[u8]>,
     requested_size: u16,
 ) -> Result<ProfileSectionOutput, RuntimeError> {
-    read_section(codec, section, None, false, requested_size)
+    read_section(codec, section, None, false, requested_size, None)
 }
 
 pub(super) fn get_private_profile_section(
@@ -31,7 +31,7 @@ pub(super) fn get_private_profile_section(
     filename: Option<&[u8]>,
     requested_size: u16,
 ) -> Result<ProfileSectionOutput, RuntimeError> {
-    read_section(codec, section, filename, true, requested_size)
+    read_section(codec, section, filename, true, requested_size, None)
 }
 
 pub(super) fn write_profile_section(
@@ -39,7 +39,7 @@ pub(super) fn write_profile_section(
     section: Option<&[u8]>,
     entries: Option<&[u8]>,
 ) -> Result<bool, RuntimeError> {
-    write_section(codec, section, entries, None, false)
+    write_section(codec, section, entries, None, false, None)
 }
 
 pub(super) fn write_private_profile_section(
@@ -48,7 +48,19 @@ pub(super) fn write_private_profile_section(
     entries: Option<&[u8]>,
     filename: Option<&[u8]>,
 ) -> Result<bool, RuntimeError> {
-    write_section(codec, section, entries, filename, true)
+    write_section(codec, section, entries, filename, true, None)
+}
+
+pub(super) fn private_section_wide(
+    codec: GuestTextCodec, section: Option<&[u8]>, filename: &[u16], capacity: u16,
+) -> Result<ProfileSectionOutput, RuntimeError> {
+    read_section(codec, section, None, true, capacity, Some(filename))
+}
+
+pub(super) fn private_write_wide(
+    codec: GuestTextCodec, section: Option<&[u8]>, entries: Option<&[u8]>, filename: &[u16],
+) -> Result<bool, RuntimeError> {
+    write_section(codec, section, entries, None, true, Some(filename))
 }
 
 fn read_section(
@@ -57,6 +69,7 @@ fn read_section(
     filename: Option<&[u8]>,
     private_profile: bool,
     requested_size: u16,
+    native_filename: Option<&[u16]>,
 ) -> Result<ProfileSectionOutput, RuntimeError> {
     let capacity = usize::from(requested_size);
     let buffer = zeroed_buffer(capacity)?;
@@ -71,7 +84,8 @@ fn read_section(
         }
         Err(error) => return Err(error),
     };
-    let filename = match optional_wide_z(codec, filename) {
+    let filename = match native_filename.map(|path| Ok(Some(path.to_vec())))
+        .unwrap_or_else(|| optional_wide_z(codec, filename)) {
         Ok(value) => value,
         Err(error) if guest_text_failure(&error) => {
             return Ok(ProfileSectionOutput { buffer, copied: 0 });
@@ -249,6 +263,7 @@ fn write_section(
     entries: Option<&[u8]>,
     filename: Option<&[u8]>,
     private_profile: bool,
+    native_filename: Option<&[u16]>,
 ) -> Result<bool, RuntimeError> {
     if !valid_optional_string(section)
         || !valid_optional_string(filename)
@@ -267,7 +282,8 @@ fn write_section(
         Err(error) if guest_text_failure(&error) => return Ok(false),
         Err(error) => return Err(error),
     };
-    let filename = match optional_wide_z(codec, filename) {
+    let filename = match native_filename.map(|path| Ok(Some(path.to_vec())))
+        .unwrap_or_else(|| optional_wide_z(codec, filename)) {
         Ok(value) => value,
         Err(error) if guest_text_failure(&error) => return Ok(false),
         Err(error) => return Err(error),

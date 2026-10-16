@@ -75,7 +75,6 @@ struct Win16AsynchronousCallbackFrame {
     callback_token: Win16GuestCallbackToken,
     registration: Win16GuestCallbackRegistration,
     active_call: Win16CallbackEntryFrame,
-    context: x86_cpu::CpuContext,
     buffers: Vec<CallbackBuffer>,
     phase: AsynchronousCallbackPhase,
     return_failure: Option<Arc<RuntimeError>>,
@@ -359,41 +358,45 @@ impl Win16State {
     pub(super) fn begin_asynchronous_guest_callback(
         &mut self,
         cpu: &mut x86_cpu::Cpu,
+        dos: &mut dos_kernel::DosKernel,
         memory: &mut Memory,
         event: Win16GuestCallbackEvent,
     ) -> Result<Option<super::CallbackFrameId>, AsynchronousCallbackBeginFailure> {
         let request = Win16AsynchronousCallbackRequest::from_mailbox(event)?;
-        self.begin_asynchronous_guest_callback_request_source(cpu, memory, request, false)
+        self.begin_asynchronous_guest_callback_request_source(cpu, dos, memory, request, false)
     }
 
     pub(super) fn begin_asynchronous_guest_callback_request_source(
         &mut self,
         cpu: &mut x86_cpu::Cpu,
+        dos: &mut dos_kernel::DosKernel,
         memory: &mut Memory,
         request: Win16AsynchronousCallbackRequest,
         source_bound: bool,
     ) -> Result<Option<super::CallbackFrameId>, AsynchronousCallbackBeginFailure> {
         self.begin_asynchronous_guest_callback_request_from_source(
-            cpu, memory, request, source_bound, None,
+            cpu, dos, memory, request, source_bound, None,
         )
     }
 
     pub(super) fn begin_asynchronous_guest_callback_midi_source(
         &mut self,
         cpu: &mut x86_cpu::Cpu,
+        dos: &mut dos_kernel::DosKernel,
         memory: &mut Memory,
         event: Win16GuestCallbackEvent,
         identity: Win16HostMidiNotificationId,
     ) -> Result<Option<super::CallbackFrameId>, AsynchronousCallbackBeginFailure> {
         let request = Win16AsynchronousCallbackRequest::from_mailbox(event)?;
         self.begin_asynchronous_guest_callback_request_from_source(
-            cpu, memory, request, true, Some(identity),
+            cpu, dos, memory, request, true, Some(identity),
         )
     }
 
     fn begin_asynchronous_guest_callback_request_from_source(
         &mut self,
         cpu: &mut x86_cpu::Cpu,
+        dos: &mut dos_kernel::DosKernel,
         memory: &mut Memory,
         request: Win16AsynchronousCallbackRequest,
         source_bound: bool,
@@ -407,6 +410,7 @@ impl Win16State {
         }
         self.begin_asynchronous_guest_callback_entry_from_source(
             cpu,
+            dos,
             memory,
             request.callback,
             Win16CallbackEntry::FarCall { arguments: request.arguments },
@@ -434,17 +438,25 @@ impl Win16State {
 
     fn retire_asynchronous_callback_top(
         &mut self,
+        dos: &mut dos_kernel::DosKernel,
+        memory: &mut Memory,
         callback_id: super::CallbackFrameId,
         callback_token: Win16GuestCallbackToken,
     ) -> Result<AsynchronousCallbackRetirement, RuntimeError> {
         self.require_asynchronous_callback_top(callback_id, callback_token)?;
-        let frame = self.callback_scheduler.active.pop().ok_or_else(||
+        let mut frame = self.callback_scheduler.active.pop().ok_or_else(||
             callback_binding_error("asynchronous callback frame disappeared during retirement"))?;
         if frame.callback_id != callback_id || frame.callback_token != callback_token {
             self.callback_scheduler.active.push(frame);
             return Err(callback_binding_error(
                 "asynchronous callback retirement removed a different family frame",
             ));
+        }
+        if let Err(error) = self.release_guest_callback_entry_owner(
+            &mut frame.active_call, dos, memory,
+        ) {
+            self.callback_scheduler.active.push(frame);
+            return Err(error);
         }
         if let Err(error) = self.retire_callback_binding(CallbackKind::Asynchronous, callback_id) {
             self.callback_scheduler.active.push(frame);

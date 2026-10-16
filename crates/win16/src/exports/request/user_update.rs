@@ -22,6 +22,15 @@ pub enum Win16UserUpdateRequest {
         scroll_rect: u32,
         clip_rect: u32,
     },
+    ScrollDC {
+        dc: u16,
+        dx: i16,
+        dy: i16,
+        scroll_rect: u32,
+        clip_rect: u32,
+        update_region: u16,
+        update_rect: u32,
+    },
     ScrollWindowEx {
         window: u16,
         dx: i16,

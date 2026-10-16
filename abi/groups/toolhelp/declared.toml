@@ -1,0 +1,21 @@
+module = "TOOLHELP"
+
+[[exports]]
+ordinal = 84
+name = "Local32Info"
+kind = "stub"
+
+[[exports]]
+ordinal = 85
+name = "Local32First"
+kind = "stub"
+
+[[exports]]
+ordinal = 86
+name = "Local32Next"
+kind = "stub"
+
+[[exports]]
+ordinal = 100
+name = "next_intcb"
+decl = { attributes = ["register"] }

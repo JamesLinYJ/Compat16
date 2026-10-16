@@ -47,7 +47,7 @@ pub enum DosIoctlObjectInfo {
     File {
         /// Zero-based DOS drive number (0 = A:, 2 = C:).
         drive: u8,
-        /// Whether writes have occurred through this open-file identity.
+        /// Whether data or timestamp metadata was written through this open-file identity.
         written: bool,
     },
     CharacterDevice {
@@ -90,6 +90,38 @@ pub enum DosFileSharing {
     DenyNone,
 }
 
+/// INT 21h/AX=6C00 dispositions, including an existing-only replacement.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DosFileDisposition {
+    OpenExisting,
+    CreateNew,
+    OpenOrCreate,
+    ReplaceExisting,
+    ReplaceOrCreate,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DosFileOpenRequest {
+    pub access: DosFileAccess,
+    pub sharing: DosFileSharing,
+    pub disposition: DosFileDisposition,
+    /// Creation/replacement attributes; an ordinary existing open ignores them.
+    pub attributes: u8,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DosFileOpenOutcome {
+    Opened,
+    Created,
+    Replaced,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DosFileOpenResult {
+    pub file: DosHostFile,
+    pub outcome: DosFileOpenOutcome,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DosSeekOrigin {
     Start,
@@ -117,7 +149,8 @@ pub trait DosHost {
     fn local_date_time(&mut self) -> Result<DosLocalDateTime, DosHostError> {
         Err(DosHostError::new(DosErrorCode::InvalidFunction))
     }
-    /// Blocking input. Must return at least one byte or a DOS-mappable error.
+    /// Blocking input. Returns bytes read, zero at redirected-stream EOF,
+    /// or a DOS-mappable error. An empty output buffer also returns zero.
     fn read_stdin(&mut self, output: &mut [u8]) -> Result<usize, DosHostError>;
     /// Poll and consume at most one byte without waiting.
     fn try_read_stdin(&mut self) -> Result<Option<u8>, DosHostError>;
@@ -126,6 +159,30 @@ pub trait DosHost {
     fn flush_stdin(&mut self) -> Result<(), DosHostError>;
 
     fn file_create(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError>;
+    /// Atomically create a new read/write file in compatibility sharing mode.
+    /// An existing entry must remain unchanged and return FileExists. Hosts
+    /// must not emulate this using an existence check followed by file_create.
+    fn file_create_new(
+        &mut self,
+        _path: &[u8],
+        _attributes: u8,
+    ) -> Result<DosHostFile, DosHostError> {
+        Err(DosHostError::new(DosErrorCode::InvalidFunction))
+    }
+    /// Open/create without replacing an existing file, retaining the requested
+    /// access and sharing on the returned distinct closeable token. Outcomes
+    /// must come from the successful operation, not an existence precheck.
+    /// Unsupported modes must fail before creating or changing a file. A host
+    /// may reject read-only creation while still supporting existing-file reads.
+    /// DOS owns no-inherit and its critical-error policy; commit-on-write is
+    /// rejected before this boundary rather than silently dropping that flag.
+    fn file_extended_open(
+        &mut self,
+        _path: &[u8],
+        _request: DosFileOpenRequest,
+    ) -> Result<DosFileOpenResult, DosHostError> {
+        Err(DosHostError::new(DosErrorCode::InvalidFunction))
+    }
     fn file_open(&mut self, path: &[u8], access: DosFileAccess) -> Result<DosHostFile, DosHostError>;
     /// Open with DOS's sharing mode. Hosts without a native sharing primitive
     /// must make an explicit policy choice. Windows enforces the requested
@@ -139,11 +196,44 @@ pub trait DosHost {
     /// Return a distinct closeable token sharing the same open-file cursor.
     fn file_duplicate(&mut self, file: DosHostFile) -> Result<DosHostFile, DosHostError>;
     fn file_close(&mut self, file: DosHostFile) -> Result<(), DosHostError>;
+    /// Synchronize buffered data and metadata for this exact owned open file.
+    /// Preserve its cursor, access, sharing, aliases, and closeable identity,
+    /// including on failure. Never reopen its pathname to obtain more rights.
+    /// A trusted read-only, clean open object may succeed without native I/O.
+    /// Hosts without this contract must report unsupported.
+    fn file_commit(&mut self, _file: DosHostFile) -> Result<(), DosHostError> {
+        Err(DosHostError::new(DosErrorCode::InvalidFunction))
+    }
     fn file_read(&mut self, file: DosHostFile, output: &mut [u8]) -> Result<usize, DosHostError>;
     fn file_write(&mut self, file: DosHostFile, input: &[u8]) -> Result<usize, DosHostError>;
+    /// Seek using the DOS AH=42h CX:DX bit pattern carried in `offset`.
+    /// For Start, reinterpret it as an unsigned u32 absolute position before
+    /// widening; for Current and End, use a signed i32 displacement.
     fn file_seek(&mut self, file: DosHostFile, offset: i32, origin: DosSeekOrigin) -> Result<u32, DosHostError>;
     fn file_set_len(&mut self, file: DosHostFile, length: u32) -> Result<(), DosHostError>;
     fn file_status(&mut self, _file: DosHostFile) -> Result<DosFileStatus, DosHostError> {
+        Err(DosHostError::new(DosErrorCode::InvalidFunction))
+    }
+    /// Set only the last-write timestamp of this exact owned open file. The
+    /// packed DOS time/date denote local calendar time (1980..=2107, two-second
+    /// precision); reject invalid fields, dates, and nonexistent local times.
+    /// Preserve cursor, access, sharing and aliases, including on failure; never
+    /// reopen a pathname or upgrade rights. Count successful metadata changes
+    /// toward the IOCTL written fact. Hosts without this contract are unsupported.
+    fn file_set_write_time(
+        &mut self,
+        _file: DosHostFile,
+        _time: u16,
+        _date: u16,
+    ) -> Result<(), DosHostError> {
+        Err(DosHostError::new(DosErrorCode::InvalidFunction))
+    }
+    /// Query whether a byte remains at this open object's shared cursor without
+    /// reading, buffering, or moving it. Use the native size and position, not
+    /// the low-DWORD DOS SFT projection. This is an observation, not a promise
+    /// that a later read will succeed if the file changes in between.
+    /// Hosts without a non-consuming query must report unsupported.
+    fn file_input_status(&mut self, _file: DosHostFile) -> Result<bool, DosHostError> {
         Err(DosHostError::new(DosErrorCode::InvalidFunction))
     }
     /// Query DOS-facing identity for an opaque file token. Hosts that cannot
@@ -219,8 +309,9 @@ pub struct DosExecRequest {
     pub environment_segment: u16,
     /// PSP command-tail bytes: length, command bytes, CR, then zero padding.
     pub command_tail: [u8; 128],
-    /// The first 16-byte FCB copied for the child PSP.
+    /// First child PSP FCB: 12 copied drive/name/extension bytes, then four
+    /// zero bytes for the current block and record size.
     pub first_fcb: [u8; 16],
-    /// The second 16-byte FCB copied for the child PSP.
+    /// Second child PSP FCB, initialized with the same layout as the first.
     pub second_fcb: [u8; 16],
 }

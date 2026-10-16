@@ -26,6 +26,12 @@ impl Win16State {
         let preserve_registers = descriptor.id
             == win16_abi::Win16ExportId::KernelGlobalChangeLockCount;
         let value = match request {
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
+                win16_abi::Win16KernelRuntimeRequest::Yield,
+            )) => return self.begin_kernel_yield(registers, memory, host, return_to),
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Atoms(request)) => {
+                u32::from(self.local_atom_request(registers.ds, request, memory, host)?)
+            }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Instance(request)) => {
                 use win16_abi::Win16KernelInstanceRequest;
                 match request {
@@ -92,45 +98,13 @@ impl Win16State {
                 ));
             }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
-                win16_abi::Win16KernelRuntimeRequest::WaitEvent { task_handle },
-            )) => {
-                if task_handle != 0 {
-                    return Err(RuntimeError::new(
-                        Kind::CompatibilityGap,
-                        format!(
-                            "Win16 WaitEvent task handle 0x{task_handle:04X} has no task mapping"
-                        ),
-                    ));
-                }
-                if self
-                    .tasks
-                    .take_current_event()
-                    .map_err(crate::runtime_error)?
-                {
-                    self.sync_task_event_count(memory)?;
-                    0
-                } else {
-                    return Err(RuntimeError::new(
-                        Kind::CompatibilityGap,
-                        "Win16 WaitEvent would suspend, but no task event is posted",
-                    ));
-                }
-            }
+                win16_abi::Win16KernelRuntimeRequest::WaitEvent { .. },
+            )) => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "WaitEvent bypassed its owned CPU suspension boundary")),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
                 win16_abi::Win16KernelRuntimeRequest::PostEvent { task_handle },
             )) => {
-                if task_handle != 0 {
-                    return Err(RuntimeError::new(
-                        Kind::CompatibilityGap,
-                        format!(
-                            "Win16 PostEvent task handle 0x{task_handle:04X} has no task mapping"
-                        ),
-                    ));
-                }
-                self.tasks
-                    .post_current_event()
-                    .map_err(crate::runtime_error)?;
-                self.sync_task_event_count(memory)?;
+                self.post_task_event(task_handle, memory)?;
                 0
             }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Resources(
@@ -141,28 +115,10 @@ impl Win16State {
                 },
             )) => u32::from(self.find_resource(module, &name, &resource_type, host)?),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Resources(
-                win16_abi::Win16KernelResourcesRequest::LoadResource { module, info },
-            )) => {
-                return self.begin_load_resource(
-                    registers,
-                    memory,
-                    host,
-                    module,
-                    info,
-                    (return_selector, return_offset, return_sp),
-                );
-            }
-            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Resources(
-                win16_abi::Win16KernelResourcesRequest::LockResource { data },
-            )) => {
-                return self.begin_lock_resource(
-                    registers,
-                    memory,
-                    host,
-                    data,
-                    (return_selector, return_offset, return_sp),
-                );
-            }
+                win16_abi::Win16KernelResourcesRequest::LoadResource { .. }
+                | win16_abi::Win16KernelResourcesRequest::LockResource { .. },
+            )) => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "resource loading requires the CPU-owned KERNEL dispatch route")),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Resources(
                 win16_abi::Win16KernelResourcesRequest::FreeResource { data },
             )) => {
@@ -296,10 +252,16 @@ impl Win16State {
                 win16_abi::Win16KernelLocalHeapRequest::LocalFlags { handle },
             )) => self.local_operation(registers.ds, LocalOperation::Flags { handle }, memory)?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::LocalHeap(
+                win16_abi::Win16KernelLocalHeapRequest::LocalShrink { heap, minimum },
+            )) => self.kernel_local_shrink(registers, heap, minimum, return_sp, memory)?,
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::LocalHeap(
                 win16_abi::Win16KernelLocalHeapRequest::LocalCompact { minimum },
             )) => {
                 self.local_operation(registers.ds, LocalOperation::Compact { minimum }, memory)?
             }
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::LocalHeap(
+                win16_abi::Win16KernelLocalHeapRequest::LocalHandleDelta { delta },
+            )) => self.local_operation(registers.ds, LocalOperation::HandleDelta { delta }, memory)?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::LocalHeap(
                 win16_abi::Win16KernelLocalHeapRequest::LocalCountFree,
             )) => self.local_operation(registers.ds, LocalOperation::CountFree, memory)?,
@@ -386,7 +348,11 @@ impl Win16State {
                     size,
                     flags,
                 } => {
-                    let result = u32::from(self.kernel_global_realloc(handle, size, flags, memory, host)?);
+                    let result = u32::from(self.kernel_global_realloc_with_caller(
+                        handle, size, flags,
+                        Some(super::global_memory::GlobalMemoryCaller::GuestCode(return_selector)),
+                        memory, host,
+                    )?);
                     finish_global_heap_call(registers);
                     result
                 },
@@ -481,30 +447,15 @@ impl Win16State {
                 }
             }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
-                win16_abi::Win16KernelModulesRequest::LoadLibrary { library_name },
-            )) => {
-                return self.begin_load_library(
-                    &library_name,
-                    registers,
-                    memory,
-                    host,
-                    (return_selector, return_offset, return_sp),
-                );
-            }
-            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
-                win16_abi::Win16KernelModulesRequest::FreeLibrary { module },
-            )) => {
-                return self.begin_free_library(
-                    module,
-                    registers,
-                    memory,
-                    host,
-                    (return_selector, return_offset, return_sp),
-                );
-            }
+                win16_abi::Win16KernelModulesRequest::LoadLibrary { .. }
+                | win16_abi::Win16KernelModulesRequest::FreeLibrary { .. }
+                | win16_abi::Win16KernelModulesRequest::LoadModule { .. }
+                | win16_abi::Win16KernelModulesRequest::FreeModule { .. },
+            )) => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "DLL loading requires the CPU-owned KERNEL dispatch route")),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Strings(
-                win16_abi::Win16KernelStringsRequest::StringLength { text },
-            )) => text.map_or(0, |bytes| bytes.len() as u16 as u32),
+                win16_abi::Win16KernelStringsRequest::StringLength { byte_count },
+            )) => u32::from(byte_count),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Strings(
                 win16_abi::Win16KernelStringsRequest::StringCopy {
                     destination,
@@ -681,7 +632,7 @@ impl Win16State {
                 section.as_deref(),
                 key.as_deref(),
                 i32::from(default_value),
-                filename.as_deref(),
+                &self.private_profile_path(filename.as_deref(), host)?,
             )?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
                 win16_abi::Win16KernelProfilesRequest::GetProfileInt {
@@ -737,7 +688,7 @@ impl Win16State {
                 section.as_deref(),
                 key.as_deref(),
                 value.as_deref(),
-                filename.as_deref(),
+                &self.private_profile_path(filename.as_deref(), host)?,
             )?),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
                 win16_abi::Win16KernelRuntimeRequest::ExitProcess { status },
@@ -785,8 +736,12 @@ impl Win16State {
 // clears these registers. Keeping ES across a free or move would expose
 // a retired selector to the next API. Internal heap helpers do not have
 // this caller-register side effect.
-fn finish_global_heap_call(registers: &mut Registers) {
+pub(super) fn finish_global_heap_call(registers: &mut Registers) {
     registers.es = 0;
     registers.fs = 0;
     registers.gs = 0;
 }
+
+#[cfg(test)]
+#[path = "win16_lstrlen_tests.rs"]
+mod lstrlen_tests;

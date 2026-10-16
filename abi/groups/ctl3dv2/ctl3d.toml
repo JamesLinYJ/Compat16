@@ -1,0 +1,175 @@
+module = "CTL3DV2"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "Ctl3dGetVer"
+binding = { rust_id = "Ctl3dV2GetVersion", id_value = 1181, constant = "CTL3DV2_GET_VERSION" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 2
+name = "Ctl3dSubclassDlg"
+binding = { rust_id = "Ctl3dV2SubclassDialog", id_value = 1182, constant = "CTL3DV2_SUBCLASS_DIALOG" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+]
+
+[[exports]]
+ordinal = 3
+name = "Ctl3dSubclassCtl"
+binding = { rust_id = "Ctl3dV2SubclassControl", id_value = 1183, constant = "CTL3DV2_SUBCLASS_CONTROL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 4
+name = "Ctl3dCtlColor"
+binding = { rust_id = "Ctl3dV2ControlColor", id_value = 1184, constant = "CTL3DV2_CONTROL_COLOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "control", type = "U16" },
+  { name = "message", type = "U32" },
+]
+
+[[exports]]
+ordinal = 5
+name = "Ctl3dEnabled"
+binding = { rust_id = "Ctl3dV2IsEnabled", id_value = 1185, constant = "CTL3DV2_IS_ENABLED" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 6
+name = "Ctl3dColorChange"
+binding = { rust_id = "Ctl3dV2ColorChange", id_value = 1186, constant = "CTL3DV2_COLOR_CHANGE" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 12
+name = "Ctl3dRegister"
+binding = { rust_id = "Ctl3dV2Register", id_value = 1187, constant = "CTL3DV2_REGISTER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 13
+name = "Ctl3dUnregister"
+binding = { rust_id = "Ctl3dV2Unregister", id_value = 1188, constant = "CTL3DV2_UNREGISTER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 16
+name = "Ctl3dAutoSubclass"
+binding = { rust_id = "Ctl3dV2AutoSubclass", id_value = 1189, constant = "CTL3DV2_AUTO_SUBCLASS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 18
+name = "Ctl3dCtlColorEx"
+binding = { rust_id = "Ctl3dV2ControlColorEx", id_value = 1190, constant = "CTL3DV2_CONTROL_COLOR_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "control", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "l_param", type = "FarBuffer", encoding = "long" },
+]
+
+[[exports]]
+ordinal = 20
+name = "Ctl3dDlgFramePaint"
+decl = { attributes = [] }
+binding = { rust_id = "Ctl3dV2DlgFramePaint", id_value = 1191, constant = "CTL3DV2_DLG_FRAME_PAINT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
+
+[[exports]]
+ordinal = 21
+name = "Ctl3dSubclassDlgEx"
+binding = { rust_id = "Ctl3dV2SubclassDialogEx", id_value = 1192, constant = "CTL3DV2_SUBCLASS_DIALOG_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 22
+name = "Ctl3dWinIniChange"
+binding = { rust_id = "Ctl3dV2WinIniChange", id_value = 1193, constant = "CTL3DV2_WIN_INI_CHANGE" }
+[exports.call]
+returns = "void"
+
+[[exports]]
+ordinal = 23
+name = "Ctl3dIsAutoSubclass"
+binding = { rust_id = "Ctl3dV2IsAutoSubclass", id_value = 1194, constant = "CTL3DV2_IS_AUTO_SUBCLASS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 24
+name = "Ctl3dUnAutoSubclass"
+binding = { rust_id = "Ctl3dV2UnAutoSubclass", id_value = 1195, constant = "CTL3DV2_UN_AUTO_SUBCLASS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 25
+name = "Ctl3dSubclassCtlEx"
+binding = { rust_id = "Ctl3dV2SubclassControlEx", id_value = 1196, constant = "CTL3DV2_SUBCLASS_CONTROL_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "control", type = "U16" },
+  { name = "style", type = "U16" },
+]
+
+[[exports]]
+ordinal = 26
+name = "Ctl3dUnsubclassCtl"
+binding = { rust_id = "Ctl3dV2UnsubclassControl", id_value = 1197, constant = "CTL3DV2_UNSUBCLASS_CONTROL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 27
+name = "Ctl3dAutoSubclassEx"
+binding = { rust_id = "Ctl3dV2AutoSubclassEx", id_value = 1198, constant = "CTL3DV2_AUTO_SUBCLASS_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "flags", type = "U32" },
+]

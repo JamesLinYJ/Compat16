@@ -53,8 +53,10 @@ pub(super) struct Win16DibSectionOwner {
     length: u32,
     owner_thread: ThreadId,
     state: Mutex<AccessState>,
-    // This storage and its HBITMAP are restricted to the guest-runtime GDI
-    // thread. The Rc marker prevents accidental transfer to a worker thread.
+    // Mapping access and lifetime management stay on the guest-runtime GDI
+    // thread. Resumable USER drawing keeps !Send native-use guards there and
+    // serializes worker GDI access with callbacks and GdiFlush handoffs.
+    // The Rc marker prevents transferring this owner or its guards to a worker.
     _not_send: PhantomData<Rc<()>>,
 }
 
@@ -223,6 +225,20 @@ impl Win16DibSectionOwner {
             ));
         }
         Ok(Some(Win16DibDeleteLease { owner: Arc::clone(self), active: true }))
+    }
+
+    /// A checked WMF deletion receipt arrived from native GDI. Existing
+    /// native-use guards keep their Arc and mapping alive until they retire;
+    /// new guest accesses and native uses must stop immediately.
+    pub(super) fn acknowledge_external_deletion(&self) -> Result<(), RuntimeError> {
+        self.check_owner_thread()?;
+        let mut state = self.lock_state()?;
+        if state.phase == Phase::Retiring || state.view_pins != 0 {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "external WinG bitmap deletion crossed an active storage transaction"));
+        }
+        state.phase = Phase::Retired;
+        Ok(())
     }
 
     fn check_owner_thread(&self) -> Result<(), RuntimeError> {

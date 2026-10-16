@@ -2,6 +2,8 @@
 
 use super::*;
 
+const SWP_NOZORDER: u16 = 0x0004;
+
 impl Win16State {
     pub(super) fn begin_geometry_api(
         &mut self,
@@ -15,6 +17,13 @@ impl Win16State {
         use Win16ApiRequest as Request;
 
         match request {
+            Request::User(win16_abi::Win16UserRequest::Geometry(
+                request @ (win16_abi::Win16UserGeometryRequest::BeginDeferWindowPos { .. }
+                    | win16_abi::Win16UserGeometryRequest::DeferWindowPos { .. }
+                    | win16_abi::Win16UserGeometryRequest::EndDeferWindowPos { .. }),
+            )) => self.begin_defer_window_pos_api(
+                registers, memory, host, request, return_to, return_kind,
+            ),
             Request::User(win16_abi::Win16UserRequest::Geometry(
                 request @ (win16_abi::Win16UserGeometryRequest::GetWindowPlacement { .. }
                     | win16_abi::Win16UserGeometryRequest::SetWindowPlacement { .. }),
@@ -61,6 +70,45 @@ impl Win16State {
                     }, Win16WindowCallOutput::None)
                 };
                 self.submit_call(registers, memory, host, call, output, return_to, return_kind, None)
+            }
+            Request::User(win16_abi::Win16UserRequest::Geometry(
+                win16_abi::Win16UserGeometryRequest::SetCursorPos { x, y },
+            )) => self.submit_call(
+                registers, memory, host, Win16WindowCall::SetCursorPos { x, y },
+                Win16WindowCallOutput::Boolean, return_to, return_kind, None,
+            ),
+            Request::User(win16_abi::Win16UserRequest::Geometry(
+                win16_abi::Win16UserGeometryRequest::ClipCursor { rect },
+            )) => {
+                let rect = if rect == 0 {
+                    None
+                } else {
+                    let pointer = self.checked_guest_range(rect, Rect16::SIZE, Access::Read, memory)?;
+                    let rect = self.read_rect(memory, pointer)?;
+                    Some(crate::Win16HostRect {
+                        left: i32::from(rect.left), top: i32::from(rect.top),
+                        right: i32::from(rect.right), bottom: i32::from(rect.bottom),
+                    })
+                };
+                self.submit_call(
+                    registers, memory, host, Win16WindowCall::ClipCursor { rect },
+                    Win16WindowCallOutput::Boolean, return_to, return_kind, None,
+                )
+            }
+            Request::User(win16_abi::Win16UserRequest::Geometry(
+                win16_abi::Win16UserGeometryRequest::GetClipCursor { rect },
+            )) => {
+                // SDK 3.1 declares void GetClipCursor(RECT FAR*), not BOOL.
+                // Historical failure-buffer behavior is not established; a
+                // failed native read conservatively leaves guest bytes intact.
+                let pointer = self.checked_guest_range(rect, Rect16::SIZE, Access::Write, memory)?;
+                let output = super::super::guest_ranges::GuestOutputRange::capture(
+                    self, memory, pointer, Rect16::SIZE,
+                )?;
+                self.submit_call(
+                    registers, memory, host, Win16WindowCall::GetClipCursor,
+                    Win16WindowCallOutput::Rect(output), return_to, return_kind, None,
+                )
             }
             Request::User(win16_abi::Win16UserRequest::Geometry(
                 win16_abi::Win16UserGeometryRequest::GetCursorPos { point },
@@ -463,6 +511,40 @@ impl Win16State {
                 )
             }
             Request::User(win16_abi::Win16UserRequest::Geometry(
+                win16_abi::Win16UserGeometryRequest::MapWindowPoints { from, to, points, count },
+            )) => {
+                // USER.258 is void in the Win3.1 SDK. With no points there is
+                // no memory to access or result to obtain, even for a NULL FAR
+                // pointer. Do not turn that harmless call into a guest fault.
+                if count == 0 {
+                    return self.complete_return(registers, return_to.0, return_to.1,
+                        return_to.2, 0, return_kind);
+                }
+                let length = usize::from(count).checked_mul(Point16::SIZE).ok_or_else(||
+                    RuntimeError::new(Kind::GuestFault, "Win16 MapWindowPoints array size overflow"))?;
+                let pointer = self.checked_guest_range(points, length, Access::Read, memory)?;
+                let range = super::super::guest_ranges::GuestOutputRange::capture(
+                    self, memory, pointer, length,
+                )?;
+                let bytes = range.read(self, memory)?;
+                let mut points = Vec::new();
+                points.try_reserve_exact(usize::from(count)).map_err(|error|
+                    RuntimeError::with_source(Kind::ResourceExhausted,
+                        "copy Win16 MapWindowPoints input", error))?;
+                for bytes in bytes.chunks_exact(Point16::SIZE) {
+                    let point = Point16::decode(bytes.try_into().map_err(|_| RuntimeError::new(
+                        Kind::InternalInvariant, "Win16 MapWindowPoints input is not a POINT16"))?);
+                    points.push(Win16HostPoint { x: i32::from(point.x), y: i32::from(point.y) });
+                }
+                self.submit_call(
+                    registers, memory, host,
+                    Win16WindowCall::MapWindowPoints {
+                        from: self.native_window(from), to: self.native_window(to), points,
+                    },
+                    Win16WindowCallOutput::Points { range, count }, return_to, return_kind, None,
+                )
+            }
+            Request::User(win16_abi::Win16UserRequest::Geometry(
                 win16_abi::Win16UserGeometryRequest::WindowFromPoint { x, y },
             )) => self.submit_value_call(
                 registers,
@@ -491,7 +573,16 @@ impl Win16State {
                 host.observe_win16_io(&crate::Win16IoEvent::WindowPositionRequest {
                     window, insert_after, x, y, width, height, flags,
                 });
-                let Some(insert_after) = self.window_insert_after(insert_after) else {
+                // USER ignores hWndInsertAfter under SWP_NOZORDER, including
+                // unknown or retired guest handles. Keep the original flags
+                // and use a harmless pseudo-handle without looking it up.
+                // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setwindowpos
+                let insert_after = if flags & SWP_NOZORDER != 0 {
+                    Some(Win16WindowInsertAfter::Top)
+                } else {
+                    self.window_insert_after(insert_after)
+                };
+                let Some(insert_after) = insert_after else {
                     return self.complete_return(
                         registers,
                         return_to.0,

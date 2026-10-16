@@ -1,0 +1,16 @@
+module = "RMPATCH"
+
+[[exports]]
+ordinal = 1
+name = "DllEntryPoint"
+decl = { args = ["long", "word", "word", "word", "long", "word"] }
+
+[[exports]]
+ordinal = 2
+name = "intcb"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 3
+name = "checkpatch"
+decl = { args = ["word", "long"] }

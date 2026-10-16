@@ -1,0 +1,426 @@
+module = "WIFEMAN"
+
+[[exports]]
+ordinal = 1
+name = "FDILOADFONTFILE"
+kind = "stub"
+
+[[exports]]
+ordinal = 2
+name = "FDIUNLOADFONTFILE"
+kind = "stub"
+
+[[exports]]
+ordinal = 3
+name = "FDIQUERYFACES"
+kind = "stub"
+
+[[exports]]
+ordinal = 4
+name = "FDIOPENFONTCONTEXT"
+kind = "stub"
+
+[[exports]]
+ordinal = 5
+name = "FDISETFONTCONTEXT"
+kind = "stub"
+
+[[exports]]
+ordinal = 6
+name = "FDICLOSEFONTCONTEXT"
+kind = "stub"
+
+[[exports]]
+ordinal = 7
+name = "FDIQUERYFACEATTR"
+kind = "stub"
+
+[[exports]]
+ordinal = 8
+name = "FDIQUERYCHARATTR"
+kind = "stub"
+
+[[exports]]
+ordinal = 9
+name = "FDICONTROL"
+kind = "stub"
+
+[[exports]]
+ordinal = 10
+name = "FDICLAIMFONTFILE"
+kind = "stub"
+
+[[exports]]
+ordinal = 11
+name = "FDICONVERTFONTFILE"
+kind = "stub"
+
+[[exports]]
+ordinal = 14
+name = "MIMADDFONTDRIVER"
+kind = "stub"
+
+[[exports]]
+ordinal = 15
+name = "MIMADDFONTPACK"
+kind = "stub"
+
+[[exports]]
+ordinal = 16
+name = "MIMREMOVEFONTDRIVER"
+kind = "stub"
+
+[[exports]]
+ordinal = 17
+name = "MIMREMOVEFONTPACK"
+kind = "stub"
+
+[[exports]]
+ordinal = 18
+name = "MIMENUMFONTDRIVERS"
+kind = "stub"
+
+[[exports]]
+ordinal = 19
+name = "MIMENUMFONTPACKS"
+kind = "stub"
+
+[[exports]]
+ordinal = 20
+name = "MIMOPENFONTCONTEXT"
+kind = "stub"
+
+[[exports]]
+ordinal = 21
+name = "MIMCLOSEFONTCONTEXT"
+kind = "stub"
+
+[[exports]]
+ordinal = 22
+name = "MIMGETINFORMATIONS"
+kind = "stub"
+
+[[exports]]
+ordinal = 24
+name = "MISCSETERROINFO"
+kind = "stub"
+
+[[exports]]
+ordinal = 25
+name = "MISCGETERROINFO"
+kind = "stub"
+
+[[exports]]
+ordinal = 26
+name = "UBSTRLEN"
+kind = "stub"
+
+[[exports]]
+ordinal = 27
+name = "UBSTRCPY"
+kind = "stub"
+
+[[exports]]
+ordinal = 28
+name = "UBSTRNCPY"
+kind = "stub"
+
+[[exports]]
+ordinal = 29
+name = "UBSTRCAT"
+kind = "stub"
+
+[[exports]]
+ordinal = 30
+name = "UBSTRCMP"
+kind = "stub"
+
+[[exports]]
+ordinal = 31
+name = "ASCIZTOUZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 32
+name = "UZTOASCIZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 33
+name = "MISCWARNINGMESSAGE"
+kind = "stub"
+
+[[exports]]
+ordinal = 34
+name = "MISCWARNINGMESSAGEWITHARGUMENT"
+kind = "stub"
+
+[[exports]]
+ordinal = 35
+name = "FCMCREATECACHEBUFFER"
+kind = "stub"
+
+[[exports]]
+ordinal = 36
+name = "FCMDELETECACHEBUFFER"
+kind = "stub"
+
+[[exports]]
+ordinal = 37
+name = "FCMREQUESTIMAGES"
+kind = "stub"
+
+[[exports]]
+ordinal = 38
+name = "FCMRELEASEIMAGES"
+kind = "stub"
+
+[[exports]]
+ordinal = 39
+name = "FCMREQUESTDEFAULTFB"
+kind = "stub"
+
+[[exports]]
+ordinal = 40
+name = "FCMRELEASEDEFAULTFB"
+kind = "stub"
+
+[[exports]]
+ordinal = 41
+name = "FCMCALCULATETEXTEXTENT"
+kind = "stub"
+
+[[exports]]
+ordinal = 42
+name = "FCMCALCULATEOUTPUTPOSITIONS"
+kind = "stub"
+
+[[exports]]
+ordinal = 43
+name = "FCMCLEANUP"
+kind = "stub"
+
+[[exports]]
+ordinal = 44
+name = "FCMENUMFONTBUFFERS"
+kind = "stub"
+
+[[exports]]
+ordinal = 45
+name = "MISCGETVERSION"
+kind = "stub"
+
+[[exports]]
+ordinal = 46
+name = "MISCCONVERTFONTFAMILY"
+kind = "stub"
+
+[[exports]]
+ordinal = 47
+name = "MISCCONVERTCHARSET"
+kind = "stub"
+
+[[exports]]
+ordinal = 48
+name = "MISCIFIMETRICSTOLOGFONT"
+kind = "stub"
+
+[[exports]]
+ordinal = 49
+name = "MISCIFIMETRICSTOTEXTMETRICS"
+kind = "stub"
+
+[[exports]]
+ordinal = 50
+name = "MISCMAKETEXTXFORM"
+kind = "stub"
+
+[[exports]]
+ordinal = 51
+name = "FCMCALCBYTEWIDTH"
+kind = "stub"
+
+[[exports]]
+ordinal = 52
+name = "FCMFORCECACHEIN"
+kind = "stub"
+
+[[exports]]
+ordinal = 53
+name = "FCMVALIDATEFC"
+kind = "stub"
+
+[[exports]]
+ordinal = 54
+name = "FCMUNVALIDATEFC"
+kind = "stub"
+
+[[exports]]
+ordinal = 55
+name = "FCMQUERYFACEATTR"
+kind = "stub"
+
+[[exports]]
+ordinal = 56
+name = "FCMPROCESSDEVICECONTROL"
+kind = "stub"
+
+[[exports]]
+ordinal = 57
+name = "MISCTRANCATESTRING"
+kind = "stub"
+
+[[exports]]
+ordinal = 58
+name = "MISCADDHUGEPTR"
+kind = "stub"
+
+[[exports]]
+ordinal = 59
+name = "MISCGETSEGMENTINCREMENT"
+kind = "stub"
+
+[[exports]]
+ordinal = 60
+name = "MISCISWIFECONTROL"
+kind = "stub"
+
+[[exports]]
+ordinal = 61
+name = "MISCISGAIJICONTROL"
+kind = "stub"
+
+[[exports]]
+ordinal = 62
+name = "FCMGETEUDCLEADBYTERANGE"
+kind = "stub"
+
+[[exports]]
+ordinal = 63
+name = "FCMGETEUDCFB"
+kind = "stub"
+
+[[exports]]
+ordinal = 64
+name = "FCMGETCHARWIDTH"
+kind = "stub"
+
+[[exports]]
+ordinal = 65
+name = "MISCSTRETCHMONOFONTIMAGE"
+kind = "stub"
+
+[[exports]]
+ordinal = 66
+name = "MISCGETEUDCLEADBYTERANGE"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 67
+name = "MISCVALIDATEQUICKSEARCHTABLE"
+kind = "stub"
+
+[[exports]]
+ordinal = 68
+name = "MISCUNVALIDATEQUICKSEARCHTABLE"
+kind = "stub"
+
+[[exports]]
+ordinal = 69
+name = "MISCREGISTERNOTIFYFUNCTION"
+kind = "stub"
+
+[[exports]]
+ordinal = 70
+name = "MISCUNREGISTERNOTIFYFUNCTION"
+kind = "stub"
+
+[[exports]]
+ordinal = 71
+name = "FCMREQUESTDEFAULTFBEX"
+kind = "stub"
+
+[[exports]]
+ordinal = 72
+name = "MISCREALIZEWIFEFONT"
+kind = "stub"
+
+[[exports]]
+ordinal = 73
+name = "MISCDELETEWIFEFONT"
+kind = "stub"
+
+[[exports]]
+ordinal = 74
+name = "MAPWIFEFONT"
+kind = "stub"
+
+[[exports]]
+ordinal = 75
+name = "SETCLOSEOLDESTFCFUNC"
+kind = "stub"
+
+[[exports]]
+ordinal = 76
+name = "CACHEDOPENFONTCONTEXT"
+kind = "stub"
+
+[[exports]]
+ordinal = 77
+name = "FILLFONTINFO"
+kind = "stub"
+
+[[exports]]
+ordinal = 78
+name = "FILLCONTEXTINFO"
+kind = "stub"
+
+[[exports]]
+ordinal = 79
+name = "GETEUDCFD"
+kind = "stub"
+
+[[exports]]
+ordinal = 80
+name = "GETDEFAULTFONTINFO"
+kind = "stub"
+
+[[exports]]
+ordinal = 128
+name = "DIAGLOCALLOCKANYTHING"
+kind = "stub"
+
+[[exports]]
+ordinal = 129
+name = "DIAGLOCALUNLOCKANYTHING"
+kind = "stub"
+
+[[exports]]
+ordinal = 130
+name = "DIAGGETCONFIRMSTRING"
+kind = "stub"
+
+[[exports]]
+ordinal = 131
+name = "DIAGSELFCHECK"
+kind = "stub"
+
+[[exports]]
+ordinal = 132
+name = "DIAGSELFCHECKANDWARNING"
+kind = "stub"
+
+[[exports]]
+ordinal = 150
+name = "DEBUGASSERTION"
+kind = "stub"
+
+[[exports]]
+ordinal = 151
+name = "DELAYEDINIT"
+kind = "stub"
+
+[[exports]]
+ordinal = 152
+name = "FirstInit"
+kind = "stub"

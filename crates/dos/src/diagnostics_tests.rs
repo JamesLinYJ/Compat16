@@ -3,7 +3,7 @@ use guest_core::MemoryError;
 
 #[test]
 fn dos_error_code_labels_preserve_numeric_abi_values() {
-    let codes: [(DosErrorCode, u16, &str); 23] = [
+    let codes: [(DosErrorCode, u16, &str); 24] = [
         (DosErrorCode::InvalidFunction, 1, "invalid function"),
         (DosErrorCode::FileNotFound, 2, "file not found"),
         (DosErrorCode::PathNotFound, 3, "path not found"),
@@ -27,6 +27,7 @@ fn dos_error_code_labels_preserve_numeric_abi_values() {
         (DosErrorCode::LockViolation, 33, "lock violation"),
         (DosErrorCode::DiskFull, 39, "disk full"),
         (DosErrorCode::GeneralFailure, 31, "general failure"),
+        (DosErrorCode::FileExists, 80, "file already exists"),
     ];
 
     for (code, number, label) in codes {

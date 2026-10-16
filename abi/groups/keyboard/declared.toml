@@ -1,0 +1,54 @@
+module = "KEYBOARD"
+
+[[exports]]
+ordinal = 1
+name = "Inquire"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 2
+name = "Enable"
+decl = { attributes = ["ret16"], args = ["segmented_pointer", "pointer"] }
+
+[[exports]]
+ordinal = 3
+name = "Disable"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 9
+name = "INQUIREEX"
+kind = "stub"
+
+[[exports]]
+ordinal = 10
+name = "TOASCIIEX"
+kind = "stub"
+
+[[exports]]
+ordinal = 11
+name = "VKKEYSCANEX"
+kind = "stub"
+
+[[exports]]
+ordinal = 12
+name = "MAPVIRTUALKEYEX"
+kind = "stub"
+
+[[exports]]
+ordinal = 13
+name = "NEWTABLEEX"
+kind = "stub"
+
+[[exports]]
+ordinal = 14
+name = "__EXPORTEDSTUB"
+kind = "stub"
+
+[[exports]]
+ordinal = 132
+name = "GetKBCodePage"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "KeyboardGetKBCodePage", id_value = 140, constant = "KEYBOARD_GET_KB_CODE_PAGE" }
+[exports.call]
+returns = "word"

@@ -1,0 +1,53 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 174
+name = "LoadIcon"
+binding = { rust_id = "UserLoadIcon", id_value = 238, constant = "USER_LOAD_ICON" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "icon_name_or_id", type = "ResourceName" },
+]
+
+[[exports]]
+ordinal = 175
+name = "LoadBitmap"
+binding = { rust_id = "UserLoadBitmap", id_value = 239, constant = "USER_LOAD_BITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "bitmap_name_or_id", type = "ResourceName" },
+]
+
+[[exports]]
+ordinal = 176
+name = "LoadString"
+binding = { rust_id = "UserLoadString", id_value = 236, constant = "USER_LOAD_STRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "string_id", type = "U16" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16" },
+]
+
+[[exports]]
+ordinal = 407
+name = "CreateIcon"
+binding = { rust_id = "UserCreateIcon", id_value = 241, constant = "USER_CREATE_ICON" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+  { name = "planes", type = "U16" },
+  { name = "bits_per_pixel", type = "U16" },
+  { name = "and_mask", type = "FarBuffer" },
+  { name = "xor_mask", type = "FarBuffer" },
+]

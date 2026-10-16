@@ -55,25 +55,58 @@ fn report_session_api_failure(
 
 impl Win16State {
     pub(super) fn resolve_dialog_template_titles(
-        &self,
+        &mut self,
         template: &mut crate::Win16HostDialogTemplate,
         instance: u16,
+        host: &mut impl RuntimeHost,
     ) -> Result<bool, RuntimeError> {
         let Some(module) = self.module_handle_for_instance(instance) else { return Ok(false); };
         let Some(record) = self.modules.records.get(&module) else { return Ok(false); };
         let Some(definition) = record.definition.as_ref() else { return Ok(false); };
         let strings = formats::NeStringTable::from_module(&record.image, definition)
             .map_err(crate::runtime_error)?;
-        for item in &mut template.items {
-            let crate::Win16HostDialogAtom::Ordinal(id) = &item.title else { continue; };
-            // Win32's ordinal form for STATIC/SS_ICON names a native-module
-            // resource, while this ID belongs to the guest NE module. Until
-            // the host image lease is installed in the template route, do
-            // not let native USER accidentally load a same-numbered host icon.
-            if matches!(&item.class, crate::Win16HostDialogAtom::Ordinal(0x82))
-                && item.style & 0x0f == 0x03
+        // This first image route deliberately excludes guest class callbacks:
+        // their child creation can invalidate the bounded native install plan.
+        let icon_route = matches!(&template.class,
+            crate::Win16HostDialogAtom::None | crate::Win16HostDialogAtom::Ordinal(0x8002))
+            && template.style & 0x0010 == 0 // DS_NOFAILCREATE would hide install failure.
+            && template.guest_class_name.is_none()
+            && template.items.iter().all(|item|
+                matches!(&item.class, crate::Win16HostDialogAtom::Ordinal(0x80..=0x85))
+                    && item.guest_class_name.is_none());
+        for item in &template.items {
+            let static_class = matches!(&item.class, crate::Win16HostDialogAtom::Ordinal(0x82))
+                || matches!(&item.class, crate::Win16HostDialogAtom::String(name)
+                    if super::dialog_creation::standard_dialog_control_ordinal(name) == Some(0x82));
+            // Bit 0x10 belongs to the native STATIC type mask. In particular,
+            // 0x13 is not SS_ICON; do not reinterpret its ordinal as RT_STRING.
+            if static_class && item.style & 0x1f == 0x13
+                && matches!(&item.title, crate::Win16HostDialogAtom::Ordinal(_))
             {
                 return Ok(false);
+            }
+            if static_class && item.style & 0x1f == 0x03
+                && !matches!(&item.title, crate::Win16HostDialogAtom::None)
+                && (!icon_route || !item.creation_data.is_empty()
+                    || !matches!(&item.title, crate::Win16HostDialogAtom::Ordinal(_)))
+            {
+                return Ok(false);
+            }
+        }
+        for item in &mut template.items {
+            let crate::Win16HostDialogAtom::Ordinal(id) = &item.title else { continue; };
+            if matches!(&item.class, crate::Win16HostDialogAtom::Ordinal(0x82))
+                && item.style & 0x1f == 0x03
+            {
+                if !icon_route || !item.creation_data.is_empty() { return Ok(false); }
+                // SS_ICON ordinals name RT_GROUP_ICON, never RT_STRING and
+                // never a resource in the host executable. Reuse LoadIcon's
+                // validated guest group/image selection and cache ownership.
+                let handle = self.load_icon(instance, win16_abi::Win16ResourceName::Id(*id), host)?;
+                let Some(icon) = self.guest_images.icon(handle) else { return Ok(false); };
+                item.initial_icon = Some(icon);
+                item.title = crate::Win16HostDialogAtom::None;
+                continue;
             }
             let Some(bytes) = strings.get(*id).map_err(crate::runtime_error)? else {
                 return Ok(false);
@@ -104,6 +137,7 @@ impl Win16State {
         let pending_dialog_window = continuation.pending_dialog_window();
         let pending_dialog_window_destroyed = continuation.pending_dialog_window_destroyed();
         let pending_dialog_creation = continuation.pending_dialog_creation();
+        let pending_dialog_class_root = continuation.pending_dialog_class_root();
 
         let value = match (continuation.completion, result) {
             (Completion::SystemParameters(spi), ResultValue::SystemParameters(result)) => {
@@ -204,6 +238,8 @@ impl Win16State {
                                 )
                             })?;
                             self.associate_window_creation(guest, window, creation)?;
+                            self.initialize_dialog_window_data(guest, instance)?;
+                            self.record_window_class_root(guest, window, pending_dialog_class_root)?;
                             Some(guest)
                         }
                         None => {
@@ -331,7 +367,10 @@ impl Win16State {
         {
             if let crate::Win16HostDialogAtom::GuestClass(class) = &template.class {
                 if let Some(resource) = self.window_classes.menu_resource_for_host_class(*class) {
-                    let Some(menu) = self.resource_menu_template(instance, resource, host)? else {
+                    let owner = self.window_classes.resolve_registered_host_class(*class)
+                        .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
+                            "custom dialog menu lost its exact guest class owner"))?.instance;
+                    let Some(menu) = self.resource_menu_template(owner, resource, host)? else {
                         return Ok(false);
                     };
                     template.menu_template = Some(menu);

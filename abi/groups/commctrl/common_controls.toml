@@ -1,0 +1,154 @@
+module = "COMMCTRL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 2
+name = "MenuHelp"
+binding = { rust_id = "CommctrlMenuHelp", id_value = 1208, constant = "COMMCTRL_MENU_HELP" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+  { name = "menu", type = "U16" },
+  { name = "instance", type = "U16" },
+  { name = "status_bar", type = "U16" },
+  { name = "help_id_table", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 4
+name = "GetEffectiveClientRect"
+binding = { rust_id = "CommctrlGetEffectiveClientRect", id_value = 1209, constant = "COMMCTRL_GET_EFFECTIVE_CLIENT_RECT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "rect", type = "FarOutputBuffer" },
+  { name = "control_ids", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 6
+name = "CreateStatusWindow"
+binding = { rust_id = "CommctrlCreateStatusWindow", id_value = 1210, constant = "COMMCTRL_CREATE_STATUS_WINDOW" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "style", type = "U32" },
+  { name = "text", type = "FarString" },
+  { name = "parent", type = "U16" },
+  { name = "control_id", type = "U16" },
+]
+
+[[exports]]
+ordinal = 7
+name = "CreateToolbar"
+binding = { rust_id = "CommctrlCreateToolbar", id_value = 1211, constant = "COMMCTRL_CREATE_TOOLBAR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "style", type = "U32" },
+  { name = "control_id", type = "U16" },
+  { name = "bitmap_count", type = "U16" },
+  { name = "bitmap_instance", type = "U16" },
+  { name = "bitmap_resource", type = "U16" },
+  { name = "buttons", type = "FarBuffer" },
+  { name = "button_count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 8
+name = "CreateMappedBitmap"
+binding = { rust_id = "CommctrlCreateMappedBitmap", id_value = 1212, constant = "COMMCTRL_CREATE_MAPPED_BITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "bitmap_resource", type = "U16" },
+  { name = "flags", type = "U16" },
+  { name = "color_map", type = "FarBuffer" },
+  { name = "color_map_count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 9
+name = "CreateHeaderWindow"
+binding = { rust_id = "CommctrlCreateHeaderWindow", id_value = 1213, constant = "COMMCTRL_CREATE_HEADER_WINDOW" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "style", type = "U32" },
+  { name = "text", type = "FarString" },
+  { name = "parent", type = "U16" },
+  { name = "control_id", type = "U16" },
+]
+
+[[exports]]
+ordinal = 10
+name = "WritePrivateProfileStruct"
+binding = { rust_id = "CommctrlWritePrivateProfileStruct", id_value = 1214, constant = "COMMCTRL_WRITE_PRIVATE_PROFILE_STRUCT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "FarString" },
+  { name = "key", type = "FarString" },
+  { name = "data", type = "FarBuffer" },
+  { name = "data_size", type = "U16" },
+  { name = "file_name", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 11
+name = "GetPrivateProfileStruct"
+binding = { rust_id = "CommctrlGetPrivateProfileStruct", id_value = 1215, constant = "COMMCTRL_GET_PRIVATE_PROFILE_STRUCT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "FarString" },
+  { name = "key", type = "FarString" },
+  { name = "data", type = "FarBuffer" },
+  { name = "data_size", type = "U16" },
+  { name = "file_name", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 13
+name = "MakeDragList"
+binding = { rust_id = "CommctrlMakeDragList", id_value = 1216, constant = "COMMCTRL_MAKE_DRAG_LIST" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "list_box", type = "U16" },
+]
+
+[[exports]]
+ordinal = 17
+name = "InitCommonControls"
+binding = { rust_id = "CommctrlInitCommonControls", id_value = 1217, constant = "COMMCTRL_INIT_COMMON_CONTROLS" }
+[exports.call]
+returns = "void"
+
+[[exports]]
+ordinal = 20
+name = "CreateToolbarEx"
+binding = { rust_id = "CommctrlCreateToolbarEx", id_value = 1218, constant = "COMMCTRL_CREATE_TOOLBAR_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "style", type = "U32" },
+  { name = "control_id", type = "U16" },
+  { name = "bitmap_count", type = "U16" },
+  { name = "bitmap_instance", type = "U16" },
+  { name = "bitmap_resource", type = "U16" },
+  { name = "buttons", type = "FarBuffer" },
+  { name = "button_count", type = "U16" },
+  { name = "button_width", type = "U16" },
+  { name = "button_height", type = "U16" },
+  { name = "bitmap_width", type = "U16" },
+  { name = "bitmap_height", type = "U16" },
+  { name = "button_struct_size", type = "U16" },
+]

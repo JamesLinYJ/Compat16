@@ -23,6 +23,8 @@ mod prepare;
 mod snapshot;
 #[path = "win16_runtime_dde_retirement.rs"]
 mod retirement;
+#[path = "win16_runtime_dde_transfer.rs"]
+mod transfer;
 #[path = "win16_runtime_dde_source.rs"]
 mod source_lifecycle;
 
@@ -45,7 +47,7 @@ struct DdeCallbackCandidate {
     reinitializing: bool,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::win16_runtime) struct DdeDataTransferGuard {
     guard_id: u64,
     guest_data: u32,
@@ -80,6 +82,8 @@ pub(in crate::win16_runtime) struct Win16DdeContinuation {
     worker_generation: Option<u64>,
     started_failure: Option<Arc<crate::Win16DdeOperationStartedFailure>>,
     instance: Option<u32>,
+    /// Captured before projection can remove the guest instance mapping.
+    native_input_instance: Option<Option<Win16HostDdeInstance>>,
     outputs: DdeOutputs,
     callback_candidate: Option<DdeCallbackCandidate>,
     data_transfer_guard: Option<DdeDataTransferGuard>,
@@ -241,6 +245,7 @@ impl Win16DdeContinuation {
             worker_generation: None,
             started_failure: None,
             instance,
+            native_input_instance: Some(None),
             outputs: DdeOutputs::default(),
             callback_candidate: None,
             data_transfer_guard: None,
@@ -264,6 +269,33 @@ impl Win16DdeContinuation {
 
     pub(in crate::win16_runtime) fn guest_instance(&self) -> Option<u32> {
         self.instance
+    }
+
+    /// The native request owner, distinct from Initialize's provisional output.
+    pub(in crate::win16_runtime) fn native_input_guest_instance(&self) -> Option<u32> {
+        match self.request {
+            Win16DdeRequest::Initialize { initial_instance: 0, .. } => None,
+            Win16DdeRequest::Initialize { initial_instance, .. } => Some(initial_instance),
+            // Match the input recorded by the native operation ledger. Calls
+            // that resolve an instance through a data/conversation token have
+            // no explicit instance argument, even though runtime resources
+            // still have a guest instance owner.
+            Win16DdeRequest::ClientTransaction { .. }
+            | Win16DdeRequest::AbandonTransaction { .. }
+            | Win16DdeRequest::PostAdvise { .. }
+            | Win16DdeRequest::CreateData { .. }
+            | Win16DdeRequest::GetLastError { .. }
+            | Win16DdeRequest::CreateString { .. }
+            | Win16DdeRequest::FreeString { .. }
+            | Win16DdeRequest::QueryString { .. }
+            | Win16DdeRequest::KeepString { .. }
+            | Win16DdeRequest::EnableCallback { .. }
+            | Win16DdeRequest::NameService { .. }
+            | Win16DdeRequest::Uninitialize { .. }
+            | Win16DdeRequest::ConnectList { .. }
+            | Win16DdeRequest::Connect { .. } => self.instance,
+            _ => None,
+        }
     }
 
     pub(in crate::win16_runtime) fn operation_retirement_proof(
@@ -510,3 +542,7 @@ mod completion;
 pub(in crate::win16_runtime) use completion::finish_dde_operation;
 #[path = "win16_runtime_dde_huge.rs"]
 mod huge;
+
+#[cfg(test)]
+#[path = "win16_runtime_dde_initialization_tests.rs"]
+mod initialization_tests;

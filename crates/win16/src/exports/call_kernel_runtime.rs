@@ -10,6 +10,9 @@ pub(super) fn decode(
     arguments: &[crate::Win16Argument],
 ) -> Result<Win16ApiRequest, Win16Error> {
     Ok(match export {
+        Win16ExportId::KernelYield => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::Runtime(super::Win16KernelRuntimeRequest::Yield),
+        ),
         Win16ExportId::KernelGetVersion => Win16ApiRequest::Kernel(
             super::Win16KernelRequest::Runtime(super::Win16KernelRuntimeRequest::GetVersion),
         ),

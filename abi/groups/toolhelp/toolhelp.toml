@@ -1,0 +1,88 @@
+module = "TOOLHELP"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 50
+name = "GlobalHandleToSel"
+binding = { rust_id = "ToolhelpGlobalHandleToSel", id_value = 251, constant = "TOOLHELP_GLOBAL_HANDLE_TO_SEL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 51
+name = "GlobalFirst"
+binding = { rust_id = "ToolhelpGlobalFirst", id_value = 252, constant = "TOOLHELP_GLOBAL_FIRST" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 52
+name = "GlobalNext"
+binding = { rust_id = "ToolhelpGlobalNext", id_value = 253, constant = "TOOLHELP_GLOBAL_NEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 53
+name = "GlobalInfo"
+binding = { rust_id = "ToolhelpGlobalInfo", id_value = 254, constant = "TOOLHELP_GLOBAL_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 54
+name = "GlobalEntryHandle"
+binding = { rust_id = "ToolhelpGlobalEntryHandle", id_value = 255, constant = "TOOLHELP_GLOBAL_ENTRY_HANDLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 55
+name = "GlobalEntryModule"
+binding = { rust_id = "ToolhelpGlobalEntryModule", id_value = 256, constant = "TOOLHELP_GLOBAL_ENTRY_MODULE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "module", type = "U16" },
+  { name = "segment", type = "U16" },
+]
+
+[[exports]]
+ordinal = 75
+name = "InterruptRegister"
+binding = { rust_id = "ToolhelpInterruptRegister", id_value = 257, constant = "TOOLHELP_INTERRUPT_REGISTER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "task", type = "U16" },
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 76
+name = "InterruptUnRegister"
+binding = { rust_id = "ToolhelpInterruptUnregister", id_value = 258, constant = "TOOLHELP_INTERRUPT_UNREGISTER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "task", type = "U16" },
+]

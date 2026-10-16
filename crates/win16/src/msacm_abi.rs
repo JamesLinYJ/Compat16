@@ -1,6 +1,6 @@
 //! Explicit little-endian Win16 MSACM records.
 //!
-//! The Win16 export signatures come from this tree's `specs/msacm.spec`.
+//! The Win16 export signatures come from `abi/groups/msacm/msacm.toml`.
 //! Microsoft's Windows 3.1 SDK subset here has no ACM-specific records, so
 //! fixed ACM record declarations were cross-checked against a read-only
 //! external Win16 compatibility header, not Microsoft documentation. Every

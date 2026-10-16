@@ -1,0 +1,256 @@
+module = "DISPLAY"
+
+[[exports]]
+ordinal = 1
+name = "BitBlt"
+kind = "stub"
+
+[[exports]]
+ordinal = 2
+name = "ColorInfo"
+kind = "stub"
+
+[[exports]]
+ordinal = 3
+name = "Control"
+kind = "stub"
+
+[[exports]]
+ordinal = 4
+name = "Disable"
+kind = "stub"
+
+[[exports]]
+ordinal = 5
+name = "Enable"
+kind = "stub"
+
+[[exports]]
+ordinal = 6
+name = "EnumFonts"
+kind = "stub"
+
+[[exports]]
+ordinal = 7
+name = "EnumObj"
+kind = "stub"
+
+[[exports]]
+ordinal = 8
+name = "Output"
+kind = "stub"
+
+[[exports]]
+ordinal = 9
+name = "Pixel"
+kind = "stub"
+
+[[exports]]
+ordinal = 10
+name = "RealizeObject"
+kind = "stub"
+
+[[exports]]
+ordinal = 11
+name = "StrBlt"
+kind = "stub"
+
+[[exports]]
+ordinal = 12
+name = "ScanLR"
+kind = "stub"
+
+[[exports]]
+ordinal = 13
+name = "DeviceMode"
+kind = "stub"
+
+[[exports]]
+ordinal = 14
+name = "ExtTextOut"
+kind = "stub"
+
+[[exports]]
+ordinal = 15
+name = "GetCharWidth"
+kind = "stub"
+
+[[exports]]
+ordinal = 16
+name = "DeviceBitmap"
+kind = "stub"
+
+[[exports]]
+ordinal = 17
+name = "FastBorder"
+kind = "stub"
+
+[[exports]]
+ordinal = 18
+name = "SetAttribute"
+kind = "stub"
+
+[[exports]]
+ordinal = 19
+name = "DeviceBitmapBits"
+kind = "stub"
+
+[[exports]]
+ordinal = 20
+name = "CreateBitmap"
+kind = "stub"
+
+[[exports]]
+ordinal = 21
+name = "DIBScreenBlt"
+kind = "stub"
+
+[[exports]]
+ordinal = 22
+name = "SetPalette"
+kind = "stub"
+
+[[exports]]
+ordinal = 23
+name = "GetPalette"
+kind = "stub"
+
+[[exports]]
+ordinal = 24
+name = "SetPaletteTranslate"
+decl = { attributes = ["ret16"], args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 25
+name = "GetPaletteTranslate"
+kind = "stub"
+
+[[exports]]
+ordinal = 26
+name = "UpdateColors"
+kind = "stub"
+
+[[exports]]
+ordinal = 27
+name = "StretchBlt"
+kind = "stub"
+
+[[exports]]
+ordinal = 28
+name = "StretchDIBits"
+kind = "stub"
+
+[[exports]]
+ordinal = 29
+name = "SelectBitmap"
+kind = "stub"
+
+[[exports]]
+ordinal = 30
+name = "BitmapBits"
+kind = "stub"
+
+[[exports]]
+ordinal = 31
+name = "ReEnable"
+kind = "stub"
+
+[[exports]]
+ordinal = 39
+name = "DIBBlt"
+kind = "stub"
+
+[[exports]]
+ordinal = 40
+name = "CreateDIBitmap"
+kind = "stub"
+
+[[exports]]
+ordinal = 41
+name = "DIBToDevice"
+kind = "stub"
+
+[[exports]]
+ordinal = 90
+name = "Do_Polylines"
+kind = "stub"
+
+[[exports]]
+ordinal = 91
+name = "Do_Scanlines"
+kind = "stub"
+
+[[exports]]
+ordinal = 92
+name = "SaveScreenBitmap"
+kind = "stub"
+
+[[exports]]
+ordinal = 101
+name = "Inquire"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 102
+name = "SetCursor"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 103
+name = "MoveCursor"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 104
+name = "CheckCursor"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 400
+name = "PExtTextOut"
+kind = "stub"
+
+[[exports]]
+ordinal = 401
+name = "PStrBlt"
+kind = "stub"
+
+[[exports]]
+ordinal = 402
+name = "RExtTextOut"
+kind = "stub"
+
+[[exports]]
+ordinal = 403
+name = "RStrBlt"
+kind = "stub"
+
+[[exports]]
+ordinal = 450
+name = "GetDriverResourceID"
+decl = { args = ["word", "string"] }
+
+[[exports]]
+ordinal = 500
+name = "UserRepaintDisable"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 501
+name = "ORDINAL_ONLY1"
+kind = "stub"
+
+[[exports]]
+ordinal = 502
+name = "ORDINAL_ONLY2"
+kind = "stub"
+
+[[exports]]
+ordinal = 600
+name = "InkReady"
+kind = "stub"
+
+[[exports]]
+ordinal = 601
+name = "GetLPDevice"
+kind = "stub"

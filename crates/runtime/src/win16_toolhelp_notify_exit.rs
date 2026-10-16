@@ -7,6 +7,17 @@ use super::toolhelp_notify::{Win16ToolhelpNotifyData, Win16ToolhelpNotifyEvent};
 use super::Win16State;
 use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost};
 
+#[path = "win16_toolhelp_notify_exit/modules.rs"]
+mod modules;
+use modules::TaskExitModulePhase;
+
+/// Identifies the accepted terminal request, never a native task/pointer.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct TaskExitModuleScope {
+    termination_id: u64,
+    task: u16,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct Win16ToolhelpRip {
     pub(super) instruction_pointer: u16,
@@ -35,6 +46,7 @@ struct PendingTaskExit {
     // `active_dispatch_callback` remains the exact terminal event identity
     // used by RIP/EXITTASK completion validation.
     active_drain_callback: Option<super::CallbackFrameId>,
+    modules: TaskExitModulePhase,
 }
 
 impl Win16ToolhelpTaskExitState {
@@ -65,6 +77,7 @@ impl Win16ToolhelpTaskExitState {
             outstanding_notifications: outstanding,
             active_dispatch_callback: None,
             active_drain_callback,
+            modules: TaskExitModulePhase::Pending,
         });
     }
 
@@ -116,7 +129,8 @@ impl Win16ToolhelpTaskExitState {
             Kind::InternalInvariant,
             "ToolHelp RIP cancellation event count overflowed",
         ))?;
-        if pending.rip.is_none() || pending.outstanding_notifications != expected {
+        if pending.rip.is_none() || pending.outstanding_notifications != expected
+            || pending.modules != TaskExitModulePhase::Pending {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "handled ToolHelp RIP does not own the exact remaining terminal notification batch"));
         }
@@ -284,7 +298,7 @@ impl Win16ToolhelpTaskExitState {
 
     fn clear(&mut self, id: u64) -> Result<(), RuntimeError> {
         if self.pending.is_none_or(|pending| pending.id != id
-            || pending.outstanding_notifications != 0)
+            || pending.outstanding_notifications != 0 || pending.modules != TaskExitModulePhase::Ready)
         {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "Win16 task exit finalized before its exact ToolHelp callbacks completed"));
@@ -302,6 +316,10 @@ impl Win16State {
     ) -> Result<(), RuntimeError> {
         let task = self.current_task_handle()?;
         if let Some(pending) = self.toolhelp_task_exit.pending() {
+            if matches!(pending.modules, TaskExitModulePhase::Running(_)) {
+                return Err(RuntimeError::new(Kind::GuestFault,
+                    "Win16 DLL cleanup requested task termination recursively"));
+            }
             if pending.task == task && pending.status == status && pending.rip == rip {
                 return Ok(());
             }
@@ -395,6 +413,11 @@ impl Win16State {
             Kind::InternalInvariant,
             "Win16 task-exit continuation has no exact runtime owner",
         ))?;
+        if !self.service_task_exit_modules(cpu, dos, memory, host)? {
+            return Ok(None);
+        }
+        // A WEP can create a DDE owner or queue a native termination exchange.
+        // Its cleanup must also quiesce before process selectors disappear.
         if !self.classic_dde_task_exit_quiesced(owner) {
             return Ok(None);
         }

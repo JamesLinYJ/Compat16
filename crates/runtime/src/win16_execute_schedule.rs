@@ -46,6 +46,9 @@ impl ExecutionSchedule {
     pub(super) fn checkpoint(&self, instruction: u64) -> bool {
         instruction >= self.next_instruction
     }
+    pub(super) fn instruction_quantum(&self, instruction: u64) -> u64 {
+        self.next_instruction.saturating_sub(instruction).clamp(1, READINESS_INSTRUCTION_BUDGET)
+    }
 
     pub(super) fn turn(
         &mut self,

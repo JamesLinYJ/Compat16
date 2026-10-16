@@ -37,6 +37,7 @@ pub(super) fn route_for_request(request: &Win16ApiRequest) -> DispatchRoute {
         Win16ApiRequest::UserSystem(..) => DispatchRoute::User,
         Win16ApiRequest::UserUpdate(..) => DispatchRoute::User,
         Win16ApiRequest::WindowData(..) => DispatchRoute::User,
+        Win16ApiRequest::ClassData(..) => DispatchRoute::User,
         Win16ApiRequest::NetworkRedirector(..) => DispatchRoute::User,
         Win16ApiRequest::WindowProperties(..) => DispatchRoute::User,
         Win16ApiRequest::GdiDevice(..) => DispatchRoute::Gdi,

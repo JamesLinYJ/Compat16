@@ -254,7 +254,7 @@ impl Win16State {
 
     pub(super) fn begin_midi_asynchronous_guest_callback(
         &mut self,
-        cpu: &mut x86_cpu::Cpu,
+        cpu: &mut x86_cpu::Cpu, dos: &mut dos_kernel::DosKernel,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
         identity: Win16HostMidiNotificationId,
@@ -264,7 +264,8 @@ impl Win16State {
         self.validate_midi_function_start(identity, callback)?;
         self.mark_midi_function_started(identity)?;
         match self.begin_asynchronous_guest_callback_midi_source(
-            cpu, memory, event, identity,
+            cpu,
+            dos, memory, event, identity,
         ) {
             Ok(Some(_callback_id)) => Ok(true),
             Ok(None) => {

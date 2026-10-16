@@ -351,7 +351,7 @@ impl Win16State {
 
     pub(in crate::win16_runtime) fn dispatch_pending_netbios_notification(
         &mut self,
-        cpu: &mut x86_cpu::Cpu,
+        cpu: &mut x86_cpu::Cpu, dos: &mut dos_kernel::DosKernel,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<NetbiosDispatch, RuntimeError> {
@@ -550,7 +550,8 @@ impl Win16State {
             event,
         };
         match self.begin_asynchronous_guest_callback_request_source(
-            cpu, memory, request, true,
+            cpu,
+            dos, memory, request, true,
         ) {
             Ok(Some(callback_id)) => {
                 self.netbios.pending[index].callback_id = Some(callback_id);

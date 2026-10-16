@@ -1,0 +1,101 @@
+module = "WINNLS"
+
+[[exports]]
+ordinal = 1
+name = "WINNLSINQUIRE"
+kind = "stub"
+
+[[exports]]
+ordinal = 2
+name = "HOOKKEYBOARDMESSAGE"
+kind = "stub"
+
+[[exports]]
+ordinal = 4
+name = "ENUMGETFONTTYPE"
+kind = "stub"
+
+[[exports]]
+ordinal = 5
+name = "ENUMFACENOTTT"
+kind = "stub"
+
+[[exports]]
+ordinal = 6
+name = "SendIMEMessage"
+decl = { args = ["word", "long"] }
+
+[[exports]]
+ordinal = 7
+name = "SendIMEMessageEx"
+decl = { args = ["word", "long"] }
+
+[[exports]]
+ordinal = 9
+name = "SENDIMEMESSAGEINTERNAL"
+kind = "stub"
+
+[[exports]]
+ordinal = 10
+name = "WINNLSSETKEYBOARDHOOK"
+kind = "stub"
+
+[[exports]]
+ordinal = 11
+name = "WINNLSSetIMEHandle"
+decl = { attributes = ["ret16"], args = ["segmented_pointer", "word"] }
+
+[[exports]]
+ordinal = 12
+name = "WINNLSSetIMEStatus"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 14
+name = "WINNLSSetIMEHotkey"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 15
+name = "WINNLSGETIMEHOTKEY"
+kind = "stub"
+
+[[exports]]
+ordinal = 17
+name = "WINNLSGETKEYSTATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 19
+name = "WINNLSSetKeyState"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 20
+name = "IMPADDIME"
+kind = "stub"
+
+[[exports]]
+ordinal = 21
+name = "IMPDELETEIME"
+kind = "stub"
+
+[[exports]]
+ordinal = 30
+name = "WINNLSSendString"
+decl = { attributes = ["ret16"], args = ["word", "word", "pointer"] }
+
+[[exports]]
+ordinal = 31
+name = "WINNLSPostAppMessage"
+decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 32
+name = "WINNLSSendAppMessage"
+decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 33
+name = "WINNLSSendControl"
+decl = { attributes = ["ret16"], args = ["word", "word"] }

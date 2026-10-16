@@ -1,0 +1,291 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 39
+name = "BeginPaint"
+binding = { rust_id = "UserBeginPaint", id_value = 457, constant = "USER_BEGIN_PAINT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "paint", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 40
+name = "EndPaint"
+binding = { rust_id = "UserEndPaint", id_value = 458, constant = "USER_END_PAINT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "paint", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 61
+name = "ScrollWindow"
+binding = { rust_id = "UserScrollWindow", id_value = 459, constant = "USER_SCROLL_WINDOW" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "dx", type = "I16" },
+  { name = "dy", type = "I16" },
+  { name = "scroll_rect", type = "FarBuffer" },
+  { name = "clip_rect", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 81
+name = "FillRect"
+binding = { rust_id = "UserFillRect", id_value = 472, constant = "USER_FILL_RECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+  { name = "brush", type = "U16" },
+]
+
+[[exports]]
+ordinal = 82
+name = "InvertRect"
+binding = { rust_id = "UserInvertRect", id_value = 1149, constant = "USER_INVERT_RECT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 83
+name = "FrameRect"
+binding = { rust_id = "UserFrameRect", id_value = 1150, constant = "USER_FRAME_RECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+  { name = "brush", type = "U16" },
+]
+
+[[exports]]
+ordinal = 84
+name = "DrawIcon"
+binding = { rust_id = "UserDrawIcon", id_value = 1151, constant = "USER_DRAW_ICON" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "icon", type = "U16" },
+]
+
+[[exports]]
+ordinal = 85
+name = "DrawText"
+binding = { rust_id = "UserDrawText", id_value = 473, constant = "USER_DRAW_TEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "text", type = "FarBuffer", encoding = "string" },
+  { name = "count", type = "I16" },
+  { name = "rect", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 124
+name = "UpdateWindow"
+binding = { rust_id = "UserUpdateWindow", id_value = 460, constant = "USER_UPDATE_WINDOW" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 125
+name = "InvalidateRect"
+binding = { rust_id = "UserInvalidateRect", id_value = 461, constant = "USER_INVALIDATE_RECT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+  { name = "erase", type = "U16" },
+]
+
+[[exports]]
+ordinal = 126
+name = "InvalidateRgn"
+binding = { rust_id = "UserInvalidateRgn", id_value = 462, constant = "USER_INVALIDATE_RGN" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "region", type = "U16" },
+  { name = "erase", type = "U16" },
+]
+
+[[exports]]
+ordinal = 127
+name = "ValidateRect"
+binding = { rust_id = "UserValidateRect", id_value = 463, constant = "USER_VALIDATE_RECT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 128
+name = "ValidateRgn"
+binding = { rust_id = "UserValidateRgn", id_value = 464, constant = "USER_VALIDATE_RGN" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "region", type = "U16" },
+]
+
+[[exports]]
+ordinal = 190
+name = "GetUpdateRect"
+binding = { rust_id = "UserGetUpdateRect", id_value = 465, constant = "USER_GET_UPDATE_RECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "rect", type = "FarOutputBuffer" },
+  { name = "erase", type = "U16" },
+]
+
+[[exports]]
+ordinal = 196
+name = "TabbedTextOut"
+decl = { attributes = [] }
+binding = { rust_id = "UserTabbedTextOut", id_value = 1246, constant = "USER_TABBED_TEXT_OUT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "text", type = "FarBuffer", encoding = "string" },
+  { name = "count", type = "I16" },
+  { name = "tab_count", type = "I16" },
+  { name = "tab_stops", type = "FarBuffer" },
+  { name = "tab_origin", type = "I16" },
+]
+
+[[exports]]
+ordinal = 197
+name = "GetTabbedTextExtent"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetTabbedTextExtent", id_value = 1247, constant = "USER_GET_TABBED_TEXT_EXTENT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "text", type = "FarBuffer", encoding = "string" },
+  { name = "count", type = "I16" },
+  { name = "tab_count", type = "I16" },
+  { name = "tab_stops", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 221
+name = "ScrollDC"
+binding = { rust_id = "UserScrollDC", id_value = 470, constant = "USER_SCROLL_DC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "dx", type = "I16" },
+  { name = "dy", type = "I16" },
+  { name = "scroll_rect", type = "FarBuffer" },
+  { name = "clip_rect", type = "FarBuffer" },
+  { name = "update_region", type = "U16" },
+  { name = "update_rect", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 237
+name = "GetUpdateRgn"
+binding = { rust_id = "UserGetUpdateRgn", id_value = 466, constant = "USER_GET_UPDATE_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "region", type = "U16" },
+  { name = "erase", type = "U16" },
+]
+
+[[exports]]
+ordinal = 238
+name = "ExcludeUpdateRgn"
+binding = { rust_id = "UserExcludeUpdateRgn", id_value = 467, constant = "USER_EXCLUDE_UPDATE_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 290
+name = "RedrawWindow"
+binding = { rust_id = "UserRedrawWindow", id_value = 468, constant = "USER_REDRAW_WINDOW" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+  { name = "region", type = "U16" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 294
+name = "LockWindowUpdate"
+binding = { rust_id = "UserLockWindowUpdate", id_value = 469, constant = "USER_LOCK_WINDOW_UPDATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 319
+name = "ScrollWindowEx"
+binding = { rust_id = "UserScrollWindowEx", id_value = 471, constant = "USER_SCROLL_WINDOW_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "dx", type = "I16" },
+  { name = "dy", type = "I16" },
+  { name = "scroll_rect", type = "FarBuffer" },
+  { name = "clip_rect", type = "FarBuffer" },
+  { name = "update_region", type = "U16" },
+  { name = "update_rect", type = "FarOutputBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 466
+name = "DrawFocusRect"
+binding = { rust_id = "UserDrawFocusRect", id_value = 1152, constant = "USER_DRAW_FOCUS_RECT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+]

@@ -31,9 +31,17 @@ pub enum Win16ScalarMessage {
     Close = 0x0010,
     /// System session query; LPARAM is a modern end-session option bitmask.
     QueryEndSession = 0x0011,
+    /// Pointer-free restore query; a zero WndProc result vetoes opening the icon.
+    QueryOpen = 0x0013,
+    /// SDK WM_SYSCOLORCHANGE carries no pointer or handle parameters.
+    SystemColorChange = 0x0015,
     /// End-session result; WPARAM is BOOL and LPARAM carries session options.
     EndSession = 0x0016,
     ShowWindow = 0x0018,
+    /// SDK font-pool notification; both parameters are unused.
+    FontChange = 0x001d,
+    /// SDK system-time notification; both parameters are unused.
+    TimeChange = 0x001e,
     CancelMode = 0x001f,
     NcDestroy = 0x0082,
     NcHitTest = 0x0084,
@@ -65,6 +73,17 @@ pub enum Win16ScalarMessage {
 }
 
 impl Win16ScalarMessage {
+    /// Broadcast reaches native windows without a guest procedure identity.
+    /// The optional paint HDC and timer FARPROC need a lifetime/provenance
+    /// adapter; their nonzero forms are not scalar broadcast parameters.
+    pub const fn broadcast_parameters_are_scalar(self, w_param: u16, l_param: u32) -> bool {
+        match self {
+            Self::Paint => w_param == 0,
+            Self::Timer => l_param == 0,
+            _ => true,
+        }
+    }
+
     pub fn from_raw(message: u16) -> Option<Self> {
         Some(match message {
             0x0000 => Self::Null,
@@ -76,8 +95,12 @@ impl Win16ScalarMessage {
             0x000f => Self::Paint,
             0x0010 => Self::Close,
             0x0011 => Self::QueryEndSession,
+            0x0013 => Self::QueryOpen,
+            0x0015 => Self::SystemColorChange,
             0x0016 => Self::EndSession,
             0x0018 => Self::ShowWindow,
+            0x001d => Self::FontChange,
+            0x001e => Self::TimeChange,
             0x001f => Self::CancelMode,
             0x0082 => Self::NcDestroy,
             0x0084 => Self::NcHitTest,
@@ -409,6 +432,15 @@ pub struct Win16HostMinMaxInfo {
 /// An owned request whose completion may follow synchronous guest callbacks.
 #[derive(Debug)]
 pub enum Win16WindowOperation {
+    EnumMetafile { dc: crate::Win16HostDc, bits: Vec<u8> },
+    GrayString {
+        dc: crate::Win16HostDc,
+        brush: Option<crate::Win16HostGdiObject>,
+        text: Option<Vec<u8>>,
+        count: i32,
+        x: i16, y: i16, width: i16, height: i16,
+        callback: bool,
+    },
     /// Pointer-free DDEML call executed on the same owner-thread continuation
     /// pump as USER. Guest handles remain runtime-only tokens.
     Dde(crate::Win16HostDdeCall),
@@ -438,6 +470,11 @@ pub enum Win16WindowOperation {
     AcquireWindowDc {
         window: Option<Win16HostWindow>,
         whole_window: bool,
+    },
+    AcquireWindowDcEx {
+        window: Win16HostWindow,
+        region: Option<crate::Win16HostGdiObject>,
+        flags: u32,
     },
     ReleaseWindowDc {
         window: Option<Win16HostWindow>,
@@ -475,6 +512,16 @@ pub enum Win16WindowOperation {
     },
     QueryProcedure {
         window: Win16HostWindow,
+    },
+    QuerySubclassProcedure {
+        window: Win16HostWindow,
+    },
+    /// Installation follows a completed query: the guest already owns its
+    /// callable old-procedure gate before the native window changes.
+    SetProcedure {
+        window: Win16HostWindow,
+        previous: crate::Win16HostProcedure,
+        restore: bool,
     },
     CallProcedure {
         procedure: crate::Win16HostProcedure,
@@ -526,6 +573,8 @@ pub enum Win16WindowOperation {
 /// verify that the proof belongs to the continuation it actually started.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16NativeWindowOperationKind {
+    EnumMetafile,
+    GrayString,
     DefaultMdiChild,
     DefFrameProc,
     TranslateMDISysAccel,
@@ -550,6 +599,7 @@ pub enum Win16NativeWindowOperationKind {
     Send,
     StaticIcon,
     QueryProcedure,
+    SetProcedure,
     CallProcedure,
     Show,
     Destroy,
@@ -568,6 +618,8 @@ impl Win16WindowOperation {
     pub fn native_operation_kind(&self) -> Win16NativeWindowOperationKind {
         use Win16NativeWindowOperationKind as Kind;
         match self {
+            Self::EnumMetafile { .. } => Kind::EnumMetafile,
+            Self::GrayString { .. } => Kind::GrayString,
             Self::DefFrameProc { .. } => Kind::DefFrameProc,
             Self::DefaultMdiChild { .. } => Kind::DefaultMdiChild,
             Self::TranslateMDISysAccel { .. } => Kind::TranslateMDISysAccel,
@@ -586,12 +638,13 @@ impl Win16WindowOperation {
             Self::ShellExecution(_) => Kind::ShellExecution,
             Self::BeginPaint { .. } => Kind::BeginPaint,
             Self::EndPaint { .. } => Kind::EndPaint,
-            Self::AcquireWindowDc { .. } => Kind::AcquireWindowDc,
+            Self::AcquireWindowDc { .. } | Self::AcquireWindowDcEx { .. } => Kind::AcquireWindowDc,
             Self::ReleaseWindowDc { .. } => Kind::ReleaseWindowDc,
             Self::Default { .. } => Kind::Default,
             Self::Send { .. } => Kind::Send,
             Self::StaticIcon { .. } => Kind::StaticIcon,
-            Self::QueryProcedure { .. } => Kind::QueryProcedure,
+            Self::QueryProcedure { .. } | Self::QuerySubclassProcedure { .. } => Kind::QueryProcedure,
+            Self::SetProcedure { .. } => Kind::SetProcedure,
             Self::CallProcedure { .. } => Kind::CallProcedure,
             Self::Show { .. } => Kind::Show,
             Self::Destroy { .. } => Kind::Destroy,
@@ -649,6 +702,8 @@ pub struct Win16WindowTerminalAck {
 /// copied from the worker's live callback owner before abort changes it.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16NativeCallbackSource {
+    Metafile { dc: crate::Win16HostDc },
+    GrayString { dc: crate::Win16HostDc },
     WindowMessage {
         window: Win16HostWindow,
         class: Option<Win16HostClass>,
@@ -770,6 +825,8 @@ impl Win16HostWindowCreationResult {
 
 #[derive(Debug)]
 pub enum Win16WindowResult {
+    GrayString(bool),
+    EnumMetafile { success: bool, retired: Vec<crate::Win16HostGdiObject> },
     /// A terminal native modal cancellation; worker code must place this in
     /// the abort receipt and never dispatch it as a guest API completion.
     NativeModalCancelled(Win16NativeModalCancellation),
@@ -778,6 +835,10 @@ pub enum Win16WindowResult {
     Thunk(crate::Win16ThunkResult),
     Created(Win16HostWindowCreationResult),
     Procedure(Option<crate::Win16HostProcedure>),
+    SubclassProcedure {
+        procedure: Option<crate::Win16HostProcedure>,
+        instance: Option<u16>,
+    },
     Menu(crate::Win16MenuResult),
     WindowCall(crate::Win16WindowCallResult),
     MessageCall(crate::Win16MessageCallResult),
@@ -800,10 +861,9 @@ pub enum Win16WindowResult {
     Visibility(Option<bool>),
     Destroyed {
         succeeded: bool,
-        /// HMENUs invalidated by USER when a window and its attached menu tree
-        /// were destroyed. Runtime must retire these identities without
-        /// issuing a second DestroyMenu call.
-        invalidated_menus: Vec<Win16HostMenu>,
+        /// Exact window and menu lifetime effects, independent of the BOOL.
+        /// Runtime consumes these without issuing another native destroy.
+        retirements: crate::Win16HostWindowRetirementBatch,
     },
     WindowTextSet(bool),
     /// Only the native output prefix, including its NUL, is returned. An
@@ -966,6 +1026,14 @@ pub enum Win16WindowStep {
         message: Win16HostMessage,
         source: Win16NativeCallbackSource,
     },
+    /// Explicit guest subclass of a native window, without a guest class.
+    NativeSubclassCallback {
+        operation_id: Win16HostWindowOperationId,
+        callback: Win16HostCallback,
+        window: Win16HostWindow,
+        message: Win16HostMessage,
+        source: Win16NativeCallbackSource,
+    },
     /// Synchronous dialog-procedure invocation. Its HWND and nested message
     /// data are opaque/copied values; the guest FARPROC remains runtime-only.
     DialogCallback {
@@ -996,6 +1064,22 @@ pub enum Win16WindowStep {
         window: Win16HostWindow,
         name: crate::Win16HostPropertyCallbackName,
         data: u16,
+        source: Win16NativeCallbackSource,
+    },
+    /// Native EnumMetaFile is suspended; payloads contain no native addresses.
+    MetafileCallback {
+        operation_id: Win16HostWindowOperationId,
+        callback: Win16HostCallback,
+        dc: crate::Win16HostDc,
+        record: Vec<u8>,
+        object_count: u16,
+        source: Win16NativeCallbackSource,
+    },
+    GrayStringCallback {
+        operation_id: Win16HostWindowOperationId,
+        callback: Win16HostCallback,
+        dc: crate::Win16HostDc,
+        count: i16,
         source: Win16NativeCallbackSource,
     },
     /// The host applied native default processing because reverse marshalling

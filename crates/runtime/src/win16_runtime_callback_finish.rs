@@ -88,7 +88,7 @@ impl Win16State {
         };
         self.require_callback_top(kind)?;
         let callback_transfer =
-            if matches!(kind, CallbackKind::Window | CallbackKind::WindowProperty) {
+            if matches!(kind, CallbackKind::Window | CallbackKind::NativeFunction) {
                 match cpu
                     .control_transfer()
                     .filter(|transfer| transfer.is_call_return())
@@ -112,6 +112,7 @@ impl Win16State {
 
         let finished = match kind {
             CallbackKind::Font => self.finish_font_callback(cpu, dos, memory),
+            CallbackKind::GdiObject => self.finish_object_callback(cpu, dos, memory),
             CallbackKind::AcmEnumeration => self.finish_acm_enumeration(cpu, dos, memory, host),
             CallbackKind::LineDda => self.finish_line_dda_callback(cpu, dos, memory),
             CallbackKind::WindowEnumeration => {
@@ -120,8 +121,8 @@ impl Win16State {
             CallbackKind::UserHook => self.finish_user_hook_callback(cpu, dos, memory),
             CallbackKind::Ole1 => self.finish_ole1_callback(cpu, dos, memory, host),
             CallbackKind::Window => self.finish_window_callback(&mut cpu.regs, memory, host),
-            CallbackKind::WindowProperty => {
-                self.finish_window_property_callback(cpu, dos, memory, host)
+            CallbackKind::NativeFunction => {
+                self.finish_native_function_callback(cpu, dos, memory, host)
             }
             CallbackKind::Dde => match self.finish_dde_callback(cpu, dos, memory, host)? {
                 Win16DdeCallbackFinish::Resume { origin, step } => {
@@ -134,10 +135,10 @@ impl Win16State {
                 self.finish_classic_dde_guest_callback(cpu, dos, memory, host)
             }
             CallbackKind::Mci => self.finish_mci_callback(cpu, memory, host),
-            CallbackKind::Module => self.finish_module_callback(cpu, memory, host),
-            CallbackKind::Resource => self.finish_resource_callback(&mut cpu.regs, memory, host),
+            CallbackKind::Module => self.finish_module_callback(cpu, dos, memory, host),
+            CallbackKind::Resource => self.finish_resource_callback(cpu, dos, memory, host),
             CallbackKind::Asynchronous => {
-                let retirement = self.finish_asynchronous_guest_callback(cpu, memory)?;
+                let retirement = self.finish_asynchronous_guest_callback(cpu, dos, memory)?;
                 if retirement.source_bound || retirement.midi_source.is_some() {
                     self.validate_asynchronous_callback_retirement(retirement)?;
                     let retire_netbios_source = if let Some(identity) = retirement.midi_source {
@@ -159,7 +160,7 @@ impl Win16State {
                     // Retire the paired callback family frame only after the
                     // exact source ACK has succeeded. A NetBIOS tombstone is
                     // removed last, after its callback ID leaves the stack.
-                    self.complete_asynchronous_callback_retirement(retirement)?;
+                    self.complete_asynchronous_callback_retirement(dos, memory, retirement)?;
                     if retire_netbios_source {
                         self.complete_netbios_callback_frame(retirement)?;
                     }

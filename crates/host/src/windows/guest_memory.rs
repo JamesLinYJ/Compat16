@@ -129,6 +129,21 @@ impl MemoryStorage for GuestMemoryStorage {
         self.region.length
     }
 
+    fn read_plain_code(&self, offset: u32, output: &mut [u8]) -> Result<bool, MemoryError> {
+        // Rc owners remain on the machine thread. No guest writes or native
+        // callbacks run during a pure integer quantum. Copy through the same
+        // checked OS boundary; never form a Rust slice over the reservation.
+        // Arbitrary native DLL mutation is outside this memory trust boundary,
+        // as it already is for ordinary ReadProcessMemory/WriteProcessMemory.
+        self.read(offset, output)?;
+        Ok(true)
+    }
+    fn read_plain_data(&self, offset: u32, output: &mut [u8], _writable: bool) -> Result<bool, MemoryError> {
+        // The private reservation has no write observers and cannot be
+        // mutated by another Rust thread or reentrant callback in a quantum.
+        self.read_plain_code(offset,output)
+    }
+
     fn read(&self, offset: u32, output: &mut [u8]) -> Result<(), MemoryError> {
         let length = self.region.checked_length(offset, output.len())?;
         if length == 0 {

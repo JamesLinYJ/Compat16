@@ -91,6 +91,17 @@ pub(super) fn decode(
         Win16ExportId::UserGetMessageTime => Ok(Win16ApiRequest::User(
             super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::GetMessageTime),
         )),
+        Win16ExportId::UserGetMessageExtraInfo => Ok(Win16ApiRequest::User(
+            super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::GetMessageExtraInfo),
+        )),
+        Win16ExportId::UserInSendMessage => Ok(Win16ApiRequest::User(
+            super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::InSendMessage),
+        )),
+        Win16ExportId::UserReplyMessage => Ok(Win16ApiRequest::User(
+            super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::ReplyMessage {
+                result: dword_argument(arguments, 0)? as i32,
+            }),
+        )),
         Win16ExportId::UserGetInputState => Ok(Win16ApiRequest::User(
             super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::GetInputState),
         )),

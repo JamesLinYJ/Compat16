@@ -33,6 +33,7 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Win16ApiRequest, Win16Error> {
     let request = match id {
+        Win16ExportId::UserGetCursor => Win16UserCursorAcceleratorRequest::GetCursor,
         Win16ExportId::UserSetCursor => Win16UserCursorAcceleratorRequest::SetCursor {
             cursor: word_argument(arguments, 0)?,
         },
@@ -196,3 +197,7 @@ fn read_help_window_info(
         member,
     })
 }
+
+#[cfg(test)]
+#[path = "call_get_cursor_tests.rs"]
+mod get_cursor_tests;

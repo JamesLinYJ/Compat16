@@ -1,0 +1,361 @@
+module = "OLE2DISP"
+
+[[exports]]
+ordinal = 1
+name = "DLLGETCLASSOBJECT"
+kind = "stub"
+
+[[exports]]
+ordinal = 13
+name = "VARIANTTIMETODOSDATETIME"
+kind = "stub"
+
+[[exports]]
+ordinal = 14
+name = "DOSDATETIMETOVARIANTTIME"
+kind = "stub"
+
+[[exports]]
+ordinal = 28
+name = "DispGetParam"
+decl = { args = ["pointer", "word", "word", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 29
+name = "DispGetIDsOfNames"
+decl = { args = ["segmented_pointer", "segmented_pointer", "word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 30
+name = "DispInvoke"
+decl = { args = ["segmented_pointer", "segmented_pointer", "long", "word", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 31
+name = "CreateDispTypeInfo"
+decl = { args = ["pointer", "long", "pointer"] }
+
+[[exports]]
+ordinal = 32
+name = "CreateStdDispatch"
+decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
+
+[[exports]]
+ordinal = 33
+name = "_IID_IDispatch"
+kind = "variable"
+values = [132096, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 34
+name = "_IID_IEnumVARIANT"
+kind = "variable"
+values = [132100, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 35
+name = "RegisterActiveObject"
+decl = { args = ["segmented_pointer", "pointer", "long", "pointer"] }
+
+[[exports]]
+ordinal = 36
+name = "RevokeActiveObject"
+decl = { args = ["long", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 37
+name = "GetActiveObject"
+decl = { args = ["pointer", "segmented_pointer", "pointer"] }
+
+[[exports]]
+ordinal = 42
+name = "SafeArrayRedim"
+decl = { args = ["pointer", "pointer"] }
+
+[[exports]]
+ordinal = 49
+name = "VARI2FROMDISP"
+kind = "stub"
+
+[[exports]]
+ordinal = 51
+name = "VARI4FROMI2"
+kind = "stub"
+
+[[exports]]
+ordinal = 52
+name = "VARI4FROMR4"
+kind = "stub"
+
+[[exports]]
+ordinal = 53
+name = "VARI4FROMR8"
+kind = "stub"
+
+[[exports]]
+ordinal = 54
+name = "VARI4FROMCY"
+kind = "stub"
+
+[[exports]]
+ordinal = 55
+name = "VARI4FROMDATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 57
+name = "VARI4FROMDISP"
+kind = "stub"
+
+[[exports]]
+ordinal = 58
+name = "VARI4FROMBOOL"
+kind = "stub"
+
+[[exports]]
+ordinal = 59
+name = "VARR4FROMI2"
+kind = "stub"
+
+[[exports]]
+ordinal = 60
+name = "VARR4FROMI4"
+kind = "stub"
+
+[[exports]]
+ordinal = 62
+name = "VARR4FROMCY"
+kind = "stub"
+
+[[exports]]
+ordinal = 63
+name = "VARR4FROMDATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 65
+name = "VARR4FROMDISP"
+kind = "stub"
+
+[[exports]]
+ordinal = 66
+name = "VARR4FROMBOOL"
+kind = "stub"
+
+[[exports]]
+ordinal = 67
+name = "VARR8FROMI2"
+kind = "stub"
+
+[[exports]]
+ordinal = 68
+name = "VARR8FROMI4"
+kind = "stub"
+
+[[exports]]
+ordinal = 69
+name = "VARR8FROMR4"
+kind = "stub"
+
+[[exports]]
+ordinal = 70
+name = "VARR8FROMCY"
+kind = "stub"
+
+[[exports]]
+ordinal = 71
+name = "VARR8FROMDATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 73
+name = "VARR8FROMDISP"
+kind = "stub"
+
+[[exports]]
+ordinal = 74
+name = "VARR8FROMBOOL"
+kind = "stub"
+
+[[exports]]
+ordinal = 75
+name = "VARDATEFROMI2"
+kind = "stub"
+
+[[exports]]
+ordinal = 76
+name = "VARDATEFROMI4"
+kind = "stub"
+
+[[exports]]
+ordinal = 77
+name = "VARDATEFROMR4"
+kind = "stub"
+
+[[exports]]
+ordinal = 78
+name = "VARDATEFROMR8"
+kind = "stub"
+
+[[exports]]
+ordinal = 79
+name = "VARDATEFROMCY"
+kind = "stub"
+
+[[exports]]
+ordinal = 81
+name = "VARDATEFROMDISP"
+kind = "stub"
+
+[[exports]]
+ordinal = 82
+name = "VARDATEFROMBOOL"
+kind = "stub"
+
+[[exports]]
+ordinal = 83
+name = "VARCYFROMI2"
+kind = "stub"
+
+[[exports]]
+ordinal = 84
+name = "VARCYFROMI4"
+kind = "stub"
+
+[[exports]]
+ordinal = 85
+name = "VARCYFROMR4"
+kind = "stub"
+
+[[exports]]
+ordinal = 86
+name = "VARCYFROMR8"
+kind = "stub"
+
+[[exports]]
+ordinal = 87
+name = "VARCYFROMDATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 89
+name = "VARCYFROMDISP"
+kind = "stub"
+
+[[exports]]
+ordinal = 90
+name = "VARCYFROMBOOL"
+kind = "stub"
+
+[[exports]]
+ordinal = 99
+name = "VARBOOLFROMI2"
+kind = "stub"
+
+[[exports]]
+ordinal = 100
+name = "VARBOOLFROMI4"
+kind = "stub"
+
+[[exports]]
+ordinal = 101
+name = "VARBOOLFROMR4"
+kind = "stub"
+
+[[exports]]
+ordinal = 102
+name = "VARBOOLFROMR8"
+kind = "stub"
+
+[[exports]]
+ordinal = 103
+name = "VARBOOLFROMDATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 104
+name = "VARBOOLFROMCY"
+kind = "stub"
+
+[[exports]]
+ordinal = 105
+name = "VARBOOLFROMSTR"
+kind = "stub"
+
+[[exports]]
+ordinal = 106
+name = "VARBOOLFROMDISP"
+kind = "stub"
+
+[[exports]]
+ordinal = 107
+name = "DOINVOKEMETHOD"
+kind = "stub"
+
+[[exports]]
+ordinal = 110
+name = "SetErrorInfo"
+decl = { args = ["long", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 111
+name = "GetErrorInfo"
+decl = { args = ["long", "pointer"] }
+
+[[exports]]
+ordinal = 112
+name = "CreateErrorInfo"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 113
+name = "_IID_IErrorInfo"
+kind = "variable"
+values = [485667104, 270226557, 550286, 433138475]
+
+[[exports]]
+ordinal = 114
+name = "_IID_ICreateErrorInfo"
+kind = "variable"
+values = [586167104, 270226557, 550286, 433138475]
+
+[[exports]]
+ordinal = 115
+name = "_IID_ISupportErrorInfo"
+kind = "variable"
+values = [3742055776, 270226575, 550286, 433138475]
+
+[[exports]]
+ordinal = 126
+name = "VARI4FROMUI1"
+kind = "stub"
+
+[[exports]]
+ordinal = 127
+name = "VARR4FROMUI1"
+kind = "stub"
+
+[[exports]]
+ordinal = 128
+name = "VARR8FROMUI1"
+kind = "stub"
+
+[[exports]]
+ordinal = 129
+name = "VARDATEFROMUI1"
+kind = "stub"
+
+[[exports]]
+ordinal = 130
+name = "VARCYFROMUI1"
+kind = "stub"
+
+[[exports]]
+ordinal = 132
+name = "VARBOOLFROMUI1"
+kind = "stub"
+
+[[exports]]
+ordinal = 133
+name = "DLLCANUNLOADNOW"
+kind = "stub"

@@ -16,6 +16,25 @@ use devices::{keyboard::KeyStroke, mouse::MouseInput, video::ConsoleSnapshot};
 use dos_kernel::DosHost;
 use guest_core::OwnerId;
 
+/// Result of probing only the first Win16 ANSI character. The input contains
+/// actual guest bytes, not an implicitly terminated or padded host string.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16AnsiNextProbe {
+    /// Read exactly one more checked guest byte, up to four bytes in total.
+    NeedMore,
+    /// Byte offset of the next character or the explicit terminal NUL.
+    Complete(usize),
+}
+
+/// Private profile location, resolved without changing the native process cwd.
+#[derive(Clone, Debug)]
+pub enum Win16ProfilePath {
+    System,
+    WindowsDirectory(String),
+    File(crate::Win16GuestPath),
+    Invalid,
+}
+
 /// Opaque host file identity. It is never a guest HFILE or native HANDLE.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Win16HostFile(pub u64);
@@ -78,7 +97,8 @@ pub enum Win16HostDriveKind {
     RamDisk,
 }
 
-/// A copied library file. Parsing, relocation and execution stay in guest code.
+/// A copied guest module file. Relocation and execution stay in guest code.
+#[derive(Debug)]
 pub struct Win16ModuleImage {
     pub path: Vec<u8>,
     pub image: Vec<u8>,
@@ -95,6 +115,9 @@ pub struct Win16HostFontRecord {
     pub logfont_dimensions: [i32; 5],
     pub logfont_styles: [u8; 8],
     pub face_name: [u8; 32],
+    /// ENUMLOGFONT16 names; zero-filled for the legacy EnumFonts route.
+    pub full_name: [u8; 64],
+    pub style: [u8; 32],
     pub textmetric_dimensions: [i32; 8],
     pub textmetric_styles: [u8; 9],
     pub textmetric_extra: [i32; 3],
@@ -166,6 +189,18 @@ pub enum Win16ClassBackground {
     Brush(Win16HostGdiObject),
 }
 
+/// One class resource a guest replacement installs on the native class that
+/// its windows are created from. The variant selects the field and the payload
+/// is the new resource; `None` clears it, matching a zero guest handle.
+/// Ordinary `DefWindowProc` defaults read these native class fields, so the
+/// runtime never publishes a guest replacement the host did not accept.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostClassResource {
+    Icon(Option<Win16HostIcon>),
+    Cursor(Option<Win16HostCursor>),
+    Background(Option<Win16ClassBackground>),
+}
+
 /// A Windows predefined control class exposed through a runtime-owned alias.
 /// Its native class name and procedure stay on the host side.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -208,10 +243,13 @@ pub enum Win16HostAtomName<'a> {
     String(&'a [u8]),
 }
 
-/// Native SelectObject may return a previous object or a region complexity.
+/// SelectObject returns a previous object, region complexity, or recording success.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16SelectObjectResult {
+    Recorded,
     Object(Win16HostGdiObject),
+    /// A private bitmap valid only while the exact native callback DC is live.
+    CallbackBitmap { object: Win16HostGdiObject, dc: Win16HostDc },
     RegionComplexity(u16),
 }
 
@@ -645,6 +683,15 @@ pub trait RuntimeHost:
             "host Win16 information context creation is unavailable",
         ))
     }
+    fn win16_get_outline_text_metrics(
+        &mut self,
+        _dc: Win16HostDc,
+    ) -> Result<Option<crate::Win16HostOutlineTextMetrics>, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 outline text metrics are unavailable",
+        ))
+    }
     fn win16_get_text_metrics(
         &mut self,
         _dc: Win16HostDc,
@@ -757,6 +804,30 @@ pub trait RuntimeHost:
             "host Win16 module file search is unavailable",
         ))
     }
+    /// Resolve an executable name using the calling task's directory and PATH,
+    /// returning an owned bounded image for LoadModule's DLL/EXE decision.
+    fn win16_read_program_image(
+        &mut self,
+        _input: &crate::Win16HostProgramLoadInput,
+    ) -> Result<Result<Win16ModuleImage, u16>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host task-aware program image loading is unavailable"))
+    }
+    /// KERNEL loader search with a path resolved in the calling Win16 task.
+    /// `path` includes the default DLL extension when the name omitted one;
+    /// only a simple `name` permits fallback to the Windows/system/app/PATH
+    /// directories. The host process current directory is not task state.
+    fn win16_read_task_module(
+        &mut self,
+        _name: &[u8],
+        _application_path: &[u8],
+        _path: &crate::Win16GuestPath,
+    ) -> Result<Result<Win16ModuleImage, u16>, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host task-aware Win16 module file search is unavailable",
+        ))
+    }
     /// Reports an informational or recoverable condition without changing
     /// guest registers or execution flow. Normal guest error codes stay quiet.
     fn report_diagnostic(&mut self, _diagnostic: &Diagnostic) {}
@@ -838,6 +909,22 @@ pub trait RuntimeHost:
             "host Win16 window class registration is unavailable",
         ))
     }
+    /// Replace one resource on the native class that `window` belongs to.
+    /// `window` must be a live host window of `class`; the host must confirm
+    /// that exact pairing and never substitute another class or a borrowed
+    /// HWND alias. `Ok(false)` means the replacement was refused and no class
+    /// field changed, so the runtime keeps the previous guest value.
+    fn win16_replace_class_resource(
+        &mut self,
+        _class: Win16HostClass,
+        _window: Win16HostWindow,
+        _resource: Win16HostClassResource,
+    ) -> Result<bool, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 class resource replacement is unavailable",
+        ))
+    }
     fn win16_system_class_info(
         &mut self,
         _class: Win16HostSystemClass,
@@ -862,6 +949,18 @@ pub trait RuntimeHost:
             DiagnosticKind::CompatibilityGap,
             "host USER window enumeration is unavailable",
         ))
+    }
+    /// Yield the executing host thread for a Win16 task without a USER queue.
+    fn win16_yield_thread(&mut self) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host thread yielding is unavailable",
+        ))
+    }
+    /// Report executable linking/LibMain completion to an optional launch owner.
+    /// `Err(0)` is a failed initialization, distinct from a loaded program.
+    fn win16_program_load_result(&mut self, _result: Result<(), u16>) -> Result<(), RuntimeError> {
+        Ok(())
     }
     fn win16_unregister_window_class(
         &mut self,
@@ -888,6 +987,18 @@ pub trait RuntimeHost:
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
             "host Win16 exact-window liveness query is unavailable",
+        ))
+    }
+    /// Read child ancestry for one exact incarnation while USER is suspended.
+    /// This must not invoke a callback, resume an operation, or treat a failed
+    /// identity/parent query as a successful absent parent.
+    fn win16_host_window_parent(
+        &mut self,
+        _window: Win16HostWindow,
+    ) -> Result<crate::Win16HostWindowParentObservation, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 exact-window parent observation is unavailable",
         ))
     }
     fn win16_window_begin(
@@ -1087,6 +1198,17 @@ pub trait RuntimeHost:
             "host Win16 OEM-to-ANSI conversion is unavailable",
         ))
     }
+    /// Classify one guest byte using the configured guest codec and native NLS.
+    fn win16_classify_character(
+        &mut self,
+        _value: u8,
+        _classification: win16_abi::Win16CharacterClassification,
+    ) -> Result<bool, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 character classification is unavailable",
+        ))
+    }
     fn win16_ansi_lower_char(&mut self, _value: u16) -> Result<u16, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
@@ -1144,7 +1266,11 @@ pub trait RuntimeHost:
             "host Win16 ANSI string comparison is unavailable",
         ))
     }
-    fn win16_ansi_next_offset(&mut self, _source: &[u8]) -> Result<usize, RuntimeError> {
+    /// Probe a one-to-four-byte prefix using the fixed Win16 guest ANSI page.
+    /// Missing bytes are not NUL; unsupported encodings must return an error.
+    fn win16_ansi_next_probe(
+        &mut self, _source: &[u8],
+    ) -> Result<Win16AnsiNextProbe, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
             "host Win16 ANSI next-character lookup is unavailable",
@@ -1162,7 +1288,7 @@ pub trait RuntimeHost:
     }
     fn win16_file_create(
         &mut self,
-        _path: &[u8],
+        _path: &crate::Win16GuestPath,
         _attributes: u16,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
         Err(RuntimeError::new(
@@ -1172,7 +1298,7 @@ pub trait RuntimeHost:
     }
     fn win16_file_open(
         &mut self,
-        _path: &[u8],
+        _path: &crate::Win16GuestPath,
         _mode: u16,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
         Err(RuntimeError::new(
@@ -1182,7 +1308,8 @@ pub trait RuntimeHost:
     }
     fn win16_open_file(
         &mut self,
-        _path: &[u8],
+        _path: &crate::Win16GuestPath,
+        _search_name: Option<&str>,
         _style: u16,
         _previous_ofstruct: Vec<u8>,
     ) -> Result<Win16HostOpenFile, RuntimeError> {
@@ -1229,6 +1356,75 @@ pub trait RuntimeHost:
             "host Win16 file closing forwarding is unavailable",
         ))
     }
+    /// Commit the same owned open object without moving its cursor or
+    /// changing access/sharing. A proven read-only disk open has no writes
+    /// to commit; a backend must never reopen a pathname to obtain rights.
+    fn win16_file_commit(
+        &mut self,
+        _file: Win16HostFile,
+    ) -> Result<(), dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// Return (packed DOS local time, packed DOS local date) for the owned
+    /// open object, including read-only files. No guest pointer crosses here.
+    fn win16_file_write_time(
+        &mut self,
+        _file: Win16HostFile,
+    ) -> Result<(u16, u16), dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// Update only last-write time through the retained object and its
+    /// existing rights. Validate DOS calendar fields and local-zone rules.
+    fn win16_file_set_write_time(
+        &mut self,
+        _file: Win16HostFile,
+        _time: u16,
+        _date: u16,
+    ) -> Result<(), dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// Query the owned open mode before DOS inspects a caller buffer. This
+    /// is authoritative host state, never a guest-writable SFT projection.
+    fn win16_file_dos_access(
+        &mut self,
+        _file: Win16HostFile,
+    ) -> Result<dos_kernel::DosFileAccess, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// DOS transfers borrow host-owned buffers, never guest addresses. Keep
+    /// short reads/writes, and validate access even for a zero-byte transfer.
+    fn win16_dos_file_read(
+        &mut self,
+        _file: Win16HostFile,
+        _output: &mut [u8],
+    ) -> Result<usize, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// Empty disk writes truncate/extend at the current position. Empty
+    /// character-device writes do not apply disk truncation semantics.
+    fn win16_dos_file_write(
+        &mut self,
+        _file: Win16HostFile,
+        _input: &[u8],
+    ) -> Result<usize, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    /// DOS Start offsets use all 32 bits; Current/End offsets are signed.
+    /// Reject an unrepresentable target before changing the shared cursor.
+    fn win16_dos_file_seek(
+        &mut self,
+        _file: Win16HostFile,
+        _offset: i32,
+        _origin: dos_kernel::DosSeekOrigin,
+    ) -> Result<u32, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
+    fn win16_dos_file_close(
+        &mut self,
+        _file: Win16HostFile,
+    ) -> Result<Win16HostFileClose, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
     fn win16_lz_start(&mut self) -> Result<i16, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
@@ -1243,7 +1439,8 @@ pub trait RuntimeHost:
     }
     fn win16_lz_open_file(
         &mut self,
-        _path: &[u8],
+        _path: &crate::Win16GuestPath,
+        _search_name: Option<&str>,
         _style: u16,
         _ofstruct: Vec<u8>,
     ) -> Result<Win16HostLzOpen, RuntimeError> {
@@ -1302,6 +1499,8 @@ pub trait RuntimeHost:
     fn win16_lz_get_expanded_name(
         &mut self,
         _source: &[u8],
+        _path: &crate::Win16GuestPath,
+        _search_name: Option<&str>,
     ) -> Result<Win16HostLzName, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
@@ -1521,6 +1720,14 @@ pub trait RuntimeHost:
             "host system color query is unavailable",
         ))
     }
+    /// Read the native desktop-wide owned, visible top-level window predicate.
+    /// An unavailable host query must not be represented as a negative answer.
+    fn win16_any_popup(&mut self) -> Result<bool, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host AnyPopup query is unavailable",
+        ))
+    }
     fn win16_get_dialog_base_units(&mut self) -> Result<u32, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
@@ -1532,7 +1739,7 @@ pub trait RuntimeHost:
         _section: Option<&[u8]>,
         _key: Option<&[u8]>,
         _default: i32,
-        _filename: Option<&[u8]>,
+        _filename: &Win16ProfilePath,
     ) -> Result<u32, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
@@ -1555,7 +1762,7 @@ pub trait RuntimeHost:
         _section: Option<&[u8]>,
         _key: Option<&[u8]>,
         _default: Option<&[u8]>,
-        _filename: Option<&[u8]>,
+        _filename: &Win16ProfilePath,
         _capacity: u16,
     ) -> Result<(Vec<u8>, u16), RuntimeError> {
         Err(RuntimeError::new(
@@ -1580,7 +1787,7 @@ pub trait RuntimeHost:
         _section: Option<&[u8]>,
         _key: Option<&[u8]>,
         _value: Option<&[u8]>,
-        _filename: Option<&[u8]>,
+        _filename: &Win16ProfilePath,
     ) -> Result<bool, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
@@ -1590,7 +1797,7 @@ pub trait RuntimeHost:
     fn win16_profile_section(
         &mut self,
         _section: Option<&[u8]>,
-        _filename: Option<&[u8]>,
+        _filename: &Win16ProfilePath,
         _capacity: u16,
     ) -> Result<(Vec<u8>, u16), RuntimeError> {
         Err(RuntimeError::new(
@@ -1612,7 +1819,7 @@ pub trait RuntimeHost:
         &mut self,
         _section: Option<&[u8]>,
         _entries: Option<&[u8]>,
-        _filename: Option<&[u8]>,
+        _filename: &Win16ProfilePath,
     ) -> Result<bool, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,

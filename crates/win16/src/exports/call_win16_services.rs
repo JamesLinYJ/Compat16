@@ -30,6 +30,9 @@ pub(super) fn decode(
         Win16ExportId::UserGetSysColor => Win16ApiRequest::UserSystem(
             Win16UserSystemRequest::GetSysColor { index: word_argument(arguments, 0)? },
         ),
+        Win16ExportId::UserAnyPopup => {
+            Win16ApiRequest::UserSystem(Win16UserSystemRequest::AnyPopup)
+        }
         Win16ExportId::UserGetDialogBaseUnits => {
             Win16ApiRequest::UserSystem(Win16UserSystemRequest::GetDialogBaseUnits)
         }
@@ -246,3 +249,7 @@ fn resource_name(
         read_far_string(raw, selectors, memory).map(Win16ResourceName::Name)
     }
 }
+
+#[cfg(test)]
+#[path = "call_any_popup_tests.rs"]
+mod any_popup_tests;

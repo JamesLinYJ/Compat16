@@ -3,7 +3,8 @@
 
 pub use exports::{
     DibColorTableKind, DibRgbQuad16, DocInfo16, GdiDeviceRequest, PaletteEntry16,
-    PaletteTransferKind, PrintOperation, Win16PrinterRequest, Win16WindowDataRequest,
+    PaletteTransferKind, PrintOperation, Win16ClassDataRequest, Win16PrinterRequest,
+    Win16WindowDataRequest,
     Win16WindowPropertyName, Win16WindowPropertyRequest,
 };
 
@@ -15,6 +16,7 @@ pub use exports::Win16PrintQueueRequest;
 pub use exports::Win16KernelInstanceRequest;
 pub use exports::Win16Ole1Request;
 pub use exports::Win16UserMdiRequest;
+pub use exports::Win16UserChildLookupRequest;
 pub use exports::{Win16UserNetworkBuffer, Win16UserNetworkRequest};
 pub use exports::Win16UserHooksRequest;
 pub use exports::{Win16FontResourceInput, Win16GdiServicesRequest};
@@ -26,6 +28,7 @@ pub mod gdi_dib;
 pub mod generic_thunk;
 pub mod global;
 pub mod local_heap;
+pub mod load_module;
 pub mod msacm_abi;
 pub mod network_print_abi;
 pub mod owner_draw;
@@ -48,6 +51,8 @@ pub use call_frame::{
 pub use exports::{
     DecodedWin16Call, ExportCallingConvention, ExportLookupTarget, FAR_EXPORT_RETURN_WIDTH,
     Win16MultimediaArgument, Win16MultimediaCall,
+    KERNEL_ADD_ATOM, KERNEL_DELETE_ATOM, KERNEL_FIND_ATOM, KERNEL_GET_ATOM_HANDLE,
+    KERNEL_GET_ATOM_NAME, KERNEL_INIT_ATOM_TABLE,
     KERNEL_EXIT_PROCESS, KERNEL_GET_CURRENT_TASK, KERNEL_GET_PRIVATE_PROFILE_INT,
     KERNEL_GET_PRIVATE_PROFILE_STRING, KERNEL_GET_VERSION, KERNEL_GET_WIN_FLAGS,
     KERNEL_GLOBAL_ALLOC, KERNEL_GLOBAL_FREE, KERNEL_GLOBAL_LOCK, KERNEL_GLOBAL_SIZE,
@@ -73,7 +78,8 @@ pub use exports::{
     Win16EquateValueSource, Win16ExportAbiKind, Win16ExportDescriptor, Win16ExportId,
     Win16ExportStackCleanup, Win16GdiDrawingRequest, Win16GdiObjectsRequest, Win16GdiTextRequest,
     Win16GuestBuffer, Win16GuestImageKind, Win16GuestInOutBuffer, Win16HelpData, Win16HostQuery,
-    Win16KernelDiagnosticRequest, Win16KernelFileSystemRequest, Win16KernelFilesRequest,
+    Win16KernelAtomsRequest, Win16KernelDiagnosticRequest, Win16KernelFileSystemRequest,
+    Win16KernelFilesRequest,
     Win16KernelGlobalHeapRequest,
     Win16KernelGlobalMemoryRequest, Win16KernelLocalHeapRequest, Win16KernelMemoryRequest,
     Win16KernelModuleRequest, Win16KernelModulesRequest, Win16KernelPathInfoRequest,
@@ -94,7 +100,7 @@ pub use exports::{
     Win16ShellIconRequest, Win16ShellRegistryRequest, Win16ShellRequest, Win16SocketSetInput,
     Win16StringComparison, Win16SystemParametersInfoRequest, Win16SystemRequest, Win16TimeCaps16,
     Win16SoundPlayApi, Win16SoundRequest, Win16ToolhelpRequest, Win16ToolhelpStackRequest,
-    Win16UserAnsiRequest, Win16UserAtomsRequest,
+    Win16CharacterClassification, Win16UserAnsiRequest, Win16UserAtomsRequest,
     Win16UserClipboardRequest, Win16UserCursorAcceleratorRequest, Win16UserDialogRequest,
     Win16UserDrawingRequest, Win16UserFamilyRequest, Win16UserGeometryRequest,
     Win16UserSessionRequest,

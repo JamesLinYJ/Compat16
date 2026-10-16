@@ -200,6 +200,11 @@ impl DosKernel {
         &mut self,
         memory: &mut impl DosCallAddressSpace,
     ) -> Result<(u16, u16), DosError> {
+        if memory.caller_id() == DosCallerId::REAL_MODE {
+            // AH=2Fh returns the words stored by AH=1Ah; it does not access
+            // the DTA. Consumers such as Find First still validate its range.
+            return Ok((self.dta_segment, self.dta_offset));
+        }
         let pointer = self.caller_dta(memory)?;
         memory.validate_persistent_range(pointer, 0, 0, DosPointerAccess::Read)?;
         Ok(pointer.pointer().words())

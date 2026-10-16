@@ -1,574 +1,342 @@
-//! Read-only comparison of export-specification metadata with the Win16 ABI catalog.
+//! Compare a validated semantic manifest with the compiled Win16 descriptors.
 //!
-//! This module checks declarations only. A catalog match says nothing about
-//! whether the runtime has a host implementation for the export.
+//! This is an integration consistency check, not an independent ABI authority.
+//! Historical declaration hints never determine a runtime signature, and a
+//! descriptor match does not establish host implementation or service support.
 
-use std::fmt::Write as _;
+use std::fmt::{Debug, Write as _};
 
+use abi_schema::manifest::{
+    Abi, CallingConvention, Export, FarPointerRole, ManifestError, ReturnValue,
+    RuntimeArgumentKind, Signedness, ValidatedCatalog, ValueType,
+};
 use win16_abi::exports::{
-    ExportCallingConvention, Win16ExportAbiKind, Win16ExportDescriptor, Win16ReturnKind,
+    ExportCallingConvention, Win16ExportAbiKind, Win16ExportDescriptor,
+    Win16ExportStackCleanup, Win16ParameterType, Win16ReturnKind,
 };
-use win16_abi::ArgumentKind;
+use win16_abi::{ArgumentKind, StackCleanup};
 
-use crate::{
-    ArgumentType, CallingConvention, ExportAttributes, ExportKind, Ordinal, SpecEntry, SpecModule,
-};
-
-/// Compare one parsed reference module against the project's typed descriptors.
+/// Audit one module, accepting the shared schema's module names and aliases.
 ///
-/// `module_name` must be the canonical module identity used by the descriptors
-/// (for example `USER`). The descriptor slice can contain the complete catalog;
-/// entries from other modules are ignored.
+/// All declarations are retained in the report. An unbound declaration is
+/// `DECLARED_ONLY`, not a missing implementation. Only manifest bindings are
+/// expected to have runtime descriptors; unexpected descriptors are differences.
+/// The descriptor slice may contain the complete runtime catalog.
 pub fn audit_win16_module(
+    catalog: &ValidatedCatalog,
     module_name: &str,
-    spec: &SpecModule,
     descriptors: &[Win16ExportDescriptor],
-) -> Win16AuditReport {
-    let module_name = module_name.to_owned();
-    let catalog_indices = descriptors
+) -> Result<Win16AuditReport, ManifestError> {
+    let module = catalog.module(module_name).ok_or_else(|| ManifestError {
+        location: "module".to_owned(),
+        message: format!("unknown catalog module {module_name:?}"),
+    })?;
+    let indices = descriptors
         .iter()
         .enumerate()
         .filter_map(|(index, descriptor)| {
-            descriptor
-                .module()
-                .eq_ignore_ascii_case(&module_name)
-                .then_some(index)
+            descriptor.module().eq_ignore_ascii_case(&module.id).then_some(index)
         })
         .collect::<Vec<_>>();
-    let mut used_catalog = vec![false; descriptors.len()];
+    let mut used = vec![false; descriptors.len()];
     let mut rows = Vec::new();
+    let mut declarations = 0;
+    let mut bindings = 0;
 
-    for entry in &spec.exports {
-        let ordinal_candidates = match entry.ordinal {
-            Ordinal::Explicit(ordinal) => catalog_indices
-                .iter()
-                .copied()
-                .filter(|&index| descriptors[index].ordinal() == ordinal)
-                .collect::<Vec<_>>(),
-            Ordinal::Automatic => Vec::new(),
-        };
-
-        if ordinal_candidates.len() == 1 {
-            let index = ordinal_candidates[0];
-            used_catalog[index] = true;
-            rows.push(compare_entry(entry, &descriptors[index], true));
-            continue;
-        }
-
-        if ordinal_candidates.len() > 1 {
-            rows.push(uncomparable_spec_row(
-                entry,
-                format!(
-                    "multiple Rust descriptors use ordinal {} in module {module_name}",
-                    ordinal_text(entry.ordinal)
-                ),
-            ));
-            continue;
-        }
-
-        let name_candidates = catalog_indices
-            .iter()
-            .copied()
-            .filter(|&index| {
-                descriptors[index]
-                    .name()
-                    .eq_ignore_ascii_case(&entry.export_name)
-            })
+    for (path, export) in catalog.exports().filter(|(_, export)| export.module == module.id) {
+        declarations += 1;
+        bindings += usize::from(export.binding.is_some());
+        let mut candidates = indices.iter().copied()
+            .filter(|&index| descriptors[index].ordinal() == export.ordinal)
             .collect::<Vec<_>>();
-        match name_candidates.as_slice() {
-            [index] => {
-                used_catalog[*index] = true;
-                rows.push(compare_entry(entry, &descriptors[*index], false));
+        // A binding/name fallback exposes changed ordinals without treating a
+        // same-named unbound declaration as a second runtime binding.
+        if candidates.is_empty() {
+            if let Some(binding) = &export.binding {
+                candidates = indices.iter().copied()
+                    .filter(|&index| descriptors[index].id as u32 == binding.id_value)
+                    .collect();
+                if candidates.is_empty() {
+                    candidates = indices.iter().copied()
+                        .filter(|&index| descriptors[index].name().eq_ignore_ascii_case(export_name(export)))
+                        .collect();
+                }
             }
-            [] => rows.push(spec_only_row(entry)),
-            _ => rows.push(uncomparable_spec_row(
-                entry,
-                format!(
-                    "name matches {} Rust descriptors; an ordinal match is required to disambiguate",
-                    name_candidates.len()
-                ),
-            )),
+        }
+        let row = match candidates.as_slice() {
+            [index] if !used[*index] => {
+                used[*index] = true;
+                compare_export(catalog, path, export, &descriptors[*index])
+            }
+            [] => {
+                let bound = export.binding.is_some();
+                AuditRow::manifest(
+                    if bound { AuditStatus::ManifestOnly } else { AuditStatus::DeclaredOnly },
+                    path,
+                    export,
+                    if bound {
+                        "manifest binding has no compiled descriptor"
+                    } else {
+                        "declaration has no runtime binding; no host implementation or service support is inferred"
+                    }.to_owned(),
+                )
+            }
+            _ => AuditRow::manifest(
+                AuditStatus::Ambiguous,
+                path,
+                export,
+                "multiple or already-matched compiled descriptors; identity is not unique".to_owned(),
+            ),
+        };
+        rows.push(row);
+    }
+    for &index in &indices {
+        if !used[index] {
+            rows.push(AuditRow::runtime(&descriptors[index]));
         }
     }
-
-    for index in catalog_indices {
-        if !used_catalog[index] {
-            rows.push(catalog_only_row(&descriptors[index]));
-        }
-    }
-
-    let catalog_descriptors = descriptors
-        .iter()
-        .filter(|descriptor| descriptor.module().eq_ignore_ascii_case(&module_name))
-        .count();
-    Win16AuditReport {
-        module_name,
-        spec_declarations: spec.exports.len(),
-        catalog_descriptors,
+    Ok(Win16AuditReport {
+        module_name: module.id.clone(),
+        declarations,
+        bindings,
+        descriptors: indices.len(),
         rows,
-    }
+    })
 }
 
-/// A stable, tab-separated report for reviewing ABI metadata differences.
+/// Stable TSV output, with canonical signatures separate from legacy evidence.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Win16AuditReport {
     module_name: String,
-    spec_declarations: usize,
-    catalog_descriptors: usize,
+    declarations: usize,
+    bindings: usize,
+    descriptors: usize,
     rows: Vec<AuditRow>,
 }
 
 impl Win16AuditReport {
-    /// True when any declaration is different, missing, extra, or not
-    /// comparable. The CLI uses this to return a nonzero exit status.
     pub fn has_differences(&self) -> bool {
-        self.rows
-            .iter()
-            .any(|row| row.status != AuditStatus::Match)
+        self.rows.iter().any(|row| row.status.is_difference())
     }
 
-    /// Render a reviewable TSV report. The header explicitly limits the
-    /// result to ABI metadata and does not describe runtime implementation.
     pub fn to_tsv(&self) -> String {
         let mut output = String::new();
+        let _ = writeln!(output, "# Manifest/compiled ABI consistency only; no host implementation or service support is inferred.");
+        let _ = writeln!(output, "# Historical declaration hints are provenance, not a runtime signature. Independent SDK facts are tested separately.");
         let _ = writeln!(
             output,
-            "# ABI metadata comparison only; no host implementation or service support is inferred."
+            "# module={} manifest_declarations={} manifest_bindings={} rust_descriptors={}",
+            tsv_field(&self.module_name), self.declarations, self.bindings, self.descriptors
         );
-        let _ = writeln!(
-            output,
-            "# module={} spec_declarations={} rust_descriptors={}",
-            tsv_field(&self.module_name),
-            self.spec_declarations,
-            self.catalog_descriptors
-        );
-        output.push_str(
-            "status\tmodule\tspec_ordinal\trust_ordinal\tspec_name\trust_name\tspec_convention\trust_convention\tspec_arguments\trust_parameters\tspec_flags\trust_return_kind\tsource_line\tdetail\n",
-        );
+        output.push_str("status\tmodule\tmanifest_ordinal\trust_ordinal\tmanifest_name\trust_name\tmanifest_binding\trust_binding\tmanifest_abi\trust_abi\tsource\tdetail\n");
         for row in &self.rows {
             let fields = [
-                row.status.as_str().to_owned(),
-                self.module_name.clone(),
-                row.spec_ordinal.clone(),
-                row.rust_ordinal.clone(),
-                row.spec_name.clone(),
-                row.rust_name.clone(),
-                row.spec_convention.clone(),
-                row.rust_convention.clone(),
-                row.spec_arguments.clone(),
-                row.rust_parameters.clone(),
-                row.spec_flags.clone(),
-                row.rust_return_kind.clone(),
-                row.source_line.clone(),
-                row.detail.clone(),
+                row.status.as_str(), self.module_name.as_str(),
+                row.manifest_ordinal.as_str(), row.rust_ordinal.as_str(),
+                row.manifest_name.as_str(), row.rust_name.as_str(),
+                row.manifest_binding.as_str(), row.rust_binding.as_str(),
+                row.manifest_abi.as_str(), row.rust_abi.as_str(),
+                row.source.as_str(), row.detail.as_str(),
             ];
-            for (index, value) in fields.iter().enumerate() {
-                if index > 0 {
-                    output.push('\t');
-                }
-                output.push_str(&tsv_field(value));
-            }
+            output.push_str(&fields.into_iter().map(tsv_field).collect::<Vec<_>>().join("\t"));
             output.push('\n');
         }
-
-        let differences = self
-            .rows
-            .iter()
-            .filter(|row| row.status != AuditStatus::Match)
-            .count();
-        let _ = writeln!(
-            output,
-            "# summary rows={} exact_matches={} differences={}",
-            self.rows.len(),
-            self.rows.len().saturating_sub(differences),
-            differences
-        );
+        let differences = self.rows.iter().filter(|row| row.status.is_difference()).count();
+        let matches = self.rows.iter().filter(|row| row.status == AuditStatus::Match).count();
+        let declared = self.rows.iter().filter(|row| row.status == AuditStatus::DeclaredOnly).count();
+        let _ = writeln!(output, "# summary rows={} exact_matches={} declared_only={} differences={}", self.rows.len(), matches, declared, differences);
         output
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum AuditStatus {
-    Match,
-    NameCaseDifference,
-    Mismatch,
-    SpecOnly,
-    CatalogOnly,
-    Uncomparable,
-}
+enum AuditStatus { Match, DeclaredOnly, Mismatch, ManifestOnly, RuntimeOnly, Ambiguous }
 
 impl AuditStatus {
     const fn as_str(self) -> &'static str {
         match self {
             Self::Match => "MATCH",
-            Self::NameCaseDifference => "NAME_CASE_DIFFERENCE",
+            Self::DeclaredOnly => "DECLARED_ONLY",
             Self::Mismatch => "MISMATCH",
-            Self::SpecOnly => "SPEC_ONLY",
-            Self::CatalogOnly => "CATALOG_ONLY",
-            Self::Uncomparable => "UNCOMPARABLE",
+            Self::ManifestOnly => "MANIFEST_ONLY",
+            Self::RuntimeOnly => "RUNTIME_ONLY",
+            Self::Ambiguous => "AMBIGUOUS",
         }
+    }
+
+    const fn is_difference(self) -> bool {
+        !matches!(self, Self::Match | Self::DeclaredOnly)
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct AuditRow {
     status: AuditStatus,
-    spec_ordinal: String,
+    manifest_ordinal: String,
     rust_ordinal: String,
-    spec_name: String,
+    manifest_name: String,
     rust_name: String,
-    spec_convention: String,
-    rust_convention: String,
-    spec_arguments: String,
-    rust_parameters: String,
-    spec_flags: String,
-    rust_return_kind: String,
-    source_line: String,
+    manifest_binding: String,
+    rust_binding: String,
+    manifest_abi: String,
+    rust_abi: String,
+    source: String,
     detail: String,
 }
 
-fn compare_entry(
-    entry: &SpecEntry,
-    descriptor: &Win16ExportDescriptor,
-    ordinal_matched: bool,
-) -> AuditRow {
-    let mut mismatch = false;
-    let mut uncomparable = false;
-    let mut name_case_difference = false;
-    let mut details = Vec::new();
-
-    match entry.ordinal {
-        Ordinal::Explicit(spec_ordinal) if spec_ordinal != descriptor.ordinal() => {
-            mismatch = true;
-            details.push(format!(
-                "ordinal differs: spec {spec_ordinal}, Rust {}",
-                descriptor.ordinal()
-            ));
-        }
-        Ordinal::Automatic => {
-            uncomparable = true;
-            details.push("automatic spec ordinal cannot be compared with the Rust ordinal".to_owned());
-        }
-        Ordinal::Explicit(_) => {}
-    }
-    if !ordinal_matched && matches!(entry.ordinal, Ordinal::Explicit(_)) {
-        mismatch = true;
-    }
-
-    if entry.export_name != descriptor.name() {
-        if entry
-            .export_name
-            .eq_ignore_ascii_case(descriptor.name())
-        {
-            name_case_difference = true;
-            details.push(format!(
-                "name differs only by case: spec {:?}, Rust {:?}",
-                entry.export_name,
-                descriptor.name()
-            ));
-        } else {
-            mismatch = true;
-            details.push(format!(
-                "name differs: spec {:?}, Rust {:?}",
-                entry.export_name,
-                descriptor.name()
-            ));
+impl AuditRow {
+    fn manifest(status: AuditStatus, path: &str, export: &Export, detail: String) -> Self {
+        Self {
+            status,
+            manifest_ordinal: export.ordinal.to_string(),
+            rust_ordinal: "-".to_owned(),
+            manifest_name: export_name(export).to_owned(),
+            rust_name: "-".to_owned(),
+            manifest_binding: export.binding.as_ref().map_or_else(|| "-".to_owned(), |binding| format!("{}:{}", binding.rust_id, binding.id_value)),
+            rust_binding: "-".to_owned(),
+            manifest_abi: export.entry.abi().map_or_else(|| "non-callable data".to_owned(), |abi| format!("{abi:?}")),
+            rust_abi: "-".to_owned(),
+            source: path.to_owned(),
+            detail,
         }
     }
 
-    if entry.kind != ExportKind::Function {
-        mismatch = true;
-        details.push(format!(
-            "spec declaration kind is {:?}; the Rust catalog entry is a callable ABI descriptor",
-            entry.kind
-        ));
-    } else {
-        compare_calling_convention(entry, descriptor, &mut mismatch, &mut uncomparable, &mut details);
-        let spec_register = entry.flags.attributes.contains(ExportAttributes::REGISTER);
-        let rust_register = descriptor.abi_kind == Win16ExportAbiKind::RegisterContext;
-        if spec_register != rust_register {
-            mismatch = true;
-            details.push(format!(
-                "register-context flag differs: spec {spec_register}, Rust {rust_register}"
-            ));
+    fn runtime(descriptor: &Win16ExportDescriptor) -> Self {
+        Self {
+            status: AuditStatus::RuntimeOnly,
+            manifest_ordinal: "-".to_owned(),
+            rust_ordinal: descriptor.ordinal().to_string(),
+            manifest_name: "-".to_owned(),
+            rust_name: descriptor.name().to_owned(),
+            manifest_binding: "-".to_owned(),
+            rust_binding: format!("{:?}:{}", descriptor.id, descriptor.id as u32),
+            manifest_abi: "-".to_owned(),
+            rust_abi: format!("{descriptor:?}"),
+            source: "-".to_owned(),
+            detail: "compiled descriptor has no matching manifest binding".to_owned(),
         }
-        compare_arguments(entry, descriptor, &mut mismatch, &mut uncomparable, &mut details);
-    }
-
-    if entry.flags.attributes.contains(ExportAttributes::RET16) {
-        details.push(
-            "spec has -ret16; return width is shown from Rust metadata and is not inferred from this flag"
-                .to_owned(),
-        );
-    }
-
-    let status = if mismatch {
-        AuditStatus::Mismatch
-    } else if uncomparable {
-        AuditStatus::Uncomparable
-    } else if name_case_difference {
-        AuditStatus::NameCaseDifference
-    } else {
-        AuditStatus::Match
-    };
-
-    AuditRow {
-        status,
-        spec_ordinal: ordinal_text(entry.ordinal),
-        rust_ordinal: descriptor.ordinal().to_string(),
-        spec_name: entry.export_name.clone(),
-        rust_name: descriptor.name().to_owned(),
-        spec_convention: entry
-            .convention
-            .map(|convention| convention.as_spec_name().to_owned())
-            .unwrap_or_else(|| "-".to_owned()),
-        rust_convention: rust_convention(descriptor.calling_convention),
-        spec_arguments: format_spec_arguments(&entry.arguments),
-        rust_parameters: format_rust_parameters(descriptor),
-        spec_flags: format_spec_flags(entry),
-        rust_return_kind: format_rust_return_kind(descriptor.return_kind),
-        source_line: entry.source_line.to_string(),
-        detail: if details.is_empty() {
-            "ordinal, name, convention, register mode, and comparable argument slot widths agree".to_owned()
-        } else {
-            details.join("; ")
-        },
     }
 }
 
-fn compare_calling_convention(
-    entry: &SpecEntry,
+fn export_name(export: &Export) -> &str {
+    export.name.as_deref().unwrap_or(&export.declared_name)
+}
+
+fn compare_export(
+    catalog: &ValidatedCatalog,
+    path: &str,
+    export: &Export,
     descriptor: &Win16ExportDescriptor,
-    mismatch: &mut bool,
-    uncomparable: &mut bool,
-    details: &mut Vec<String>,
-) {
-    let Some(spec_convention) = entry.convention else {
-        *uncomparable = true;
-        details.push("spec declaration has no comparable calling convention".to_owned());
-        return;
-    };
-    let expected_convention = match spec_convention {
+) -> AuditRow {
+    let mut details = Vec::new();
+    compare("module", &export.module.as_str(), &descriptor.module(), &mut details);
+    compare("ordinal", &export.ordinal, &descriptor.ordinal(), &mut details);
+    compare("name", &export_name(export), &descriptor.name(), &mut details);
+    if let Some(binding) = &export.binding {
+        compare("binding Rust id", &binding.rust_id, &format!("{:?}", descriptor.id), &mut details);
+        compare("binding discriminant", &binding.id_value, &(descriptor.id as u32), &mut details);
+        // The shared validator guarantees bound signatures are known and have
+        // types representable by the runtime. Never consult declaration hints.
+        let abi = export.entry.abi().expect("validated callable binding");
+        let signature = abi.signature().expect("validated known binding signature");
+        let expected_kind = match abi {
+            Abi::FixedStack { .. } => Win16ExportAbiKind::Stack,
+            Abi::VariableStack { .. } => Win16ExportAbiKind::VariableStack,
+            Abi::RegisterContext { .. } => Win16ExportAbiKind::RegisterContext,
+            Abi::Unknown => unreachable!("validated known binding ABI"),
+        };
+        compare("ABI kind", &expected_kind, &descriptor.abi_kind, &mut details);
+        compare("calling convention", &runtime_convention(signature.calling_convention), &descriptor.calling_convention, &mut details);
+        compare("return kind", &runtime_return(signature.returns), &Some(descriptor.return_kind), &mut details);
+        let cleanup = abi.cleanup().map_or(Win16ExportStackCleanup::Variable, |cleanup| {
+            Win16ExportStackCleanup::Fixed(StackCleanup {
+                callee_pop_bytes: cleanup.callee_pop_bytes,
+                caller_pop_bytes: cleanup.caller_pop_bytes,
+            })
+        });
+        compare("stack cleanup", &cleanup, &descriptor.stack_cleanup, &mut details);
+        compare("parameter count", &signature.parameters.len(), &descriptor.parameters.len(), &mut details);
+        for (index, (expected, actual)) in signature.parameters.iter().zip(descriptor.parameters).enumerate() {
+            let value = catalog.resolve_type(&expected.value);
+            compare(&format!("parameter {} name", index + 1), &expected.name.as_str(), &actual.name, &mut details);
+            compare(&format!("parameter {} value kind", index + 1), &runtime_kind(value), &Some(actual.kind), &mut details);
+            compare(&format!("parameter {} slot bytes", index + 1), &expected.slot_bytes, &slot_bytes(actual.kind), &mut details);
+            compare(&format!("parameter {} semantic role", index + 1), &runtime_role(value), &Some(actual.parameter_type), &mut details);
+        }
+    } else {
+        details.push("unbound declaration unexpectedly has a compiled runtime descriptor".to_owned());
+    }
+    let status = if details.is_empty() { AuditStatus::Match } else { AuditStatus::Mismatch };
+    let mut row = AuditRow::manifest(status, path, export, if details.is_empty() {
+        "binding identity and complete representable semantic signature agree".to_owned()
+    } else { details.join("; ") });
+    row.rust_ordinal = descriptor.ordinal().to_string();
+    row.rust_name = descriptor.name().to_owned();
+    row.rust_binding = format!("{:?}:{}", descriptor.id, descriptor.id as u32);
+    row.rust_abi = format!("{descriptor:?}");
+    row
+}
+
+fn compare<T: Debug + PartialEq>(label: &str, expected: &T, actual: &T, details: &mut Vec<String>) {
+    if expected != actual {
+        details.push(format!("{label} differs: manifest {expected:?}, Rust {actual:?}"));
+    }
+}
+
+fn runtime_convention(value: CallingConvention) -> ExportCallingConvention {
+    match value {
         CallingConvention::Pascal => ExportCallingConvention::Pascal,
         CallingConvention::Cdecl => ExportCallingConvention::Cdecl,
         CallingConvention::Stdcall => ExportCallingConvention::Stdcall,
         CallingConvention::Varargs => ExportCallingConvention::Varargs,
-    };
-    if descriptor.calling_convention != expected_convention {
-        *mismatch = true;
-        details.push(format!(
-            "calling convention differs: spec {}, Rust {}",
-            spec_convention.as_spec_name(),
-            rust_convention(descriptor.calling_convention)
-        ));
+        CallingConvention::Thiscall => ExportCallingConvention::Thiscall,
+        CallingConvention::Unknown => ExportCallingConvention::Unknown,
     }
 }
 
-fn compare_arguments(
-    entry: &SpecEntry,
-    descriptor: &Win16ExportDescriptor,
-    mismatch: &mut bool,
-    uncomparable: &mut bool,
-    details: &mut Vec<String>,
-) {
-    if entry.arguments.len() != descriptor.parameters.len() {
-        *mismatch = true;
-        details.push(format!(
-            "argument count differs: spec {}, Rust {}",
-            entry.arguments.len(),
-            descriptor.parameters.len()
-        ));
-        return;
-    }
-
-    for (index, (spec_argument, rust_parameter)) in entry
-        .arguments
-        .iter()
-        .zip(descriptor.parameters)
-        .enumerate()
-    {
-        let Some(spec_width) = spec_slot_width(*spec_argument) else {
-            *uncomparable = true;
-            details.push(format!(
-                "argument {} descriptor {} has no width rule in this audit",
-                index + 1,
-                spec_argument.as_spec_name()
-            ));
-            continue;
-        };
-        let rust_width = rust_slot_width(rust_parameter.kind);
-        if spec_width != rust_width {
-            *mismatch = true;
-            details.push(format!(
-                "argument {} slot width differs: spec {spec_width} bytes, Rust {rust_width} bytes",
-                index + 1
-            ));
-        }
-    }
+fn runtime_return(value: ReturnValue) -> Option<Win16ReturnKind> {
+    Some(match value {
+        ReturnValue::Word => Win16ReturnKind::Word,
+        ReturnValue::Dword => Win16ReturnKind::Dword,
+        ReturnValue::FarPointer => Win16ReturnKind::FarPointer,
+        ReturnValue::RegisterContext => Win16ReturnKind::RegisterContext,
+        ReturnValue::Void => Win16ReturnKind::Void,
+        ReturnValue::Unknown => return None,
+    })
 }
 
-fn spec_only_row(entry: &SpecEntry) -> AuditRow {
-    AuditRow {
-        status: AuditStatus::SpecOnly,
-        spec_ordinal: ordinal_text(entry.ordinal),
-        rust_ordinal: "-".to_owned(),
-        spec_name: entry.export_name.clone(),
-        rust_name: "-".to_owned(),
-        spec_convention: entry
-            .convention
-            .map(|convention| convention.as_spec_name().to_owned())
-            .unwrap_or_else(|| "-".to_owned()),
-        rust_convention: "-".to_owned(),
-        spec_arguments: format_spec_arguments(&entry.arguments),
-        rust_parameters: "-".to_owned(),
-        spec_flags: format_spec_flags(entry),
-        rust_return_kind: "-".to_owned(),
-        source_line: entry.source_line.to_string(),
-        detail: "reference declaration has no matching Rust ABI descriptor; this does not state runtime support".to_owned(),
-    }
+fn runtime_kind(value: &ValueType) -> Option<ArgumentKind> {
+    value.runtime_argument_kind().map(|kind| match kind {
+        RuntimeArgumentKind::Byte => ArgumentKind::Byte,
+        RuntimeArgumentKind::Word => ArgumentKind::Word,
+        RuntimeArgumentKind::Dword => ArgumentKind::Dword,
+    })
 }
 
-fn uncomparable_spec_row(entry: &SpecEntry, detail: String) -> AuditRow {
-    let mut row = spec_only_row(entry);
-    row.status = AuditStatus::Uncomparable;
-    row.detail = detail;
-    row
+fn slot_bytes(kind: ArgumentKind) -> u16 {
+    match kind { ArgumentKind::Byte | ArgumentKind::Word => 2, ArgumentKind::Dword => 4 }
 }
 
-fn catalog_only_row(descriptor: &Win16ExportDescriptor) -> AuditRow {
-    AuditRow {
-        status: AuditStatus::CatalogOnly,
-        spec_ordinal: "-".to_owned(),
-        rust_ordinal: descriptor.ordinal().to_string(),
-        spec_name: "-".to_owned(),
-        rust_name: descriptor.name().to_owned(),
-        spec_convention: "-".to_owned(),
-        rust_convention: rust_convention(descriptor.calling_convention),
-        spec_arguments: "-".to_owned(),
-        rust_parameters: format_rust_parameters(descriptor),
-        spec_flags: "-".to_owned(),
-        rust_return_kind: format_rust_return_kind(descriptor.return_kind),
-        source_line: "-".to_owned(),
-        detail: "Rust ABI descriptor has no matching reference declaration; this does not state runtime support".to_owned(),
-    }
-}
-
-fn ordinal_text(ordinal: Ordinal) -> String {
-    match ordinal {
-        Ordinal::Explicit(value) => value.to_string(),
-        Ordinal::Automatic => "@".to_owned(),
-    }
-}
-
-fn spec_slot_width(argument: ArgumentType) -> Option<usize> {
-    match argument {
-        ArgumentType::Word | ArgumentType::SignedWord => Some(2),
-        ArgumentType::Long
-        | ArgumentType::Pointer
-        | ArgumentType::String
-        | ArgumentType::SegmentPointer
-        | ArgumentType::SegmentString
-        | ArgumentType::WideString => Some(4),
-        ArgumentType::Int64 => Some(8),
-        // No Win16 stack width is assigned to `float` by this audit; leave it
-        // for manual review rather than guessing.
-        ArgumentType::Float => None,
-    }
-}
-
-fn rust_slot_width(argument: ArgumentKind) -> usize {
-    match argument {
-        ArgumentKind::Byte | ArgumentKind::Word => 2,
-        ArgumentKind::Dword => 4,
-    }
-}
-
-fn format_spec_arguments(arguments: &[ArgumentType]) -> String {
-    if arguments.is_empty() {
-        return "-".to_owned();
-    }
-    arguments
-        .iter()
-        .map(|argument| match spec_slot_width(*argument) {
-            Some(width) => format!("{}:{width}B", argument.as_spec_name()),
-            None => format!("{}:?", argument.as_spec_name()),
-        })
-        .collect::<Vec<_>>()
-        .join(",")
-}
-
-fn format_rust_parameters(descriptor: &Win16ExportDescriptor) -> String {
-    if descriptor.parameters.is_empty() {
-        return "-".to_owned();
-    }
-    descriptor
-        .parameters
-        .iter()
-        .map(|parameter| {
-            format!(
-                "{}:{:?}:{:?}:{}B",
-                parameter.name,
-                parameter.kind,
-                parameter.parameter_type,
-                rust_slot_width(parameter.kind)
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(",")
-}
-
-fn rust_convention(convention: ExportCallingConvention) -> String {
-    match convention {
-        ExportCallingConvention::Pascal => "pascal".to_owned(),
-        ExportCallingConvention::Cdecl => "cdecl".to_owned(),
-        ExportCallingConvention::Stdcall => "stdcall".to_owned(),
-        ExportCallingConvention::Varargs => "varargs".to_owned(),
-        ExportCallingConvention::Thiscall => "thiscall".to_owned(),
-        ExportCallingConvention::Unknown => "unknown".to_owned(),
-    }
-}
-
-fn format_rust_return_kind(kind: Win16ReturnKind) -> String {
-    match kind {
-        Win16ReturnKind::Word => "Word(16-bit)".to_owned(),
-        Win16ReturnKind::Dword => "Dword(32-bit)".to_owned(),
-        Win16ReturnKind::FarPointer => "FarPointer(32-bit)".to_owned(),
-        Win16ReturnKind::RegisterContext => "RegisterContext".to_owned(),
-        Win16ReturnKind::Void => "Void".to_owned(),
-    }
-}
-
-fn format_spec_flags(entry: &SpecEntry) -> String {
-    let mut flags = Vec::new();
-    if entry.flags.attributes.contains(ExportAttributes::RET16) {
-        flags.push("ret16");
-    }
-    if entry.flags.attributes.contains(ExportAttributes::REGISTER) {
-        flags.push("register");
-    }
-    if entry.flags.attributes.contains(ExportAttributes::STACK_PROLOG) {
-        flags.push("stack_prolog");
-    }
-    if entry.flags.attributes.contains(ExportAttributes::NO_RELAY) {
-        flags.push("no_relay");
-    }
-    if entry.flags.attributes.contains(ExportAttributes::PRIVATE) {
-        flags.push("private");
-    }
-    if entry.flags.arch_win32 {
-        flags.push("arch_win32");
-    }
-    if flags.is_empty() {
-        "-".to_owned()
-    } else {
-        flags.join(",")
-    }
+fn runtime_role(value: &ValueType) -> Option<Win16ParameterType> {
+    Some(match value {
+        ValueType::Integer { signedness: Signedness::Signed, .. } => Win16ParameterType::SignedScalar,
+        ValueType::Integer { .. } => Win16ParameterType::Scalar,
+        ValueType::Far16_16 { role, .. } => match role {
+            FarPointerRole::FarString => Win16ParameterType::FarString,
+            FarPointerRole::FarPointer => Win16ParameterType::FarPointer,
+            FarPointerRole::FarStringOrChar => Win16ParameterType::FarStringOrChar,
+            FarPointerRole::ResourceName => Win16ParameterType::ResourceName,
+            FarPointerRole::AtomName => Win16ParameterType::AtomName,
+            FarPointerRole::ClassName => Win16ParameterType::ClassName,
+            FarPointerRole::NullableFarString => Win16ParameterType::NullableFarString,
+            FarPointerRole::FarBuffer => Win16ParameterType::FarBuffer,
+            FarPointerRole::FarOutputBuffer => Win16ParameterType::FarOutputBuffer,
+            FarPointerRole::Unknown => return None,
+        },
+        _ => return None,
+    })
 }
 
 fn tsv_field(value: &str) -> String {
-    value
-        .replace('\\', "\\\\")
-        .replace('\t', "\\t")
-        .replace('\r', "\\r")
-        .replace('\n', "\\n")
+    value.replace('\\', "\\\\").replace('\t', "\\t").replace('\r', "\\r").replace('\n', "\\n")
 }

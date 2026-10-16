@@ -13,6 +13,54 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Win16ApiRequest, Win16Error> {
     let request = match export {
+        Win16ExportId::GdiCreateMetaFile => Win16ApiRequest::GdiObjects(
+            super::Win16GdiObjectsRequest::CreateMetaFile {
+                path: read_nullable_far_string(dword_argument(arguments, 0)?, selectors, memory)?,
+            }),
+        Win16ExportId::GdiCloseMetaFile => Win16ApiRequest::GdiObjects(
+            super::Win16GdiObjectsRequest::CloseMetaFile { dc: word_argument(arguments, 0)? }),
+        Win16ExportId::GdiGetMetaFile => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::GetMetaFile {
+                path: super::read_far_string(dword_argument(arguments, 0)?, selectors, memory)?,
+            })
+        }
+        Win16ExportId::GdiPlayMetaFile => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::PlayMetaFile {
+                dc: word_argument(arguments, 0)?,
+                metafile: word_argument(arguments, 1)?,
+            })
+        }
+        Win16ExportId::GdiEnumMetaFile => Win16ApiRequest::GdiObjects(
+            super::Win16GdiObjectsRequest::EnumMetaFile {
+                dc: word_argument(arguments, 0)?, metafile: word_argument(arguments, 1)?,
+                procedure: dword_argument(arguments, 2)?, parameter: dword_argument(arguments, 3)?,
+            }),
+        Win16ExportId::GdiPlayMetaFileRecord => Win16ApiRequest::GdiObjects(
+            super::Win16GdiObjectsRequest::PlayMetaFileRecord {
+                dc: word_argument(arguments, 0)?,
+                table: dword_argument(arguments, 1)?,
+                record: dword_argument(arguments, 2)?,
+                object_count: word_argument(arguments, 3)?,
+            }),
+        Win16ExportId::GdiCopyMetaFile => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::CopyMetaFile {
+                metafile: word_argument(arguments, 0)?,
+                path: read_nullable_far_string(dword_argument(arguments, 1)?, selectors, memory)?,
+            })
+        }
+        Win16ExportId::GdiDeleteMetaFile => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::DeleteMetaFile {
+                metafile: word_argument(arguments, 0)?,
+            })
+        }
+        Win16ExportId::GdiEnumObjects => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::EnumObjects {
+                dc: word_argument(arguments, 0)?,
+                object_type: word_argument(arguments, 1)? as i16,
+                callback: dword_argument(arguments, 2)?,
+                parameter: dword_argument(arguments, 3)? as i32,
+            })
+        }
         Win16ExportId::GdiGetObject => Win16ApiRequest::GdiDevice(super::super::GdiDeviceRequest::GetObject {
             object: word_argument(arguments, 0)?, count: word_argument(arguments, 1)? as i16,
             output: dword_argument(arguments, 2)?,
@@ -43,6 +91,21 @@ pub(super) fn decode(
                 index: word_argument(arguments, 1)? as i16,
             })
         }
+        Win16ExportId::GdiGetMetaFileBits => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::GetMetaFileBits {
+                metafile: word_argument(arguments, 0)?,
+            })
+        }
+        Win16ExportId::GdiSetMetaFileBits => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::SetMetaFileBits {
+                bits: word_argument(arguments, 0)?,
+            })
+        }
+        Win16ExportId::GdiSetMetaFileBitsBetter => {
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::SetMetaFileBitsBetter {
+                bits: word_argument(arguments, 0)?,
+            })
+        }
         Win16ExportId::GdiGetStockObject => {
             Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::GetStockObject {
                 index: word_argument(arguments, 0)? as i16,
@@ -50,6 +113,18 @@ pub(super) fn decode(
         }
         Win16ExportId::GdiEnumFonts => {
             Win16ApiRequest::GdiText(super::Win16GdiTextRequest::EnumFonts {
+                dc: word_argument(arguments, 0)?,
+                face_name: read_nullable_far_string(
+                    dword_argument(arguments, 1)?,
+                    selectors,
+                    memory,
+                )?,
+                callback: dword_argument(arguments, 2)?,
+                parameter: dword_argument(arguments, 3)? as i32,
+            })
+        }
+        Win16ExportId::GdiEnumFontFamilies => {
+            Win16ApiRequest::GdiText(super::Win16GdiTextRequest::EnumFontFamilies {
                 dc: word_argument(arguments, 0)?,
                 face_name: read_nullable_far_string(
                     dword_argument(arguments, 1)?,
@@ -198,6 +273,13 @@ pub(super) fn decode(
                 })
             }
         }
+        Win16ExportId::GdiGetOutlineTextMetrics => {
+            Win16ApiRequest::GdiText(super::Win16GdiTextRequest::GetOutlineTextMetrics {
+                dc: word_argument(arguments, 0)?,
+                count: word_argument(arguments, 1)?,
+                output: dword_argument(arguments, 2)?,
+            })
+        }
         Win16ExportId::GdiGetTextMetrics => {
             Win16ApiRequest::GdiText(super::Win16GdiTextRequest::GetTextMetrics {
                 dc: word_argument(arguments, 0)?,
@@ -274,3 +356,11 @@ pub(super) fn read_exact_bytes(
     }
     Ok(bytes)
 }
+
+#[cfg(test)]
+#[path = "call_enum_font_families_tests.rs"]
+mod enum_font_families_tests;
+
+#[cfg(test)]
+#[path = "call_get_outline_text_metrics_tests.rs"]
+mod outline_text_metrics_tests;

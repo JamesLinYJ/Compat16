@@ -19,6 +19,7 @@ pub(super) fn execute(
     bus: &mut impl CpuBus,
     state: &mut X87State,
     instruction: &NormalizedInstruction,
+    jit: &mut crate::jit::IntegerTranslator,
 ) -> Result<bool, CpuError> {
     use M as Mnemonic;
     match instruction.mnemonic {
@@ -34,7 +35,7 @@ pub(super) fn execute(
         Mnemonic::Fsubr | Mnemonic::Fsubrp | Mnemonic::Fisub | Mnemonic::Fisubr | Mnemonic::Fmul |
         Mnemonic::Fmulp | Mnemonic::Fimul | Mnemonic::Fdiv | Mnemonic::Fdivp | Mnemonic::Fdivr |
         Mnemonic::Fdivrp | Mnemonic::Fidiv | Mnemonic::Fidivr => {
-            execute_binary(regs, bus, state, instruction)
+            execute_binary(regs, bus, state, instruction, jit)
         }
         Mnemonic::Fsqrt | Mnemonic::Frndint | Mnemonic::Fscale | Mnemonic::Fxtract |
         Mnemonic::Fabs | Mnemonic::Fchs | Mnemonic::Ftst | Mnemonic::Fxam |
@@ -122,6 +123,7 @@ fn execute_binary(
     bus: &mut impl CpuBus,
     state: &mut X87State,
     instruction: &NormalizedInstruction,
+    jit: &mut crate::jit::IntegerTranslator,
 ) -> Result<bool, CpuError> {
     let mnemonic = instruction.mnemonic;
     let memory_operand = instruction.operands[..usize::from(instruction.operand_count)]
@@ -152,13 +154,14 @@ fn execute_binary(
         M::Fdiv | M::Fdivp | M::Fdivr | M::Fdivrp | M::Fidiv | M::Fidivr => (BinaryOp::Div, if reversed { rhs } else { lhs }, if reversed { lhs } else { rhs }),
         _ => return Ok(false),
     };
-    let result = x87_math::binary_with_input_flags(
-        operation,
-        lhs,
-        rhs,
-        state.control_word,
-        input_flags,
-    );
+    // Checked operand access and x87 stack/exception selection stay here.
+    // The independent JIT only computes raw 80-bit arithmetic; cold and
+    // exceptional paths reuse the full APFloat implementation exactly once.
+    let accelerated = if input_flags == 0 {
+        jit.binary_float(operation, lhs, rhs, state.control_word)
+    } else { None };
+    let result = accelerated.unwrap_or_else(|| x87_math::binary_with_input_flags(
+        operation, lhs, rhs, state.control_word, input_flags));
     if let Some((value, c1)) = commit_register_math_result(state, result) {
         set_c1(state, c1);
         write_st(state, destination, value);

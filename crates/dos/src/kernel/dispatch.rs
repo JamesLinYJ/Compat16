@@ -53,8 +53,10 @@ impl DosKernel {
             0x25 => self.set_interrupt_vector(regs, memory),
             0x35 => self.get_interrupt_vector(regs, memory),
             0x36 => self.disk_space(regs, host),
-            0x3c => self.create_file(regs, memory, host),
+            0x3c | 0x5b => self.create_file(regs, memory, host),
+            0x5a => self.create_temporary_file(regs, memory, host),
             0x3d => self.open_file(regs, memory, host),
+            0x6c => self.extended_open_file(regs, memory, host),
             0x3e => self.close_file(regs, host),
             0x3f => self.read_file(regs, memory, host),
             0x40 => self.write_file(regs, memory, host),
@@ -78,6 +80,8 @@ impl DosKernel {
             0x4b => self.execute_program(regs, memory),
             0x4c => Ok(DosAction::Exit(regs.al())),
             0x56 => self.rename_file(regs, memory, host),
+            0x57 => self.file_date_time(regs, host),
+            0x68 => self.commit_file(regs, host),
             0x4d => {
                 regs.set_ax(u16::from(self.last_exit_code));
                 self.last_exit_code = 0;

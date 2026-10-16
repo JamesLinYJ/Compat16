@@ -10,12 +10,14 @@ use std::sync::Arc;
 use formats::{NeResourceId, NeModule};
 use guest_core::{GuestMemory, memory::Memory};
 use win16_abi::{GlobalHandle, GlobalHeap, SelectorRef, Win16ResourceName};
+use win16_abi::global::{GMEM_MOVEABLE, GMEM_DISCARDABLE};
 
 use super::module_registry::ModuleState;
 use super::{global_memory::GlobalTeardownResult, Win16State};
 use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost};
 
-const GMEM_MOVEABLE: u16 = 0x0002;
+#[path = "win16_resources/lifetime.rs"]
+mod lifetime;
 const NE_RESOURCE_MOVEABLE: u16 = 0x0010;
 const NE_RESOURCE_DISCARDABLE: u16 = 0x1000;
 // NE resource-table record sizes: alignment-shift WORD, TYPEINFO (type ID,
@@ -46,6 +48,18 @@ pub(super) struct ResourceMetadata {
     pub(super) offset: usize,
     pub(super) length: usize,
     pub(super) flags: u16,
+}
+
+impl ResourceMetadata {
+    fn discardable(self) -> bool {
+        self.flags & (NE_RESOURCE_MOVEABLE | NE_RESOURCE_DISCARDABLE)
+            == (NE_RESOURCE_MOVEABLE | NE_RESOURCE_DISCARDABLE)
+    }
+
+    fn allocation_flags(self) -> u16 {
+        let movable = if self.flags & NE_RESOURCE_MOVEABLE != 0 { GMEM_MOVEABLE } else { 0 };
+        movable | if self.discardable() { GMEM_DISCARDABLE } else { 0 }
+    }
 }
 
 #[derive(Clone)]
@@ -218,7 +232,7 @@ impl Win16State {
             return Ok(0);
         };
 
-        let flags = if metadata.flags & NE_RESOURCE_MOVEABLE != 0 { GMEM_MOVEABLE } else { 0 };
+        let flags = metadata.allocation_flags();
         let data = self.global_alloc(flags, size, memory, host)?;
         if data == 0 { return Ok(0); }
         let Some(identity) = self.live_global_identity(data) else {
@@ -231,116 +245,6 @@ impl Win16State {
             identity,
             retirement_cause: None,
         });
-        Ok(data)
-    }
-
-    /// Return an already-loaded resource and increment its LoadResource
-    /// reference count. Stale handles are removed before the guest can observe
-    /// a raw handle reused for a different GlobalHeap generation.
-    pub(super) fn retain_loaded_resource(
-        &mut self,
-        key: ResourceKey,
-    ) -> Result<Option<u16>, RuntimeError> {
-        let Some(existing) = self.resources.loaded.get(&key).cloned() else {
-            return Ok(None);
-        };
-        if !self.is_live_global(existing.data, existing.identity) {
-            self.resources.loaded.remove(&key);
-            self.remove_stale_allocation(existing.data, existing.identity);
-            return Ok(None);
-        }
-        if self.discarded_handles.contains(&existing.data) {
-            // Keep the outstanding LoadResource reference count. The caller
-            // will reload this same HGLOBAL before returning it to the guest.
-            return Ok(None);
-        }
-        let entry = self.resources.loaded.get_mut(&key).ok_or_else(|| RuntimeError::new(
-            Kind::InternalInvariant, "Win16 resource cache entry disappeared"))?;
-        entry.references = entry.references.checked_add(1).ok_or_else(|| RuntimeError::new(
-            Kind::ResourceExhausted, "Win16 resource reference count overflow"))?;
-        Ok(Some(existing.data))
-    }
-
-    /// Return the last live HGLOBAL associated with this resource without
-    /// changing its LoadResource reference count. This is used for reloads.
-    pub(super) fn prior_resource_handle(&mut self, key: ResourceKey) -> u16 {
-        if let Some(existing) = self.resources.loaded.get(&key).cloned() {
-            if self.is_live_global(existing.data, existing.identity) {
-                return existing.data;
-            }
-            self.resources.loaded.remove(&key);
-            self.remove_stale_allocation(existing.data, existing.identity);
-        }
-
-        0
-    }
-
-    /// Associate a handler/default-loader result with a resource. Each
-    /// successful LoadResource contributes one reference, including when a
-    /// nested/reentrant load commits the same live HGLOBAL.
-    pub(super) fn commit_loaded_resource(
-        &mut self,
-        key: ResourceKey,
-        data: u16,
-    ) -> Result<u16, RuntimeError> {
-        if data == 0 || self.resource_metadata(key.module, key.info).is_none() {
-            return Ok(0);
-        }
-        let Some(identity) = self.live_global_identity(data) else { return Ok(0); };
-        if !self.resource_data_belongs_to(data, key, identity) {
-            return Ok(0);
-        }
-        if let Some(existing) = self.resources.loaded.get(&key).cloned() {
-            if !self.is_live_global(existing.data, existing.identity) {
-                self.resources.loaded.remove(&key);
-            } else if existing.data != data || existing.identity != identity {
-                // Two live HGLOBALs cannot simultaneously represent the same
-                // resource cache slot. A normal load reaches this method only
-                // after a cache miss; reloads use commit_reloaded_resource.
-                return Ok(0);
-            } else {
-                let entry = self.resources.loaded.get_mut(&key).ok_or_else(|| RuntimeError::new(
-                    Kind::InternalInvariant, "Win16 resource cache entry disappeared"))?;
-                entry.references = entry.references.checked_add(1).ok_or_else(|| RuntimeError::new(
-                    Kind::ResourceExhausted, "Win16 resource reference count overflow"))?;
-                return Ok(data);
-            }
-        }
-        self.resources.loaded.insert(key, LoadedResource {
-            data, identity, references: 1, retirement_cause: None,
-        });
-        Ok(data)
-    }
-
-    /// Update a resource cache entry after LockResource reloads a discarded
-    /// block. Its LoadResource reference count is preserved.
-    pub(super) fn commit_reloaded_resource(
-        &mut self,
-        key: ResourceKey,
-        data: u16,
-    ) -> Result<u16, RuntimeError> {
-        if data == 0 || self.resource_metadata(key.module, key.info).is_none() {
-            return Ok(0);
-        }
-        let Some(identity) = self.live_global_identity(data) else { return Ok(0); };
-        if !self.resource_data_belongs_to(data, key, identity) { return Ok(0); }
-
-        let (references, retirement_cause) = match self.resources.loaded.get(&key).cloned() {
-            Some(existing) if self.is_live_global(existing.data, existing.identity) => {
-                if existing.data != data || existing.identity != identity {
-                    // Preserve the HGLOBAL observed by the caller. Returning a
-                    // different raw block would make a later FreeResource on
-                    // the original handle release the wrong allocation.
-                    return Ok(0);
-                }
-                (existing.references, existing.retirement_cause)
-            }
-            Some(_) | None => (0, None),
-        };
-        self.resources.loaded.insert(key, LoadedResource {
-            data, identity, references, retirement_cause,
-        });
-        self.discarded_handles.remove(&data);
         Ok(data)
     }
 
@@ -374,7 +278,7 @@ impl Win16State {
         let target_size = u32::try_from(bytes.len()).map_err(|_| RuntimeError::new(
             Kind::ResourceExhausted, "Win16 resource is too large for a global block"))?.max(1);
         let (handle, is_new) = if data == 0 {
-            let flags = if metadata.flags & NE_RESOURCE_MOVEABLE != 0 { GMEM_MOVEABLE } else { 0 };
+            let flags = metadata.allocation_flags();
             let allocated = self.global_alloc(flags, target_size, memory, host)?;
             if allocated == 0 { return Ok(0); }
             (allocated, true)
@@ -454,44 +358,6 @@ impl Win16State {
 
     /// Release one resource usage reference. A still-locked final HGLOBAL is
     /// retained with its reference so the caller can unlock and retry safely.
-    pub(super) fn release_resource(&mut self, data: u16) -> Result<ResourceRelease, RuntimeError> {
-        if data == 0 { return Ok(ResourceRelease::Return(0)); }
-        let Some(key) = self.resource_key_for_data(data) else { return Ok(ResourceRelease::Return(data)); };
-        let Some(identity) = self.live_global_identity(data) else { return Ok(ResourceRelease::Return(data)); };
-
-        if let Some(entry) = self.resources.loaded.get_mut(&key) {
-            if entry.data == data && entry.identity == identity && entry.references > 1 {
-                entry.references -= 1;
-                return Ok(ResourceRelease::Return(0));
-            }
-        }
-
-        let discardable = self.resource_metadata(key.module, key.info)
-            .is_some_and(|metadata| metadata.flags & NE_RESOURCE_DISCARDABLE != 0
-                && metadata.flags & NE_RESOURCE_MOVEABLE != 0);
-        if discardable {
-            let info = self.heap.info(identity).map_err(crate::runtime_error)?;
-            if info.lock_count != 0 { return Ok(ResourceRelease::Return(data)); }
-            if let Some(entry) = self.resources.loaded.get_mut(&key) {
-                if entry.data == data && entry.identity == identity { entry.references = 0; }
-            }
-            return Ok(ResourceRelease::Return(0));
-        }
-
-        match self.global_free(data)? {
-            0 => {
-                if self.resources.loaded.get(&key).is_some_and(|entry|
-                    entry.data == data && entry.identity == identity)
-                {
-                    self.resources.loaded.remove(&key);
-                }
-                self.remove_stale_allocation(data, identity);
-                Ok(ResourceRelease::GlobalHeapReturn(0))
-            }
-            _ => Ok(ResourceRelease::GlobalHeapReturn(data)),
-        }
-    }
-
     /// Release every resource-owned global block when the module is retired.
     /// Teardown invalidates outstanding locks through the generation-checked
     /// global-memory teardown path rather than pretending the block was freed.
@@ -719,23 +585,28 @@ fn resource_metadata_for_definition(
     definition: &NeModule,
     info: u16,
 ) -> Option<ResourceMetadata> {
-    let mut row_offset = NE_RESOURCE_ALIGNMENT_SHIFT_BYTES;
     let table_offset = usize::from(definition.header.resource_table_offset);
+    let requested_row = usize::from(info).checked_sub(table_offset)?;
+    let mut row_offset = NE_RESOURCE_ALIGNMENT_SHIFT_BYTES;
     for (type_index, entry) in definition.resource_types.iter().enumerate() {
         row_offset = row_offset.checked_add(NE_RESOURCE_TYPEINFO_BYTES)?;
-        for resource in &entry.resources {
-            let header_relative = table_offset.checked_add(row_offset)?;
-            if u16::try_from(header_relative).ok()? == info {
-                return Some(ResourceMetadata {
-                    key: ResourceKey { module, info },
-                    type_index,
-                    offset: resource.file_offset,
-                    length: resource.byte_length,
-                    flags: resource.flags,
-                });
-            }
-            row_offset = row_offset.checked_add(NE_RESOURCE_NAMEINFO_BYTES)?;
+        let rows_length = entry.resources.len().checked_mul(NE_RESOURCE_NAMEINFO_BYTES)?;
+        let rows_end = row_offset.checked_add(rows_length)?;
+        // HRSRC identifies the start of a NAMEINFO record, not its contents.
+        // Skip whole type ranges instead of visiting every preceding resource.
+        let relative = requested_row.checked_sub(row_offset)?;
+        if requested_row < rows_end {
+            if relative % NE_RESOURCE_NAMEINFO_BYTES != 0 { return None; }
+            let resource = entry.resources.get(relative / NE_RESOURCE_NAMEINFO_BYTES)?;
+            return Some(ResourceMetadata {
+                key: ResourceKey { module, info },
+                type_index,
+                offset: resource.file_offset,
+                length: resource.byte_length,
+                flags: resource.flags,
+            });
         }
+        row_offset = rows_end;
     }
     None
 }
@@ -796,3 +667,7 @@ fn is_resource_capacity_error(error: &win16_abi::Win16Error) -> bool {
             | win16_abi::Win16Error::SelectorTableFull
             | win16_abi::Win16Error::SelectorBlockInterior)
 }
+
+#[cfg(test)]
+#[path = "win16_resource_metadata_tests.rs"]
+mod metadata_tests;

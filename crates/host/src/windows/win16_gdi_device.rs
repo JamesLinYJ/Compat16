@@ -3,6 +3,9 @@
 //! Every native handle is resolved from the existing shared tables. Guest
 //! pointers are absent; variable-sized data is owned by the runtime request.
 
+#[path = "win16_gdi_escape.rs"]
+mod escape;
+
 use std::{mem::size_of, ptr};
 
 use runtime::{
@@ -37,6 +40,8 @@ pub(super) fn execute(
     use ResultValue as Value;
 
     match operation {
+        Op::QueryEscapeSupport { dc, query } => escape::query_support(dcs, dc, query),
+        Op::EscapeQuery { dc, query } => escape::query_point(dcs, dc, query),
         Op::GetObject { object } => objects.query_object(object, dcs.text_codec()).map(Value::ObjectInfo),
         Op::UnrealizeObject { object } => Ok(Value::Bool(objects.unrealize(object))),
         Op::RecommendWinGDibFormat | Op::CreateWinGDibSection { .. } => {

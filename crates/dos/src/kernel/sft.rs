@@ -17,10 +17,14 @@ use super::state::{DosKernel, Handle, StandardHandle};
 use super::system::{CON_HEADER_OFFSET, SFT_OFFSET, SFT_ENTRY_COUNT,
     SFT_ENTRY_BYTES as SFT_ENTRY_LEN, SFT_HEADER_BYTES as SFT_HEADER_LEN};
 
+// Small tables, including three standard handles plus one file, avoid the
+// fixed index setup cost measured in full-refresh benchmarks.
+const DIRECT_SFT_RECORD_LIMIT: usize = 4;
+
 pub(super) const DEFAULT_JFT_LEN: u16 = 20;
-const MAX_JFT_LEN: u16 = 255;
-const PSP_JFT_COUNT_OFFSET: u16 = 0x32;
-const PSP_JFT_POINTER_OFFSET: u16 = 0x34;
+pub(super) const MAX_JFT_LEN: u16 = 0xfffe;
+pub(super) const PSP_JFT_COUNT_OFFSET: u16 = 0x32;
+pub(super) const PSP_JFT_POINTER_OFFSET: u16 = 0x34;
 
 const SF_REF_COUNT: usize = 0;
 const SF_MODE: usize = 2;
@@ -155,6 +159,14 @@ impl FileTable {
             .is_some_and(|entry| entry.mode & SFT_MODE_NO_INHERIT == 0)
     }
 
+    /// Access mode from the owned SFT, never its guest-writable projection.
+    pub(super) fn file_open_mode(&self, guest_handle: u16) -> Option<u16> {
+        let &index = self.handles.get(&guest_handle)?;
+        self.pool_read().entries[index as usize]
+            .filter(|entry| entry.kind == SftKind::File)
+            .map(|entry| entry.mode)
+    }
+
     pub(super) fn can_duplicate_handle(&self, source: u16, target: u16) -> bool {
         if target >= MAX_JFT_LEN { return false; }
         let Some(&index) = self.handles.get(&source) else { return false; };
@@ -232,7 +244,7 @@ impl FileTable {
             let mut inherited = BTreeMap::new();
             for (&handle, &index) in &parent.handles {
                 let Some(entry) = pool.entries[index as usize] else { return false; };
-                if entry.mode & SFT_MODE_NO_INHERIT == 0 {
+                if handle < DEFAULT_JFT_LEN && entry.mode & SFT_MODE_NO_INHERIT == 0 {
                     inherited.insert(handle, index);
                 }
             }
@@ -286,8 +298,47 @@ impl FileTable {
         self.handles.get(&guest_handle).copied()
     }
 
-    fn live_handles(&self) -> Vec<(u16, u8)> {
-        self.handles.iter().map(|(&handle, &index)| (handle, index)).collect()
+    fn representative(
+        &self,
+        index: u8,
+        handles: impl IntoIterator<Item = (u16, Handle)>,
+    ) -> Option<Handle> {
+        handles.into_iter().find_map(|(guest, handle)| {
+            (self.index_for_handle(guest) == Some(index)).then_some(handle)
+        })
+    }
+
+    /// Select the lowest DOS handle for each live SFT once per refresh. The
+    /// caller supplies handles in ascending guest-handle order. Stop when all
+    /// live records have a representative, avoiding a scan of trailing aliases.
+    /// Missing mappings remain for refresh's existing checks.
+    fn representatives(
+        &self,
+        records: &[(u8, SftEntry)],
+        handles: impl IntoIterator<Item = (u16, Handle)>,
+    ) -> [Option<Handle>; SFT_ENTRY_COUNT] {
+        let mut representatives = [None; SFT_ENTRY_COUNT];
+        let mut needed = [false; SFT_ENTRY_COUNT];
+        for &(index, _) in records {
+            needed[usize::from(index)] = true;
+        }
+        let mut remaining = records.len();
+        if remaining == 0 { return representatives; }
+        for (guest, handle) in handles {
+            let Some(index) = self.index_for_handle(guest) else { continue; };
+            let Some(required) = needed.get_mut(usize::from(index)) else { continue; };
+            if *required {
+                representatives[usize::from(index)] = Some(handle);
+                *required = false;
+                remaining -= 1;
+                if remaining == 0 { break; }
+            }
+        }
+        representatives
+    }
+
+    pub(super) fn live_handles(&self) -> impl ExactSizeIterator<Item = (u16, u8)> + '_ {
+        self.handles.iter().map(|(&handle, &index)| (handle, index))
     }
 }
 
@@ -309,17 +360,34 @@ impl DosKernel {
     /// operation can have host-visible side effects.
     pub(super) fn validate_jft(&self, memory: &impl GuestMemory) -> Result<(), DosError> {
         let Some(system) = self.system_tables.as_ref() else { return Ok(()); };
-        let header = real_address(self.psp_segment, PSP_JFT_COUNT_OFFSET);
+        self.validate_jft_metadata(memory)?;
+        let sft_address = real_address(system.segment, SFT_OFFSET);
+        memory.validate_write(sft_address, SFT_HEADER_LEN + SFT_ENTRY_COUNT * SFT_ENTRY_LEN)?;
+        Ok(())
+    }
+
+    pub(super) fn validate_jft_metadata(&self, memory: &impl GuestMemory) -> Result<(), DosError> {
+        self.block_leases.check_storage_state()?;
+        let header = real_address(self.jft_owner_psp, PSP_JFT_COUNT_OFFSET);
         memory.validate_read(header, 6)?;
         let count = memory.read_u16(header)?;
-        if !(DEFAULT_JFT_LEN..=MAX_JFT_LEN).contains(&count) {
-            return Err(DosError::MalformedGuestInput("PSP JFT size is outside the supported range"));
+        if !(DEFAULT_JFT_LEN..=MAX_JFT_LEN).contains(&count) || count != self.jft_capacity {
+            return Err(DosError::MalformedGuestInput("PSP JFT size differs from the owned capacity"));
         }
-        let pointer = real_address(self.psp_segment, PSP_JFT_POINTER_OFFSET);
+        let pointer = real_address(self.jft_owner_psp, PSP_JFT_POINTER_OFFSET);
         let offset = memory.read_u16(pointer)?;
-        let segment = memory.read_u16(real_address(self.psp_segment, PSP_JFT_POINTER_OFFSET + 2))?;
+        let segment = memory.read_u16(real_address(self.jft_owner_psp, PSP_JFT_POINTER_OFFSET + 2))?;
         if u32::from(offset) + u32::from(count) > 0x1_0000 {
             return Err(DosError::MalformedGuestInput("PSP JFT crosses a segment boundary"));
+        }
+        if let Some(lease) = self.jft_storage.as_ref() {
+            if offset != 0 || segment != lease.extent().data_segment()
+                || lease.extent().owner_psp_segment() != self.jft_owner_psp
+            {
+                return Err(DosError::MalformedGuestInput("PSP JFT pointer differs from its owned storage"));
+            }
+        } else if count != DEFAULT_JFT_LEN {
+            return Err(DosError::HostContractViolation("expanded JFT has no owned storage"));
         }
         let address = real_address(segment, offset);
         memory.validate_read(address, usize::from(count))?;
@@ -329,8 +397,6 @@ impl DosKernel {
                 return Err(DosError::MalformedGuestInput("open handle is outside the PSP JFT"));
             }
         }
-        let sft_address = real_address(system.segment, SFT_OFFSET);
-        memory.validate_write(sft_address, SFT_HEADER_LEN + SFT_ENTRY_COUNT * SFT_ENTRY_LEN)?;
         Ok(())
     }
 
@@ -341,28 +407,46 @@ impl DosKernel {
         memory: &mut impl GuestMemory,
         host: &mut impl DosHost,
     ) -> Result<(), DosError> {
+        self.refresh_sft_with(memory, host, |dos, records, host, system_segment| {
+            if records.len() <= DIRECT_SFT_RECORD_LIMIT {
+                for (index, entry) in records.iter_mut() {
+                    let current = dos.file_table.representative(
+                        *index, dos.handles.iter().map(|(&guest, &handle)| (guest, handle)),
+                    );
+                    refresh_entry(entry, current, host, system_segment)?;
+                }
+            } else {
+                let representatives = dos.file_table.representatives(
+                    records,
+                    dos.handles.iter().map(|(&guest, &handle)| (guest, handle)),
+                );
+                for (index, entry) in records.iter_mut() {
+                    refresh_entry(entry, representatives[usize::from(*index)], host, system_segment)?;
+                }
+            }
+            Ok(())
+        })
+    }
+
+    // Keep validation, snapshots, pool publication, serialization, and both
+    // guest writes shared with the test-only pre-indexing baseline. The closure
+    // is statically dispatched and replaces only selection plus host queries.
+    fn refresh_sft_with<H: DosHost>(
+        &mut self,
+        memory: &mut impl GuestMemory,
+        host: &mut H,
+        refresh_records: impl FnOnce(&Self, &mut [(u8, SftEntry)], &mut H, u16) -> Result<(), DosError>,
+    ) -> Result<(), DosError> {
         let Some(system) = self.system_tables.as_ref() else { return Ok(()); };
         self.validate_jft(memory)?;
 
-        let (jft_count, jft_offset, jft_segment) = read_jft_pointer(self.psp_segment, memory)?;
+        let (jft_count, jft_offset, jft_segment) = read_jft_pointer(self.jft_owner_psp, memory)?;
         let sft_address = real_address(system.segment, SFT_OFFSET);
         let sft_len = SFT_HEADER_LEN + SFT_ENTRY_COUNT * SFT_ENTRY_LEN;
         memory.validate_write(sft_address, sft_len)?;
 
         let mut records = self.file_table.entries_snapshot();
-        for (index, entry) in &mut records {
-            let current = self.handles.iter().find_map(|(&guest, &handle)| {
-                (self.file_table.index_for_handle(guest) == Some(*index)).then_some(handle)
-            });
-            let Some(current) = current else { continue; };
-            match (entry.kind, current) {
-                (SftKind::File, Handle::File(file)) => refresh_file_entry(entry, file, host)?,
-                (SftKind::Standard(kind), Handle::Standard(current_kind)) if kind == current_kind => {
-                    refresh_standard_entry(entry, kind, host, system.segment)?;
-                }
-                _ => return Err(DosError::HostContractViolation("JFT handle kind disagrees with its SFT entry")),
-            }
-        }
+        refresh_records(self, &mut records, host, system.segment)?;
 
         let mut sft_bytes = vec![0; sft_len];
         sft_bytes[..4].copy_from_slice(&u32::MAX.to_le_bytes());
@@ -404,6 +488,22 @@ fn read_jft_pointer(
     let offset = memory.read_u16(real_address(psp_segment, PSP_JFT_POINTER_OFFSET))?;
     let segment = memory.read_u16(real_address(psp_segment, PSP_JFT_POINTER_OFFSET + 2))?;
     Ok((count, offset, segment))
+}
+
+fn refresh_entry(
+    entry: &mut SftEntry,
+    current: Option<Handle>,
+    host: &mut impl DosHost,
+    system_segment: u16,
+) -> Result<(), DosError> {
+    let Some(current) = current else { return Ok(()); };
+    match (entry.kind, current) {
+        (SftKind::File, Handle::File(file)) => refresh_file_entry(entry, file, host),
+        (SftKind::Standard(kind), Handle::Standard(current_kind)) if kind == current_kind => {
+            refresh_standard_entry(entry, kind, host, system_segment)
+        }
+        _ => Err(DosError::HostContractViolation("JFT handle kind disagrees with its SFT entry")),
+    }
 }
 
 fn refresh_file_entry(

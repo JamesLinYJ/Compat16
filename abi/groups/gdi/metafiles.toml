@@ -1,0 +1,90 @@
+module = "GDI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 123
+name = "PlayMetaFile"
+binding = { rust_id = "GdiPlayMetaFile", id_value = 1235, constant = "GDI_PLAY_META_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "metafile", type = "U16" },
+]
+
+[[exports]]
+ordinal = 124
+name = "GetMetaFile"
+binding = { rust_id = "GdiGetMetaFile", id_value = 1234, constant = "GDI_GET_META_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 127
+name = "DeleteMetaFile"
+binding = { rust_id = "GdiDeleteMetaFile", id_value = 1237, constant = "GDI_DELETE_META_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "metafile", type = "U16" },
+]
+
+[[exports]]
+ordinal = 151
+name = "CopyMetaFile"
+binding = { rust_id = "GdiCopyMetaFile", id_value = 1236, constant = "GDI_COPY_META_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "metafile", type = "U16" },
+  { name = "path", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 125
+name = "CreateMetaFile"
+binding = { rust_id = "GdiCreateMetaFile", id_value = 1248, constant = "GDI_CREATE_META_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 126
+name = "CloseMetaFile"
+binding = { rust_id = "GdiCloseMetaFile", id_value = 1249, constant = "GDI_CLOSE_META_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 176
+name = "PlayMetaFileRecord"
+binding = { rust_id = "GdiPlayMetaFileRecord", id_value = 1263, constant = "GDI_PLAY_META_FILE_RECORD" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "table", type = "U32" },
+  { name = "record", type = "U32" },
+  { name = "object_count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 175
+name = "EnumMetaFile"
+binding = { rust_id = "GdiEnumMetaFile", id_value = 1264, constant = "GDI_ENUM_META_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "metafile", type = "U16" },
+  { name = "procedure", type = "U32" },
+  { name = "parameter", type = "U32" },
+]

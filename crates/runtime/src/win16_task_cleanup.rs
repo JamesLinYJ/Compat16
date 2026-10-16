@@ -220,7 +220,7 @@ impl Win16State {
             if self.window_abort_receipt.is_none()
                 || !self.window_operations.is_empty()
                 || !self.window_callbacks.is_empty()
-                || !self.window_property_callbacks.is_empty()
+                || !self.native_function_callbacks.is_empty()
                 || !self.callback_kinds.is_empty()
                 || !self.callback_frame_ids.is_empty()
                 || !self.window_handles.is_empty()

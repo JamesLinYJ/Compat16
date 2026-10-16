@@ -34,6 +34,19 @@ pub(in crate::win16_runtime) fn prepare_send_message(
     memory: &mut Memory,
     host: &mut impl RuntimeHost,
 ) -> Result<SendMessagePreparation, RuntimeError> {
+    if guest_window == super::HWND_BROADCAST {
+        return Ok(match super::broadcast::prepare_broadcast_call(
+            message, w_param, l_param, host, true,
+        ) {
+            Some(call) => SendMessagePreparation::Prepared {
+                operation: Win16WindowOperation::MessageCall(call),
+                continuation: WindowReturn::MessageCall(Win16MessageCallContinuation::Dword {
+                    return_kind: Win16ReturnKind::Dword,
+                }),
+            },
+            None => immediate_zero(),
+        });
+    }
     if super::super::messages_mdi::is_mdi_message(message) {
         let Some(endpoint) = state.mdi_endpoint_for_guest_window(guest_window) else {
             host.report_diagnostic(&crate::Diagnostic::warning(
@@ -58,6 +71,17 @@ pub(in crate::win16_runtime) fn prepare_send_message(
         });
     }
 
+    // Preserve the original Win16 control ABI for a guest subclass. Its call
+    // to the saved procedure performs the eventual native control conversion.
+    if message >= super::WM_USER && state.native_subclass_procedure(guest_window).is_some() {
+        let Some(&window) = state.window_handles.get(&guest_window) else { return Ok(immediate_zero()); };
+        return Ok(SendMessagePreparation::Prepared {
+            operation: Win16WindowOperation::Send {
+                window, message: crate::Win16HostMessage::GuestOpaque { message, w_param, l_param },
+            },
+            continuation: WindowReturn::Message { output: super::super::messages::MessageOutput::None },
+        });
+    }
     if message >= super::WM_USER
         && !state.window_procedures.contains_key(&guest_window)
         && !state.dialog_procedures.contains_key(&guest_window)
@@ -123,13 +147,6 @@ pub(in crate::win16_runtime) fn prepare_send_message(
                 | super::super::window_payloads::window_position_payloads::WM_WINDOWPOSCHANGED
         )
     {
-        if guest_window == super::HWND_BROADCAST {
-            host.report_diagnostic(&crate::Diagnostic::warning(
-                crate::DiagnosticKind::CompatibilityGap,
-                format!("Win16 SendMessage(HWND_BROADCAST, 0x{message:04X}) needs per-window output marshalling"),
-            ));
-            return Ok(immediate_zero());
-        }
         let Some(&window) = state
             .window_handles
             .get(&guest_window)

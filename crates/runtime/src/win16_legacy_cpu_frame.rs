@@ -1,4 +1,6 @@
 //! Runtime-owned caller and parked CPU frames with exact LIFO lease cleanup.
+#[path = "win16_legacy_cpu_frame/parked_call.rs"]
+mod parked_call;
 
 use dos_kernel::DosKernel;
 use guest_core::{memory::Memory, Registers};
@@ -16,7 +18,7 @@ use super::{
 use crate::{DiagnosticKind, RuntimeError};
 
 pub(super) struct Win16LegacyCpuFrame {
-    id: u64,
+    pub(super) id: u64,
     saved_registers: Registers,
     saved_context: CpuContext,
     pub(in crate::win16_runtime) owner: Win16LegacyCpuBindingOwner,
@@ -29,11 +31,43 @@ enum Win16LegacyCpuContinuation {
     Call(Option<LegacyCpuCallContinuation<Win16LegacyCpuBindingProof>>),
     Parked(Option<LegacyCpuParkedContinuation<Win16LegacyCpuBindingProof>>, Registers),
     OwnerOnly,
-    /// Capture never installed a continuation or changed CPU state.
+    /// Capture failed without changing CPU state, or callback setup failed
+    /// before guest entry and its CPU state is unchanged/already restored.
     CaptureFailed { cause: std::sync::Arc<RuntimeError> },
 }
 
 impl Win16State {
+    /// Keep current and restorable code/stack positions inside an owned data
+    /// extent when LocalShrink contracts its complete selector views.
+    pub(super) fn retained_data_floor(&self, base: guest_core::PhysAddr, old_size: u32,
+        current: &Registers, return_sp: u32) -> u32 {
+        let start = u64::from(base.0);
+        let end = start + u64::from(old_size);
+        let mut floor = 0;
+        let mut include = |registers: &Registers, return_sp: Option<u32>| {
+            let stack = u32::from(registers.sp()).saturating_add(4)
+                .max(return_sp.unwrap_or(0));
+            for (selector, offset) in [(registers.cs, u32::from(registers.ip()) + 1),
+                (registers.ss, stack)] {
+                let Ok(reference) = self.selectors.reference(guest_core::Selector(selector)) else { continue; };
+                let Ok(descriptor) = self.selectors.describe(reference) else { continue; };
+                let segment = u64::from(descriptor.base.0);
+                if segment < start || segment >= end { continue; }
+                let required = (segment - start).saturating_add(u64::from(offset))
+                    .min(u64::from(old_size)) as u32;
+                floor = floor.max(required);
+            }
+        };
+        include(current, Some(return_sp));
+        for frame in &self.legacy_cpu_frames {
+            include(&frame.saved_registers, None);
+            if let Win16LegacyCpuContinuation::Parked(_, registers) = &frame.continuation {
+                include(registers, None);
+            }
+        }
+        floor
+    }
+
     /// Compare against the retained owner snapshot, not the guest CPU state
     /// which may currently be executing a nested callback.
     pub(super) fn legacy_cpu_frame_matches_context(&self, id: u64, context: &CpuContext) -> bool {
@@ -198,8 +232,25 @@ impl Win16State {
         Err(cause)
     }
 
-    /// Only failed captures may be removed before USER source retirement.
-    /// They never installed a CPU continuation and require no context restore.
+    pub(super) fn record_failed_legacy_cpu_setup(
+        &mut self, id: u64, cpu: &x86_cpu::Cpu,
+        cause: std::sync::Arc<RuntimeError>,
+    ) -> Result<(), RuntimeError> {
+        let frame = self.legacy_cpu_frames.last_mut().filter(|frame| frame.id == id)
+            .ok_or_else(|| RuntimeError::new(DiagnosticKind::InternalInvariant,
+                "failed callback setup lost its exact CPU backing owner"))?;
+        if !frame.restored && frame.saved_context != cpu.capture_context() {
+            return Err(RuntimeError::new(DiagnosticKind::InternalInvariant,
+                "failed pre-entry callback setup changed its retained CPU context"));
+        }
+        // No guest callback was entered. Keep partial lease-release work on
+        // the terminal pre-entry ledger instead of blocking an older USER owner.
+        frame.continuation = Win16LegacyCpuContinuation::CaptureFailed { cause };
+        Ok(())
+    }
+
+    /// Only failed pre-entry owners may be removed before USER retirement.
+    /// CPU state is unchanged/already restored; no guest return is synthesized.
     pub(super) fn retire_failed_legacy_cpu_captures(
         &mut self, _ended: &Win16TaskExecutionEnded,
         dos: &mut DosKernel, memory: &mut Memory,
@@ -228,6 +279,50 @@ impl Win16State {
         self.legacy_cpu_frames.push(frame);
         result.map_err(|error| RuntimeError::with_source(DiagnosticKind::GuestFault,
             "retain Win16 callback target selector roots", error))
+    }
+
+    /// A scheduler callback may restore CpuContext and revoke ordinary call
+    /// tickets. Require the exact caller register image and revalidate all
+    /// selector/backing roots before a narrow checkpoint ABI return. Floating
+    /// state and pending CPU events stay live under the callback owner's own
+    /// restoration policy; a kernel wait must not rewind them.
+    pub(super) fn prepare_legacy_cpu_checkpoint_return(
+        &self, id: u64, cpu: &x86_cpu::Cpu, memory: &Memory,
+        stamp: &x86_cpu::LegacyCpuCheckpointStamp, target: LegacyRegisterTransfer,
+    ) -> Result<x86_cpu::PreparedLegacyCheckpointTransfer, RuntimeError> {
+        let frame = self.legacy_cpu_frames.last().filter(|frame| frame.id == id)
+            .ok_or_else(|| RuntimeError::new(DiagnosticKind::InternalInvariant,
+                "task wait has no exact top CPU backing owner"))?;
+        if frame.saved_registers != cpu.regs {
+            return Err(RuntimeError::new(DiagnosticKind::GuestFault,
+                "task wait cannot return before its caller register image is restored"));
+        }
+        let mut expected = frame.saved_registers.clone();
+        let r = &target.registers;
+        expected.cs = r.cs; expected.set_ip(r.ip()); expected.set_sp(r.sp()); expected.set_ax(r.ax());
+        if &expected != r {
+            return Err(RuntimeError::new(DiagnosticKind::InternalInvariant,
+                "task wait return changed registers outside its word-return ABI"));
+        }
+        let binding_error = |error| RuntimeError::with_source(DiagnosticKind::GuestFault,
+            "revalidate retained task-wait selector roots", error);
+        let binding = Win16LegacyCpuBinding::new(self, memory, &frame.owner);
+        let saved = binding.capture(&frame.saved_registers).map_err(binding_error)?;
+        let current = binding.capture(&cpu.regs).map_err(binding_error)?;
+        let projected = binding.capture(r).map_err(binding_error)?;
+        let transfer = x86_cpu::LegacyBindingTransfer { current: &current, target: &projected,
+            current_registers: &cpu.regs, target_registers: r, stack_pointer: target.stack_pointer };
+        binding.revalidate(&saved, &current, &transfer).map_err(binding_error)?;
+        binding.revalidate(&saved, &projected, &transfer).map_err(binding_error)?;
+        let code = self.selectors.pointer_from_raw(guest_core::Selector(r.cs), r.ip())
+            .map_err(crate::runtime_error)?;
+        self.selectors.translate(code, win16_abi::Access::Execute, 1, memory)
+            .map_err(crate::runtime_error)?;
+        cpu.prepare_legacy_checkpoint_transfer(stamp, x86_cpu::LegacyCheckpointRegisters {
+            cs: r.cs, ip: r.ip(), ss: r.ss, sp: r.sp(), bp: r.bp(), si: r.si(), di: r.di(), ds: r.ds,
+            stack_pointer: target.stack_pointer,
+        }, r.ax()).map_err(|error| RuntimeError::with_source(DiagnosticKind::GuestFault,
+            "prepare checked task-wait ABI return", error))
     }
 
     pub(super) fn restore_legacy_cpu_call_frame(
@@ -380,6 +475,7 @@ impl Win16State {
                 ended, id, cpu, dos, memory,
             )?;
         }
+        self.task_event_waits.clear();
         Ok(())
     }
 

@@ -1,0 +1,126 @@
+module = "KEYBOARD"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 4
+name = "ToAscii"
+binding = { rust_id = "KeyboardToAscii", id_value = 132, constant = "KEYBOARD_TO_ASCII" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "virtual_key", type = "U16" },
+  { name = "scan_code", type = "U16" },
+  { name = "key_state", type = "FarBuffer" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 5
+name = "AnsiToOem"
+binding = { rust_id = "KeyboardAnsiToOem", id_value = 133, constant = "KEYBOARD_ANSI_TO_OEM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "source", type = "FarString" },
+  { name = "destination", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 7
+name = "SetSpeed"
+binding = { rust_id = "KeyboardSetSpeed", id_value = 134, constant = "KEYBOARD_SET_SPEED" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "speed", type = "U16" },
+]
+
+[[exports]]
+ordinal = 100
+name = "ScreenSwitchEnable"
+decl = { attributes = [] }
+binding = { rust_id = "KeyboardScreenSwitchEnable", id_value = 135, constant = "KEYBOARD_SCREEN_SWITCH_ENABLE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "enable", type = "U16" },
+]
+
+[[exports]]
+ordinal = 128
+name = "OemKeyScan"
+decl = { attributes = [] }
+binding = { rust_id = "KeyboardOemKeyScan", id_value = 136, constant = "KEYBOARD_OEM_KEY_SCAN" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "value", type = "U16" },
+]
+
+[[exports]]
+ordinal = 129
+name = "VkKeyScan"
+binding = { rust_id = "KeyboardVkKeyScan", id_value = 137, constant = "KEYBOARD_VK_KEY_SCAN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U16" },
+]
+
+[[exports]]
+ordinal = 130
+name = "GetKeyboardType"
+binding = { rust_id = "KeyboardGetKeyboardType", id_value = 138, constant = "KEYBOARD_GET_KEYBOARD_TYPE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U16" },
+]
+
+[[exports]]
+ordinal = 131
+name = "MapVirtualKey"
+binding = { rust_id = "KeyboardMapVirtualKey", id_value = 139, constant = "KEYBOARD_MAP_VIRTUAL_KEY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "code", type = "U16" },
+  { name = "map_type", type = "U16" },
+]
+
+[[exports]]
+ordinal = 133
+name = "GetKeyNameText"
+binding = { rust_id = "KeyboardGetKeyNameText", id_value = 141, constant = "KEYBOARD_GET_KEY_NAME_TEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "parameter", type = "U32" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 134
+name = "AnsiToOemBuff"
+binding = { rust_id = "KeyboardAnsiToOemBuff", id_value = 142, constant = "KEYBOARD_ANSI_TO_OEM_BUFF" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "source", type = "FarBuffer" },
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "byte_count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 135
+name = "OemToAnsiBuff"
+binding = { rust_id = "KeyboardOemToAnsiBuff", id_value = 143, constant = "KEYBOARD_OEM_TO_ANSI_BUFF" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "source", type = "FarBuffer" },
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "byte_count", type = "U16" },
+]

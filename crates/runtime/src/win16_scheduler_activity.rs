@@ -7,7 +7,8 @@ impl Win16State {
     /// visible while callback entry is blocked. Each family's existing driver
     /// remains responsible for its dispatch and acknowledgement order.
     pub(super) fn has_scheduler_work(&self) -> bool {
-        self.wave_audio.needs_scheduler_progress()
+        !self.task_event_waits.is_empty()
+            || self.wave_audio.needs_scheduler_progress()
             || self.sound.needs_scheduler_progress()
             || self.midi.needs_scheduler_progress()
             || self.network.needs_scheduler_progress()

@@ -1,0 +1,36 @@
+module = "CTL3DV2"
+
+[[exports]]
+ordinal = 7
+name = "BtnWndProc3d"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 8
+name = "EditWndProc3d"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 9
+name = "ListWndProc3d"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 10
+name = "ComboWndProc3d"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 11
+name = "StaticWndProc3d"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 17
+name = "Ctl3dDlgProc"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 19
+name = "Ctl3dSetStyle"
+decl = { attributes = ["ret16"], args = ["word", "long", "word"] }

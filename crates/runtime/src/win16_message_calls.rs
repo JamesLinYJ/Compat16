@@ -21,6 +21,8 @@ use crate::{
 mod dialog_item_messages;
 #[path = "win16_message_calls/send_message.rs"]
 mod send_message;
+#[path = "win16_message_calls/broadcast.rs"]
+mod broadcast;
 #[path = "win16_message_calls/timers.rs"]
 mod timers;
 pub(super) use timers::{Win16TimerRegistration, Win16TimerRegistrations};
@@ -40,7 +42,7 @@ const WM_USER: u16 = 0x0400;
 // Windows 3.1 SDK WINDOWS.H:3459. Unlike scalar messages, this synchronous
 // request reads and writes owned geometry through the shared message codec.
 const WM_NCCALCSIZE: u16 = 0x0083;
-// Windows 3.1 WINDOWS.H, HWND_BROADCAST, special SendMessage target.
+// Windows 3.1 WINDOWS.H, HWND_BROADCAST, special SendMessage/PostMessage target.
 const HWND_BROADCAST: u16 = 0xffff;
 
 impl Win16State {
@@ -101,6 +103,22 @@ impl Win16State {
                     l_param,
                 },
             )) => {
+                if window == HWND_BROADCAST {
+                    let Some(call) = broadcast::prepare_broadcast_call(
+                        message, w_param, l_param, host, false,
+                    ) else {
+                        return self.complete_return(
+                            registers, return_to.0, return_to.1, return_to.2,
+                            0, Win16ReturnKind::Word,
+                        );
+                    };
+                    return self.begin_message_call(
+                        registers, memory, host, call,
+                        Win16MessageCallContinuation::Boolean {
+                            return_kind: Win16ReturnKind::Word,
+                        }, return_to,
+                    );
+                }
                 let Some((target, parameter, guest_class)) =
                     self.prepare_message_call(window, message, w_param, l_param, host, false)?
                 else {
@@ -191,7 +209,7 @@ impl Win16State {
                 host,
                 Win16MessageCall::WaitMessage,
                 Win16MessageCallContinuation::WaitMessage {
-                    return_kind: Win16ReturnKind::Word,
+                    return_kind: Win16ReturnKind::Void,
                 },
                 return_to,
             ),
@@ -313,7 +331,7 @@ impl Win16State {
                 host,
                 Win16MessageCall::ReleaseCapture,
                 Win16MessageCallContinuation::Boolean {
-                    return_kind: Win16ReturnKind::Word,
+                    return_kind: Win16ReturnKind::Void,
                 },
                 return_to,
             ),
@@ -338,6 +356,42 @@ impl Win16State {
                 Win16MessageCall::GetMessageTime,
                 Win16MessageCallContinuation::Dword {
                     return_kind: Win16ReturnKind::Dword,
+                },
+                return_to,
+            ),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Messages(
+                win16_abi::Win16UserMessagesRequest::GetMessageExtraInfo,
+            )) => self.begin_message_call(
+                registers,
+                memory,
+                host,
+                Win16MessageCall::GetMessageExtraInfo,
+                Win16MessageCallContinuation::Dword {
+                    return_kind: Win16ReturnKind::Dword,
+                },
+                return_to,
+            ),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Messages(
+                win16_abi::Win16UserMessagesRequest::InSendMessage,
+            )) => self.begin_message_call(
+                registers,
+                memory,
+                host,
+                Win16MessageCall::InSendMessage,
+                Win16MessageCallContinuation::Boolean {
+                    return_kind: Win16ReturnKind::Word,
+                },
+                return_to,
+            ),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Messages(
+                win16_abi::Win16UserMessagesRequest::ReplyMessage { result },
+            )) => self.begin_message_call(
+                registers,
+                memory,
+                host,
+                Win16MessageCall::ReplyMessage { result },
+                Win16MessageCallContinuation::Boolean {
+                    return_kind: Win16ReturnKind::Void,
                 },
                 return_to,
             ),
@@ -636,24 +690,31 @@ impl Win16State {
         focus: bool,
         return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
-        let Some(&window) = self
-            .window_handles
-            .get(&guest_window)
-            .filter(|_| guest_window != 0)
-        else {
-            return self.complete_return(
-                registers,
-                return_to.0,
-                return_to.1,
-                return_to.2,
-                0,
-                Win16ReturnKind::Word,
-            );
-        };
-        let call = if focus {
-            Win16MessageCall::SetFocus { window }
+        let call = if focus && guest_window == 0 {
+            // SetFocus(NULL) clears the native queue's focus and can deliver
+            // WM_KILLFOCUS. Keep it on the resumable call path so the guest
+            // callback runs before the previous focus handle is returned.
+            Win16MessageCall::SetFocus { window: None }
         } else {
-            Win16MessageCall::SetCapture { window }
+            let Some(&window) = self
+                .window_handles
+                .get(&guest_window)
+                .filter(|_| guest_window != 0)
+            else {
+                return self.complete_return(
+                    registers,
+                    return_to.0,
+                    return_to.1,
+                    return_to.2,
+                    0,
+                    Win16ReturnKind::Word,
+                );
+            };
+            if focus {
+                Win16MessageCall::SetFocus { window: Some(window) }
+            } else {
+                Win16MessageCall::SetCapture { window }
+            }
         };
         self.begin_message_call(
             registers,

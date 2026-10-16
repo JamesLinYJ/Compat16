@@ -1,0 +1,132 @@
+module = "MMSYSTEM"
+
+[[exports]]
+ordinal = 1210
+name = "mmioOpen"
+binding = { rust_id = "MediaIoOpen", id_value = 1018, constant = "MMSYSTEM_MMIO_OPEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "info", type = "FarBuffer" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 1211
+name = "mmioClose"
+binding = { rust_id = "MediaIoClose", id_value = 1019, constant = "MMSYSTEM_MMIO_CLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1212
+name = "mmioRead"
+binding = { rust_id = "MediaIoRead", id_value = 1020, constant = "MMSYSTEM_MMIO_READ" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "buffer", type = "FarBuffer" },
+  { name = "count", type = "I32" },
+]
+
+[[exports]]
+ordinal = 1213
+name = "mmioWrite"
+binding = { rust_id = "MediaIoWrite", id_value = 1021, constant = "MMSYSTEM_MMIO_WRITE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "buffer", type = "FarBuffer" },
+  { name = "count", type = "I32" },
+]
+
+[[exports]]
+ordinal = 1214
+name = "mmioSeek"
+binding = { rust_id = "MediaIoSeek", id_value = 1022, constant = "MMSYSTEM_MMIO_SEEK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "offset", type = "I32" },
+  { name = "origin", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 1218
+name = "mmioFlush"
+binding = { rust_id = "MediaIoFlush", id_value = 1023, constant = "MMSYSTEM_MMIO_FLUSH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1220
+name = "mmioStringToFOURCC"
+binding = { rust_id = "MediaIoStringToFourCc", id_value = 1024, constant = "MMSYSTEM_MMIO_STRING_TO_FOURCC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "text", type = "FarString" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1223
+name = "mmioDescend"
+binding = { rust_id = "MediaIoDescend", id_value = 1025, constant = "MMSYSTEM_MMIO_DESCEND" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "chunk", type = "FarBuffer" },
+  { name = "parent", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1224
+name = "mmioAscend"
+binding = { rust_id = "MediaIoAscend", id_value = 1026, constant = "MMSYSTEM_MMIO_ASCEND" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "chunk", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1225
+name = "mmioCreateChunk"
+binding = { rust_id = "MediaIoCreateChunk", id_value = 1027, constant = "MMSYSTEM_MMIO_CREATE_CHUNK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "chunk", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1226
+name = "mmioRename"
+binding = { rust_id = "MediaIoRename", id_value = 1028, constant = "MMSYSTEM_MMIO_RENAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "old_path", type = "FarString", encoding = "pointer" },
+  { name = "new_path", type = "FarString", encoding = "pointer" },
+  { name = "info", type = "FarBuffer" },
+  { name = "flags", type = "U32" },
+]

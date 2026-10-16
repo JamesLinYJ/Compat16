@@ -26,6 +26,7 @@ pub(crate) fn dispatch(
         Win16UserSystemRequest::GetCaretBlinkTime => get_caret_blink_time(host),
         Win16UserSystemRequest::GetSysColor { index } => get_sys_color(host, index),
         Win16UserSystemRequest::GetDialogBaseUnits => get_dialog_base_units(host),
+        Win16UserSystemRequest::AnyPopup => Ok(u32::from(host.win16_any_popup()?)),
     }
 }
 
@@ -36,9 +37,9 @@ pub(crate) fn get_double_click_time(
     Ok(host.win16_get_double_click_time()? as u16 as u32)
 }
 
-/// USER.20 `SetDoubleClickTime`: the project export metadata marks the result
-/// Ret16; retain the low word of the native BOOL while setting the 16-bit
-/// millisecond interval.
+/// USER.20 `SetDoubleClickTime`: the SDK declares a void result.
+/// Keep the native BOOL internal; guest register preservation is the project
+/// Void policy, not a historical guarantee about undefined AX/DX values.
 pub(crate) fn set_double_click_time(
     host: &mut impl RuntimeHost,
     milliseconds: u16,
@@ -53,9 +54,9 @@ pub(crate) fn get_caret_blink_time(
     Ok(host.win16_get_caret_blink_time()? as u16 as u32)
 }
 
-/// USER.168 `SetCaretBlinkTime`: the project export metadata marks the result
-/// Ret16; retain the low word of the native BOOL while setting the 16-bit
-/// millisecond interval.
+/// USER.168 `SetCaretBlinkTime`: the SDK declares a void result.
+/// Keep the native BOOL internal; guest register preservation is the project
+/// Void policy, not a historical guarantee about undefined AX/DX values.
 pub(crate) fn set_caret_blink_time(
     host: &mut impl RuntimeHost,
     milliseconds: u16,
@@ -79,3 +80,7 @@ pub(crate) fn get_dialog_base_units(
 ) -> Result<u32, RuntimeError> {
     host.win16_get_dialog_base_units()
 }
+
+#[cfg(test)]
+#[path = "win16_dispatch_any_popup_tests.rs"]
+mod any_popup_tests;

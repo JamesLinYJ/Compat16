@@ -1,0 +1,151 @@
+module = "COMMCTRL"
+
+[[exports]]
+ordinal = 3
+name = "SHOWHIDEMENUCTL"
+kind = "stub"
+
+[[exports]]
+ordinal = 5
+name = "DRAWSTATUSTEXT"
+kind = "stub"
+
+[[exports]]
+ordinal = 14
+name = "LBITEMFROMPT"
+kind = "stub"
+
+[[exports]]
+ordinal = 15
+name = "DRAWINSERT"
+kind = "stub"
+
+[[exports]]
+ordinal = 16
+name = "CREATEUPDOWNCONTROL"
+kind = "stub"
+
+[[exports]]
+ordinal = 40
+name = "IMAGELIST_CREATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 41
+name = "IMAGELIST_DESTROY"
+kind = "stub"
+
+[[exports]]
+ordinal = 42
+name = "IMAGELIST_GETIMAGECOUNT"
+kind = "stub"
+
+[[exports]]
+ordinal = 43
+name = "IMAGELIST_SETOVERLAYIMAGE"
+kind = "stub"
+
+[[exports]]
+ordinal = 44
+name = "IMAGELIST_SETBKCOLOR"
+kind = "stub"
+
+[[exports]]
+ordinal = 45
+name = "IMAGELIST_GETBKCOLOR"
+kind = "stub"
+
+[[exports]]
+ordinal = 46
+name = "IMAGELIST_ADD"
+kind = "stub"
+
+[[exports]]
+ordinal = 49
+name = "IMAGELIST_DRAW"
+kind = "stub"
+
+[[exports]]
+ordinal = 53
+name = "IMAGELIST_ADDICON"
+kind = "stub"
+
+[[exports]]
+ordinal = 54
+name = "IMAGELIST_REPLACEICON"
+kind = "stub"
+
+[[exports]]
+ordinal = 159
+name = "PROPERTYSHEET"
+kind = "stub"
+
+[[exports]]
+ordinal = 160
+name = "CREATEPROPERTYSHEETPAGE"
+kind = "stub"
+
+[[exports]]
+ordinal = 161
+name = "DESTROYPROPERTYSHEETPAGE"
+kind = "stub"
+
+[[exports]]
+ordinal = 328
+name = "DPA_CREATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 329
+name = "DPA_DESTROY"
+kind = "stub"
+
+[[exports]]
+ordinal = 330
+name = "DPA_GROW"
+kind = "stub"
+
+[[exports]]
+ordinal = 331
+name = "DPA_CLONE"
+kind = "stub"
+
+[[exports]]
+ordinal = 332
+name = "DPA_GETPTR"
+kind = "stub"
+
+[[exports]]
+ordinal = 333
+name = "DPA_GETPTRINDEX"
+kind = "stub"
+
+[[exports]]
+ordinal = 334
+name = "DPA_INSERTPTR"
+kind = "stub"
+
+[[exports]]
+ordinal = 335
+name = "DPA_SETPTR"
+kind = "stub"
+
+[[exports]]
+ordinal = 336
+name = "DPA_DELETEPTR"
+kind = "stub"
+
+[[exports]]
+ordinal = 337
+name = "DPA_DELETEALLPTRS"
+kind = "stub"
+
+[[exports]]
+ordinal = 338
+name = "DPA_SORT"
+kind = "stub"
+
+[[exports]]
+ordinal = 339
+name = "DPA_SEARCH"
+kind = "stub"

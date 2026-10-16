@@ -13,14 +13,17 @@ pub(super) fn done() -> Result<(), RuntimeError> {
 
 pub(super) fn open_file(
     host: &mut WindowsHost,
-    path: &[u8],
+    path: &runtime::Win16GuestPath,
+    search_name: Option<&str>,
     style: u16,
     ofstruct: Vec<u8>,
 ) -> Result<runtime::Win16HostLzOpen, RuntimeError> {
-    super::win16_compat_calls_lzexpand::open_file(
+    super::win16_lz_file_paths::open(
+        &mut host.filesystem,
         &mut host.win16_files,
         host.win16_dcs.text_codec(),
         path,
+        search_name,
         style,
         ofstruct,
     )
@@ -67,10 +70,14 @@ pub(super) fn copy(
 }
 
 pub(super) fn expanded_name(
-    codec: super::guest_text::GuestTextCodec,
+    host: &mut WindowsHost,
     source: &[u8],
+    path: &runtime::Win16GuestPath,
+    search_name: Option<&str>,
 ) -> Result<runtime::Win16HostLzName, RuntimeError> {
-    super::win16_compat_calls_lzexpand::expanded_name(codec, source)
+    super::win16_lz_file_paths::expanded_name(
+        &mut host.filesystem, host.win16_dcs.text_codec(),
+        source, path, search_name)
 }
 
 macro_rules! lz_runtime_host_methods {
@@ -83,11 +90,12 @@ macro_rules! lz_runtime_host_methods {
         }
         fn win16_lz_open_file(
             &mut self,
-            path: &[u8],
+            path: &runtime::Win16GuestPath,
+            search_name: Option<&str>,
             style: u16,
             ofstruct: Vec<u8>,
         ) -> Result<runtime::Win16HostLzOpen, RuntimeError> {
-            runtime_host_lz::open_file(self, path, style, ofstruct)
+            runtime_host_lz::open_file(self, path, search_name, style, ofstruct)
         }
         fn win16_lz_init(
             &mut self,
@@ -127,8 +135,10 @@ macro_rules! lz_runtime_host_methods {
         fn win16_lz_get_expanded_name(
             &mut self,
             source: &[u8],
+            path: &runtime::Win16GuestPath,
+            search_name: Option<&str>,
         ) -> Result<runtime::Win16HostLzName, RuntimeError> {
-            runtime_host_lz::expanded_name(self.win16_dcs.text_codec(), source)
+            runtime_host_lz::expanded_name(self, source, path, search_name)
         }
     };
 }

@@ -1,0 +1,37 @@
+module = "TOOLHELP"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 66
+name = "StackTraceFirst"
+binding = { rust_id = "ToolhelpStackTraceFirst", id_value = 116, constant = "TOOLHELP_STACK_TRACE_FIRST" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "task", type = "U16" },
+]
+
+[[exports]]
+ordinal = 67
+name = "StackTraceCSIPFirst"
+binding = { rust_id = "ToolhelpStackTraceCsipFirst", id_value = 117, constant = "TOOLHELP_STACK_TRACE_CSIP_FIRST" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "stack_segment", type = "U16" },
+  { name = "code_segment", type = "U16" },
+  { name = "instruction_pointer", type = "U16" },
+  { name = "base_pointer", type = "U16" },
+]
+
+[[exports]]
+ordinal = 68
+name = "StackTraceNext"
+binding = { rust_id = "ToolhelpStackTraceNext", id_value = 118, constant = "TOOLHELP_STACK_TRACE_NEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+]

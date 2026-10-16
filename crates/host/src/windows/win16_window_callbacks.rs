@@ -66,6 +66,9 @@ pub(super) unsafe extern "system" fn host_window_proc(
     w_param: WPARAM,
     l_param: LPARAM,
 ) -> LRESULT {
+    if message == WM_ACTIVATEAPP && w_param == 0 {
+        super::win16_cursor_clip::forget_after_deactivation();
+    }
     // The catch arm runs after Rust has unwound local guards. It must know
     // whether WM_DROPFILES' opaque native owner was already released before
     // deciding whether the original native parameters can be forwarded.
@@ -174,7 +177,7 @@ fn dispatch_window_proc(
                 &state,
                 hwnd,
                 route.identity,
-                class,
+                Some(class),
                 message,
                 w_param,
                 l_param,
@@ -227,14 +230,20 @@ fn dispatch_window_proc(
         // token only during teardown. Keep native handling safe and quiet.
         return unsafe { DefWindowProcW(hwnd, message, w_param, l_param) };
     };
-    // Only windows using a registered private WndProc class may enter guest
-    // callbacks. Borrowed native HWND aliases remain with their native proc.
-    let Some(host_class) = identity.class else {
-        if is_native_drop {
-            return 0;
-        }
-        return unsafe { DefWindowProcW(hwnd, message, w_param, l_param) };
-    };
+    // Native subclasses carry an explicit window owner, not a fabricated
+    // guest class. The saved procedure is the fallback for native-only input.
+    let native_subclass = super::win16_native_procedures::is_subclassed(&state, identity.window);
+    let host_class = if native_subclass { None } else { identity.class };
+    if host_class.is_none() && !native_subclass {
+        if is_native_drop { return 0; }
+        return canceled_native_result(hwnd, message, w_param, l_param);
+    }
+    if native_subclass && let Some((guest_message, payload)) = super::win16_subclass_send::capture(
+        &state, identity.window, hwnd, message, w_param, l_param,
+    ) {
+        return dispatch_guest_callback(&state, hwnd, identity, None, u32::from(guest_message),
+            0, 0, 0, None, payload, None, None);
+    }
     if super::win16_guest_notifications::is_carrier_message(hwnd, message, w_param, l_param) {
         if worker_window::current_operation_id().is_none() {
             super::win16_guest_notifications::defer_callback_marker(
@@ -385,6 +394,9 @@ fn dispatch_window_proc(
                 }
             }
             WM_NCCREATE | WM_CREATE => {
+                let Some(host_class) = host_class else {
+                    return untranslated(&state, hwnd, message, w_param, l_param);
+                };
                 let Some(template) = creation else {
                     return untranslated(&state, hwnd, message, w_param, l_param);
                 };
@@ -671,7 +683,7 @@ fn dispatch_window_proc(
                     }
                 }
             }
-            _ if message >= 0x0400 && message <= u32::from(u16::MAX) => {
+            _ if host_class.is_some() && message >= 0x0400 && message <= u32::from(u16::MAX) => {
                 Some(Win16HostMessage::GuestOpaque {
                     message: message as u16,
                     w_param: w_param as u16,
@@ -680,11 +692,10 @@ fn dispatch_window_proc(
             }
             _ => Win16ScalarMessage::from_raw(message as u16)
                 .filter(|_| message <= u32::from(u16::MAX))
-                .map(|kind| Win16HostMessage::Scalar {
-                    kind,
-                    w_param: w_param as u16,
-                    l_param: l_param as u32,
-                }),
+                .and_then(|kind| super::win16_character_messages::to_guest(&state,
+                    message, w_param).map(|guest_w| Win16HostMessage::Scalar {
+                        kind, w_param: guest_w, l_param: l_param as u32,
+                    })),
         }
     };
     let Some(translated) = translated else {
@@ -940,7 +951,7 @@ fn dispatch_guest_callback(
     state: &Rc<RefCell<WorkerState>>,
     hwnd: HWND,
     identity: NativeWindowIdentity,
-    host_class: runtime::Win16HostClass,
+    host_class: Option<runtime::Win16HostClass>,
     message: u32,
     w_param: WPARAM,
     l_param: LPARAM,
@@ -971,7 +982,7 @@ fn dispatch_guest_callback_with_mdi(
     state: &Rc<RefCell<WorkerState>>,
     hwnd: HWND,
     identity: NativeWindowIdentity,
-    host_class: runtime::Win16HostClass,
+    host_class: Option<runtime::Win16HostClass>,
     message: u32,
     w_param: WPARAM,
     l_param: LPARAM,
@@ -1061,7 +1072,7 @@ fn dispatch_guest_callback_with_mdi(
         operation: active.id,
         source: runtime::Win16NativeCallbackSource::WindowMessage {
             window: identity.window,
-            class: identity.class,
+            class: host_class,
             message,
         },
         creation,
@@ -1082,7 +1093,7 @@ fn dispatch_guest_callback_with_mdi(
             .get(&(hwnd as usize))
             .filter(|(id, data)| {
                 Some(*id) == creation
-                    && data.class == host_class
+                    && Some(data.class) == host_class
                     && borrowed
                         .pending_dialog_routes
                         .iter()
@@ -1090,20 +1101,21 @@ fn dispatch_guest_callback_with_mdi(
             })
             .map(|(_, data)| data.clone())
     };
-    let step = Win16WindowStep::Callback {
-        operation_id: runtime::Win16HostWindowOperationId(active.id),
-        callback,
-        creation,
-        creation_data,
-        window: identity.window,
-        class: host_class,
-        message: payload,
-        source: runtime::Win16NativeCallbackSource::WindowMessage {
-            window: identity.window,
-            class: identity.class,
-            message,
+    let source = runtime::Win16NativeCallbackSource::WindowMessage {
+        window: identity.window, class: host_class, message,
+    };
+    let step = match host_class {
+        Some(class) => Win16WindowStep::Callback {
+            operation_id: runtime::Win16HostWindowOperationId(active.id),
+            callback, creation, creation_data, window: identity.window,
+            class, message: payload, source,
+        },
+        None => Win16WindowStep::NativeSubclassCallback {
+            operation_id: runtime::Win16HostWindowOperationId(active.id),
+            callback, window: identity.window, message: payload, source,
         },
     };
+    crate::windows::win16_gdi::flush_thread_batch();
     if active.response.send(Ok(step)).is_err() {
         remove_live_callback(state, callback);
         if guest_owned_drop_files {

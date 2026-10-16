@@ -15,9 +15,9 @@ use crate::{DiagnosticKind, RuntimeError};
 
 #[path = "win16_legacy_cpu_growth.rs"]
 mod growth;
-pub(super) use growth::{AutomaticDataOwner, LegacyCpuDataGrowthPlan};
+pub(super) use growth::{AutomaticDataOwner, LegacyCpuDataResizePlan};
 use growth::{
-    AutomaticDataGrowthReceipt, root_history_is_current, root_snapshot_is_authorized,
+    DataExtentReceipt, root_history_is_current, root_snapshot_is_authorized,
 };
 
 #[derive(Debug)]
@@ -128,7 +128,7 @@ struct OwnedSelectorRoot {
     descriptor: DescriptorInfo,
     backing: SelectorBackingIdentity,
     lease: SelectorBackingLease,
-    growths: Vec<AutomaticDataGrowthReceipt>,
+    growths: Vec<DataExtentReceipt>,
 }
 
 /// Non-cloneable frame owner. Callers must retain it until explicit release.
@@ -288,21 +288,21 @@ impl Win16State {
 
     /// Prebuild exact saved-proof transitions before the checked allocator
     /// transaction changes guest bytes or selector metadata.
-    pub(super) fn prepare_legacy_cpu_data_growth(
+    pub(super) fn prepare_legacy_cpu_data_resize(
         &mut self,
         owner: AutomaticDataOwner,
         old_size: u32,
         new_size: u32,
         targets: &[(SelectorRef, DescriptorInfo)],
         memory: &Memory,
-    ) -> Result<LegacyCpuDataGrowthPlan, Win16LegacyCpuBindingError> {
+    ) -> Result<LegacyCpuDataResizePlan, Win16LegacyCpuBindingError> {
         growth::prepare(self, owner, old_size, new_size, targets, memory)
     }
 
     /// Applies only preallocated receipts after selector/heap commit.
-    pub(super) fn commit_legacy_cpu_data_growth(
+    pub(super) fn commit_legacy_cpu_data_resize(
         &mut self,
-        plan: LegacyCpuDataGrowthPlan,
+        plan: LegacyCpuDataResizePlan,
     ) {
         growth::commit(self, plan)
     }
@@ -405,6 +405,10 @@ impl<'a> Win16LegacyCpuBinding<'a> {
                     && head == *primary && live_base == *base && live_size == *image_size
                     && start >= u64::from(base.0)
                     && u64::from(base.0).checked_add(u64::from(*image_size)).is_some_and(|image_end| end <= image_end)
+            }
+            (SelectorBackingIdentity::FirmwareRom { primary, base, size: rom_size }, SelectorBackingLease::FirmwareRom { .. }) => {
+                root.reference == *primary && root.descriptor.base == *base && size == *rom_size
+                    && self.state.firmware_rom_identity_is_live(root.backing, self.memory)
             }
             (SelectorBackingIdentity::RuntimeArena(arena), SelectorBackingLease::RuntimeArena { lease }) if *arena == lease.identity() => {
                 self.state.runtime_arena_backing.lease_is_live(
@@ -579,3 +583,7 @@ fn validate_segment(slot: usize, descriptor: DescriptorInfo, registers: &Registe
 #[cfg(test)]
 #[path = "win16_legacy_cpu_binding_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "win16_firmware_cpu_binding_tests.rs"]
+mod firmware_tests;

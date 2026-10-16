@@ -44,8 +44,10 @@ impl Win16State {
                     return Err(RuntimeError::new(Kind::InternalInvariant,
                         "mapped MDI child callback has no exact guest WndProc"));
                 };
+                // The creation plan owns class/instance identity, while a
+                // setter during an earlier callback may change the live FAR.
                 if procedure.class != expected.class
-                    || procedure.address != expected.address
+                    || self.window_host_class(window) != Some(expected.class)
                     || procedure.instance != expected.instance
                     || !self.mdi_children.contains(&window)
                     || self.window_creations.get(&window) != Some(&creation_id)
@@ -149,8 +151,7 @@ impl Win16State {
             if let Some(index) = index {
                 let resolved = self.window_classes.resolve_registered_host_class(class)
                     .filter(|resolved| {
-                        resolved.instance == data.guest_instance
-                            && resolved.wnd_proc != 0
+                        resolved.wnd_proc != 0
                             && (!data.dialog_root || resolved.window_extra_bytes >= 30)
                     })
                     .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
@@ -158,7 +159,10 @@ impl Win16State {
                 let procedure = WindowProcedure {
                     class,
                     address: resolved.wnd_proc,
-                    instance: resolved.instance,
+                    // The pending template already authenticated the exact
+                    // class token. A global class may belong to another DLL;
+                    // callbacks still receive the dialog creator's instance.
+                    instance: data.guest_instance,
                 };
                 let window_creation = if data.dialog_root {
                     Some(creation.ok_or_else(|| RuntimeError::new(

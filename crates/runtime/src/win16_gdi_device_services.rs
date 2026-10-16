@@ -29,6 +29,8 @@ mod object_query;
 mod palette;
 #[path = "win16_gdi_device_services/printing.rs"]
 mod printing;
+#[path = "win16_gdi_device_services/escape.rs"]
+mod escape;
 
 #[derive(Clone, Copy)]
 enum BitmapDimensionMode {
@@ -56,6 +58,8 @@ impl Win16State {
     ) -> Result<u32, RuntimeError> {
         use GdiDeviceRequest as Request;
         match request {
+            Request::Escape { dc, escape, input_size, input, output } =>
+                self.gdi_escape(memory, dc, escape, input_size, input, output, host),
             Request::GetObject { object, count, output } => self.query_gdi_object(object, count, output, memory, host),
             Request::GetBitmapBits {
                 bitmap,

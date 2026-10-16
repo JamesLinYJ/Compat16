@@ -12,23 +12,37 @@ use runtime::{
     Win16WindowCall, Win16WindowCallResult, Win16WindowInsertAfter,
     Win16WindowSearchClass, Win16WindowTarget, Win16WindowPlacement,
 };
-use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
-use windows_sys::Win32::Graphics::Gdi::{ClientToScreen, ScreenToClient};
+use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND, POINT, RECT};
+use windows_sys::Win32::Graphics::Gdi::{ClientToScreen, MapWindowPoints, ScreenToClient, WindowFromDC};
+use windows_sys::Win32::System::WindowsProgramming::{WINNLSEnableIME, WINNLSGetEnableStatus};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     EnableWindow, GetActiveWindow, IsWindowEnabled, SetActiveWindow,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    BringWindowToTop, FindWindowW, GetClientRect, GetClassNameW,
-    GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
+    ArrangeIconicWindows, CloseWindow, FlashWindow, GetWindowLongW, GWL_STYLE, WS_CHILD, WS_POPUP,
+    BringWindowToTop, ChildWindowFromPoint, ChildWindowFromPointEx, FindWindowW,
+    GetClientRect, GetClassNameW,
+    GetClipCursor, GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
     GetWindow,
-    GetWindowRect, IsIconic, IsWindow, IsWindowVisible, IsZoomed, MoveWindow,
+    GetWindowRect, IsChild, IsIconic, IsWindow, IsWindowVisible, IsZoomed, MoveWindow, OpenIcon,
     SetWindowPos, ShowOwnedPopups, WindowFromPoint, GetWindowPlacement, SetWindowPlacement,
-    WINDOWPLACEMENT,
+    SetCursorPos,
+    HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST, SWP_NOZORDER, WINDOWPLACEMENT,
 };
 
 use super::win16_window_worker::{self as worker, WorkerState};
 
 type SharedWorker = Rc<RefCell<WorkerState>>;
+
+#[path = "win16_window_defer.rs"]
+mod defer;
+
+/// Keep native failure separate from rectangle contents and guest return ABI.
+pub(super) fn get_clip_cursor_with(read: impl FnOnce(&mut RECT) -> bool) -> Win16WindowCallResult {
+    let mut rect = RECT::default();
+    let success = read(&mut rect);
+    Win16WindowCallResult::Rect(success.then_some(host_rect(rect)))
+}
 
 pub(super) fn execute(
     state: &SharedWorker,
@@ -38,6 +52,13 @@ pub(super) fn execute(
     use Win16WindowCallResult as ResultValue;
 
     let result = match call {
+        Call::EndDeferWindowPos { positions } => ResultValue::Boolean(
+            defer::execute(state, positions),
+        ),
+        call @ (Call::CreateCaret { .. } | Call::DestroyCaret | Call::SetCaretPos { .. }
+            | Call::HideCaret { .. } | Call::ShowCaret { .. } | Call::GetCaretPos) => {
+                super::win16_window_caret::execute(state, call)?
+            }
         Call::GetWindowPlacement { window } => {
             let mut placement = WINDOWPLACEMENT {
                 length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
@@ -66,6 +87,15 @@ pub(super) fn execute(
             ResultValue::Boolean(hwnd(state, window)
                 .is_some_and(|native| unsafe { SetWindowPlacement(native, &placement) != 0 }))
         }
+        Call::GetClipCursor => {
+            // Read only. Access can fail (including WINSTA_READATTRIBUTES);
+            // never substitute screen bounds or alter the global clip region.
+            get_clip_cursor_with(|rect| unsafe { GetClipCursor(rect) != 0 })
+        }
+        Call::SetCursorPos { x, y } => ResultValue::Boolean(unsafe {
+            SetCursorPos(i32::from(x), i32::from(y)) != 0
+        }),
+        Call::ClipCursor { rect } => ResultValue::Boolean(super::win16_cursor_clip::set(rect)?),
         Call::GetCursorPos => {
             let mut point = POINT::default();
             let success = unsafe { GetCursorPos(&mut point) != 0 };
@@ -77,6 +107,27 @@ pub(super) fn execute(
             }
         Call::WindowData(call) => ResultValue::WindowData(
             super::win16_window_data::execute(state, call)?),
+        // Win16 CloseWindow has no effect on popup or child windows. Resolve
+        // the exact identity and drop worker borrows before native callbacks.
+        // Native BOOL stays internal; the guest ABI is void, not Win32 BOOL.
+        Call::CloseWindow { window } => ResultValue::Boolean(hwnd(state, window)
+            .filter(|native| !native.is_null())
+            .is_some_and(|native| unsafe {
+                let style = GetWindowLongW(native, GWL_STYLE) as u32;
+                style & (WS_POPUP | WS_CHILD) == 0 && CloseWindow(native) != 0
+            })),
+        Call::ArrangeIconicWindows { window } => ResultValue::Integer(
+            arrange_iconic_windows_with(state, window, |native| unsafe { ArrangeIconicWindows(native) }) as i32,
+        ),
+        // OpenIcon owns WM_QUERYOPEN, restoration and activation, and returns
+        // success rather than ShowWindow's previous visibility. Resolve exact
+        // identity before the call and retain no worker borrow over reentry.
+        Call::OpenIcon { window } => ResultValue::Boolean(hwnd(state, window)
+            .is_some_and(|native| unsafe { OpenIcon(native) != 0 })),
+        Call::FlashWindow { window, invert } => ResultValue::Boolean(
+            flash_window_with(state, window, invert, |native| unsafe { IsIconic(native) != 0 },
+                |native, invert| unsafe { FlashWindow(native, i32::from(invert)) != 0 }),
+        ),
         Call::IsIconic { window } => ResultValue::Boolean(hwnd(state, window)
             .is_some_and(|native| unsafe { IsIconic(native) != 0 })),
         Call::GetWindowRect { window } => {
@@ -95,6 +146,13 @@ pub(super) fn execute(
             .is_some_and(|native| unsafe { EnableWindow(native, i32::from(enable)) != 0 })),
         Call::IsWindowEnabled { window } => ResultValue::Boolean(hwnd(state, window)
             .is_some_and(|native| unsafe { IsWindowEnabled(native) != 0 })),
+        // Keep the previous enabled state verbatim; FALSE is a valid value.
+        // Resolution drops worker borrows before native IME can reenter a
+        // guest WndProc through this operation's callback continuation.
+        Call::EnableIme { window, enable } => ResultValue::Boolean(hwnd(state, window)
+            .is_some_and(|native| unsafe { WINNLSEnableIME(native, i32::from(enable)) != 0 })),
+        Call::GetImeEnableStatus { window } => ResultValue::Boolean(hwnd(state, window)
+            .is_some_and(|native| unsafe { WINNLSGetEnableStatus(native) != 0 })),
         Call::BringWindowToTop { window } => ResultValue::Boolean(hwnd(state, window)
             .is_some_and(|native| unsafe { BringWindowToTop(native) != 0 })),
         Call::GetParent { window } => {
@@ -104,6 +162,12 @@ pub(super) fn execute(
                 None => None,
             })
         }
+        Call::IsChild { parent, child } => ResultValue::Boolean(
+            match (hwnd(state, parent), hwnd(state, child)) {
+                (Some(parent), Some(child)) => unsafe { IsChild(parent, child) != 0 },
+                _ => false,
+            },
+        ),
         Call::IsWindow { window } => ResultValue::Boolean(hwnd(state, window)
             .is_some_and(|native| unsafe { IsWindow(native) != 0 })),
         Call::IsWindowVisible { window } => ResultValue::Boolean(hwnd(state, window)
@@ -134,12 +198,15 @@ pub(super) fn execute(
             ResultValue::Window(token_for_native(state, native)?)
         }
         Call::DestroyWindow { window } => {
-            let (succeeded, invalidated_menus) = match window {
+            let (succeeded, retirements) = match window {
                 Win16WindowTarget::Mapped(token) =>
                     worker::destroy_window_operation(state, token),
-                Win16WindowTarget::Null | Win16WindowTarget::Invalid => (false, Vec::new()),
+                Win16WindowTarget::Null | Win16WindowTarget::Invalid => (false,
+                    runtime::Win16HostWindowRetirementBatch {
+                        receipts: Vec::new(), invalidated_menus: Vec::new(),
+                    }),
             };
-            ResultValue::Destroyed { succeeded, invalidated_menus }
+            ResultValue::Destroyed { succeeded, retirements }
         }
         Call::GetClassName { window, capacity } => {
             let mut wide = vec![0xFFFF_u16; usize::from(capacity).max(1)];
@@ -245,9 +312,58 @@ pub(super) fn execute(
                 .is_some_and(|native| unsafe { ScreenToClient(native, &mut point) != 0 });
             ResultValue::Point(success.then_some(host_point(point)))
         }
+        Call::MapWindowPoints { from, to, mut points } => {
+            let (Some(from), Some(to)) = (hwnd(state, from), hwnd(state, to)) else {
+                return Ok(ResultValue::Points(None));
+            };
+            for point in &mut points {
+                let mut native = native_point(*point);
+                // Win16 maps points, including the two RECT16 corners, without
+                // Win32's later two-point RTL rectangle edge reordering. Map
+                // each point separately as documented for independent points:
+                // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-mapwindowpoints
+                // Zero displacement is successful, so distinguish it from an
+                // error via last-error, never by testing the packed offset alone.
+                unsafe { SetLastError(0); }
+                let displacement = unsafe { MapWindowPoints(from, to, &mut native, 1) };
+                if displacement == 0 && unsafe { GetLastError() } != 0 {
+                    return Ok(ResultValue::Points(None));
+                }
+                *point = host_point(native);
+            }
+            ResultValue::Points(Some(points))
+        }
+        Call::WindowFromDc { dc } => {
+            let dcs = { state.borrow().dcs.clone() };
+            let Some(dc_use) = dcs.lease_dc(dc)? else { return Ok(ResultValue::Window(None)); };
+            // Cleanup ownership is not window association: a callback may
+            // supply a memory DC. Ask USER using the exact live native HDC.
+            let native = unsafe { WindowFromDC(dc_use.native()) };
+            ResultValue::Window(token_for_native(state, native)?)
+        }
         Call::WindowFromPoint { point } => {
             let native = unsafe { WindowFromPoint(native_point(point)) };
             ResultValue::Window(token_for_native(state, native)?)
+        }
+        Call::ChildWindowFromPoint { parent, point } => {
+            let native = hwnd(state, parent)
+                .map(|parent| unsafe { ChildWindowFromPoint(parent, native_point(point)) });
+            ResultValue::Window(match native {
+                Some(native) => token_for_native(state, native)?,
+                None => None,
+            })
+        }
+        Call::ChildWindowFromPointEx { parent, point, flags } => {
+            // USER owns immediate-child z-order, client-relative hit testing,
+            // and the CWP_SKIP* rules. Resolve both input and result through
+            // the existing opaque token/incarnation boundary.
+            let native = hwnd(state, parent).map(|parent| unsafe {
+                ChildWindowFromPointEx(parent, native_point(point), u32::from(flags))
+            });
+            ResultValue::Window(match native {
+                Some(native) => token_for_native(state, native)?,
+                None => None,
+            })
         }
         Call::MoveWindow { window, x, y, width, height, repaint } => {
             ResultValue::Boolean(hwnd(state, window).is_some_and(|native| unsafe {
@@ -256,14 +372,22 @@ pub(super) fn execute(
             }))
         }
         Call::SetWindowPos { window, insert_after, x, y, width, height, flags } => {
-            let insert_after = match insert_after {
-                Win16WindowInsertAfter::Top => Some(std::ptr::null_mut()),
-                Win16WindowInsertAfter::Bottom => Some(1_isize as HWND),
-                Win16WindowInsertAfter::Topmost => Some((-1_isize) as HWND),
-                Win16WindowInsertAfter::NotTopmost => Some((-2_isize) as HWND),
-                Win16WindowInsertAfter::Window(token) =>
-                    state.borrow().windows.get(&token).copied(),
+            let insert_after = if u32::from(flags) & SWP_NOZORDER != 0 {
+                // The ignored token need not exist or identify a live window.
+                Some(HWND_TOP)
+            } else {
+                match insert_after {
+                    Win16WindowInsertAfter::Top => Some(HWND_TOP),
+                    Win16WindowInsertAfter::Bottom => Some(HWND_BOTTOM),
+                    Win16WindowInsertAfter::Topmost => Some(HWND_TOPMOST),
+                    Win16WindowInsertAfter::NotTopmost => Some(HWND_NOTOPMOST),
+                    Win16WindowInsertAfter::Window(token) =>
+                        super::win16_window_identity::resolve_user_window(state, token),
+                }
             };
+            // Both operands use the worker's normal USER identity checks. No
+            // state borrow crosses USER's synchronous window callbacks, and
+            // no saved HWND is adopted or dereferenced after native return.
             ResultValue::Boolean(match (hwnd(state, window), insert_after) {
                 (Some(native), Some(insert_after)) => unsafe {
                     SetWindowPos(native, insert_after,
@@ -284,6 +408,27 @@ fn hwnd(state: &SharedWorker, target: Win16WindowTarget) -> Option<HWND> {
         Win16WindowTarget::Mapped(token) =>
             super::win16_window_identity::resolve_user_window(state, token),
     }
+}
+
+// Win16's minimized-window contract differs from Win32: ignore the invert
+// argument, flash the icon once, and return nonzero. Zero from native FlashWindow
+// is a valid prior-inactive result, not a GetLastError-style failure sentinel.
+// Never apply the iconic override to a null, stale, or callback-retired target.
+pub(super) fn flash_window_with(
+    state: &SharedWorker,
+    target: Win16WindowTarget,
+    invert: bool,
+    is_iconic: impl FnOnce(HWND) -> bool,
+    flash: impl FnOnce(HWND, bool) -> bool,
+) -> bool {
+    let Win16WindowTarget::Mapped(token) = target else { return false; };
+    let resolve = || super::win16_window_identity::resolve_user_window(state, token);
+    let Some(native) = resolve() else { return false; };
+    let iconic = is_iconic(native);
+    if resolve() != Some(native) { return false; }
+    // Resolution retains no worker borrow across native window procedures.
+    let previously_active = flash(native, iconic || invert);
+    previously_active || (iconic && resolve() == Some(native))
 }
 
 fn token_for_native(
@@ -310,3 +455,23 @@ fn native_point(point: Win16HostPoint) -> POINT {
 fn host_point(point: POINT) -> Win16HostPoint {
     Win16HostPoint { x: point.x, y: point.y }
 }
+
+// NULL has special meanings in several USER APIs. This API requires an exact
+// live parent mapping, never an implicit desktop fallback. Owned windows use
+// cookie identity; foreign windows retain ordinary USER liveness resolution.
+// Identity resolution
+// finishes (and releases all state borrows) before synchronous native callbacks.
+pub(super) fn arrange_iconic_windows_with(
+    state: &SharedWorker,
+    target: Win16WindowTarget,
+    native_call: impl FnOnce(HWND) -> u32,
+) -> u32 {
+    let Win16WindowTarget::Mapped(token) = target else { return 0; };
+    let Some(native) = super::win16_window_identity::resolve_user_window(state, token)
+        else { return 0; };
+    native_call(native)
+}
+
+#[cfg(test)]
+#[path = "win16_window_child_queries_tests.rs"]
+mod child_queries_tests;

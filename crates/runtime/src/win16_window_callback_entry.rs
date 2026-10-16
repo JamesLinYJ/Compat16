@@ -4,6 +4,13 @@ use std::sync::Arc;
 
 use super::*;
 
+/// A native subclass bridge proves its installed procedure, not the HWND's
+/// registered class. Keep that route distinct from a class WndProc callback.
+pub(super) enum WindowProcedureSource {
+    RegisteredClass(Win16HostClass),
+    NativeSubclass(WindowClassRoot),
+}
+
 impl Win16State {
     pub(super) fn reserve_window_callback_frame(
         &mut self,
@@ -29,7 +36,7 @@ impl Win16State {
         Ok(())
     }
 
-    pub(super) fn begin_host_window_callback(
+    pub(in crate::win16_runtime) fn begin_host_window_callback(
         &mut self,
         registers: &mut Registers,
         memory: &mut Memory,
@@ -44,6 +51,22 @@ impl Win16State {
         source: crate::Win16NativeCallbackSource,
         destroyed: bool,
     ) -> Result<(), RuntimeError> {
+        self.begin_host_procedure_callback(
+            registers, memory, host, operation_id, callback, native_window,
+            window, procedure.address, procedure.instance,
+            WindowProcedureSource::RegisteredClass(procedure.class), message, creation, source, destroyed,
+        )
+    }
+
+    pub(super) fn begin_host_procedure_callback(
+        &mut self, registers: &mut Registers, memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+        operation_id: crate::Win16HostWindowOperationId,
+        callback: Win16HostCallback, native_window: Win16HostWindow,
+        window: u16, address: u32, instance: u16, procedure_source: WindowProcedureSource,
+        message: Win16HostMessage, creation: Option<&WindowCreateRequest>,
+        source: crate::Win16NativeCallbackSource, destroyed: bool,
+    ) -> Result<(), RuntimeError> {
         let guest_notification = match &message {
             Win16HostMessage::GuestNotification(notification) => Some(*notification),
             _ => None,
@@ -53,6 +76,24 @@ impl Win16State {
             _ => None,
         };
         let callback_id = self.reserve_window_callback_frame()?;
+        let (expected_root, source_valid) = match procedure_source {
+            WindowProcedureSource::RegisteredClass(class) => {
+                let root = WindowClassRoot::Class(class);
+                (root, WindowClassRoot::from_native_message(source, native_window) == root)
+            }
+            WindowProcedureSource::NativeSubclass(root) => {
+                let valid = matches!(source, crate::Win16NativeCallbackSource::WindowMessage {
+                    window: native, class: None, ..
+                } if native == native_window)
+                    && self.window_handles.get(&window) == Some(&native_window)
+                    && self.native_subclass_procedure(window) == Some((address, instance))
+                    && self.window_class_root(window) == root;
+                (root, valid)
+            }
+        };
+        // Unresolved is legitimate provenance for an existing native control;
+        // it is not evidence that callback source validation failed.
+        let class_root = if source_valid { expected_root } else { WindowClassRoot::Unresolved };
         let frame = WindowCallbackFrame {
             callback_id,
             saved: registers.clone(),
@@ -86,7 +127,8 @@ impl Win16State {
             setup: WindowCallbackSetupJournal::preparing(),
             guest_notification,
             mdi_child_creation,
-            callback_address: procedure.address,
+            callback_address: address,
+            class_root,
             host_operation: Some(operation_id),
             native_source: Some(source),
             continuation: WindowCallbackContinuation::Host {
@@ -99,7 +141,13 @@ impl Win16State {
         self.publish_window_callback_frame(frame)?;
 
         let setup = (|| {
-            self.check_window_callback(registers, procedure.address, memory)?;
+            self.refresh_pending_window_parents(host)?;
+            if !source_valid {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "native WndProc source differs from its exact selected procedure owner"));
+            }
+            self.record_window_class_root(window, native_window, class_root)?;
+            self.check_window_callback(registers, address, memory)?;
             self.record_preparing_window_callback_phase(
                 callback_id,
                 WindowCallbackSetupPhase::ProcedureValidated,
@@ -152,9 +200,9 @@ impl Win16State {
         // teardown must not free a handle the guest may retain or finish.
         frame.guest_drop_global = None;
         registers.set_sp(registers.sp() - WNDPROC_STACK_BYTES);
-        registers.cs = (procedure.address >> 16) as u16;
-        registers.set_ip(procedure.address as u16);
-        registers.set_ax(procedure.instance);
+        registers.cs = (address >> 16) as u16;
+        registers.set_ip(address as u16);
+        registers.set_ax(instance);
         registers.ds = registers.ss;
         registers.es = registers.ss;
         frame.setup.last_completed = WindowCallbackSetupPhase::GuestEntryCommitted;
@@ -170,6 +218,68 @@ impl Win16State {
             });
         }
         Ok(())
+    }
+
+    /// A null DLGPROC still has a real suspended native callback. Retain a
+    /// payload-free owner while querying pending parent changes and retiring
+    /// its tree; errors must not discard the only cancellable source identity.
+    pub(super) fn retain_default_dialog_parent_callback(
+        &mut self,
+        registers: &Registers,
+        operation_id: crate::Win16HostWindowOperationId,
+        callback: Win16HostCallback,
+        native_window: Win16HostWindow,
+        window: u16,
+        class_root: WindowClassRoot,
+        source: crate::Win16NativeCallbackSource,
+        destroyed: bool,
+    ) -> Result<CallbackFrameId, RuntimeError> {
+        let callback_id = self.reserve_window_callback_frame()?;
+        self.publish_window_callback_frame(WindowCallbackFrame {
+            callback_id,
+            saved: registers.clone(),
+            payload: GuestWindowPayload {
+                message: 0,
+                w_param: 0,
+                l_param: 0,
+                allocation: None,
+                output: None,
+                callback_dc: None,
+                command_control: None,
+                command_parent: None,
+                common_dialog_request: None,
+            },
+            payload_allocation_locked: false,
+            guest_drop_global: None,
+            guest_drop_generation: None,
+            payload_selector: None,
+            guest_return_value: None,
+            payload_result: None,
+            payload_error: None,
+            payload_cleanup_error: None,
+            payload_retained: None,
+            payload_cleaned: false,
+            window_tree_retired: false,
+            clipboard_retired: false,
+            trace_observed: false,
+            native_resume_error: None,
+            setup_error: None,
+            entry_phase: WindowCallbackEntryPhase::Preparing,
+            setup: WindowCallbackSetupJournal::preparing(),
+            guest_notification: None,
+            mdi_child_creation: None,
+            callback_address: 0,
+            class_root,
+            host_operation: Some(operation_id),
+            native_source: Some(source),
+            continuation: WindowCallbackContinuation::HostDialog {
+                callback,
+                native_window,
+                window,
+                destroyed,
+            },
+        })?;
+        Ok(callback_id)
     }
 
     pub(in crate::win16_runtime) fn preparing_window_callback_id(

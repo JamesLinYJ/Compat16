@@ -6,6 +6,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+abi-codegen = { path = "../abi-codegen" }
 abi-schema = { path = "../abi-schema" }
 win16-abi = { path = "../win16" }
 

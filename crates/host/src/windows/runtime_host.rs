@@ -25,6 +25,18 @@ fn windows_error_code_description(native_error: Option<u32>) -> String {
 }
 
 impl RuntimeHost for WindowsHost {
+    fn win16_program_load_result(&mut self, result: Result<(), u16>) -> Result<(), RuntimeError> {
+        if let Some(reporter) = &self.program_load_reporter {
+            reporter.report(result)?;
+        }
+        Ok(())
+    }
+    fn win16_yield_thread(&mut self) -> Result<(), RuntimeError> {
+        if let Some(reporter) = &self.program_load_reporter { reporter.ready()?; }
+        std::thread::yield_now();
+        Ok(())
+    }
+
     fn win16_com_owner(&mut self) -> Result<runtime::Win16ComHostOwnerIdentity, RuntimeError> {
         self.win16_windows.com_owner()
     }
@@ -275,6 +287,12 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
         runtime_host_gdi::create_ic(self, driver, device, output, devmode)
     }
+    fn win16_get_outline_text_metrics(
+        &mut self,
+        dc: Win16HostDc,
+    ) -> Result<Option<runtime::Win16HostOutlineTextMetrics>, RuntimeError> {
+        self.win16_dcs.get_outline_text_metrics(dc)
+    }
     fn win16_get_text_metrics(
         &mut self,
         dc: Win16HostDc,
@@ -324,6 +342,20 @@ impl RuntimeHost for WindowsHost {
             operation,
         )
     }
+    fn win16_metafile(
+        &mut self,
+        operation: runtime::Win16HostMetafileOperation,
+    ) -> Result<runtime::Win16HostMetafileResult, RuntimeError> {
+        match runtime_host_gdi::execute_metafile(self, operation) {
+            Err(error) if error.kind() == Kind::CompatibilityGap => {
+                self.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
+                    "WMF playback requires an unsupported Escape payload translation")
+                    .with_cause(error));
+                Ok(runtime::Win16HostMetafileResult::Played(false))
+            }
+            result => result,
+        }
+    }
     fn win16_printer_capabilities(
         &mut self,
         request: runtime::Win16PrinterCapabilities,
@@ -338,6 +370,26 @@ impl RuntimeHost for WindowsHost {
         application_path: &[u8],
     ) -> Result<Result<runtime::Win16ModuleImage, u16>, RuntimeError> {
         runtime_host_diagnostics::read_win16_module(self, name, application_path)
+    }
+    fn win16_read_program_image(
+        &mut self, input: &runtime::Win16HostProgramLoadInput,
+    ) -> Result<Result<runtime::Win16ModuleImage, u16>, RuntimeError> {
+        win16_program_launch::read_image(self, input)
+    }
+    fn win16_read_task_module(
+        &mut self,
+        name: &[u8],
+        application_path: &[u8],
+        path: &runtime::Win16GuestPath,
+    ) -> Result<Result<runtime::Win16ModuleImage, u16>, RuntimeError> {
+        runtime_host_diagnostics::read_win16_task_module(self, name, application_path, path)
+    }
+    fn win16_classify_character(
+        &mut self,
+        value: u8,
+        classification: runtime::Win16CharacterClassification,
+    ) -> Result<bool, RuntimeError> {
+        win16_text::classify_character(self.win16_dcs.text_codec(), value, classification)
     }
     fn win16_ansi_lower_char(&mut self, value: u16) -> Result<u16, RuntimeError> {
         win16_text::ansi_lower_char(self.win16_dcs.text_codec(), value)
@@ -373,8 +425,10 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<i16, RuntimeError> {
         win16_text::ansi_compare(self.win16_dcs.text_codec(), left, right, ignore_case)
     }
-    fn win16_ansi_next_offset(&mut self, source: &[u8]) -> Result<usize, RuntimeError> {
-        win16_text::ansi_next_offset(self.win16_dcs.text_codec(), source)
+    fn win16_ansi_next_probe(
+        &mut self, source: &[u8],
+    ) -> Result<runtime::Win16AnsiNextProbe, RuntimeError> {
+        self.win16_dcs.text_codec().next_character_probe(source)
     }
     fn win16_ansi_prev_offset(
         &mut self,
@@ -449,6 +503,14 @@ impl RuntimeHost for WindowsHost {
         class: Win16HostClass,
     ) -> Result<bool, RuntimeError> {
         runtime_host_windows::win16_unregister_window_class(self, class)
+    }
+    fn win16_replace_class_resource(
+        &mut self,
+        class: Win16HostClass,
+        window: runtime::Win16HostWindow,
+        resource: runtime::Win16HostClassResource,
+    ) -> Result<bool, RuntimeError> {
+        runtime_host_windows::win16_replace_class_resource(self, class, window, resource)
     }
     fn win16_window_begin(
         &mut self,
@@ -567,27 +629,35 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<runtime::Win16HostWindowLiveness, RuntimeError> {
         runtime_host_windows::win16_host_window_liveness(self, window)
     }
+    fn win16_host_window_parent(
+        &mut self,
+        window: Win16HostWindow,
+    ) -> Result<runtime::Win16HostWindowParentObservation, RuntimeError> {
+        runtime_host_windows::win16_host_window_parent(self, window)
+    }
     fn win16_file_create(
         &mut self,
-        path: &[u8],
+        path: &runtime::Win16GuestPath,
         attributes: u16,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
-        self.win16_files
-            .create(self.win16_dcs.text_codec(), path, attributes)
+        super::win16_file_paths::open(&mut self.filesystem, &mut self.win16_files,
+            path, attributes, true)
     }
     fn win16_file_open(
         &mut self,
-        path: &[u8],
+        path: &runtime::Win16GuestPath,
         mode: u16,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
-        self.win16_files
-            .open(self.win16_dcs.text_codec(), path, mode)
+        super::win16_file_paths::open(&mut self.filesystem, &mut self.win16_files,
+            path, mode, false)
     }
     fn win16_open_file(
-        &mut self, path: &[u8], style: u16, previous_ofstruct: Vec<u8>,
+        &mut self, path: &runtime::Win16GuestPath, search_name: Option<&str>,
+        style: u16, previous_ofstruct: Vec<u8>,
     ) -> Result<runtime::Win16HostOpenFile, RuntimeError> {
         super::win16_open_file::open(
-            &mut self.win16_files, self.win16_dcs.text_codec(), path, style, previous_ofstruct,
+            &mut self.filesystem, &mut self.win16_files, self.win16_dcs.text_codec(),
+            path, search_name, style, previous_ofstruct,
         )
     }
     fn win16_file_read(
@@ -617,6 +687,43 @@ impl RuntimeHost for WindowsHost {
         file: Win16HostFile,
     ) -> Result<runtime::Win16HostFileClose, RuntimeError> {
         self.win16_files.close(file)
+    }
+    fn win16_file_commit(&mut self, file: Win16HostFile) -> Result<(), DosHostError> {
+        self.win16_files.commit(file)
+    }
+    fn win16_file_write_time(&mut self, file: Win16HostFile) -> Result<(u16, u16), DosHostError> {
+        self.win16_files.write_time(file)
+    }
+    fn win16_file_set_write_time(
+        &mut self,
+        file: Win16HostFile,
+        time: u16,
+        date: u16,
+    ) -> Result<(), DosHostError> {
+        self.win16_files.set_write_time(file, time, date)
+    }
+    fn win16_file_dos_access(&mut self, file: Win16HostFile) -> Result<DosFileAccess, DosHostError> {
+        self.win16_files.dos_access(file)
+    }
+    fn win16_dos_file_read(
+        &mut self, file: Win16HostFile, output: &mut [u8],
+    ) -> Result<usize, DosHostError> {
+        self.win16_files.dos_read(file, output)
+    }
+    fn win16_dos_file_write(
+        &mut self, file: Win16HostFile, input: &[u8],
+    ) -> Result<usize, DosHostError> {
+        self.win16_files.dos_write(file, input)
+    }
+    fn win16_dos_file_seek(
+        &mut self, file: Win16HostFile, offset: i32, origin: DosSeekOrigin,
+    ) -> Result<u32, DosHostError> {
+        self.win16_files.dos_seek(file, offset, origin)
+    }
+    fn win16_dos_file_close(
+        &mut self, file: Win16HostFile,
+    ) -> Result<runtime::Win16HostFileClose, DosHostError> {
+        self.win16_files.close_checked(file)
     }
     fn win16_drive_kind(
         &mut self,
@@ -657,6 +764,15 @@ impl RuntimeHost for WindowsHost {
     fn win16_release_screen_dc(&mut self, dc: Win16HostDc) -> Result<bool, RuntimeError> {
         runtime_host_gdi::release_screen_dc(self, dc)
     }
+    fn win16_acquire_screen_dc_ex(
+        &mut self,
+        region: Option<runtime::Win16HostGdiObject>,
+        flags: u32,
+    ) -> Result<Option<Win16HostDc>, RuntimeError> {
+        super::win16_get_dc_ex::acquire_screen(
+            &self.win16_dcs, &mut self.win16_objects, region, flags,
+        )
+    }
     fn win16_cleanup_dc(&mut self, dc: Win16HostDc) -> Result<bool, RuntimeError> {
         runtime_host_gdi::cleanup_dc(self, dc)
     }
@@ -676,12 +792,27 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<Option<i16>, RuntimeError> {
         runtime_host_gdi::device_caps(self, dc, index)
     }
+    fn win16_enum_objects(
+        &mut self,
+        dc: Win16HostDc,
+        object_type: i16,
+    ) -> Result<Vec<runtime::Win16HostGdiObjectRecord>, RuntimeError> {
+        runtime_host_gdi::enum_objects(self, dc, object_type)
+    }
     fn win16_enum_fonts(
         &mut self,
         dc: Win16HostDc,
         face: Option<&[u8]>,
     ) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
         runtime_host_gdi::enum_fonts(self, dc, face)
+    }
+
+    fn win16_enum_font_families(
+        &mut self,
+        dc: Win16HostDc,
+        face: Option<&[u8]>,
+    ) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+        runtime_host_gdi::enum_font_families(self, dc, face)
     }
     fn win16_get_stock_object(
         &mut self,
@@ -747,6 +878,10 @@ impl RuntimeHost for WindowsHost {
     fn win16_release_icon(&mut self, icon: Win16HostIcon) -> Result<(), RuntimeError> {
         self.win16_images.release_icon(icon)
     }
+    fn win16_copy_icon(&mut self, icon: Win16HostIcon)
+        -> Result<Option<Win16HostIcon>, RuntimeError> {
+        self.win16_images.copy_icon(icon)
+    }
     fn win16_load_system_cursor(
         &mut self,
         id: u16,
@@ -764,6 +899,10 @@ impl RuntimeHost for WindowsHost {
     }
     fn win16_release_cursor(&mut self, cursor: Win16HostCursor) -> Result<(), RuntimeError> {
         self.win16_images.release_cursor(cursor)
+    }
+    fn win16_copy_cursor(&mut self, cursor: Win16HostCursor)
+        -> Result<Option<Win16HostCursor>, RuntimeError> {
+        self.win16_images.copy_cursor(cursor)
     }
     fn win16_global_add_atom(&mut self, name: Win16HostAtomName<'_>) -> Result<u16, RuntimeError> {
         self.win16_atoms.add(self.win16_dcs.text_codec(), name)
@@ -939,23 +1078,22 @@ impl RuntimeHost for WindowsHost {
     fn win16_get_sys_color(&mut self, index: i32) -> Result<u32, RuntimeError> {
         Ok(win16_user_services_system::get_sys_color(index))
     }
+    fn win16_any_popup(&mut self) -> Result<bool, RuntimeError> {
+        Ok(win16_user_services_system::any_popup())
+    }
     fn win16_get_dialog_base_units(&mut self) -> Result<u32, RuntimeError> {
         Ok(win16_user_services_system::get_dialog_base_units())
     }
     fn win16_profile_int(
-        &mut self,
-        section: Option<&[u8]>,
-        key: Option<&[u8]>,
-        default: i32,
-        filename: Option<&[u8]>,
+        &mut self, section: Option<&[u8]>, key: Option<&[u8]>, default: i32,
+        filename: &runtime::Win16ProfilePath,
     ) -> Result<u32, RuntimeError> {
-        win16_common::get_private_profile_int(
-            self.win16_dcs.text_codec(),
-            section,
-            key,
-            default,
-            filename,
-        )
+        let codec = self.win16_dcs.text_codec();
+        if matches!(filename, runtime::Win16ProfilePath::System) {
+            return win16_common::get_private_profile_int(codec, section, key, default, None);
+        }
+        super::win16_private_profile::read(&mut self.filesystem, codec, filename,
+            |path| win16_common::private_int_wide(codec, section, key, default, path))
     }
     fn win16_system_profile_int(
         &mut self,
@@ -966,21 +1104,17 @@ impl RuntimeHost for WindowsHost {
         win16_common::get_profile_int(self.win16_dcs.text_codec(), section, key, default)
     }
     fn win16_profile_string(
-        &mut self,
-        section: Option<&[u8]>,
-        key: Option<&[u8]>,
-        default: Option<&[u8]>,
-        filename: Option<&[u8]>,
-        capacity: u16,
+        &mut self, section: Option<&[u8]>, key: Option<&[u8]>, default: Option<&[u8]>,
+        filename: &runtime::Win16ProfilePath, capacity: u16,
     ) -> Result<(Vec<u8>, u16), RuntimeError> {
-        profile::private_string(
-            self.win16_dcs.text_codec(),
-            section,
-            key,
-            default,
-            filename,
-            capacity,
-        )
+        let codec = self.win16_dcs.text_codec();
+        if matches!(filename, runtime::Win16ProfilePath::System) {
+            return profile::private_string(codec, section, key, default, None, capacity);
+        }
+        let output = super::win16_private_profile::read(&mut self.filesystem, codec, filename,
+            |path| win16_common::private_string_wide(codec, section, key, default, path,
+                u32::from(capacity)))?;
+        Ok((output.buffer, output.copied as u16))
     }
     fn win16_system_profile_string(
         &mut self,
@@ -992,32 +1126,27 @@ impl RuntimeHost for WindowsHost {
         profile::system_string(self.win16_dcs.text_codec(), section, key, default, capacity)
     }
     fn win16_profile_write(
-        &mut self,
-        section: Option<&[u8]>,
-        key: Option<&[u8]>,
-        value: Option<&[u8]>,
-        filename: Option<&[u8]>,
+        &mut self, section: Option<&[u8]>, key: Option<&[u8]>, value: Option<&[u8]>,
+        filename: &runtime::Win16ProfilePath,
     ) -> Result<bool, RuntimeError> {
-        Ok(win16_common::write_private_profile_string(
-            self.win16_dcs.text_codec(),
-            section,
-            key,
-            value,
-            filename,
-        )? != 0)
+        let codec = self.win16_dcs.text_codec();
+        if matches!(filename, runtime::Win16ProfilePath::System) {
+            return Ok(win16_common::write_private_profile_string(codec, section, key, value, None)? != 0);
+        }
+        super::win16_private_profile::write(&mut self.filesystem, codec, filename,
+            section.is_none() && key.is_none() && value.is_none(),
+            |path| win16_common::private_write_wide(codec, section, key, value, path))
     }
     fn win16_profile_section(
-        &mut self,
-        section: Option<&[u8]>,
-        filename: Option<&[u8]>,
-        capacity: u16,
+        &mut self, section: Option<&[u8]>, filename: &runtime::Win16ProfilePath, capacity: u16,
     ) -> Result<(Vec<u8>, u16), RuntimeError> {
-        let output = win16_profile_sections::get_private_profile_section(
-            self.win16_dcs.text_codec(),
-            section,
-            filename,
-            capacity,
-        )?;
+        let codec = self.win16_dcs.text_codec();
+        let output = if matches!(filename, runtime::Win16ProfilePath::System) {
+            win16_profile_sections::get_private_profile_section(codec, section, None, capacity)?
+        } else {
+            super::win16_private_profile::read(&mut self.filesystem, codec, filename,
+                |path| win16_profile_sections::private_section_wide(codec, section, path, capacity))?
+        };
         Ok((output.buffer, output.copied))
     }
     fn win16_system_profile_section(
@@ -1033,17 +1162,16 @@ impl RuntimeHost for WindowsHost {
         Ok((output.buffer, output.copied))
     }
     fn win16_profile_section_write(
-        &mut self,
-        section: Option<&[u8]>,
-        entries: Option<&[u8]>,
-        filename: Option<&[u8]>,
+        &mut self, section: Option<&[u8]>, entries: Option<&[u8]>,
+        filename: &runtime::Win16ProfilePath,
     ) -> Result<bool, RuntimeError> {
-        win16_profile_sections::write_private_profile_section(
-            self.win16_dcs.text_codec(),
-            section,
-            entries,
-            filename,
-        )
+        let codec = self.win16_dcs.text_codec();
+        if matches!(filename, runtime::Win16ProfilePath::System) {
+            return win16_profile_sections::write_private_profile_section(codec, section, entries, None);
+        }
+        super::win16_private_profile::write(&mut self.filesystem, codec, filename,
+            section.is_none() && entries.is_none(),
+            |path| win16_profile_sections::private_write_wide(codec, section, entries, path))
     }
     fn win16_system_profile_section_write(
         &mut self,

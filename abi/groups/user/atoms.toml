@@ -1,0 +1,44 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 268
+name = "GlobalAddAtom"
+binding = { rust_id = "UserGlobalAddAtom", id_value = 247, constant = "USER_GLOBAL_ADD_ATOM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "atom_name", type = "AtomName" },
+]
+
+[[exports]]
+ordinal = 269
+name = "GlobalDeleteAtom"
+binding = { rust_id = "UserGlobalDeleteAtom", id_value = 248, constant = "USER_GLOBAL_DELETE_ATOM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "atom", type = "U16" },
+]
+
+[[exports]]
+ordinal = 270
+name = "GlobalFindAtom"
+binding = { rust_id = "UserGlobalFindAtom", id_value = 249, constant = "USER_GLOBAL_FIND_ATOM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "atom_name", type = "AtomName" },
+]
+
+[[exports]]
+ordinal = 271
+name = "GlobalGetAtomName"
+binding = { rust_id = "UserGlobalGetAtomName", id_value = 250, constant = "USER_GLOBAL_GET_ATOM_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "atom", type = "U16" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16" },
+]

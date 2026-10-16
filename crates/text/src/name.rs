@@ -27,8 +27,7 @@ pub fn uppercase_oem_name(bytes: &[u8], code_page: CodePage) -> Result<Vec<u8>, 
     for item in encoded_characters(bytes, code_page) {
         let item = item?;
         let source = &bytes[item.byte_range.clone()];
-        let uppercase = item.character.to_uppercase().collect::<String>();
-        let mut uppercase_chars = uppercase.chars();
+        let mut uppercase_chars = item.character.to_uppercase();
         let uppercase_character = match (uppercase_chars.next(), uppercase_chars.next()) {
             (Some(character), None) => character,
             _ => {
@@ -42,8 +41,9 @@ pub fn uppercase_oem_name(bytes: &[u8], code_page: CodePage) -> Result<Vec<u8>, 
             continue;
         }
 
-        let uppercase_text = uppercase_character.to_string();
-        match encode(&uppercase_text, code_page) {
+        let mut uppercase_buffer = [0; 4];
+        let uppercase_text = uppercase_character.encode_utf8(&mut uppercase_buffer);
+        match encode(uppercase_text, code_page) {
             Ok(encoded) if encoded.len() == source.len() => output.extend_from_slice(&encoded),
             Ok(_) | Err(TextError::UnrepresentableText { .. }) => {
                 output.extend_from_slice(source)

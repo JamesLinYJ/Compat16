@@ -183,7 +183,25 @@ impl Win16CallFrame {
         convention: Win16CallingConvention,
         signature: &[ArgumentKind],
     ) -> Result<Vec<Win16Argument>, Win16Error> {
-        let argument_bytes = argument_bytes(signature)?;
+        self.decode_arguments_iter(selectors, memory, convention, signature.iter().copied())
+    }
+
+    /// Decodes a declaration-order signature without materializing its kinds.
+    ///
+    /// The iterator and its clones must yield the same signature. As with
+    /// `decode_arguments`, the complete frame's 16-bit stack range is checked
+    /// before memory access, then slots are read in physical stack order.
+    pub(crate) fn decode_arguments_iter<I>(
+        self,
+        selectors: &SelectorTable,
+        memory: &impl GuestMemory,
+        convention: Win16CallingConvention,
+        signature: I,
+    ) -> Result<Vec<Win16Argument>, Win16Error>
+    where
+        I: Iterator<Item = ArgumentKind> + Clone + ExactSizeIterator + DoubleEndedIterator,
+    {
+        let argument_bytes = argument_bytes(signature.clone())?;
         let frame_bytes = self.return_address.bytes()
             .checked_add(argument_bytes)
             .ok_or(Win16Error::InvalidRange)?;
@@ -200,17 +218,17 @@ impl Win16CallFrame {
         let mut stack_offset = self.return_address.bytes();
         match convention {
             Win16CallingConvention::Pascal => {
-                for index in (0..signature.len()).rev() {
+                for (index, kind) in signature.enumerate().rev() {
                     decoded[index] = Some(self.read_argument(
-                        selectors, memory, signature[index], stack_offset,
+                        selectors, memory, kind, stack_offset,
                     )?);
                     stack_offset = stack_offset
-                        .checked_add(signature[index].slot_bytes() as u32)
+                        .checked_add(kind.slot_bytes() as u32)
                         .ok_or(Win16Error::InvalidRange)?;
                 }
             }
             Win16CallingConvention::Cdecl => {
-                for (index, kind) in signature.iter().copied().enumerate() {
+                for (index, kind) in signature.enumerate() {
                     decoded[index] = Some(self.read_argument(selectors, memory, kind, stack_offset)?);
                     stack_offset = stack_offset
                         .checked_add(kind.slot_bytes() as u32)
@@ -228,7 +246,7 @@ impl Win16CallFrame {
         convention: Win16CallingConvention,
         signature: &[ArgumentKind],
     ) -> Result<StackCleanup, Win16Error> {
-        let argument_bytes = argument_bytes(signature)?;
+        let argument_bytes = argument_bytes(signature.iter().copied())?;
         self.cleanup_argument_bytes(convention, argument_bytes)
     }
 
@@ -295,8 +313,12 @@ impl Win16CallFrame {
     }
 }
 
-fn argument_bytes(signature: &[ArgumentKind]) -> Result<u32, Win16Error> {
-    signature.iter().try_fold(0_u32, |bytes, kind| {
+fn argument_bytes(mut signature: impl Iterator<Item = ArgumentKind>) -> Result<u32, Win16Error> {
+    signature.try_fold(0_u32, |bytes, kind| {
         bytes.checked_add(kind.slot_bytes() as u32).ok_or(Win16Error::InvalidRange)
     })
 }
+
+#[cfg(test)]
+#[path = "call_frame_tests.rs"]
+mod tests;

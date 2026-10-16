@@ -13,12 +13,14 @@ impl Win16DcState {
             Some(DcOrigin::Compatible | DcOrigin::Information | DcOrigin::Created) => {
                 self.delete(token)
             }
+            Some(DcOrigin::Metafile) => self.close_metafile(token).consumed,
             Some(DcOrigin::Screen) => self.release_screen(token),
             // USER owns window/paint/callback DC leases on its worker thread.
             // Task cleanup has already closed native windows and callbacks;
             // retiring the guest alias does not transfer that lease to GDI or
             // authorize a ReleaseDC/DeleteDC call on another thread.
-            Some(DcOrigin::Window { .. }) => return Win16HostGdiCleanup::Borrowed,
+            Some(DcOrigin::Window { .. } | DcOrigin::FunctionCallback { .. }) =>
+                return Win16HostGdiCleanup::Borrowed,
             None => return Win16HostGdiCleanup::Absent,
         };
         if released { Win16HostGdiCleanup::Released } else { Win16HostGdiCleanup::Failed }

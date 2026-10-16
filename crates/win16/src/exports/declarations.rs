@@ -1,7 +1,7 @@
-//! Typed guest DLL declarations generated from this crate's module specifications.
+//! Typed guest DLL declarations generated from the validated ABI catalog.
 //!
-//! The specification records ABI information; dispatch and host semantics are
-//! implemented by typed Rust bridges. Unknown signatures remain non-callable.
+//! Historical declaration hints remain available to metadata consumers; runtime
+//! descriptors use canonical semantic signatures. Host bridges stay handwritten.
 
 pub use abi_schema::ExportAttributes;
 
@@ -125,7 +125,7 @@ pub struct ExportAbiMetadata {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct ExportSourceLocation {
-    /// Project specification path used for a build-time diagnostic.
+    /// Catalog group path used for a build-time diagnostic; line is zero for TOML.
     pub spec_path: &'static str,
     pub line: u16,
 }
@@ -160,163 +160,51 @@ pub struct ExportMetadata {
     pub source: ExportSourceLocation,
 }
 
-const fn abi(
-    calling_convention: Option<ExportCallingConvention>,
-    signature: ExportSignatureKind,
-    arguments: &'static [ExportArgumentType],
-    return_modifier: ExportReturnModifier,
-) -> ExportAbiMetadata {
-    ExportAbiMetadata { calling_convention, signature, arguments, return_modifier }
-}
-
-macro_rules! entry {
-    ($module:literal, $ordinal:literal, $ordinal_source:expr, $name:expr,
-     $declared_name:literal, $link_name:expr, $import_library_name:expr,
-     $kind:expr, $declaration_type:expr, $abi:expr, $flag_bits:literal,
-     $architecture_constraints:expr, $architecture:expr, $variable_values:expr,
-     $equate_value:expr, $source_module:literal, $spec_path:literal,
-     $line:literal, $raw:literal) => {
-        ExportMetadata {
-            module: $module,
-            source_module: $source_module,
-            ordinal: $ordinal,
-            ordinal_source: $ordinal_source,
-            name: $name,
-            declared_name: $declared_name,
-            link_name: $link_name,
-            import_library_name: $import_library_name,
-            kind: $kind,
-            declaration_type: $declaration_type,
-            abi: $abi,
-            flags: ExportFlags {
-                attributes: ExportAttributes::from_bits_retain($flag_bits),
-                architecture_constraints: $architecture_constraints,
-            },
-            architecture: $architecture,
-            variable_values: $variable_values,
-            equate_value: $equate_value,
-            source: ExportSourceLocation { spec_path: $spec_path, line: $line },
-        }
-    };
-}
-
 include!(concat!(env!("OUT_DIR"), "/win16_exports.rs"));
 
-pub(super) const fn export_name(module: &str, ordinal: u16) -> &'static str {
-    let declaration = declaration(module, ordinal);
-    match declaration.name {
-        Some(name) => name,
-        None => declaration.declared_name,
-    }
-}
-
-pub(super) const fn calling_convention(module: &str, ordinal: u16)
-    -> ExportCallingConvention {
-    let abi = match declaration(module, ordinal).abi {
-        Some(abi) => abi,
-        None => panic!("data exports cannot bind a request decoder"),
-    };
-    match abi.calling_convention {
-        Some(convention) => convention,
-        None => panic!("request binding requires a declared calling convention"),
-    }
-}
-
-pub(super) const fn checked_parameters(
-    module: &str,
-    ordinal: u16,
-    kind: super::Win16ExportAbiKind,
-    parameters: &'static [super::Win16Parameter],
-) -> &'static [super::Win16Parameter] {
-    let declaration = declaration(module, ordinal);
-    let abi = match declaration.abi {
-        Some(abi) => abi,
-        None => panic!("request binding requires a function declaration"),
-    };
-    assert!(matches!(abi.signature, ExportSignatureKind::Known),
-        "unknown signatures cannot bind request decoders");
-    if matches!(kind, super::Win16ExportAbiKind::RegisterContext) {
-        assert!(declaration.flags.contains(ExportAttributes::REGISTER)
-            && parameters.is_empty()
-            && abi.arguments.is_empty(),
-            "register-context binding must match the module specification");
-        return parameters;
-    }
-    assert!(parameters.len() == abi.arguments.len(),
-        "bridge parameter count differs from the module specification");
-    let mut index = 0;
-    while index < parameters.len() {
-        let expected_word = match abi.arguments[index] {
-            ExportArgumentType::Word | ExportArgumentType::SignedWord => true,
-            ExportArgumentType::SegmentedPointer | ExportArgumentType::SegmentedString
-            | ExportArgumentType::Long | ExportArgumentType::Pointer
-            | ExportArgumentType::String | ExportArgumentType::WideString
-            | ExportArgumentType::Float => false,
-            _ => panic!("request binding does not support this encoded argument width"),
-        };
-        let actual_word = matches!(parameters[index].kind,
-            crate::ArgumentKind::Byte | crate::ArgumentKind::Word);
-        assert!(expected_word == actual_word,
-            "bridge parameter width differs from the module specification");
-        index += 1;
-    }
-    parameters
-}
-
-const fn declaration(module: &str, ordinal: u16) -> &'static ExportMetadata {
-    let mut group = 0;
-    while group < WIN16_EXPORTS.len() {
-        let entries = WIN16_EXPORTS[group];
-        if !entries.is_empty() && same_module(entries[0].module, module) {
-            let mut index = 0;
-            while index < entries.len() {
-                if entries[index].ordinal == ordinal
-                    && matches!(entries[index].architecture, ExportArchitecture::Win16) {
-                    return &entries[index];
-                }
-                index += 1;
-            }
-            break;
-        }
-        group += 1;
-    }
-    panic!("request binding has no module specification declaration")
-}
-
-const fn same_module(left: &str, right: &str) -> bool {
-    let left = left.as_bytes();
-    let right = right.as_bytes();
-    if left.len() != right.len() { return false; }
-    let mut index = 0;
-    while index < left.len() {
-        if left[index] != right[index] { return false; }
-        index += 1;
-    }
-    true
-}
-
 /// Look up active Win16 declaration metadata by the same module/name rules used
-/// by the implemented descriptor catalog. A hit describes ABI metadata only.
+/// by the implemented descriptor catalog, including explicit compatibility
+/// names. A hit describes ABI metadata only; aliases return the canonical row.
 pub fn lookup_export_metadata(
     module: &[u8],
     target: ExportLookupTarget<'_>,
 ) -> Option<&'static ExportMetadata> {
+    let canonical_module = WIN16_EXPORTS.iter().flat_map(|chunk| chunk.iter())
+        .find(|entry| metadata_module_matches(module, entry))?.module;
+    // Explicit choices make legacy name collisions independent of the physical
+    // grouping or traversal order of TOML files.
+    let target = match target {
+        ExportLookupTarget::Name(name) => NAME_RESOLUTIONS.iter()
+            .find(|&&(module, alias, _)| module == canonical_module
+                && name.eq_ignore_ascii_case(alias.as_bytes()))
+            .map_or(target, |&(_, _, ordinal)| ExportLookupTarget::Ordinal(ordinal)),
+        target => target,
+    };
     WIN16_EXPORTS.iter().flat_map(|chunk| chunk.iter()).find(|entry| {
         matches!(entry.architecture, ExportArchitecture::Win16)
-            && metadata_module_matches(module, entry)
+            && entry.module == canonical_module
             && match target {
                 ExportLookupTarget::Ordinal(ordinal) => entry.ordinal == ordinal,
-                ExportLookupTarget::Name(name) => entry
-                    .name
-                    .is_some_and(|export_name| name.eq_ignore_ascii_case(export_name.as_bytes())),
+                ExportLookupTarget::Name(name) => {
+                    entry.name.is_some_and(|export_name| {
+                        name.eq_ignore_ascii_case(export_name.as_bytes())
+                    }) || EXPORT_ALIASES.iter().any(|&(module, ordinal, alias)| {
+                        entry.module == module && entry.ordinal == ordinal
+                            && name.eq_ignore_ascii_case(alias.as_bytes())
+                    })
+                }
             }
     })
 }
 
 fn metadata_module_matches(import_name: &[u8], entry: &ExportMetadata) -> bool {
     let normalized = strip_module_suffix(import_name);
-    normalized.eq_ignore_ascii_case(entry.module.as_bytes())
+    normalized.eq_ignore_ascii_case(strip_module_suffix(entry.module.as_bytes()))
         || normalized.eq_ignore_ascii_case(strip_module_suffix(entry.source_module.as_bytes()))
+        || MODULE_ALIASES.iter().any(|&(module, alias)| {
+            entry.module == module
+                && normalized.eq_ignore_ascii_case(strip_module_suffix(alias.as_bytes()))
+        })
 }
 
 fn strip_module_suffix(module: &[u8]) -> &[u8] {
@@ -329,4 +217,24 @@ fn strip_module_suffix(module: &[u8]) -> &[u8] {
                 .then_some(&module[..start])
         })
         .unwrap_or(module)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn suffixed_canonical_module_names_follow_import_normalization() {
+        // Use an artificial copy so the real catalog remains unchanged. A
+        // canonical module ID may itself contain a conventional suffix.
+        let mut entry = *WIN16_EXPORTS.iter().flat_map(|group| group.iter())
+            .next().expect("catalog contains declarations");
+        entry.module = "CANON.DLL";
+        entry.source_module = "physical.exe";
+        for name in [b"CANON".as_slice(), b"canon.dll", b"CaNoN.ExE", b"CANON.DRV", b"canon.mod", b"physical", b"PHYSICAL.EXE"] {
+            assert!(metadata_module_matches(name, &entry), "{name:?}");
+        }
+        assert!(!metadata_module_matches(b"CANON.DLL.DLL", &entry));
+        assert!(!metadata_module_matches(b"different", &entry));
+    }
 }

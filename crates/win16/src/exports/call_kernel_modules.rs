@@ -16,6 +16,17 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Win16ApiRequest, Win16Error> {
     Ok(match export {
+        Win16ExportId::KernelLoadModule => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::Modules(super::Win16KernelModulesRequest::LoadModule {
+                module: module_reference(dword_argument(arguments, 0)?, selectors, memory)?,
+                parameters: dword_argument(arguments, 1)?,
+            }),
+        ),
+        Win16ExportId::KernelFreeModule => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::Modules(super::Win16KernelModulesRequest::FreeModule {
+                module: word_argument(arguments, 0)?,
+            }),
+        ),
         Win16ExportId::KernelGetModuleFileName => {
             let module = word_argument(arguments, 0)?;
             let far_output = dword_argument(arguments, 1)?;

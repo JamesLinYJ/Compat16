@@ -85,6 +85,22 @@ pub(super) fn decode(
                 bitmap: Bitmap16::decode(&bytes).map_err(|_| Win16Error::InvalidRange)?,
             })
         }
+        // Normalize the direct factories to the existing checked brush route.
+        // `hatch` remains a guest scalar/handle: runtime resolves bitmap tokens
+        // or snapshots HGLOBAL DIB data before invoking native GDI.
+        Win16ExportId::GdiCreateHatchBrush
+        | Win16ExportId::GdiCreatePatternBrush
+        | Win16ExportId::GdiCreateDibPatternBrush => {
+            let (style, color) = match export {
+                Win16ExportId::GdiCreateHatchBrush => (2, dword_argument(arguments, 1)?),
+                Win16ExportId::GdiCreatePatternBrush => (3, 0),
+                Win16ExportId::GdiCreateDibPatternBrush => (5, u32::from(word_argument(arguments, 1)?)),
+                _ => unreachable!(),
+            };
+            Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::CreateBrushIndirect {
+                logbrush: LogBrush16 { style, color, hatch: word_argument(arguments, 0)? as i16 },
+            })
+        }
         Win16ExportId::GdiCreateBrushIndirect => {
             let bytes = gdi_calls::read_exact_bytes(
                 dword_argument(arguments, 0)?,

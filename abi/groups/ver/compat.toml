@@ -1,0 +1,112 @@
+module = "VER"
+
+[[exports]]
+ordinal = 2
+name = "GetFileResourceSize"
+binding = { rust_id = "VerGetFileResourceSize", id_value = 592, constant = "VER_GET_FILE_RESOURCE_SIZE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "resource_type", type = "ResourceName" },
+  { name = "name", type = "ResourceName" },
+  { name = "size_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 3
+name = "GetFileResource"
+binding = { rust_id = "VerGetFileResource", id_value = 593, constant = "VER_GET_FILE_RESOURCE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "resource_type", type = "ResourceName" },
+  { name = "name", type = "ResourceName" },
+  { name = "offset", type = "I32" },
+  { name = "count", type = "I32" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 6
+name = "GetFileVersionInfoSize"
+binding = { rust_id = "VerGetFileVersionInfoSize", id_value = 594, constant = "VER_GET_FILE_VERSION_INFO_SIZE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "handle_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 7
+name = "GetFileVersionInfo"
+binding = { rust_id = "VerGetFileVersionInfo", id_value = 595, constant = "VER_GET_FILE_VERSION_INFO" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "handle", type = "U32" },
+  { name = "capacity", type = "U32" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 8
+name = "VerFindFile"
+binding = { rust_id = "VerFindFile", id_value = 596, constant = "VER_FIND_FILE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "flags", type = "U16" },
+  { name = "file", type = "FarString" },
+  { name = "windows_dir", type = "FarString" },
+  { name = "app_dir", type = "FarString" },
+  { name = "dir_output", type = "FarOutputBuffer" },
+  { name = "dir_capacity_output", type = "FarOutputBuffer" },
+  { name = "file_output", type = "FarOutputBuffer" },
+  { name = "file_capacity_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 9
+name = "VerInstallFile"
+binding = { rust_id = "VerInstallFile", id_value = 597, constant = "VER_INSTALL_FILE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "flags", type = "U16" },
+  { name = "source", type = "FarString" },
+  { name = "destination", type = "FarString" },
+  { name = "source_dir", type = "FarString" },
+  { name = "destination_dir", type = "FarString" },
+  { name = "current_dir", type = "FarString" },
+  { name = "scratch_output", type = "FarOutputBuffer" },
+  { name = "scratch_capacity_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 10
+name = "VerLanguageName"
+binding = { rust_id = "VerLanguageName", id_value = 598, constant = "VER_LANGUAGE_NAME" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "language", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 11
+name = "VerQueryValue"
+binding = { rust_id = "VerQueryValue", id_value = 599, constant = "VER_QUERY_VALUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "block", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "sub_block", type = "FarString" },
+  { name = "value_output", type = "FarOutputBuffer" },
+  { name = "length_output", type = "FarOutputBuffer" },
+]

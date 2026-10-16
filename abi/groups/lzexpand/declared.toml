@@ -1,0 +1,16 @@
+module = "LZEXPAND"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 7
+name = "LZStart"
+binding = { rust_id = "LzexpandLzStart", id_value = 606, constant = "LZEXPAND_LZ_START" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 9
+name = "LZDone"
+binding = { rust_id = "LzexpandLzDone", id_value = 608, constant = "LZEXPAND_LZ_DONE" }
+[exports.call]
+returns = "word"

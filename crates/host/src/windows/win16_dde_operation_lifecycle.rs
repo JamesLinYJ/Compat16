@@ -12,6 +12,33 @@ use runtime::{
 use super::{Win16DdeHost, errors};
 
 impl Win16DdeHost {
+    /// A native Complete can still fail at the adapter's source-retirement
+    /// boundary. Keep that accepted operation's exact identity and original
+    /// adapter failure without turning its normal native return into a
+    /// NativeCompleteError or letting the runtime treat it as NeverStarted.
+    pub(in crate::windows) fn source_retirement_failure(
+        &mut self,
+        operation: Win16HostDdeOperation,
+        cause: Arc<RuntimeError>,
+    ) -> Option<Arc<Win16DdeOperationStartedFailure>> {
+        let record = self.pending_operation_instances.get_mut(&operation)?;
+        if record.request_phase != Some(Win16DdeOperationRequestPhase::NativeCompleteReturned)
+            || record.completed_result.is_none()
+            || self.pending_operations.contains(&operation)
+        {
+            return None;
+        }
+        Some(Arc::clone(record.source_retirement_failure.get_or_insert_with(|| {
+            Arc::new(Win16DdeOperationStartedFailure {
+                operation,
+                owner: self.owner,
+                worker_generation: self.worker_generation,
+                request_phase: Win16DdeOperationRequestPhase::NativeCompleteReturned,
+                cause,
+            })
+        })))
+    }
+
     /// Retain the exact submitted DDE operation when a later wait/resume fails.
     /// Only the operation ledger created before command submission can produce
     /// this carrier; absent active-map membership is never interpreted as a

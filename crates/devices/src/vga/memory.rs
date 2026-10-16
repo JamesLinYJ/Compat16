@@ -380,20 +380,14 @@ fn mapped_aperture_offset(graphics_misc: u8, offset: u32) -> Option<u32> {
 
 fn read_mode_1(latches: [u8; 4], color_compare: u8, color_dont_care: u8) -> u8 {
     let mut result = 0xff;
-    for bit in 0..8 {
-        let bit_mask = 1 << bit;
-        for plane in 0..4 {
-            // A zero Don't Care bit removes this plane from the comparison.
-            if color_dont_care & (1 << plane) == 0 {
-                continue;
-            }
-            let actual = latches[plane] & bit_mask != 0;
-            let expected = color_compare & (1 << plane) != 0;
-            if actual != expected {
-                result &= !bit_mask;
-                break;
-            }
+    for (plane, latch) in latches.into_iter().enumerate() {
+        // A zero Don't Care bit removes this plane from the comparison.
+        if color_dont_care & (1 << plane) == 0 {
+            continue;
         }
+        // Each bit survives only if every cared-about plane matches. Compare
+        // all eight pixels at once using the latch or its bitwise complement.
+        result &= if color_compare & (1 << plane) != 0 { latch } else { !latch };
     }
     result
 }

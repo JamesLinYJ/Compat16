@@ -98,7 +98,7 @@ impl Win16State {
         let Some(handle) = self.module_handle(&reference) else { return Ok(0); };
         let record = &self.modules.records[&handle];
         let path = if let Some(external) = record.external_application.as_ref() {
-            if let Some(path) = external.association_path() {
+            if let Some(path) = external.program_path.as_deref().or_else(|| external.association_path()) {
                 path
             } else {
                 super::external_application::report_external_identity_query(

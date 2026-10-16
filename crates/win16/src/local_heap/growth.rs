@@ -2,13 +2,15 @@ use std::fmt;
 
 use super::arena::ArenaInfo;
 use super::{
-    HEAP_LAST_OFFSET, INSTANCE_DATA_BYTES, LOCAL_ARENA_BYTES, MAX_SEGMENT_BYTES,
-    MIN_ARENA_EXTENT, LocalHeap, LocalHeapError, write_word,
+    HEAP_LAST_OFFSET, HEAP_RESERVED_END_OFFSET, INSTANCE_DATA_BYTES, LOCAL_ARENA_BYTES,
+    MAX_SEGMENT_BYTES, MIN_ARENA_EXTENT, LocalHeap, LocalHeapError, read_word, write_word,
 };
 
 /// Failure while extending a validated local heap into an already-grown DGROUP.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalHeapGrowthError {
+    /// LocalInit left application-owned bytes after its explicit heap range.
+    TailNotOwned,
     /// The old and new DGROUP byte lengths do not describe a supported growth.
     InvalidRange {
         old_dgroup_bytes: usize,
@@ -33,6 +35,7 @@ pub enum LocalHeapGrowthError {
 impl fmt::Display for LocalHeapGrowthError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::TailNotOwned => f.write_str("Win16 local heap does not own the enclosing segment tail"),
             Self::InvalidRange { old_dgroup_bytes, new_dgroup_bytes } => write!(
                 f,
                 "Win16 local-heap growth range {old_dgroup_bytes}..{new_dgroup_bytes} bytes is invalid",
@@ -65,6 +68,29 @@ impl std::error::Error for LocalHeapGrowthError {
 }
 
 impl LocalHeap<'_> {
+    /// Re-admit only a tail previously owned by this heap, within the current
+    /// DGROUP limit. Explicit LocalInit ranges never consume adjacent data.
+    pub fn reclaim_reserved_tail(&mut self) -> Result<bool, LocalHeapError> {
+        let offset = usize::from(self.info) + HEAP_RESERVED_END_OFFSET;
+        let reserved = read_word(self.dgroup, offset)
+            .ok_or(LocalHeapError::CorruptHeapInfo { offset })?;
+        if reserved == 0 { return Ok(false); }
+        if reserved & 3 != 0 || reserved < self.last || reserved > 0xfff4 {
+            return Err(LocalHeapError::CorruptHeapInfo { offset });
+        }
+        let terminal = reserved.min(terminal_for_segment_bytes(self.dgroup.len()));
+        if terminal <= self.last { return Ok(false); }
+        let old = self.last;
+        let arenas = self.arenas()?;
+        if terminal - old < MIN_ARENA_EXTENT as u16
+            && !arenas.get(arenas.len().saturating_sub(2)).is_some_and(|arena| arena.free) {
+            return Ok(false);
+        }
+        self.transaction(|heap| { heap.grow_inner(old, terminal)?; Ok(0) })?;
+        self.last = terminal;
+        Ok(true)
+    }
+
     /// Extends the heap to the end of an already-grown caller-owned DGROUP.
     ///
     /// `old_dgroup_bytes` is the exact segment length before the caller grew
@@ -87,6 +113,7 @@ impl LocalHeap<'_> {
         }
 
         self.validate().map_err(LocalHeapGrowthError::Heap)?;
+        if !self.owns_segment_tail() { return Err(LocalHeapGrowthError::TailNotOwned); }
         let old_last = terminal_for_segment_bytes(old_dgroup_bytes);
         if self.last != old_last {
             return Err(LocalHeapGrowthError::NotAtTail {
@@ -157,6 +184,10 @@ impl LocalHeap<'_> {
                 error,
                 LocalHeapError::CorruptHeapInfo { offset: last_offset },
             ))?;
+        let reserved_offset = usize::from(self.info) + HEAP_RESERVED_END_OFFSET;
+        let reserved = read_word(self.dgroup, reserved_offset)
+            .ok_or(LocalHeapError::CorruptHeapInfo { offset: reserved_offset })?;
+        write_word(self.dgroup, &mut self.write_spans, reserved_offset, reserved.max(new_last))?;
         self.store_arenas(&arenas)
     }
 }

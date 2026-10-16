@@ -22,6 +22,8 @@ use super::{
 mod bstr_calls;
 mod convert_calls;
 mod get_element;
+mod ptr_of_index;
+mod put_element;
 mod safearray_calls;
 mod teardown;
 mod variant;
@@ -30,12 +32,19 @@ mod variant_rollback;
 pub(super) use teardown::{preflight_owner_array_contents, release_owner_array_contents};
 
 const S_OK: u32 = 0;
-const E_POINTER: u32 = 0x8000_4003;
-const E_NOTIMPL: u32 = 0x8000_4001;
-const E_OUTOFMEMORY: u32 = 0x8007_000e;
-const E_INVALIDARG: u32 = 0x8007_0057;
+// Win16 OLE2 SCODE values differ from their native Win32 HRESULT namesakes.
+// These constants describe guest-generated failures; native conversion
+// failures are translated explicitly in convert_calls.
+// https://github.com/open-watcom/open-watcom-v2/blob/08a5064dd9831edf10234844630e605e83606989/bld/w16api/include/scode.mh
+const E_POINTER: u32 = 0x8000_0005;
+const E_NOTIMPL: u32 = 0x8000_0001;
+const E_OUTOFMEMORY: u32 = 0x8000_0002;
+const E_INVALIDARG: u32 = 0x8000_0003;
 const DISP_E_BADVARTYPE: u32 = 0x8002_0008;
 const DISP_E_ARRAYISLOCKED: u32 = 0x8002_000d;
+
+#[cfg(test)]
+mod hresult_tests;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum AutomationInterfaceAction {
@@ -308,7 +317,7 @@ impl Win16AutomationState {
                 owner,
                 &mut reject_interface,
             ),
-            15..=25 | 27 | 38..=41 => safearray_calls::execute_safe_array_call(
+            15..=27 | 38..=41 | 109 => safearray_calls::execute_safe_array_call(
                 self,
                 call.ordinal,
                 &call.arguments,

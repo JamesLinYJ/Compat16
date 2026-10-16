@@ -78,6 +78,7 @@ pub(super) fn run_operation(
     state: &Rc<RefCell<WorkerState>>,
     id: u64,
     operation: Win16WindowOperation,
+    win_exec: Option<Result<crate::windows::win16_program_launch::PreparedLaunch, u16>>,
     control_color_return: Option<ControlColorReturnSlot>,
     native_bitmaps: BTreeMap<Win16HostGdiObject, Option<usize>>,
     native_font: Option<(Win16HostGdiObject, usize)>,
@@ -86,6 +87,8 @@ pub(super) fn run_operation(
         Option<super::super::win16_gdi_bitmap_lease::Win16BitmapLease>,
     >,
     native_regions: BTreeMap<Win16HostGdiObject, Option<Win16RegionLease>>,
+    gray_string_brush: Option<super::super::win16_gray_string::BrushLease>,
+    metafile: Option<Arc<super::super::metafile_enumeration::MetafileSession>>,
     response: Sender<Result<Win16WindowStep, RuntimeError>>,
 ) {
     if state.borrow().aborted {
@@ -199,7 +202,7 @@ pub(super) fn run_operation(
             user_services::execute(state, id, operation, control_color_return.as_ref())
         }
         Win16WindowOperation::ShellExecution(operation) => {
-            super::super::win16_shell_execution::execute(state, id, operation)
+            super::super::win16_shell_execution::execute(state, id, operation, win_exec)
         }
         operation => {
             let result = match operation {
@@ -285,6 +288,18 @@ pub(super) fn run_operation(
                     super::super::win16_native_procedures::query(state, window)
                         .map(Win16WindowResult::Procedure)
                 }
+                Win16WindowOperation::QuerySubclassProcedure { window } => {
+                    super::super::win16_native_procedures::query(state, window).map(|procedure|
+                        Win16WindowResult::SubclassProcedure {
+                            procedure,
+                            instance: super::super::win16_window_instances::query(state, window),
+                        })
+                }
+                Win16WindowOperation::SetProcedure { window, previous, restore } => {
+                    super::super::win16_native_procedures::set_procedure(
+                        state, window, previous, restore,
+                    ).map(Win16WindowResult::Procedure)
+                }
                 Win16WindowOperation::CallProcedure {
                     procedure,
                     window,
@@ -303,10 +318,10 @@ pub(super) fn run_operation(
                     Win16WindowResult::Visibility(show_window(state, window, command)),
                 ),
                 Win16WindowOperation::Destroy { window } => {
-                    let (succeeded, invalidated_menus) = destroy_window_operation(state, window);
+                    let (succeeded, retirements) = destroy_window_operation(state, window);
                     Ok(Win16WindowResult::Destroyed {
                         succeeded,
-                        invalidated_menus,
+                        retirements,
                     })
                 }
                 Win16WindowOperation::Menu(operation) => {
@@ -357,6 +372,14 @@ pub(super) fn run_operation(
                     super::super::win16_user_cursor_accelerator::execute(state, operation)
                         .map(Win16WindowResult::UserCursorAccelerator)
                 }
+                Win16WindowOperation::EnumMetafile { dc, bits } => {
+                    super::super::metafile_enumeration::execute(state, dc, bits, metafile.as_deref())
+                        .map(|success| Win16WindowResult::EnumMetafile { success, retired: Vec::new() })
+                }
+                request @ Win16WindowOperation::GrayString { .. } => {
+                    super::super::win16_gray_string::execute(state, request, gray_string_brush.as_ref())
+                        .map(Win16WindowResult::GrayString)
+                }
                 Win16WindowOperation::BeginPaint { window } => {
                     super::super::win16_user_services_window_dc::begin_paint(state, window)
                         .map(|acquired| Win16WindowResult::Paint { acquired })
@@ -376,6 +399,18 @@ pub(super) fn run_operation(
                 .map(Win16WindowResult::WindowDc),
                 Win16WindowOperation::AcquireWindowDc { window: None, .. } => {
                     Ok(Win16WindowResult::WindowDc(None))
+                }
+                Win16WindowOperation::AcquireWindowDcEx { window, region, flags } => {
+                    let region = region.filter(|_| flags & 0xc0 != 0);
+                    let snapshot = region.and_then(|token| native_regions.get(&token))
+                        .and_then(Option::as_ref);
+                    if region.is_some() && snapshot.is_none() {
+                        Ok(Win16WindowResult::WindowDc(None))
+                    } else {
+                        super::super::win16_user_services_window_dc::acquire_window_dc_ex(
+                            state, window, snapshot, flags,
+                        ).map(Win16WindowResult::WindowDc)
+                    }
                 }
                 Win16WindowOperation::ReleaseWindowDc {
                     window: Some(window),
@@ -441,11 +476,13 @@ pub(super) fn run_operation(
             result.map(NativeModalOperationOutcome::Returned)
         }
     };
+    crate::windows::win16_gdi::flush_thread_batch();
     let result = finish_toolbar_bitmap_leases(state, id, result, toolbar_bitmap_leases);
     // Retire native input leases before publishing completion. Otherwise a
     // fast guest DeleteObject after Complete could observe a finished call as
     // still borrowing its region. Suspended callbacks retain this local map.
     drop(native_regions);
+    drop(gray_string_brush);
     let (balanced, stranded) = {
         let mut state = state.borrow_mut();
         if state
@@ -628,6 +665,7 @@ fn finish_toolbar_bitmap_leases(
         Option<super::super::win16_gdi_bitmap_lease::Win16BitmapLease>,
     >,
 ) -> Result<NativeModalOperationOutcome, RuntimeError> {
+    super::super::win16_dialog_icon_controls::retire_after_call(state);
     let lease_cleanup = release_toolbar_bitmap_leases(state, operation, leases);
     let destruction_cleanup =
         super::super::win16_common_controls_bitmap_pins::retire_destroyed_windows(state);

@@ -18,6 +18,9 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{ScrollWindow, ScrollWindowEx};
 use super::super::win16_gdi_objects::Win16RegionLease;
 use super::win16_window_worker::WorkerState;
 
+#[path = "win16_user_services_scroll_dc.rs"]
+mod scroll_dc;
+
 enum WindowTarget {
     Resolved(HWND),
     Stale,
@@ -71,7 +74,7 @@ fn failure_result(operation: &Operation) -> ResultValue {
         | Operation::RedrawWindow { .. } | Operation::LockWindowUpdate { .. } => {
             ResultValue::Word(0)
         }
-        Operation::ScrollWindowEx { .. } => ResultValue::Rect { value: 0, rect: None },
+        Operation::ScrollWindowEx { .. } | Operation::ScrollDC { .. } => ResultValue::Rect { value: 0, rect: None },
     }
 }
 
@@ -230,6 +233,10 @@ pub(super) fn execute(
                 ScrollWindow(hwnd, i32::from(*dx), i32::from(*dy), scroll_ptr, clip_ptr)
             } != 0;
             Ok(ResultValue::Void { succeeded })
+        }
+        Operation::ScrollDC { .. } => {
+            let dcs = { state.borrow().dcs.clone() };
+            scroll_dc::execute(&dcs, &operation, regions)
         }
         Operation::ScrollWindowEx {
             window, dx, dy, scroll_rect, clip_rect, update_region,

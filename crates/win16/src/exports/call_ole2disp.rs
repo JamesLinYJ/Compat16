@@ -12,7 +12,7 @@ use crate::{Access, SelectorTable, Win16Argument, Win16Error, Win16ParameterType
 const MAX_OLE2DISP_COPY: usize = 1 << 20;
 
 const fn supported_guest_ordinal(ordinal: u16) -> bool {
-    matches!(ordinal, 2..=11 | 15..=25 | 27 | 38..=41)
+    matches!(ordinal, 2..=11 | 15..=27 | 38..=41 | 109)
 }
 
 pub(super) fn decode(

@@ -66,7 +66,7 @@ impl std::error::Error for LzError {}
 
 /// Inspect an SZDD header. A non-SZDD file returns `Ok(None)`; a file with a
 /// complete SZDD signature but an incomplete header is reported as truncated.
-pub fn inspect_szdd(input: &[u8]) -> Result<Option<SzddHeader>, LzError> {
+pub fn inspect_szdd_header(input: &[u8]) -> Result<Option<SzddHeader>, LzError> {
     if input.len() < SZDD_MAGIC.len() || input[..SZDD_MAGIC.len()] != SZDD_MAGIC[..] {
         return Ok(None);
     }
@@ -75,15 +75,23 @@ pub fn inspect_szdd(input: &[u8]) -> Result<Option<SzddHeader>, LzError> {
     }
 
     let compression_type = input[8];
-    if compression_type != b'A' {
-        return Err(LzError::UnknownCompressionType(compression_type));
-    }
     let uncompressed_size = u32::from_le_bytes([input[10], input[11], input[12], input[13]]);
     Ok(Some(SzddHeader {
         compression_type,
         last_character: input[9],
         uncompressed_size,
     }))
+}
+
+/// Select a supported decoder after inspecting metadata. Filename queries
+/// need the header's original extension byte even for an unknown algorithm;
+/// they must not pretend to decompress or reject metadata on that basis.
+pub fn inspect_szdd(input: &[u8]) -> Result<Option<SzddHeader>, LzError> {
+    let Some(header) = inspect_szdd_header(input)? else { return Ok(None); };
+    if header.compression_type != b'A' {
+        return Err(LzError::UnknownCompressionType(header.compression_type));
+    }
+    Ok(Some(header))
 }
 
 /// Decompress an SZDD file, enforcing `max_output_size` before allocating.

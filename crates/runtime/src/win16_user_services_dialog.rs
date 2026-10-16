@@ -140,7 +140,7 @@ pub(crate) fn parse_win16_dialog_template(
         owned_creation.extend_from_slice(creation_data);
         items.push(Win16HostDialogItem {
             style, x, y, width, height, id, class, guest_class_name: None, title,
-            creation_data: owned_creation,
+            initial_icon: None, creation_data: owned_creation,
         });
     }
 

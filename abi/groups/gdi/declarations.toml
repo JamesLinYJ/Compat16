@@ -1,0 +1,1187 @@
+module = "GDI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 5
+name = "SetRelAbs"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 38
+name = "Escape"
+decl = { attributes = [], args = ["word", "word", "word", "segmented_pointer", "pointer"] }
+binding = { rust_id = "GdiEscape", id_value = 1224, constant = "GDI_ESCAPE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "escape", type = "U16" },
+  { name = "input_size", type = "U16" },
+  { name = "input", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 46
+name = "BITMAPBITS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 73
+name = "ExcludeVisRect"
+decl = { args = ["word", "signed_word", "signed_word", "signed_word", "signed_word"] }
+
+[[exports]]
+ordinal = 86
+name = "GetRelAbs"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 98
+name = "IntersectVisRect"
+decl = { args = ["word", "signed_word", "signed_word", "signed_word", "signed_word"] }
+
+[[exports]]
+ordinal = 102
+name = "OffsetVisRgn"
+decl = { args = ["word", "signed_word", "signed_word"] }
+
+[[exports]]
+ordinal = 105
+name = "SelectVisRgn"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 117
+name = "SetDCOrg"
+decl = { attributes = [], args = ["word", "signed_word", "signed_word"] }
+
+[[exports]]
+ordinal = 118
+name = "GetSystemIconFont"
+
+[[exports]]
+ordinal = 120
+name = "GetContinuingTextExtent"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 121
+name = "Death"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 122
+name = "Resurrection"
+decl = { args = ["word", "word", "word", "word", "word", "word", "word"] }
+
+
+
+[[exports]]
+ordinal = 129
+name = "SaveVisRgn"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 130
+name = "RestoreVisRgn"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 131
+name = "InquireVisRgn"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 132
+name = "SetEnvironment"
+decl = { args = ["string", "string", "word"] }
+
+[[exports]]
+ordinal = 133
+name = "GetEnvironment"
+decl = { args = ["string", "string", "word"] }
+
+[[exports]]
+ordinal = 135
+name = "ScanLR"
+decl = { args = ["word", "word", "word", "long", "word"] }
+
+[[exports]]
+ordinal = 137
+name = "GSV"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 138
+name = "DPXlate"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 139
+name = "SetWinViewExt"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 140
+name = "ScaleExt"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 141
+name = "WordSet"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 142
+name = "RectStuff"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 143
+name = "OffsetOrg"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 144
+name = "LockDC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 145
+name = "UnlockDC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 146
+name = "LockUnlock"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 147
+name = "GDI_FarFrame"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 152
+name = "GDIInitApp"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 155
+name = "QueryAbort"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 157
+name = "CompatibleBitmap"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 158
+name = "EnumCallback"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 164
+name = "PixToLine"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 169
+name = "IsDCDirty"
+decl = { args = ["word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 170
+name = "SetDCStatus"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 171
+name = "LVBUNION"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 174
+name = "BLOAT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 177
+name = "RCOS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 178
+name = "RSIN"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 179
+name = "GetDCState"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 180
+name = "SetDCState"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 182
+name = "REQUESTSEM"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 183
+name = "CLEARSEM"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 184
+name = "STUFFVISIBLE"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 185
+name = "STUFFINREGION"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 186
+name = "DELETEABOVELINEFONTS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 188
+name = "GetTextExtentEx"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 190
+name = "SetDCHook"
+decl = { args = ["word", "segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 191
+name = "GetDCHook"
+decl = { attributes = [], args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 192
+name = "SetHookFlags"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 195
+name = "SelectBitmap"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 201
+name = "DMBITBLT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 202
+name = "DMCOLORINFO"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 206
+name = "dmEnumDFonts"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 207
+name = "DMENUMOBJ"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 208
+name = "DMOUTPUT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 209
+name = "DMPIXEL"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 210
+name = "dmRealizeObject"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 211
+name = "DMSTRBLT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 212
+name = "DMSCANLR"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 213
+name = "BRUTE"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 214
+name = "DMEXTTEXTOUT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 215
+name = "DMGETCHARWIDTH"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 216
+name = "DMSTRETCHBLT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 217
+name = "DMDIBBITS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 218
+name = "DMSTRETCHDIBITS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 219
+name = "DMSETDIBTODEV"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 220
+name = "DMTRANSPOSE"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 240
+name = "OpenJob"
+decl = { args = ["string", "string", "word"] }
+
+[[exports]]
+ordinal = 241
+name = "WriteSpool"
+decl = { args = ["word", "pointer", "word"] }
+
+[[exports]]
+ordinal = 242
+name = "WriteDialog"
+decl = { args = ["word", "string", "word"] }
+
+[[exports]]
+ordinal = 243
+name = "CloseJob"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 244
+name = "DeleteJob"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 245
+name = "GetSpoolJob"
+decl = { attributes = [], args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 246
+name = "StartSpoolPage"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 247
+name = "EndSpoolPage"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 248
+name = "QueryJob"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 250
+name = "Copy"
+decl = { args = ["pointer", "pointer", "word"] }
+
+[[exports]]
+ordinal = 253
+name = "DeleteSpoolPage"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 254
+name = "SpoolFile"
+decl = { args = ["pointer", "pointer", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 267
+name = "StartDocPrintEra"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 268
+name = "StartPagePrinter"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 269
+name = "WritePrinter"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 270
+name = "EndPagePrinter"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 271
+name = "AbortPrinter"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 272
+name = "EndDocPrinter"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 274
+name = "ClosePrinter"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 280
+name = "GetRealDriverInfo"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 281
+name = "DrvSetPrinterData"
+decl = { attributes = [], args = ["string", "string", "long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 282
+name = "DrvGetPrinterData"
+decl = { attributes = [], args = ["string", "string", "pointer", "pointer", "long", "pointer"] }
+
+[[exports]]
+ordinal = 299
+name = "ENGINEGETCHARWIDTHEX"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 300
+name = "EngineEnumerateFont"
+decl = { attributes = [], args = ["string", "segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 301
+name = "EngineDeleteFont"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 302
+name = "EngineRealizeFont"
+decl = { attributes = [], args = ["pointer", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 303
+name = "EngineGetCharWidth"
+decl = { args = ["pointer", "word", "word", "pointer"] }
+
+[[exports]]
+ordinal = 304
+name = "EngineSetFontContext"
+decl = { args = ["pointer", "word"] }
+
+[[exports]]
+ordinal = 305
+name = "EngineGetGlyphBMP"
+decl = { args = ["word", "pointer", "word", "word", "pointer", "long", "pointer"] }
+
+[[exports]]
+ordinal = 306
+name = "EngineMakeFontDir"
+decl = { attributes = [], args = ["word", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 309
+name = "GetGlyphOutline"
+decl = { attributes = [], args = ["word", "word", "word", "pointer", "long", "pointer", "pointer"] }
+binding = { rust_id = "GdiGetGlyphOutline", id_value = 1256, constant = "GDI_GET_GLYPH_OUTLINE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "character", type = "U16" },
+  { name = "format", type = "U16" },
+  { name = "metrics", type = "FarOutputBuffer" },
+  { name = "byte_count", type = "U32" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "matrix", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 310
+name = "CreateScalableFontResource"
+decl = { args = ["word", "string", "string", "string"] }
+
+[[exports]]
+ordinal = 312
+name = "ConvertOutLineFontFile"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 314
+name = "EngineExtTextOut"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 315
+name = "EngineRealizeFontExt"
+decl = { attributes = [], args = ["long", "long", "long", "long"] }
+
+[[exports]]
+ordinal = 316
+name = "EngineGetCharWidthStr"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 317
+name = "EngineGetGlyphBmpExt"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 347
+name = "MFDRAWTEXT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 352
+name = "GetPhysicalFontHandle"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 354
+name = "ShrinkGDIHeap"
+
+[[exports]]
+ordinal = 355
+name = "FTrapping0"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 400
+name = "FastWindowFrame"
+decl = { args = ["word", "pointer", "signed_word", "signed_word", "long"] }
+
+[[exports]]
+ordinal = 401
+name = "GdiMoveBitmap"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 402
+name = "GDIGETBITSGLOBAL"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 403
+name = "GdiInit2"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 404
+name = "GetTTGlyphIndexMap"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 405
+name = "FinalGdiInit"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 406
+name = "CREATEREALBITMAPINDIRECT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 407
+name = "CreateUserBitmap"
+decl = { args = ["word", "word", "word", "word", "pointer"] }
+
+[[exports]]
+ordinal = 408
+name = "CREATEREALBITMAP"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 409
+name = "CreateUserDiscardableBitmap"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 410
+name = "IsValidMetaFile"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 411
+name = "GetCurLogFont"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 412
+name = "IsDCCurrentPalette"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 449
+name = "DEVICECOLORMATCH"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 452
+name = "GdiSeeGdiDo"
+decl = { attributes = [], args = ["word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 460
+name = "GdiTaskTermination"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 461
+name = "SetObjectOwner"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 463
+name = "MakeObjectPrivate"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 464
+name = "FIXUPBOGUSPUBLISHERMETAFILE"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 467
+name = "UnicodeToAnsi"
+decl = { args = ["segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 488
+name = "GetFontAssocStatus"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 489
+name = "CreateDIBSection"
+decl = { args = ["word", "pointer", "word", "pointer", "long", "long"] }
+
+[[exports]]
+ordinal = 490
+name = "CloseEnhMetafile"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 491
+name = "CopyEnhMetafile"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 492
+name = "CreateEnhMetafile"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 493
+name = "DeleteEnhMetafile"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 495
+name = "GDIComment"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 496
+name = "GetEnhMetafile"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 497
+name = "GetEnhMetafileBits"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 498
+name = "GetEnhMetafileDescription"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 499
+name = "GetEnhMetafileHeader"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 501
+name = "GetEnhMetafilePaletteEntries"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 504
+name = "PlayEnhMetafileRecord"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 505
+name = "SetEnhMetafileBits"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 506
+name = "SetMetaRgn"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 523
+name = "ExtCreatePen"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 526
+name = "GetMiterLimit"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 527
+name = "SetMiterLimit"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 528
+name = "GDIParametersInfo"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 530
+name = "RawTextOut"
+decl = { args = ["word", "signed_word", "signed_word", "string", "word"] }
+
+[[exports]]
+ordinal = 531
+name = "RawExtTextOut"
+decl = { args = ["word", "signed_word", "signed_word", "word", "pointer", "string", "word", "pointer"] }
+
+[[exports]]
+ordinal = 532
+name = "RawGetTextExtent"
+decl = { args = ["word", "string", "word"] }
+
+[[exports]]
+ordinal = 533
+name = "RawGetTextExtentEx"
+
+[[exports]]
+ordinal = 536
+name = "BiDiLayout"
+
+[[exports]]
+ordinal = 537
+name = "BiDiCreateTabString"
+
+[[exports]]
+ordinal = 538
+name = "BiDiCreateString"
+
+[[exports]]
+ordinal = 539
+name = "BiDiStringOut"
+
+[[exports]]
+ordinal = 540
+name = "BiDiGlyphOut"
+decl = { args = ["word", "word", "word", "word", "string", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 541
+name = "BiDiJustifyString"
+
+[[exports]]
+ordinal = 542
+name = "BiDiSetStringTabs"
+
+[[exports]]
+ordinal = 543
+name = "BiDiGetStringExtent"
+
+[[exports]]
+ordinal = 544
+name = "BiDiGetNextGlyph"
+
+[[exports]]
+ordinal = 545
+name = "BiDiGetPrevGlyph"
+
+[[exports]]
+ordinal = 546
+name = "BiDiIsStringRTL"
+
+[[exports]]
+ordinal = 547
+name = "BiDiGlyphLength"
+
+[[exports]]
+ordinal = 548
+name = "BiDiCaretStringToPel"
+
+[[exports]]
+ordinal = 549
+name = "BiDiCaretPelToString"
+
+[[exports]]
+ordinal = 550
+name = "BiDiStringToGlyph"
+
+[[exports]]
+ordinal = 551
+name = "BiDiGlyphToString"
+
+[[exports]]
+ordinal = 552
+name = "BiDiPelToGlyph"
+
+[[exports]]
+ordinal = 553
+name = "BiDiGlyphToPel"
+
+[[exports]]
+ordinal = 554
+name = "BiDiBounds"
+
+[[exports]]
+ordinal = 555
+name = "BiDiDeleteString"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 556
+name = "BiDiSetDefaults"
+
+[[exports]]
+ordinal = 558
+name = "BiDiGetDefaults"
+
+[[exports]]
+ordinal = 559
+name = "BiDiCalcString"
+decl = { args = ["word", "word", "pointer", "word", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 560
+name = "BiDiShape"
+decl = { args = ["word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 561
+name = "BiDiFontComplement"
+
+[[exports]]
+ordinal = 563
+name = "BiDiCalcTabString"
+
+[[exports]]
+ordinal = 564
+name = "BiDiSetKashida"
+
+[[exports]]
+ordinal = 565
+name = "BiDiKExtTextOut"
+
+[[exports]]
+ordinal = 566
+name = "BiDiShapeEx"
+
+[[exports]]
+ordinal = 569
+name = "BiDiCreateStringEx"
+decl = { args = ["word", "word", "word", "pointer", "word", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 570
+name = "GetUnicodeMap"
+
+[[exports]]
+ordinal = 571
+name = "GetTextExtentRtoL"
+
+[[exports]]
+ordinal = 572
+name = "GetHDCCharSet"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 573
+name = "BiDiLayoutEx"
+decl = { args = ["pointer", "word", "word", "word", "pointer", "word", "word", "word", "word", "pointer", "pointer", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 574
+name = "BiDiCreateTabStringEx"
+
+[[exports]]
+ordinal = 575
+name = "BiDiCalcTabStringEx"
+
+[[exports]]
+ordinal = 576
+name = "BiDiCalcStringEx"
+
+[[exports]]
+ordinal = 588
+name = "SetTextCodePage"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 589
+name = "GetTextCodePage"
+
+[[exports]]
+ordinal = 604
+name = "SetSolidBrush"
+decl = { args = ["word", "long"] }
+
+[[exports]]
+ordinal = 605
+name = "SysDeleteObject"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 606
+name = "SetMagicColors"
+decl = { args = ["word", "long", "word"] }
+
+[[exports]]
+ordinal = 607
+name = "GetRegionData"
+decl = { attributes = [], args = ["word", "long", "pointer"] }
+
+[[exports]]
+ordinal = 608
+name = "ExtCreateRegion"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 609
+name = "GdiFreeResources"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 610
+name = "GdiSignalProc32"
+decl = { args = ["long", "long", "long", "word"] }
+
+[[exports]]
+ordinal = 611
+name = "GetRandomRgn"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 612
+name = "GetTextCharset"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 613
+name = "EnumFontFamiliesEx"
+decl = { args = ["word", "pointer", "segmented_pointer", "long", "long"] }
+
+[[exports]]
+ordinal = 614
+name = "AddLpkToGDI"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 615
+name = "GetCharacterPlacement"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 616
+name = "GetFontLanguageInfo"
+decl = { attributes = [], args = ["word"] }
+
+[[exports]]
+ordinal = 650
+name = "BuildInverseTableDIB"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 701
+name = "GDITHKCONNECTIONDATALS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 702
+name = "FT_GDIFTHKTHKCONNECTIONDATA"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 703
+name = "FDTHKCONNECTIONDATASL"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 704
+name = "ICMTHKCONNECTIONDATASL"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 820
+name = "ICMCreateTransform"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 821
+name = "ICMDeleteTransform"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 822
+name = "ICMTranslateRGB"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 823
+name = "ICMTranslateRGBs"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 824
+name = "ICMCheckColorsInGamut"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 1000
+name = "SetLayout"
+decl = { args = ["word", "long"] }
+
+[[exports]]
+ordinal = 1001
+name = "GetLayout"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 5000
+name = "DllEntryPoint"
+decl = { attributes = [], args = ["long", "word", "word", "word", "long", "word"] }

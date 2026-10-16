@@ -256,6 +256,23 @@ impl Win16State {
                     )?;
                     return Ok(());
                 }
+                Win16WindowStep::NativeSubclassCallback {
+                    operation_id, callback, window: native, message, source,
+                } => {
+                    self.validate_native_window_callback_owner(operation_id, callback, source)?;
+                    let (window, address, instance, root) =
+                        self.native_subclass_callback_owner(native)?;
+                    let destroyed = matches!(&message, Win16HostMessage::Scalar {
+                        kind: Win16ScalarMessage::NcDestroy, ..
+                    });
+                    self.begin_host_procedure_callback(
+                        registers, memory, host, operation_id, callback, native,
+                        window, address, instance,
+                        super::callback_entry::WindowProcedureSource::NativeSubclass(root),
+                        message, None, source, destroyed,
+                    )?;
+                    return Ok(());
+                }
                 Win16WindowStep::DialogCallback {
                     operation_id, callback, window: native, message, source,
                 } => {
@@ -274,13 +291,29 @@ impl Win16State {
                     )? {
                         return Ok(());
                     }
-                    step = host.win16_window_resume(Some(Win16WindowReply {
+                    let reply = Win16WindowReply {
                         callback,
                         result: crate::Win16HostMessageResult { dialog_result: None,
                             value: 0,
                             output: crate::Win16HostMessageOutput::None,
                         },
-                    }))?;
+                    };
+                    let default_owner = self.window_callbacks.last().filter(|frame| {
+                        frame.host_operation == Some(operation_id)
+                            && frame.callback_address == 0
+                            && matches!(frame.continuation,
+                                WindowCallbackContinuation::HostDialog { callback: owned, .. }
+                                    if owned == callback)
+                    }).map(|frame| frame.callback_id);
+                    step = if let Some(callback_id) = default_owner {
+                        // No guest code ran, so don't fabricate a FAR return.
+                        // Keep this source on resume failure just like WndProc.
+                        let next = self.resume_native_window_callback(reply, host)?;
+                        self.retire_window_callback_frame(callback_id)?;
+                        next
+                    } else {
+                        host.win16_window_resume(Some(reply))?
+                    };
                 }
                 Win16WindowStep::Complete(result) => {
                     return self.complete_window_operation(registers, host, result);
@@ -290,7 +323,7 @@ impl Win16State {
                     time, source,
                 } => {
                     self.validate_native_window_callback_owner(operation_id, callback, source)?;
-                    if self.begin_host_timer_callback(registers, memory, callback, window,
+                    if self.begin_host_timer_callback(registers, memory, host, callback, window,
                         host_timer_id, guest_w_param, guest_l_param, time,
                         operation_id, source)? {
                         return Ok(());
@@ -305,9 +338,27 @@ impl Win16State {
                 } => {
                     self.validate_native_window_callback_owner(operation_id, callback, source)?;
                     self.retain_window_property_callback(
-                        registers, memory, callback, window, name, data, operation_id, source,
+                        registers, memory, host, callback, window, name, data, operation_id, source,
                     )?;
                     return Ok(());
+                }
+                Win16WindowStep::MetafileCallback { operation_id, callback, dc, record, object_count, source } => {
+                    self.validate_native_window_callback_owner(operation_id, callback, source)?;
+                    self.retain_metafile_callback(registers, memory, host, callback, dc,
+                        record, object_count, operation_id, source)?;
+                    return Ok(());
+                }
+                Win16WindowStep::GrayStringCallback { operation_id, callback, dc, count, source } => {
+                    self.validate_native_window_callback_owner(operation_id, callback, source)?;
+                    if self.retain_gray_string_callback(registers, callback, dc, count,
+                        operation_id, source)? {
+                        return Ok(());
+                    }
+                    step = host.win16_window_resume(Some(Win16WindowReply {
+                        callback,
+                        result: crate::Win16HostMessageResult { dialog_result: None, value: 0,
+                            output: crate::Win16HostMessageOutput::None },
+                    }))?;
                 }
             }
         }

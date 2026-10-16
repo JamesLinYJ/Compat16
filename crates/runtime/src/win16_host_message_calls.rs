@@ -5,12 +5,27 @@
 //! guest-bit values kept numeric for a verified guest WndProc or the current
 //! task's thread queue.
 
-use crate::{Win16HostClass, Win16HostWindow, Win16MessageParam};
+use crate::{Win16HostClass, Win16HostWindow, Win16MessageParam, Win16ScalarMessage};
 use crate::win16_runtime::guest_ranges::GuestOutputRange;
 
 /// A USER operation executed on the dedicated native window thread.
 #[derive(Clone, Debug)]
 pub enum Win16MessageCall {
+    /// Receive pending sent messages for this exact task without removing a
+    /// posted message, then offer the native thread's remaining time slice.
+    Yield { task_queue: crate::Win16HostTaskQueue },
+    /// HWND_BROADCAST is an explicit target, never an opaque window token.
+    /// Only a classified scalar message may reach unrelated native windows.
+    SendBroadcast {
+        kind: Win16ScalarMessage,
+        w_param: u16,
+        l_param: u32,
+    },
+    PostBroadcast {
+        kind: Win16ScalarMessage,
+        w_param: u16,
+        l_param: u32,
+    },
     SendMessage {
         window: Win16HostWindow,
         message: u16,
@@ -52,13 +67,22 @@ pub enum Win16MessageCall {
         window: Option<Win16HostWindow>,
         host_timer_id: u64,
     },
-    SetFocus { window: Win16HostWindow },
+    /// None is the documented NULL target that clears this queue's focus;
+    /// an unknown nonzero guest HWND must never be translated to None.
+    SetFocus { window: Option<Win16HostWindow> },
     GetFocus,
     SetCapture { window: Win16HostWindow },
     GetCapture,
     ReleaseCapture,
     GetMessagePos,
     GetMessageTime,
+    /// Scalar queue metadata; no native or guest pointer is dereferenced.
+    GetMessageExtraInfo,
+    /// Query InSendMessage on the native worker owning the active guest WndProc.
+    InSendMessage,
+    /// Run on the same native WndProc stack as InSendMessage. The LONG stays
+    /// signed when widened to native LRESULT; no guest address is forwarded.
+    ReplyMessage { result: i32 },
     GetInputState,
     GetQueueStatus { flags: u16 },
     GetKeyboardState,
@@ -68,6 +92,7 @@ pub enum Win16MessageCall {
 /// Result from one native USER message/input operation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16MessageCallResult {
+    Yielded,
     Boolean(bool),
     Window(Option<Win16HostWindow>),
     Dword(u32),
@@ -81,6 +106,7 @@ pub enum Win16MessageCallResult {
 /// timer-ID translation belong to the Win16 ABI, not USER's native handle.
 #[derive(Debug)]
 pub(crate) enum Win16MessageCallContinuation {
+    Yield,
     Boolean { return_kind: win16_abi::Win16ReturnKind },
     /// Keep queue waits distinct so guest work cannot complete a BOOL call.
     WaitMessage { return_kind: win16_abi::Win16ReturnKind },

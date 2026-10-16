@@ -1,0 +1,334 @@
+# Compact authoring schema v2; normalized by abi-schema before code generation.
+version = 2
+groups = [
+  "groups/avifile/declared.toml",
+  "groups/comm/declared.toml",
+  "groups/commctrl/common_controls.toml",
+  "groups/commctrl/declared.toml",
+  "groups/commdlg/common_dialog.toml",
+  "groups/commdlg/declared.toml",
+  "groups/compobj/compat.toml",
+  "groups/compobj/declared.toml",
+  "groups/ctl3d/ctl3d.toml",
+  "groups/ctl3d/declared.toml",
+  "groups/ctl3dv2/ctl3d.toml",
+  "groups/ctl3dv2/declared.toml",
+  "groups/ddeml/dde.toml",
+  "groups/dispdib/declared.toml",
+  "groups/display/declared.toml",
+  "groups/gdi/contexts.toml",
+  "groups/gdi/coordinates.toml",
+  "groups/gdi/declarations.toml",
+  "groups/gdi/drawing.toml",
+  "groups/gdi/fonts_text.toml",
+  "groups/gdi/metafiles.toml",
+  "groups/gdi/objects.toml",
+  "groups/gdi/print_queue.toml",
+  "groups/gdi/raster.toml",
+  "groups/gdi/regions_paths.toml",
+  "groups/gdi/services.toml",
+  "groups/kernel/atoms.toml",
+  "groups/kernel/declarations.toml",
+  "groups/kernel/diagnostics.toml",
+  "groups/kernel/files.toml",
+  "groups/kernel/locale.toml",
+  "groups/kernel/memory.toml",
+  "groups/kernel/process.toml",
+  "groups/kernel/profiles.toml",
+  "groups/kernel/resources.toml",
+  "groups/kernel/services.toml",
+  "groups/kernel/services_extra.toml",
+  "groups/kernel/thunks.toml",
+  "groups/keyboard/declared.toml",
+  "groups/keyboard/keyboard.toml",
+  "groups/keyboard/keyboard_family.toml",
+  "groups/lzexpand/compat.toml",
+  "groups/lzexpand/declared.toml",
+  "groups/mmsystem/declared.toml",
+  "groups/mmsystem/mci.toml",
+  "groups/mmsystem/media_io.toml",
+  "groups/mmsystem/media_services.toml",
+  "groups/mmsystem/media_time.toml",
+  "groups/mmsystem/midi.toml",
+  "groups/mmsystem/sound.toml",
+  "groups/mmsystem/wave.toml",
+  "groups/mouse/declared.toml",
+  "groups/msacm/declared.toml",
+  "groups/msacm/media_services.toml",
+  "groups/msacm/msacm.toml",
+  "groups/msvideo/declared.toml",
+  "groups/nddeapi/declared.toml",
+  "groups/netapi/declared.toml",
+  "groups/ole2/declared.toml",
+  "groups/ole2conv/declared.toml",
+  "groups/ole2disp/declared.toml",
+  "groups/ole2disp/ole2disp.toml",
+  "groups/ole2disp/ole2disp_convert.toml",
+  "groups/ole2nls/declared.toml",
+  "groups/ole2nls/ole2nls.toml",
+  "groups/ole2prox/declared.toml",
+  "groups/ole2thk/declared.toml",
+  "groups/olecli/declared.toml",
+  "groups/olecli/ole1.toml",
+  "groups/olesvr/declared.toml",
+  "groups/olesvr/ole1.toml",
+  "groups/penwin/declared.toml",
+  "groups/rmpatch/declared.toml",
+  "groups/shell/compat.toml",
+  "groups/shell/declared.toml",
+  "groups/shell/shell_drive.toml",
+  "groups/shell/shell_drop.toml",
+  "groups/shell/shell_execution.toml",
+  "groups/shell/shell_icons.toml",
+  "groups/shell/shell_registry.toml",
+  "groups/sound/declared.toml",
+  "groups/sound/sound.toml",
+  "groups/storage/declared.toml",
+  "groups/stress/declared.toml",
+  "groups/system/declared.toml",
+  "groups/timer/declared.toml",
+  "groups/toolhelp/declared.toml",
+  "groups/toolhelp/kernel_services.toml",
+  "groups/toolhelp/toolhelp.toml",
+  "groups/toolhelp/toolhelp_limited.toml",
+  "groups/toolhelp/toolhelp_memory.toml",
+  "groups/toolhelp/toolhelp_notify.toml",
+  "groups/toolhelp/toolhelp_stack.toml",
+  "groups/typelib/declared.toml",
+  "groups/user/atoms.toml",
+  "groups/user/clipboard.toml",
+  "groups/user/controls.toml",
+  "groups/user/declarations.toml",
+  "groups/user/drawing.toml",
+  "groups/user/hooks.toml",
+  "groups/user/input.toml",
+  "groups/user/menus.toml",
+  "groups/user/messages.toml",
+  "groups/user/network.toml",
+  "groups/user/raster.toml",
+  "groups/user/resources.toml",
+  "groups/user/services.toml",
+  "groups/user/shell_icons.toml",
+  "groups/user/strings.toml",
+  "groups/user/windows.toml",
+  "groups/ver/compat.toml",
+  "groups/ver/declared.toml",
+  "groups/wifeman/declared.toml",
+  "groups/wifeman/keyboard_family.toml",
+  "groups/win87em/declared.toml",
+  "groups/wing/declared.toml",
+  "groups/wing/gdi_device.toml",
+  "groups/wing/wing_device.toml",
+  "groups/winmem32/declared.toml",
+  "groups/winnls/declared.toml",
+  "groups/winnls/winnls.toml",
+  "groups/winoldap/declared.toml",
+  "groups/winsock/winsock.toml",
+  "groups/winspool/declared.toml",
+  "groups/winspool/printer.toml",
+]
+types = [
+  "types/runtime.toml",
+]
+
+[defaults]
+architecture = "win16"
+ordinal_source = "explicit"
+
+[[modules]]
+id = "AVIFILE"
+source_module = "avifile.DLL"
+
+[[modules]]
+id = "COMM"
+source_module = "comm.DRV"
+
+[[modules]]
+id = "COMMCTRL"
+source_module = "commctrl.DLL"
+
+[[modules]]
+id = "COMMDLG"
+source_module = "commdlg.DLL"
+
+[[modules]]
+id = "COMPOBJ"
+source_module = "compobj.DLL"
+
+[[modules]]
+id = "CTL3D"
+source_module = "ctl3d.DLL"
+
+[[modules]]
+id = "CTL3DV2"
+source_module = "ctl3dv2.DLL"
+
+[[modules]]
+id = "DDEML"
+source_module = "ddeml.DLL"
+
+[[modules]]
+id = "DISPDIB"
+source_module = "dispdib.DLL"
+
+[[modules]]
+id = "DISPLAY"
+source_module = "display.DRV"
+
+[[modules]]
+id = "GDI"
+source_module = "gdi.EXE"
+
+[[modules]]
+id = "KERNEL"
+source_module = "krnl386.EXE"
+aliases = ["krnl386"]
+
+[[modules]]
+id = "KEYBOARD"
+source_module = "keyboard.DRV"
+
+[[modules]]
+id = "LZEXPAND"
+source_module = "lzexpand.DLL"
+
+[[modules]]
+id = "MMSYSTEM"
+source_module = "mmsystem.DLL"
+
+[[modules]]
+id = "MOUSE"
+source_module = "mouse.DRV"
+
+[[modules]]
+id = "MSACM"
+source_module = "msacm.DLL"
+
+[[modules]]
+id = "MSVIDEO"
+source_module = "msvideo.DLL"
+
+[[modules]]
+id = "NDDEAPI"
+source_module = "nddeapi.DLL"
+
+[[modules]]
+id = "NETAPI"
+source_module = "netapi.DLL"
+
+[[modules]]
+id = "OLE2"
+source_module = "ole2.DLL"
+
+[[modules]]
+id = "OLE2CONV"
+source_module = "ole2conv.DLL"
+
+[[modules]]
+id = "OLE2DISP"
+source_module = "ole2disp.DLL"
+
+[[modules]]
+id = "OLE2NLS"
+source_module = "ole2nls.DLL"
+
+[[modules]]
+id = "OLE2PROX"
+source_module = "ole2prox.DLL"
+
+[[modules]]
+id = "OLE2THK"
+source_module = "ole2thk.DLL"
+
+[[modules]]
+id = "OLECLI"
+source_module = "olecli.DLL"
+
+[[modules]]
+id = "OLESVR"
+source_module = "olesvr.DLL"
+
+[[modules]]
+id = "PENWIN"
+source_module = "PENWIN.DLL"
+
+[[modules]]
+id = "RMPATCH"
+source_module = "rmpatch.DLL"
+
+[[modules]]
+id = "SHELL"
+source_module = "shell.DLL"
+
+[[modules]]
+id = "SOUND"
+source_module = "sound.DRV"
+
+[[modules]]
+id = "STORAGE"
+source_module = "storage.DLL"
+
+[[modules]]
+id = "STRESS"
+source_module = "stress.DLL"
+
+[[modules]]
+id = "SYSTEM"
+source_module = "system.DRV"
+
+[[modules]]
+id = "TIMER"
+source_module = "timer.DRV"
+
+[[modules]]
+id = "TOOLHELP"
+source_module = "toolhelp.DLL"
+
+[[modules]]
+id = "TYPELIB"
+source_module = "typelib.DLL"
+
+[[modules]]
+id = "USER"
+source_module = "user.EXE"
+
+[[modules]]
+id = "VER"
+source_module = "ver.DLL"
+
+[[modules]]
+id = "WIFEMAN"
+source_module = "wifeman.DLL"
+
+[[modules]]
+id = "WIN87EM"
+source_module = "win87em.DLL"
+
+[[modules]]
+id = "WING"
+source_module = "wing.DLL"
+
+[[modules]]
+id = "WINMEM32"
+source_module = "winmem32.DLL"
+
+[[modules]]
+id = "WINNLS"
+source_module = "winnls.DLL"
+
+[[modules]]
+id = "WINOLDAP"
+source_module = "winoldap.MOD"
+
+[[modules]]
+id = "WINSOCK"
+source_module = "winsock.DLL"
+
+[[modules]]
+id = "WINSPOOL"
+source_module = "winspool.DRV"
+
+[[name_resolutions]]
+module = "USER"
+name = "OLDEXITWINDOWS"
+ordinal = 2

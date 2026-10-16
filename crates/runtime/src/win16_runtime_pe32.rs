@@ -207,6 +207,10 @@ impl Pe32ThunkDispatcher {
         ))
     }
 
+    pub(super) fn checkpoint_scope(&self) -> impl ExactSizeIterator<Item = Pe32CallNonce> + '_ {
+        self.active.iter().map(|entry| entry.nonce)
+    }
+
     pub(super) const fn has_active_call(&self) -> bool {
         !self.active.is_empty()
     }
@@ -738,3 +742,7 @@ fn module_name_leaf(name: &[u8]) -> Result<&[u8], RuntimeError> {
     }
     Ok(leaf)
 }
+
+#[cfg(test)]
+#[path = "win16_runtime_pe32_boundary_budget_tests.rs"]
+mod boundary_budget_tests;

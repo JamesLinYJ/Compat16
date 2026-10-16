@@ -35,6 +35,10 @@ fn decode_gdi(
     memory: &impl GuestMemory,
 ) -> Result<Option<Request>, Win16Error> {
     let request = match ordinal {
+        38 => Request::Escape {
+            dc: word(a, 0)?, escape: word(a, 1)? as i16, input_size: word(a, 2)? as i16,
+            input: dword(a, 3)?, output: dword(a, 4)?,
+        },
         74 => Request::GetBitmapBits {
             bitmap: word(a, 0)?, byte_count: dword(a, 1)? as i32, output: dword(a, 2)?,
         },
@@ -344,3 +348,7 @@ fn read_pointer(
     }
     Ok(bytes)
 }
+
+#[cfg(test)]
+#[path = "call_escape_tests.rs"]
+mod escape_tests;

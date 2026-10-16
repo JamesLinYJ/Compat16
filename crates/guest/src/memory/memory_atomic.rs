@@ -8,6 +8,20 @@ use crate::{AtomicMemoryRange, GuestMemory, MemoryError, PhysAddr};
 use super::{BusMemory, Memory};
 
 impl GuestMemory for Memory {
+    fn plain_ram_identity(&self, address: PhysAddr, length: usize) -> Option<PhysAddr> {
+        self.validate_ram_range(address,length,false).ok()?;
+        Some(address)
+    }
+    fn read_plain_data(&self, address: PhysAddr, output: &mut [u8], writable: bool) -> Result<bool, MemoryError> {
+        self.check_storage_failure()?;
+        if self.validate_ram_range(address,output.len(),writable).is_err() { return Ok(false); }
+        self.record_storage_result(self.backing.read_plain_data(address.0,output,writable))
+    }
+    fn read_plain_code(&self, address: PhysAddr, output: &mut [u8]) -> Result<bool, MemoryError> {
+        self.check_storage_failure()?;
+        if self.validate_ram_range(address, output.len(), false).is_err() { return Ok(false); }
+        self.record_storage_result(self.backing.read_plain_code(address.0, output))
+    }
     fn len(&self) -> u32 {
         self.size_bytes()
     }
@@ -91,6 +105,31 @@ impl GuestMemory for Memory {
 }
 
 impl GuestMemory for BusMemory<'_> {
+    fn plain_ram_identity(&self, address: PhysAddr, length: usize) -> Option<PhysAddr> {
+        let delta=u32::try_from(length.checked_sub(1)?).ok()?;
+        let last=address.0.checked_add(delta)?;
+        if !self.memory.a20_enabled() && address.0 >> 20 != last >> 20 {return None;}
+        let first=self.memory.decode_a20(address.0);
+        if first.checked_add(delta)!=Some(self.memory.decode_a20(last)) {return None;}
+        self.memory.plain_ram_identity(PhysAddr(first),length)
+    }
+    fn read_plain_data(&self, address: PhysAddr, output: &mut [u8], writable: bool) -> Result<bool, MemoryError> {
+        let Ok(delta)=u32::try_from(output.len().saturating_sub(1)) else {return Ok(false);};
+        let Some(last)=address.0.checked_add(delta) else {return Ok(false);};
+        if !self.memory.a20_enabled() && address.0 >> 20 != last >> 20 {return Ok(false);}
+        let first=self.memory.decode_a20(address.0);
+        if first.checked_add(delta)!=Some(self.memory.decode_a20(last)) {return Ok(false);}
+        self.memory.read_plain_data(PhysAddr(first),output,writable)
+    }
+    fn read_plain_code(&self, address: PhysAddr, output: &mut [u8]) -> Result<bool, MemoryError> {
+        // A20 wrap must not join discontiguous banks into a code span.
+        let Ok(delta) = u32::try_from(output.len().saturating_sub(1)) else { return Ok(false); };
+        let Some(last) = address.0.checked_add(delta) else { return Ok(false); };
+        if !self.memory.a20_enabled() && address.0 >> 20 != last >> 20 { return Ok(false); }
+        let first = self.memory.decode_a20(address.0);
+        if first.checked_add(delta) != Some(self.memory.decode_a20(last)) { return Ok(false); }
+        self.memory.read_plain_code(PhysAddr(first), output)
+    }
     fn len(&self) -> u32 {
         self.memory.len()
     }

@@ -1,0 +1,58 @@
+module = "SYSTEM"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "InquireSystem"
+decl = { attributes = [], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 2
+name = "CreateSystemTimer"
+decl = { args = ["word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 3
+name = "KillSystemTimer"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 4
+name = "EnableSystemTimers"
+
+[[exports]]
+ordinal = 5
+name = "DisableSystemTimers"
+
+[[exports]]
+ordinal = 6
+name = "GetSystemMSecCount"
+decl = { attributes = [] }
+binding = { rust_id = "SystemGetSystemMsecCount", id_value = 126, constant = "SYSTEM_GET_SYSTEM_MSEC_COUNT" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 7
+name = "Get80x87SaveSize"
+
+[[exports]]
+ordinal = 8
+name = "Save80x87State"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 9
+name = "Restore80x87State"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 13
+name = "INQUIRELONGINTS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 20
+name = "A20_Proc"
+decl = { args = ["word"] }

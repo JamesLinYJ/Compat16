@@ -7,7 +7,7 @@
 //! [`GetVDMPointer32W`](https://learn.microsoft.com/en-us/previous-versions/aa383698(v=vs.85)),
 //! and [`CallProcEx32W`](https://learn.microsoft.com/en-us/previous-versions/aa383672(v=vs.85)).
 //! The project-owned KERNEL declarations at
-//! `crates/win16/specs/kernel.spec:382-387` provide the Win16 stack widths and
+//! `abi/groups/kernel/thunks.toml` provide the Win16 stack widths and
 //! source conventions. All frame reads and source cleanup calculations go
 //! through `Win16CallFrame`; strings use the bounded shared ANSI-Z reader.
 

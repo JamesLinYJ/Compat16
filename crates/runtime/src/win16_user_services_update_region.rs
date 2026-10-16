@@ -3,6 +3,11 @@
 //! Guest FAR pointers and handles are resolved before the operation crosses
 //! the host boundary. The continuation retains only checked guest output
 //! pointers and the guest ABI result shape; native identities remain opaque.
+//!
+//! ScrollDC preserves the native DC mapping and uses the existing update RECT
+//! coordinate saturation on return. Original Win16 behavior for coordinates
+//! outside the signed 16-bit range is unverified; saturation is a bounded
+//! bridge policy, not a claim of matching Win16 overflow behavior.
 
 use guest_core::memory::Memory;
 use win16_abi::{Access, Rect16, Win16ReturnKind, exports::Win16UserUpdateRequest};
@@ -155,6 +160,23 @@ impl Win16State {
                     window, dx, dy, scroll_rect, clip_rect,
                 }
             }
+            Win16UserUpdateRequest::ScrollDC {
+                dc, dx, dy, scroll_rect, clip_rect, update_region, update_rect,
+            } => {
+                let Some(dc) = self.guest_gdi.dc(dc) else {
+                    return self.immediate_zero(registers, return_to, return_kind);
+                };
+                let scroll_rect = self.read_optional_rect(scroll_rect, memory)?;
+                let clip_rect = self.read_optional_rect(clip_rect, memory)?;
+                let Some(update_region) = self.mapped_optional_region(update_region) else {
+                    return self.immediate_zero(registers, return_to, return_kind);
+                };
+                rect_output = self.prepare_rect_output(update_rect, memory)?;
+                Win16HostUpdateOperation::ScrollDC {
+                    dc, dx, dy, scroll_rect, clip_rect, update_region,
+                    update_rect_is_null: rect_output.is_none(),
+                }
+            }
             Win16UserUpdateRequest::ScrollWindowEx {
                 window, dx, dy, scroll_rect, clip_rect, update_region, update_rect, flags,
             } => {
@@ -253,7 +275,8 @@ fn result_shape(request: Win16UserUpdateRequest) -> (UpdateResultKind, Win16Retu
         | Request::ValidateRect { .. }
         | Request::ValidateRgn { .. }
         | Request::ScrollWindow { .. } => (UpdateResultKind::Void, Win16ReturnKind::Void),
-        Request::GetUpdateRect { .. } | Request::ScrollWindowEx { .. } => {
+        Request::GetUpdateRect { .. } | Request::ScrollWindowEx { .. }
+        | Request::ScrollDC { .. } => {
             (UpdateResultKind::Rect, Win16ReturnKind::Word)
         }
         Request::GetUpdateRgn { .. }
@@ -271,3 +294,7 @@ fn host_rect(rect: Rect16) -> Win16HostRect {
         bottom: i32::from(rect.bottom),
     }
 }
+
+#[cfg(test)]
+#[path = "win16_user_services_scroll_dc_tests.rs"]
+mod scroll_dc_tests;

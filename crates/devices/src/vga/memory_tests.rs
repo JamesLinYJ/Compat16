@@ -88,6 +88,83 @@ fn read_mode_one_compares_only_selected_planes() {
 }
 
 #[test]
+fn read_mode_one_matches_per_pixel_reference_for_every_plane_color_and_mask() {
+    let mut state = memory_state();
+    state.graphics[5] = 0x08;
+    let generation = state.generation;
+
+    for bit in 0..8 {
+        let bit_mask = 1_u8 << bit;
+        for color in 0_u8..16 {
+            let mut latches = [0x55, 0xaa, 0x33, 0xcc];
+            for (plane, latch) in latches.iter_mut().enumerate() {
+                *latch = (*latch & !bit_mask)
+                    | if color & (1 << plane) != 0 { bit_mask } else { 0 };
+            }
+            state.vram[..4].copy_from_slice(&latches);
+            for compare in 0_u8..16 {
+                state.graphics[2] = compare;
+                for care in 0_u8..16 {
+                    state.graphics[7] = care;
+                    let expected = read_mode_one_reference(latches, compare, care);
+                    assert_eq!(state.aperture_read(0), expected,
+                        "bit={bit}, color={color}, compare={compare}, care={care}");
+                    assert_eq!(state.latches, latches);
+                }
+            }
+        }
+    }
+    assert_eq!(state.generation, generation);
+}
+
+#[test]
+fn read_mode_one_ignores_high_control_bits_and_zero_care_matches_all_pixels() {
+    let mut state = memory_state();
+    state.graphics[5] = 0x08;
+    let latches = [0x55, 0xaa, 0x33, 0xcc];
+    state.vram[..4].copy_from_slice(&latches);
+    let expected = read_mode_one_reference(latches, 0x05, 0x0a);
+    for compare_high in 0_u8..16 {
+        state.graphics[2] = (compare_high << 4) | 0x05;
+        for care_high in 0_u8..16 {
+            state.graphics[7] = (care_high << 4) | 0x0a;
+            assert_eq!(state.aperture_read(0), expected);
+        }
+    }
+    for latches in [[0; 4], [0xff; 4], [0x55, 0xaa, 0x33, 0xcc]] {
+        state.vram[..4].copy_from_slice(&latches);
+        for compare in 0_u8..=255 {
+            state.graphics[2] = compare;
+            for care in [0x00, 0xf0] {
+                state.graphics[7] = care;
+                assert_eq!(state.aperture_read(0), 0xff);
+                assert_eq!(state.latches, latches);
+            }
+        }
+    }
+}
+
+fn read_mode_one_reference(latches: [u8; 4], compare: u8, care: u8) -> u8 {
+    let mut result = 0_u8;
+    for bit in 0..8 {
+        let bit_mask = 1_u8 << bit;
+        let mut matches = true;
+        for plane in 0..4 {
+            if care & (1 << plane) != 0
+                && (latches[plane] & bit_mask != 0) != (compare & (1 << plane) != 0)
+            {
+                matches = false;
+                break;
+            }
+        }
+        if matches {
+            result |= bit_mask;
+        }
+    }
+    result
+}
+
+#[test]
 fn chain4_selects_the_low_address_plane_and_obeys_map_mask() {
     let mut state = memory_state();
     state.sequencer[2] = 0x0f;

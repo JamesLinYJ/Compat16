@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::rc::{Rc, Weak};
 
 use crate::{DosError, DosErrorCode, DosHostError};
-use guest_core::{GuestMemory, PhysAddr};
+use guest_core::{GuestMemory, MemoryError, PhysAddr};
 
 use super::super::caller_address_space::DosCallerId;
 use super::DosBlockExtent;
@@ -27,6 +27,12 @@ pub(super) struct DosBlockLeases {
 struct LeaseRegistry {
     next_token: Option<u64>,
     leases: BTreeMap<u64, LeaseRecord>,
+    /// A partial MCB/publication transfer cannot be rolled back or retried.
+    /// This barrier is shared by every DOS context using the allocation arena.
+    storage_faulted: bool,
+    /// Record the owner and requested extent before any allocation MCB write.
+    /// On uncertain failure this is retained as intent, not a proven live block.
+    allocation_intent: Option<(u16, u16)>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -72,8 +78,32 @@ impl DosBlockLeases {
             inner: Rc::new(RefCell::new(LeaseRegistry {
                 next_token: Some(1),
                 leases: BTreeMap::new(),
+                storage_faulted: false,
+                allocation_intent: None,
             })),
         }
+    }
+
+    pub(super) fn check_storage_state(&self) -> Result<(), DosError> {
+        let registry = self.inner.try_borrow().map_err(|_| {
+            DosError::HostContractViolation("DOS block lease registry is already borrowed")
+        })?;
+        if registry.storage_faulted {
+            return Err(DosError::HostContractViolation(
+                "DOS allocation arena has an uncertain storage mutation; execution and cleanup are stopped",
+            ));
+        }
+        Ok(())
+    }
+
+    pub(super) fn poison_on_storage_failure(&self, error: &DosError) -> Result<(), DosError> {
+        if uncertain_storage_failure(error) {
+            let mut registry = self.inner.try_borrow_mut().map_err(|_| {
+                DosError::HostContractViolation("DOS block lease registry is already borrowed")
+            })?;
+            registry.storage_faulted = true;
+        }
+        Ok(())
     }
 
     fn reserve_token(&self) -> Result<(Weak<RefCell<LeaseRegistry>>, u64), DosError> {
@@ -249,12 +279,48 @@ impl DosBlockLeases {
     }
 }
 
+/// Observe completed MCB writes so a non-mutating preflight failure does not
+/// provoke unnecessary snapshot writes (which could themselves be read-only).
+struct LeaseMutationMemory<'a, M> {
+    memory: &'a mut M,
+    changed: bool,
+}
+
+impl<M: GuestMemory> GuestMemory for LeaseMutationMemory<'_, M> {
+    fn len(&self) -> u32 { self.memory.len() }
+    fn validate_read(&self, address: PhysAddr, length: usize) -> Result<(), MemoryError> {
+        self.memory.validate_read(address, length)
+    }
+    fn validate_write(&self, address: PhysAddr, length: usize) -> Result<(), MemoryError> {
+        self.memory.validate_write(address, length)
+    }
+    fn read(&self, address: PhysAddr, bytes: &mut [u8]) -> Result<(), MemoryError> {
+        self.memory.read(address, bytes)
+    }
+    fn write(&mut self, address: PhysAddr, bytes: &[u8]) -> Result<(), MemoryError> {
+        self.memory.write(address, bytes)?;
+        self.changed = true;
+        Ok(())
+    }
+}
+
+fn uncertain_storage_failure(error: &DosError) -> bool {
+    matches!(error,
+        DosError::Memory(MemoryError::StorageAccess { .. })
+        | DosError::HostMemoryContractViolation { source: MemoryError::StorageAccess { .. }, .. }
+        | DosError::RollbackFailure { .. }
+    )
+}
+
 fn rollback_mcb_chain(
     memory: &mut impl GuestMemory,
     original_chain: &[Mcb],
     operation: &'static str,
     cause: DosError,
 ) -> DosError {
+    if uncertain_storage_failure(&cause) {
+        return cause;
+    }
     match write_mcb_batch(memory, original_chain) {
         Ok(()) => cause,
         Err(rollback) => DosError::RollbackFailure {
@@ -464,10 +530,20 @@ impl DosKernel {
 
         let original_chain = self.mcb_chain(memory)?;
         let (registry_identity, token) = self.block_leases.reserve_token()?;
+        {
+            let mut registry = self.block_leases.inner.try_borrow_mut().map_err(|_| {
+                DosError::HostContractViolation("DOS block lease registry is already borrowed")
+            })?;
+            if registry.allocation_intent.is_some() {
+                return Err(DosError::HostContractViolation("DOS allocation already has a pending intent"));
+            }
+            registry.allocation_intent = Some((owner_psp_segment, paragraphs));
+        }
+        let mut mutation = LeaseMutationMemory { memory, changed: false };
         let allocation = (|| {
-            let chain = coalesce_free_mcb_chain(memory, original_chain.clone())?;
+            let chain = coalesce_free_mcb_chain(&mut mutation, original_chain.clone())?;
             let data_segment = allocate_block_for_owner(
-                memory,
+                &mut mutation,
                 &chain,
                 Some(owner_psp_segment),
                 paragraphs,
@@ -476,7 +552,7 @@ impl DosKernel {
                 DosError::HostOperation(DosHostError::new(DosErrorCode::InsufficientMemory))
             })?;
             let extent = self
-                .owned_block_extent(memory, data_segment, owner_psp_segment)?
+                .owned_block_extent(&mut mutation, data_segment, owner_psp_segment)?
                 .ok_or(DosError::HostContractViolation(
                     "newly allocated DOS block is absent from its MCB chain",
                 ))?;
@@ -493,15 +569,22 @@ impl DosKernel {
             })
         })();
 
-        match allocation {
+        let result = match allocation {
             Ok(lease) => Ok(lease),
+            Err(error) if !mutation.changed => Err(error),
             Err(error) => Err(rollback_mcb_chain(
-                memory,
-                &original_chain,
-                "pinned DOS block allocation",
-                error,
+                &mut mutation, &original_chain, "pinned DOS block allocation", error,
             )),
+        };
+        let mut registry = self.block_leases.inner.try_borrow_mut().map_err(|_| {
+            DosError::HostContractViolation("DOS block lease registry is already borrowed")
+        })?;
+        if result.as_ref().is_err_and(uncertain_storage_failure) {
+            registry.storage_faulted = true;
+        } else {
+            registry.allocation_intent = None;
         }
+        result
     }
 
     /// Explicitly unpin a block, optionally freeing it when this is its last pin.
@@ -548,22 +631,17 @@ impl DosKernel {
             let mut released = chain[index];
             released.set_owner(0);
             if let Err(error) = write_mcb(memory, released) {
-                return Err(rollback_mcb_chain(
-                    memory,
-                    &chain,
-                    "DOS block lease release",
-                    error,
-                ));
+                // No completed MCB write precedes this operation. Ordinary
+                // preflight errors are retryable; partial transfers are not.
+                registry.storage_faulted |= uncertain_storage_failure(&error);
+                return Err(error);
             }
             let mut released_chain = chain.clone();
             released_chain[index] = released;
             if let Err(error) = coalesce_free_mcb_chain(memory, released_chain) {
-                return Err(rollback_mcb_chain(
-                    memory,
-                    &chain,
-                    "DOS block lease release",
-                    error,
-                ));
+                let error = rollback_mcb_chain(memory, &chain, "DOS block lease release", error);
+                registry.storage_faulted |= uncertain_storage_failure(&error);
+                return Err(error);
             }
         }
 

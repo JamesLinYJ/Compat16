@@ -164,6 +164,28 @@ pub(super) fn acquire_window_dc(
     let hdc = unsafe {
         if whole_window { GetWindowDC(hwnd) } else { GetDC(hwnd) }
     };
+    record_window_dc(state, window, whole_window, dcs, hwnd, hdc)
+}
+
+pub(super) fn acquire_window_dc_ex(
+    state: &Rc<RefCell<WorkerState>>,
+    window: Win16HostWindow,
+    region: Option<&super::super::win16_gdi_objects::Win16RegionLease>,
+    flags: u32,
+) -> Result<Option<Win16HostDc>, RuntimeError> {
+    let Some((dcs, hwnd)) = window_context(state, window) else { return Ok(None); };
+    let hdc = super::super::win16_get_dc_ex::acquire_native(hwnd, region, flags);
+    record_window_dc(state, window, flags & 1 != 0, dcs, hwnd, hdc)
+}
+
+fn record_window_dc(
+    state: &Rc<RefCell<WorkerState>>,
+    window: Win16HostWindow,
+    whole_window: bool,
+    dcs: Win16Dcs,
+    hwnd: HWND,
+    hdc: windows_sys::Win32::Graphics::Gdi::HDC,
+) -> Result<Option<Win16HostDc>, RuntimeError> {
     if hdc.is_null() { return Ok(None); }
     // A synchronous callback may retire or replace the owner. USER owns this
     // borrowed DC; cleanup against recycled HWND bits would affect a different

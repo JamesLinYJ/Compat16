@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use build_tools::{
-    audit_win16_module, dos_probe_bytes, generate_rust, parse_spec, vga_probe_bytes,
-    ProbeFormat, SpecEntry, SpecModule, VGA_PROBE_FILE_NAME,
+    ProbeFormat, VGA_PROBE_FILE_NAME, audit_win16_module, compile_catalog, dos_probe_bytes,
+    manifest::{Module, ValidatedCatalog, load_catalog}, vga_probe_bytes,
 };
 use win16_abi::exports::export_descriptors;
 
@@ -34,11 +34,11 @@ fn run_command() -> Result<ExitCode, String> {
     }
     match command.as_str() {
         "inspect" => {
-            run_spec_command(false, args)?;
+            run_catalog_command(false, args)?;
             Ok(ExitCode::SUCCESS)
         }
         "generate" => {
-            run_spec_command(true, args)?;
+            run_catalog_command(true, args)?;
             Ok(ExitCode::SUCCESS)
         }
         "audit-win16" => run_audit_win16_command(args),
@@ -56,62 +56,25 @@ fn run_command() -> Result<ExitCode, String> {
 
 fn run_audit_win16_command(args: impl Iterator<Item = OsString>) -> Result<ExitCode, String> {
     let mut module = None;
-    let mut spec_path = None;
+    let mut catalog_root = None;
     parse_options(args, |key, value| match key {
-        "--module" => {
-            let value = value
-                .into_string()
-                .map_err(|_| "--module value must be valid Unicode".to_owned())?;
-            set_once(&mut module, value, key)
-        }
-        "--spec" => set_once(&mut spec_path, PathBuf::from(value), key),
+        "--module" => set_once(&mut module, unicode_module(value)?, key),
+        "--catalog" => set_once(&mut catalog_root, PathBuf::from(value), key),
         _ => Err(format!("unknown option `{key}`")),
     })?;
 
     let module = module.ok_or_else(|| format!("audit-win16 requires --module\n{}", usage()))?;
-    let spec_path = spec_path.ok_or_else(|| format!("audit-win16 requires --spec\n{}", usage()))?;
-    let descriptors = export_descriptors();
-    let canonical_module = descriptors
-        .iter()
-        .find(|descriptor| module_matches(&module, descriptor.module()))
-        .map(|descriptor| descriptor.module())
-        .ok_or_else(|| {
-            format!(
-                "unknown Win16 module `{module}`; use a catalog module such as KERNEL, USER, GDI, KEYBOARD, TOOLHELP, or WIN87EM"
-            )
-        })?;
-
-    let source = fs::read_to_string(&spec_path)
-        .map_err(|error| format!("could not read {}: {error}", spec_path.display()))?;
-    let spec = parse_spec(&source, canonical_module)
-        .map_err(|error| format!("{}: {error}", spec_path.display()))?;
-    let report = audit_win16_module(canonical_module, &spec, descriptors);
-
-    println!("# input_spec={}", tsv_field(&spec_path.display().to_string()));
+    let root = catalog_root.ok_or_else(|| format!("audit-win16 requires --catalog\n{}", usage()))?;
+    let catalog = load_catalog(&root).map_err(|error| error.to_string())?;
+    let report = audit_win16_module(&catalog, &module, export_descriptors())
+        .map_err(|error| error.to_string())?;
+    println!("# input_catalog={}", tsv_field(&root.display().to_string()));
     print!("{}", report.to_tsv());
-    if report.has_differences() {
-        Ok(ExitCode::FAILURE)
-    } else {
-        Ok(ExitCode::SUCCESS)
-    }
+    Ok(if report.has_differences() { ExitCode::FAILURE } else { ExitCode::SUCCESS })
 }
 
-fn module_matches(input: &str, expected: &str) -> bool {
-    let input = input.trim();
-    let module_stem = strip_ascii_suffix(input, ".EXE")
-        .or_else(|| strip_ascii_suffix(input, ".DLL"))
-        .unwrap_or(input);
-    module_stem.eq_ignore_ascii_case(expected)
-}
-
-fn strip_ascii_suffix<'a>(value: &'a str, suffix: &str) -> Option<&'a str> {
-    let start = value.len().checked_sub(suffix.len())?;
-    if !value.is_char_boundary(start) {
-        return None;
-    }
-    value[start..]
-        .eq_ignore_ascii_case(suffix)
-        .then_some(&value[..start])
+fn unicode_module(value: OsString) -> Result<String, String> {
+    value.into_string().map_err(|_| "--module value must be valid Unicode".to_owned())
 }
 
 fn tsv_field(value: &str) -> String {
@@ -122,56 +85,59 @@ fn tsv_field(value: &str) -> String {
         .replace('\n', "\\n")
 }
 
-fn run_spec_command(
+fn run_catalog_command(
     is_generate: bool,
     args: impl Iterator<Item = OsString>,
 ) -> Result<(), String> {
-    let mut input = None;
+    let mut catalog_root = None;
     let mut output = None;
     let mut module_name = None;
 
     parse_options(args, |key, value| match key {
-        "--input" => set_once(&mut input, PathBuf::from(value), key),
+        "--catalog" => set_once(&mut catalog_root, PathBuf::from(value), key),
         "--output" => set_once(&mut output, PathBuf::from(value), key),
-        "--module" => {
-            let module = value
-                .into_string()
-                .map_err(|_| "--module value must be valid Unicode".to_owned())?;
-            set_once(&mut module_name, module, key)
-        }
+        "--module" => set_once(&mut module_name, unicode_module(value)?, key),
         _ => Err(format!("unknown option `{key}`")),
     })?;
 
-    let input = input.ok_or_else(|| format!("missing --input\n{}", usage()))?;
-    let module_name = module_name.ok_or_else(|| format!("missing --module\n{}", usage()))?;
+    let root = catalog_root.ok_or_else(|| format!("missing --catalog\n{}", usage()))?;
     if is_generate && output.is_none() {
         return Err(format!("generate requires --output\n{}", usage()));
     }
-    if is_generate && output.as_ref().is_some_and(|path| path == &input) {
-        return Err("--output must not be the same path as --input".to_owned());
+    if is_generate && module_name.is_some() {
+        return Err("generate emits the whole validated catalog and does not accept --module".to_owned());
     }
     if !is_generate && output.is_some() {
         return Err("inspect does not accept --output".to_owned());
     }
-
-    let source = fs::read_to_string(&input)
-        .map_err(|error| format!("could not read {}: {error}", input.display()))?;
-    let module = parse_spec(&source, module_name)
-        .map_err(|error| format!("{}: {error}", input.display()))?;
+    let catalog = load_catalog(&root).map_err(|error| error.to_string())?;
 
     if is_generate {
-        let output_path = output.ok_or_else(|| "generate requires --output".to_owned())?;
-        let generated = generate_rust(&module);
-        fs::write(&output_path, generated)
-            .map_err(|error| format!("could not write {}: {error}", output_path.display()))?;
+        let output = output.ok_or_else(|| "generate requires --output".to_owned())?;
+        let generated = compile_catalog(&catalog);
+        fs::create_dir_all(&output)
+            .map_err(|error| format!("could not create {}: {error}", output.display()))?;
+        for (name, source) in [
+            ("win16_exports.rs", generated.metadata),
+            ("win16_bindings.rs", generated.bindings),
+        ] {
+            let path = output.join(name);
+            fs::write(&path, source)
+                .map_err(|error| format!("could not write {}: {error}", path.display()))?;
+        }
         println!(
-            "generated {} metadata entries for {} in {}",
-            module.exports.len(),
-            module.original_module_name,
-            output_path.display()
+            "generated {} declarations and {} bindings in {}",
+            catalog.exports().count(),
+            catalog.exports().filter(|(_, export)| export.binding.is_some()).count(),
+            output.display()
         );
+    } else if let Some(name) = module_name {
+        let module = catalog.module(&name).ok_or_else(|| format!("unknown catalog module `{name}`"))?;
+        inspect_module(&catalog, module);
     } else {
-        inspect_module(&module);
+        for module in &catalog.catalog().modules {
+            inspect_module(&catalog, module);
+        }
     }
     Ok(())
 }
@@ -261,60 +227,27 @@ fn set_once<T>(slot: &mut Option<T>, value: T, option: &str) -> Result<(), Strin
     Ok(())
 }
 
-fn inspect_module(module: &SpecModule) {
+fn inspect_module(catalog: &ValidatedCatalog, module: &Module) {
+    let exports = catalog.exports().filter(|(_, export)| export.module == module.id);
     println!(
-        "module {:?}: {} declarations",
-        module.original_module_name,
-        module.exports.len()
+        "module {:?} source_module={:?} aliases={:?}",
+        module.id, module.source_module, module.aliases
     );
-    for entry in &module.exports {
-        inspect_entry(entry);
+    for (path, export) in exports {
+        println!(
+            "source={path:?} ordinal={} ordinal_source={:?} declared_name={:?} name={:?} aliases={:?} architecture={:?}",
+            export.ordinal, export.ordinal_source, export.declared_name, export.name,
+            export.aliases, export.architecture
+        );
+        println!("  entry={:?} binding={:?}", export.entry, export.binding);
+        println!("  declaration_evidence={:?}", export.declaration);
+        println!("  provenance={:?}", export.evidence);
     }
-}
-
-fn inspect_entry(entry: &SpecEntry) {
-    let ordinal = match entry.ordinal {
-        build_tools::Ordinal::Explicit(value) => value.to_string(),
-        build_tools::Ordinal::Automatic => "@".to_owned(),
-    };
-    let kind = format!("{:?}", entry.kind).to_lowercase();
-    let convention = entry
-        .convention
-        .map(|value| value.as_spec_name().to_owned())
-        .unwrap_or_else(|| "-".to_owned());
-    let arguments = entry
-        .arguments
-        .iter()
-        .map(|value| value.as_spec_name())
-        .collect::<Vec<_>>()
-        .join(",");
-    let alias = entry
-        .implementation_name
-        .as_deref()
-        .map(|name| format!(" implementation={name:?}"))
-        .unwrap_or_default();
-    let values = if entry.values.is_empty() {
-        String::new()
-    } else {
-        format!(" values={:?}", entry.values)
-    };
-    println!(
-        "line={} ordinal={} kind={} convention={} name={:?} args=[{}] flags={:?}{}{}",
-        entry.source_line,
-        ordinal,
-        kind,
-        convention,
-        entry.export_name,
-        arguments,
-        entry.flags,
-        alias,
-        values
-    );
 }
 
 fn usage() -> String {
     let command = std::env::current_exe().ok()
         .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
         .unwrap_or_else(|| "build-tools".to_owned());
-    format!("usage:\n  {command} inspect --input FILE --module ORIGINAL_NAME\n  {command} generate --input FILE --module ORIGINAL_NAME --output FILE\n  {command} audit-win16 --module USER --spec FILE\n  {command} probe --output FILE [--format com|mz]\n  {command} vga-probe --output FILE")
+    format!("usage:\n  {command} inspect --catalog DIR [--module NAME]\n  {command} generate --catalog DIR --output OUT_DIR\n  {command} audit-win16 --catalog DIR --module NAME\n  {command} probe --output FILE [--format com|mz]\n  {command} vga-probe --output FILE\n\nDIR must contain catalog.toml (compact TOML v2); indexed groups and shared types are TOML files.")
 }

@@ -9,6 +9,9 @@
 mod checked;
 #[path = "win16_dos_address_space/lifecycle.rs"]
 mod lifecycle;
+#[cfg(test)]
+#[path = "win16_dos_exec_fcb_tests.rs"]
+mod exec_fcb_tests;
 use checked::{address_failure, alias_layout, memory_failure, selector_access, selector_failure};
 
 use dos_kernel::{

@@ -5,6 +5,7 @@ use crate::{DosAction, DosError, DosErrorCode, DosHost, DosHostError};
 use guest_core::Registers;
 
 use super::DosKernel;
+use super::state::{Handle, StandardHandle};
 
 impl DosKernel {
     pub(super) fn success(regs: &mut Registers) {
@@ -42,7 +43,7 @@ impl DosKernel {
         host: &mut impl DosHost,
         byte: u8,
     ) -> Result<DosAction, DosError> {
-        match host.write_stdout(&[byte]) {
+        match self.standard_output_bytes(host, &[byte]) {
             Ok(1) => {
                 regs.set_al(byte);
             }
@@ -65,9 +66,8 @@ impl DosKernel {
         if input != 0xff {
             return self.console_output(regs, host, input);
         }
-        match self.poll_console_byte(host) {
+        match self.direct_input_byte(host) {
             Ok(Some(byte)) => {
-                self.pending_input = None;
                 regs.set_al(byte);
                 regs.eflags &= !(1 << 6);
             }
@@ -78,6 +78,61 @@ impl DosKernel {
             Err(error) => Self::failure(regs, error),
         }
         Ok(DosAction::Continue)
+    }
+
+    fn readable_standard_input(&self) -> Result<Handle, DosHostError> {
+        let handle = self.handles.get(&0).copied()
+            .ok_or_else(|| DosHostError::new(DosErrorCode::InvalidHandle))?;
+        match handle {
+            Handle::Standard(StandardHandle::Input) => Ok(handle),
+            Handle::Standard(_) => Err(DosHostError::new(DosErrorCode::InvalidHandle)),
+            Handle::File(_) => {
+                let mode = self.file_table.file_open_mode(0)
+                    .ok_or_else(|| DosHostError::new(DosErrorCode::InvalidHandle))?;
+                match mode & 0x0007 {
+                    0 | 2 => Ok(handle),
+                    1 => Err(DosHostError::new(DosErrorCode::AccessDenied)),
+                    _ => Err(DosHostError::new(DosErrorCode::InvalidAccess)),
+                }
+            }
+        }
+    }
+
+    fn direct_input_byte(
+        &mut self,
+        host: &mut impl DosHost,
+    ) -> Result<Option<u8>, DosHostError> {
+        // MS-DOS 4.0 Programmer's Reference, Functions 06H/0BH/46H:
+        // standard input follows handle 0 after forced duplication.
+        // https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/
+        // The console cache is owned by the host input stream; redirected
+        // files use exactly one read, without a status/read race or lookahead.
+        match self.readable_standard_input()? {
+            Handle::Standard(StandardHandle::Input) => {
+                let byte = self.poll_console_byte(host)?;
+                self.pending_input = None;
+                Ok(byte)
+            }
+            Handle::File(file) => {
+                let mut byte = [0];
+                match host.file_read(file, &mut byte)? {
+                    0 => Ok(None),
+                    1 => Ok(Some(byte[0])),
+                    _ => Err(DosHostError::new(DosErrorCode::GeneralFailure)),
+                }
+            }
+            Handle::Standard(_) => Err(DosHostError::new(DosErrorCode::InvalidHandle)),
+        }
+    }
+
+    fn standard_input_status(&mut self, host: &mut impl DosHost) -> Result<bool, DosHostError> {
+        match self.readable_standard_input()? {
+            Handle::Standard(StandardHandle::Input) => {
+                self.poll_console_byte(host).map(|byte| byte.is_some())
+            }
+            Handle::File(file) => host.file_input_status(file),
+            Handle::Standard(_) => Err(DosHostError::new(DosErrorCode::InvalidHandle)),
+        }
     }
 
     pub(super) fn poll_console_byte(
@@ -94,11 +149,21 @@ impl DosKernel {
         &mut self,
         host: &mut impl DosHost,
     ) -> Result<u8, DosHostError> {
-        if let Some(byte) = self.pending_input.take() {
-            return Ok(byte);
-        }
         let mut byte = [0];
-        match host.read_stdin(&mut byte)? {
+        // MS-DOS 4.0 Programmer's Reference, Functions 01H/07H/08H/0AH:
+        // character input follows standard input, including Function 46H
+        // redirection. The pending byte belongs only to the host input stream.
+        // https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/
+        let count = match self.handles.get(&0).copied() {
+            Some(Handle::Standard(StandardHandle::Input)) => {
+                self.read_stdin_bytes(host, &mut byte)?
+            }
+            Some(Handle::File(file)) => host.file_read(file, &mut byte)?,
+            Some(Handle::Standard(_)) | None => {
+                return Err(DosHostError::new(DosErrorCode::InvalidHandle));
+            }
+        };
+        match count {
             1 => Ok(byte[0]),
             _ => Err(DosHostError::new(DosErrorCode::GeneralFailure)),
         }
@@ -111,7 +176,7 @@ impl DosKernel {
         mut bytes: &[u8],
     ) -> Result<bool, DosError> {
         while !bytes.is_empty() {
-            match host.write_stdout(bytes) {
+            match self.standard_output_bytes(host, bytes) {
                 Ok(0) => {
                     return Err(DosError::HostContractViolation(
                         "console write made no progress",
@@ -132,6 +197,31 @@ impl DosKernel {
         Ok(true)
     }
 
+    fn standard_output_bytes(
+        &self,
+        host: &mut impl DosHost,
+        bytes: &[u8],
+    ) -> Result<usize, DosHostError> {
+        // MS-DOS 4.0 Programmer's Reference, section 1.2 and Function 46H:
+        // standard-character output follows handle 1 after forced duplication.
+        // https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/
+        // Direct CON device requests use their separate device-driver path.
+        match self.handles.get(&1).copied() {
+            Some(Handle::Standard(StandardHandle::Output)) => host.write_stdout(bytes),
+            Some(Handle::Standard(StandardHandle::Error)) => host.write_stderr(bytes),
+            Some(Handle::File(file)) => {
+                let written = host.file_write(file, bytes)?;
+                if written == 0 && !bytes.is_empty() {
+                    return Err(DosHostError::new(DosErrorCode::DiskFull));
+                }
+                Ok(written)
+            }
+            Some(Handle::Standard(StandardHandle::Input)) | None => {
+                Err(DosHostError::new(DosErrorCode::InvalidHandle))
+            }
+        }
+    }
+
     pub(super) fn print_dollar_string(
         &mut self,
         regs: &mut Registers,
@@ -140,7 +230,9 @@ impl DosKernel {
     ) -> Result<DosAction, DosError> {
         let pointer = memory.resolve_caller_pointer(regs.ds, regs.dx())?;
         let bytes = memory.read_caller_terminated(pointer, b'$', 65_536, DosSpanPolicy::Linear)?;
-        let _ = self.write_console(regs, host, &bytes)?;
+        if !self.write_console(regs, host, &bytes)? {
+            return Ok(DosAction::Continue);
+        }
         regs.set_al(b'$');
         Ok(DosAction::Continue)
     }
@@ -201,9 +293,9 @@ impl DosKernel {
         regs: &mut Registers,
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
-        match self.poll_console_byte(host) {
-            Ok(Some(_)) => regs.set_al(0xff),
-            Ok(None) => regs.set_al(0),
+        match self.standard_input_status(host) {
+            Ok(true) => regs.set_al(0xff),
+            Ok(false) => regs.set_al(0),
             Err(error) => Self::failure(regs, error),
         }
         Ok(DosAction::Continue)

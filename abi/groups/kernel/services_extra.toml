@@ -1,0 +1,37 @@
+module = "KERNEL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 59
+name = "WriteProfileString"
+binding = { rust_id = "KernelWriteProfileString", id_value = 129, constant = "KERNEL_WRITE_PROFILE_STRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "key", type = "NullableFarString" },
+  { name = "value", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 142
+name = "GetProfileSectionNames"
+binding = { rust_id = "KernelGetProfileSectionNames", id_value = 130, constant = "KERNEL_GET_PROFILE_SECTION_NAMES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 143
+name = "GetPrivateProfileSectionNames"
+binding = { rust_id = "KernelGetPrivateProfileSectionNames", id_value = 131, constant = "KERNEL_GET_PRIVATE_PROFILE_SECTION_NAMES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+  { name = "filename", type = "NullableFarString" },
+]

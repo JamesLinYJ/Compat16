@@ -1,0 +1,117 @@
+module = "KERNEL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 57
+name = "GetProfileInt"
+binding = { rust_id = "KernelGetProfileInt", id_value = 211, constant = "KERNEL_GET_PROFILE_INT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "key", type = "NullableFarString" },
+  { name = "default_value", type = "I16" },
+]
+
+[[exports]]
+ordinal = 58
+name = "GetProfileString"
+binding = { rust_id = "KernelGetProfileString", id_value = 212, constant = "KERNEL_GET_PROFILE_STRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "key", type = "NullableFarString" },
+  { name = "default_value", type = "NullableFarString" },
+  { name = "output_buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 127
+name = "GetPrivateProfileInt"
+binding = { rust_id = "KernelGetPrivateProfileInt", id_value = 208, constant = "KERNEL_GET_PRIVATE_PROFILE_INT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "key", type = "NullableFarString" },
+  { name = "default_value", type = "I16" },
+  { name = "filename", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 128
+name = "GetPrivateProfileString"
+binding = { rust_id = "KernelGetPrivateProfileString", id_value = 209, constant = "KERNEL_GET_PRIVATE_PROFILE_STRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "key", type = "NullableFarString" },
+  { name = "default_value", type = "NullableFarString" },
+  { name = "output_buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+  { name = "filename", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 129
+name = "WritePrivateProfileString"
+binding = { rust_id = "KernelWritePrivateProfileString", id_value = 210, constant = "KERNEL_WRITE_PRIVATE_PROFILE_STRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "key", type = "NullableFarString" },
+  { name = "value", type = "NullableFarString" },
+  { name = "filename", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 416
+name = "WritePrivateProfileSection"
+binding = { rust_id = "KernelWritePrivateProfileSection", id_value = 1159, constant = "KERNEL_WRITE_PRIVATE_PROFILE_SECTION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "entries", type = "FarBuffer", encoding = "string" },
+  { name = "filename", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 417
+name = "WriteProfileSection"
+binding = { rust_id = "KernelWriteProfileSection", id_value = 1160, constant = "KERNEL_WRITE_PROFILE_SECTION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "entries", type = "FarBuffer", encoding = "string" },
+]
+
+[[exports]]
+ordinal = 418
+name = "GetPrivateProfileSection"
+binding = { rust_id = "KernelGetPrivateProfileSection", id_value = 1161, constant = "KERNEL_GET_PRIVATE_PROFILE_SECTION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "output_buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+  { name = "filename", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 419
+name = "GetProfileSection"
+binding = { rust_id = "KernelGetProfileSection", id_value = 1162, constant = "KERNEL_GET_PROFILE_SECTION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "output_buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]

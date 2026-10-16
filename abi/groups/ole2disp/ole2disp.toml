@@ -1,0 +1,304 @@
+module = "OLE2DISP"
+
+[[exports]]
+ordinal = 2
+name = "SysAllocString"
+binding = { rust_id = "Ole2DispSysAllocString", id_value = 913, constant = "OLE2DISP_SYS_ALLOC_STRING" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "string", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 3
+name = "SysReallocString"
+binding = { rust_id = "Ole2DispSysReallocString", id_value = 914, constant = "OLE2DISP_SYS_REALLOC_STRING" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "string", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 4
+name = "SysAllocStringLen"
+binding = { rust_id = "Ole2DispSysAllocStringLen", id_value = 915, constant = "OLE2DISP_SYS_ALLOC_STRING_LEN" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "string", type = "FarBuffer", encoding = "segmented_string" },
+  { name = "length", type = "U16" },
+]
+
+[[exports]]
+ordinal = 5
+name = "SysReAllocStringLen"
+binding = { rust_id = "Ole2DispSysReAllocStringLen", id_value = 916, constant = "OLE2DISP_SYS_REALLOC_STRING_LEN" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "string", type = "FarBuffer", encoding = "segmented_string" },
+  { name = "length", type = "U16" },
+]
+
+[[exports]]
+ordinal = 6
+name = "SysFreeString"
+binding = { rust_id = "Ole2DispSysFreeString", id_value = 917, constant = "OLE2DISP_SYS_FREE_STRING" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "string", type = "FarBuffer", encoding = "segmented_string" },
+]
+
+[[exports]]
+ordinal = 7
+name = "SysStringLen"
+binding = { rust_id = "Ole2DispSysStringLen", id_value = 918, constant = "OLE2DISP_SYS_STRING_LEN" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "string", type = "FarBuffer", encoding = "segmented_string" },
+]
+
+[[exports]]
+ordinal = 8
+name = "VariantInit"
+binding = { rust_id = "Ole2DispVariantInit", id_value = 919, constant = "OLE2DISP_VARIANT_INIT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "value", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 9
+name = "VariantClear"
+binding = { rust_id = "Ole2DispVariantClear", id_value = 920, constant = "OLE2DISP_VARIANT_CLEAR" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "value", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 10
+name = "VariantCopy"
+binding = { rust_id = "Ole2DispVariantCopy", id_value = 921, constant = "OLE2DISP_VARIANT_COPY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "source", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 11
+name = "VariantCopyInd"
+binding = { rust_id = "Ole2DispVariantCopyInd", id_value = 922, constant = "OLE2DISP_VARIANT_COPY_IND" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "destination", type = "FarOutputBuffer" },
+  { name = "source", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 15
+name = "SafeArrayCreate"
+binding = { rust_id = "Ole2DispSafeArrayCreate", id_value = 923, constant = "OLE2DISP_SAFE_ARRAY_CREATE" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "element_type", type = "U16" },
+  { name = "dimensions", type = "U16" },
+  { name = "bounds", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 16
+name = "SafeArrayDestroy"
+binding = { rust_id = "Ole2DispSafeArrayDestroy", id_value = 924, constant = "OLE2DISP_SAFE_ARRAY_DESTROY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 17
+name = "SafeArrayGetDim"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "Ole2DispSafeArrayGetDim", id_value = 925, constant = "OLE2DISP_SAFE_ARRAY_GET_DIM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 18
+name = "SafeArrayGetElemsize"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "Ole2DispSafeArrayGetElemsize", id_value = 926, constant = "OLE2DISP_SAFE_ARRAY_GET_ELEMSIZE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 19
+name = "SafeArrayGetUBound"
+binding = { rust_id = "Ole2DispSafeArrayGetUBound", id_value = 927, constant = "OLE2DISP_SAFE_ARRAY_GET_UBOUND" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer" },
+  { name = "dimension", type = "U16" },
+  { name = "bound", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 20
+name = "SafeArrayGetLBound"
+binding = { rust_id = "Ole2DispSafeArrayGetLBound", id_value = 928, constant = "OLE2DISP_SAFE_ARRAY_GET_LBOUND" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer" },
+  { name = "dimension", type = "U16" },
+  { name = "bound", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 21
+name = "SafeArrayLock"
+binding = { rust_id = "Ole2DispSafeArrayLock", id_value = 929, constant = "OLE2DISP_SAFE_ARRAY_LOCK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 22
+name = "SafeArrayUnlock"
+binding = { rust_id = "Ole2DispSafeArrayUnlock", id_value = 930, constant = "OLE2DISP_SAFE_ARRAY_UNLOCK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 23
+name = "SafeArrayAccessData"
+binding = { rust_id = "Ole2DispSafeArrayAccessData", id_value = 931, constant = "OLE2DISP_SAFE_ARRAY_ACCESS_DATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer" },
+  { name = "data", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 24
+name = "SafeArrayUnaccessData"
+binding = { rust_id = "Ole2DispSafeArrayUnaccessData", id_value = 932, constant = "OLE2DISP_SAFE_ARRAY_UNACCESS_DATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 25
+name = "SafeArrayGetElement"
+binding = { rust_id = "Ole2DispSafeArrayGetElement", id_value = 933, constant = "OLE2DISP_SAFE_ARRAY_GET_ELEMENT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "indices", type = "FarBuffer" },
+  { name = "value", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 26
+name = "SafeArrayPutElement"
+binding = { rust_id = "Ole2DispSafeArrayPutElement", id_value = 934, constant = "OLE2DISP_SAFE_ARRAY_PUT_ELEMENT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "indices", type = "FarBuffer" },
+  { name = "value", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 27
+name = "SafeArrayCopy"
+binding = { rust_id = "Ole2DispSafeArrayCopy", id_value = 936, constant = "OLE2DISP_SAFE_ARRAY_COPY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "source", type = "FarBuffer" },
+  { name = "destination", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 38
+name = "SafeArrayAllocDescriptor"
+binding = { rust_id = "Ole2DispSafeArrayAllocDescriptor", id_value = 937, constant = "OLE2DISP_SAFE_ARRAY_ALLOC_DESCRIPTOR" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dimensions", type = "U16" },
+  { name = "descriptor", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 39
+name = "SafeArrayAllocData"
+binding = { rust_id = "Ole2DispSafeArrayAllocData", id_value = 938, constant = "OLE2DISP_SAFE_ARRAY_ALLOC_DATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 40
+name = "SafeArrayDestroyDescriptor"
+binding = { rust_id = "Ole2DispSafeArrayDestroyDescriptor", id_value = 939, constant = "OLE2DISP_SAFE_ARRAY_DESTROY_DESCRIPTOR" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 41
+name = "SafeArrayDestroyData"
+binding = { rust_id = "Ole2DispSafeArrayDestroyData", id_value = 940, constant = "OLE2DISP_SAFE_ARRAY_DESTROY_DATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 109
+name = "SafeArrayPtrOfIndex"
+binding = { rust_id = "Ole2DispSafeArrayPtrOfIndex", id_value = 935, constant = "OLE2DISP_SAFE_ARRAY_PTR_OF_INDEX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "array", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "indices", type = "FarBuffer" },
+  { name = "value", type = "FarOutputBuffer" },
+]

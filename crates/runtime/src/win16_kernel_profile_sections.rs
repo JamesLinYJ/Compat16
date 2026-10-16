@@ -22,7 +22,8 @@ pub(super) fn dispatch(
         Win16KernelProfileSectionRequest::WritePrivateProfileSection {
             section, entries, filename,
         } => Ok(u32::from(host.win16_profile_section_write(
-            section.as_deref(), entries.as_deref(), filename.as_deref(),
+            section.as_deref(), entries.as_deref(),
+            &state.private_profile_path(filename.as_deref(), host)?,
         )?)),
         Win16KernelProfileSectionRequest::GetProfileSection {
             section, output_buffer,
@@ -38,7 +39,7 @@ pub(super) fn dispatch(
         } => {
             let capacity = output_buffer.map_or(0, |output| output.capacity);
             let (bytes, copied) = host.win16_profile_section(
-                section.as_deref(), filename.as_deref(), capacity,
+                section.as_deref(), &state.private_profile_path(filename.as_deref(), host)?, capacity,
             )?;
             write_section_result(state, *output_buffer, bytes, copied, memory)
         }

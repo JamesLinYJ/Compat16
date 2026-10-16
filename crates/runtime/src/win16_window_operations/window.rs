@@ -20,6 +20,16 @@ impl Win16State {
 
         match request {
             Request::User(win16_abi::Win16UserRequest::Window(
+                request @ (win16_abi::Win16UserWindowRequest::CreateCaret { .. }
+                    | win16_abi::Win16UserWindowRequest::DestroyCaret
+                    | win16_abi::Win16UserWindowRequest::SetCaretPos { .. }
+                    | win16_abi::Win16UserWindowRequest::HideCaret { .. }
+                    | win16_abi::Win16UserWindowRequest::ShowCaret { .. }
+                    | win16_abi::Win16UserWindowRequest::GetCaretPos { .. }),
+            )) => self.begin_caret_request(
+                registers, memory, host, request, return_to, return_kind,
+            ),
+            Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetClassName {
                     window,
                     output,
@@ -86,6 +96,53 @@ impl Win16State {
                     return_kind,
                 )
             }
+            Request::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::FlashWindow { window, invert },
+            )) => self.submit_call(
+                registers, memory, host,
+                Win16WindowCall::FlashWindow {
+                    window: self.native_window(window), invert: invert != 0,
+                },
+                Win16WindowCallOutput::Boolean,
+                return_to, return_kind, None,
+            ),
+            // Native BOOL is validated internally; typed Void preserves guest AX/DX.
+            Request::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::CloseWindow { window },
+            )) => self.submit_call(
+                registers,
+                memory,
+                host,
+                Win16WindowCall::CloseWindow {
+                    window: self.native_window(window),
+                },
+                Win16WindowCallOutput::Boolean,
+                return_to,
+                return_kind,
+                None,
+            ),
+            Request::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::OpenIcon { window },
+            )) => self.submit_call(
+                registers,
+                memory,
+                host,
+                Win16WindowCall::OpenIcon {
+                    window: self.native_window(window),
+                },
+                Win16WindowCallOutput::Boolean,
+                return_to,
+                return_kind,
+                None,
+            ),
+            Request::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::ArrangeIconicWindows { window },
+            )) => self.submit_call(
+                registers, memory, host,
+                Win16WindowCall::ArrangeIconicWindows { window: self.native_window(window) },
+                Win16WindowCallOutput::Integer,
+                return_to, return_kind, None,
+            ),
             Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::IsIconic { window },
             )) => self.submit_value_call(
@@ -183,7 +240,7 @@ impl Win16State {
                 Win16WindowCallOutput::None,
                 return_to,
                 return_kind,
-                (window != 0).then_some(window),
+                Some(window),
             ),
             Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::SetActiveWindow { window },
@@ -297,6 +354,15 @@ impl Win16State {
                 return_to,
                 return_kind,
             ),
+            Request::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::WindowFromDC { dc },
+            )) => {
+                let Some(dc) = self.guest_gdi.dc(dc) else {
+                    return self.complete_return(registers, return_to.0, return_to.1, return_to.2, 0, return_kind);
+                };
+                self.submit_value_call(registers, memory, host,
+                    Win16WindowCall::WindowFromDc { dc }, return_to, return_kind)
+            }
             Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetDesktopWindow,
             )) => self.submit_value_call(

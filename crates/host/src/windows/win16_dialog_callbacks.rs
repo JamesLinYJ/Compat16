@@ -33,6 +33,9 @@ pub(super) unsafe extern "system" fn host_dialog_proc(
     w_param: WPARAM,
     l_param: LPARAM,
 ) -> isize {
+    if message == windows_sys::Win32::UI::WindowsAndMessaging::WM_ACTIVATEAPP && w_param == 0 {
+        super::win16_cursor_clip::forget_after_deactivation();
+    }
     let is_native_drop = message == WM_DROPFILES
         && !super::win16_guest_notifications::is_carrier_message(hwnd, message, w_param, l_param);
     let outcome = catch_unwind(AssertUnwindSafe(|| {
@@ -352,6 +355,7 @@ fn dispatch_dialog_proc(hwnd: HWND, message: u32, w_param: WPARAM, l_param: LPAR
         creation_cookie: None,
         mdi_create_struct: None,
     });
+    crate::windows::win16_gdi::flush_thread_batch();
     if active
         .response
         .send(Ok(Win16WindowStep::DialogCallback {
@@ -884,7 +888,9 @@ fn copy_typed_message(
             }
             Win16HostMessage::Scalar {
                 kind,
-                w_param: w_param as u16,
+                w_param: match super::win16_character_messages::to_guest(state, message, w_param) {
+                    Some(word) => word, None => return Ok(None),
+                },
                 l_param: l_param as u32,
             }
         }
@@ -1085,4 +1091,11 @@ fn retire_after_native_destroy(state: &Rc<RefCell<WorkerState>>, hwnd: HWND, mes
             worker::remove_window_maps(state, route.window, hwnd);
         }
     }
+}
+
+#[cfg(test)]
+pub(super) fn test_dialog_route(
+    state: &Rc<RefCell<WorkerState>>, hwnd: HWND, message: u32, parameter: isize,
+) -> Result<Option<DialogRoute>, RuntimeError> {
+    callback_routes::dialog_route(state, hwnd, message, parameter)
 }

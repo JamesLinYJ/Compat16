@@ -15,8 +15,15 @@ use crate::{
     DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostPoint, Win16WindowOperation,
 };
 
+#[path = "win16_window_operations/child_lookup.rs"]
+mod child_lookup;
 #[path = "win16_window_operations/geometry.rs"]
 mod geometry;
+#[path = "win16_window_operations/defer.rs"]
+mod defer;
+pub(super) use defer::DeferredWindowBatches;
+#[path = "win16_window_operations/caret.rs"]
+mod caret;
 #[path = "win16_window_operations/window.rs"]
 mod window;
 #[path = "win16_window_operations/mdi.rs"]
@@ -40,6 +47,9 @@ impl Win16State {
         use Win16ApiRequest as Request;
 
         match request {
+            Request::User(win16_abi::Win16UserRequest::ChildLookup(request)) => {
+                self.begin_user_child_lookup(request, registers, memory, host, return_to, return_kind)
+            }
             Request::User(win16_abi::Win16UserRequest::Mdi(request)) => {
                 self.begin_user_mdi(request, registers, memory, host, return_to, return_kind)
             }
@@ -77,7 +87,7 @@ impl Win16State {
         )
     }
 
-    fn submit_call(
+    pub(super) fn submit_call(
         &mut self,
         registers: &mut Registers,
         memory: &mut Memory,
@@ -92,12 +102,6 @@ impl Win16State {
             return_kind,
             output,
             destroyed_guest_window,
-            destroyed_native_window: match &call {
-                Win16WindowCall::DestroyWindow {
-                    window: Win16WindowTarget::Mapped(native),
-                } => Some(*native),
-                _ => None,
-            },
         };
         self.begin_window_operation(
             registers,
@@ -109,7 +113,7 @@ impl Win16State {
         )
     }
 
-    fn native_window(&self, guest: u16) -> Win16WindowTarget {
+    pub(super) fn native_window(&self, guest: u16) -> Win16WindowTarget {
         if guest == 0 {
             Win16WindowTarget::Null
         } else {

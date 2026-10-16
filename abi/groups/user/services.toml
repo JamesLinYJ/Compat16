@@ -1,0 +1,54 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 5
+name = "InitApp"
+binding = { rust_id = "UserInitApp", id_value = 235, constant = "USER_INIT_APP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+]
+
+[[exports]]
+ordinal = 66
+name = "GetDC"
+binding = { rust_id = "UserGetDc", id_value = 243, constant = "USER_GET_DC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 68
+name = "ReleaseDC"
+binding = { rust_id = "UserReleaseDc", id_value = 245, constant = "USER_RELEASE_DC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 179
+name = "GetSystemMetrics"
+binding = { rust_id = "UserGetSystemMetrics", id_value = 226, constant = "USER_GET_SYSTEM_METRICS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "index", type = "I16" },
+]
+
+[[exports]]
+ordinal = 180
+name = "GetSysColor"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetSysColor", id_value = 579, constant = "USER_GET_SYS_COLOR" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "index", type = "U16" },
+]

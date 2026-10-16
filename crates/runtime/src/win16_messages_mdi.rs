@@ -599,7 +599,7 @@ impl Win16State {
                         creation,
                         mdi,
                         child_procedure: class.wnd_proc,
-                        child_instance: class.instance,
+                        child_instance: owner_instance,
                         system_kind: class.system_kind,
                         mdi_client_guest,
                         mdi_client_native,

@@ -10,3 +10,9 @@ guest-core = { path = "../guest" }
 x86_decoder = { package = "iced-x86", version = "=1.21.0", default-features = false, features = ["std", "decoder", "instr_info"] }
 rustc_apfloat = "=0.2.3"
 zerocopy.workspace = true
+
+[target.'cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))'.dependencies]
+compat16-jit = { path = "../jit" }
+
+[dev-dependencies]
+compat16-jit = { path = "../jit" }

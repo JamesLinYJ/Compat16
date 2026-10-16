@@ -101,6 +101,21 @@ Double-click launching requires a Windows legacy-image callback. Microsoft docum
 
 The architecture separates guest CPU execution, DOS / Win16 ABI translation, and native Windows calls. See [AGENTS.md](AGENTS.md) for concise guidance applicable to all contributors and development tools.
 
+Windows ARM64 and AMD64 builds use an independent, bounded Cranelift JIT for hot
+integer blocks, directly linked integer regions and budgeted checked RAM loops,
+with a per-user persistent compilation cache. Normal x87 add/subtract/multiply/divide use generated integer code with
+80-bit results and x87 rounding semantics. Bounded floating blocks keep register
+state in SSA across arithmetic, stack operations and certified raw 80-bit RAM
+loads/stores. The CPU owns checked memory operands and exception
+delivery; generated code computes only owned values and flags. Other instructions
+retain checked interpreter execution.
+Use `--cpu-engine interpreter` to disable JIT, `--no-jit-cache` to disable disk
+persistence, and `--jit-stats` to inspect the
+active CPU's counters. See [the JIT execution contract](crates/jit/README.md)
+for supported instructions, cache ownership and validation limits.
+
+GDI.308 (`GetOutlineTextMetrics`) currently supports MM_TEXT through a bounded modern Unicode GDI query. The 114-byte Win16 layout, relative 16-bit name offsets, partial-prefix copies, low-byte name projection, query size, and rounded stored size were checked against the Windows 3.1 SDK header and static debug-binary evidence ([SDK disk image](https://diskettes.pcjs.org/pcx86/sdk/windows/3.10/WIN31SDK-DISK02.json)). This is limited compatibility evidence, not a clean-room claim or proof of equivalence across fonts, locales, drivers, or mapping modes. Modern per-field checked narrowing, a bounded native allocation, and transactional output are deliberate safety adaptations: unsupported mapping modes, unrepresentable fields/sizes, malformed names, and invalid declared guest buffer capacities are rejected without output. Original debug buffer poisoning, 16-bit overflow, and divide faults are not reproduced. No original binary was executed for this comparison. Existing third-party notices remain applicable.
+
 Release builds remap source paths and package only runtime files, required notices, and file checksums. Local toolchains and build caches are excluded from the repository and release package.
 
 See [LICENSE](LICENSE) for project terms. Adopted data, implementations, and dependencies retain their applicable notices.

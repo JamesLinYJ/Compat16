@@ -1,0 +1,131 @@
+module = "OLESVR"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 2
+name = "OleRegisterServer"
+binding = { rust_id = "Ole1RegisterServer", id_value = 786, constant = "OLE1_REGISTER_SERVER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "class_name", type = "FarString" },
+  { name = "server", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "server_output", type = "FarOutputBuffer" },
+  { name = "instance", type = "U16" },
+  { name = "use_mode", type = "U16" },
+]
+
+[[exports]]
+ordinal = 3
+name = "OleRevokeServer"
+binding = { rust_id = "Ole1RevokeServer", id_value = 787, constant = "OLE1_REVOKE_SERVER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "server", type = "I32" },
+]
+
+[[exports]]
+ordinal = 4
+name = "OleBlockServer"
+binding = { rust_id = "Ole1BlockServer", id_value = 788, constant = "OLE1_BLOCK_SERVER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "server", type = "I32" },
+]
+
+[[exports]]
+ordinal = 5
+name = "OleUnblockServer"
+binding = { rust_id = "Ole1UnblockServer", id_value = 789, constant = "OLE1_UNBLOCK_SERVER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "server", type = "I32" },
+  { name = "blocked_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 6
+name = "OleRegisterServerDoc"
+binding = { rust_id = "Ole1RegisterServerDoc", id_value = 790, constant = "OLE1_REGISTER_SERVER_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "server", type = "I32" },
+  { name = "document_name", type = "FarString" },
+  { name = "server_document", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "document_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 7
+name = "OleRevokeServerDoc"
+binding = { rust_id = "Ole1RevokeServerDoc", id_value = 791, constant = "OLE1_REVOKE_SERVER_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "document", type = "I32" },
+]
+
+[[exports]]
+ordinal = 8
+name = "OleRenameServerDoc"
+binding = { rust_id = "Ole1RenameServerDoc", id_value = 792, constant = "OLE1_RENAME_SERVER_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "document", type = "I32" },
+  { name = "document_name", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 9
+name = "OleRevertServerDoc"
+binding = { rust_id = "Ole1RevertServerDoc", id_value = 793, constant = "OLE1_REVERT_SERVER_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "document", type = "I32" },
+]
+
+[[exports]]
+ordinal = 10
+name = "OleSavedServerDoc"
+binding = { rust_id = "Ole1SavedServerDoc", id_value = 794, constant = "OLE1_SAVED_SERVER_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "document", type = "I32" },
+]
+
+[[exports]]
+ordinal = 11
+name = "OleRevokeObject"
+binding = { rust_id = "Ole1RevokeObject", id_value = 795, constant = "OLE1_REVOKE_OBJECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 12
+name = "OleQueryServerVersion"
+decl = { attributes = [] }
+binding = { rust_id = "Ole1QueryServerVersion", id_value = 796, constant = "OLE1_QUERY_SERVER_VERSION" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 26
+name = "ItemCallBack"
+binding = { rust_id = "Ole1ItemCallback", id_value = 797, constant = "OLE1_ITEM_CALLBACK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "client_far", type = "FarBuffer" },
+  { name = "notification", type = "U16" },
+  { name = "object_far", type = "FarBuffer", encoding = "long" },
+]

@@ -13,6 +13,37 @@ pub(super) fn execute_safe_array_call(
     match ordinal {
         15 => execute_safe_array_create(state, arguments, heap, selectors, memory, owner),
         17..=24 => execute_safe_array_query(state, ordinal, arguments, selectors, memory),
+        26 => {
+            let result = super::put_element::safe_array_put_element(
+                state,
+                guest_address(arguments, 0)?,
+                guest_address(arguments, 1)?,
+                guest_address(arguments, 2)?,
+                heap,
+                selectors,
+                memory,
+                owner,
+                reject_interface,
+            );
+            Ok(Win16AutomationGuestResult::HResult(match result {
+                Ok(()) => S_OK,
+                Err(error) => error.into_runtime()?,
+            }))
+        }
+        109 => {
+            let result = super::ptr_of_index::safe_array_ptr_of_index(
+                state,
+                guest_address(arguments, 0)?,
+                guest_address(arguments, 1)?,
+                guest_address(arguments, 2)?,
+                selectors,
+                memory,
+            );
+            Ok(Win16AutomationGuestResult::HResult(match result {
+                Ok(()) => S_OK,
+                Err(error) => error.into_runtime()?,
+            }))
+        }
         _ => execute_safe_array_lifecycle(
             state,
             ordinal,

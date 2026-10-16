@@ -1,0 +1,36 @@
+module = "OLE2CONV"
+
+[[exports]]
+ordinal = 1
+name = "GETFILTERINFO"
+kind = "stub"
+
+[[exports]]
+ordinal = 2
+name = "IMPORTGR"
+kind = "stub"
+
+[[exports]]
+ordinal = 3
+name = "GETFILTERPREF"
+kind = "stub"
+
+[[exports]]
+ordinal = 4
+name = "IMPORTEMBEDDEDGR"
+kind = "stub"
+
+[[exports]]
+ordinal = 5
+name = "QD2GDI"
+kind = "stub"
+
+[[exports]]
+ordinal = 6
+name = "STATUSPROC"
+kind = "stub"
+
+[[exports]]
+ordinal = 7
+name = "ENUMFONTFUNC"
+kind = "stub"

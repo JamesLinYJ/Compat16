@@ -2,6 +2,8 @@
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16KernelRuntimeRequest {
+    Yield,
+
     GetVersion,
 
     GetCurrentTask,

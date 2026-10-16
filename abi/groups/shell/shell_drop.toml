@@ -1,0 +1,61 @@
+module = "SHELL"
+
+[[exports]]
+ordinal = 9
+name = "DragAcceptFiles"
+binding = { rust_id = "ShellDragAcceptFiles", id_value = 663, constant = "SHELL_DRAG_ACCEPT_FILES" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "accept", type = "U16" },
+]
+
+[[exports]]
+ordinal = 11
+name = "DragQueryFile"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "ShellDragQueryFile", id_value = 664, constant = "SHELL_DRAG_QUERY_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "drop", type = "U16" },
+  { name = "index", type = "U16" },
+  { name = "file_name", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 12
+name = "DragFinish"
+binding = { rust_id = "ShellDragFinish", id_value = 665, constant = "SHELL_DRAG_FINISH" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "drop", type = "U16" },
+]
+
+[[exports]]
+ordinal = 13
+name = "DragQueryPoint"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "ShellDragQueryPoint", id_value = 666, constant = "SHELL_DRAG_QUERY_POINT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "drop", type = "U16" },
+  { name = "point", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 400
+name = "SHFormatDrive"
+binding = { rust_id = "ShellFormatDrive", id_value = 668, constant = "SHELL_FORMAT_DRIVE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "owner", type = "U16" },
+  { name = "drive", type = "U16" },
+  { name = "format_id", type = "U16" },
+  { name = "options", type = "U16" },
+]

@@ -38,7 +38,7 @@ mod win16_dde;
 mod win16_io_trace;
 mod win16_loader;
 mod win16_runtime;
-pub use win16_abi::network_print_abi;
+pub use win16_abi::{Win16CharacterClassification, network_print_abi};
 pub use win16_io_trace::{
     Win16IoEvent, Win16ServiceBoundaryStage, Win16WindowCallbackPhase,
     Win16WindowCallbackProcedure, Win16WindowCallbackReturn, Win16WindowCreationApi,
@@ -85,10 +85,13 @@ pub use win16_host_thunks::{
 };
 mod win16_host_menus;
 mod win16_host_window_ops;
+mod win16_host_metafile;
+pub use win16_host_metafile::{Win16HostMetafileOperation, Win16HostMetafileResult};
 mod win16_host_window_properties;
 pub use win16_host_window_properties::{Win16HostPropertyCallbackName, Win16HostPropertyName};
 mod win16_host_window_data;
 pub use win16_host_window_data::{
+    Win16HostWindowParentObservation,
     Win16WindowDataCall, Win16WindowDataField, Win16WindowDataResult,
 };
 mod win16_host_common_controls;
@@ -127,7 +130,7 @@ mod win16_host_scroll_bar;
 pub use win16_host_scroll_bar::{Win16HostScrollBarOperation, Win16HostScrollBarResult};
 mod win16_host_shell_execution;
 pub use win16_host_shell_execution::{
-    Win16HostProcess, Win16HostShellActivation, Win16HostShellExecutionOperation,
+    Win16HostProcess, Win16HostProgramLoadInput, Win16HostShellActivation, Win16HostShellExecutionOperation,
     Win16HostShellExecutionResult, Win16HostShellFailure, Win16HostShellInputEncodingFailure,
     Win16HostWinExecFailure,
     Win16HostShellPathEncodingCause, Win16HostShellPathEncodingFailure,
@@ -240,7 +243,7 @@ pub use win16_host_spool::{
 };
 pub use win16_host_gdi_services::{
     Win16GdiServicesOperation, Win16GdiServicesResult, Win16HostAbcWidth,
-    Win16HostGdiIdentity, Win16HostKerningPair, Win16HostRasterizerCaps,
+    Win16HostGdiIdentity, Win16HostGlyphMetrics, Win16HostKerningPair, Win16HostRasterizerCaps,
 };
 mod win16_host_gdi_objects;
 mod win16_host_keyboard;
@@ -258,12 +261,12 @@ pub use win16_host_drawing::{
 };
 pub use win16_host_gdi_bitmap::{Win16GdiBitmapOperation, Win16GdiBitmapResult};
 pub use win16_host_gdi_device::{
-    Win16DibColorTableKind, Win16DitherPattern, Win16GdiDeviceOperation, Win16GdiDeviceResult,
+    Win16DibColorTableKind, Win16DitherPattern, Win16EscapeQuery, Win16GdiDeviceOperation, Win16GdiDeviceResult,
     Win16GdiObjectInfo,
     Win16HostDibSection, Win16PaletteTransferKind, Win16PrintOperation,
 };
 pub use win16_host_gdi_objects::{
-    Win16GdiObjectOperation, Win16HostBitmapInfo, Win16HostDib, Win16HostLogBrush,
+    Win16GdiObjectOperation, Win16HostBitmapInfo, Win16HostDib, Win16HostGdiObjectRecord, Win16HostLogBrush,
     Win16HostLogFont, Win16HostLogPen,
 };
 pub use win16_host_message_calls::{Win16MessageCall, Win16MessageCallResult};
@@ -283,7 +286,7 @@ pub use win16_host_printer::{
     Win16PrinterCapabilities, Win16PrinterCapabilitiesResult, Win16PrinterCapabilityData,
 };
 mod win16_host_dc;
-pub use win16_host_dc::{Win16HostDevMode, Win16HostTextFace, Win16HostTextMetrics};
+pub use win16_host_dc::{Win16HostDevMode, Win16HostOutlineTextMetrics, Win16HostTextFace, Win16HostTextMetrics};
 mod win16_host_acm;
 pub use win16_host_acm::{
     Win16HostAcmChooseKind, Win16HostAcmDetailQuery, Win16HostAcmDriverDetails,
@@ -341,6 +344,7 @@ pub use win16_host_menus::{
 pub use win16_host_nonclient::{Win16HostNonClientCalcSize, Win16HostWindowPos};
 pub(crate) use win16_host_window_ops::Win16WindowCallOutput;
 pub use win16_host_window_ops::{
+    Win16CaretShape, Win16DeferredWindowPos,
     Win16WindowEnumerationScope, Win16WindowEnumerationQuery, Win16WindowEnumerationReply,
     Win16WindowCall, Win16WindowCallResult, Win16WindowInsertAfter, Win16WindowSearchClass,
     Win16WindowTarget, Win16WindowPlacement,
@@ -349,6 +353,9 @@ pub use win16_host_window_ops::{
 pub use diagnostics::{Diagnostic, DiagnosticKind, DiagnosticSeverity, RuntimeError};
 pub use load::MINIMUM_PSP_SEGMENT;
 pub use machine::{Runtime, RuntimeProgress};
+pub use x86_cpu::{ExecutionEngine, JitStatistics};
+#[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64")))]
+pub use x86_cpu::{JitArtifact, JitArtifactStore};
 
 pub use guest_core::Registers as GuestRegisters;
 use xms::GuestFarPointer;
@@ -368,6 +375,7 @@ pub use win16_runtime::messages_mdi::{
     Win16MdiEndpoint,
 };
 pub use win16_runtime::kernel_file_system::{
+    Win16KernelFileSystemState,
     Win16HostDiskSpace, Win16HostFileSystemCall, Win16HostFileSystemOperation,
     Win16HostFileSystemResult, Win16HostFindData, Win16HostFindFirst,
     Win16HostSearchId, Win16CanonicalPath, Win16GuestPath, Win16HostFileSystemPath,

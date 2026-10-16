@@ -1,0 +1,22 @@
+module = "SHELL"
+
+[[exports]]
+ordinal = 37
+name = "DoEnvironmentSubst"
+binding = { rust_id = "ShellDoEnvironmentSubst", id_value = 610, constant = "SHELL_DO_ENVIRONMENT_SUBST" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "buffer", type = "FarBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 38
+name = "FindEnvironmentString"
+binding = { rust_id = "ShellFindEnvironmentString", id_value = 611, constant = "SHELL_FIND_ENVIRONMENT_STRING" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "query", type = "FarString", encoding = "pointer" },
+]

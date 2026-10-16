@@ -10,12 +10,15 @@ impl Win16State {
         kind: CallbackKind,
         transfer: x86_cpu::ControlTransfer,
     ) -> Result<(), RuntimeError> {
+        let adapted_native_return = kind == CallbackKind::NativeFunction
+            && transfer == x86_cpu::ControlTransfer::AdapterReturn
+            && self.native_function_has_returned_value();
         let (callback_id, host_operation) = match kind {
             CallbackKind::Window => self.window_callbacks.last().map(|callback|
                 (callback.callback_id, callback.host_operation)).ok_or_else(||
                     RuntimeError::new(Kind::InternalInvariant,
                         "returned USER callback has no retained window callback frame"))?,
-            CallbackKind::WindowProperty => self.window_property_callbacks.last().map(|callback|
+            CallbackKind::NativeFunction => self.native_function_callbacks.last().map(|callback|
                 (callback.callback_id, Some(callback.host_operation))).ok_or_else(||
                     RuntimeError::new(Kind::InternalInvariant,
                         "returned property callback has no retained callback frame"))?,
@@ -36,7 +39,7 @@ impl Win16State {
         // callback retires, a later callback on the same native operation may
         // legitimately return via RETF or the checked ABI adapter instead.
         if frame.guest_return_transfer.is_some_and(|(prior_id, prior)|
-            prior_id == callback_id && prior != transfer)
+            prior_id == callback_id && prior != transfer) && !adapted_native_return
         {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "USER callback retry changed its observed return transfer"));
@@ -331,7 +334,7 @@ impl Win16State {
         Ok(())
     }
 
-    fn resume_native_window_callback(
+    pub(super) fn resume_native_window_callback(
         &mut self,
         reply: Win16WindowReply,
         host: &mut impl RuntimeHost,
@@ -352,7 +355,7 @@ impl Win16State {
         }
     }
 
-    fn retire_window_callback_frame(
+    pub(super) fn retire_window_callback_frame(
         &mut self,
         callback_id: super::super::CallbackFrameId,
     ) -> Result<(), RuntimeError> {

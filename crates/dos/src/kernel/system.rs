@@ -74,6 +74,7 @@ impl super::state::DosKernel {
         &mut self,
         memory: &mut impl GuestMemory,
     ) -> Result<(), DosError> {
+        self.block_leases.check_storage_state()?;
         if self.system_tables.is_some() {
             return Ok(());
         }
@@ -145,6 +146,7 @@ impl super::state::DosKernel {
         &self,
         memory: &impl GuestMemory,
     ) -> Result<(), DosError> {
+        self.block_leases.check_storage_state()?;
         let Some(tables) = self.system_tables else {
             return Ok(());
         };
@@ -167,6 +169,7 @@ impl super::state::DosKernel {
         memory: &mut impl GuestMemory,
         host: &mut impl DosHost,
     ) -> Result<(), DosError> {
+        self.block_leases.check_storage_state()?;
         let Some(tables) = self.system_tables else {
             return Ok(());
         };
@@ -216,6 +219,7 @@ impl super::state::DosKernel {
         memory: &mut impl GuestMemory,
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
+        self.block_leases.check_storage_state()?;
         let Some(tables) = self.system_tables else {
             return Err(DosError::HostContractViolation(
                 "AH=52h called before DOS system tables were initialized",

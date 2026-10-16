@@ -536,6 +536,7 @@ pub(super) fn finish_message_call(
     }
     if *phase == Phase::Ready {
         let projected = match (continuation, result) {
+            (Call::Yield, ResultValue::Yielded) => (0, Win16ReturnKind::Void),
             (Call::Boolean { return_kind } | Call::WaitMessage { return_kind },
                 ResultValue::Boolean(result)) => (u32::from(*result), *return_kind),
             (Call::Window { return_kind }, ResultValue::Window(window)) => {
@@ -569,10 +570,11 @@ pub(super) fn finish_message_call(
                     )?;
                     *phase = Phase::OutputCommitted;
                 }
-                (u32::from(*succeeded), Win16ReturnKind::Word)
+                // The native BOOL only gates the output copy; Win16 returns void.
+                (0, Win16ReturnKind::Void)
             }
-            (Call::SetKeyboardState, ResultValue::Boolean(succeeded)) =>
-                (u32::from(*succeeded), Win16ReturnKind::Word),
+            (Call::SetKeyboardState, ResultValue::Boolean(_succeeded)) =>
+                (0, Win16ReturnKind::Void),
             _ => return Err(RuntimeError::new(Kind::InternalInvariant,
                 "USER message result does not match its retained call owner")),
         };
@@ -621,55 +623,87 @@ pub(super) fn finish_window_data(
     result: &crate::Win16WindowDataResult,
     owner: &mut WindowDataProjection,
     access: &mut WindowProjectionAccess<'_>,
+    host: &mut impl RuntimeHost,
 ) -> Result<(u32, Win16ReturnKind), RuntimeError> {
     use WindowDataProjectionPhase as Phase;
+    use crate::Win16WindowDataResult as ResultValue;
     if owner.phase == Phase::Ready {
         match result {
-            crate::Win16WindowDataResult::Value(value) if !continuation.parent_result => {
+            ResultValue::Value(value) if !continuation.parent_result => {
                 owner.value = Some(value.unwrap_or(0) & continuation.return_mask);
                 owner.phase = Phase::ReturnValueMapped;
             }
-            crate::Win16WindowDataResult::Parent { .. }
-                if continuation.parent_result => {
+            ResultValue::Parent { .. }
+                if continuation.parent_result && !continuation.parent_mutation => {
                 owner.phase = Phase::ParentGraphRefreshing;
+            }
+            ResultValue::ParentMutation { attempted, succeeded, .. }
+                if continuation.parent_result && continuation.parent_mutation => {
+                if *succeeded && !*attempted {
+                    return Err(RuntimeError::new(Kind::InternalInvariant,
+                        "unattempted window-parent mutation cannot succeed"));
+                }
+                owner.phase = if *attempted { Phase::ParentObserving }
+                    else { Phase::ParentGraphRefreshed };
             }
             _ => return Err(RuntimeError::new(Kind::InternalInvariant,
                 "native Win16 window-data result does not match its exact owner")),
         }
     }
+    if owner.phase == Phase::ParentObserving {
+        // Native mutation already returned. A failed query retains this phase
+        // and the immutable native outcome; retry only the observation.
+        owner.parent_observation = Some(host.win16_host_window_parent(continuation.native_window)?);
+        owner.phase = Phase::ParentGraphRefreshing;
+    }
     if owner.phase == Phase::ParentGraphRefreshing {
-        let crate::Win16WindowDataResult::Parent {
-            succeeded, child_parent, ..
-        } = result else {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "window-parent journal no longer owns a parent result"));
-        };
-        if *succeeded {
-            access.refresh_child_parent_from_host(
-                continuation.window,
-                continuation.native_window,
-                *child_parent,
-            )?;
+        match result {
+            ResultValue::Parent { succeeded: true, child_parent, .. } => {
+                access.refresh_child_parent_from_host(
+                    continuation.window, continuation.native_window, *child_parent,
+                )?;
+            }
+            ResultValue::Parent { succeeded: false, .. } => {}
+            ResultValue::ParentMutation { .. } => {
+                let observation = owner.parent_observation.ok_or_else(|| RuntimeError::new(
+                    Kind::InternalInvariant, "window-parent projection lost its exact observation"))?;
+                if let crate::Win16HostWindowParentObservation::Live { child_parent } = observation {
+                    // A failing outer native call can still contain a nested
+                    // successful move. Apply the actual observation regardless
+                    // of the outer success bit, and only to the original token.
+                    access.refresh_child_parent_from_host(
+                        continuation.window, continuation.native_window, child_parent,
+                    )?;
+                }
+                // A retired child is not a live null-parent observation.
+                // Exact destruction receipts own its guest retirement.
+            }
+            _ => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "window-parent journal no longer owns a parent result")),
         }
         owner.phase = Phase::ParentGraphRefreshed;
     }
     if owner.phase == Phase::ParentGraphRefreshed {
-        let crate::Win16WindowDataResult::Parent { succeeded, previous, .. } = result else {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "window-parent value stage no longer owns a parent result"));
+        let (succeeded, previous, check_liveness) = match result {
+            ResultValue::Parent { succeeded, previous, .. } => (*succeeded, *previous, false),
+            ResultValue::ParentMutation { succeeded, previous, .. } => (*succeeded, *previous, true),
+            _ => return Err(RuntimeError::new(Kind::InternalInvariant,
+                "window-parent value stage no longer owns a parent result")),
         };
-        if *succeeded {
-            let old = previous.map(|native| access.map_window_handle(native, false))
-                .transpose()?.unwrap_or(0);
-            owner.value = Some(u32::from(old) & continuation.return_mask);
-        } else {
-            owner.value = Some(0);
-        }
+        let old = if succeeded {
+            match previous {
+                Some(previous) => {
+                    let live = !check_liveness || matches!(host.win16_host_window_liveness(previous)?,
+                        crate::Win16HostWindowLiveness::Live);
+                    if live { access.map_window_handle(previous, false)? } else { 0 }
+                }
+                None => 0,
+            }
+        } else { 0 };
+        owner.value = Some(u32::from(old) & continuation.return_mask);
         owner.phase = Phase::ReturnValueMapped;
     }
-    if owner.phase == Phase::ReturnValueMapped {
-        owner.phase = Phase::ReturnReady;
-    }
+    if owner.phase == Phase::ReturnValueMapped { owner.phase = Phase::ReturnReady; }
     if owner.phase == Phase::ReturnReady { owner.phase = Phase::Complete; }
     owner.value.map(|value| (value, continuation.return_kind))
         .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
@@ -686,11 +720,13 @@ pub(super) fn finish_cursor_accelerator(
     use crate::Win16HostUserCursorAcceleratorResult as ResultValue;
     if owner.phase == CursorAcceleratorProjectionPhase::Ready {
         let value = match (continuation, result) {
-            (Call::SetCursor, ResultValue::SetCursor(Some(cursor))) =>
+            (Call::SetCursor, ResultValue::SetCursor(Some(cursor)))
+            | (Call::GetCursor, ResultValue::GetCursor(Some(cursor))) =>
                 access.guest_images.allocate_cursor(*cursor).ok_or_else(||
                     RuntimeError::new(Kind::ResourceExhausted,
                         "Win16 cursor handle table is full"))?,
-            (Call::SetCursor, ResultValue::SetCursor(None)) => 0,
+            (Call::SetCursor, ResultValue::SetCursor(None))
+            | (Call::GetCursor, ResultValue::GetCursor(None)) => 0,
             (Call::ShowCursor, ResultValue::ShowCursor(count)) => *count as u16,
             (Call::WinHelp, ResultValue::WinHelp(succeeded)) => u16::from(*succeeded),
             (Call::LoadAccelerators { guest_handle, owner_module, resource_id },
@@ -752,17 +788,12 @@ pub(super) fn finish_window_call(
     }
     if owner.phase == Phase::Ready {
         let value = match (&call.output, result) {
-            (Output::None, ResultValue::Boolean(value)) => Some(u32::from(*value)),
-            (Output::None, ResultValue::Integer(value)) => Some(u32::from(*value as u16)),
+            (Output::None | Output::Boolean, ResultValue::Boolean(value)) => Some(u32::from(*value)),
+            (Output::None | Output::Integer, ResultValue::Integer(value)) => Some(u32::from(*value as u16)),
             (Output::None, ResultValue::Window(None)) => Some(0),
             (Output::None, ResultValue::Window(Some(native))) =>
                 Some(u32::from(access.map_window_handle(*native, false)?)),
-            (Output::None, ResultValue::Destroyed { succeeded, invalidated_menus })
-                if call.destroyed_guest_window.is_none() => {
-                    if *succeeded { access.guest_menus.invalidate(invalidated_menus); }
-                    Some(u32::from(*succeeded))
-                }
-            (Output::WindowRect { range, .. }, ResultValue::Rect(rect)) => {
+            (Output::Rect(range) | Output::WindowRect { range, .. }, ResultValue::Rect(rect)) => {
                 if let Some(rect) = rect {
                     let output = win16_abi::Rect16 {
                         left: rect.left as i16, top: rect.top as i16,
@@ -780,6 +811,32 @@ pub(super) fn finish_window_call(
                     let output = win16_abi::Point16 {
                         x: point.x as i16, y: point.y as i16,
                     }.encode();
+                    super::super::guest_ranges::commit_guest_output_with_selectors(
+                        access.selectors, memory, range, &output,
+                    )?;
+                    owner.phase = Phase::GuestOutputCommitted;
+                }
+                Some(0)
+            }
+            (Output::Points { range, count }, ResultValue::Points(points)) => {
+                if let Some(points) = points {
+                    if points.len() != usize::from(*count)
+                        || points.len().checked_mul(win16_abi::Point16::SIZE) != Some(range.length())
+                    {
+                        return Err(RuntimeError::new(Kind::InternalInvariant,
+                            "native MapWindowPoints result does not match its captured array"));
+                    }
+                    let mut output = Vec::new();
+                    output.try_reserve_exact(range.length()).map_err(|error|
+                        RuntimeError::with_source(Kind::ResourceExhausted,
+                            "retain Win16 MapWindowPoints output", error))?;
+                    for point in points {
+                        // POINT16 retains the low signed 16-bit coordinate,
+                        // matching the other Win16 coordinate conversions.
+                        output.extend_from_slice(&win16_abi::Point16 {
+                            x: point.x as i16, y: point.y as i16,
+                        }.encode());
+                    }
                     super::super::guest_ranges::commit_guest_output_with_selectors(
                         access.selectors, memory, range, &output,
                     )?;

@@ -13,12 +13,15 @@ use std::fmt;
 use std::ops::Range;
 
 mod arena;
+mod atoms;
 mod compact;
 mod growth;
 mod handles;
 mod operations;
+mod shrink;
 mod write_tracking;
 
+pub use atoms::LocalAtomEntry;
 pub use growth::LocalHeapGrowthError;
 
 use write_tracking::{copy_within_range, fill_range, write_byte, write_word};
@@ -52,7 +55,11 @@ const ARENA_FREE_NEXT_OFFSET: usize = 0x08;
 // LOCALHEAPINFO offsets, from the compared packed declaration.
 const HEAP_ITEMS_OFFSET: usize = 0x04;
 const HEAP_FIRST_OFFSET: usize = 0x06;
+// Private high-water boundary: shrinking must not make a later allocation
+// consume application data beyond the heap's previously admitted arena range.
+const HEAP_RESERVED_END_OFFSET: usize = 0x08;
 const HEAP_LAST_OFFSET: usize = 0x0a;
+const HEAP_OWNS_TAIL_OFFSET: usize = 0x0c;
 const HEAP_TABLE_OFFSET: usize = 0x14;
 const HEAP_HANDLE_DELTA_OFFSET: usize = 0x18;
 const HEAP_NOTIFY_OFFSET: usize = 0x1e;
@@ -126,6 +133,8 @@ pub enum LocalHeapError {
     CorruptFreeList { offset: usize },
     /// A movable-handle table or entry is malformed at this segment offset.
     CorruptHandleTable { offset: usize },
+    /// The guest-resident local atom table or one of its entries is malformed.
+    CorruptAtomTable { offset: usize },
 }
 
 impl fmt::Display for LocalHeapError {
@@ -138,6 +147,7 @@ impl fmt::Display for LocalHeapError {
             Self::CorruptArenaChain { offset } => write!(f, "Win16 local-heap arena chain is corrupt at DGROUP offset 0x{offset:04X}"),
             Self::CorruptFreeList { offset } => write!(f, "Win16 local-heap free list is corrupt at DGROUP offset 0x{offset:04X}"),
             Self::CorruptHandleTable { offset } => write!(f, "Win16 local-heap handle table is corrupt at DGROUP offset 0x{offset:04X}"),
+            Self::CorruptAtomTable { offset } => write!(f, "Win16 local atom table is corrupt at DGROUP offset 0x{offset:04X}"),
         }
     }
 }
@@ -234,6 +244,48 @@ impl<'a> LocalHeap<'a> {
         self.transaction(|heap| heap.compact_inner(minimum, 0))
     }
 
+    /// Shrink the heap towards its initial LocalInit extent. Fixed blocks,
+    /// locked movable blocks and heap metadata retain their addresses.
+    pub fn shrink(&mut self, minimum: u16) -> Result<u16, LocalHeapError> {
+        let result = self.transaction(|heap| heap.shrink_inner(minimum))?;
+        self.last = read_word(self.dgroup, usize::from(self.info) + HEAP_LAST_OFFSET)
+            .ok_or(LocalHeapError::CorruptHeapInfo { offset: usize::from(self.info) })?;
+        Ok(result)
+    }
+
+    /// Segment extent sufficient to retain the terminal header, rounded for
+    /// the allocator's four-byte alignment and bounded by the current segment.
+    pub fn retained_segment_bytes(&self) -> usize {
+        (usize::from(self.last) + MIN_ARENA_EXTENT).min(self.dgroup.len())
+    }
+
+    pub fn first_offset(&self) -> u16 { self.first }
+
+    /// Only LocalInit's tail-reserve form, or an explicit range ending at
+    /// the segment's final byte, admits the containing segment's whole tail.
+    pub fn owns_segment_tail(&self) -> bool {
+        read_word(self.dgroup, usize::from(self.info) + HEAP_OWNS_TAIL_OFFSET) == Some(1)
+    }
+
+    /// Queries (`delta == 0`) or sets the number of entries used by future
+    /// movable-handle table expansions. Returns the current/new WORD. Existing
+    /// tables are unchanged; oversized values remain stored exactly, while
+    /// allocation keeps its checked size arithmetic and ordinary failure path.
+    pub fn handle_delta(&mut self, delta: u16) -> Result<u16, LocalHeapError> {
+        let offset = usize::from(self.info) + HEAP_HANDLE_DELTA_OFFSET;
+        if delta == 0 {
+            self.validate()?;
+            return read_word(self.dgroup, offset)
+                .ok_or(LocalHeapError::CorruptHeapInfo { offset });
+        }
+        self.transaction(|heap| {
+            write_word(heap.dgroup, &mut heap.write_spans, offset, delta)
+                .map_err(|error| LocalHeapError::preserve_write_error(error,
+                    LocalHeapError::CorruptHeapInfo { offset }))?;
+            Ok(delta)
+        })
+    }
+
     /// Returns the total size of all reusable free extents, including their
     /// arena headers but excluding the terminal sentinel.
     pub fn count_free(&self) -> Result<u16, LocalHeapError> {
@@ -312,6 +364,17 @@ impl<'a> LocalHeap<'a> {
         &mut self,
         operation: impl FnOnce(&mut LocalHeap<'_>) -> Result<u16, LocalHeapError>,
     ) -> Result<u16, LocalHeapError> {
+        self.transaction_when(operation, |_| true)
+    }
+
+    // Atom allocation can require two fixed blocks. A failed attempt must
+    // discard both allocations and any intermediate compaction, so callers can
+    // retry against a larger DGROUP without publishing partial initialization.
+    fn transaction_when(
+        &mut self,
+        operation: impl FnOnce(&mut LocalHeap<'_>) -> Result<u16, LocalHeapError>,
+        commit: impl FnOnce(u16) -> bool,
+    ) -> Result<u16, LocalHeapError> {
         let mut scratch = Vec::new();
         scratch.try_reserve_exact(self.dgroup.len()).map_err(|_| LocalHeapError::OutOfMemory)?;
         scratch.extend_from_slice(self.dgroup);
@@ -321,7 +384,9 @@ impl<'a> LocalHeap<'a> {
             heap.validate()?;
             (value, heap.take_write_spans())
         };
-        self.apply_transaction_writes(&scratch, &writes)?;
+        if commit(value) {
+            self.apply_transaction_writes(&scratch, &writes)?;
+        }
         Ok(value)
     }
 
@@ -622,13 +687,16 @@ pub fn prepare_local_heap_init(
     let mut heap_info_bytes = [0; LOCAL_HEAP_INFO_BYTES];
     put_word(&mut heap_info_bytes, HEAP_ITEMS_OFFSET, 4);
     put_word(&mut heap_info_bytes, HEAP_FIRST_OFFSET, layout.first_arena);
+    put_word(&mut heap_info_bytes, HEAP_RESERVED_END_OFFSET, layout.last_arena);
     put_word(&mut heap_info_bytes, HEAP_LAST_OFFSET, layout.last_arena);
+    put_word(&mut heap_info_bytes, HEAP_OWNS_TAIL_OFFSET,
+        u16::from(start == 0 || heap_end.checked_add(1) == Some(dgroup_bytes)));
     put_word(&mut heap_info_bytes, HEAP_HANDLE_DELTA_OFFSET, 0x20);
     put_word(&mut heap_info_bytes, HEAP_EXPANSION_EXTRA_OFFSET, 0x0200);
     put_word(
         &mut heap_info_bytes,
         HEAP_MINIMUM_SIZE_OFFSET,
-        layout.free_arena_bytes,
+        layout.last_arena + LOCAL_ARENA_BYTES as u16 - layout.first_arena,
     );
     put_word(&mut heap_info_bytes, HEAP_MAGIC_OFFSET, LOCAL_HEAP_MAGIC);
 
@@ -734,3 +802,11 @@ fn write_patch(offset: usize, bytes: &[u8]) -> Result<LocalHeapWrite, LocalHeapI
         bytes: storage,
     })
 }
+
+#[cfg(test)]
+#[path = "local_heap/handle_delta_tests.rs"]
+mod handle_delta_tests;
+
+#[cfg(test)]
+#[path = "local_heap/realloc_zero_tests.rs"]
+mod realloc_zero_tests;

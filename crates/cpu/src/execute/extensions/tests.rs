@@ -62,47 +62,51 @@ impl GuestMemory for Ram {
 
 fn instruction(code: &[u8], ram: &mut Ram) -> NormalizedInstruction {
     ram.put(0, code);
-    let decoded = with_bus(ram, 2, 0, |bus| decode(bus, 0, 0).unwrap());
+    let decoded = with_bus(ram, &Registers::default(), 0, |bus| decode(bus, 0, 0).unwrap());
     NormalizedInstruction::new(decoded)
 }
 
 fn with_bus<T>(
     memory: &mut Ram,
-    eflags: u32,
+    registers: &Registers,
     ip: u32,
     operation: impl FnOnce(&mut CpuMemoryAccess<'_, Ram, RealModeSegments>) -> T,
 ) -> T {
-    let mut system = CpuSystem::reset();
+    let mut system = CpuSystem::reset_for_registers(registers);
     let resolver = RealModeSegments;
     let mut bus = CpuMemoryAccess::new(
         memory,
         &resolver,
         &mut system,
-        AccessSite { opcode: 0, ip, eflags },
+        AccessSite { opcode: 0, ip, eflags: registers.eflags },
     );
     operation(&mut bus)
 }
 
 fn run_cmov(regs: &mut Registers, ram: &mut Ram, instruction: &NormalizedInstruction) -> Result<(), CpuError> {
-    with_bus(ram, regs.eflags, instruction.decoded.start_ip, |bus| {
+    let registers = regs.clone();
+    with_bus(ram, &registers, instruction.decoded.start_ip, |bus| {
         execute_cmov(regs, bus, instruction)
     })
 }
 
 fn run_xadd(regs: &mut Registers, ram: &mut Ram, instruction: &NormalizedInstruction) -> Result<(), CpuError> {
-    with_bus(ram, regs.eflags, instruction.decoded.start_ip, |bus| {
+    let registers = regs.clone();
+    with_bus(ram, &registers, instruction.decoded.start_ip, |bus| {
         execute_xadd(regs, bus, instruction)
     })
 }
 
 fn run_xlat(regs: &mut Registers, ram: &mut Ram, instruction: &NormalizedInstruction) -> Result<(), CpuError> {
-    with_bus(ram, regs.eflags, instruction.decoded.start_ip, |bus| {
+    let registers = regs.clone();
+    with_bus(ram, &registers, instruction.decoded.start_ip, |bus| {
         execute_xlat(regs, bus, instruction)
     })
 }
 
 fn run_cmpxchg8b(regs: &mut Registers, ram: &mut Ram, instruction: &NormalizedInstruction) -> Result<(), CpuError> {
-    with_bus(ram, regs.eflags, instruction.decoded.start_ip, |bus| {
+    let registers = regs.clone();
+    with_bus(ram, &registers, instruction.decoded.start_ip, |bus| {
         execute_cmpxchg8b(regs, bus, instruction)
     })
 }
@@ -155,14 +159,30 @@ fn xlat_uses_segment_override_and_does_not_change_flags() {
 fn address_size_override_xlat_uses_ebx_and_wraps_at_32_bits() {
     let mut ram = Ram::new(0x30000);
     let mut regs = Registers::default();
-    regs.ebx = 0x1_0020;
-    regs.set_al(3);
-    ram.bytes[0x1_0023] = 0x5c;
+    regs.ebx = u32::MAX;
+    regs.set_al(0x24);
+    ram.bytes[0x23] = 0x5c;
     let decoded = instruction(&[0x67, 0xd7], &mut ram); // XLAT with 32-bit address size
 
     run_xlat(&mut regs, &mut ram, &decoded).unwrap();
 
     assert_eq!(regs.al(), 0x5c);
+}
+
+#[test]
+fn address_size_override_xlat_still_checks_real_mode_segment_limit() {
+    let mut ram = Ram::new(0x30000);
+    let mut regs = Registers::default();
+    regs.ebx = 0x1_0020;
+    regs.set_al(3);
+    ram.bytes[0x1_0023] = 0x5c;
+    let decoded = instruction(&[0x67, 0xd7], &mut ram);
+    let before = regs.clone();
+
+    // Address-size overrides do not enlarge a real-mode segment's limit.
+    assert_eq!(run_xlat(&mut regs, &mut ram, &decoded),
+        Err(CpuError::GeneralProtectionFault { error_code: 0, ip: 0 }));
+    assert_eq!(regs, before);
 }
 
 #[test]

@@ -39,9 +39,9 @@ impl Win16IoTrace {
 
     pub(super) fn record(&mut self, event: &runtime::Win16IoEvent<'_>) -> io::Result<()> {
         if self.complete {
-            // Stream every event to disk with bounded buffering. A long session
-            // does not grow an in-memory transcript or lose the middle of a call chain.
-            writeln!(self.file, "@{} {event}", self.observed)?;
+            // Flush each event before execution continues so a blocked native
+            // call still leaves its entry row when the process tree is killed.
+            write_complete_row(&mut self.file, self.observed, event)?;
             self.observed = self.observed.saturating_add(1);
             return Ok(());
         }
@@ -150,3 +150,16 @@ impl Drop for Win16IoTrace {
         let _ = self.flush_recent();
     }
 }
+
+fn write_complete_row(
+    writer: &mut impl Write,
+    sequence: u64,
+    event: &impl std::fmt::Display,
+) -> io::Result<()> {
+    writeln!(writer, "@{sequence} {event}")?;
+    writer.flush()
+}
+
+#[cfg(test)]
+#[path = "win16_io_trace_tests.rs"]
+mod diagnostics_tests;

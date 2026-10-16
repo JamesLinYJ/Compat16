@@ -47,11 +47,37 @@ pub(super) fn win16_unregister_window_class(
     Ok(host.win16_windows.unregister_class(class))
 }
 
+pub(super) fn win16_replace_class_resource(
+    host: &mut WindowsHost,
+    class: Win16HostClass,
+    window: runtime::Win16HostWindow,
+    resource: runtime::Win16HostClassResource,
+) -> Result<bool, RuntimeError> {
+    host.win16_windows.replace_class_resource(
+        class,
+        window,
+        resource,
+        &host.win16_images,
+        &host.win16_objects,
+    )
+}
+
 pub(super) fn win16_window_begin(
     host: &mut WindowsHost,
     operation: Win16WindowOperation,
 ) -> Result<Win16WindowStep, RuntimeError> {
-    let result = host.win16_windows.begin(operation, &mut host.win16_objects);
+    if matches!(&operation, Win16WindowOperation::GetMessage { .. }
+        | Win16WindowOperation::MessageCall(runtime::Win16MessageCall::WaitMessage
+            | runtime::Win16MessageCall::Yield { .. })) {
+        if let Some(reporter) = &host.program_load_reporter { reporter.ready()?; }
+    }
+    let win_exec = if let Win16WindowOperation::ShellExecution(
+        ref call @ (runtime::Win16HostShellExecutionOperation::WinExec { .. }
+            | runtime::Win16HostShellExecutionOperation::LoadModule { .. })
+    ) = operation {
+        Some(super::win16_program_launch::prepare(host, call)?)
+    } else { None };
+    let result = host.win16_windows.begin(operation, &mut host.win16_objects, win_exec);
     drain_win16_dde_diagnostics(host);
     result
 }
@@ -264,6 +290,15 @@ pub(super) fn win16_window_abort(
     host: &mut WindowsHost,
 ) -> Result<runtime::Win16WindowAbortReceipt, RuntimeError> {
     let result = host.win16_windows.abort();
+    if let Ok(receipt) = &result {
+        host.win16_windows.release_graphics_after_abort();
+        host.win16_objects.acknowledge_metafile_storage_retirements()?;
+        for callback in &receipt.cancelled_callbacks {
+            if let runtime::Win16NativeCallbackSource::GrayString { dc } = callback.source {
+                host.win16_objects.retire_function_bitmaps(dc);
+            }
+        }
+    }
     drain_win16_dde_diagnostics(host);
     result
 }
@@ -280,6 +315,13 @@ pub(super) fn win16_host_window_liveness(
     window: Win16HostWindow,
 ) -> Result<runtime::Win16HostWindowLiveness, RuntimeError> {
     host.win16_windows.host_window_liveness(window)
+}
+
+pub(super) fn win16_host_window_parent(
+    host: &WindowsHost,
+    window: Win16HostWindow,
+) -> Result<runtime::Win16HostWindowParentObservation, RuntimeError> {
+    host.win16_windows.host_window_parent(window)
 }
 
 pub(super) fn render_graphics(

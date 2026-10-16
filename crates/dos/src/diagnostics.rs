@@ -29,6 +29,7 @@ pub enum DosErrorCode {
     LockViolation = 33,
     DiskFull = 39,
     GeneralFailure = 31,
+    FileExists = 80,
 }
 
 impl std::fmt::Display for DosErrorCode {
@@ -57,6 +58,7 @@ impl std::fmt::Display for DosErrorCode {
             Self::LockViolation => "lock violation",
             Self::DiskFull => "disk full",
             Self::GeneralFailure => "general failure",
+            Self::FileExists => "file already exists",
         };
         f.write_str(description)
     }

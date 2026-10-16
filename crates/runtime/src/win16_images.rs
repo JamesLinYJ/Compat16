@@ -1,5 +1,8 @@
 //! Win16 HICON/HCURSOR handles and NE image resource resolution.
 
+#[path = "win16_image_copy.rs"]
+mod copying;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use formats::{NeCursorResourceTable, NeIconResourceTable, NeResourceId};
@@ -31,6 +34,13 @@ pub(super) struct GuestImageHandles {
 }
 
 impl GuestImageHandles {
+    #[cfg(test)]
+    pub(super) fn fill_for_get_cursor_test(&mut self) {
+        for handle in FIRST_GUEST_IMAGE_HANDLE..=u16::MAX {
+            self.images.insert(handle, GuestImage::Icon(Win16HostIcon(u64::from(handle))));
+        }
+    }
+
     pub(super) fn new() -> Self {
         Self { next_handle: FIRST_GUEST_IMAGE_HANDLE, ..Self::default() }
     }

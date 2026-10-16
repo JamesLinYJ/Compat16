@@ -1,0 +1,475 @@
+module = "GDI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 21
+name = "ExcludeClipRect"
+binding = { rust_id = "GdiExcludeClipRect", id_value = 337, constant = "GDI_EXCLUDE_CLIP_RECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "left", type = "I16" },
+  { name = "top", type = "I16" },
+  { name = "right", type = "I16" },
+  { name = "bottom", type = "I16" },
+]
+
+[[exports]]
+ordinal = 22
+name = "IntersectClipRect"
+binding = { rust_id = "GdiIntersectClipRect", id_value = 338, constant = "GDI_INTERSECT_CLIP_RECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "left", type = "I16" },
+  { name = "top", type = "I16" },
+  { name = "right", type = "I16" },
+  { name = "bottom", type = "I16" },
+]
+
+[[exports]]
+ordinal = 32
+name = "OffsetClipRgn"
+binding = { rust_id = "GdiOffsetClipRgn", id_value = 396, constant = "GDI_OFFSET_CLIP_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 40
+name = "FillRgn"
+binding = { rust_id = "GdiFillRgn", id_value = 398, constant = "GDI_FILL_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "region", type = "U16" },
+  { name = "brush", type = "U16" },
+]
+
+[[exports]]
+ordinal = 41
+name = "FrameRgn"
+binding = { rust_id = "GdiFrameRgn", id_value = 399, constant = "GDI_FRAME_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "region", type = "U16" },
+  { name = "brush", type = "U16" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 42
+name = "InvertRgn"
+binding = { rust_id = "GdiInvertRgn", id_value = 400, constant = "GDI_INVERT_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "region", type = "U16" },
+]
+
+[[exports]]
+ordinal = 43
+name = "PaintRgn"
+binding = { rust_id = "GdiPaintRgn", id_value = 401, constant = "GDI_PAINT_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "region", type = "U16" },
+]
+
+[[exports]]
+ordinal = 44
+name = "SelectClipRgn"
+binding = { rust_id = "GdiSelectClipRgn", id_value = 402, constant = "GDI_SELECT_CLIP_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "region", type = "U16" },
+]
+
+[[exports]]
+ordinal = 47
+name = "CombineRgn"
+binding = { rust_id = "GdiCombineRgn", id_value = 403, constant = "GDI_COMBINE_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "destination", type = "U16" },
+  { name = "source1", type = "U16" },
+  { name = "source2", type = "U16" },
+  { name = "mode", type = "I16" },
+]
+
+[[exports]]
+ordinal = 54
+name = "CreateEllipticRgn"
+binding = { rust_id = "GdiCreateEllipticRgn", id_value = 404, constant = "GDI_CREATE_ELLIPTIC_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "left", type = "I16" },
+  { name = "top", type = "I16" },
+  { name = "right", type = "I16" },
+  { name = "bottom", type = "I16" },
+]
+
+[[exports]]
+ordinal = 55
+name = "CreateEllipticRgnIndirect"
+binding = { rust_id = "GdiCreateEllipticRgnIndirect", id_value = 405, constant = "GDI_CREATE_ELLIPTIC_RGN_INDIRECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "rect", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 63
+name = "CreatePolygonRgn"
+binding = { rust_id = "GdiCreatePolygonRgn", id_value = 406, constant = "GDI_CREATE_POLYGON_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "points", type = "FarBuffer" },
+  { name = "count", type = "I16", encoding = "word" },
+  { name = "fill_mode", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 64
+name = "CreateRectRgn"
+binding = { rust_id = "GdiCreateRectRgn", id_value = 407, constant = "GDI_CREATE_RECT_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "left", type = "I16" },
+  { name = "top", type = "I16" },
+  { name = "right", type = "I16" },
+  { name = "bottom", type = "I16" },
+]
+
+[[exports]]
+ordinal = 65
+name = "CreateRectRgnIndirect"
+binding = { rust_id = "GdiCreateRectRgnIndirect", id_value = 408, constant = "GDI_CREATE_RECT_RGN_INDIRECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "rect", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 72
+name = "EqualRgn"
+binding = { rust_id = "GdiEqualRgn", id_value = 409, constant = "GDI_EQUAL_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "U16" },
+  { name = "second", type = "U16" },
+]
+
+[[exports]]
+ordinal = 77
+name = "GetClipBox"
+binding = { rust_id = "GdiGetClipBox", id_value = 346, constant = "GDI_GET_CLIP_BOX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "rect", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 101
+name = "OffsetRgn"
+binding = { rust_id = "GdiOffsetRgn", id_value = 410, constant = "GDI_OFFSET_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "region", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 103
+name = "PtVisible"
+binding = { rust_id = "GdiPtVisible", id_value = 411, constant = "GDI_PT_VISIBLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 104
+name = "RectVisible"
+aliases = ["RectVisibleOld"]
+binding = { rust_id = "GdiRectVisibleOld", id_value = 354, constant = "GDI_RECT_VISIBLE_OLD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 134
+name = "GetRgnBox"
+binding = { rust_id = "GdiGetRgnBox", id_value = 412, constant = "GDI_GET_RGN_BOX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "region", type = "U16" },
+  { name = "rect", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 161
+name = "PtInRegion"
+binding = { rust_id = "GdiPtInRegion", id_value = 413, constant = "GDI_PT_IN_REGION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "region", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 172
+name = "SetRectRgn"
+binding = { rust_id = "GdiSetRectRgn", id_value = 414, constant = "GDI_SET_RECT_RGN" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "region", type = "U16" },
+  { name = "left", type = "I16" },
+  { name = "top", type = "I16" },
+  { name = "right", type = "I16" },
+  { name = "bottom", type = "I16" },
+]
+
+[[exports]]
+ordinal = 173
+name = "GetClipRgn"
+binding = { rust_id = "GdiGetClipRgn", id_value = 415, constant = "GDI_GET_CLIP_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 181
+name = "RectInRegion"
+aliases = ["RectInRegionOld"]
+binding = { rust_id = "GdiRectInRegion", id_value = 416, constant = "GDI_RECT_IN_REGION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "region", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 444
+name = "CreateRoundRectRgn"
+binding = { rust_id = "GdiCreateRoundRectRgn", id_value = 421, constant = "GDI_CREATE_ROUND_RECT_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "left", type = "I16" },
+  { name = "top", type = "I16" },
+  { name = "right", type = "I16" },
+  { name = "bottom", type = "I16" },
+  { name = "ellipse_width", type = "I16" },
+  { name = "ellipse_height", type = "I16" },
+]
+
+[[exports]]
+ordinal = 451
+name = "CreatePolyPolygonRgn"
+binding = { rust_id = "GdiCreatePolyPolygonRgn", id_value = 422, constant = "GDI_CREATE_POLY_POLYGON_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "points", type = "FarBuffer" },
+  { name = "polygon_counts", type = "FarBuffer" },
+  { name = "polygon_count", type = "I16", encoding = "word" },
+  { name = "fill_mode", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 465
+name = "RectVisible_EHH"
+binding = { rust_id = "GdiRectVisible", id_value = 355, constant = "GDI_RECT_VISIBLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 466
+name = "RectInRegion_EHH"
+binding = { rust_id = "GdiRectInRegionEhh", id_value = 417, constant = "GDI_RECT_IN_REGION_EHH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "region", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 508
+name = "ExtSelectClipRgn"
+binding = { rust_id = "GdiExtSelectClipRgn", id_value = 425, constant = "GDI_EXT_SELECT_CLIP_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "region", type = "U16" },
+  { name = "mode", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 511
+name = "AbortPath"
+binding = { rust_id = "GdiAbortPath", id_value = 426, constant = "GDI_ABORT_PATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 512
+name = "BeginPath"
+binding = { rust_id = "GdiBeginPath", id_value = 427, constant = "GDI_BEGIN_PATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 513
+name = "CloseFigure"
+binding = { rust_id = "GdiCloseFigure", id_value = 428, constant = "GDI_CLOSE_FIGURE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 514
+name = "EndPath"
+binding = { rust_id = "GdiEndPath", id_value = 429, constant = "GDI_END_PATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 515
+name = "FillPath"
+binding = { rust_id = "GdiFillPath", id_value = 430, constant = "GDI_FILL_PATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 516
+name = "FlattenPath"
+binding = { rust_id = "GdiFlattenPath", id_value = 431, constant = "GDI_FLATTEN_PATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 517
+name = "GetPath"
+binding = { rust_id = "GdiGetPath", id_value = 432, constant = "GDI_GET_PATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "points", type = "FarOutputBuffer" },
+  { name = "types", type = "FarOutputBuffer" },
+  { name = "count", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 518
+name = "PathToRegion"
+binding = { rust_id = "GdiPathToRegion", id_value = 433, constant = "GDI_PATH_TO_REGION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 519
+name = "SelectClipPath"
+binding = { rust_id = "GdiSelectClipPath", id_value = 434, constant = "GDI_SELECT_CLIP_PATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "mode", type = "U16" },
+]
+
+[[exports]]
+ordinal = 520
+name = "StrokeAndFillPath"
+binding = { rust_id = "GdiStrokeAndFillPath", id_value = 435, constant = "GDI_STROKE_AND_FILL_PATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 521
+name = "StrokePath"
+binding = { rust_id = "GdiStrokePath", id_value = 436, constant = "GDI_STROKE_PATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 522
+name = "WidenPath"
+binding = { rust_id = "GdiWidenPath", id_value = 437, constant = "GDI_WIDEN_PATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]

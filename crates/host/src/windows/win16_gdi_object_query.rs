@@ -18,7 +18,7 @@ impl Win16Objects {
     )
         -> Result<Option<Info>, RuntimeError>
     {
-        let Some(object) = self.objects.get(&token) else { return Ok(None); };
+        let Some(object) = self.live_object(&token) else { return Ok(None); };
         let native = object.handle;
         // The table retains ownership for this synchronous call. No guest
         // callback runs while these aligned Windows structures are filled.

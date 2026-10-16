@@ -23,6 +23,20 @@ pub(super) fn read_win16_module(
     result
 }
 
+pub(super) fn read_win16_task_module(
+    host: &mut WindowsHost,
+    name: &[u8],
+    application_path: &[u8],
+    path: &runtime::Win16GuestPath,
+) -> Result<Result<runtime::Win16ModuleImage, u16>, RuntimeError> {
+    let result = win16_module_files::read_task_module(
+        host.win16_dcs.text_codec(), &mut host.filesystem, name, application_path, path);
+    if host.win16_io_trace.is_some() {
+        observe_win16_io(host, &runtime::Win16IoEvent::ModuleSearch { name, result: &result });
+    }
+    result
+}
+
 pub(super) fn observe_win16_io(host: &mut WindowsHost, event: &runtime::Win16IoEvent<'_>) {
     let result = match host.win16_io_trace.as_mut() {
         Some(trace) => trace.record(event),

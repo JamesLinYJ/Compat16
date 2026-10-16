@@ -1,0 +1,131 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 430
+name = "lstrcmp"
+binding = { rust_id = "UserLstrcmp", id_value = 288, constant = "USER_LSTRCMP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "left", type = "FarString" },
+  { name = "right", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 431
+name = "AnsiUpper"
+decl = { attributes = [] }
+binding = { rust_id = "UserAnsiUpper", id_value = 289, constant = "USER_ANSI_UPPER" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "string_or_char", type = "FarStringOrChar" },
+]
+
+[[exports]]
+ordinal = 432
+name = "AnsiLower"
+decl = { attributes = [] }
+binding = { rust_id = "UserAnsiLower", id_value = 216, constant = "USER_ANSI_LOWER" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "string_or_char", type = "FarStringOrChar" },
+]
+
+[[exports]]
+ordinal = 433
+name = "IsCharAlpha"
+binding = { rust_id = "UserIsCharAlpha", id_value = 290, constant = "USER_IS_CHAR_ALPHA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "character", type = "U16" },
+]
+
+[[exports]]
+ordinal = 434
+name = "IsCharAlphaNumeric"
+binding = { rust_id = "UserIsCharAlphaNumeric", id_value = 291, constant = "USER_IS_CHAR_ALPHA_NUMERIC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "character", type = "U16" },
+]
+
+[[exports]]
+ordinal = 435
+name = "IsCharUpper"
+binding = { rust_id = "UserIsCharUpper", id_value = 292, constant = "USER_IS_CHAR_UPPER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "character", type = "U16" },
+]
+
+[[exports]]
+ordinal = 436
+name = "IsCharLower"
+binding = { rust_id = "UserIsCharLower", id_value = 293, constant = "USER_IS_CHAR_LOWER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "character", type = "U16" },
+]
+
+[[exports]]
+ordinal = 437
+name = "AnsiUpperBuff"
+binding = { rust_id = "UserAnsiUpperBuff", id_value = 294, constant = "USER_ANSI_UPPER_BUFF" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "buffer", type = "FarBuffer", encoding = "string" },
+  { name = "length", type = "U16" },
+]
+
+[[exports]]
+ordinal = 438
+name = "AnsiLowerBuff"
+binding = { rust_id = "UserAnsiLowerBuff", id_value = 295, constant = "USER_ANSI_LOWER_BUFF" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "buffer", type = "FarBuffer", encoding = "string" },
+  { name = "length", type = "U16" },
+]
+
+[[exports]]
+ordinal = 471
+name = "lstrcmpi"
+binding = { rust_id = "UserLstrcmpi", id_value = 296, constant = "USER_LSTRCMPI" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "left", type = "FarString" },
+  { name = "right", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 472
+name = "AnsiNext"
+decl = { attributes = [] }
+binding = { rust_id = "UserAnsiNext", id_value = 297, constant = "USER_ANSI_NEXT" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "pointer", type = "U32", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 473
+name = "AnsiPrev"
+decl = { attributes = [] }
+binding = { rust_id = "UserAnsiPrev", id_value = 298, constant = "USER_ANSI_PREV" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "start", type = "U32", encoding = "segmented_pointer" },
+  { name = "current", type = "U32", encoding = "segmented_pointer" },
+]

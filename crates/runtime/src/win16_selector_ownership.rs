@@ -2,8 +2,8 @@
 
 use dos_kernel::{DosBlockExtent, DosBlockLease, DosKernel};
 use guest_core::{PhysAddr, Selector};
-use guest_core::memory::Memory;
-use win16_abi::{GlobalHandle, SelectorRef};
+use guest_core::memory::{Memory, ROM_START, ROM_END};
+use win16_abi::{Access, AccessRights, GlobalHandle, SegmentedPointer, SelectorRef};
 
 use super::{Win16State, runtime_arena_backing::{RuntimeArenaBackingIdentity, RuntimeArenaBackingLease}};
 use crate::RuntimeError;
@@ -23,6 +23,7 @@ pub(super) enum SelectorBackingIdentity {
         size: u32,
         segment_flags: u16,
     },
+    FirmwareRom { primary: SelectorRef, base: PhysAddr, size: u32 },
     RuntimeArena(RuntimeArenaBackingIdentity),
 }
 
@@ -45,6 +46,9 @@ pub(super) enum SelectorBackingLease {
         size: u32,
         segment_flags: u16,
     },
+    /// Machine-owned ROM needs no allocation pin; this non-cloneable token is
+    /// held only by a CPU frame, whose domain snapshot brands its memory owner.
+    FirmwareRom { primary: SelectorRef, base: PhysAddr, size: u32 },
     RuntimeArena { lease: RuntimeArenaBackingLease },
 }
 
@@ -63,6 +67,9 @@ impl SelectorBackingLease {
                     module: *module, primary: *primary, base: *base, size: *size,
                     segment_flags: *segment_flags,
                 },
+            Self::FirmwareRom { primary, base, size } => SelectorBackingIdentity::FirmwareRom {
+                primary: *primary, base: *base, size: *size,
+            },
             Self::RuntimeArena { lease } => SelectorBackingIdentity::RuntimeArena(lease.identity()),
         }
     }
@@ -70,7 +77,7 @@ impl SelectorBackingLease {
     pub(super) fn module(&self) -> Option<u16> {
         match self {
             Self::GlobalHeap { module, .. } => *module,
-            Self::Dos { .. } => None,
+            Self::Dos { .. } | Self::FirmwareRom { .. } => None,
             Self::ModuleImage { module, .. } => Some(*module),
             Self::RuntimeArena { .. } => None,
         }
@@ -102,7 +109,7 @@ impl Win16State {
     /// Preflight every cached main-image lease before automatic-data growth.
     /// The selector generation, base, and flags stay fixed; only the lease's
     /// extent snapshot may advance from the exact current size.
-    pub(super) fn preflight_module_image_extent_growth(
+    pub(super) fn preflight_module_image_extent_change(
         &self,
         module: u16,
         primary: SelectorRef,
@@ -111,7 +118,7 @@ impl Win16State {
         old_size: u32,
         new_size: u32,
     ) -> Result<(), RuntimeError> {
-        if old_size == 0 || new_size <= old_size {
+        if old_size == 0 || new_size == 0 || new_size == old_size {
             return Err(RuntimeError::new(crate::DiagnosticKind::InternalInvariant,
                 "invalid checked module-image extent transition"));
         }
@@ -135,7 +142,7 @@ impl Win16State {
 
     /// Advance only the exact primary image leases preflighted above. This is
     /// infallible and allocation-free after the selector extent commits.
-    pub(super) fn commit_module_image_extent_growth(
+    pub(super) fn commit_module_image_extent_change(
         &mut self,
         module: u16,
         primary: SelectorRef,
@@ -184,7 +191,29 @@ impl Win16State {
             }
             return Ok(Some(identity));
         }
+        let firmware = SelectorBackingIdentity::FirmwareRom { primary: selector, base: descriptor.base, size };
+        if self.firmware_rom_identity_is_live(firmware, memory) { return Ok(Some(firmware)); }
         self.selector_backing_lease_for_range(descriptor.base, size, dos, memory)
+    }
+
+    /// Only an exact registered real-mode vector alias owns a firmware byte.
+    /// ROM addresses alone never grant generic alias or MapLS ownership.
+    pub(super) fn firmware_rom_identity_is_live(
+        &self,
+        identity: SelectorBackingIdentity,
+        memory: &Memory,
+    ) -> bool {
+        let SelectorBackingIdentity::FirmwareRom { primary, base, size } = identity
+        else { return false; };
+        if size != 1 || !(ROM_START..ROM_END).contains(&base.0) { return false; }
+        let registered = self.real_mode_vector_aliases.iter().any(|(&(segment, offset), &reference)| {
+            reference == primary && guest_core::real_address(segment, offset) == base
+        });
+        if !registered { return false; }
+        let Ok(descriptor) = self.selectors.describe(primary) else { return false; };
+        descriptor.present && descriptor.base == base && descriptor.limit == 0
+            && descriptor.rights == AccessRights::code()
+            && self.selectors.translate(SegmentedPointer::new(primary, 0), Access::Execute, 1, memory).is_ok()
     }
 
     pub(super) fn selector_backing_lease_for_range(
@@ -345,6 +374,9 @@ impl Win16State {
         memory: &mut Memory,
     ) -> Result<bool, RuntimeError> {
         match identity {
+            SelectorBackingIdentity::FirmwareRom { base: expected_base, size: expected_size, .. } =>
+                Ok(base == expected_base && size == expected_size
+                    && self.firmware_rom_identity_is_live(identity, memory)),
             SelectorBackingIdentity::GlobalHeap { allocation, .. } =>
                 self.range_is_in_allocation(allocation, base, size),
             SelectorBackingIdentity::Dos { extent, .. } => Ok(
@@ -416,6 +448,7 @@ impl Win16State {
             return Ok(None);
         }
         match identity {
+            SelectorBackingIdentity::FirmwareRom { .. } => Ok(None),
             SelectorBackingIdentity::GlobalHeap { allocation, module, ne_segment_flags } => {
                 if !self.range_is_in_allocation(allocation, base, size)? { return Ok(None); }
                 // Preflight both counters before the first mutation. Keep the
@@ -531,6 +564,11 @@ impl Win16State {
         dos: &mut DosKernel,
         memory: &mut Memory,
     ) -> Result<Option<SelectorBackingLease>, RuntimeError> {
+        if let SelectorBackingIdentity::FirmwareRom { primary, base: rom_base, size: rom_size } = identity {
+            return Ok((reference == primary && base == rom_base && size == rom_size
+                && self.firmware_rom_identity_is_live(identity, memory))
+                .then_some(SelectorBackingLease::FirmwareRom { primary, base, size }));
+        }
         let SelectorBackingIdentity::RuntimeArena(arena) = identity else {
             return self.retain_selector_backing(reference, identity, base, size, dos, memory);
         };
@@ -604,6 +642,10 @@ impl Win16State {
                         "module continuation owner reference count underflowed"))?;
                 record.continuation_owner_refs = next;
             }
+            // ROM belongs to the machine Memory for its entire lifetime. No
+            // allocator pin is released. Privileged initialize_rom may still
+            // change bytes; this contract preserves ownership, not byte identity.
+            SelectorBackingLease::FirmwareRom { .. } => {}
             SelectorBackingLease::RuntimeArena { lease } => {
                 self.runtime_arena_backing.release(lease)?;
             }

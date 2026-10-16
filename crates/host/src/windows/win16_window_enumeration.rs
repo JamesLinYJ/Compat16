@@ -28,6 +28,17 @@ pub(super) fn query(state: &Rc<RefCell<WorkerState>>, query: Query)
     let scope = match query {
         Query::IsCurrent(window) => return identity::enumeration_current(state, window)
             .map(Reply::IsCurrent),
+        Query::TaskQueue(window) => {
+            // A worker's queue binding cannot change owner or be rebound after
+            // retirement. Strict resolution proves this exact live HWND is on
+            // that worker; borrowed foreign aliases never pass this check.
+            let queue = identity::resolve(state, window).and_then(|_| {
+                super::win16_guest_notifications::require_bound_queue(
+                    super::win16_guest_notifications::current_queue(),
+                )
+            });
+            return Ok(Reply::TaskQueue(queue));
+        }
         Query::Snapshot(scope) => scope,
     };
     let mut snapshot = Snapshot::default();

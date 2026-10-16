@@ -22,6 +22,9 @@ impl Win16State {
         else {
             return Ok(false);
         };
+        // Keep the native carrier until this read-only reconciliation succeeds
+        // on this entry attempt. A failed query cannot authorize later entry.
+        self.refresh_pending_window_parents(host)?;
         // Failure leaves the same Arc on the operation frame. The DDE entry
         // provider retains its own partial frame and forbids duplicate entry.
         let next = self.begin_dde_callback(Arc::clone(&source), origin,

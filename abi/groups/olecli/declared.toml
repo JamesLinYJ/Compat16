@@ -1,0 +1,611 @@
+module = "OLECLI"
+
+[[exports]]
+ordinal = 100
+name = "DOCWNDPROC"
+kind = "stub"
+
+[[exports]]
+ordinal = 101
+name = "SRVRWNDPROC"
+kind = "stub"
+
+[[exports]]
+ordinal = 102
+name = "MFCALLBACKFUNC"
+kind = "stub"
+
+[[exports]]
+ordinal = 110
+name = "DEFLOADFROMSTREAM"
+kind = "stub"
+
+[[exports]]
+ordinal = 111
+name = "DEFCREATEFROMCLIP"
+kind = "stub"
+
+[[exports]]
+ordinal = 112
+name = "DEFCREATELINKFROMCLIP"
+kind = "stub"
+
+[[exports]]
+ordinal = 113
+name = "DEFCREATEFROMTEMPLATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 114
+name = "DEFCREATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 115
+name = "DEFCREATEFROMFILE"
+kind = "stub"
+
+[[exports]]
+ordinal = 116
+name = "DEFCREATELINKFROMFILE"
+kind = "stub"
+
+[[exports]]
+ordinal = 117
+name = "DEFCREATEINVISIBLE"
+kind = "stub"
+
+[[exports]]
+ordinal = 200
+name = "LERELEASE"
+kind = "stub"
+
+[[exports]]
+ordinal = 201
+name = "LESHOW"
+kind = "stub"
+
+[[exports]]
+ordinal = 202
+name = "LEGETDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 203
+name = "LESETDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 204
+name = "LESETHOSTNAMES"
+kind = "stub"
+
+[[exports]]
+ordinal = 205
+name = "LESETTARGETDEVICE"
+kind = "stub"
+
+[[exports]]
+ordinal = 206
+name = "LESETBOUNDS"
+kind = "stub"
+
+[[exports]]
+ordinal = 207
+name = "LESAVETOSTREAM"
+kind = "stub"
+
+[[exports]]
+ordinal = 208
+name = "LECLONE"
+kind = "stub"
+
+[[exports]]
+ordinal = 209
+name = "LECOPYFROMLINK"
+kind = "stub"
+
+[[exports]]
+ordinal = 210
+name = "LEEQUAL"
+kind = "stub"
+
+[[exports]]
+ordinal = 211
+name = "LECOPY"
+kind = "stub"
+
+[[exports]]
+ordinal = 212
+name = "LEQUERYTYPE"
+kind = "stub"
+
+[[exports]]
+ordinal = 213
+name = "LEQUERYBOUNDS"
+kind = "stub"
+
+[[exports]]
+ordinal = 214
+name = "LEDRAW"
+kind = "stub"
+
+[[exports]]
+ordinal = 215
+name = "LEQUERYOPEN"
+kind = "stub"
+
+[[exports]]
+ordinal = 216
+name = "LEACTIVATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 218
+name = "LEUPDATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 219
+name = "LERECONNECT"
+kind = "stub"
+
+[[exports]]
+ordinal = 220
+name = "LEENUMFORMAT"
+kind = "stub"
+
+[[exports]]
+ordinal = 221
+name = "LEQUERYPROTOCOL"
+kind = "stub"
+
+[[exports]]
+ordinal = 222
+name = "LEQUERYOUTOFDATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 223
+name = "LEOBJECTCONVERT"
+kind = "stub"
+
+[[exports]]
+ordinal = 224
+name = "LECHANGEDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 225
+name = "LECLOSE"
+kind = "stub"
+
+[[exports]]
+ordinal = 226
+name = "LEGETUPDATEOPTIONS"
+kind = "stub"
+
+[[exports]]
+ordinal = 227
+name = "LESETUPDATEOPTIONS"
+kind = "stub"
+
+[[exports]]
+ordinal = 228
+name = "LEEXECUTE"
+kind = "stub"
+
+[[exports]]
+ordinal = 229
+name = "LEOBJECTLONG"
+kind = "stub"
+
+[[exports]]
+ordinal = 230
+name = "LECREATEINVISIBLE"
+kind = "stub"
+
+[[exports]]
+ordinal = 300
+name = "MFRELEASE"
+kind = "stub"
+
+[[exports]]
+ordinal = 301
+name = "MFGETDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 302
+name = "MFSAVETOSTREAM"
+kind = "stub"
+
+[[exports]]
+ordinal = 303
+name = "MFCLONE"
+kind = "stub"
+
+[[exports]]
+ordinal = 304
+name = "MFEQUAL"
+kind = "stub"
+
+[[exports]]
+ordinal = 305
+name = "MFCOPY"
+kind = "stub"
+
+[[exports]]
+ordinal = 307
+name = "MFQUERYBOUNDS"
+kind = "stub"
+
+[[exports]]
+ordinal = 308
+name = "MFDRAW"
+kind = "stub"
+
+[[exports]]
+ordinal = 309
+name = "MFENUMFORMAT"
+kind = "stub"
+
+[[exports]]
+ordinal = 310
+name = "MFCHANGEDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 400
+name = "BMRELEASE"
+kind = "stub"
+
+[[exports]]
+ordinal = 401
+name = "BMGETDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 402
+name = "BMSAVETOSTREAM"
+kind = "stub"
+
+[[exports]]
+ordinal = 403
+name = "BMCLONE"
+kind = "stub"
+
+[[exports]]
+ordinal = 404
+name = "BMEQUAL"
+kind = "stub"
+
+[[exports]]
+ordinal = 405
+name = "BMCOPY"
+kind = "stub"
+
+[[exports]]
+ordinal = 407
+name = "BMQUERYBOUNDS"
+kind = "stub"
+
+[[exports]]
+ordinal = 408
+name = "BMDRAW"
+kind = "stub"
+
+[[exports]]
+ordinal = 409
+name = "BMENUMFORMAT"
+kind = "stub"
+
+[[exports]]
+ordinal = 410
+name = "BMCHANGEDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 500
+name = "DIBRELEASE"
+kind = "stub"
+
+[[exports]]
+ordinal = 501
+name = "DIBGETDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 502
+name = "DIBSAVETOSTREAM"
+kind = "stub"
+
+[[exports]]
+ordinal = 503
+name = "DIBCLONE"
+kind = "stub"
+
+[[exports]]
+ordinal = 504
+name = "DIBEQUAL"
+kind = "stub"
+
+[[exports]]
+ordinal = 505
+name = "DIBCOPY"
+kind = "stub"
+
+[[exports]]
+ordinal = 507
+name = "DIBQUERYBOUNDS"
+kind = "stub"
+
+[[exports]]
+ordinal = 508
+name = "DIBDRAW"
+kind = "stub"
+
+[[exports]]
+ordinal = 509
+name = "DIBENUMFORMAT"
+kind = "stub"
+
+[[exports]]
+ordinal = 510
+name = "DIBCHANGEDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 600
+name = "GENRELEASE"
+kind = "stub"
+
+[[exports]]
+ordinal = 601
+name = "GENGETDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 602
+name = "GENSETDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 603
+name = "GENSAVETOSTREAM"
+kind = "stub"
+
+[[exports]]
+ordinal = 604
+name = "GENCLONE"
+kind = "stub"
+
+[[exports]]
+ordinal = 605
+name = "GENEQUAL"
+kind = "stub"
+
+[[exports]]
+ordinal = 606
+name = "GENCOPY"
+kind = "stub"
+
+[[exports]]
+ordinal = 608
+name = "GENQUERYBOUNDS"
+kind = "stub"
+
+[[exports]]
+ordinal = 609
+name = "GENDRAW"
+kind = "stub"
+
+[[exports]]
+ordinal = 610
+name = "GENENUMFORMAT"
+kind = "stub"
+
+[[exports]]
+ordinal = 611
+name = "GENCHANGEDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 701
+name = "ERRSHOW"
+kind = "stub"
+
+[[exports]]
+ordinal = 702
+name = "ERRSETDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 703
+name = "ERRSETHOSTNAMES"
+kind = "stub"
+
+[[exports]]
+ordinal = 704
+name = "ERRSETTARGETDEVICE"
+kind = "stub"
+
+[[exports]]
+ordinal = 705
+name = "ERRSETBOUNDS"
+kind = "stub"
+
+[[exports]]
+ordinal = 706
+name = "ERRCOPYFROMLINK"
+kind = "stub"
+
+[[exports]]
+ordinal = 707
+name = "ERRQUERYOPEN"
+kind = "stub"
+
+[[exports]]
+ordinal = 708
+name = "ERRACTIVATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 709
+name = "ERRCLOSE"
+kind = "stub"
+
+[[exports]]
+ordinal = 710
+name = "ERRUPDATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 711
+name = "ERRRECONNECT"
+kind = "stub"
+
+[[exports]]
+ordinal = 712
+name = "ERRQUERYPROTOCOL"
+kind = "stub"
+
+[[exports]]
+ordinal = 713
+name = "ERRQUERYOUTOFDATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 714
+name = "ERROBJECTCONVERT"
+kind = "stub"
+
+[[exports]]
+ordinal = 715
+name = "ERRGETUPDATEOPTIONS"
+kind = "stub"
+
+[[exports]]
+ordinal = 716
+name = "ERRSETUPDATEOPTIONS"
+kind = "stub"
+
+[[exports]]
+ordinal = 717
+name = "ERREXECUTE"
+kind = "stub"
+
+[[exports]]
+ordinal = 718
+name = "ERROBJECTLONG"
+kind = "stub"
+
+[[exports]]
+ordinal = 800
+name = "PBLOADFROMSTREAM"
+kind = "stub"
+
+[[exports]]
+ordinal = 801
+name = "PBCREATEFROMCLIP"
+kind = "stub"
+
+[[exports]]
+ordinal = 802
+name = "PBCREATELINKFROMCLIP"
+kind = "stub"
+
+[[exports]]
+ordinal = 803
+name = "PBCREATEFROMTEMPLATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 804
+name = "PBCREATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 805
+name = "PBDRAW"
+kind = "stub"
+
+[[exports]]
+ordinal = 806
+name = "PBQUERYBOUNDS"
+kind = "stub"
+
+[[exports]]
+ordinal = 807
+name = "PBCOPYTOCLIPBOARD"
+kind = "stub"
+
+[[exports]]
+ordinal = 808
+name = "PBCREATEFROMFILE"
+kind = "stub"
+
+[[exports]]
+ordinal = 809
+name = "PBCREATELINKFROMFILE"
+kind = "stub"
+
+[[exports]]
+ordinal = 810
+name = "PBENUMFORMATS"
+kind = "stub"
+
+[[exports]]
+ordinal = 811
+name = "PBGETDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 812
+name = "PBCREATEINVISIBLE"
+kind = "stub"
+
+[[exports]]
+ordinal = 910
+name = "OBJQUERYNAME"
+kind = "stub"
+
+[[exports]]
+ordinal = 911
+name = "OBJRENAME"
+kind = "stub"
+
+[[exports]]
+ordinal = 912
+name = "OBJQUERYTYPE"
+kind = "stub"
+
+[[exports]]
+ordinal = 913
+name = "OBJQUERYSIZE"
+kind = "stub"
+
+[[exports]]
+ordinal = 950
+name = "CONNECTDLGPROC"
+kind = "stub"
+
+[[exports]]
+ordinal = 951
+name = "SETNETNAME"
+kind = "stub"
+
+[[exports]]
+ordinal = 952
+name = "CHECKNETDRIVE"
+kind = "stub"
+
+[[exports]]
+ordinal = 953
+name = "SETNEXTNETDRIVE"
+kind = "stub"
+
+[[exports]]
+ordinal = 954
+name = "GETTASKVISIBLEWINDOW"
+kind = "stub"

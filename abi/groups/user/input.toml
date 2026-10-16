@@ -1,0 +1,132 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 20
+name = "SetDoubleClickTime"
+binding = { rust_id = "UserSetDoubleClickTime", id_value = 572, constant = "USER_SET_DOUBLE_CLICK_TIME" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "milliseconds", type = "U16" },
+]
+
+[[exports]]
+ordinal = 69
+name = "SetCursor"
+binding = { rust_id = "UserSetCursor", id_value = 874, constant = "USER_SET_CURSOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cursor", type = "U16" },
+]
+
+[[exports]]
+ordinal = 71
+name = "ShowCursor"
+binding = { rust_id = "UserShowCursor", id_value = 875, constant = "USER_SHOW_CURSOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "show", type = "U16" },
+]
+
+[[exports]]
+ordinal = 106
+name = "GetKeyState"
+binding = { rust_id = "UserGetKeyState", id_value = 225, constant = "USER_GET_KEY_STATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "virtual_key", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 168
+name = "SetCaretBlinkTime"
+binding = { rust_id = "UserSetCaretBlinkTime", id_value = 577, constant = "USER_SET_CARET_BLINK_TIME" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "milliseconds", type = "U16" },
+]
+
+[[exports]]
+ordinal = 171
+name = "WinHelp"
+binding = { rust_id = "UserWinHelp", id_value = 876, constant = "USER_WIN_HELP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "help_file", type = "NullableFarString" },
+  { name = "command", type = "U16" },
+  { name = "data", type = "U32" },
+]
+
+[[exports]]
+ordinal = 173
+name = "LoadCursor"
+binding = { rust_id = "UserLoadCursor", id_value = 237, constant = "USER_LOAD_CURSOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "cursor_name_or_id", type = "ResourceName" },
+]
+
+[[exports]]
+ordinal = 177
+name = "LoadAccelerators"
+binding = { rust_id = "UserLoadAccelerators", id_value = 877, constant = "USER_LOAD_ACCELERATORS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "name", type = "ResourceName" },
+]
+
+[[exports]]
+ordinal = 178
+name = "TranslateAccelerator"
+binding = { rust_id = "UserTranslateAccelerator", id_value = 878, constant = "USER_TRANSLATE_ACCELERATOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "accelerator", type = "U16" },
+  { name = "message", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 247
+name = "GetCursor"
+binding = { rust_id = "UserGetCursor", id_value = 873, constant = "USER_GET_CURSOR" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 249
+name = "GetAsyncKeyState"
+binding = { rust_id = "UserGetAsyncKeyState", id_value = 227, constant = "USER_GET_ASYNC_KEY_STATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "virtual_key", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 406
+name = "CreateCursor"
+binding = { rust_id = "UserCreateCursor", id_value = 242, constant = "USER_CREATE_CURSOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "x_hotspot", type = "I16", encoding = "word" },
+  { name = "y_hotspot", type = "I16", encoding = "word" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+  { name = "and_mask", type = "FarBuffer" },
+  { name = "xor_mask", type = "FarBuffer" },
+]

@@ -38,6 +38,9 @@ pub struct Win16HostDialogItem {
     pub class: Win16HostDialogAtom,
     pub guest_class_name: Option<crate::Win16HostClassName>,
     pub title: Win16HostDialogAtom,
+    /// Opaque guest resource icon, leased by the native dialog owner before
+    /// creation and installed before WM_INITDIALOG. The native title is empty.
+    pub initial_icon: Option<crate::Win16HostIcon>,
     /// Dialog-item creation bytes copied from the Win16 template, including
     /// no guest pointer or selector. Empty means no creation data.
     pub creation_data: Vec<u8>,

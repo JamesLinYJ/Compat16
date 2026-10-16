@@ -1,0 +1,84 @@
+module = "WING"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1002
+name = "WinGRecommendDIBFormat"
+binding = { rust_id = "WingRecommendDibFormat", id_value = 709, constant = "WING_RECOMMEND_DIB_FORMAT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "info", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 1003
+name = "WinGCreateBitmap"
+binding = { rust_id = "WingCreateBitmap", id_value = 710, constant = "WING_CREATE_BITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "info", type = "FarBuffer" },
+  { name = "bits_output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 1004
+name = "WinGGetDIBPointer"
+decl = { attributes = [] }
+binding = { rust_id = "WingGetDibPointer", id_value = 711, constant = "WING_GET_DIB_POINTER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "bitmap", type = "U16" },
+  { name = "info", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 1008
+name = "WinGCreateHalfToneBrush"
+binding = { rust_id = "WingCreateHalfToneBrush", id_value = 715, constant = "WING_CREATE_HALF_TONE_BRUSH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "color", type = "U32" },
+  { name = "dither_type", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1009
+name = "WinGStretchBlt"
+binding = { rust_id = "WingStretchBlt", id_value = 716, constant = "WING_STRETCH_BLT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "destination", type = "U16" },
+  { name = "destination_x", type = "I16", encoding = "word" },
+  { name = "destination_y", type = "I16", encoding = "word" },
+  { name = "destination_width", type = "I16", encoding = "word" },
+  { name = "destination_height", type = "I16", encoding = "word" },
+  { name = "source", type = "U16" },
+  { name = "source_x", type = "I16", encoding = "word" },
+  { name = "source_y", type = "I16", encoding = "word" },
+  { name = "source_width", type = "I16", encoding = "word" },
+  { name = "source_height", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 1010
+name = "WinGBitBlt"
+binding = { rust_id = "WingBitBlt", id_value = 717, constant = "WING_BIT_BLT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "destination", type = "U16" },
+  { name = "destination_x", type = "I16", encoding = "word" },
+  { name = "destination_y", type = "I16", encoding = "word" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+  { name = "source", type = "U16" },
+  { name = "source_x", type = "I16", encoding = "word" },
+  { name = "source_y", type = "I16", encoding = "word" },
+]

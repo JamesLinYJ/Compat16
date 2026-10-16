@@ -1,0 +1,1516 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 2
+name = "OldExitWindows"
+binding = { rust_id = "UserOldExitWindows", id_value = 574, constant = "USER_OLD_EXIT_WINDOWS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 3
+name = "EnableOEMLayer"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 4
+name = "DisableOEMLayer"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 11
+name = "SetSystemTimer"
+decl = { args = ["word", "word", "word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 13
+name = "GetTickCount"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetTickCount", id_value = 214, constant = "USER_GET_TICK_COUNT" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 14
+name = "GetTimerResolution"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetTimerResolution", id_value = 1238, constant = "USER_GET_TIMER_RESOLUTION" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 15
+name = "GetCurrentTime"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetCurrentTime", id_value = 215, constant = "USER_GET_CURRENT_TIME" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 16
+name = "ClipCursor"
+decl = { args = ["pointer"] }
+binding = { rust_id = "UserClipCursor", id_value = 1240, constant = "USER_CLIP_CURSOR" }
+[exports.call]
+returns = "void"
+params = [{ name = "rect", type = "FarBuffer" }]
+
+[[exports]]
+ordinal = 19
+name = "ReleaseCapture"
+binding = { rust_id = "UserReleaseCapture", id_value = 441, constant = "USER_RELEASE_CAPTURE" }
+[exports.call]
+returns = "void"
+
+[[exports]]
+ordinal = 21
+name = "GetDoubleClickTime"
+binding = { rust_id = "UserGetDoubleClickTime", id_value = 573, constant = "USER_GET_DOUBLE_CLICK_TIME" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 23
+name = "GetFocus"
+binding = { rust_id = "UserGetFocus", id_value = 443, constant = "USER_GET_FOCUS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 51
+name = "BEAR51"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 52
+name = "AnyPopup"
+binding = { rust_id = "UserAnyPopup", id_value = 546, constant = "USER_ANY_POPUP" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 60
+name = "GetActiveWindow"
+binding = { rust_id = "UserGetActiveWindow", id_value = 551, constant = "USER_GET_ACTIVE_WINDOW" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 70
+name = "SetCursorPos"
+decl = { args = ["word", "word"] }
+binding = { rust_id = "UserSetCursorPos", id_value = 1239, constant = "USER_SET_CURSOR_POS" }
+[exports.call]
+returns = "void"
+params = [{ name = "x", type = "I16" }, { name = "y", type = "I16" }]
+
+[[exports]]
+ordinal = 86
+name = "IconSize"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 105
+name = "FlashWindow"
+binding = { rust_id = "UserFlashWindow", id_value = 1221, constant = "USER_FLASH_WINDOW" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "invert", type = "U16" },
+]
+
+[[exports]]
+ordinal = 112
+name = "WaitMessage"
+binding = { rust_id = "UserWaitMessage", id_value = 447, constant = "USER_WAIT_MESSAGE" }
+[exports.call]
+returns = "void"
+
+[[exports]]
+ordinal = 115
+name = "ReplyMessage"
+decl = { args = ["long"] }
+binding = { rust_id = "UserReplyMessage", id_value = 1262, constant = "USER_REPLY_MESSAGE" }
+[exports.call]
+returns = "void"
+params = [{ name = "result", type = "I32" }]
+
+[[exports]]
+ordinal = 117
+name = "WindowFromDC"
+binding = { rust_id = "UserWindowFromDC", id_value = 1250, constant = "USER_WINDOW_FROM_DC" }
+[exports.call]
+returns = "word"
+params = [{ name = "dc", type = "U16" }]
+
+[[exports]]
+ordinal = 119
+name = "GetMessagePos"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetMessagePos", id_value = 449, constant = "USER_GET_MESSAGE_POS" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 120
+name = "GetMessageTime"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetMessageTime", id_value = 450, constant = "USER_GET_MESSAGE_TIME" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 138
+name = "CloseClipboard"
+binding = { rust_id = "UserCloseClipboard", id_value = 629, constant = "USER_CLOSE_CLIPBOARD" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 139
+name = "EmptyClipboard"
+binding = { rust_id = "UserEmptyClipboard", id_value = 630, constant = "USER_EMPTY_CLIPBOARD" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 140
+name = "GetClipboardOwner"
+binding = { rust_id = "UserGetClipboardOwner", id_value = 631, constant = "USER_GET_CLIPBOARD_OWNER" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 143
+name = "CountClipboardFormats"
+binding = { rust_id = "UserCountClipboardFormats", id_value = 634, constant = "USER_COUNT_CLIPBOARD_FORMATS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 148
+name = "GetClipboardViewer"
+binding = { rust_id = "UserGetClipboardViewer", id_value = 637, constant = "USER_GET_CLIPBOARD_VIEWER" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 151
+name = "CreateMenu"
+binding = { rust_id = "UserCreateMenu", id_value = 482, constant = "USER_CREATE_MENU" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 164
+name = "DestroyCaret"
+binding = { rust_id = "UserDestroyCaret", id_value = 520, constant = "USER_DESTROY_CARET" }
+[exports.call]
+returns = "void"
+
+[[exports]]
+ordinal = 169
+name = "GetCaretBlinkTime"
+binding = { rust_id = "UserGetCaretBlinkTime", id_value = 578, constant = "USER_GET_CARET_BLINK_TIME" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 172
+name = "SwitchToThisWindow"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 181
+name = "SetSysColors"
+decl = { args = ["word", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 182
+name = "KillSystemTimer"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 184
+name = "QuerySendMessage"
+decl = { args = ["word", "word", "word", "pointer"] }
+
+[[exports]]
+ordinal = 185
+name = "GrayString"
+decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "signed_word", "signed_word", "signed_word", "signed_word"] }
+binding = { rust_id = "UserGrayString", id_value = 1252, constant = "USER_GRAY_STRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "brush", type = "U16" },
+  { name = "procedure", type = "U32" },
+  { name = "data", type = "U32" },
+  { name = "count", type = "I16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "width", type = "I16" },
+  { name = "height", type = "I16" },
+]
+
+[[exports]]
+ordinal = 186
+name = "SwapMouseButton"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 187
+name = "EndMenu"
+binding = { rust_id = "UserEndMenu", id_value = 503, constant = "USER_END_MENU" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 188
+name = "SetSysModalWindow"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 189
+name = "GetSysModalWindow"
+
+[[exports]]
+ordinal = 192
+name = "InSendMessage"
+binding = { rust_id = "UserInSendMessage", id_value = 1227, constant = "USER_IN_SEND_MESSAGE" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 198
+name = "CascadeChildWindows"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 199
+name = "TileChildWindows"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 200
+name = "OpenComm"
+decl = { args = ["string", "word", "word"] }
+
+[[exports]]
+ordinal = 201
+name = "SetCommState"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 202
+name = "GetCommState"
+decl = { args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 203
+name = "GetCommError"
+decl = { args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 204
+name = "ReadComm"
+decl = { args = ["word", "pointer", "word"] }
+
+[[exports]]
+ordinal = 205
+name = "WriteComm"
+decl = { args = ["word", "pointer", "word"] }
+
+[[exports]]
+ordinal = 206
+name = "TransmitCommChar"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 207
+name = "CloseComm"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 208
+name = "SetCommEventMask"
+decl = { attributes = [], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 209
+name = "GetCommEventMask"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 210
+name = "SetCommBreak"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 211
+name = "ClearCommBreak"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 212
+name = "UngetCommChar"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 213
+name = "BuildCommDCB"
+decl = { args = ["pointer", "pointer"] }
+
+[[exports]]
+ordinal = 214
+name = "EscapeCommFunction"
+decl = { attributes = [], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 215
+name = "FlushComm"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 216
+name = "UserSeeUserDo"
+decl = { attributes = [], args = ["word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 217
+name = "LookupMenuHandle"
+decl = { args = ["word", "signed_word"] }
+
+[[exports]]
+ordinal = 224
+name = "GetWindowTask"
+binding = { rust_id = "UserGetWindowTask", id_value = 1220, constant = "USER_GET_WINDOW_TASK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 226
+name = "LockInput"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 231
+name = "GetSystemDebugState"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 236
+name = "GetCapture"
+binding = { rust_id = "UserGetCapture", id_value = 454, constant = "USER_GET_CAPTURE" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 243
+name = "GetDialogBaseUnits"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetDialogBaseUnits", id_value = 580, constant = "USER_GET_DIALOG_BASE_UNITS" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 245
+name = "EnableCommNotification"
+decl = { args = ["signed_word", "word", "signed_word", "signed_word"] }
+
+[[exports]]
+ordinal = 248
+name = "GetOpenClipboardWindow"
+binding = { rust_id = "UserGetOpenClipboardWindow", id_value = 650, constant = "USER_GET_OPEN_CLIPBOARD_WINDOW" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 251
+name = "SendDriverMessage"
+decl = { attributes = [], args = ["word", "word", "long", "long"] }
+
+[[exports]]
+ordinal = 252
+name = "OpenDriver"
+decl = { args = ["string", "string", "long"] }
+
+[[exports]]
+ordinal = 253
+name = "CloseDriver"
+decl = { attributes = [], args = ["word", "long", "long"] }
+
+[[exports]]
+ordinal = 254
+name = "GetDriverModuleHandle"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 255
+name = "DefDriverProc"
+decl = { attributes = [], args = ["long", "word", "word", "long", "long"] }
+
+[[exports]]
+ordinal = 256
+name = "GetDriverInfo"
+decl = { args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 257
+name = "GetNextDriver"
+decl = { args = ["word", "long"] }
+
+[[exports]]
+ordinal = 273
+name = "ControlPanelInfo"
+decl = { args = ["word", "word", "string"] }
+
+[[exports]]
+ordinal = 274
+name = "GetNextQueueWindow"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 275
+name = "RepaintScreen"
+
+[[exports]]
+ordinal = 276
+name = "LockMyTask"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 278
+name = "GetDesktopHwnd"
+
+[[exports]]
+ordinal = 279
+name = "OldSetDeskPattern"
+
+[[exports]]
+ordinal = 281
+name = "GetSysColorBrush"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 284
+name = "GetFreeSystemResources"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 285
+name = "SetDeskWallPaper"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 286
+name = "GetDesktopWindow"
+binding = { rust_id = "UserGetDesktopWindow", id_value = 570, constant = "USER_GET_DESKTOP_WINDOW" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 288
+name = "GetMessageExtraInfo"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetMessageExtraInfo", id_value = 1233, constant = "USER_GET_MESSAGE_EXTRA_INFO" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 289
+name = "keybd_event"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 299
+name = "mouse_event"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 300
+name = "UnloadInstalledDrivers"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 301
+name = "EDITWNDPROC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 302
+name = "STATICWNDPROC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 303
+name = "BUTTONWNDPROC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 304
+name = "SBWNDPROC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 305
+name = "DESKTOPWNDPROC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 306
+name = "MENUWNDPROC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 307
+name = "LBOXCTLWNDPROC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 314
+name = "SignalProc"
+decl = { args = ["word", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 320
+name = "SysErrorBox"
+decl = { args = ["string", "string", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 321
+name = "SetEventHook"
+decl = { attributes = [], args = ["segmented_pointer"] }
+
+[[exports]]
+ordinal = 322
+name = "WinOldAppHackOMatic"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 323
+name = "GetMessage2"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 324
+name = "FillWindow"
+decl = { args = ["word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 325
+name = "PaintRect"
+decl = { args = ["word", "word", "word", "word", "pointer"] }
+
+[[exports]]
+ordinal = 326
+name = "GetControlBrush"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 331
+name = "EnableHardwareInput"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 332
+name = "UserYield"
+
+[[exports]]
+ordinal = 333
+name = "IsUserIdle"
+
+[[exports]]
+ordinal = 335
+name = "GetInputState"
+binding = { rust_id = "UserGetInputState", id_value = 456, constant = "USER_GET_INPUT_STATE" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 336
+name = "LoadCursorIconHandler"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 337
+name = "GetMouseEventProc"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 338
+name = "ECGETDS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 343
+name = "GetFilePortName"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 344
+name = "COMBOBOXCTLWNDPROC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 345
+name = "BEAR345"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 356
+name = "LoadDIBCursorHandler"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 357
+name = "LoadDIBIconHandler"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 359
+name = "GetDCEx"
+decl = { args = ["word", "word", "long"] }
+binding = { rust_id = "UserGetDcEx", id_value = 1251, constant = "USER_GET_DC_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "region", type = "U16" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 362
+name = "DCHook"
+decl = { args = ["word", "word", "long", "long"] }
+
+[[exports]]
+ordinal = 364
+name = "LookupIconIdFromDirectoryEx"
+decl = { args = ["pointer", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 368
+name = "CopyIcon"
+decl = { args = ["word", "word"] }
+binding = { rust_id = "UserCopyIcon", id_value = 1254, constant = "USER_COPY_ICON" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "icon", type = "U16" },
+]
+
+[[exports]]
+ordinal = 369
+name = "CopyCursor"
+decl = { args = ["word", "word"] }
+binding = { rust_id = "UserCopyCursor", id_value = 1255, constant = "USER_COPY_CURSOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "cursor", type = "U16" },
+]
+
+[[exports]]
+ordinal = 372
+name = "GetInternalIconHeader"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 374
+name = "DllEntryPoint"
+decl = { args = ["long", "word", "word", "word", "long", "word"] }
+
+[[exports]]
+ordinal = 375
+name = "DrawTextEx"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 376
+name = "SetMessageExtraInfo"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 378
+name = "SetPropEx"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 379
+name = "GetPropEx"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 380
+name = "RemovePropEx"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 382
+name = "SetWindowContextHelpID"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 383
+name = "GetWindowContextHelpID"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 389
+name = "LoadImage"
+decl = { attributes = [], args = ["word", "string", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 390
+name = "CopyImage"
+decl = { args = ["word", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 391
+name = "SignalProc32"
+decl = { args = ["long", "long", "long", "word"] }
+
+[[exports]]
+ordinal = 394
+name = "DrawIconEx"
+decl = { args = ["word", "word", "word", "word", "word", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 395
+name = "GetIconInfo"
+decl = { args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 397
+name = "RegisterClassEx"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 398
+name = "GetClassInfoEx"
+decl = { args = ["word", "segmented_string", "pointer"] }
+
+[[exports]]
+ordinal = 400
+name = "FinalUserInit"
+
+[[exports]]
+ordinal = 408
+name = "CreateCursorIconIndirect"
+decl = { args = ["word", "pointer", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 409
+name = "InitThreadInput"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 415
+name = "CreatePopupMenu"
+binding = { rust_id = "UserCreatePopupMenu", id_value = 498, constant = "USER_CREATE_POPUP_MENU" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 417
+name = "GetMenuCheckMarkDimensions"
+decl = { attributes = [] }
+binding = { rust_id = "UserGetMenuCheckMarkDimensions", id_value = 511, constant = "USER_GET_MENU_CHECK_MARK_DIMENSIONS" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 427
+name = "FindWindowEx"
+decl = { args = ["word", "word", "string", "string"] }
+
+[[exports]]
+ordinal = 428
+name = "TileWindows"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 429
+name = "CascadeWindows"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 441
+name = "InsertMenuItem"
+decl = { args = ["word", "word", "word", "pointer"] }
+
+[[exports]]
+ordinal = 443
+name = "GetMenuItemInfo"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 446
+name = "SetMenuItemInfo"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 448
+name = "DrawAnimatedRects"
+decl = { args = ["word", "word", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 449
+name = "DrawState"
+decl = { args = ["word", "word", "segmented_pointer", "long", "word", "signed_word", "signed_word", "signed_word", "signed_word", "word"] }
+
+[[exports]]
+ordinal = 450
+name = "CreateIconFromResourceEx"
+decl = { args = ["pointer", "long", "word", "long", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 455
+name = "GetIconID"
+decl = { args = ["word", "long"] }
+
+[[exports]]
+ordinal = 456
+name = "LoadIconHandler"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 459
+name = "DumpIcon"
+decl = { attributes = [], args = ["segmented_pointer", "pointer", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 460
+name = "GetInternalWindowPos"
+decl = { args = ["word", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 461
+name = "SetInternalWindowPos"
+decl = { args = ["word", "word", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 462
+name = "CalcChildScroll"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 463
+name = "ScrollChildren"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 464
+name = "DragObject"
+decl = { attributes = [], args = ["word", "word", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 465
+name = "DragDetect"
+decl = { args = ["word", "long"] }
+
+[[exports]]
+ordinal = 470
+name = "StringFunc"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 475
+name = "SetScrollInfo"
+decl = { args = ["word", "signed_word", "pointer", "word"] }
+
+[[exports]]
+ordinal = 476
+name = "GetScrollInfo"
+decl = { args = ["word", "signed_word", "pointer"] }
+
+[[exports]]
+ordinal = 477
+name = "GetKeyboardLayoutName"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 478
+name = "LoadKeyboardLayout"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 479
+name = "MenuItemFromPoint"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 480
+name = "GetUserLocalObjType"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 486
+name = "RawGetTabbedTextExtent"
+
+[[exports]]
+ordinal = 487
+name = "RawDrawText"
+decl = { args = ["word", "string", "signed_word", "pointer", "word"] }
+
+[[exports]]
+ordinal = 488
+name = "RawTabbedTextOut"
+
+[[exports]]
+ordinal = 489
+name = "GetKeyboardLanguage"
+
+[[exports]]
+ordinal = 490
+name = "SetKeyboardLanguage"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 491
+name = "BiDiGrayString"
+
+[[exports]]
+ordinal = 492
+name = "MakeScrollBarsRToL"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 493
+name = "IsCharBiDi"
+
+[[exports]]
+ordinal = 494
+name = "IsCharEnglish"
+
+[[exports]]
+ordinal = 495
+name = "LenFruser1"
+
+[[exports]]
+ordinal = 496
+name = "DrawTextRToL"
+
+[[exports]]
+ordinal = 498
+name = "BEAR498"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 500
+name = "FARCALLNETDRIVER"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 521
+name = "WNetEnable"
+decl = { attributes = ["retvoid"] }
+binding = { rust_id = "UserWNetEnable", id_value = 0, constant = "USER_WNET_ENABLE" }
+[exports.call]
+returns = "void"
+
+[[exports]]
+ordinal = 522
+name = "WNetDisable"
+decl = { attributes = ["retvoid"] }
+binding = { rust_id = "UserWNetDisable", id_value = 1, constant = "USER_WNET_DISABLE" }
+[exports.call]
+returns = "void"
+
+[[exports]]
+ordinal = 533
+name = "WNetInitialize"
+binding = { rust_id = "UserWNetInitialize", id_value = 2, constant = "USER_WNET_INITIALIZE" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 534
+name = "WNetLogon"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 535
+name = "WOWWORDBREAKPROC"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 537
+name = "MOUSEEVENT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 538
+name = "KEYBDEVENT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 595
+name = "OLDEXITWINDOWS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 600
+name = "GetShellWindow"
+
+[[exports]]
+ordinal = 601
+name = "DoHotkeyStuff"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 602
+name = "SetCheckCursorTimer"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 604
+name = "BroadcastSystemMessage"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 605
+name = "HackTaskMonitor"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 606
+name = "FormatMessage"
+decl = { args = ["long", "segmented_pointer", "word", "word", "pointer", "word", "pointer"] }
+
+[[exports]]
+ordinal = 608
+name = "GetForegroundWindow"
+
+[[exports]]
+ordinal = 609
+name = "SetForegroundWindow"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 610
+name = "DestroyIcon32"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 620
+name = "ChangeDisplaySettings"
+decl = { attributes = [], args = ["pointer", "long"] }
+
+[[exports]]
+ordinal = 621
+name = "EnumDisplaySettings"
+decl = { args = ["string", "long", "pointer"] }
+
+[[exports]]
+ordinal = 640
+name = "MsgWaitForMultipleObjects"
+decl = { attributes = [], args = ["long", "pointer", "long", "long", "long"] }
+
+[[exports]]
+ordinal = 650
+name = "ActivateKeyboardLayout"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 651
+name = "GetKeyboardLayout"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 652
+name = "GetKeyboardLayoutList"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 654
+name = "UnloadKeyboardLayout"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 655
+name = "PostPostedMessages"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 656
+name = "DrawFrameControl"
+decl = { args = ["word", "pointer", "word", "word"] }
+
+[[exports]]
+ordinal = 657
+name = "DrawCaptionTemp"
+decl = { args = ["word", "word", "pointer", "word", "word", "pointer", "word"] }
+
+[[exports]]
+ordinal = 658
+name = "DispatchInput"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 659
+name = "DrawEdge"
+decl = { args = ["word", "pointer", "word", "word"] }
+
+[[exports]]
+ordinal = 660
+name = "DrawCaption"
+decl = { args = ["word", "word", "pointer", "word"] }
+
+[[exports]]
+ordinal = 661
+name = "SetSysColorsTemp"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 662
+name = "DrawMenubarTemp"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 663
+name = "GetMenuDefaultItem"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 664
+name = "SetMenuDefaultItem"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 667
+name = "TrackPopupMenuEx"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 668
+name = "SetWindowRgn"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 669
+name = "GetWindowRgn"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 800
+name = "CHOOSEFONT_CALLBACK16"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 801
+name = "FINDREPLACE_CALLBACK16"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 802
+name = "OPENFILENAME_CALLBACK16"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 803
+name = "PRINTDLG_CALLBACK16"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 804
+name = "CHOOSECOLOR_CALLBACK16"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 819
+name = "PeekMessage32"
+decl = { args = ["pointer", "word", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 820
+name = "GetMessage32"
+decl = { attributes = [], args = ["pointer", "word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 821
+name = "TranslateMessage32"
+decl = { args = ["pointer", "word"] }
+
+[[exports]]
+ordinal = 822
+name = "DispatchMessage32"
+decl = { attributes = [], args = ["pointer", "word"] }
+
+[[exports]]
+ordinal = 823
+name = "CallMsgFilter32"
+decl = { args = ["pointer", "word", "word"] }
+
+[[exports]]
+ordinal = 825
+name = "PostMessage32"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 826
+name = "PostThreadMessage32"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 827
+name = "MessageBoxIndirect"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 851
+name = "MsgThkConnectionDataLS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 853
+name = "FT_USRFTHKTHKCONNECTIONDATA"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 854
+name = "FT__USRF2THKTHKCONNECTIONDATA"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 855
+name = "Usr32ThkConnectionDataSL"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 890
+name = "InstallIMT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 891
+name = "UninstallIMT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 901
+name = "FindResourceEx"
+
+[[exports]]
+ordinal = 902
+name = "LoadSystemLanguageString"
+decl = { args = ["word", "word", "pointer", "word", "word"] }
+
+[[exports]]
+ordinal = 903
+name = "GetClipboardCodePage"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 904
+name = "ResetDialogTemplate"
+
+[[exports]]
+ordinal = 905
+name = "ChangeDialogTemplate"
+
+[[exports]]
+ordinal = 906
+name = "GetNumLanguages"
+
+[[exports]]
+ordinal = 907
+name = "GetLanguageName"
+decl = { args = ["word", "word", "pointer", "word"] }
+
+[[exports]]
+ordinal = 908
+name = "GetLanguageResId"
+
+[[exports]]
+ordinal = 909
+name = "SetWindowTextEx"
+decl = { args = ["word", "string", "word"] }
+
+[[exports]]
+ordinal = 910
+name = "BiDiMessageBoxEx"
+decl = { args = ["word", "string", "string", "word", "word"] }
+
+[[exports]]
+ordinal = 911
+name = "SetDlgItemTextEx"
+decl = { args = ["word", "word", "string", "word"] }
+
+[[exports]]
+ordinal = 912
+name = "ChangeKeyboardLanguage"
+decl = { attributes = [], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 913
+name = "GetCodePageSystemFont"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 914
+name = "QueryCodePage"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 915
+name = "GetAppCodePage"
+decl = { attributes = [], args = ["word"] }
+
+[[exports]]
+ordinal = 916
+name = "CreateDialogIndirectParamML"
+decl = { args = ["word", "pointer", "word", "pointer", "long", "word", "word", "string", "word"] }
+
+[[exports]]
+ordinal = 917
+name = "CreateDialogParamML"
+
+[[exports]]
+ordinal = 918
+name = "DialogBoxIndirectParamML"
+decl = { args = ["word", "word", "word", "pointer", "long", "word", "word", "string", "word"] }
+
+[[exports]]
+ordinal = 919
+name = "LoadLanguageString"
+decl = { args = ["word", "word", "word", "pointer", "word"] }
+
+[[exports]]
+ordinal = 920
+name = "SetAppCodePage"
+decl = { attributes = [], args = ["word", "word", "word", "word"] }
+
+[[exports]]
+ordinal = 922
+name = "GetBaseCodePage"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 923
+name = "FindLanguageResource"
+decl = { args = ["word", "string", "string", "word"] }
+
+[[exports]]
+ordinal = 924
+name = "ChangeKeyboardCodePage"
+decl = { attributes = [], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 925
+name = "LangToBestCodePage"
+
+[[exports]]
+ordinal = 926
+name = "GetNumKeyboards"
+
+[[exports]]
+ordinal = 927
+name = "IsCharHebrew"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 928
+name = "IsCharFrench"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 929
+name = "IsCharArabic"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 930
+name = "MessageBoxEx"
+decl = { args = ["word", "string", "string", "word", "word"] }
+
+[[exports]]
+ordinal = 1000
+name = "SetProcessDefaultLayout"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 1001
+name = "GetProcessDefaultLayout"
+decl = { args = ["pointer"] }

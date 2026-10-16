@@ -1,0 +1,55 @@
+[types.AtomName]
+value = { kind = "far16_16", role = "atom_name" }
+declaration_encoding = "string"
+
+[types.Char8]
+value = { kind = "integer", bits = 8, signedness = "unknown" }
+declaration_encoding = "word"
+
+[types.ClassName]
+value = { kind = "far16_16", role = "class_name" }
+declaration_encoding = "string"
+
+[types.FarBuffer]
+value = { kind = "far16_16", role = "far_buffer" }
+declaration_encoding = "pointer"
+
+[types.FarOutputBuffer]
+value = { kind = "far16_16", role = "far_output_buffer" }
+declaration_encoding = "pointer"
+
+[types.FarPointer]
+value = { kind = "far16_16", role = "far_pointer" }
+declaration_encoding = "pointer"
+
+[types.FarString]
+value = { kind = "far16_16", role = "far_string" }
+declaration_encoding = "string"
+
+[types.FarStringOrChar]
+value = { kind = "far16_16", role = "far_string_or_char" }
+declaration_encoding = "segmented_string"
+
+[types.I16]
+value = { kind = "integer", bits = 16, signedness = "signed" }
+declaration_encoding = "signed_word"
+
+[types.I32]
+value = { kind = "integer", bits = 32, signedness = "signed" }
+declaration_encoding = "long"
+
+[types.NullableFarString]
+value = { kind = "far16_16", role = "nullable_far_string" }
+declaration_encoding = "string"
+
+[types.ResourceName]
+value = { kind = "far16_16", role = "resource_name" }
+declaration_encoding = "string"
+
+[types.U16]
+value = { kind = "integer", bits = 16, signedness = "unsigned" }
+declaration_encoding = "word"
+
+[types.U32]
+value = { kind = "integer", bits = 32, signedness = "unsigned" }
+declaration_encoding = "long"

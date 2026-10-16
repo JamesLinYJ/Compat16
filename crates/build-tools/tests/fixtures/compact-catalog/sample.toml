@@ -1,0 +1,16 @@
+module = "SAMPLE"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "Example"
+binding = { rust_id = "SampleExample", id_value = 0, constant = "SAMPLE_EXAMPLE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "value", type = "Word" },
+]
+
+[[exports]]
+ordinal = 2
+name = "MetadataOnly"

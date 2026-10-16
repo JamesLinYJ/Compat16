@@ -14,7 +14,7 @@ use win16_abi::{
     },
 };
 
-use super::{Win16State, windows::WindowReturn};
+use super::{Win16State, windows::{WindowClassRoot, WindowReturn}};
 use crate::{
     Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost,
     Win16HostClass, Win16WindowCall, Win16WindowDataCall,
@@ -35,21 +35,40 @@ const DIALOG_USER_RANGE: std::ops::Range<usize> =
 
 #[derive(Debug)]
 pub(super) struct Win16WindowDataState {
-    class: Option<Win16HostClass>,
+    pub(super) native_window: Win16HostWindow,
+    class_root: WindowClassRoot,
     /// `None` means that no guest `cbWndExtra` contract is known. An empty
     /// vector means a known class explicitly requested zero extra bytes.
     extra_bytes: Option<Vec<u8>>,
-    instance: u16,
+    pub(super) instance: u16,
     is_dialog: bool,
     /// Previously installed guest FAR procedures stay rooted while the HWND
     /// lives so SetWindowLong's returned subclass-chain values remain callable.
     procedure_roots: Vec<u32>,
+    /// A native control's guest procedure has no guest class registration.
+    pub(super) native_subclass: Option<u32>,
+    pub(super) subclass_revision: u64,
     reported_missing_contract: bool,
 }
 
 impl Win16WindowDataState {
+    /// Borrow saved FAR roots only for this exact live class/instance owner.
+    /// Class replacement reserves this history and the registration history
+    /// before publishing either old address or changing either current FAR.
+    pub(super) fn procedure_roots_for_owner_mut(
+        &mut self,
+        native: Win16HostWindow,
+        class: Win16HostClass,
+        instance: u16,
+    ) -> Option<&mut Vec<u32>> {
+        (self.native_window == native
+            && self.class_root == WindowClassRoot::Class(class)
+            && self.instance == instance).then_some(&mut self.procedure_roots)
+    }
+
     fn new(
-        class: Option<Win16HostClass>,
+        native_window: Win16HostWindow,
+        class_root: WindowClassRoot,
         instance: u16,
         is_dialog: bool,
         extra_len: Option<usize>,
@@ -61,11 +80,14 @@ impl Win16WindowDataState {
         };
         let extra_bytes = length.map(zeroed_bytes).transpose()?;
         Ok(Self {
-            class,
+            native_window,
+            class_root,
             extra_bytes,
             instance,
             is_dialog,
             procedure_roots: Vec::new(),
+            native_subclass: None,
+            subclass_revision: 0,
             reported_missing_contract: false,
         })
     }
@@ -109,9 +131,50 @@ pub(super) struct Win16WindowDataContinuation {
     pub(super) return_kind: Win16ReturnKind,
     pub(super) return_mask: u32,
     pub(super) parent_result: bool,
+    /// Only active setters can change ancestry before their final result.
+    pub(super) parent_mutation: bool,
 }
 
 impl Win16State {
+    /// Exact registration associated with this live HWND incarnation. Class
+    /// names and the HWND's possibly subclassed procedure are not identities.
+    pub(super) fn window_host_class(&self, window: u16) -> Option<Win16HostClass> {
+        match self.window_class_root(window) {
+            WindowClassRoot::Class(class) => Some(class),
+            WindowClassRoot::NoRegistration | WindowClassRoot::Unresolved => None,
+        }
+    }
+
+    pub(super) fn window_class_root(&self, window: u16) -> WindowClassRoot {
+        let Some(state) = self.window_data.get(&window) else {
+            return WindowClassRoot::Unresolved;
+        };
+        if self.window_handles.get(&window) != Some(&state.native_window) {
+            return WindowClassRoot::Unresolved;
+        }
+        state.class_root
+    }
+
+    /// Refine unknown provenance only from an exact native callback or the
+    /// root route of the exact dialog creation. Child routes are not proof.
+    pub(super) fn record_window_class_root(
+        &mut self, window: u16, native: Win16HostWindow, root: WindowClassRoot,
+    ) -> Result<(), RuntimeError> {
+        let state = self.window_data.get_mut(&window).ok_or_else(|| RuntimeError::new(
+            Kind::InternalInvariant, "Win16 class provenance has no window data owner"))?;
+        if state.native_window != native || self.window_handles.get(&window) != Some(&native) {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "Win16 class provenance belongs to a different native HWND generation"));
+        }
+        if root == WindowClassRoot::Unresolved { return Ok(()); }
+        if state.class_root != WindowClassRoot::Unresolved && state.class_root != root {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "Win16 window data was assigned to a different class registration"));
+        }
+        state.class_root = root;
+        Ok(())
+    }
+
     pub(super) fn window_is_dialog(&self, window: u16) -> bool {
         self.window_data.get(&window).is_some_and(|state| state.is_dialog)
     }
@@ -127,14 +190,20 @@ impl Win16State {
         dialog: bool,
         extra_len: Option<usize>,
     ) -> Result<(), RuntimeError> {
-        if window == 0 || !self.window_handles.contains_key(&window) {
+        let native_window = self.window_handles.get(&window).copied().filter(|_| window != 0);
+        let Some(native_window) = native_window else {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "Win16 window data was initialized before its guest HWND mapping"));
-        }
+        };
+        let class_root = class.map_or(WindowClassRoot::Unresolved, WindowClassRoot::Class);
         if let Some(existing) = self.window_data.get_mut(&window) {
-            if existing.class.is_none() {
-                existing.class = class;
-            } else if class.is_some() && existing.class != class {
+            if existing.native_window != native_window {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "Win16 window data belongs to a different native HWND generation"));
+            }
+            if existing.class_root == WindowClassRoot::Unresolved {
+                existing.class_root = class_root;
+            } else if class_root != WindowClassRoot::Unresolved && existing.class_root != class_root {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
                     "Win16 window data was assigned to a different guest class"));
             }
@@ -159,7 +228,7 @@ impl Win16State {
         }
 
         self.window_data.insert(window, Win16WindowDataState::new(
-            class, instance, dialog, extra_len,
+            native_window, class_root, instance, dialog, extra_len,
         )?);
         Ok(())
     }
@@ -201,7 +270,8 @@ impl Win16State {
     /// pass their FAR value to CallWindowProc.
     pub(super) fn window_procedure_roots(&self) -> impl Iterator<Item = u32> + '_ {
         self.window_data.values()
-            .flat_map(|state| state.procedure_roots.iter().copied())
+            .flat_map(|state| state.procedure_roots.iter().copied()
+                .chain(state.native_subclass))
     }
 
     /// Handle USER.133–136. Positive indexes are byte offsets into checked,
@@ -216,7 +286,22 @@ impl Win16State {
         request: Win16WindowDataRequest,
         return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
+        if let Win16WindowDataRequest::SetParent { window, parent } = request {
+            let Some(native_window) = self.window_handles.get(&window).copied() else {
+                return self.complete_return(registers, return_to.0, return_to.1,
+                    return_to.2, 0, Win16ReturnKind::Word);
+            };
+            return self.submit_data_call(registers, memory, host,
+                Win16WindowDataCall::Reparent {
+                    window: self.window_target(window), parent: self.window_target(parent),
+                },
+                Win16WindowDataContinuation {
+                    window, native_window, return_kind: Win16ReturnKind::Word,
+                    return_mask: u32::from(u16::MAX), parent_result: true, parent_mutation: true,
+                }, return_to);
+        }
         let (window, index, width, replacement) = match request {
+            Win16WindowDataRequest::SetParent { .. } => unreachable!("handled public SetParent"),
             Win16WindowDataRequest::GetWindowWord { window, index } =>
                 (window, index, DataWidth::Word, None),
             Win16WindowDataRequest::SetWindowWord { window, index, value } =>
@@ -275,21 +360,9 @@ impl Win16State {
                 return zero(self, registers);
             }
             let Some(procedure) = self.window_procedures.get(&window).copied() else {
-                if replacement.is_none() {
-                    let native_window = self.window_handles[&window];
-                    return self.begin_window_operation(registers, memory, host,
-                        Win16WindowOperation::QueryProcedure { window: native_window },
-                        WindowReturn::QueryProcedure { window, native_window }, return_to);
-                }
-                let api = if replacement.is_some() {
-                    "SetWindowLong"
-                } else {
-                    "GetWindowLong"
-                };
-                host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap, format!(
-                    "Win16 {api}(GWL_WNDPROC) for guest HWND 0x{window:04X} requires a native control subclass bridge; returned zero",
-                )));
-                return zero(self, registers);
+                return self.begin_native_subclass_data(
+                    registers, memory, host, window, replacement, return_to,
+                );
             };
             let old = procedure.address;
             if let Some(value) = replacement {
@@ -319,6 +392,7 @@ impl Win16State {
                     window, native_window, return_kind,
                     return_mask: u32::from(u16::MAX),
                     parent_result: true,
+                    parent_mutation: replacement.is_some(),
                 }, return_to);
         }
 
@@ -346,6 +420,7 @@ impl Win16State {
                 Win16WindowDataContinuation {
                     window, native_window, return_kind, return_mask: field_mask,
                     parent_result: false,
+                    parent_mutation: false,
                 }, return_to);
         }
 
@@ -496,7 +571,7 @@ impl Win16State {
         }
     }
 
-    fn retain_procedure_root(&mut self, window: u16, address: u32)
+    pub(super) fn retain_procedure_root(&mut self, window: u16, address: u32)
         -> Result<(), RuntimeError> {
         if address == 0 { return Ok(()); }
         let state = self.window_data.get_mut(&window).ok_or_else(|| RuntimeError::new(

@@ -25,7 +25,7 @@ impl Win16State {
                 references.push(guest_code_reference(selector, offset));
             }
         }
-        references.extend(self.window_property_code_references());
+        references.extend(self.native_function_code_references());
         references.extend(self.window_procedures.values().map(|procedure| procedure.address));
         references.extend(self.dialog_procedures.values().filter_map(|(procedure, _)|
             (*procedure != 0).then_some(*procedure)));
@@ -41,9 +41,18 @@ impl Win16State {
             match frame.continuation() {
                 Some(WindowReturn::Create { procedure, .. }) if procedure.address != 0 =>
                     references.push(procedure.address),
+                Some(WindowReturn::PrepareNativeSubclass { replacement, .. }) =>
+                    references.push(*replacement),
+                Some(WindowReturn::NativeSubclass(change)) => {
+                    references.push(change.replacement);
+                    references.extend(change.previous);
+                }
                 Some(WindowReturn::WindowProperties(
                     super::super::window_properties::WindowPropertyReturn::Enum { procedure, .. },
                 )) => references.push(*procedure),
+                Some(WindowReturn::EnumMetafile { procedure, .. }) => references.push(*procedure),
+                Some(WindowReturn::GrayString { procedure, .. }) if *procedure != 0 =>
+                    references.push(*procedure),
                 Some(WindowReturn::UserFamily(continuation)) => {
                     if let Some((procedure, _)) = continuation.pending_dialog_procedure() {
                         references.push(procedure);
@@ -106,6 +115,7 @@ impl Win16State {
                     w_param: frame.payload.w_param,
                     l_param: frame.payload.l_param,
                     guest_notification: frame.guest_notification,
+                    class_root: frame.class_root,
                 }
             }
             WindowCallbackContinuation::GuestProcedureCall {

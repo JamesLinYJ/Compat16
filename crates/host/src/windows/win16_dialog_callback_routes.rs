@@ -52,6 +52,11 @@ pub(super) fn dialog_route(
     let Some((operation, creation, cookie, init_parameter, root_token, menu, needs_custom_root)) = pending else {
         return Ok(None);
     };
+    super::super::win16_dialog_icon_controls::before_init(state, operation, creation, hwnd)?;
+    let instance = state.borrow().pending_dialog_routes.iter()
+        .find(|pending| pending.operation == operation && pending.creation == creation)
+        .map(|pending| pending.guest_instance).ok_or_else(|| RuntimeError::new(
+            Kind::InternalInvariant, "dialog initialization lost its creation instance"))?;
     let existing_route = {
         state.borrow().dialog_routes_by_native.get(&native).copied()
     };
@@ -63,6 +68,8 @@ pub(super) fn dialog_route(
             && super::super::win16_window_identity::resolve(state, existing.window) == Some(hwnd)
         {
             super::super::win16_window_dialog_creation::attach_template_menu(state, existing, hwnd)?;
+            super::super::win16_window_instances::capture_dialog(state, hwnd, instance)?;
+            mark_init_published(state, operation, creation);
             return Ok(Some(existing));
         }
         return Err(RuntimeError::new(Kind::InternalInvariant,
@@ -95,7 +102,7 @@ pub(super) fn dialog_route(
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "standard dialog lost its pending creation route during WM_INITDIALOG"));
         };
-        if state.pending_dialog_routes[index].root_window.is_some() {
+        if state.pending_dialog_routes[index].root_window.is_some_and(|root| root != native) {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "standard dialog creation route already adopted a different HWND"));
         }
@@ -106,6 +113,17 @@ pub(super) fn dialog_route(
         index
     };
 
+    // A CBT-observed root is pinned once. Losing its cookie is not permission
+    // to bind a new generation with the same HWND bits.
+    let prebound = state.borrow().pending_dialog_routes[route_index].root_window.is_some();
+    if prebound && (super::super::win16_window_identity::resolve(state, root_token) != Some(hwnd)
+        || state.borrow().windows_by_native.get(&native)
+            .is_none_or(|identity| identity.window != root_token
+                || identity.creation != Some(creation)))
+    {
+        return Err(RuntimeError::new(Kind::HostFailure,
+            "prebound standard dialog root lost its exact creation identity"));
+    }
     super::super::win16_window_identity::bind_dialog_root(
         state, root_token, hwnd, None, Some(creation),
     )?;
@@ -126,6 +144,7 @@ pub(super) fn dialog_route(
         borrowed.dialog_routes_by_native.insert(native, route);
     }
     super::super::win16_window_identity::associate_dialog_child(state, hwnd);
+    super::super::win16_window_instances::capture_dialog(state, hwnd, instance)?;
     if let Err(error) = super::super::win16_window_dialog_creation::attach_template_menu(
         state, route, hwnd,
     ) {
@@ -136,7 +155,16 @@ pub(super) fn dialog_route(
         // HMENU that is still attached to this live HWND.
         return Err(error);
     }
+    mark_init_published(state, operation, creation);
     Ok(Some(route))
+}
+
+fn mark_init_published(state: &Rc<RefCell<WorkerState>>, operation: u64, creation: runtime::Win16CreationId) {
+    if let Some(pending) = state.borrow_mut().pending_dialog_routes.iter_mut()
+        .find(|pending| pending.operation == operation && pending.creation == creation)
+    {
+        pending.init_published = true;
+    }
 }
 
 pub(super) fn class_init_is_active(
@@ -284,7 +312,10 @@ pub(super) fn copy_native_queued_message(
         } else {
             return Ok(None);
         };
-        (native.wParam as u16, l_param)
+        let Some(w_param) = super::super::win16_character_messages::to_guest(
+            state, native.message, native.wParam,
+        ) else { return Ok(None); };
+        (w_param, l_param)
     };
     Ok(Some(Win16HostQueuedMessage {
         source: Win16MessageSource::NativeQueue,

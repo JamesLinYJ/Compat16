@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use runtime::{
     RuntimeError, Win16DrawingOperation, Win16GdiBitmapOperation,
-    Win16GdiDeviceOperation, Win16HostDc, Win16HostGdiObject,
+    Win16GdiDeviceOperation, Win16HostDc, Win16HostGdiObject, Win16HostMetafileOperation,
 };
 use windows_sys::Win32::Graphics::Gdi::{GetCurrentObject, HGDIOBJ, OBJ_BITMAP};
 
@@ -65,6 +65,19 @@ pub(super) fn with_device_operation<R>(
             2
         }
         _ => 0,
+    };
+    with_selected(dcs, objects, tokens, count, |objects| run(objects, operation))
+}
+
+pub(super) fn with_metafile<R>(
+    dcs: &Win16Dcs,
+    objects: &mut Win16Objects,
+    operation: Win16HostMetafileOperation,
+    run: impl FnOnce(&mut Win16Objects, Win16HostMetafileOperation) -> Result<R, RuntimeError>,
+) -> Result<R, RuntimeError> {
+    let (tokens, count) = match &operation {
+        Win16HostMetafileOperation::Play { dc, .. } | Win16HostMetafileOperation::PlayRecord { dc, .. } => ([Some(*dc), None], 1),
+        _ => ([None, None], 0),
     };
     with_selected(dcs, objects, tokens, count, |objects| run(objects, operation))
 }
@@ -165,6 +178,7 @@ fn drawing_dcs(operation: &Win16DrawingOperation) -> ([Option<Win16HostDc>; 2], 
         | Op::UserFrameRect { dc, .. }
         | Op::UserDrawIcon { dc, .. }
         | Op::UserDrawFocusRect { dc, .. }
+        | Op::UserTabbedTextOut { dc, .. }
         | Op::UserDrawText { dc, .. } => {
             tokens[0] = Some(*dc);
             1

@@ -1,0 +1,24 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 145
+name = "RegisterClipboardFormat"
+binding = { rust_id = "UserRegisterClipboardFormat", id_value = 475, constant = "USER_REGISTER_CLIPBOARD_FORMAT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "name", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 146
+name = "GetClipboardFormatName"
+binding = { rust_id = "UserGetClipboardFormatName", id_value = 476, constant = "USER_GET_CLIPBOARD_FORMAT_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "format", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "count", type = "I16" },
+]

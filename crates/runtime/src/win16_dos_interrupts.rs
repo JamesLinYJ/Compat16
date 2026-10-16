@@ -4,7 +4,7 @@
 //! selector:offset registrations in a separate overlay and only aliases
 //! default vector targets when the simulated IVT names checked ROM bytes.
 
-use dos_kernel::{DosAction, DosKernel};
+use dos_kernel::{DosAction, DosErrorCode, DosKernel};
 use guest_core::memory::{Memory, ROM_END, ROM_START};
 use guest_core::{GuestMemory, PhysAddr, Registers, Selector, real_address};
 use win16_abi::{Access, AccessRights, SegmentedPointer};
@@ -12,6 +12,11 @@ use win16_abi::{Access, AccessRights, SegmentedPointer};
 use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost, runtime_error};
 
 use super::Win16State;
+
+#[path = "win16_dos_interrupts/file_metadata.rs"]
+mod file_metadata;
+#[path = "win16_dos_interrupts/file_io.rs"]
+mod file_io;
 
 /// A resolved protected-mode destination for one software interrupt.
 ///
@@ -31,7 +36,7 @@ pub(super) enum ProtectedInterruptTarget {
 pub(super) fn needs_dos_directory_context(service: u8) -> bool {
     matches!(
         service,
-        0x39 | 0x3a | 0x3c | 0x3d | 0x41 | 0x43 | 0x4b | 0x4e | 0x56
+        0x39 | 0x3a | 0x3c | 0x3d | 0x41 | 0x43 | 0x4b | 0x4e | 0x56 | 0x5a | 0x5b | 0x6c
     )
 }
 
@@ -44,6 +49,12 @@ pub(super) fn dispatch_int21(
     host: &mut impl RuntimeHost,
 ) -> Result<DosAction, RuntimeError> {
     let service = regs.ah();
+    if file_metadata::dispatch(state, dos, regs, memory, host)? {
+        return Ok(DosAction::Continue);
+    }
+    if file_io::dispatch(state, dos, regs, memory, host)? {
+        return Ok(DosAction::Continue);
+    }
     if matches!(service, 0x0e | 0x19 | 0x3b | 0x47) {
         dos.prepare_external_int21(memory).map_err(runtime_error)?;
         let action = state
@@ -62,28 +73,44 @@ pub(super) fn dispatch_int21(
 
     // WNet-created HFILEs share the runtime HFILE allocator but are backed by
     // a spooler document rather than the DOS kernel's handle table. Claim
-    // exact current-task aliases before forwarding AH=3E/AH=40 to DOS, where
-    // a numerically equal DOS handle must never be touched.
+    // every known spool alias before forwarding AH=3E/AH=40 to DOS, where
+    // a numerically equal DOS handle must never be touched. Only a live
+    // current-task job can be used; foreign and reserved aliases fail closed.
     if matches!(service, 0x3e | 0x40) {
         let hfile = regs.bx();
         let owner = state.current_task_owner()?;
-        if state.network_print_hfile_is_owned(owner, hfile) {
-            let result = if service == 0x3e {
-                state.close_legacy_file(hfile, host)?
+        if state.network_print_jobs.values().any(|jobs| jobs.owns_hfile(hfile)) {
+            dos.prepare_external_int21(memory).map_err(runtime_error)?;
+            if state.network_print_jobs.get(&owner)
+                .is_some_and(|jobs| jobs.open_job(hfile).is_some())
+            {
+                let result = if service == 0x3e {
+                    state.close_legacy_file(hfile, host)?
+                } else {
+                    let far_buffer = (u32::from(regs.ds) << 16) | u32::from(regs.dx());
+                    state.write_file(hfile, far_buffer, i32::from(regs.cx()), memory, host)?
+                };
+                let failed = if service == 0x3e { result != 0 } else { result == u32::MAX };
+                if failed {
+                    // WritePrinter failures without a more specific DOS
+                    // mapping are reported as access denied.
+                    regs.set_ax(if service == 0x3e {
+                        DosErrorCode::InvalidHandle as u16
+                    } else {
+                        DosErrorCode::AccessDenied as u16
+                    });
+                } else {
+                    regs.set_ax(result as u16);
+                }
+                regs.set_carry(failed);
             } else {
-                let far_buffer = (u32::from(regs.ds) << 16) | u32::from(regs.dx());
-                state.write_file(hfile, far_buffer, i32::from(regs.cx()), memory, host)?
-            };
-            let failed = if service == 0x3e { result != 0 } else { result == u32::MAX };
-            if failed {
-                // DOS error 6 is invalid handle. WritePrinter failures without
-                // a more specific DOS mapping are reported as access denied.
-                regs.set_ax(if service == 0x3e { 6 } else { 5 });
+                regs.set_ax(DosErrorCode::InvalidHandle as u16);
                 regs.set_carry(true);
-            } else {
-                regs.set_ax(result as u16);
-                regs.set_carry(false);
             }
+            // Publish completed I/O and retire a successfully closed alias
+            // before refresh. A metadata failure must not undo that identity
+            // change or replay a completed host operation.
+            dos.finish_external_int21(memory, host).map_err(runtime_error)?;
             state.finish_file_cdr_dos_operation(file_cdr_notice, regs, &DosAction::Continue)?;
             return Ok(DosAction::Continue);
         }
@@ -412,3 +439,50 @@ pub(super) fn firmware_service_at(
     }
     Ok(None)
 }
+
+#[cfg(test)]
+mod create_new_tests {
+    use super::needs_dos_directory_context;
+
+    #[test]
+    fn create_new_installs_current_task_directory_context() {
+        assert!(needs_dos_directory_context(0x5b));
+        assert!(needs_dos_directory_context(0x5a));
+        assert!(needs_dos_directory_context(0x6c));
+        for service in [0x3e, 0x3f, 0x40, 0x42, 0x45, 0x46] {
+            assert!(!needs_dos_directory_context(service));
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "win16_dos_create_new_tests.rs"]
+mod protected_create_new_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_timestamp_tests.rs"]
+mod dos_timestamp_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_commit_tests.rs"]
+mod commit_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_extended_open_tests.rs"]
+mod dos_extended_open_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_temporary_file_tests.rs"]
+mod dos_temporary_file_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_spool_tests.rs"]
+mod spool_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_search_tests.rs"]
+mod dos_search_tests;
+
+#[cfg(test)]
+#[path = "win16_dos_write_access_tests.rs"]
+mod dos_write_access_tests;

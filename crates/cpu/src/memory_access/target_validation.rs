@@ -24,7 +24,7 @@ pub(super) fn validate_near_code_target<M: GuestMemory, S: SegmentResolver>(
         // `target` is already truncated by the branch operand size. Resolve
         // it as a canonical offset so a 32-bit near target in a 16-bit code
         // profile is not silently wrapped before the segment-limit check.
-        bus.resolver.resolve_execute(selector, target, true)?;
+        bus.resolver.validate_near_code_target(selector, target)?;
         return Ok(());
     }
 

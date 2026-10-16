@@ -1,0 +1,15 @@
+module = "WINSPOOL"
+
+[[exports]]
+ordinal = 91
+name = "DeviceCapabilities"
+binding = { rust_id = "WinspoolDeviceCapabilities", id_value = 724, constant = "WINSPOOL_DEVICE_CAPABILITIES" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "device", type = "NullableFarString" },
+  { name = "port", type = "NullableFarString" },
+  { name = "index", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "devmode", type = "FarBuffer" },
+]

@@ -9,6 +9,28 @@ use super::{CallbackFrameId, WindowCallbackContinuation};
 use super::GuestWindowPayload;
 use crate::{RuntimeError, Win16GuestNotification, Win16HostMdiChildCreation};
 
+/// Registration ownership is independent of callback code and native resume
+/// ownership. An unknown class must never be treated as a builtin class.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::win16_runtime) enum WindowClassRoot {
+    Class(crate::Win16HostClass),
+    NoRegistration,
+    Unresolved,
+}
+
+impl WindowClassRoot {
+    pub(in crate::win16_runtime) fn from_native_message(
+        source: crate::Win16NativeCallbackSource,
+        native_window: crate::Win16HostWindow,
+    ) -> Self {
+        match source {
+            crate::Win16NativeCallbackSource::WindowMessage { window, class, .. }
+                if window == native_window => class.map_or(Self::NoRegistration, Self::Class),
+            _ => Self::Unresolved,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::win16_runtime) enum WindowCallbackEntryPhase {
     Preparing,
@@ -90,6 +112,9 @@ pub(in crate::win16_runtime) struct WindowCallbackFrame {
     /// while this callback frame remains the innermost active owner.
     pub(in crate::win16_runtime) mdi_child_creation: Option<Win16HostMdiChildCreation>,
     pub(in crate::win16_runtime) callback_address: u32,
+    /// Captured at entry and retained until paired frame retirement, even if
+    /// the HWND is destroyed/reused or guest setup/native resume fails.
+    pub(in crate::win16_runtime) class_root: WindowClassRoot,
     pub(in crate::win16_runtime) host_operation: Option<crate::Win16HostWindowOperationId>,
     pub(in crate::win16_runtime) native_source: Option<crate::Win16NativeCallbackSource>,
     pub(in crate::win16_runtime) continuation: WindowCallbackContinuation,
@@ -102,6 +127,7 @@ impl WindowCallbackFrame {
         payload: GuestWindowPayload,
         guest_notification: Option<Win16GuestNotification>,
         callback_address: u32,
+        class_root: WindowClassRoot,
         host_operation: Option<crate::Win16HostWindowOperationId>,
         native_source: Option<crate::Win16NativeCallbackSource>,
         continuation: WindowCallbackContinuation,
@@ -130,6 +156,7 @@ impl WindowCallbackFrame {
             guest_notification,
             mdi_child_creation: None,
             callback_address,
+            class_root,
             host_operation,
             native_source,
             continuation,

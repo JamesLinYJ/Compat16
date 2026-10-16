@@ -18,6 +18,17 @@ pub trait MemoryStorage {
     /// Return the storage length in bytes.
     fn len(&self) -> u32;
 
+    /// Optional stable RAM snapshot for a bounded, callback-free CPU quantum.
+    /// See GuestMemory::read_plain_code. Shared or observable backends retain
+    /// the default; false must have no externally observable read effects.
+    fn read_plain_code(&self, _offset: u32, _output: &mut [u8]) -> Result<bool, MemoryError> {
+        Ok(false)
+    }
+    /// Unobserved RAM with distinct byte identities at distinct storage offsets,
+    /// including permission to coalesce writeback of the
+    /// unchanged parts of the snapshot. See GuestMemory::read_plain_data.
+    fn read_plain_data(&self, _offset: u32, _output: &mut [u8], _writable: bool) -> Result<bool, MemoryError> { Ok(false) }
+
     /// Read a checked range beginning at `offset` into `output`.
     fn read(&self, offset: u32, output: &mut [u8]) -> Result<(), MemoryError>;
 
@@ -48,6 +59,28 @@ pub(super) enum MemoryBacking {
 }
 
 impl MemoryBacking {
+    pub(super) fn read_plain_data(&self, offset: u32, output: &mut [u8], writable: bool) -> Result<bool, MemoryError> {
+        match self {
+            Self::Owned(_) => self.read_plain_code(offset,output),
+            Self::External { storage, fixed_length } => {
+                checked_storage_range(offset,output.len(),*fixed_length as usize)?;
+                storage.read_plain_data(offset,output,writable)
+            }
+        }
+    }
+    pub(super) fn read_plain_code(&self, offset: u32, output: &mut [u8]) -> Result<bool, MemoryError> {
+        match self {
+            Self::Owned(bytes) => {
+                let range = checked_storage_range(offset, output.len(), bytes.len())?;
+                output.copy_from_slice(&bytes[range]);
+                Ok(true)
+            }
+            Self::External { storage, fixed_length } => {
+                checked_storage_range(offset, output.len(), *fixed_length as usize)?;
+                storage.read_plain_code(offset, output)
+            }
+        }
+    }
     pub(super) fn external(storage: Box<dyn MemoryStorage>, fixed_length: u32) -> Self {
         Self::External {
             storage,

@@ -1,0 +1,574 @@
+module = "WINSOCK"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "accept"
+binding = { rust_id = "WinsockAccept", id_value = 1077, constant = "WINSOCK_ACCEPT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "address", type = "FarOutputBuffer" },
+  { name = "address_length", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 2
+name = "bind"
+binding = { rust_id = "WinsockBind", id_value = 1078, constant = "WINSOCK_BIND" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "address", type = "FarBuffer" },
+  { name = "length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 3
+name = "closesocket"
+binding = { rust_id = "WinsockCloseSocket", id_value = 1079, constant = "WINSOCK_CLOSE_SOCKET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+]
+
+[[exports]]
+ordinal = 4
+name = "connect"
+binding = { rust_id = "WinsockConnect", id_value = 1080, constant = "WINSOCK_CONNECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "address", type = "FarBuffer" },
+  { name = "length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 5
+name = "getpeername"
+binding = { rust_id = "WinsockGetPeerName", id_value = 1081, constant = "WINSOCK_GET_PEER_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "address", type = "FarOutputBuffer" },
+  { name = "length", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 6
+name = "getsockname"
+binding = { rust_id = "WinsockGetSocketName", id_value = 1082, constant = "WINSOCK_GET_SOCKET_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "address", type = "FarOutputBuffer" },
+  { name = "length", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 7
+name = "getsockopt"
+binding = { rust_id = "WinsockGetSocketOption", id_value = 1083, constant = "WINSOCK_GET_SOCKET_OPTION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "level", type = "I16", encoding = "word" },
+  { name = "option", type = "I16", encoding = "word" },
+  { name = "value", type = "FarOutputBuffer" },
+  { name = "value_length", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 8
+name = "htonl"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockHostToNetworkLong", id_value = 1084, constant = "WINSOCK_HOST_TO_NETWORK_LONG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "value", type = "U32" },
+]
+
+[[exports]]
+ordinal = 9
+name = "htons"
+binding = { rust_id = "WinsockHostToNetworkShort", id_value = 1085, constant = "WINSOCK_HOST_TO_NETWORK_SHORT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U16" },
+]
+
+[[exports]]
+ordinal = 10
+name = "inet_addr"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockInetAddress", id_value = 1086, constant = "WINSOCK_INET_ADDRESS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "address", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 11
+name = "inet_ntoa"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockInetName", id_value = 1087, constant = "WINSOCK_INET_NAME" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "value", type = "U32" },
+]
+
+[[exports]]
+ordinal = 12
+name = "ioctlsocket"
+binding = { rust_id = "WinsockIoctlSocket", id_value = 1088, constant = "WINSOCK_IOCTL_SOCKET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "command", type = "I32" },
+  { name = "value", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 13
+name = "listen"
+binding = { rust_id = "WinsockListen", id_value = 1089, constant = "WINSOCK_LISTEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "I16", encoding = "word" },
+  { name = "second", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 14
+name = "ntohl"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockNetworkToHostLong", id_value = 1090, constant = "WINSOCK_NETWORK_TO_HOST_LONG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "value", type = "U32" },
+]
+
+[[exports]]
+ordinal = 15
+name = "ntohs"
+binding = { rust_id = "WinsockNetworkToHostShort", id_value = 1091, constant = "WINSOCK_NETWORK_TO_HOST_SHORT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U16" },
+]
+
+[[exports]]
+ordinal = 16
+name = "recv"
+binding = { rust_id = "WinsockReceive", id_value = 1092, constant = "WINSOCK_RECEIVE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "length", type = "I16", encoding = "word" },
+  { name = "flags", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 17
+name = "recvfrom"
+binding = { rust_id = "WinsockReceiveFrom", id_value = 1093, constant = "WINSOCK_RECEIVE_FROM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "length", type = "I16", encoding = "word" },
+  { name = "flags", type = "I16", encoding = "word" },
+  { name = "address", type = "FarOutputBuffer" },
+  { name = "address_length", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 18
+name = "select"
+binding = { rust_id = "WinsockSelect", id_value = 1094, constant = "WINSOCK_SELECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "nfds", type = "I16", encoding = "word" },
+  { name = "read_set", type = "FarBuffer" },
+  { name = "write_set", type = "FarBuffer" },
+  { name = "except_set", type = "FarBuffer" },
+  { name = "timeout", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 19
+name = "send"
+binding = { rust_id = "WinsockSend", id_value = 1095, constant = "WINSOCK_SEND" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "buffer", type = "FarBuffer" },
+  { name = "length", type = "I16", encoding = "word" },
+  { name = "flags", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 20
+name = "sendto"
+binding = { rust_id = "WinsockSendTo", id_value = 1096, constant = "WINSOCK_SEND_TO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "buffer", type = "FarBuffer" },
+  { name = "length", type = "I16", encoding = "word" },
+  { name = "flags", type = "I16", encoding = "word" },
+  { name = "address", type = "FarBuffer" },
+  { name = "address_length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 21
+name = "setsockopt"
+binding = { rust_id = "WinsockSetSocketOption", id_value = 1097, constant = "WINSOCK_SET_SOCKET_OPTION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "level", type = "I16", encoding = "word" },
+  { name = "option", type = "I16", encoding = "word" },
+  { name = "value", type = "FarBuffer" },
+  { name = "value_length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 22
+name = "shutdown"
+binding = { rust_id = "WinsockShutdown", id_value = 1098, constant = "WINSOCK_SHUTDOWN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "first", type = "I16", encoding = "word" },
+  { name = "second", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 23
+name = "socket"
+binding = { rust_id = "WinsockCreateSocket", id_value = 1099, constant = "WINSOCK_CREATE_SOCKET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "address_family", type = "I16", encoding = "word" },
+  { name = "socket_type", type = "I16", encoding = "word" },
+  { name = "protocol", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 51
+name = "gethostbyaddr"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockGetHostByAddress", id_value = 1100, constant = "WINSOCK_GET_HOST_BY_ADDRESS" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "address", type = "FarBuffer" },
+  { name = "length", type = "I16", encoding = "word" },
+  { name = "address_type", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 52
+name = "gethostbyname"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockGetHostByName", id_value = 1101, constant = "WINSOCK_GET_HOST_BY_NAME" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "value", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 53
+name = "getprotobyname"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockGetProtocolByName", id_value = 1102, constant = "WINSOCK_GET_PROTOCOL_BY_NAME" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "value", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 54
+name = "getprotobynumber"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockGetProtocolByNumber", id_value = 1103, constant = "WINSOCK_GET_PROTOCOL_BY_NUMBER" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "protocol", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 55
+name = "getservbyname"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockGetServiceByName", id_value = 1104, constant = "WINSOCK_GET_SERVICE_BY_NAME" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "first", type = "FarString", encoding = "pointer" },
+  { name = "second", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 56
+name = "getservbyport"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockGetServiceByPort", id_value = 1105, constant = "WINSOCK_GET_SERVICE_BY_PORT" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "port", type = "U16" },
+  { name = "protocol", type = "FarString", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 57
+name = "gethostname"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockGetHostName", id_value = 1106, constant = "WINSOCK_GET_HOST_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 101
+name = "WSAAsyncSelect"
+binding = { rust_id = "WinsockAsyncSelect", id_value = 1107, constant = "WINSOCK_ASYNC_SELECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "events", type = "U32" },
+]
+
+[[exports]]
+ordinal = 102
+name = "WSAAsyncGetHostByAddr"
+binding = { rust_id = "WinsockAsyncGetHostByAddress", id_value = 1108, constant = "WINSOCK_ASYNC_GET_HOST_BY_ADDRESS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "address", type = "FarBuffer" },
+  { name = "address_length", type = "I16", encoding = "word" },
+  { name = "address_type", type = "I16", encoding = "word" },
+  { name = "output", type = "FarOutputBuffer", encoding = "segmented_pointer" },
+  { name = "output_length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 103
+name = "WSAAsyncGetHostByName"
+binding = { rust_id = "WinsockAsyncGetHostByName", id_value = 1109, constant = "WINSOCK_ASYNC_GET_HOST_BY_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "name", type = "FarString" },
+  { name = "output", type = "FarOutputBuffer", encoding = "segmented_pointer" },
+  { name = "output_length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 104
+name = "WSAAsyncGetProtoByNumber"
+binding = { rust_id = "WinsockAsyncGetProtocolByNumber", id_value = 1110, constant = "WINSOCK_ASYNC_GET_PROTOCOL_BY_NUMBER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "protocol", type = "I16", encoding = "word" },
+  { name = "output", type = "FarOutputBuffer", encoding = "segmented_pointer" },
+  { name = "output_length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 105
+name = "WSAAsyncGetProtoByName"
+binding = { rust_id = "WinsockAsyncGetProtocolByName", id_value = 1111, constant = "WINSOCK_ASYNC_GET_PROTOCOL_BY_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "name", type = "FarString" },
+  { name = "output", type = "FarOutputBuffer", encoding = "segmented_pointer" },
+  { name = "output_length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 106
+name = "WSAAsyncGetServByPort"
+binding = { rust_id = "WinsockAsyncGetServiceByPort", id_value = 1112, constant = "WINSOCK_ASYNC_GET_SERVICE_BY_PORT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "port", type = "U16" },
+  { name = "protocol", type = "FarString" },
+  { name = "output", type = "FarOutputBuffer", encoding = "segmented_pointer" },
+  { name = "output_length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 107
+name = "WSAAsyncGetServByName"
+binding = { rust_id = "WinsockAsyncGetServiceByName", id_value = 1113, constant = "WINSOCK_ASYNC_GET_SERVICE_BY_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "name", type = "FarString" },
+  { name = "protocol", type = "FarString" },
+  { name = "output", type = "FarOutputBuffer", encoding = "segmented_pointer" },
+  { name = "output_length", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 108
+name = "WSACancelAsyncRequest"
+binding = { rust_id = "WinsockCancelAsyncRequest", id_value = 1114, constant = "WINSOCK_CANCEL_ASYNC_REQUEST" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "value", type = "U16" },
+]
+
+[[exports]]
+ordinal = 109
+name = "WSASetBlockingHook"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockSetBlockingHook", id_value = 1115, constant = "WINSOCK_SET_BLOCKING_HOOK" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 110
+name = "WSAUnhookBlockingHook"
+binding = { rust_id = "WinsockUnhookBlockingHook", id_value = 1116, constant = "WINSOCK_UNHOOK_BLOCKING_HOOK" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 111
+name = "WSAGetLastError"
+binding = { rust_id = "WinsockGetLastError", id_value = 1117, constant = "WINSOCK_GET_LAST_ERROR" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 112
+name = "WSASetLastError"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockSetLastError", id_value = 1118, constant = "WINSOCK_SET_LAST_ERROR" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "value", type = "U16" },
+]
+
+[[exports]]
+ordinal = 113
+name = "WSACancelBlockingCall"
+binding = { rust_id = "WinsockCancelBlockingCall", id_value = 1119, constant = "WINSOCK_CANCEL_BLOCKING_CALL" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 114
+name = "WSAIsBlocking"
+binding = { rust_id = "WinsockIsBlocking", id_value = 1120, constant = "WINSOCK_IS_BLOCKING" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 115
+name = "WSAStartup"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockStartup", id_value = 1121, constant = "WINSOCK_STARTUP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "version", type = "U16" },
+  { name = "data", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 116
+name = "WSACleanup"
+decl = { attributes = [] }
+binding = { rust_id = "WinsockCleanup", id_value = 1122, constant = "WINSOCK_CLEANUP" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 151
+name = "__WSAFDIsSet"
+binding = { rust_id = "WinsockFdIsSet", id_value = 1123, constant = "WINSOCK_FD_IS_SET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "set", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 1107
+name = "WSARecvEx"
+binding = { rust_id = "WinsockReceiveEx", id_value = 1124, constant = "WINSOCK_RECEIVE_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "socket", type = "U16" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "length", type = "I16", encoding = "word" },
+  { name = "flags", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 2000
+name = "default_hook"
+binding = { rust_id = "WinsockDefaultHook", id_value = 1125, constant = "WINSOCK_DEFAULT_HOOK" }
+[exports.call]
+returns = "word"

@@ -32,7 +32,7 @@ pub(super) fn compensation_return_after_projection_failure(
             original_error: cause,
         }),
         (
-            WindowReturn::AcquireWindowDc { guest_dc_reserved, native_window },
+            WindowReturn::AcquireWindowDc { guest_dc_reserved, native_window, .. },
             Win16WindowResult::WindowDc(Some(native_dc)),
         ) => Some(WindowReturn::CleanupWindowDc {
             guest_dc_reserved: *guest_dc_reserved,
@@ -126,9 +126,13 @@ pub(super) fn finish_paint(
 pub(super) fn finish_acquire_dc(
     guest_dc_reserved: u16,
     acquired: Option<crate::Win16HostDc>,
+    consumed_region: Option<crate::Win16HostGdiObject>,
     owner: &mut DcAcquisitionProjection,
     access: &mut WindowProjectionAccess<'_>,
 ) -> Result<(u32, Win16ReturnKind), RuntimeError> {
+    if acquired.is_some() && let Some(region) = consumed_region {
+        access.guest_gdi.retire_object_aliases(region);
+    }
     if owner.phase == AcquisitionPhase::Complete {
         return owner.guest_dc.map(|value| (u32::from(value), Win16ReturnKind::Word))
             .ok_or_else(|| invariant("GetDC projection lost its cached HDC"));

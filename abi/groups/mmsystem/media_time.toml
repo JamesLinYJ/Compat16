@@ -1,0 +1,43 @@
+module = "MMSYSTEM"
+
+[[exports]]
+ordinal = 601
+name = "timeGetSystemTime"
+binding = { rust_id = "MediaTimeGetSystemTime", id_value = 1013, constant = "MMSYSTEM_TIME_GET_SYSTEM_TIME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "time", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 604
+name = "timeGetDevCaps"
+binding = { rust_id = "MediaTimeGetDevCaps", id_value = 1014, constant = "MMSYSTEM_TIME_GET_DEV_CAPS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "caps", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 605
+name = "timeBeginPeriod"
+binding = { rust_id = "MediaTimeBeginPeriod", id_value = 1015, constant = "MMSYSTEM_TIME_BEGIN_PERIOD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "period", type = "U16" },
+]
+
+[[exports]]
+ordinal = 606
+name = "timeEndPeriod"
+binding = { rust_id = "MediaTimeEndPeriod", id_value = 1016, constant = "MMSYSTEM_TIME_END_PERIOD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "period", type = "U16" },
+]

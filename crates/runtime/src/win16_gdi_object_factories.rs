@@ -15,6 +15,9 @@ use crate::{
     Win16HostLogFont, Win16HostLogPen,
 };
 
+const BS_SOLID16: u16 = 0;
+const BS_NULL16: u16 = 1;
+const BS_HATCHED16: u16 = 2;
 const BS_PATTERN16: u16 = 3;
 const BS_DIBPATTERN16: u16 = 5;
 const CBM_INIT16: u32 = 0x04;
@@ -190,9 +193,12 @@ impl Win16State {
         host: &mut impl RuntimeHost,
     ) -> Result<u16, RuntimeError> {
         let (pattern_bitmap, dib_pattern) = match logbrush.style {
+            BS_HATCHED16 if !(0..=5).contains(&logbrush.hatch) => return Ok(0),
             BS_PATTERN16 => {
-                let token = self.guest_gdi.object(logbrush.hatch as u16);
-                (token, None)
+                let Some(token) = self.guest_gdi.object(logbrush.hatch as u16) else {
+                    return Ok(0);
+                };
+                (Some(token), None)
             }
             BS_DIBPATTERN16 => {
                 let Some(bytes) = self.copy_global_bytes(logbrush.hatch as u16, memory)? else {
@@ -204,7 +210,11 @@ impl Win16State {
                 };
                 (None, Some(dib))
             }
-            _ => (None, None),
+            BS_SOLID16 | BS_NULL16 | BS_HATCHED16 => (None, None),
+            // Only these Win16 styles have checked scalar/handle semantics.
+            // In particular, native BS_DIBPATTERNPT interprets lbHatch as a
+            // pointer; a guest WORD must never reach that native parameter.
+            _ => return Ok(0),
         };
         self.create_object(
             Operation::CreateBrushIndirect {
@@ -499,10 +509,10 @@ impl Win16State {
         self.read_text_bytes(memory, pointer, length).map(Some)
     }
 
-    /// Copies an HGLOBAL-owned packed DIB while holding the same guest global
-    /// allocation identity used by GlobalLock. The native brush is created
-    /// only from this owned snapshot, never from the guest FAR address.
-    fn copy_global_bytes(
+    /// Copies an HGLOBAL-owned byte block while holding the same guest global
+    /// allocation identity used by GlobalLock. Native consumers receive only
+    /// this owned snapshot, never the guest FAR address.
+    pub(super) fn copy_global_bytes(
         &mut self,
         guest_handle: u16,
         memory: &Memory,
@@ -528,7 +538,7 @@ impl Win16State {
         let length = usize::try_from(info.size).map_err(|error| {
             RuntimeError::with_source(
                 Kind::ResourceExhausted,
-                "Win16 packed DIB exceeds host address space",
+                "Win16 global byte block exceeds host address space",
                 error,
             )
         })?;
@@ -625,3 +635,7 @@ fn bitmap_bits_length(
     };
     usize::try_from(row_bytes.checked_mul(i64::from(height))?).ok()
 }
+
+#[cfg(test)]
+#[path = "win16_gdi_brush_tests.rs"]
+mod brush_tests;

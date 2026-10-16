@@ -1,6 +1,5 @@
 use super::{
-    OFSTRUCT_BYTES, close, copy, decode_ofstruct, encode_ofstruct, guest_wide_z, init,
-    is_action_only_style, is_lz_read_style, open_file, read, seek,
+    close, copy, init, is_action_only_style, is_lz_read_style, read, seek,
 };
 use crate::windows::guest_text::GuestTextCodec;
 use crate::windows::win16::{Win16Files, Win16NativeFile};
@@ -9,7 +8,6 @@ use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE, HANDLE, INVALID_HANDLE_VALUE};
-use windows_sys::Win32::Globalization::GetOEMCP;
 use windows_sys::Win32::Storage::FileSystem::{
     CREATE_ALWAYS, CreateFileW, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_SHARE_WRITE,
     OF_CREATE, OF_DELETE, OF_EXIST, OF_PARSE, OF_READ, OF_READWRITE, OF_SHARE_DENY_NONE, OF_WRITE,
@@ -35,9 +33,8 @@ fn lzopenfile_modes_preserve_plain_hfile_write_path() {
 #[test]
 fn lz_paths_decode_with_the_fixed_guest_page() {
     let codec = GuestTextCodec::new(1252).expect("Windows-1252 is installed");
-    let path = guest_wide_z(codec, b"C:\\apps\\caf\xe9.txt", "test path")
-        .expect("convert path")
-        .expect("no embedded NUL");
+    let path = codec.to_wide_z(b"C:\\apps\\caf\xe9.txt")
+        .expect("convert path");
     assert_eq!(
         path,
         "C:\\apps\\café.txt"
@@ -45,79 +42,6 @@ fn lz_paths_decode_with_the_fixed_guest_page() {
             .chain([0])
             .collect::<Vec<_>>()
     );
-}
-
-#[test]
-fn malformed_utf8_lz_path_returns_guest_handle_error() {
-    let codec = GuestTextCodec::new(65001).expect("UTF-8 code page is installed");
-    let mut files = Win16Files::new();
-    let previous = vec![0; OFSTRUCT_BYTES];
-    let result = open_file(&mut files, codec, &[0xFF], OF_READ as u16, previous.clone())
-        .expect("invalid guest path is a Win16 failure result");
-    assert_eq!(result.result, -1);
-    assert!(result.file.is_none());
-    assert_eq!(result.ofstruct, previous);
-}
-
-#[test]
-fn ofstruct_reopen_path_uses_oem_field_and_guest_page_on_return() {
-    let codec = GuestTextCodec::new(1252).expect("Windows-1252 is installed");
-    let mut guest = vec![0_u8; OFSTRUCT_BYTES];
-    guest[0] = 0x80;
-    guest[1] = 1;
-    guest[2..4].copy_from_slice(&0x1234_u16.to_le_bytes());
-    guest[4..6].copy_from_slice(&0x5678_u16.to_le_bytes());
-    guest[6..8].copy_from_slice(&0x9abc_u16.to_le_bytes());
-    guest[8..8 + b"C:\\TEMP\\FILE.DAT".len()].copy_from_slice(b"C:\\TEMP\\FILE.DAT");
-
-    let native = decode_ofstruct(&guest, codec, true).expect("decode OFSTRUCT");
-    let native_path: Vec<u8> = native.szPathName.iter().map(|byte| *byte as u8).collect();
-    assert_eq!(
-        &native_path[..b"C:\\TEMP\\FILE.DAT".len()],
-        b"C:\\TEMP\\FILE.DAT"
-    );
-
-    let mut returned = vec![0xA5_u8; OFSTRUCT_BYTES];
-    encode_ofstruct(codec, &native, &mut returned).expect("encode OFSTRUCT");
-    assert_eq!(&returned[..8], &guest[..8]);
-    assert_eq!(
-        &returned[8..8 + b"C:\\TEMP\\FILE.DAT".len()],
-        b"C:\\TEMP\\FILE.DAT"
-    );
-    assert_eq!(returned[8 + b"C:\\TEMP\\FILE.DAT".len()], 0);
-}
-
-#[test]
-fn ofstruct_reopen_transcodes_guest_path_through_oem_field() {
-    let codec = GuestTextCodec::new(1252).expect("Windows-1252 is installed");
-    let guest_path = b"C:\\TEMP\\caf\xe9.dat";
-    let wide = codec.to_wide(guest_path).expect("decode guest path");
-    let oem_codec =
-        GuestTextCodec::new(unsafe { GetOEMCP() }).expect("Windows reports a valid OEM code page");
-    let expected = oem_codec
-        .from_wide_bounded(&wide, 127)
-        .expect("encode OEM OFSTRUCT path");
-    let mut guest = vec![0_u8; OFSTRUCT_BYTES];
-    guest[8..8 + guest_path.len()].copy_from_slice(guest_path);
-
-    let decoded = decode_ofstruct(&guest, codec, true);
-    if expected.truncated || expected.used_default_char == Some(true) {
-        assert!(
-            decoded.is_err(),
-            "unrepresentable guest pathname must not be replaced in OEM OFSTRUCT"
-        );
-        return;
-    }
-    let native = decoded.expect("guest path fits the OEM OFSTRUCT field");
-    let native_path: Vec<u8> = native.szPathName.iter().map(|byte| *byte as u8).collect();
-    assert_eq!(
-        &native_path[..expected.bytes.len()],
-        expected.bytes.as_slice()
-    );
-
-    let mut returned = vec![0_u8; OFSTRUCT_BYTES];
-    encode_ofstruct(codec, &native, &mut returned).expect("return path to guest page");
-    assert_eq!(&returned[8..8 + guest_path.len()], guest_path);
 }
 
 #[test]

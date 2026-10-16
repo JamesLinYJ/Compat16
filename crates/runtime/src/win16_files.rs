@@ -25,7 +25,22 @@ impl Win16State {
         let pointer = self.selectors.pointer_from_far(ofstruct).map_err(crate::runtime_error)?;
         let previous = self.read_text_bytes(memory, pointer, OFSTRUCT_BYTES)?;
         let output = self.prepare_text_write(memory, pointer, OFSTRUCT_BYTES)?;
-        let opened = host.win16_open_file(path, style, previous)?;
+        // OF_REOPEN reads its saved pathname before considering any other flag.
+        let input = if style & 0x8000 != 0 {
+            let saved = &previous[8..];
+            &saved[..saved.iter().position(|&byte| byte == 0).unwrap_or(saved.len())]
+        } else { path };
+        let text = host.decode_win16_ansi(input)?;
+        let search_name = (style & 0x9100 == 0 && !text.contains(['\\', '/', ':']))
+            .then_some(text.as_str());
+        let Some(resolved) = self.legacy_file_path(input, host)? else {
+            let mut failed = previous;
+            if style & 0x8000 == 0 { failed[0] = OFSTRUCT_BYTES as u8; }
+            failed[2..4].copy_from_slice(&3u16.to_le_bytes());
+            output.commit(memory, &failed)?;
+            return Ok(super::INVALID_GUEST_HFILE);
+        };
+        let opened = host.win16_open_file(&resolved, search_name, style, previous)?;
         if opened.ofstruct.len() != OFSTRUCT_BYTES {
             if let Some(file) = opened.file { let _ = host.win16_file_close(file)?; }
             return Err(RuntimeError::new(Kind::InternalInvariant,
@@ -56,10 +71,13 @@ impl Win16State {
     pub(super) fn open_legacy_file(
         &mut self, path: &[u8], mode: u16, created: bool, host: &mut impl RuntimeHost,
     ) -> Result<u16, RuntimeError> {
+        let Some(resolved) = self.legacy_file_path(path, host)? else {
+            return Ok(super::INVALID_GUEST_HFILE);
+        };
         let opened = if created {
-            host.win16_file_create(path, mode)
+            host.win16_file_create(&resolved, mode)
         } else {
-            host.win16_file_open(path, mode)
+            host.win16_file_open(&resolved, mode)
         };
         let result = match opened {
             Ok(Some(file)) => match self.allocate_file_number(file) {
@@ -73,6 +91,19 @@ impl Win16State {
             path, mode, created, result: result.as_ref().ok().copied(),
         });
         result
+    }
+
+    pub(super) fn legacy_file_path(
+        &self, bytes: &[u8], host: &impl RuntimeHost,
+    ) -> Result<Option<crate::Win16GuestPath>, RuntimeError> {
+        let owner = self.current_task_owner()?;
+        let result = host.decode_win16_ansi(bytes).and_then(|text|
+            self.kernel_file_system.resolve_guest_path_text(owner, &text, false));
+        match result {
+            Ok(path) => Ok(Some(path)),
+            Err(error) if matches!(error.kind(), Kind::GuestFault | Kind::InvalidInput) => Ok(None),
+            Err(error) => Err(error),
+        }
     }
 
     pub(super) fn close_legacy_file(
@@ -201,3 +232,7 @@ impl Win16State {
         first_error.map_or(Ok(()), Err)
     }
 }
+
+#[cfg(test)]
+#[path = "win16_open_file_tests.rs"]
+mod open_file_tests;

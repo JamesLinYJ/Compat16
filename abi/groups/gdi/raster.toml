@@ -1,0 +1,571 @@
+module = "GDI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 7
+name = "SetStretchBltMode"
+binding = { rust_id = "GdiSetStretchBltMode", id_value = 327, constant = "GDI_SET_STRETCH_BLT_MODE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "mode", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 29
+name = "PatBlt"
+binding = { rust_id = "GdiPatBlt", id_value = 339, constant = "GDI_PAT_BLT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "width", type = "I16" },
+  { name = "height", type = "I16" },
+  { name = "rop", type = "U32" },
+]
+
+[[exports]]
+ordinal = 31
+name = "SetPixel"
+decl = { attributes = [] }
+binding = { rust_id = "GdiSetPixel", id_value = 341, constant = "GDI_SET_PIXEL" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "color", type = "U32" },
+]
+
+[[exports]]
+ordinal = 34
+name = "BitBlt"
+binding = { rust_id = "GdiBitBlt", id_value = 308, constant = "GDI_BIT_BLT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "destination", type = "U16" },
+  { name = "destination_x", type = "I16" },
+  { name = "destination_y", type = "I16" },
+  { name = "width", type = "I16" },
+  { name = "height", type = "I16" },
+  { name = "source", type = "U16" },
+  { name = "source_x", type = "I16" },
+  { name = "source_y", type = "I16" },
+  { name = "rop", type = "U32" },
+]
+
+[[exports]]
+ordinal = 35
+name = "StretchBlt"
+binding = { rust_id = "GdiStretchBlt", id_value = 342, constant = "GDI_STRETCH_BLT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "destination", type = "U16" },
+  { name = "destination_x", type = "I16" },
+  { name = "destination_y", type = "I16" },
+  { name = "width", type = "I16" },
+  { name = "height", type = "I16" },
+  { name = "source", type = "U16" },
+  { name = "source_x", type = "I16" },
+  { name = "source_y", type = "I16" },
+  { name = "source_width", type = "I16" },
+  { name = "source_height", type = "I16" },
+  { name = "rop", type = "U32" },
+]
+
+[[exports]]
+ordinal = 48
+name = "CreateBitmap"
+binding = { rust_id = "GdiCreateBitmap", id_value = 316, constant = "GDI_CREATE_BITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+  { name = "planes", type = "U16" },
+  { name = "bits_per_pixel", type = "U16" },
+  { name = "bits", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 49
+name = "CreateBitmapIndirect"
+binding = { rust_id = "GdiCreateBitmapIndirect", id_value = 317, constant = "GDI_CREATE_BITMAP_INDIRECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "bitmap", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 51
+name = "CreateCompatibleBitmap"
+binding = { rust_id = "GdiCreateCompatibleBitmap", id_value = 322, constant = "GDI_CREATE_COMPATIBLE_BITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 74
+name = "GetBitmapBits"
+decl = { attributes = [] }
+binding = { rust_id = "GdiDeviceGetBitmapBits", id_value = 676, constant = "GDI_DEVICE_GET_BITMAP_BITS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "bitmap", type = "U16" },
+  { name = "byte_count", type = "I32" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 83
+name = "GetPixel"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetPixel", id_value = 348, constant = "GDI_GET_PIXEL" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 88
+name = "GetStretchBltMode"
+binding = { rust_id = "GdiGetStretchBltMode", id_value = 328, constant = "GDI_GET_STRETCH_BLT_MODE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 106
+name = "SetBitmapBits"
+decl = { attributes = [] }
+binding = { rust_id = "GdiDeviceSetBitmapBits", id_value = 677, constant = "GDI_DEVICE_SET_BITMAP_BITS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "bitmap", type = "U16" },
+  { name = "byte_count", type = "I32" },
+  { name = "bits", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 156
+name = "CreateDiscardableBitmap"
+binding = { rust_id = "GdiDeviceCreateDiscardableBitmap", id_value = 678, constant = "GDI_DEVICE_CREATE_DISCARDABLE_BITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "width", type = "I16", encoding = "word" },
+  { name = "height", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 162
+name = "GetBitmapDimension"
+decl = { attributes = [] }
+binding = { rust_id = "GdiDeviceGetBitmapDimension", id_value = 701, constant = "GDI_DEVICE_GET_BITMAP_DIMENSION" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "bitmap", type = "U16" },
+]
+
+[[exports]]
+ordinal = 163
+name = "SetBitmapDimension"
+decl = { attributes = [] }
+binding = { rust_id = "GdiDeviceSetBitmapDimension", id_value = 702, constant = "GDI_DEVICE_SET_BITMAP_DIMENSION" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "bitmap", type = "U16" },
+  { name = "width", type = "I16" },
+  { name = "height", type = "I16" },
+]
+
+[[exports]]
+ordinal = 360
+name = "CreatePalette"
+binding = { rust_id = "GdiDeviceCreatePalette", id_value = 679, constant = "GDI_DEVICE_CREATE_PALETTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "log_palette", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 361
+name = "GDISelectPalette"
+binding = { rust_id = "GdiDeviceSelectPalette", id_value = 680, constant = "GDI_DEVICE_SELECT_PALETTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "palette", type = "U16" },
+  { name = "force_background", type = "U16" },
+]
+
+[[exports]]
+ordinal = 362
+name = "GDIRealizePalette"
+binding = { rust_id = "GdiDeviceRealizePalette", id_value = 681, constant = "GDI_DEVICE_REALIZE_PALETTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 363
+name = "GetPaletteEntries"
+binding = { rust_id = "GdiDeviceGetPaletteEntries", id_value = 684, constant = "GDI_DEVICE_GET_PALETTE_ENTRIES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "palette", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "entries", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 364
+name = "SetPaletteEntries"
+binding = { rust_id = "GdiDeviceSetPaletteEntries", id_value = 685, constant = "GDI_DEVICE_SET_PALETTE_ENTRIES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "palette", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "entries", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 365
+name = "RealizeDefaultPalette"
+binding = { rust_id = "GdiDeviceRealizeDefaultPalette", id_value = 686, constant = "GDI_DEVICE_REALIZE_DEFAULT_PALETTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 366
+name = "UpdateColors"
+binding = { rust_id = "GdiDeviceUpdateColors", id_value = 687, constant = "GDI_DEVICE_UPDATE_COLORS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 367
+name = "AnimatePalette"
+binding = { rust_id = "GdiDeviceAnimatePalette", id_value = 688, constant = "GDI_DEVICE_ANIMATE_PALETTE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "palette", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "entries", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 368
+name = "ResizePalette"
+binding = { rust_id = "GdiDeviceResizePalette", id_value = 689, constant = "GDI_DEVICE_RESIZE_PALETTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "palette", type = "U16" },
+  { name = "count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 370
+name = "GetNearestPaletteIndex"
+binding = { rust_id = "GdiDeviceGetNearestPaletteIndex", id_value = 690, constant = "GDI_DEVICE_GET_NEAREST_PALETTE_INDEX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "palette", type = "U16" },
+  { name = "color", type = "U32" },
+]
+
+[[exports]]
+ordinal = 373
+name = "SetSystemPaletteUse"
+binding = { rust_id = "GdiDeviceSetSystemPaletteUse", id_value = 691, constant = "GDI_DEVICE_SET_SYSTEM_PALETTE_USE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "use_mode", type = "U16" },
+]
+
+[[exports]]
+ordinal = 374
+name = "GetSystemPaletteUse"
+binding = { rust_id = "GdiDeviceGetSystemPaletteUse", id_value = 692, constant = "GDI_DEVICE_GET_SYSTEM_PALETTE_USE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 375
+name = "GetSystemPaletteEntries"
+binding = { rust_id = "GdiDeviceGetSystemPaletteEntries", id_value = 693, constant = "GDI_DEVICE_GET_SYSTEM_PALETTE_ENTRIES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "entries", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 376
+name = "ResetDC"
+binding = { rust_id = "GdiDeviceResetDc", id_value = 694, constant = "GDI_DEVICE_RESET_DC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "devmode", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 377
+name = "StartDoc"
+binding = { rust_id = "GdiDeviceStartDoc", id_value = 695, constant = "GDI_DEVICE_START_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "doc_info", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 378
+name = "EndDoc"
+binding = { rust_id = "GdiDeviceEndDoc", id_value = 696, constant = "GDI_DEVICE_END_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 379
+name = "StartPage"
+binding = { rust_id = "GdiDeviceStartPage", id_value = 697, constant = "GDI_DEVICE_START_PAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 380
+name = "EndPage"
+binding = { rust_id = "GdiDeviceEndPage", id_value = 698, constant = "GDI_DEVICE_END_PAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 381
+name = "SetAbortProc"
+binding = { rust_id = "GdiDeviceSetAbortProc", id_value = 699, constant = "GDI_DEVICE_SET_ABORT_PROC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 382
+name = "AbortDoc"
+binding = { rust_id = "GdiDeviceAbortDoc", id_value = 700, constant = "GDI_DEVICE_ABORT_DOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 439
+name = "StretchDIBits"
+binding = { rust_id = "GdiStretchDibits", id_value = 671, constant = "GDI_STRETCH_DIBITS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "destination_x", type = "I16" },
+  { name = "destination_y", type = "I16" },
+  { name = "destination_width", type = "I16" },
+  { name = "destination_height", type = "I16" },
+  { name = "source_x", type = "I16" },
+  { name = "source_y", type = "I16" },
+  { name = "source_width", type = "I16" },
+  { name = "source_height", type = "I16" },
+  { name = "bits", type = "FarBuffer" },
+  { name = "info", type = "FarBuffer" },
+  { name = "usage", type = "U16" },
+  { name = "rop", type = "U32" },
+]
+
+[[exports]]
+ordinal = 440
+name = "SetDIBits"
+binding = { rust_id = "GdiSetDibits", id_value = 672, constant = "GDI_SET_DIBITS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "bitmap", type = "U16" },
+  { name = "start_scan", type = "U16" },
+  { name = "scan_lines", type = "U16" },
+  { name = "bits", type = "FarBuffer" },
+  { name = "info", type = "FarBuffer" },
+  { name = "color_usage", type = "U16" },
+]
+
+[[exports]]
+ordinal = 441
+name = "GetDIBits"
+binding = { rust_id = "GdiGetDibits", id_value = 673, constant = "GDI_GET_DIBITS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "bitmap", type = "U16" },
+  { name = "start_scan", type = "U16" },
+  { name = "scan_lines", type = "U16" },
+  { name = "bits", type = "FarOutputBuffer" },
+  { name = "info", type = "FarBuffer" },
+  { name = "color_usage", type = "U16" },
+]
+
+[[exports]]
+ordinal = 442
+name = "CreateDIBitmap"
+binding = { rust_id = "GdiCreateDibitmap", id_value = 674, constant = "GDI_CREATE_DIBITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "header", type = "FarBuffer" },
+  { name = "init_flags", type = "U32" },
+  { name = "bits", type = "FarBuffer" },
+  { name = "info", type = "FarBuffer" },
+  { name = "color_usage", type = "U16" },
+]
+
+[[exports]]
+ordinal = 443
+name = "SetDIBitsToDevice"
+binding = { rust_id = "GdiSetDibitsToDevice", id_value = 675, constant = "GDI_SET_DIBITS_TO_DEVICE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "destination_x", type = "I16" },
+  { name = "destination_y", type = "I16" },
+  { name = "width", type = "I16" },
+  { name = "height", type = "I16" },
+  { name = "source_x", type = "I16" },
+  { name = "source_y", type = "I16" },
+  { name = "start_scan", type = "U16" },
+  { name = "scan_lines", type = "U16" },
+  { name = "bits", type = "FarBuffer" },
+  { name = "info", type = "FarBuffer" },
+  { name = "color_usage", type = "U16" },
+]
+
+[[exports]]
+ordinal = 468
+name = "GetBitmapDimensionEx"
+binding = { rust_id = "GdiDeviceGetBitmapDimensionEx", id_value = 703, constant = "GDI_DEVICE_GET_BITMAP_DIMENSION_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "bitmap", type = "U16" },
+  { name = "size", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 478
+name = "SetBitmapDimensionEx"
+binding = { rust_id = "GdiDeviceSetBitmapDimensionEx", id_value = 704, constant = "GDI_DEVICE_SET_BITMAP_DIMENSION_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "bitmap", type = "U16" },
+  { name = "width", type = "I16" },
+  { name = "height", type = "I16" },
+  { name = "size", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 529
+name = "CreateHalftonePalette"
+binding = { rust_id = "GdiDeviceCreateHalftonePalette", id_value = 705, constant = "GDI_DEVICE_CREATE_HALFTONE_PALETTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 602
+name = "SetDIBColorTable"
+binding = { rust_id = "GdiDeviceSetDibColorTable", id_value = 706, constant = "GDI_DEVICE_SET_DIB_COLOR_TABLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "colors", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 603
+name = "GetDIBColorTable"
+binding = { rust_id = "GdiDeviceGetDibColorTable", id_value = 707, constant = "GDI_DEVICE_GET_DIB_COLOR_TABLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "colors", type = "FarOutputBuffer" },
+]

@@ -1,0 +1,24 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 282
+name = "SelectPalette"
+binding = { rust_id = "UserSelectPalette", id_value = 682, constant = "USER_SELECT_PALETTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "palette", type = "U16" },
+  { name = "force_background", type = "U16" },
+]
+
+[[exports]]
+ordinal = 283
+name = "RealizePalette"
+binding = { rust_id = "UserRealizePalette", id_value = 683, constant = "USER_REALIZE_PALETTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]

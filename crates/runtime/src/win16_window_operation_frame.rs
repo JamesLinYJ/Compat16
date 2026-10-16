@@ -347,6 +347,8 @@ pub(in crate::win16_runtime) enum WindowApiProjectionJournal {
     WindowProperties(WindowPropertyProjection),
     QueryProcedure(ProcedureProjection),
     UserMessageBox(SimpleReturnProjectionPhase),
+    EnumMetafile(SimpleReturnProjectionPhase),
+    GrayString(SimpleReturnProjectionPhase),
     UserCursorAccelerator(CursorAcceleratorProjection),
     UserFamily(UserFamilyProjection),
     CommonControls {
@@ -391,6 +393,7 @@ pub(in crate::win16_runtime) struct WindowPropertyProjection {
 pub(in crate::win16_runtime) struct WindowDataProjection {
     pub(in crate::win16_runtime) phase: WindowDataProjectionPhase,
     pub(in crate::win16_runtime) value: Option<u32>,
+    pub(in crate::win16_runtime) parent_observation: Option<crate::Win16HostWindowParentObservation>,
 }
 
 pub(in crate::win16_runtime) struct CursorAcceleratorProjection {
@@ -522,15 +525,13 @@ pub(in crate::win16_runtime) enum WindowCallProjectionPhase {
     Ready,
     OwnerBookkeepingCommitted,
     GuestOutputCommitted,
-    DestroyTreeRetiring,
-    DestroyedTreeRetired,
-    MenusInvalidated,
     ReturnReady,
     Complete,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::win16_runtime) enum WindowDataProjectionPhase {
     Ready,
+    ParentObserving,
     ParentGraphRefreshing,
     ParentGraphRefreshed,
     ReturnValueMapped,
@@ -680,12 +681,15 @@ impl WindowApiProjectionJournal {
             Return::WindowData(_) => Self::WindowData(WindowDataProjection {
                 phase: WindowDataProjectionPhase::Ready,
                 value: None,
+                parent_observation: None,
             }),
             Return::WindowProperties(_) => Self::WindowProperties(WindowPropertyProjection {
                 phase: WindowPropertyProjectionPhase::Ready,
                 value: None,
             }),
-            Return::QueryProcedure { .. } => Self::QueryProcedure(ProcedureProjection {
+            Return::QueryProcedure { .. }
+            | Return::PrepareNativeSubclass { .. }
+            | Return::NativeSubclass(_) => Self::QueryProcedure(ProcedureProjection {
                 phase: ProcedureProjectionPhase::Ready,
                 value: None,
             }),
@@ -693,6 +697,8 @@ impl WindowApiProjectionJournal {
                 unreachable!("message-call projections use their dedicated journal")
             }
             Return::UserMessageBox => Self::UserMessageBox(SimpleReturnProjectionPhase::Ready),
+            Return::EnumMetafile { .. } => Self::EnumMetafile(SimpleReturnProjectionPhase::Ready),
+            Return::GrayString { .. } => Self::GrayString(SimpleReturnProjectionPhase::Ready),
             Return::UpdateRegion(_) => {
                 unreachable!("update-region projections use their dedicated journal")
             }
@@ -862,7 +868,11 @@ impl WindowApiProjectionJournal {
                 | (Journal::WindowData(_), Return::WindowData(_))
                 | (Journal::WindowProperties(_), Return::WindowProperties(_))
                 | (Journal::QueryProcedure(_), Return::QueryProcedure { .. })
+                | (Journal::QueryProcedure(_), Return::PrepareNativeSubclass { .. })
+                | (Journal::QueryProcedure(_), Return::NativeSubclass(_))
                 | (Journal::UserMessageBox(_), Return::UserMessageBox)
+                | (Journal::EnumMetafile(_), Return::EnumMetafile { .. })
+                | (Journal::GrayString(_), Return::GrayString { .. })
                 | (
                     Journal::UserCursorAccelerator(_),
                     Return::UserCursorAccelerator(_)

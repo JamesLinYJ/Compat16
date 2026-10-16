@@ -2,8 +2,26 @@
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16UserGeometryRequest {
+    BeginDeferWindowPos { count: i16 },
+    DeferWindowPos {
+        batch: u16,
+        window: u16,
+        insert_after: u16,
+        x: i16,
+        y: i16,
+        width: i16,
+        height: i16,
+        flags: u16,
+    },
+    EndDeferWindowPos { batch: u16 },
+
     /// Write the desktop cursor location into a checked guest POINT16.
     GetCursorPos { point: u32 },
+    SetCursorPos { x: i16, y: i16 },
+    /// NULL releases clipping; nonzero is a checked guest RECT16 input.
+    ClipCursor { rect: u32 },
+    /// Read the desktop cursor clipping rectangle into a checked RECT16.
+    GetClipCursor { rect: u32 },
     GetWindowPlacement { window: u16, placement: u32 },
     SetWindowPlacement { window: u16, placement: u32 },
     /// Fill a checked guest RECT16 output through the raw FAR address.
@@ -28,6 +46,15 @@ pub enum Win16UserGeometryRequest {
     ScreenToClient {
         window: u16,
         point: u32,
+    },
+
+    /// Convert a checked POINT16 array in place. Zero HWNDs select screen
+    /// coordinates; a count of two also covers the two corners of a RECT16.
+    MapWindowPoints {
+        from: u16,
+        to: u16,
+        points: u32,
+        count: u16,
     },
 
     /// POINT16 is supplied by value as two packed signed Win16 coordinates.

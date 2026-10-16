@@ -6,8 +6,7 @@ use crate::{
 use guest_core::Registers;
 
 use super::DosKernel;
-use super::memory::{first_free_handle, read_dos_c_string};
-use super::sft::DEFAULT_JFT_LEN;
+use super::memory::read_dos_c_string;
 use super::state::{Handle, StandardHandle};
 
 const OPEN_ACCESS_MASK: u8 = 0x07;
@@ -21,7 +20,7 @@ impl DosKernel {
         memory: &mut impl DosCallAddressSpace,
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
-        let Some(handle) = first_free_handle(&self.handles) else {
+        let Some(handle) = self.first_free_handle() else {
             Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         };
@@ -37,12 +36,28 @@ impl DosKernel {
             }
             Err(error) => return Err(error),
         };
-        match host.file_create(&path, regs.cx() as u8) {
+        // Reserve the JFT/SFT identity before touching a host file. This makes
+        // exhaustion side-effect free and leaves no post-create registration
+        // failure that would require closing an untracked host token.
+        if self.file_table.register_open(handle, 2).is_none() {
+            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            return Ok(DosAction::Continue);
+        }
+        // MS-DOS 4 Programmer's Reference, Function 5Bh: unlike 3Ch, fail
+        // with DOS error 80 if the name exists; never truncate that file.
+        // https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/
+        let created = if regs.ah() == 0x5b {
+            host.file_create_new(&path, regs.cx() as u8)
+        } else {
+            host.file_create(&path, regs.cx() as u8)
+        };
+        match created {
             Ok(file) => {
-                if self.file_table.register_open(handle, 2).is_none() {
-                    let _ = host.file_close(file);
-                    Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
-                    return Ok(DosAction::Continue);
+                if self.owns_file_token(file) {
+                    self.file_table.remove_handle(handle);
+                    return Err(DosError::HostContractViolation(
+                        "file creation returned an already owned file token",
+                    ));
                 }
                 self.handles.insert(handle, Handle::File(file));
                 regs.set_ax(handle);
@@ -50,6 +65,7 @@ impl DosKernel {
                 Ok(DosAction::Continue)
             }
             Err(error) => {
+                self.file_table.remove_handle(handle);
                 Self::failure(regs, error);
                 Ok(DosAction::Continue)
             }
@@ -62,7 +78,7 @@ impl DosKernel {
         memory: &mut impl DosCallAddressSpace,
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
-        let Some(handle) = first_free_handle(&self.handles) else {
+        let Some(handle) = self.first_free_handle() else {
             Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         };
@@ -163,6 +179,23 @@ impl DosKernel {
                 return Ok(DosAction::Continue);
             }
         };
+        if let Handle::File(_) = target {
+            // DOS 4 checks the SFT access mode before its zero-count shortcut.
+            // https://github.com/microsoft/MS-DOS/blob/main/v4.0/src/DOS/DISK.ASM#L153-L165
+            // Use the owned mode, never the guest-writable SFT projection.
+            let error = match self.file_table.file_open_mode(handle_id) {
+                Some(mode) => match mode & u16::from(OPEN_ACCESS_MASK) {
+                    0 | 2 => None,
+                    1 => Some(DosErrorCode::AccessDenied),
+                    _ => Some(DosErrorCode::InvalidAccess),
+                },
+                None => Some(DosErrorCode::InvalidHandle),
+            };
+            if let Some(error) = error {
+                Self::failure(regs, DosHostError::new(error));
+                return Ok(DosAction::Continue);
+            }
+        }
         let pointer = if count == 0 {
             None
         } else {
@@ -241,6 +274,23 @@ impl DosKernel {
                 return Ok(DosAction::Continue);
             }
         };
+        if let Handle::File(_) = target {
+            // DOS 4 rejects read-only opens before SETUP, including CX=0.
+            // https://github.com/microsoft/MS-DOS/blob/main/v4.0/src/DOS/DISK.ASM#L433-L458
+            // Use the owned mode, never the guest-writable SFT projection.
+            let error = match self.file_table.file_open_mode(handle_id) {
+                Some(mode) => match mode & u16::from(OPEN_ACCESS_MASK) {
+                    1 | 2 => None,
+                    0 => Some(DosErrorCode::AccessDenied),
+                    _ => Some(DosErrorCode::InvalidAccess),
+                },
+                None => Some(DosErrorCode::InvalidHandle),
+            };
+            if let Some(error) = error {
+                Self::failure(regs, DosHostError::new(error));
+                return Ok(DosAction::Continue);
+            }
+        }
         let mut data = vec![0; count];
         if count != 0 {
             let pointer = memory.resolve_caller_pointer(regs.ds, regs.dx())?;
@@ -337,17 +387,19 @@ impl DosKernel {
         regs: &mut Registers,
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
+        // DOS 4 $DUP checks JFNFree before CheckOwner, so a full JFT takes
+        // precedence over an invalid source handle (HANDLE.ASM, lines 673–689).
+        let new_id = self.first_free_handle();
+        let Some(new_id) = new_id else {
+            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            return Ok(DosAction::Continue);
+        };
         let source = match self.handles.get(&regs.bx()).copied() {
             Some(handle) => handle,
             None => {
                 Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
                 return Ok(DosAction::Continue);
             }
-        };
-        let new_id = first_free_handle(&self.handles);
-        let Some(new_id) = new_id else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
-            return Ok(DosAction::Continue);
         };
         if !self.file_table.can_duplicate_handle(regs.bx(), new_id) {
             Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
@@ -356,10 +408,10 @@ impl DosKernel {
         let target = match source {
             Handle::Standard(kind) => Handle::Standard(kind),
             Handle::File(file) => match host.file_duplicate(file) {
-                Ok(copy) if copy != file => Handle::File(copy),
+                Ok(copy) if !self.owns_file_token(copy) => Handle::File(copy),
                 Ok(_) => {
                     return Err(DosError::HostContractViolation(
-                        "file_duplicate returned the source token",
+                        "file_duplicate returned an already owned file token",
                     ));
                 }
                 Err(error) => {
@@ -392,7 +444,7 @@ impl DosKernel {
             Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
             return Ok(DosAction::Continue);
         };
-        if target_id >= DEFAULT_JFT_LEN {
+        if !self.handle_fits_jft(target_id) {
             Self::failure(regs, DosHostError::new(DosErrorCode::InvalidHandle));
             return Ok(DosAction::Continue);
         }
@@ -407,10 +459,10 @@ impl DosKernel {
         let replacement = match source {
             Handle::Standard(kind) => Handle::Standard(kind),
             Handle::File(file) => match host.file_duplicate(file) {
-                Ok(copy) if copy != file => Handle::File(copy),
+                Ok(copy) if !self.owns_file_token(copy) => Handle::File(copy),
                 Ok(_) => {
                     return Err(DosError::HostContractViolation(
-                        "file_duplicate returned the source token",
+                        "file_duplicate returned an already owned file token",
                     ));
                 }
                 Err(error) => {

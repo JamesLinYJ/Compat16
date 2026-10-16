@@ -15,9 +15,35 @@ pub struct Win16HostWinExecFailure {
     pub native_error: Option<u32>,
 }
 
+/// An owned filename and the caller's checked search namespace.
+#[derive(Clone, Debug)]
+pub struct Win16HostProgramLoadInput {
+    pub name: Vec<u8>,
+    pub directory: crate::Win16CanonicalPath,
+    pub application_path: Vec<u8>,
+    pub environment: Vec<u8>,
+    pub owner: crate::Win16HostTaskOwner,
+}
+
 #[derive(Clone, Debug)]
 pub enum Win16HostShellExecutionOperation {
-    WinExec { command_line: Vec<u8>, directory: String, show: u16 },
+    /// Release the caller's process lease after a successful program load.
+    ReleaseProcess { process: Option<Win16HostProcess> },
+    LoadModule {
+        input: Win16HostProgramLoadInput,
+        image: std::sync::Arc<crate::Win16ModuleImage>,
+        command_tail: Vec<u8>,
+        environment: Vec<u8>,
+        show: u16,
+    },
+    WinExec {
+        command_line: Vec<u8>,
+        directory: crate::Win16CanonicalPath,
+        application_path: Vec<u8>,
+        environment: Vec<u8>,
+        owner: crate::Win16HostTaskOwner,
+        show: u16,
+    },
     DragAcceptFiles { owner: Win16WindowTarget, accept: bool },
     Execute {
         owner: Win16WindowTarget,
@@ -175,6 +201,7 @@ impl Error for Win16HostShellFailure {
 
 #[derive(Debug)]
 pub enum Win16HostShellExecutionResult {
+    ProcessReleased(bool),
     WinExec(Result<Win16HostShellActivation, Win16HostWinExecFailure>),
     /// Native DragAcceptFiles is void; false reports that the owner did not
     /// identify a live native HWND, not a successful registration.

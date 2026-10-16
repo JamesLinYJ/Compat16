@@ -1,0 +1,53 @@
+module = "SHELL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 34
+name = "ExtractIcon"
+binding = { rust_id = "ShellExtractIcon", id_value = 656, constant = "SHELL_EXTRACT_ICON" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "path", type = "FarString" },
+  { name = "index", type = "I16" },
+]
+
+[[exports]]
+ordinal = 36
+name = "ExtractAssociatedIcon"
+binding = { rust_id = "ShellExtractAssociatedIcon", id_value = 660, constant = "SHELL_EXTRACT_ASSOCIATED_ICON" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "icon_path", type = "FarBuffer" },
+  { name = "icon_index", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 39
+name = "InternalExtractIcon"
+binding = { rust_id = "ShellInternalExtractIcon", id_value = 661, constant = "SHELL_INTERNAL_EXTRACT_ICON" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "path", type = "FarString", encoding = "pointer" },
+  { name = "index", type = "I16" },
+  { name = "count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 40
+name = "ExtractIconEx"
+binding = { rust_id = "ShellExtractIconEx", id_value = 662, constant = "SHELL_EXTRACT_ICON_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "FarString" },
+  { name = "index", type = "I16", encoding = "word" },
+  { name = "large_icons", type = "FarOutputBuffer" },
+  { name = "small_icons", type = "FarOutputBuffer" },
+  { name = "count", type = "U16" },
+]

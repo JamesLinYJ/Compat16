@@ -1,0 +1,539 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 62
+name = "SetScrollPos"
+binding = { rust_id = "UserSetScrollPos", id_value = 1153, constant = "USER_SET_SCROLL_POS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "bar", type = "I16", encoding = "word" },
+  { name = "position", type = "I16" },
+  { name = "redraw", type = "U16" },
+]
+
+[[exports]]
+ordinal = 63
+name = "GetScrollPos"
+binding = { rust_id = "UserGetScrollPos", id_value = 1154, constant = "USER_GET_SCROLL_POS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "bar", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 64
+name = "SetScrollRange"
+binding = { rust_id = "UserSetScrollRange", id_value = 1155, constant = "USER_SET_SCROLL_RANGE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "bar", type = "I16", encoding = "word" },
+  { name = "minimum", type = "I16" },
+  { name = "maximum", type = "I16" },
+  { name = "redraw", type = "U16" },
+]
+
+[[exports]]
+ordinal = 65
+name = "GetScrollRange"
+binding = { rust_id = "UserGetScrollRange", id_value = 1156, constant = "USER_GET_SCROLL_RANGE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "bar", type = "I16", encoding = "word" },
+  { name = "minimum", type = "FarOutputBuffer" },
+  { name = "maximum", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 87
+name = "DialogBox"
+binding = { rust_id = "UserDialogBox", id_value = 612, constant = "USER_DIALOG_BOX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "template", type = "ResourceName" },
+  { name = "owner", type = "U16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 88
+name = "EndDialog"
+binding = { rust_id = "UserEndDialog", id_value = 613, constant = "USER_END_DIALOG" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "result", type = "I16" },
+]
+
+[[exports]]
+ordinal = 89
+name = "CreateDialog"
+binding = { rust_id = "UserCreateDialog", id_value = 614, constant = "USER_CREATE_DIALOG" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "template", type = "ResourceName" },
+  { name = "owner", type = "U16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 90
+name = "IsDialogMessage"
+binding = { rust_id = "UserIsDialogMessage", id_value = 615, constant = "USER_IS_DIALOG_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "message", type = "FarBuffer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 91
+name = "GetDlgItem"
+binding = { rust_id = "UserGetDlgItem", id_value = 616, constant = "USER_GET_DLG_ITEM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "item_id", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 92
+name = "SetDlgItemText"
+binding = { rust_id = "UserSetDlgItemText", id_value = 617, constant = "USER_SET_DLG_ITEM_TEXT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "item_id", type = "I16", encoding = "word" },
+  { name = "text", type = "NullableFarString", encoding = "segmented_string" },
+]
+
+[[exports]]
+ordinal = 93
+name = "GetDlgItemText"
+binding = { rust_id = "UserGetDlgItemText", id_value = 618, constant = "USER_GET_DLG_ITEM_TEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "item_id", type = "I16", encoding = "word" },
+  { name = "output", type = "FarOutputBuffer", encoding = "segmented_pointer" },
+  { name = "capacity", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 94
+name = "SetDlgItemInt"
+binding = { rust_id = "UserSetDlgItemInt", id_value = 619, constant = "USER_SET_DLG_ITEM_INT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "item_id", type = "I16", encoding = "word" },
+  { name = "value", type = "U16" },
+  { name = "signed", type = "U16" },
+]
+
+[[exports]]
+ordinal = 95
+name = "GetDlgItemInt"
+binding = { rust_id = "UserGetDlgItemInt", id_value = 620, constant = "USER_GET_DLG_ITEM_INT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "item_id", type = "I16" },
+  { name = "translated_output", type = "FarOutputBuffer" },
+  { name = "signed", type = "U16" },
+]
+
+[[exports]]
+ordinal = 96
+name = "CheckRadioButton"
+binding = { rust_id = "UserCheckRadioButton", id_value = 621, constant = "USER_CHECK_RADIO_BUTTON" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "first_item_id", type = "U16" },
+  { name = "last_item_id", type = "U16" },
+  { name = "checked_item_id", type = "U16" },
+]
+
+[[exports]]
+ordinal = 97
+name = "CheckDlgButton"
+binding = { rust_id = "UserCheckDlgButton", id_value = 622, constant = "USER_CHECK_DLG_BUTTON" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "item_id", type = "I16", encoding = "word" },
+  { name = "check_state", type = "U16" },
+]
+
+[[exports]]
+ordinal = 98
+name = "IsDlgButtonChecked"
+binding = { rust_id = "UserIsDlgButtonChecked", id_value = 623, constant = "USER_IS_DLG_BUTTON_CHECKED" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "item_id", type = "U16" },
+]
+
+[[exports]]
+ordinal = 99
+name = "DlgDirSelect"
+binding = { rust_id = "UserDlgDirSelect", id_value = 624, constant = "USER_DLG_DIR_SELECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "control_id", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 100
+name = "DlgDirList"
+binding = { rust_id = "UserDlgDirList", id_value = 625, constant = "USER_DLG_DIR_LIST" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "path_spec", type = "FarBuffer", encoding = "string" },
+  { name = "list_id", type = "I16", encoding = "word" },
+  { name = "path_id", type = "I16", encoding = "word" },
+  { name = "file_type", type = "U16" },
+]
+
+[[exports]]
+ordinal = 102
+name = "AdjustWindowRect"
+binding = { rust_id = "UserAdjustWindowRect", id_value = 626, constant = "USER_ADJUST_WINDOW_RECT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "rect", type = "FarBuffer" },
+  { name = "style", type = "U32" },
+  { name = "has_menu", type = "U16" },
+]
+
+[[exports]]
+ordinal = 103
+name = "MapDialogRect"
+binding = { rust_id = "UserMapDialogRect", id_value = 627, constant = "USER_MAP_DIALOG_RECT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "rect", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 137
+name = "OpenClipboard"
+binding = { rust_id = "UserOpenClipboard", id_value = 628, constant = "USER_OPEN_CLIPBOARD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "owner", type = "U16" },
+]
+
+[[exports]]
+ordinal = 141
+name = "SetClipboardData"
+binding = { rust_id = "UserSetClipboardData", id_value = 632, constant = "USER_SET_CLIPBOARD_DATA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "format", type = "U16" },
+  { name = "global_handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 142
+name = "GetClipboardData"
+binding = { rust_id = "UserGetClipboardData", id_value = 633, constant = "USER_GET_CLIPBOARD_DATA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 144
+name = "EnumClipboardFormats"
+binding = { rust_id = "UserEnumClipboardFormats", id_value = 635, constant = "USER_ENUM_CLIPBOARD_FORMATS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "previous_format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 147
+name = "SetClipboardViewer"
+binding = { rust_id = "UserSetClipboardViewer", id_value = 636, constant = "USER_SET_CLIPBOARD_VIEWER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "viewer", type = "U16" },
+]
+
+[[exports]]
+ordinal = 149
+name = "ChangeClipboardChain"
+binding = { rust_id = "UserChangeClipboardChain", id_value = 638, constant = "USER_CHANGE_CLIPBOARD_CHAIN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "remove_window", type = "U16" },
+  { name = "next_window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 193
+name = "IsClipboardFormatAvailable"
+binding = { rust_id = "UserIsClipboardFormatAvailable", id_value = 639, constant = "USER_IS_CLIPBOARD_FORMAT_AVAILABLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "format", type = "U16" },
+]
+
+[[exports]]
+ordinal = 194
+name = "DlgDirSelectComboBox"
+binding = { rust_id = "UserDlgDirSelectComboBox", id_value = 640, constant = "USER_DLG_DIR_SELECT_COMBO_BOX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "control_id", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 195
+name = "DlgDirListComboBox"
+binding = { rust_id = "UserDlgDirListComboBox", id_value = 641, constant = "USER_DLG_DIR_LIST_COMBO_BOX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "path_spec", type = "FarBuffer" },
+  { name = "list_id", type = "I16", encoding = "word" },
+  { name = "path_id", type = "I16", encoding = "word" },
+  { name = "file_type", type = "U16" },
+]
+
+[[exports]]
+ordinal = 218
+name = "DialogBoxIndirect"
+binding = { rust_id = "UserDialogBoxIndirect", id_value = 642, constant = "USER_DIALOG_BOX_INDIRECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "template_handle", type = "U16" },
+  { name = "owner", type = "U16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 219
+name = "CreateDialogIndirect"
+binding = { rust_id = "UserCreateDialogIndirect", id_value = 643, constant = "USER_CREATE_DIALOG_INDIRECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "template", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "owner", type = "U16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 227
+name = "GetNextDlgGroupItem"
+binding = { rust_id = "UserGetNextDlgGroupItem", id_value = 644, constant = "USER_GET_NEXT_DLG_GROUP_ITEM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "control", type = "U16" },
+  { name = "previous", type = "U16" },
+]
+
+[[exports]]
+ordinal = 228
+name = "GetNextDlgTabItem"
+binding = { rust_id = "UserGetNextDlgTabItem", id_value = 645, constant = "USER_GET_NEXT_DLG_TAB_ITEM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "control", type = "U16" },
+  { name = "previous", type = "U16" },
+]
+
+[[exports]]
+ordinal = 239
+name = "DialogBoxParam"
+binding = { rust_id = "UserDialogBoxParam", id_value = 646, constant = "USER_DIALOG_BOX_PARAM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "template", type = "ResourceName" },
+  { name = "owner", type = "U16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "init_parameter", type = "U32" },
+]
+
+[[exports]]
+ordinal = 240
+name = "DialogBoxIndirectParam"
+binding = { rust_id = "UserDialogBoxIndirectParam", id_value = 647, constant = "USER_DIALOG_BOX_INDIRECT_PARAM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "template_handle", type = "U16" },
+  { name = "owner", type = "U16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "init_parameter", type = "U32" },
+]
+
+[[exports]]
+ordinal = 241
+name = "CreateDialogParam"
+binding = { rust_id = "UserCreateDialogParam", id_value = 648, constant = "USER_CREATE_DIALOG_PARAM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "template", type = "ResourceName" },
+  { name = "owner", type = "U16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "init_parameter", type = "U32" },
+]
+
+[[exports]]
+ordinal = 242
+name = "CreateDialogIndirectParam"
+binding = { rust_id = "UserCreateDialogIndirectParam", id_value = 649, constant = "USER_CREATE_DIALOG_INDIRECT_PARAM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "template", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "owner", type = "U16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "init_parameter", type = "U32" },
+]
+
+[[exports]]
+ordinal = 267
+name = "ShowScrollBar"
+binding = { rust_id = "UserShowScrollBar", id_value = 1157, constant = "USER_SHOW_SCROLL_BAR" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "bar", type = "I16", encoding = "word" },
+  { name = "show", type = "U16" },
+]
+
+[[exports]]
+ordinal = 402
+name = "GetPriorityClipboardFormat"
+binding = { rust_id = "UserGetPriorityClipboardFormat", id_value = 651, constant = "USER_GET_PRIORITY_CLIPBOARD_FORMAT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "formats", type = "FarBuffer" },
+  { name = "count", type = "I16" },
+]
+
+[[exports]]
+ordinal = 422
+name = "DlgDirSelectEx"
+binding = { rust_id = "UserDlgDirSelectEx", id_value = 652, constant = "USER_DLG_DIR_SELECT_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16", encoding = "word" },
+  { name = "control_id", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 423
+name = "DlgDirSelectComboBoxEx"
+binding = { rust_id = "UserDlgDirSelectComboBoxEx", id_value = 653, constant = "USER_DLG_DIR_SELECT_COMBO_BOX_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dialog", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16", encoding = "word" },
+  { name = "control_id", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 454
+name = "AdjustWindowRectEx"
+binding = { rust_id = "UserAdjustWindowRectEx", id_value = 654, constant = "USER_ADJUST_WINDOW_RECT_EX" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "rect", type = "FarBuffer" },
+  { name = "style", type = "U32" },
+  { name = "has_menu", type = "U16" },
+  { name = "extended_style", type = "U32" },
+]
+
+[[exports]]
+ordinal = 482
+name = "EnableScrollBar"
+binding = { rust_id = "UserEnableScrollBar", id_value = 1158, constant = "USER_ENABLE_SCROLL_BAR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "bar", type = "I16", encoding = "word" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 483
+name = "SystemParametersInfo"
+binding = { rust_id = "UserSystemParametersInfo", id_value = 655, constant = "USER_SYSTEM_PARAMETERS_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "action", type = "U16" },
+  { name = "param", type = "U16" },
+  { name = "data", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]

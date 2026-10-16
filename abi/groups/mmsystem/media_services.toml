@@ -1,0 +1,8 @@
+module = "MMSYSTEM"
+
+[[exports]]
+ordinal = 607
+name = "timeGetTime"
+binding = { rust_id = "MediaTimeGetTime", id_value = 1017, constant = "MMSYSTEM_TIME_GET_TIME" }
+[exports.call]
+returns = "dword"

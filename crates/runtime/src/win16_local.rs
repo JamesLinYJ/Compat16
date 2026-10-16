@@ -23,8 +23,13 @@ pub(super) enum LocalOperation {
     Handle { offset: u16 },
     Flags { handle: u16 },
     Compact { minimum: u16 },
+    HandleDelta { delta: u16 },
     CountFree,
     HeapSize,
+    AtomInit { buckets: i16 },
+    AtomAdd { name: Vec<u8>, matching_atom: Option<u16>, hash: u32 },
+    AtomDelete { atom: u16 },
+    AtomHandle { atom: u16 },
 }
 
 impl LocalOperation {
@@ -39,19 +44,29 @@ impl LocalOperation {
             Self::Handle { .. } => "LocalHandle",
             Self::Flags { .. } => "LocalFlags",
             Self::Compact { .. } => "LocalCompact",
+            Self::HandleDelta { .. } => "LocalHandleDelta",
             Self::CountFree => "LocalCountFree",
             Self::HeapSize => "LocalHeapSize",
+            Self::AtomInit { .. } => "InitAtomTable",
+            Self::AtomAdd { .. } => "AddAtom",
+            Self::AtomDelete { .. } => "DeleteAtom",
+            Self::AtomHandle { .. } => "GetAtomHandle",
         }
     }
 
     fn changes_heap(&self) -> bool {
+        if let Self::HandleDelta { delta } = self {
+            return *delta != 0;
+        }
         matches!(self, Self::Alloc { .. } | Self::ReAlloc { .. } | Self::Free { .. }
-            | Self::Lock { .. } | Self::Unlock { .. } | Self::Compact { .. })
+            | Self::Lock { .. } | Self::Unlock { .. } | Self::Compact { .. }
+            | Self::AtomInit { .. } | Self::AtomAdd { .. } | Self::AtomDelete { .. })
     }
 
     fn failed_result(&self) -> u16 {
         match self {
             Self::Free { handle } => *handle,
+            Self::AtomDelete { atom } => *atom,
             // LMEM_INVALID_HANDLE is the LocalFlags failure value.
             Self::Flags { .. } => LMEM_INVALID_HANDLE,
             _ => 0,
@@ -69,8 +84,15 @@ impl LocalOperation {
             Self::Handle { offset } => heap.handle(offset),
             Self::Flags { handle } => heap.flags(handle),
             Self::Compact { minimum } => heap.compact(minimum),
+            Self::HandleDelta { delta } => heap.handle_delta(delta),
             Self::CountFree => heap.count_free(),
             Self::HeapSize => heap.heap_size(),
+            Self::AtomInit { buckets } => heap.atom_init(buckets),
+            Self::AtomAdd { ref name, matching_atom, hash } => {
+                heap.atom_add(name, matching_atom, hash)
+            }
+            Self::AtomDelete { atom } => heap.atom_delete(atom),
+            Self::AtomHandle { atom } => heap.atom_handle(atom),
         }
     }
 
@@ -86,6 +108,10 @@ impl LocalOperation {
             Self::ReAlloc { handle, size, flags }
                 if handle != 0 && size != 0 && flags & LMEM_MODIFY == 0
                     && heap.flags(handle)? != LMEM_INVALID_HANDLE => Some(size),
+            Self::AtomInit { buckets } => heap.atom_allocation_size(Some(buckets), None)?,
+            Self::AtomAdd { ref name, matching_atom: None, .. } => {
+                heap.atom_allocation_size(None, Some(name.len()))?
+            }
             _ => None,
         })
     }
@@ -183,7 +209,17 @@ impl Win16State {
                 };
             }
         };
-        let result = operation.execute(&mut heap);
+        let mut result = operation.execute(&mut heap);
+        if matches!(&result, Ok(0)) && operation.growth_request(&heap).map_err(|error|
+            RuntimeError::with_source(Kind::GuestFault,
+                "validate local heap retained-tail request", error))?.is_some() {
+            match heap.reclaim_reserved_tail() {
+                Ok(true) => result = operation.execute(&mut heap),
+                Ok(false) | Err(LocalHeapError::OutOfMemory) => {}
+                Err(error) => return Err(RuntimeError::with_source(Kind::GuestFault,
+                    "re-admit a previously shrunken local heap tail", error)),
+            }
+        }
         let growth_request = if matches!(&result, Ok(0)) {
             operation.growth_request(&heap).map_err(|error|
                 RuntimeError::with_source(Kind::GuestFault,
@@ -272,7 +308,7 @@ impl Win16State {
     /// Take a bounded transaction copy. Local-heap metadata remains in guest
     /// memory, so a DLL's DS, selector aliases, and guest-written data all see
     /// the same heap. There is no second host handle table to go stale.
-    fn local_segment(
+    pub(super) fn local_segment(
         &self,
         selector: u16,
         writable: bool,
@@ -374,3 +410,11 @@ fn segment_offset_address(address: PhysAddr, offset: usize) -> Result<PhysAddr, 
         RuntimeError::new(Kind::InternalInvariant,
             "Win16 local-segment physical address overflowed"))
 }
+
+#[cfg(test)]
+#[path = "win16_local_handle_delta_tests.rs"]
+mod handle_delta_tests;
+
+#[cfg(test)]
+#[path = "win16_local_realloc_zero_tests.rs"]
+mod realloc_zero_tests;

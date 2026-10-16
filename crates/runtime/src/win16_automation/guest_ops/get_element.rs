@@ -12,11 +12,9 @@ use super::variant::{clone_variant, element_type_from_descriptor, validate_writa
 use super::variant_rollback::rollback_variant;
 use super::{
     AutomationFailure, AutomationInterfaceAction as LeaseAction, DISP_E_BADVARTYPE,
-    Win16AutomationState,
+    E_INVALIDARG, E_NOTIMPL, Win16AutomationState,
 };
 
-const E_INVALIDARG: u32 = 0x8007_0057;
-const E_NOTIMPL: u32 = 0x8000_4001;
 const DISP_E_BADINDEX: u32 = 0x8002_000b;
 
 pub(super) fn safe_array_get_element(
@@ -183,7 +181,7 @@ fn copy_element(
     }
 }
 
-fn array_cell_index(
+pub(super) fn array_cell_index(
     descriptor: &compat_services::automation::SafeArray16,
     raw_indices: &[u8],
 ) -> Result<usize, AutomationFailure> {

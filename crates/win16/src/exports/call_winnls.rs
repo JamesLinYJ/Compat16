@@ -20,6 +20,15 @@ pub(super) fn decode(
     }
 
     match (descriptor.ordinal(), arguments) {
+        (16, [Win16Argument::Word(hwnd), Win16Argument::Word(enable)]) => {
+            Ok(Win16WinnlsRequest::EnableIme {
+                hwnd: *hwnd,
+                enable: *enable != 0,
+            })
+        }
+        (18, [Win16Argument::Word(hwnd)]) => {
+            Ok(Win16WinnlsRequest::GetEnableStatus { hwnd: *hwnd })
+        }
         (22, [Win16Argument::Dword(profile_far)]) => {
             let (name, output) = query_profile(*profile_far, selectors, memory);
             Ok(Win16WinnlsRequest::QueryIme { name, output })

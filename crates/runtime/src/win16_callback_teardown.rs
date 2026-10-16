@@ -108,6 +108,9 @@ impl Win16State {
             CallbackKind::Font => {
                 self.cancel_font_callback_for_teardown(ended, cpu, dos, memory)?
             }
+            CallbackKind::GdiObject => {
+                self.cancel_object_callback_for_teardown(ended, cpu, dos, memory)?
+            }
             CallbackKind::AcmEnumeration => {
                 if !self.cancel_acm_callback_frame(ended, cpu, dos, memory, host)? {
                     return Err(callback_teardown_invariant(
@@ -135,14 +138,14 @@ impl Win16State {
                     }
                 }
             }
-            CallbackKind::WindowProperty => {
-                self.cancel_window_property_callback_for_teardown(ended, cpu, dos, memory)?
+            CallbackKind::NativeFunction => {
+                self.cancel_native_function_callback_for_teardown(ended, cpu, dos, memory)?
             }
             CallbackKind::Dde => {
                 self.cancel_dde_callback_after_abort(ended, cpu, dos, memory, host)?
             }
-            CallbackKind::Module => self.cancel_module_callback_for_teardown(ended, cpu)?,
-            CallbackKind::Resource => self.cancel_resource_callback_for_teardown(ended, cpu)?,
+            CallbackKind::Module => self.cancel_module_callback_for_teardown(ended, cpu, dos, memory)?,
+            CallbackKind::Resource => self.cancel_resource_callback_for_teardown(ended, cpu, dos, memory)?,
             CallbackKind::Asynchronous => {
                 if self.callback_scheduler.asynchronous_top_source_bound() {
                     let (callback_id, callback_token) = self
@@ -155,7 +158,7 @@ impl Win16State {
                         })?;
                     self.prepare_wave_callback_terminal_retirement(callback_id, callback_token)?;
                 }
-                let retirement = self.cancel_asynchronous_callback_for_teardown(cpu)?;
+                let retirement = self.cancel_asynchronous_callback_for_teardown(ended, cpu, dos, memory)?;
                 if retirement.source_bound || retirement.midi_source.is_some() {
                     self.finish_pending_asynchronous_callback_retirement(host, retirement)?;
                 }
@@ -259,11 +262,12 @@ impl Win16State {
         if !self.callback_kinds.is_empty()
             || !self.callback_frame_ids.is_empty()
             || !self.font_callbacks.is_empty()
+            || !self.object_callbacks.is_empty()
             || !self.acm.callback_frames_are_empty()
             || !self.line_dda_callbacks.is_empty()
             || !self.window_enumerations.is_empty()
             || !self.window_callbacks.is_empty()
-            || !self.window_property_callbacks.is_empty()
+            || !self.native_function_callbacks.is_empty()
             || !self.dde_callbacks.is_empty()
             || !self.module_callbacks.is_empty()
             || !self.resource_callbacks.is_empty()
@@ -316,11 +320,11 @@ impl Win16State {
                         self.legacy_cpu_frame_owns_selector(selector)))
             },
         );
-        format!("Win16 callback retirement incomplete: central_kinds={},central_ids={},font={},acm_live={},line_dda={},window_enum={},window={},window_property={},dde={},module={},resource={},toolhelp={},file_callback={},mci_stopped={},scheduler_active={},scheduler_cleanup={},scheduler_source_retirement={},operations={},operation_cpu_owners={}; top_window=[{}]",
+        format!("Win16 callback retirement incomplete: central_kinds={},central_ids={},font={},gdi_object={},acm_live={},line_dda={},window_enum={},window={},window_property={},dde={},module={},resource={},toolhelp={},file_callback={},mci_stopped={},scheduler_active={},scheduler_cleanup={},scheduler_source_retirement={},operations={},operation_cpu_owners={}; top_window=[{}]",
             self.callback_kinds.len(), self.callback_frame_ids.len(),
-            self.font_callbacks.len(), !self.acm.callback_frames_are_empty(),
+            self.font_callbacks.len(), self.object_callbacks.len(), !self.acm.callback_frames_are_empty(),
             self.line_dda_callbacks.len(), self.window_enumerations.len(),
-            self.window_callbacks.len(), self.window_property_callbacks.len(),
+            self.window_callbacks.len(), self.native_function_callbacks.len(),
             self.dde_callbacks.len(), self.module_callbacks.len(),
             self.resource_callbacks.len(), self.toolhelp_notify_frames.len(),
             self.kernel_file_system.has_active_callback(),

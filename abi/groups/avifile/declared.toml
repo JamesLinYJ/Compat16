@@ -1,0 +1,294 @@
+module = "AVIFILE"
+
+[[exports]]
+ordinal = 2
+name = "DLLGETCLASSOBJECT"
+kind = "stub"
+
+[[exports]]
+ordinal = 3
+name = "DLLCANUNLOADNOW"
+kind = "stub"
+
+[[exports]]
+ordinal = 4
+name = "___EXPORTEDSTUB"
+kind = "stub"
+
+[[exports]]
+ordinal = 10
+name = "_IID_IAVIStream"
+kind = "variable"
+values = [131105, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 11
+name = "_IID_IAVIFile"
+kind = "variable"
+values = [131104, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 12
+name = "_IID_IAVIEditStream"
+kind = "variable"
+values = [131108, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 13
+name = "_IID_IGetFrame"
+kind = "variable"
+values = [131107, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 14
+name = "_CLSID_AVISimpleUnMarshal"
+kind = "variable"
+values = [131081, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 100
+name = "AVIFileInit"
+
+[[exports]]
+ordinal = 101
+name = "AVIFileExit"
+
+[[exports]]
+ordinal = 102
+name = "AVIFileOpen"
+decl = { args = ["pointer", "string", "word", "pointer"] }
+
+[[exports]]
+ordinal = 103
+name = "AVIStreamOpenFromFile"
+decl = { args = ["pointer", "string", "long", "long", "word", "pointer"] }
+
+[[exports]]
+ordinal = 104
+name = "AVIStreamCreate"
+decl = { args = ["pointer", "long", "long", "pointer"] }
+
+[[exports]]
+ordinal = 105
+name = "AVIMAKECOMPRESSEDSTREAM"
+kind = "stub"
+
+[[exports]]
+ordinal = 106
+name = "AVIMAKEFILEFROMSTREAMS"
+kind = "stub"
+
+[[exports]]
+ordinal = 107
+name = "AVIMAKESTREAMFROMCLIPBOARD"
+kind = "stub"
+
+[[exports]]
+ordinal = 110
+name = "AVIStreamGetFrame"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 111
+name = "AVIStreamGetFrameClose"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 112
+name = "AVIStreamGetFrameOpen"
+decl = { args = ["long", "pointer"] }
+
+[[exports]]
+ordinal = 120
+name = "_AVISAVE"
+kind = "stub"
+
+[[exports]]
+ordinal = 121
+name = "AVISAVEV"
+kind = "stub"
+
+[[exports]]
+ordinal = 122
+name = "AVISAVEOPTIONS"
+kind = "stub"
+
+[[exports]]
+ordinal = 123
+name = "AVIBuildFilter"
+decl = { args = ["string", "long", "word"] }
+
+[[exports]]
+ordinal = 124
+name = "AVISaveOptionsFree"
+decl = { args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 130
+name = "AVIStreamStart"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 131
+name = "AVIStreamLength"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 132
+name = "AVIStreamTimeToSample"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 133
+name = "AVIStreamSampleToTime"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 140
+name = "AVIFileAddRef"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 141
+name = "AVIFileRelease"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 142
+name = "AVIFileInfo"
+decl = { args = ["long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 143
+name = "AVIFileGetStream"
+decl = { args = ["long", "pointer", "long", "long"] }
+
+[[exports]]
+ordinal = 144
+name = "AVIFileCreateStream"
+decl = { args = ["long", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 146
+name = "AVIFileWriteData"
+decl = { args = ["long", "long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 147
+name = "AVIFileReadData"
+decl = { args = ["long", "long", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 148
+name = "AVIFileEndRecord"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 160
+name = "AVIStreamAddRef"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 161
+name = "AVIStreamRelease"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 162
+name = "AVIStreamInfo"
+decl = { args = ["long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 163
+name = "AVIStreamFindSample"
+decl = { args = ["long", "long", "long"] }
+
+[[exports]]
+ordinal = 164
+name = "AVIStreamReadFormat"
+decl = { args = ["long", "long", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 165
+name = "AVIStreamReadData"
+decl = { args = ["long", "long", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 166
+name = "AVIStreamWriteData"
+decl = { args = ["long", "long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 167
+name = "AVIStreamRead"
+decl = { args = ["long", "long", "long", "pointer", "long", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 168
+name = "AVIStreamWrite"
+decl = { args = ["long", "long", "long", "pointer", "long", "long", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 169
+name = "AVIStreamSetFormat"
+decl = { args = ["long", "long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 180
+name = "EDITSTREAMCOPY"
+kind = "stub"
+
+[[exports]]
+ordinal = 181
+name = "EDITSTREAMCUT"
+kind = "stub"
+
+[[exports]]
+ordinal = 182
+name = "EDITSTREAMPASTE"
+kind = "stub"
+
+[[exports]]
+ordinal = 184
+name = "CREATEEDITABLESTREAM"
+kind = "stub"
+
+[[exports]]
+ordinal = 185
+name = "AVIPUTFILEONCLIPBOARD"
+kind = "stub"
+
+[[exports]]
+ordinal = 187
+name = "AVIGETFROMCLIPBOARD"
+kind = "stub"
+
+[[exports]]
+ordinal = 188
+name = "AVICLEARCLIPBOARD"
+kind = "stub"
+
+[[exports]]
+ordinal = 190
+name = "EDITSTREAMCLONE"
+kind = "stub"
+
+[[exports]]
+ordinal = 191
+name = "EDITSTREAMSETNAME"
+kind = "stub"
+
+[[exports]]
+ordinal = 192
+name = "EDITSTREAMSETINFO"
+kind = "stub"
+
+[[exports]]
+ordinal = 200
+name = "AVISTREAMBEGINSTREAMING"
+kind = "stub"
+
+[[exports]]
+ordinal = 201
+name = "AVISTREAMENDSTREAMING"
+kind = "stub"

@@ -1,0 +1,86 @@
+module = "WINNLS"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 16
+name = "WINNLSEnableIME"
+binding = { rust_id = "WinnlsEnableIme", id_value = 1225, constant = "WINNLS_ENABLE_IME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "enable", type = "U16" },
+]
+
+[[exports]]
+ordinal = 18
+name = "WINNLSGetEnableStatus"
+binding = { rust_id = "WinnlsGetEnableStatus", id_value = 1226, constant = "WINNLS_GET_ENABLE_STATUS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 22
+name = "IMPQueryIME"
+binding = { rust_id = "WinnlsQueryIme", id_value = 62, constant = "WINNLS_QUERY_IME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "profile", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 23
+name = "IMPGetIME"
+binding = { rust_id = "WinnlsGetIme", id_value = 63, constant = "WINNLS_GET_IME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "profile", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 24
+name = "IMPSetIME"
+binding = { rust_id = "WinnlsSetIme", id_value = 64, constant = "WINNLS_SET_IME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "profile", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 25
+name = "IMPModifyIME"
+binding = { rust_id = "WinnlsModifyIme", id_value = 65, constant = "WINNLS_MODIFY_IME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "name", type = "FarString" },
+  { name = "profile", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 26
+name = "IMPGetDefaultIME"
+binding = { rust_id = "WinnlsGetDefaultIme", id_value = 66, constant = "WINNLS_GET_DEFAULT_IME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "profile", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 27
+name = "IMPSetDefaultIME"
+binding = { rust_id = "WinnlsSetDefaultIme", id_value = 67, constant = "WINNLS_SET_DEFAULT_IME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "profile", type = "FarBuffer" },
+]

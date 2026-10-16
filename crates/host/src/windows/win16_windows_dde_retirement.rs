@@ -178,17 +178,44 @@ impl Win16Windows {
                 "DDE operation retirement proof does not match its exact shutdown receipt"));
         }
         self.dde_host_mut()?.verify_abort_receipt(receipt)?;
-        if let Some(existing) = self.dde_sources.retired_operations.iter()
-            .find(|source| source.operation() == operation)
-        {
-            return match existing {
+        let source = PendingSource::Dde { operation };
+        let mut retired = self.dde_sources.retired_operations.iter().enumerate()
+            .filter(|(_, entry)| entry.operation() == operation);
+        if let Some((index, existing)) = retired.next() {
+            if retired.next().is_some()
+                || self.dde_sources.pending.contains(&source)
+                || self.dde_callback_has_parent(operation)
+                || !receipt_matches_sources(receipt, &self.dde_sources)
+            {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "DDE retired operation has duplicate or inconsistent source identities"));
+            }
+            let normal = match existing {
                 RetiredDdeOperationSource::Shutdown(cached)
-                    if same_retirement_proof(cached, proof) => Ok(()),
-                _ => Err(RuntimeError::new(Kind::InternalInvariant,
+                    if same_retirement_proof(cached, proof) => return Ok(()),
+                RetiredDdeOperationSource::Normal(normal)
+                    if normal.has_valid_identity()
+                        && normal.operation == operation
+                        && normal.owner == proof.owner
+                        && normal.worker_generation == proof.worker_generation
+                        && proof.cancellation.status
+                            == Win16DdeOperationCancellationStatus::NativeCompleteReturned
+                        && proof.cancellation.failure.is_none() => Arc::clone(normal),
+                _ => return Err(RuntimeError::new(Kind::InternalInvariant,
                     "DDE operation source was retired with a different exact proof")),
             };
+            if !self.dde_host_mut()?.normal_completed_operation_matches(&normal)? {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "DDE normal tombstone lost its exact retained native completion"));
+            }
+            // Allocate the replacement before the native ACK removes its
+            // retained record. The source already retired normally: never pop
+            // an unrelated live source while reconciling terminal shutdown.
+            let replacement = RetiredDdeOperationSource::Shutdown(proof.clone());
+            self.dde_host_mut()?.operation_retired(proof, receipt)?;
+            self.dde_sources.retired_operations[index] = replacement;
+            return Ok(());
         }
-        let source = PendingSource::Dde { operation };
         self.require_source(source,
             "DDE operation source is not the exact shared-ledger top")?;
         if self.dde_sources.pending.iter().filter(|entry| **entry == source).count() != 1

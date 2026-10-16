@@ -189,7 +189,10 @@ impl Win16State {
         let owner = self.current_task_owner()?;
         let procedure = self.kernel_file_system.file_cdr.callback_for(owner);
         let second_path = match regs.ah() {
-            0x39 | 0x3a | 0x3c | 0x41 | 0x5a | 0x5b => false,
+            // AH=5Ah generates its filename during DOS execution. The input
+            // directory is not a created-file notice; leave that callback
+            // unsupported until its post-call notification ABI is verified.
+            0x39 | 0x3a | 0x3c | 0x41 | 0x5b => false,
             0x43 if regs.al() != 0 => false,
             0x56 => true,
             _ => return Ok(None),

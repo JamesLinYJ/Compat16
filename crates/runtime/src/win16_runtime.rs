@@ -4,6 +4,8 @@
 mod task;
 #[path = "win16_runtime_task_state.rs"]
 mod task_state;
+#[path = "win16_task_event_wait.rs"]
+mod task_event_wait;
 #[path = "win16_task_cleanup.rs"]
 mod task_cleanup;
 #[path = "win16_task_quiescence.rs"]
@@ -24,6 +26,14 @@ mod legacy_cpu_binding;
 mod legacy_cpu_frame;
 #[path = "win16_local.rs"]
 mod local_heap;
+#[path = "win16_local_shrink.rs"]
+mod local_shrink;
+#[path = "win16_stack_switch.rs"]
+mod stack_switch;
+#[path = "win16_kernel_yield.rs"]
+mod kernel_yield;
+#[path = "win16_local_atoms.rs"]
+mod local_atoms;
 #[path = "win16_data_growth.rs"]
 mod data_growth;
 #[path = "win16_user.rs"]
@@ -80,8 +90,12 @@ mod kernel_memory;
 mod kernel_instance;
 #[path = "win16_gdi_services.rs"]
 mod gdi_services;
+#[path = "win16_metafile.rs"]
+mod metafile;
 #[path = "win16_kernel_task.rs"]
 mod kernel_task;
+#[path = "win16_window_task.rs"]
+mod window_task;
 #[path = "win16_kernel_module.rs"]
 mod kernel_module;
 #[path = "win16_kernel_string.rs"]
@@ -92,6 +106,8 @@ mod system;
 mod kernel_services;
 #[path = "win16_kernel_path_info.rs"]
 mod kernel_path_info;
+#[path = "win16_temp_drive.rs"]
+mod temp_drive;
 #[path = "win16_kernel_register_calls.rs"]
 mod kernel_register_calls;
 #[path = "win16_kernel_diagnostics.rs"]
@@ -200,6 +216,8 @@ mod atoms;
 mod call_return;
 #[path = "win16_font_callback.rs"]
 mod font_callback;
+#[path = "win16_object_callback.rs"]
+mod object_callback;
 #[path = "win16_far_callback.rs"]
 mod far_callback;
 #[path = "win16_callback_entry.rs"]
@@ -260,6 +278,8 @@ mod resources;
 mod resource_calls;
 #[path = "win16_code_lifetime.rs"]
 mod code_lifetime;
+#[path = "win16_catch_throw.rs"]
+mod catch_throw;
 #[path = "win16_keyboard.rs"]
 mod keyboard;
 #[path = "win16_text.rs"]
@@ -276,6 +296,8 @@ mod selector_errors;
 mod selector_mapping;
 #[path = "win16_classes.rs"]
 mod classes;
+#[path = "win16_class_data.rs"]
+mod class_data;
 #[path = "win16_mdi_client_creation.rs"]
 pub(crate) mod mdi_client_creation;
 #[path = "win16_mdi_child_creation.rs"]
@@ -376,8 +398,16 @@ mod win16_dib_memory;
 mod window_operations;
 #[path = "win16_window_data.rs"]
 mod window_data;
+#[path = "win16_window_subclass.rs"]
+mod window_subclass;
+#[path = "win16_window_parent_observation.rs"]
+mod window_parent_observation;
 #[path = "win16_window_properties.rs"]
 mod window_properties;
+#[path = "win16_native_function_callback.rs"]
+mod native_function_callback;
+#[path = "win16_gray_string.rs"]
+mod gray_string;
 #[path = "win16_window_payloads.rs"]
 mod window_payloads;
 #[path = "win16_window_payload_input.rs"]
@@ -470,13 +500,14 @@ enum ImportBinding {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum CallbackKind {
     Font,
+    GdiObject,
     AcmEnumeration,
     LineDda,
     WindowEnumeration,
     UserHook,
     Ole1,
     Window,
-    WindowProperty,
+    NativeFunction,
     Dde,
     ClassicDde,
     Module,
@@ -638,16 +669,19 @@ pub(crate) struct Win16State {
     callback_scheduler: callback_scheduler::Win16CallbackScheduler,
     legacy_cpu_frames: Vec<legacy_cpu_frame::Win16LegacyCpuFrame>,
     next_legacy_cpu_frame: u64,
+    task_event_waits: Vec<task_event_wait::PendingTaskEventWait>,
     active_dispatch_call_owner: Option<u64>,
     active_dispatch_return: Option<x86_cpu::LegacyRegisterTransfer>,
     vm_start_tick: Option<u32>,
     font_callbacks: Vec<font_callback::FontCallbackFrame>,
+    object_callbacks: Vec<object_callback::ObjectCallbackFrame>,
     line_dda_callbacks: Vec<line_dda::LineDdaCallbackFrame>,
     window_enumerations: Vec<window_enumeration::WindowEnumerationFrame>,
+    deferred_window_batches: window_operations::DeferredWindowBatches,
     user_hooks: user_hooks::Win16UserHooks,
     window_callbacks: Vec<windows::WindowCallbackFrame>,
     retired_window_payloads: Vec<windows::RetiredWindowPayloadOwner>,
-    window_property_callbacks: Vec<window_properties::WindowPropertyCallbackFrame>,
+    native_function_callbacks: Vec<native_function_callback::NativeFunctionCallbackFrame>,
     window_operations: Vec<windows::WindowOperationFrame>,
     window_abort_receipt: Option<crate::Win16WindowAbortReceipt>,
     /// Captured only around real USER API dispatch; push_window_operation
@@ -680,10 +714,15 @@ pub(crate) struct Win16State {
     /// generations accounted for until state teardown; never retry a stale free.
     external_selector_cleanup: Vec<external_application::ExternalSelectorReservation>,
     module_callbacks: Vec<module_calls::ModuleCallFrame>,
+    module_startup: module_calls::ModuleStartupState,
+    program_load_reported: bool,
     resources: resources::ResourceState,
     resource_handlers: BTreeMap<(u16, usize), u32>,
     resource_callbacks: Vec<resource_calls::ResourceCallFrame>,
     far_returns: Vec<code_lifetime::FarCallResume>,
+    next_far_call_id: u64,
+    next_interrupt_id: u64,
+    catch_records: catch_throw::CatchRecords,
     interrupt_returns: Vec<interrupt_entry::InterruptResume>,
     module_reap_pending: bool,
     user_queue: Option<MessageQueue>,
@@ -829,3 +868,11 @@ impl Win16State {
     }
 
 }
+
+#[cfg(test)]
+#[path = "win16_test_support.rs"]
+mod test_support;
+
+#[cfg(test)]
+#[path = "win16_destroy_receipt_tests.rs"]
+mod destroy_receipt_tests;

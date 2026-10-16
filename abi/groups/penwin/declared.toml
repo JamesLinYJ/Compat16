@@ -1,0 +1,255 @@
+module = "PENWIN"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 10
+name = "InitRC"
+decl = { args = ["word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 11
+name = "Recognize"
+decl = { args = ["segmented_pointer"] }
+
+[[exports]]
+ordinal = 12
+name = "RecognizeData"
+decl = { args = ["segmented_pointer", "word"] }
+
+[[exports]]
+ordinal = 13
+name = "BoundingRectFromPoints"
+decl = { attributes = [], args = ["segmented_pointer", "signed_word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 14
+name = "InstallRecognizer"
+decl = { args = ["string"] }
+
+[[exports]]
+ordinal = 15
+name = "UninstallRecognizer"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 16
+name = "TrainInk"
+decl = { args = ["segmented_pointer", "word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 17
+name = "TrainContext"
+decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer", "signed_word"] }
+
+[[exports]]
+ordinal = 101
+name = "PostVirtualMouseEvent"
+decl = { attributes = [], args = ["word", "signed_word", "signed_word"] }
+
+[[exports]]
+ordinal = 102
+name = "PostVirtualKeyEvent"
+decl = { attributes = [], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 104
+name = "AtomicVirtualEvent"
+decl = { attributes = [], args = ["word"] }
+
+[[exports]]
+ordinal = 110
+name = "IsPenAware"
+
+[[exports]]
+ordinal = 111
+name = "RegisterPenApp"
+decl = { attributes = [], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 114
+name = "SetRecogHook"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 115
+name = "SetPenHook"
+decl = { args = ["word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 121
+name = "GetSymbolMaxLength"
+decl = { args = ["segmented_pointer"] }
+
+[[exports]]
+ordinal = 122
+name = "GetSymbolCount"
+decl = { args = ["segmented_pointer"] }
+
+[[exports]]
+ordinal = 123
+name = "FirstSymbolFromGraph"
+decl = { attributes = [], args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 124
+name = "EnumSymbols"
+decl = { args = ["segmented_pointer", "word", "segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 125
+name = "SymbolToCharacter"
+decl = { args = ["segmented_pointer", "signed_word", "segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 126
+name = "CharacterToSymbol"
+decl = { args = ["string", "signed_word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 131
+name = "DPtoTP"
+decl = { args = ["segmented_pointer", "signed_word"] }
+
+[[exports]]
+ordinal = 132
+name = "TPtoDP"
+decl = { args = ["segmented_pointer", "signed_word"] }
+
+[[exports]]
+ordinal = 135
+name = "IsPenEvent"
+decl = { args = ["word", "long"] }
+
+[[exports]]
+ordinal = 137
+name = "EndPenCollection"
+decl = { args = ["signed_word"] }
+
+[[exports]]
+ordinal = 138
+name = "GetPenHwData"
+decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 139
+name = "GetPenHwEventData"
+decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 144
+name = "GetPenAsyncState"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 150
+name = "SetGlobalRC"
+decl = { args = ["segmented_pointer", "string", "string"] }
+
+[[exports]]
+ordinal = 151
+name = "GetGlobalRC"
+decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "signed_word"] }
+
+[[exports]]
+ordinal = 170
+name = "ProcessWriting"
+decl = { args = ["word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 172
+name = "CorrectWriting"
+decl = { args = ["word", "segmented_pointer", "word", "segmented_pointer", "long", "long"] }
+
+[[exports]]
+ordinal = 173
+name = "EmulatePen"
+decl = { attributes = [], args = ["word"] }
+
+[[exports]]
+ordinal = 207
+name = "UpdatePenInfo"
+decl = { attributes = [], args = ["segmented_pointer"] }
+
+[[exports]]
+ordinal = 210
+name = "CreatePenData"
+decl = { args = ["segmented_pointer", "signed_word", "word", "word"] }
+
+[[exports]]
+ordinal = 211
+name = "GetPenDataInfo"
+decl = { args = ["word", "segmented_pointer", "segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 212
+name = "AddPointsPenData"
+decl = { args = ["word", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 213
+name = "BeginEnumStrokes"
+decl = { attributes = [], args = ["word"] }
+
+[[exports]]
+ordinal = 214
+name = "DrawPenData"
+decl = { attributes = [], args = ["word", "segmented_pointer", "word"] }
+
+[[exports]]
+ordinal = 215
+name = "MetricScalePenData"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 216
+name = "OffsetPenData"
+decl = { args = ["word", "signed_word", "signed_word"] }
+
+[[exports]]
+ordinal = 218
+name = "DuplicatePenData"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 219
+name = "GetPenDataStroke"
+decl = { args = ["segmented_pointer", "word", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 221
+name = "GetPointsFromPenData"
+decl = { args = ["word", "word", "word", "word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 222
+name = "ResizePenData"
+decl = { args = ["word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 223
+name = "CompactPenData"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 242
+name = "RedisplayPenData"
+decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "long"] }
+
+[[exports]]
+ordinal = 250
+name = "ShowKeyboard"
+decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 402
+name = "GetVersionPenWin"
+
+[[exports]]
+ordinal = 418
+name = "ExecuteGesture"
+decl = { args = ["word", "long", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 420
+name = "DictionarySearch"
+decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer", "signed_word"] }

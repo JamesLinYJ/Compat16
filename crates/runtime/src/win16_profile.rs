@@ -7,6 +7,26 @@ use super::Win16State;
 use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost};
 
 impl Win16State {
+    pub(super) fn private_profile_path(
+        &self, filename: Option<&[u8]>, host: &impl RuntimeHost,
+    ) -> Result<crate::Win16ProfilePath, RuntimeError> {
+        use crate::Win16ProfilePath as Path;
+        let Some(bytes) = filename else { return Ok(Path::System); };
+        let text = match host.decode_win16_ansi(bytes) {
+            Ok(text) => text,
+            Err(error) if matches!(error.kind(), Kind::InvalidInput | Kind::GuestFault) =>
+                return Ok(Path::Invalid),
+            Err(error) => return Err(error),
+        };
+        if text.is_empty() { return Ok(Path::Invalid); }
+        // The SDK places a bare INI filename in the Windows directory. An
+        // explicit relative path (including .\) uses the task's DOS cwd.
+        if !text.contains(['\\', '/', ':']) { return Ok(Path::WindowsDirectory(text)); }
+        Ok(match self.legacy_file_path(bytes, host)? {
+            Some(path) => Path::File(path), None => Path::Invalid,
+        })
+    }
+
     pub(super) fn profile_string(
         &self,
         section: Option<&[u8]>,
@@ -17,8 +37,9 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
+        let filename = self.private_profile_path(filename, host)?;
         let (bytes, copied) = host.win16_profile_string(
-            section, key, default_value, filename, output.capacity,
+            section, key, default_value, &filename, output.capacity,
         )?;
         self.write_profile_result(section, key, output, &bytes, copied, memory)
     }

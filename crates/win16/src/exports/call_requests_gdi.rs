@@ -15,6 +15,16 @@ pub(super) fn decode(
         return Ok(Some(Win16ApiRequest::PrintQueue(request)));
     }
     let request = match descriptor.id {
+        Win16ExportId::GdiCreateMetaFile
+        | Win16ExportId::GdiCloseMetaFile
+        | Win16ExportId::GdiGetMetaFile
+        | Win16ExportId::GdiEnumMetaFile
+        | Win16ExportId::GdiPlayMetaFileRecord
+        | Win16ExportId::GdiPlayMetaFile
+        | Win16ExportId::GdiCopyMetaFile
+        | Win16ExportId::GdiDeleteMetaFile => {
+            gdi_calls::decode(descriptor.id, &arguments, selectors, memory)?
+        }
         Win16ExportId::GdiCreateCompatibleDc
         | Win16ExportId::GdiDeleteDc
         | Win16ExportId::GdiDeleteObject
@@ -22,7 +32,12 @@ pub(super) fn decode(
         | Win16ExportId::GdiGetObject
         | Win16ExportId::GdiGetDeviceCaps
         | Win16ExportId::GdiGetStockObject
+        | Win16ExportId::GdiGetMetaFileBits
+        | Win16ExportId::GdiSetMetaFileBits
+        | Win16ExportId::GdiSetMetaFileBitsBetter
         | Win16ExportId::GdiEnumFonts
+        | Win16ExportId::GdiEnumObjects
+        | Win16ExportId::GdiEnumFontFamilies
         | Win16ExportId::GdiLineDda
         | Win16ExportId::GdiMulDiv
         | Win16ExportId::GdiSelectObject
@@ -40,6 +55,7 @@ pub(super) fn decode(
         | Win16ExportId::GdiGetTextExtent
         | Win16ExportId::GdiCreateDc
         | Win16ExportId::GdiCreateIc
+        | Win16ExportId::GdiGetOutlineTextMetrics
         | Win16ExportId::GdiGetTextMetrics
         | Win16ExportId::GdiGetTextFace => {
             gdi_calls::decode(descriptor.id, &arguments, selectors, memory)?
@@ -50,6 +66,9 @@ pub(super) fn decode(
         | Win16ExportId::GdiCreateFontIndirect
         | Win16ExportId::GdiCreateBitmap
         | Win16ExportId::GdiCreateBitmapIndirect
+        | Win16ExportId::GdiCreateHatchBrush
+        | Win16ExportId::GdiCreatePatternBrush
+        | Win16ExportId::GdiCreateDibPatternBrush
         | Win16ExportId::GdiCreateBrushIndirect
         | Win16ExportId::GdiCreateCompatibleBitmap => {
             gdi_objects_calls::decode(descriptor.id, &arguments, selectors, memory)?
@@ -148,6 +167,7 @@ pub(super) fn decode(
         | Win16ExportId::GdiSetRectRgn
         | Win16ExportId::GdiGetClipRgn
         | Win16ExportId::GdiRectInRegion
+        | Win16ExportId::GdiRectInRegionEhh
         | Win16ExportId::GdiPolyPolygon
         | Win16ExportId::GdiPolyBezier
         | Win16ExportId::GdiPolyBezierTo
@@ -168,7 +188,8 @@ pub(super) fn decode(
         | Win16ExportId::GdiChord => {
             gdi_primitives_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
-        Win16ExportId::GdiStretchDibits
+        Win16ExportId::GdiEscape
+        | Win16ExportId::GdiStretchDibits
         | Win16ExportId::GdiSetDibits
         | Win16ExportId::GdiGetDibits
         | Win16ExportId::GdiCreateDibitmap

@@ -1,0 +1,1090 @@
+module = "COMPOBJ"
+
+[[exports]]
+ordinal = 1
+name = "CoBuildVersion"
+
+[[exports]]
+ordinal = 2
+name = "CoInitialize"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 3
+name = "CoUninitialize"
+
+[[exports]]
+ordinal = 4
+name = "CoGetMalloc"
+decl = { args = ["long", "pointer"] }
+
+[[exports]]
+ordinal = 5
+name = "CoRegisterClassObject"
+decl = { args = ["pointer", "segmented_pointer", "long", "long", "pointer"] }
+
+[[exports]]
+ordinal = 6
+name = "CoRevokeClassObject"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 7
+name = "CoGetClassObject"
+decl = { args = ["segmented_pointer", "long", "pointer", "segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 8
+name = "COMARSHALINTERFACE"
+kind = "stub"
+
+[[exports]]
+ordinal = 9
+name = "COUNMARSHALINTERFACE"
+kind = "stub"
+
+[[exports]]
+ordinal = 10
+name = "COLOADLIBRARY"
+kind = "stub"
+
+[[exports]]
+ordinal = 11
+name = "COFREELIBRARY"
+kind = "stub"
+
+[[exports]]
+ordinal = 12
+name = "COFREEALLLIBRARIES"
+kind = "stub"
+
+[[exports]]
+ordinal = 13
+name = "CoCreateInstance"
+decl = { args = ["segmented_pointer", "segmented_pointer", "long", "segmented_pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 14
+name = "StringFromIID"
+decl = { args = ["pointer", "pointer"] }
+
+[[exports]]
+ordinal = 15
+name = "CoDisconnectObject"
+decl = { args = ["segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 16
+name = "CORELEASEMARSHALDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 17
+name = "CoFreeUnusedLibraries"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 19
+name = "StringFromCLSID"
+decl = { args = ["pointer", "pointer"] }
+
+[[exports]]
+ordinal = 20
+name = "CLSIDFromString"
+decl = { args = ["string", "pointer"] }
+
+[[exports]]
+ordinal = 21
+name = "ISVALIDPTRIN"
+kind = "stub"
+
+[[exports]]
+ordinal = 22
+name = "ISVALIDPTROUT"
+kind = "stub"
+
+[[exports]]
+ordinal = 23
+name = "IsValidInterface"
+decl = { args = ["segmented_pointer"] }
+
+[[exports]]
+ordinal = 24
+name = "ISVALIDIID"
+kind = "stub"
+
+[[exports]]
+ordinal = 25
+name = "RESULTFROMSCODE"
+kind = "stub"
+
+[[exports]]
+ordinal = 26
+name = "GETSCODE"
+kind = "stub"
+
+[[exports]]
+ordinal = 27
+name = "CoRegisterMessageFilter"
+decl = { args = ["segmented_pointer", "pointer"] }
+
+[[exports]]
+ordinal = 28
+name = "COISHANDLERCONNECTED"
+kind = "stub"
+
+[[exports]]
+ordinal = 29
+name = "SHRADDREF"
+kind = "stub"
+
+[[exports]]
+ordinal = 30
+name = "CoFileTimeToDosDateTime"
+decl = { attributes = ["ret16"], args = ["pointer", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 31
+name = "CoDosDateTimeToFileTime"
+decl = { attributes = ["ret16"], args = ["word", "word", "pointer"] }
+
+[[exports]]
+ordinal = 32
+name = "COMARSHALHRESULT"
+kind = "stub"
+
+[[exports]]
+ordinal = 33
+name = "COUNMARSHALHRESULT"
+kind = "stub"
+
+[[exports]]
+ordinal = 34
+name = "CoGetCurrentProcess"
+
+[[exports]]
+ordinal = 35
+name = "SHRCREATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 36
+name = "CoIsOle1Class"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 37
+name = "_GUID_NULL"
+kind = "variable"
+values = [0, 0, 0, 0]
+
+[[exports]]
+ordinal = 38
+name = "_IID_IUnknown"
+kind = "variable"
+values = [0, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 39
+name = "_IID_IClassFactory"
+kind = "variable"
+values = [1, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 40
+name = "_IID_IMalloc"
+kind = "variable"
+values = [2, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 41
+name = "_IID_IMarshal"
+kind = "variable"
+values = [3, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 42
+name = "_IID_IRpcChannel"
+kind = "variable"
+values = [4, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 43
+name = "_IID_IRpcStub"
+kind = "variable"
+values = [5, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 44
+name = "_IID_IStubManager"
+kind = "variable"
+values = [6, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 45
+name = "_IID_IRpcProxy"
+kind = "variable"
+values = [7, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 46
+name = "_IID_IProxyManager"
+kind = "variable"
+values = [8, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 47
+name = "_IID_IPSFactory"
+kind = "variable"
+values = [9, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 48
+name = "_IID_ILockBytes"
+kind = "variable"
+values = [10, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 49
+name = "_IID_IStorage"
+kind = "variable"
+values = [11, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 50
+name = "_IID_IStream"
+kind = "variable"
+values = [12, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 51
+name = "_IID_IEnumSTATSTG"
+kind = "variable"
+values = [13, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 52
+name = "_IID_IBindCtx"
+kind = "variable"
+values = [14, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 53
+name = "_IID_IMoniker"
+kind = "variable"
+values = [15, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 54
+name = "_IID_IRunningObjectTable"
+kind = "variable"
+values = [16, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 55
+name = "_IID_IInternalMoniker"
+kind = "variable"
+values = [17, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 56
+name = "_IID_IRootStorage"
+kind = "variable"
+values = [18, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 57
+name = "_IID_IDfReserved1"
+kind = "variable"
+values = [19, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 58
+name = "_IID_IDfReserved2"
+kind = "variable"
+values = [20, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 59
+name = "_IID_IDfReserved3"
+kind = "variable"
+values = [21, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 60
+name = "_IID_IMessageFilter"
+kind = "variable"
+values = [22, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 61
+name = "CLSIDFromProgID"
+decl = { args = ["string", "pointer"] }
+
+[[exports]]
+ordinal = 62
+name = "ProgIDFromCLSID"
+decl = { args = ["pointer", "pointer"] }
+
+[[exports]]
+ordinal = 63
+name = "CoLockObjectExternal"
+decl = { args = ["segmented_pointer", "word", "word"] }
+
+[[exports]]
+ordinal = 64
+name = "_CLSID_StdMarshal"
+kind = "variable"
+values = [23, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 65
+name = "CoGetTreatAsClass"
+decl = { args = ["pointer", "pointer"] }
+
+[[exports]]
+ordinal = 66
+name = "CoTreatAsClass"
+decl = { args = ["pointer", "pointer"] }
+
+[[exports]]
+ordinal = 67
+name = "COGETSTANDARDMARSHAL"
+kind = "stub"
+
+[[exports]]
+ordinal = 68
+name = "PROPAGATERESULT"
+kind = "stub"
+
+[[exports]]
+ordinal = 69
+name = "IIDFromString"
+decl = { args = ["string", "pointer"] }
+
+[[exports]]
+ordinal = 70
+name = "_IID_IStdMarshalInfo"
+kind = "variable"
+values = [24, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 71
+name = "CoCreateStandardMalloc"
+decl = { args = ["long", "pointer"] }
+
+[[exports]]
+ordinal = 72
+name = "_IID_IExternalConnection"
+kind = "variable"
+values = [25, 0, 192, 1174405120]
+
+[[exports]]
+ordinal = 73
+name = "CoCreateGuid"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 75
+name = "FnAssert"
+decl = { args = ["string", "string", "string", "word"] }
+
+[[exports]]
+ordinal = 76
+name = "StringFromGUID2"
+decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word"] }
+
+[[exports]]
+ordinal = 77
+name = "COGETCLASSEXT"
+kind = "stub"
+
+[[exports]]
+ordinal = 78
+name = "OLE1CLASSFROMCLSID2"
+kind = "stub"
+
+[[exports]]
+ordinal = 79
+name = "CLSIDFROMOLE1CLASS"
+kind = "stub"
+
+[[exports]]
+ordinal = 80
+name = "COOPENCLASSKEY"
+kind = "stub"
+
+[[exports]]
+ordinal = 81
+name = "GUIDFROMSTRING"
+kind = "stub"
+
+[[exports]]
+ordinal = 82
+name = "CoFileTimeNow"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 83
+name = "REMALLOCOID"
+kind = "stub"
+
+[[exports]]
+ordinal = 84
+name = "REMFREEOID"
+kind = "stub"
+
+[[exports]]
+ordinal = 85
+name = "REMCREATEREMOTEHANDLER"
+kind = "stub"
+
+[[exports]]
+ordinal = 86
+name = "REMCONNECTTOOBJECT"
+kind = "stub"
+
+[[exports]]
+ordinal = 87
+name = "REMGETINFOFORCID"
+kind = "stub"
+
+[[exports]]
+ordinal = 88
+name = "LRPCCALL"
+kind = "stub"
+
+[[exports]]
+ordinal = 89
+name = "LRPCDISPATCH"
+kind = "stub"
+
+[[exports]]
+ordinal = 90
+name = "LRPCREGISTERMONITOR"
+kind = "stub"
+
+[[exports]]
+ordinal = 91
+name = "LRPCREVOKEMONITOR"
+kind = "stub"
+
+[[exports]]
+ordinal = 92
+name = "LRPCGETTHREADWINDOW"
+kind = "stub"
+
+[[exports]]
+ordinal = 93
+name = "TIMERCALLBACKPROC"
+kind = "stub"
+
+[[exports]]
+ordinal = 94
+name = "LookupETask"
+decl = { args = ["pointer", "pointer"] }
+
+[[exports]]
+ordinal = 95
+name = "SetETask"
+decl = { attributes = ["ret16"], args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 96
+name = "LRPCFREEMONITORDATA"
+kind = "stub"
+
+[[exports]]
+ordinal = 97
+name = "REMLOOKUPSHUNK"
+kind = "stub"
+
+[[exports]]
+ordinal = 98
+name = "SHRGETSIZE"
+kind = "stub"
+
+[[exports]]
+ordinal = 99
+name = "CALLTHKMGRUNINITIALIZE"
+kind = "stub"
+
+[[exports]]
+ordinal = 100
+name = "??0CARRAYFVALUE@@REC@KI@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 101
+name = "??1CARRAYFVALUE@@REC@XZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 102
+name = "?ASSERTVALID@CARRAYFVALUE@@RFCXXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 103
+name = "?FREEEXTRA@CARRAYFVALUE@@RECXXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 104
+name = "?_GETAT@CARRAYFVALUE@@RFCPEXH@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 105
+name = "?GETSIZE@CARRAYFVALUE@@RFCHXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 106
+name = "?REMOVEALL@CARRAYFVALUE@@RECXXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 107
+name = "SHRDESTROY"
+kind = "stub"
+
+[[exports]]
+ordinal = 108
+name = "?INDEXOF@CARRAYFVALUE@@RECHPEXII@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 109
+name = "?INSERTAT@CARRAYFVALUE@@RECHHPEXH@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 110
+name = "COSETSTATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 111
+name = "?REMOVEAT@CARRAYFVALUE@@RECXHH@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 112
+name = "?SETAT@CARRAYFVALUE@@RECXHPEX@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 113
+name = "?SETATGROW@CARRAYFVALUE@@RECHHPEX@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 114
+name = "?SETSIZE@CARRAYFVALUE@@RECHHH@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 115
+name = "CoGetState"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 116
+name = "DllEntryPoint"
+decl = { args = ["long", "word", "word", "word", "long", "word"] }
+
+[[exports]]
+ordinal = 117
+name = "?RELEASE@CSTDMALLOC@@VEAKXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 118
+name = "?ALLOC@CSTDMALLOC@@VEAPEXK@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 119
+name = "SHRRELEASE"
+kind = "stub"
+
+[[exports]]
+ordinal = 120
+name = "?GETASSOCAT@CMAPKEYTOVALUE@@BFCPEUCASSOC@1@PEXIAEI@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 121
+name = "?SETASSOCKEY@CMAPKEYTOVALUE@@BFCHPEUCASSOC@1@PEXI@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 122
+name = "??1CMAPKEYTOVALUE@@REC@XZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 123
+name = "?GETASSOCKEYPTR@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEPEXPEI@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 124
+name = "?NEWASSOC@CMAPKEYTOVALUE@@BECPEUCASSOC@1@IPEXI0@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 125
+name = "?SIZEASSOC@CMAPKEYTOVALUE@@BFCIXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 126
+name = "?FREEASSOC@CMAPKEYTOVALUE@@BECXPEUCASSOC@1@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 127
+name = "?GETSTARTPOSITION@CMAPKEYTOVALUE@@RFCPEXXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 128
+name = "?GETNEXTASSOC@CMAPKEYTOVALUE@@RFCXPEPEXPEXPEI1@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 129
+name = "?COMPAREASSOCKEY@CMAPKEYTOVALUE@@BFCHPEUCASSOC@1@PEXI@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 130
+name = "?REMOVEHKEY@CMAPKEYTOVALUE@@RECHK@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 131
+name = "?GETHKEY@CMAPKEYTOVALUE@@RFCKPEXI@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 132
+name = "?GETCOUNT@CMAPKEYTOVALUE@@RFCHXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 133
+name = "?LOOKUP@CMAPKEYTOVALUE@@RFCHPEXI0@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 134
+name = "?GETASSOCVALUE@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEX@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 135
+name = "?REMOVEKEY@CMAPKEYTOVALUE@@RECHPEXI@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 136
+name = "?REMOVEALL@CMAPKEYTOVALUE@@RECXXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 137
+name = "SHRALLOC"
+kind = "stub"
+
+[[exports]]
+ordinal = 138
+name = "?FREEASSOCKEY@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 139
+name = "?SETAT@CMAPKEYTOVALUE@@RECHPEXI0@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 140
+name = "?LOOKUPHKEY@CMAPKEYTOVALUE@@RFCHKPEX@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 141
+name = "?ASSERTVALID@CMAPKEYTOVALUE@@RFCXXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 142
+name = "?SETASSOCVALUE@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEX@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 143
+name = "?SETATHKEY@CMAPKEYTOVALUE@@RECHKPEX@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 144
+name = "??0CMAPKEYTOVALUE@@REC@KIIHP7CIPEXI@ZI@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 145
+name = "?INITHASHTABLE@CMAPKEYTOVALUE@@BECHXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 146
+name = "?GETASSOCVALUEPTR@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEPEX@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 147
+name = "?LOOKUPADD@CMAPKEYTOVALUE@@RFCHPEXI0@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 148
+name = "MKVDEFAULTHASHKEY"
+kind = "stub"
+
+[[exports]]
+ordinal = 149
+name = "DELETE16"
+kind = "stub"
+
+[[exports]]
+ordinal = 150
+name = "COMEMCTXOF"
+kind = "stub"
+
+[[exports]]
+ordinal = 151
+name = "CoMemAlloc"
+decl = { args = ["long", "long", "long"] }
+
+[[exports]]
+ordinal = 152
+name = "COMEMFREE"
+kind = "stub"
+
+[[exports]]
+ordinal = 153
+name = "SHRREALLOC"
+kind = "stub"
+
+[[exports]]
+ordinal = 154
+name = "___EXPORTEDSTUB"
+kind = "stub"
+
+[[exports]]
+ordinal = 155
+name = "LRPCREGISTERWIN32SMONITOR"
+kind = "stub"
+
+[[exports]]
+ordinal = 156
+name = "MYREMGETINFOFORCID"
+kind = "stub"
+
+[[exports]]
+ordinal = 157
+name = "SHRFREE"
+kind = "stub"
+
+[[exports]]
+ordinal = 158
+name = "OPNEW16"
+kind = "stub"
+
+[[exports]]
+ordinal = 159
+name = "ADDCOINFO"
+kind = "stub"
+
+[[exports]]
+ordinal = 160
+name = "CORUNMODALLOOP"
+kind = "stub"
+
+[[exports]]
+ordinal = 161
+name = "COHANDLEINCOMINGCALL"
+kind = "stub"
+
+[[exports]]
+ordinal = 162
+name = "COSETACKSTATE"
+kind = "stub"
+
+[[exports]]
+ordinal = 163
+name = "SHRDIDALLOC"
+kind = "stub"
+
+[[exports]]
+ordinal = 164
+name = "?GETAT@CARRAYFVALUE@@RFCPEXH@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 165
+name = "?GETUPPERBOUND@CARRAYFVALUE@@RFCHXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 166
+name = "OPDELETE16"
+kind = "stub"
+
+[[exports]]
+ordinal = 167
+name = "?GETSIZEVALUE@CARRAYFVALUE@@RFCHXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 168
+name = "?PROXY1632ADDREF@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 169
+name = "REMLOOKUPSHUNK_dup"
+kind = "stub"
+
+[[exports]]
+ordinal = 170
+name = "?ISEMPTY@CMAPKEYTOVALUE@@RFCHXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 171
+name = "?FREE@CSTDMALLOC@@VEAXPEX@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 172
+name = "CALLTHKMGRINITIALIZE"
+kind = "stub"
+
+[[exports]]
+ordinal = 173
+name = "?REALLOC@CSTDMALLOC@@VEAPEXPEXK@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 174
+name = "?SM16RHQI@@ZAPEXPEVCSM16RELEASEHANDLER@@AFUGUID@@PEPEX@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 175
+name = "?PROXY1632METHOD10@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 176
+name = "___EXPORTEDSTUB_dup"
+kind = "stub"
+
+[[exports]]
+ordinal = 177
+name = "?PROXY1632METHOD20@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 178
+name = "?PROXY1632METHOD11@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 179
+name = "?PROXY1632METHOD30@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 180
+name = "?PROXY1632METHOD21@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 181
+name = "?PROXY1632METHOD12@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 182
+name = "?PROXY1632METHOD31@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 183
+name = "?PROXY1632METHOD22@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 184
+name = "?PROXY1632METHOD13@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 185
+name = "?GETSIZE@CSTDMALLOC@@VEAKPEX@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 186
+name = "?PROXY1632METHOD23@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 187
+name = "?PROXY1632METHOD14@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 188
+name = "?PROXY1632METHOD24@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 189
+name = "?PROXY1632METHOD15@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 190
+name = "?PROXY1632METHOD25@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 191
+name = "?PROXY1632METHOD16@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 192
+name = "?PROXY1632METHOD26@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 193
+name = "?PROXY1632METHOD17@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 194
+name = "?PROXY1632METHOD27@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 195
+name = "?PROXY1632METHOD18@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 196
+name = "?PROXY1632METHOD28@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 197
+name = "?ADDREF@CSTDMALLOC@@VEAKXZ"
+kind = "stub"
+
+[[exports]]
+ordinal = 198
+name = "?PROXY1632METHOD19@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 199
+name = "?PROXY1632METHOD29@@ZAKPEVCPROXY1632@@@Z"
+kind = "stub"
+
+[[exports]]
+ordinal = 200
+name = "CALL32INITIALIZE"
+kind = "stub"
+
+[[exports]]
+ordinal = 201
+name = "CALLOBJECTINWOW"
+decl = { args = ["pointer", "pointer"] }
+
+[[exports]]
+ordinal = 203
+name = "CALLOBJECTINWOWCHECKINIT"
+kind = "stub"
+
+[[exports]]
+ordinal = 204
+name = "CALLOBJECTINWOWCHECKTHKMGR"
+kind = "stub"
+
+[[exports]]
+ordinal = 205
+name = "CONVERTHR1632"
+kind = "stub"
+
+[[exports]]
+ordinal = 206
+name = "CONVERTHR3216"
+kind = "stub"
+
+[[exports]]
+ordinal = 207
+name = "ADDAPPCOMPATFLAG"
+kind = "stub"
+
+[[exports]]
+ordinal = 500
+name = "IMalloc16_QueryInterface"
+decl = { type = "cdecl", args = ["pointer", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 501
+name = "IMalloc16_AddRef"
+decl = { type = "cdecl", args = ["pointer"] }
+
+[[exports]]
+ordinal = 502
+name = "IMalloc16_Release"
+decl = { type = "cdecl", args = ["pointer"] }
+
+[[exports]]
+ordinal = 503
+name = "IMalloc16_Alloc"
+decl = { type = "cdecl", args = ["pointer", "long"] }
+
+[[exports]]
+ordinal = 504
+name = "IMalloc16_Realloc"
+decl = { type = "cdecl", args = ["pointer", "segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 505
+name = "IMalloc16_Free"
+decl = { type = "cdecl", args = ["pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 506
+name = "IMalloc16_GetSize"
+decl = { type = "cdecl", args = ["pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 507
+name = "IMalloc16_DidAlloc"
+decl = { type = "cdecl", args = ["pointer", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 508
+name = "IMalloc16_HeapMinimize"
+decl = { type = "cdecl", args = ["pointer"] }

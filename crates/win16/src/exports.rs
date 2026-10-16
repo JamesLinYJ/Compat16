@@ -12,28 +12,17 @@
 use crate::{ArgumentKind, StackCleanup};
 #[path = "exports/call_user_network.rs"]
 mod call_user_network;
-#[path = "exports/catalog/user_network.rs"]
-mod user_network_parameters;
 pub use request::{Win16UserNetworkBuffer, Win16UserNetworkRequest};
 pub use request::{Win16FontResourceInput, Win16GdiServicesRequest};
 #[path = "exports/call_ole1.rs"]
 mod call_ole1;
-#[path = "exports/catalog/ole1.rs"]
-mod ole1;
-#[path = "exports/catalog/user_mdi.rs"]
-mod user_mdi_parameters;
-#[path = "exports/catalog/user_hooks.rs"]
-mod user_hooks_parameters;
 pub use request::Win16UserHooksRequest;
-#[path = "exports/catalog/gdi_services.rs"]
-mod gdi_services_parameters;
 pub use request::Win16UserMdiRequest;
+pub use request::Win16UserChildLookupRequest;
 pub use request::Win16Ole1Request;
 
 #[path = "exports/call_kernel_instance.rs"]
 mod call_kernel_instance;
-#[path = "exports/catalog/kernel_instance.rs"]
-mod kernel_instance_parameters;
 pub use request::Win16KernelInstanceRequest;
 pub use request::{NF_NORMAL, NF_TASKSWITCH, NF_RIP};
 
@@ -77,22 +66,14 @@ mod call_ole2nls;
 #[path = "exports/call_winnls.rs"]
 mod call_winnls;
 pub use request::Win16WinnlsRequest;
-#[path = "exports/catalog/winnls.rs"]
-mod winnls_parameters;
 #[path = "exports/call_print_queue.rs"]
 mod call_print_queue;
-#[path = "exports/catalog/print_queue.rs"]
-mod print_queue_parameters;
 pub use request::Win16PrintQueueRequest;
 #[path = "exports/call_user_scroll_bar.rs"]
 mod call_user_scroll_bar;
 #[path = "exports/call_wave.rs"]
 mod call_wave;
 mod data_exports;
-#[path = "exports/catalog/kernel_diagnostics.rs"]
-mod kernel_diagnostics;
-#[path = "exports/catalog/mci.rs"]
-mod mci;
 mod request;
 pub use call::{
     FAR_EXPORT_RETURN_WIDTH, decode_export_call, decode_export_call_with_register_context,
@@ -108,7 +89,8 @@ pub use request::{
     Win16AtomName, Win16ClassName, Win16DdeBuffer, Win16DdeRequest, Win16DdeTransactionData,
     Win16DestroyImageRequest, Win16GdiDrawingRequest, Win16GdiObjectsRequest, Win16GdiTextRequest,
     Win16GuestBuffer, Win16GuestImageKind, Win16GuestInOutBuffer, Win16HostQuery,
-    Win16KernelDiagnosticRequest, Win16KernelFileSystemRequest, Win16KernelFilesRequest,
+    Win16KernelAtomsRequest, Win16KernelDiagnosticRequest, Win16KernelFileSystemRequest,
+    Win16KernelFilesRequest,
     Win16KernelGlobalHeapRequest,
     Win16KernelGlobalMemoryRequest, Win16KernelLocalHeapRequest, Win16KernelMemoryRequest,
     Win16KernelModuleRequest, Win16KernelModulesRequest, Win16KernelPathInfoRequest,
@@ -131,7 +113,7 @@ pub use request::{
     Win16ShellDriveRequest, Win16ShellExecutionRequest,
     Win16ShellIconRequest, Win16ShellRegistryRequest, Win16ShellRequest, Win16SocketSetInput,
     Win16StringComparison, Win16SystemRequest, Win16TimeCaps16, Win16ToolhelpRequest,
-    Win16ToolhelpStackRequest, Win16UserAnsiRequest, Win16UserAtomsRequest,
+    Win16ToolhelpStackRequest, Win16CharacterClassification, Win16UserAnsiRequest, Win16UserAtomsRequest,
     Win16UserDrawingRequest, Win16UserGeometryRequest, Win16UserMenuRequest,
     Win16UserMessagesRequest, Win16UserRequest, Win16UserResourcesRequest, Win16UserRuntimeRequest,
     Win16UserStringFormatRequest,
@@ -146,8 +128,9 @@ pub use request::{
     DibColorTableKind, DibRgbQuad16, DocInfo16, GdiDeviceRequest, PaletteEntry16,
     PaletteTransferKind, PrintOperation, Win16CommctrlRequest, Win16CommdlgRequest,
     Win16Ctl3dArgument, Win16Ctl3dModule, Win16Ctl3dRequest, Win16PrinterRequest,
-    Win16WindowDataRequest, Win16WindowPropertyName, Win16WindowPropertyRequest,
-    Win16WindowEnumerationRequest, window_data,
+    Win16ClassDataRequest, Win16WindowDataRequest, Win16WindowPropertyName,
+    Win16WindowPropertyRequest,
+    Win16WindowEnumerationRequest, class_data, window_data,
     window_properties,
 };
 pub use request::{
@@ -244,7 +227,7 @@ pub struct Win16ExportDescriptor {
     pub id: Win16ExportId,
     pub abi_kind: Win16ExportAbiKind,
     pub parameters: &'static [Win16Parameter],
-    /// Calling-convention class exactly as declared in the project-owned spec.
+    /// Calling-convention class from the canonical semantic ABI signature.
     /// Generic varargs entrypoints use their API-specific frame decoder to
     /// establish physical stack order and cleanup.
     pub calling_convention: ExportCallingConvention,
@@ -282,173 +265,10 @@ impl Win16ExportDescriptor {
     }
 }
 
-const SCALAR_WORD: Win16ParameterType = Win16ParameterType::Scalar;
-const SIGNED_SCALAR: Win16ParameterType = Win16ParameterType::SignedScalar;
-const SCALAR_DWORD: Win16ParameterType = Win16ParameterType::Scalar;
-const FAR_STRING: Win16ParameterType = Win16ParameterType::FarString;
-const FAR_STRING_OR_CHAR: Win16ParameterType = Win16ParameterType::FarStringOrChar;
-const NULLABLE_FAR_STRING: Win16ParameterType = Win16ParameterType::NullableFarString;
-const CLASS_NAME: Win16ParameterType = Win16ParameterType::ClassName;
-const FAR_BUFFER: Win16ParameterType = Win16ParameterType::FarBuffer;
-const FAR_OUTPUT_BUFFER: Win16ParameterType = Win16ParameterType::FarOutputBuffer;
-
-const fn stack_argument_bytes(parameters: &[Win16Parameter]) -> u16 {
-    let mut index = 0;
-    let mut bytes = 0u32;
-    while index < parameters.len() {
-        bytes += match parameters[index].kind {
-            ArgumentKind::Byte | ArgumentKind::Word => 2,
-            ArgumentKind::Dword => 4,
-        };
-        index += 1;
-        assert!(
-            bytes <= u16::MAX as u32,
-            "Win16 argument frame exceeds 64 KiB"
-        );
-    }
-    bytes as u16
-}
-
-const fn stack_cleanup_for(
-    parameters: &[Win16Parameter],
-    abi_kind: Win16ExportAbiKind,
-    calling_convention: ExportCallingConvention,
-) -> Win16ExportStackCleanup {
-    if matches!(abi_kind, Win16ExportAbiKind::VariableStack) {
-        assert!(
-            matches!(calling_convention, ExportCallingConvention::Varargs),
-            "variable-stack exports must match a varargs specification"
-        );
-        return Win16ExportStackCleanup::Variable;
-    }
-    if matches!(abi_kind, Win16ExportAbiKind::RegisterContext) {
-        assert!(
-            parameters.is_empty(),
-            "register-context exports cannot declare stack arguments"
-        );
-        return Win16ExportStackCleanup::Fixed(StackCleanup {
-            callee_pop_bytes: 0,
-            caller_pop_bytes: 0,
-        });
-    }
-    let bytes = stack_argument_bytes(parameters);
-    match calling_convention {
-        ExportCallingConvention::Pascal => Win16ExportStackCleanup::Fixed(StackCleanup {
-            callee_pop_bytes: bytes,
-            caller_pop_bytes: 0,
-        }),
-        ExportCallingConvention::Cdecl => Win16ExportStackCleanup::Fixed(StackCleanup {
-            callee_pop_bytes: 0,
-            caller_pop_bytes: bytes,
-        }),
-        _ => panic!("fixed stack descriptors require Pascal or Cdecl convention"),
-    }
-}
-
-#[path = "exports/catalog/common_controls_parameters.rs"]
-mod common_controls_parameters;
-#[path = "exports/catalog/common_dialog_parameters.rs"]
-mod common_dialog_parameters;
-#[path = "exports/catalog/compat.rs"]
-mod compat;
-#[path = "exports/catalog/ctl3d_parameters.rs"]
-mod ctl3d_parameters;
-#[path = "exports/catalog/dde.rs"]
-mod dde;
-#[path = "exports/catalog/gdi.rs"]
-mod gdi;
-#[path = "exports/catalog/gdi_device_parameters.rs"]
-mod gdi_device_parameters;
-#[path = "exports/catalog/generic_thunks.rs"]
-mod generic_thunks;
-#[path = "exports/catalog/kernel.rs"]
-mod kernel;
-#[path = "exports/catalog/kernel_locale.rs"]
-mod kernel_locale;
-#[path = "exports/catalog/kernel_path_info.rs"]
-mod kernel_path_info;
-#[path = "exports/catalog/kernel_file_system.rs"]
-mod kernel_file_system;
-#[path = "exports/catalog/kernel_profile_sections.rs"]
-mod kernel_profile_sections;
-#[path = "exports/catalog/kernel_services.rs"]
-mod kernel_services;
-#[path = "exports/catalog/kernel_services_extra.rs"]
-mod kernel_services_extra;
-#[path = "exports/catalog/keyboard.rs"]
-mod keyboard;
-#[path = "exports/catalog/keyboard_family.rs"]
-mod keyboard_family;
-#[path = "exports/catalog/media_io.rs"]
-mod media_io;
-#[path = "exports/catalog/msacm.rs"]
-mod msacm;
-#[path = "exports/catalog/media_time.rs"]
-mod media_time;
-#[path = "exports/catalog/midi.rs"]
-mod midi;
 #[path = "exports/menu_abi.rs"]
 pub mod menu_abi;
-#[path = "exports/catalog/menus.rs"]
-mod menus;
-#[path = "exports/catalog/ole2disp.rs"]
-mod ole2disp;
-#[path = "exports/catalog/ole2disp_convert.rs"]
-mod ole2disp_convert;
-#[path = "exports/catalog/ole2nls.rs"]
-mod ole2nls;
-#[path = "exports/catalog/printer_parameters.rs"]
-mod printer_parameters;
-#[path = "exports/catalog/shell_execution.rs"]
-mod shell_execution;
-#[path = "exports/catalog/shell_icons.rs"]
-mod shell_icons;
-#[path = "exports/catalog/shell_drop.rs"]
-mod shell_drop;
-#[path = "exports/catalog/shell_drive.rs"]
-mod shell_drive;
-#[path = "exports/catalog/shell_registry.rs"]
-mod shell_registry;
-#[path = "exports/catalog/sound.rs"]
-mod sound;
-#[path = "exports/catalog/toolhelp.rs"]
-mod toolhelp;
-#[path = "exports/catalog/toolhelp_notify.rs"]
-mod toolhelp_notify;
-#[path = "exports/catalog/toolhelp_stack.rs"]
-mod toolhelp_stack;
-#[path = "exports/catalog/toolhelp_memory.rs"]
-mod toolhelp_memory;
-#[path = "exports/catalog/toolhelp_limited.rs"]
-mod toolhelp_limited;
-#[path = "exports/catalog/user.rs"]
-mod user;
-#[path = "exports/catalog/user_controls.rs"]
-mod user_controls;
-#[path = "exports/catalog/user_cursor_accelerator.rs"]
-mod user_cursor_accelerator;
-#[path = "exports/catalog/user_drawing.rs"]
-mod user_drawing;
-#[path = "exports/catalog/user_drawing_objects.rs"]
-mod user_drawing_objects;
 #[path = "exports/user_family.rs"]
 mod user_family;
-#[path = "exports/catalog/user_messages.rs"]
-mod user_messages;
-#[path = "exports/catalog/user_paint.rs"]
-mod user_paint;
-#[path = "exports/catalog/user_scroll_bar.rs"]
-mod user_scroll_bar;
-#[path = "exports/catalog/wave.rs"]
-mod wave;
-#[path = "exports/catalog/window_data.rs"]
-mod window_data_parameters;
-#[path = "exports/catalog/window_ops.rs"]
-mod window_ops;
-#[path = "exports/catalog/wing_device_parameters.rs"]
-mod wing_device_parameters;
-#[path = "exports/catalog/winsock.rs"]
-mod winsock;
 pub use user_family::{
     Win16DialogTemplateRef, Win16SystemParametersInfoRequest, Win16UserClipboardRequest,
     Win16UserDialogRequest, Win16UserFamilyRequest, Win16UserSessionRequest,
@@ -461,7 +281,15 @@ pub use declarations::{
     ExportOrdinalSource, ExportReturnModifier, ExportSignatureKind, ExportSourceLocation,
     WIN16_EXPORTS, lookup_export_metadata,
 };
-include!("exports/catalog/declarations.rs");
+include!(concat!(env!("OUT_DIR"), "/win16_bindings.rs"));
+
+#[cfg(test)]
+#[path = "exports/manifest_lookup_tests.rs"]
+mod manifest_lookup_tests;
+
+#[cfg(test)]
+#[path = "exports/call_rectangle_predicate_tests.rs"]
+mod rectangle_predicate_tests;
 
 /// The descriptor catalog establishes decoding into a project-owned request;
 /// runtime dispatch and host behavior are tracked separately.
@@ -524,3 +352,19 @@ pub fn lookup_export(
             && descriptor.id.ordinal() == declaration.ordinal
     })
 }
+
+#[cfg(test)]
+#[path = "exports/call_void_text_region_tests.rs"]
+mod void_text_region_tests;
+
+#[cfg(test)]
+#[path = "exports/call_line_dda_global_void_tests.rs"]
+mod line_dda_global_void_tests;
+
+#[cfg(test)]
+#[path = "exports/abi_baseline_tests.rs"]
+mod abi_baseline_tests;
+
+#[cfg(test)]
+#[path = "exports/call_catch_throw_tests.rs"]
+mod catch_throw_tests;

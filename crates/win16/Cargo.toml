@@ -11,7 +11,11 @@ abi-schema = { path = "../abi-schema" }
 zerocopy.workspace = true
 guest-core = { path = "../guest" }
 
+[dev-dependencies]
+serde_json.workspace = true
+
 [build-dependencies]
+abi-schema = { path = "../abi-schema" }
 abi-codegen = { path = "../abi-codegen" }
 
 [lints]

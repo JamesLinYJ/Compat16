@@ -83,6 +83,36 @@ pub(super) struct Win16UserFamilyContinuation {
 }
 
 impl Win16UserFamilyContinuation {
+    /// The dialog root's registration is independent of custom child routes.
+    /// An exact creation with no custom root uses the builtin dialog class.
+    pub(super) fn pending_dialog_class_root(&self) -> super::windows::WindowClassRoot {
+        use super::windows::WindowClassRoot;
+        match &self.completion {
+            FamilyCompletion::DialogCreate { class_routes, .. } => {
+                let mut roots = class_routes.iter().filter(|route| route.root);
+                let root = roots.next().map_or(WindowClassRoot::NoRegistration,
+                    |route| WindowClassRoot::Class(route.host_class));
+                if roots.next().is_some() { WindowClassRoot::Unresolved } else { root }
+            }
+            _ => WindowClassRoot::Unresolved,
+        }
+    }
+
+    /// Custom root/control classes stay registered until the entire dialog
+    /// creation continuation retires, including controls not yet created.
+    pub(super) fn retains_window_class(&self, class: crate::Win16HostClass) -> bool {
+        match &self.completion {
+            FamilyCompletion::DialogCreate { class_routes, .. } =>
+                class_routes.iter().any(|route| route.host_class == class),
+            FamilyCompletion::DialogDefaultProcedure {
+                output: super::messages::MessageOutput::Mdi(Some(
+                    super::messages_mdi::MdiOutputPlan::Create(plan),
+                )),
+            } => plan.mdi.class == class,
+            _ => false,
+        }
+    }
+
     pub(in crate::win16_runtime) fn take_clipboard_retirement_reservation(&self) -> usize {
         match &self.completion {
             FamilyCompletion::Clipboard(completion) =>
@@ -378,7 +408,7 @@ impl Win16State {
                     };
                     template.menu_template = Some(menu_template);
                 }
-                if !self.resolve_dialog_template_titles(&mut template, instance)? {
+                if !self.resolve_dialog_template_titles(&mut template, instance, host)? {
                     host.report_diagnostic(&crate::Diagnostic::warning(Kind::CompatibilityGap,
                         "Win16 dialog control title ordinal is not a string resource or needs a typed image resource route"));
                     return Ok(dialog_create_not_invoked(modal, return_kind,
@@ -388,7 +418,7 @@ impl Win16State {
                 if !self.resolve_dialog_template_classes(&mut template, instance, host)? {
                     host.report_diagnostic(&crate::Diagnostic::warning(
                         Kind::CompatibilityGap,
-                        "Win16 dialog template references a class that is not registered by its guest instance",
+                        "Win16 dialog template references a class unavailable in its local, global, or predefined namespace",
                     ));
                     return Ok(dialog_create_not_invoked(
                         modal,
@@ -407,7 +437,7 @@ impl Win16State {
                     // classes to reserve the Win16 DLGWINDOWEXTRA area and
                     // call DefDlgProc from their WndProc. Guest storage stays
                     // separate from Win32's own dialog-manager bytes.
-                    if resolved.instance != instance || resolved.wnd_proc == 0
+                    if resolved.wnd_proc == 0
                         || resolved.window_extra_bytes < 30
                     {
                         host.report_diagnostic(&crate::Diagnostic::warning(Kind::CompatibilityGap,
@@ -702,3 +732,53 @@ fn dialog_create_not_invoked(
         window_creation_observation,
     }
 }
+
+#[cfg(test)]
+#[path = "win16_dialog_class_retention_tests.rs"]
+mod dialog_class_retention_tests;
+
+#[cfg(test)]
+mod retained_class_tests {
+    use super::*;
+
+    #[test]
+    fn class_data_unregister_class_dialog_creation_retains_exact_root_and_uncreated_control_class_tokens() {
+        let root = crate::Win16HostClass(0x1000_0001);
+        let control = crate::Win16HostClass(0x1000_0002);
+        // Matching guest spelling does not establish native class identity.
+        let class_name = crate::Win16HostClassName::Name(b"SharedDisplayName".to_vec());
+        let mut continuation = Win16UserFamilyContinuation {
+            return_kind: Win16ReturnKind::Word,
+            completion: FamilyCompletion::DialogCreate {
+                creation: Win16CreationId(1), procedure: 0x1234_0010,
+                instance: 0x5678, modal: false,
+                class_routes: vec![
+                    GuestDialogClassRoute { root: true, control_id: None,
+                        host_class: root, guest_class_name: class_name.clone() },
+                    GuestDialogClassRoute { root: false, control_id: Some(10),
+                        host_class: control, guest_class_name: class_name },
+                ],
+                template_reference: Win16DialogTemplateRef::FarAddress {
+                    instance: 0x5678, template: 0x4321_0020,
+                },
+            },
+            dialog_window: None, dialog_window_destroyed: false,
+        };
+        assert!(continuation.retains_window_class(root));
+        assert!(continuation.retains_window_class(control));
+        assert!(!continuation.retains_window_class(crate::Win16HostClass(0x1000_0003)));
+        // A destroyed root does not retire pending child routes or completion
+        // owners. The whole continuation remains authoritative until popped.
+        continuation.dialog_window = Some(Win16HostWindow(1));
+        continuation.dialog_window_destroyed = true;
+        assert!(continuation.retains_window_class(root));
+        assert!(continuation.retains_window_class(control));
+        continuation.completion = FamilyCompletion::DialogEnd;
+        assert!(!continuation.retains_window_class(root));
+        assert!(!continuation.retains_window_class(control));
+    }
+}
+
+#[cfg(test)]
+#[path = "win16_dialog_icon_title_tests.rs"]
+mod dialog_icon_title_tests;

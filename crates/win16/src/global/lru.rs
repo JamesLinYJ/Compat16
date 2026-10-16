@@ -6,6 +6,19 @@ use crate::global::{
 };
 
 impl GlobalHeap {
+    /// Resource-style managers may protect data with references, then enable
+    /// discard after the final reference is released. Record GlobalLock calls
+    /// throughout that lifetime so a later policy change cannot lose live
+    /// guest locks. Ordinary nondiscardable allocations keep their Win3.1
+    /// no-count behavior. The setting belongs to this allocation generation.
+    pub fn track_discard_transition_locks(&mut self, handle: GlobalHandle) -> Result<(), Win16Error> {
+        let block = self.lookup(handle)?;
+        if !block.flags.movable { return Err(Win16Error::InvalidHandle); }
+        self.blocks_by_handle.get_mut(&handle.raw.0)
+            .ok_or(Win16Error::InvalidHandle)?.discard_transition_locks = true;
+        Ok(())
+    }
+
     /// Stored state for the Win16 GlobalFlags result: persistent allocation
     /// attributes plus the current low-byte lock count and discarded bit.
     pub fn global_flags(&self, handle: GlobalHandle) -> Result<u16, Win16Error> {

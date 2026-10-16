@@ -1,0 +1,13 @@
+module = "KEYBOARD"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 6
+name = "OemToAnsi"
+binding = { rust_id = "KeyboardOemToAnsi", id_value = 213, constant = "KEYBOARD_OEM_TO_ANSI" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "source", type = "FarString" },
+  { name = "destination", type = "FarBuffer" },
+]

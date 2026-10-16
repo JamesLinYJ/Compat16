@@ -9,6 +9,8 @@ use super::request::*;
 pub(super) mod call_helpers;
 use call_helpers::*;
 
+#[path = "call_guid_compare.rs"]
+mod guid_compare_calls;
 #[path = "call_gdi.rs"]
 mod gdi_calls;
 #[path = "call_gdi_services.rs"]
@@ -49,6 +51,8 @@ mod kernel_service_calls;
 mod kernel_locale;
 #[path = "call_kernel_heap.rs"]
 mod kernel_heap_calls;
+#[path = "call_kernel_atoms.rs"]
+mod kernel_atom_calls;
 #[path = "call_kernel_runtime.rs"]
 mod kernel_runtime_calls;
 #[path = "call_kernel_selectors.rs"]
@@ -116,3 +120,7 @@ pub use register_context::decode_export_call_with_register_context;
 /// Kept here as a convenience for thunk integration code that needs to build
 /// the matching frame from a guest SS:SP pair.
 pub const FAR_EXPORT_RETURN_WIDTH: ReturnAddressWidth = ReturnAddressWidth::Far;
+
+#[cfg(test)]
+#[path = "call_open_file_tests.rs"]
+mod open_file_tests;

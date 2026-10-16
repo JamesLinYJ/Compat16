@@ -14,6 +14,7 @@
 
 - Keep patches focused and preserve unrelated changes. Do not discard work or rewrite Git history without authorization.
 - Keep entrypoints thin and split large modules by responsibility. Generated Rust belongs in `OUT_DIR`.
+- Declare directory modules in sibling files, using `foo.rs` with a `foo/` submodule directory.
 - Read the files relevant to the task. Do not add progress diaries, investigation archives, or duplicate source snapshots.
 - Keep private paths, user names, machine names, credentials, and local infrastructure details out of tracked files and release packages.
 - Use neutral technical language. These instructions apply to all contributors and development tools.

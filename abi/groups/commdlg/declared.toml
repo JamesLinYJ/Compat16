@@ -1,0 +1,51 @@
+module = "COMMDLG"
+
+[[exports]]
+ordinal = 6
+name = "FileOpenDlgProc"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 7
+name = "FileSaveDlgProc"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 8
+name = "ColorDlgProc"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 13
+name = "FindTextDlgProc"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 14
+name = "ReplaceTextDlgProc"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 16
+name = "FormatCharDlgProc"
+decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 18
+name = "FontStyleEnumProc"
+decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word", "long"] }
+
+[[exports]]
+ordinal = 19
+name = "FontFamilyEnumProc"
+decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word", "long"] }
+
+[[exports]]
+ordinal = 21
+name = "PrintDlgProc"
+decl = { args = ["word", "word", "word", "long"] }
+
+[[exports]]
+ordinal = 22
+name = "PrintSetupDlgProc"
+decl = { args = ["word", "word", "word", "long"] }

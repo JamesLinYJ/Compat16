@@ -15,12 +15,14 @@ mod ne_entrypoints;
 mod ne_icon_table;
 mod ne_load;
 mod ne_menu;
+mod ne_prologs;
 mod ne_reloc;
 mod ne_segments;
 mod ne_string_table;
 mod ne_text_profile;
 mod pe32;
 mod pe_header;
+mod wmf;
 
 pub use mz::{load_com, load_mz, parse_mz, MzHeader, MzImage, MzRelocation};
 pub use diagnostics::{FormatError, GuestMemoryRollbackFailure, NeDataImportIssue};
@@ -28,7 +30,7 @@ pub use ne::{parse_ne, NeEntry, NeEntryKind, NeFixup, NeFixupAddressType, NeFixu
     NeImportModule, NeModule, NeNamedEntry, NeRelocationKind, NeResource, NeResourceId,
     NeResourceType, NeSegment, NeHeader};
 pub use ne_load::{
-    extract_ne_resource, load_ne_segments, ne_segment_allocation_size, plan_ne_segments,
+    extract_ne_resource, load_ne_segments, load_ne_segments_unlinked, ne_segment_allocation_size, plan_ne_segments,
     FarAddress, NeImportTarget, NeImportValue, NeLoadResolver, NeLoadedModule, NeLoadedSegment,
 };
 pub use ne_icon_table::{NeCursorResourceTable, NeIconResourceTable};
@@ -44,6 +46,11 @@ pub use pe32::{
     Pe32Section, Pe32TlsMetadata,
 };
 pub use pe_header::{inspect_pe_header, PeHeaderKind, PeImageHeader};
+pub use wmf::{
+    WmfError, WmfHeader, WmfMetafile, WmfPlaybackError, WmfPlaybackRecord, WmfRecord,
+    WmfRecords, WMF_HEADER_BYTES, WMF_RECORD_HEADER_BYTES, parse_wmf, parse_wmf_header,
+    parse_wmf_record, validate_wmf_record_playback,
+};
 
 use guest_core::{GuestMemory, PhysAddr, Registers};
 

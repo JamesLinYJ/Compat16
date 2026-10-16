@@ -21,6 +21,10 @@ mod teardown;
 #[path = "win16_execute_toolhelp.rs"]
 mod toolhelp;
 
+#[cfg(test)]
+#[path = "win16_execute_exit_tests.rs"]
+mod exit_tests;
+
 /// A service-gate slot already identifies its NE import binding. Snapshot it
 /// only for an enabled trace so dispatch may mutate runtime state without
 /// holding metadata borrows across the call.
@@ -80,6 +84,18 @@ fn observe_service_boundary(
 }
 
 impl Runtime {
+    /// Configure the initial WinMain display command before any guest linking
+    /// or execution. The live TDB word is the source consumed by InitTask.
+    pub fn set_win16_startup_show_command(&mut self, command: u16) -> Result<(), RuntimeError> {
+        let state = self.win16.as_ref().ok_or_else(|| RuntimeError::new(
+            Kind::InvalidInput, "a Win16 display command requires a Win16 executable"))?;
+        if self.instructions != 0 || state.module_startup != super::module_calls::ModuleStartupState::Pending {
+            return Err(RuntimeError::new(Kind::InvalidInput,
+                "Win16 startup display command cannot change after linking begins"));
+        }
+        state.set_startup_show_command(command, &mut self.memory)
+    }
+
     /// Execute NE code with selector-based address translation. The Win16
     /// service gate is the only path from guest calls to native host APIs.
     pub(crate) fn run_win16(
@@ -87,7 +103,20 @@ impl Runtime {
         host: &mut impl RuntimeHost,
         instruction_limit: u64,
     ) -> Result<u8, RuntimeError> {
-        let result = self.run_win16_inner(host, instruction_limit);
+        let mut result = self.run_win16_inner(host, instruction_limit);
+        // A rejected DLL initialization ends at its checked callback return,
+        // before the next loop iteration can publish the stored load result.
+        // Preserve that exact KERNEL error before teardown retires its state.
+        if let Some(state) = self.win16.as_mut()
+            && let Err(report) = state.report_program_load(host)
+        {
+            result = Err(match result {
+                Ok(_) => report,
+                Err(operation) => operation.with_cleanup(
+                    "Win16 execution and startup reporting both failed", report,
+                ),
+            });
+        }
         let result = self.finish_win16_teardown(result, host, instruction_limit);
         match self.memory.storage_failure() {
             Some(error) => {
@@ -114,6 +143,9 @@ impl Runtime {
             if state.vm_start_tick.is_none() {
                 state.vm_start_tick = Some(host.win16_get_tick_count()?);
             }
+            let linked = state.begin_program_modules(&mut self.cpu, &mut self.dos, &mut self.memory, host);
+            state.report_program_load(host)?;
+            linked?;
         }
         if self.instructions == 0 {
             if let Some(state) = self.win16.as_ref() {
@@ -134,6 +166,10 @@ impl Runtime {
         let mut scheduler = schedule::ExecutionSchedule::new(self.instructions);
         loop {
             self.check_memory_storage()?;
+            if let Some(state) = self.win16.as_mut() {
+                state.report_program_load(host)?;
+                state.check_program_modules()?;
+            }
             if self.instructions >= instruction_limit {
                 return Err(RuntimeError::new(
                     Kind::ExecutionLimit,
@@ -184,14 +220,14 @@ impl Runtime {
                 .process_frames
                 .last()
                 .is_some_and(crate::process::ProcessFrame::is_win16_dos_child)
-                && !state.pe32_dispatch.has_active_call();
+                && state.dde_guest_contexts.is_empty() && !state.pe32_dispatch.has_active_call();
             if guest_dispatch_allowed
                 && state.retry_mci_callback_progress(&mut self.cpu, &mut self.memory, host)?
             {
                 continue;
             }
             if guest_dispatch_allowed
-                && state.service_pending_window_property_callback(
+                && state.service_pending_native_function_callback(
                     &mut self.cpu,
                     &mut self.dos,
                     &mut self.memory,
@@ -234,6 +270,11 @@ impl Runtime {
                     host,
                 )?
             {
+                continue;
+            }
+            if guest_dispatch_allowed && state.service_pending_task_event_wait(
+                &mut self.cpu, &mut self.dos, &mut self.memory, host,
+            )? {
                 continue;
             }
             if self.cpu.take_pending_x87_irq13() {
@@ -521,6 +562,15 @@ impl Runtime {
                                 {
                                     return Ok(exit_status);
                                 }
+                                // A terminal INT has no caller continuation to
+                                // execute while native ownership drains. Rejoin
+                                // the outer exit pump instead of running ROM
+                                // IRET (whose saved IP may be past the segment).
+                                // Active or newly dispatched callbacks still
+                                // need their normal checked CPU return path.
+                                if state.classic_dde_task_exit_needs_pump() {
+                                    continue;
+                                }
                             }
                             _ => {
                                 return Err(RuntimeError::new(
@@ -539,7 +589,25 @@ impl Runtime {
                 };
                 let instruction_address = (self.cpu.regs.cs, self.cpu.regs.ip());
                 let before_stack = (self.cpu.regs.ss, self.cpu.regs.sp());
-                let outcome = crate::cpu_execution::step_observing_events(
+                // Compiler quanta cannot contain a call/return, service gate
+                // or CPU event. Keep active continuation/observer workflows
+                // on individual steps and preserve the readiness deadline.
+                let quantum = instruction_limit.saturating_sub(self.instructions)
+                    .min(scheduler.instruction_quantum(self.instructions)) as u32;
+                let allow_jit = self.instruction_trace.is_none() && self.memory_write_watch.is_none()
+                    && !callback_gate && !native_procedure_gate && !service_gate
+                    && state.callback_kinds.is_empty() && state.far_returns.is_empty()
+                    && state.module_callbacks.is_empty() && state.resource_callbacks.is_empty()
+                    && state.interrupt_returns.is_empty() && state.toolhelp_interrupt_frames.is_empty()
+                    && state.toolhelp_notify_frames.is_empty() && state.dde_context_restores.is_empty()
+                    && state.dde_guest_contexts.is_empty() && !state.pe32_dispatch.has_active_call();
+                let retired = if allow_jit {
+                    self.cpu.try_run_jit_loop(&mut self.memory.bus(), &context, quantum)
+                        .map_err(crate::runtime_error)?
+                } else { None };
+                let outcome = if retired.is_some() {
+                    CpuObservedStepOutcome::Executed(StepOutcome::Continue)
+                } else { crate::cpu_execution::step_observing_events(
                     &mut self.cpu,
                     self.memory.bus(),
                     &mut self.ports,
@@ -553,9 +621,9 @@ impl Runtime {
                         instruction_address.0,
                         instruction_address.1,
                     ))
-                })?;
+                })? };
                 crate::machine::check_memory_storage(&self.memory)?;
-                self.instructions += 1;
+                self.instructions += u64::from(retired.unwrap_or(1));
                 if self.cpu.allows_real_mode_service_intercepts() {
                     state.observe_control_transfer(
                         self.cpu.control_transfer(),
@@ -665,7 +733,7 @@ impl Runtime {
                     let running_dos_child = self.process_frames.last()
                         .is_some_and(crate::process::ProcessFrame::is_win16_dos_child);
                     let guest_dispatch_allowed =
-                        !running_dos_child && !state.pe32_dispatch.has_active_call();
+                        !running_dos_child && state.dde_guest_contexts.is_empty() && !state.pe32_dispatch.has_active_call();
                     let callback_dispatch_allowed = guest_dispatch_allowed
                         && self.cpu.allows_real_mode_service_intercepts()
                         && state.callback_kinds.is_empty()
@@ -715,6 +783,7 @@ impl Runtime {
                     } else {
                         state.dispatch_pending_netbios_notification(
                             &mut self.cpu,
+                            &mut self.dos,
                             &mut self.memory,
                             host,
                         )?
@@ -729,6 +798,7 @@ impl Runtime {
                     } else {
                         state.dispatch_pending_wave_function_callback(
                             &mut self.cpu,
+                            &mut self.dos,
                             &mut self.memory,
                             host,
                         )?
@@ -740,7 +810,8 @@ impl Runtime {
                         false
                     } else {
                         let midi = state.dispatch_midi_notification_with_progress(
-                            &mut self.cpu, &mut self.memory, host,
+                            &mut self.cpu,
+                            &mut self.dos, &mut self.memory, host,
                         )?;
                         source_progress |= !matches!(midi, super::midi::MidiDispatch::Idle);
                         matches!(midi, super::midi::MidiDispatch::CallbackEntered)
@@ -769,6 +840,7 @@ impl Runtime {
                             source_progress = true;
                             state.begin_asynchronous_guest_callback(
                                 &mut self.cpu,
+                                &mut self.dos,
                                 &mut self.memory,
                                 event,
                             )?;
@@ -834,7 +906,7 @@ impl Runtime {
             if !self.cpu.interrupt_shadow_active()
                 && (returned_from_guest || turn.pump_host || turn.poll_sources)
             {
-                state.reap_modules(&mut self.cpu, &mut self.memory, host)?;
+                state.reap_modules(&mut self.cpu, &mut self.dos, &mut self.memory, host)?;
             }
         }
     }
@@ -848,6 +920,12 @@ pub(super) struct Win16TaskExecutionEnded {
 }
 
 impl Win16TaskExecutionEnded {
+    /// Test-only stand-in for a stopped execution loop; never a runtime proof.
+    #[cfg(test)]
+    pub(super) fn for_test() -> Self {
+        Self { _seal: () }
+    }
+
     fn after_cpu_execution_boundary() -> Self {
         Self { _seal: () }
     }

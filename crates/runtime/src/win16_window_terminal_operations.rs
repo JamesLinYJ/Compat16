@@ -113,7 +113,7 @@ impl Win16State {
         if !self.callback_kinds.is_empty()
             || !self.callback_frame_ids.is_empty()
             || !self.window_callbacks.is_empty()
-            || !self.window_property_callbacks.is_empty()
+            || !self.native_function_callbacks.is_empty()
         {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "Win16 operation retirement requires the entire shared callback LIFO to be empty"));
@@ -146,7 +146,18 @@ impl Win16State {
             self.retire_terminal_window_operation_top(ended, cpu, dos, memory, host)?;
             return Ok(WindowTerminalRetirementStep::DdeFrameRetired);
         }
-        let source_top = host.win16_window_terminal_source_top(receipt)?;
+        let source_top = match host.win16_window_terminal_source_top(receipt) {
+            Ok(source_top) => source_top,
+            Err(error) => {
+                if let Some(frame_id) = self.window_operations.last().filter(|frame|
+                    matches!(frame.continuation(), Some(WindowReturn::Dde(_))))
+                    .map(|frame| frame.id)
+                {
+                    return self.retain_operation_failure(frame_id, error);
+                }
+                return Err(error);
+            }
+        };
         let Some(frame_id) = self.window_operations.last().map(|frame| frame.id) else {
             return match source_top {
                 None => Ok(WindowTerminalRetirementStep::AllRuntimeFramesRetired),
@@ -210,22 +221,34 @@ impl Win16State {
         }
 
         if is_dde {
-            let expected = match frame.continuation() {
-                Some(WindowReturn::Dde(continuation)) => continuation.host_operation()
-                    .ok_or_else(|| RuntimeError::new(Kind::HostFailure,
-                        "DDE operation frame has no exact native operation identity"))?,
+            let continuation = match frame.continuation() {
+                Some(WindowReturn::Dde(continuation)) => continuation,
                 _ => unreachable!(),
             };
+            let expected = continuation.host_operation().ok_or_else(|| RuntimeError::new(
+                Kind::HostFailure, "DDE operation frame has no exact native operation identity"))?;
+            let normal_source = continuation.has_normal_source_for_current_operation();
             match source_top {
                 Some(crate::Win16WindowTerminalSourceTop::Dde { operation })
-                    if operation == expected => {}
+                    if operation == expected => {
+                        if normal_source {
+                            return self.retain_operation_failure(frame_id, RuntimeError::new(
+                                Kind::HostFailure,
+                                "normal DDE tombstone conflicts with the exact live shared source"));
+                        }
+                    }
                 Some(source @ crate::Win16WindowTerminalSourceTop::User {
-                    kind: crate::Win16NativeWindowOperationKind::PostGuestNotification,
-                    ..
+                    kind: crate::Win16NativeWindowOperationKind::PostGuestNotification, ..
                 }) => return Ok(WindowTerminalRetirementStep::BlockedBySource(source)),
-                Some(source) => return Err(RuntimeError::new(Kind::HostFailure,
+                // A cached normal proof names a source already popped from
+                // this ledger. Terminal retirement validates its exact host
+                // readback and joined receipt; it never pops source_top.
+                _ if normal_source => {}
+                Some(source) => return self.retain_operation_failure(frame_id, RuntimeError::new(
+                    Kind::HostFailure,
                     format!("DDE frame {expected:?} is not shared-ledger top {source:?}"))),
-                None => return Err(RuntimeError::new(Kind::HostFailure,
+                None => return self.retain_operation_failure(frame_id, RuntimeError::new(
+                    Kind::HostFailure,
                     "DDE operation frame remains after its shared source ledger became empty")),
             }
             self.retire_terminal_window_operation_top(ended, cpu, dos, memory, host)?;

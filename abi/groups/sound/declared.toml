@@ -1,0 +1,11 @@
+module = "SOUND"
+
+[[exports]]
+ordinal = 17
+name = "DoBeep"
+kind = "stub"
+
+[[exports]]
+ordinal = 18
+name = "MYOPENSOUND"
+kind = "stub"

@@ -1,10 +1,17 @@
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dos_kernel::{DosErrorCode, DosFileAccess, DosFileSharing, DosIoctlObjectInfo, DosSeekOrigin};
 
 use super::Filesystem;
 use super::files::dos_dword;
+
+mod commit;
+mod extended_open;
+mod input_status;
+mod seek;
+mod write_time;
 
 struct TestDirectory(PathBuf);
 
@@ -78,15 +85,26 @@ fn native_volume_keeps_program_directory_separate_from_drive_root() {
 
 impl TestDirectory {
     fn new() -> Self {
+        static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path =
-            std::env::temp_dir().join(format!("filesystem-ioctl-{}-{nanos}", std::process::id()));
-        // Fail on collisions; only this newly created directory is removed.
-        std::fs::create_dir(&path).unwrap();
-        Self(path)
+        for _ in 0..100 {
+            let sequence = NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "filesystem-ioctl-{}-{nanos}-{sequence}",
+                std::process::id()
+            ));
+            // Clock ticks can coincide across parallel tests. Claim a fresh
+            // directory atomically; never adopt or remove an existing path.
+            match std::fs::create_dir(&path) {
+                Ok(()) => return Self(path),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => panic!("cannot create test directory: {error}"),
+            }
+        }
+        panic!("cannot reserve a unique test directory");
     }
 }
 
@@ -184,4 +202,188 @@ fn disk_space_reports_the_mounted_native_volume() {
         fs.disk_space((fs.drive() + 1) % 26).unwrap_err().code,
         DosErrorCode::UnknownUnit
     );
+}
+
+#[test]
+fn create_new_native_preserves_existing_contents_and_attributes() {
+    let directory = TestDirectory::new();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let original = fs.file_create_new(b"KEEP.DAT", 0x02).unwrap();
+    fs.file_write(original, b"preserved contents").unwrap();
+    let attributes = fs.file_get_attributes(b"KEEP.DAT").unwrap();
+    for spelling in [b"KEEP.DAT".as_slice(), b"keep.dat".as_slice()] {
+        assert_eq!(fs.file_create_new(spelling, 0).unwrap_err().code, DosErrorCode::FileExists);
+        assert_eq!(fs.file_get_attributes(spelling).unwrap(), attributes);
+    }
+    assert_eq!(fs.file_seek(original, 0, DosSeekOrigin::Current).unwrap(), 18);
+    fs.file_seek(original, 0, DosSeekOrigin::Start).unwrap();
+    let mut bytes = [0; 18];
+    assert_eq!(fs.file_read(original, &mut bytes).unwrap(), bytes.len());
+    assert_eq!(&bytes, b"preserved contents");
+    fs.file_close(original).unwrap();
+}
+
+#[test]
+fn create_new_native_uses_existing_short_alias_identity() {
+    let directory = TestDirectory::new();
+    let native = directory.0.join("Long existing filename.dat");
+    std::fs::write(&native, b"keep").unwrap();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let search = fs.directory_search_open(b".").unwrap();
+    let mut files = Vec::new();
+    while let Some(entry) = fs.directory_search_next(search).unwrap() {
+        // DOS subdirectory searches include synthetic '.' and '..' entries.
+        // Select the fixture's file by type, never by enumeration position.
+        if entry.attributes & 0x10 == 0 {
+            files.push(entry);
+        }
+    }
+    fs.directory_search_close(search).unwrap();
+    assert_eq!(files.len(), 1, "fixture must expose exactly one regular file");
+    let entry = files.pop().unwrap();
+    assert_eq!(entry.size, 4);
+    // Prove this enumerated alias names the long file before testing the
+    // collision. Close the read handle to exclude sharing as a failure cause.
+    let opened = fs.file_open(&entry.short_name, DosFileAccess::ReadOnly, DosFileSharing::DenyNone).unwrap();
+    let mut contents = [0; 4];
+    assert_eq!(fs.file_read(opened, &mut contents).unwrap(), 4);
+    assert_eq!(&contents, b"keep");
+    fs.file_close(opened).unwrap();
+    assert_eq!(fs.file_create_new(&entry.short_name, 0).unwrap_err().code, DosErrorCode::FileExists);
+    assert_eq!(std::fs::read(&native).unwrap(), b"keep");
+    assert!(fs.files.is_empty());
+}
+
+#[test]
+fn create_new_native_has_shared_cursor_and_compatibility_sharing() {
+    let directory = TestDirectory::new();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let file = fs.file_create_new(b"SHARED.DAT", 0).unwrap();
+    let copy = fs.file_duplicate(file).unwrap();
+    fs.file_write(copy, b"abc").unwrap();
+    assert_eq!(fs.file_seek(file, 0, DosSeekOrigin::Current).unwrap(), 3);
+    let independent = fs.file_open(
+        b"SHARED.DAT", DosFileAccess::ReadWrite, DosFileSharing::Compatibility,
+    ).unwrap();
+    assert_eq!(fs.file_seek(independent, 0, DosSeekOrigin::Current).unwrap(), 0);
+    fs.file_close(independent).unwrap();
+    fs.file_close(file).unwrap();
+    fs.file_write(copy, b"def").unwrap();
+    assert_eq!(fs.file_status(copy).unwrap().size, 6);
+    fs.file_close(copy).unwrap();
+    assert_eq!(std::fs::read(directory.0.join("SHARED.DAT")).unwrap(), b"abcdef");
+}
+
+#[test]
+fn create_new_native_concurrent_creators_have_exactly_one_winner() {
+    let directory = TestDirectory::new();
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let workers: Vec<_> = (0..2).map(|_| {
+        let path = directory.0.clone();
+        let barrier = std::sync::Arc::clone(&barrier);
+        std::thread::spawn(move || {
+            let mut fs = Filesystem::new_native_directory(&path, 437).unwrap();
+            barrier.wait();
+            match fs.file_create_new(b"ATOMIC.DAT", 0) {
+                Ok(file) => {
+                    fs.file_write(file, b"winner").unwrap();
+                    fs.file_close(file).unwrap();
+                    Ok(())
+                }
+                Err(error) => Err(error.code),
+            }
+        })
+    }).collect();
+    let outcomes: Vec<_> = workers.into_iter().map(|worker| worker.join().unwrap()).collect();
+    assert_eq!(outcomes.iter().filter(|result| result.is_ok()).count(), 1);
+    assert_eq!(outcomes.iter().filter(|result| **result == Err(DosErrorCode::FileExists)).count(), 1);
+    assert_eq!(std::fs::read(directory.0.join("ATOMIC.DAT")).unwrap(), b"winner");
+}
+
+#[test]
+fn create_new_native_exhausted_tokens_and_invalid_attributes_do_not_create() {
+    let directory = TestDirectory::new();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    assert_eq!(fs.file_create_new(b"INVALID.DAT", 0x10).unwrap_err().code, DosErrorCode::InvalidAccess);
+    assert!(!directory.0.join("INVALID.DAT").exists());
+    fs.next_file = u64::MAX;
+    assert_eq!(fs.file_create_new(b"EXHAUST.DAT", 0).unwrap_err().code, DosErrorCode::TooManyOpenFiles);
+    assert!(!directory.0.join("EXHAUST.DAT").exists());
+}
+
+#[test]
+fn create_new_native_existing_directory_is_preserved() {
+    let directory = TestDirectory::new();
+    let existing = directory.0.join("EXISTING");
+    std::fs::create_dir(&existing).unwrap();
+    std::fs::write(existing.join("KEEP.DAT"), b"directory contents").unwrap();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let error = fs.file_create_new(b"EXISTING", 0).unwrap_err();
+    assert!(matches!(error.code, DosErrorCode::AccessDenied | DosErrorCode::FileExists));
+    assert!(existing.is_dir());
+    assert_eq!(std::fs::read(existing.join("KEEP.DAT")).unwrap(), b"directory contents");
+    assert!(fs.files.is_empty());
+}
+
+#[test]
+fn temporary_create_new_native_keeps_readonly_attribute_and_initial_write_handle() {
+    let directory = TestDirectory::new();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let file = fs.file_create_new(b".\\0C22384E", 0x01).unwrap();
+    assert_eq!(fs.file_write(file, b"initial write").unwrap(), 13);
+    fs.file_close(file).unwrap();
+    assert_ne!(fs.file_get_attributes(b".\\0C22384E").unwrap() & 1, 0);
+    assert_eq!(fs.file_open(b".\\0C22384E", DosFileAccess::ReadWrite,
+        DosFileSharing::Compatibility).unwrap_err().code, DosErrorCode::AccessDenied);
+    let read = fs.file_open(b".\\0C22384E", DosFileAccess::ReadOnly,
+        DosFileSharing::Compatibility).unwrap();
+    let mut contents = [0; 13];
+    assert_eq!(fs.file_read(read, &mut contents).unwrap(), contents.len());
+    assert_eq!(&contents, b"initial write");
+    fs.file_close(read).unwrap();
+    // DOS does not delete AH=5Ah files on close. Clear readonly for explicit
+    // cleanup, rather than relying on the test directory destructor.
+    assert!(directory.0.join("0C22384E").is_file());
+    fs.file_set_attributes(b".\\0C22384E", 0).unwrap();
+    fs.file_delete(b".\\0C22384E").unwrap();
+}
+
+#[test]
+fn temporary_create_new_native_uses_supplied_subdirectory_and_rejects_unmounted_drive() {
+    let directory = TestDirectory::new();
+    std::fs::create_dir(directory.0.join("SPOOL")).unwrap();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    let file = fs.file_create_new(b"SPOOL\\0C22384E", 0).unwrap();
+    fs.file_close(file).unwrap();
+    assert!(directory.0.join("SPOOL").join("0C22384E").is_file());
+    assert!(!directory.0.join("0C22384E").exists());
+    let mut wrong_drive = b"C:\\0C22384E".to_vec();
+    wrong_drive[0] = b'A' + ((fs.drive() + 1) % 26);
+    assert_eq!(fs.file_create_new(&wrong_drive, 0).unwrap_err().code, DosErrorCode::UnknownUnit);
+    assert_eq!(fs.file_create_new(b"MISSING\\0C22384E", 0).unwrap_err().code, DosErrorCode::PathNotFound);
+    for namespace in [br"\\server\share\0C22384E".as_slice(),
+        br"\\?\C:\0C22384E".as_slice(), br"\\.\NUL\0C22384E".as_slice()] {
+        assert_eq!(fs.file_create_new(namespace, 0).unwrap_err().code, DosErrorCode::InvalidData);
+    }
+}
+
+#[test]
+fn create_new_native_distinguishes_missing_parents_from_missing_final_leaf() {
+    let directory = TestDirectory::new();
+    std::fs::create_dir(directory.0.join("EXISTS")).unwrap();
+    let mut fs = Filesystem::new_native_directory(&directory.0, 437).unwrap();
+    for path in [b"MISSING\\NEW.DAT".as_slice(),
+        b"EXISTS\\MISSING\\NEW.DAT".as_slice(), b"MISSING\\NESTED\\NEW.DAT".as_slice()] {
+        assert_eq!(fs.file_create_new(path, 0).unwrap_err().code, DosErrorCode::PathNotFound);
+        assert!(fs.files.is_empty());
+    }
+    assert!(!directory.0.join("MISSING").exists());
+    assert!(!directory.0.join("EXISTS/MISSING").exists());
+    // Missing final leaves remain ordinary lookup failures for existing-only
+    // operations. Only exclusive creation gets the path-error classification.
+    assert_eq!(fs.file_open(b"EXISTS\\NEW.DAT", DosFileAccess::ReadOnly,
+        DosFileSharing::Compatibility).unwrap_err().code, DosErrorCode::FileNotFound);
+    let file = fs.file_create_new(b"EXISTS\\NEW.DAT", 0).unwrap();
+    fs.file_close(file).unwrap();
+    assert!(directory.0.join("EXISTS/NEW.DAT").is_file());
 }

@@ -11,7 +11,7 @@ use std::thread::{self, JoinHandle};
 
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16CreationId, Win16HostCallback, Win16HostClass,
-    Win16HostClassSpec, Win16HostCreationData, Win16HostDc, Win16HostGdiObject, Win16HostMenu,
+    Win16HostClassSpec, Win16HostCreationData, Win16HostDc, Win16HostGdiObject,
     Win16HostTaskQueue, Win16HostWindow, Win16HostWindowCreationResult, Win16HostWindowLiveness,
     Win16HostWindowOperationId, Win16NativeWindowApiReturn, Win16RegisteredClass,
     Win16WindowCreationRejection, Win16WindowOperation, Win16WindowReply, Win16WindowResult,
@@ -41,8 +41,9 @@ pub(super) use state::{
     DialogControlCreationRoute, DialogRootCreationRoute, DialogRoute, DragListOrigin,
     DragListSidecar, LiveCallback, NativeCallbackContext, NativeClass, NativeClassicDdeQuiescence,
     NativeCreateCookie, NativeDropCallbackClaim, NativeDropCallbackResolution, NativeDropOwner,
-    NativeDropRetirementQueue, NativeDropRetirementQueueHandle, NativeTimerRecord,
-    NativeWindowIdentity, PendingCreation, PendingDialogRoute, PendingWindowMenuRetirement,
+    NativeClassResource, NativeDropRetirementQueue, NativeDropRetirementQueueHandle,
+    NativeTimerRecord, NativeWindowIdentity, PendingCreation, PendingDialogRoute,
+    PendingWindowMenuRetirement,
     TerminalProofSnapshot, Win16GuestTimerPost, WorkerState,
 };
 
@@ -463,6 +464,27 @@ impl WindowWorker {
         })?
     }
 
+    pub(super) fn query_window_parent(
+        &self,
+        window: Win16HostWindow,
+    ) -> Result<runtime::Win16HostWindowParentObservation, RuntimeError> {
+        let (response, receive) = mpsc::channel();
+        self.send(WorkerCommand::QueryWindowParent { window, response })
+            .map_err(|_| {
+                RuntimeError::new(
+                    Kind::HostFailure,
+                    "enqueue exact Win16 host-window parent query",
+                )
+            })?;
+        receive.recv().map_err(|error| {
+            RuntimeError::with_source(
+                Kind::HostFailure,
+                "receive exact Win16 host-window parent result",
+                error,
+            )
+        })?
+    }
+
     pub(super) fn ime_profile(
         &self,
         call: runtime::Win16HostImeProfileCall,
@@ -660,6 +682,11 @@ pub(super) fn receive_command(state: &Rc<RefCell<WorkerState>>) -> Option<Worker
 }
 
 pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerCommand) {
+    if matches!(&command, WorkerCommand::Abort { .. } | WorkerCommand::Shutdown { .. }) {
+        if let Err(error) = super::win16_cursor_clip::cleanup_for_exit() {
+            state.borrow_mut().terminal_failures.push(Arc::new(error));
+        }
+    }
     match command {
         WorkerCommand::WindowEnumeration { query, response } => {
             let _ = response.send(super::win16_window_enumeration::query(state, query));
@@ -685,25 +712,40 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
         WorkerCommand::UnregisterClass { class, response } => {
             let _ = response.send(lifecycle::unregister_class(state, class));
         }
+        WorkerCommand::ReplaceClassResource {
+            class,
+            window,
+            resource,
+            response,
+        } => {
+            let result = lifecycle::replace_class_resource(state, class, window, resource);
+            let _ = response.send(result);
+        }
         WorkerCommand::Begin {
             id,
             operation,
+            win_exec,
             control_color_return,
             native_bitmaps,
             native_font,
             toolbar_bitmap_leases,
             native_regions,
+            gray_string_brush,
+            metafile,
             response,
         } => {
             operations::run_operation(
                 state,
                 id,
                 operation,
+                win_exec,
                 control_color_return,
                 native_bitmaps,
                 native_font,
                 toolbar_bitmap_leases,
                 native_regions,
+                gray_string_brush,
+                metafile,
                 response,
             );
         }
@@ -823,6 +865,14 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
         }
         WorkerCommand::QueryWindowLiveness { window, response } => {
             let _ = response.send(super::win16_window_identity::liveness(state, window));
+        }
+        WorkerCommand::QueryWindowParent { window, response } => {
+            let _ = response.send(super::win16_window_data::query_parent(state, window));
+        }
+        #[cfg(test)]
+        WorkerCommand::TestWindowData { run, response } => {
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run(state)));
+            let _ = response.send(result);
         }
         WorkerCommand::ImeProfile { call, response } => {
             let _ = response.send(super::win16_ime_profiles::execute(state, call));

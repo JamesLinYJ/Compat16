@@ -2,7 +2,7 @@
 
 #[path = "user_ansi.rs"]
 mod user_ansi;
-pub use user_ansi::Win16UserAnsiRequest;
+pub use user_ansi::{Win16CharacterClassification, Win16UserAnsiRequest};
 
 #[path = "user_menu.rs"]
 mod user_menu;
@@ -15,6 +15,10 @@ pub use user_messages::Win16UserMessagesRequest;
 #[path = "user_window.rs"]
 mod user_window;
 pub use user_window::Win16UserWindowRequest;
+
+#[path = "user_child_lookup.rs"]
+mod user_child_lookup;
+pub use user_child_lookup::Win16UserChildLookupRequest;
 
 #[path = "user_geometry.rs"]
 mod user_geometry;
@@ -79,6 +83,10 @@ pub use kernel_global_memory::Win16KernelGlobalMemoryRequest;
 mod kernel_local_heap;
 pub use kernel_local_heap::Win16KernelLocalHeapRequest;
 
+#[path = "kernel_atoms.rs"]
+mod kernel_atoms;
+pub use kernel_atoms::Win16KernelAtomsRequest;
+
 #[path = "kernel_files.rs"]
 mod kernel_files;
 pub use kernel_files::Win16KernelFilesRequest;
@@ -130,6 +138,7 @@ use super::*;
 pub enum Win16UserRequest {
     Hooks(Win16UserHooksRequest),
     Mdi(Win16UserMdiRequest),
+    ChildLookup(Win16UserChildLookupRequest),
     Ansi(Win16UserAnsiRequest),
     Menu(Win16UserMenuRequest),
     Messages(Win16UserMessagesRequest),
@@ -145,6 +154,11 @@ pub enum Win16UserRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16KernelRequest {
+    SwitchStackTo { stack_selector: u16, stack_pointer: u16, stack_top: u16 },
+    SwitchStackBack { context: crate::Win16RegisterContext },
+    /// Far Pascal arguments; completion requires a checked CPU transfer.
+    Catch { buffer: u32 },
+    Throw { buffer: u32, value: u16 },
     Instance(Win16KernelInstanceRequest),
     Runtime(Win16KernelRuntimeRequest),
     Strings(Win16KernelStringsRequest),
@@ -153,12 +167,16 @@ pub enum Win16KernelRequest {
     Selectors(Win16KernelSelectorsRequest),
     GlobalMemory(Win16KernelGlobalMemoryRequest),
     LocalHeap(Win16KernelLocalHeapRequest),
+    Atoms(Win16KernelAtomsRequest),
     Files(Win16KernelFilesRequest),
     Profiles(Win16KernelProfilesRequest),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16LibraryRequest {
+    /// COMPOBJ.18 compares two copied GUID records; no COM object or host
+    /// pointer crosses the ABI boundary and neither input is retained.
+    IsEqualGuid { left: [u8; 16], right: [u8; 16] },
     Strings(Win16LibraryStringsRequest),
     Interrupts(Win16LibraryInterruptsRequest),
     Toolhelp(Win16LibraryToolhelpRequest),

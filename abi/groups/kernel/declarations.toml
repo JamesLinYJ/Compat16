@@ -1,0 +1,1617 @@
+module = "KERNEL"
+
+[[exports]]
+ordinal = 2
+name = "ExitKernel"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 3
+name = "GetVersion"
+binding = { rust_id = "KernelGetVersion", id_value = 153, constant = "KERNEL_GET_VERSION" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 14
+name = "LocalNotify"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 29
+name = "Yield"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelYield", id_value = 1259, constant = "KERNEL_YIELD" }
+[exports.call]
+returns = "void"
+
+[[exports]]
+ordinal = 32
+name = "SetPriority"
+decl = { attributes = ["ret16"], args = ["word", "signed_word"] }
+
+[[exports]]
+ordinal = 33
+name = "LockCurrentTask"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 34
+name = "SetTaskQueue"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+
+[[exports]]
+ordinal = 35
+name = "GetTaskQueue"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 36
+name = "GetCurrentTask"
+binding = { rust_id = "KernelGetCurrentTask", id_value = 156, constant = "KERNEL_GET_CURRENT_TASK" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 37
+name = "GetCurrentPDB"
+binding = { rust_id = "KernelGetCurrentPdb", id_value = 86, constant = "KERNEL_GET_CURRENT_PDB" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 38
+name = "SetTaskSignalProc"
+decl = { args = ["word", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 39
+name = "SetTaskSwitchProc"
+kind = "stub"
+
+[[exports]]
+ordinal = 40
+name = "SetTaskInterchange"
+kind = "stub"
+
+[[exports]]
+ordinal = 41
+name = "EnableDos"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 42
+name = "DisableDos"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 43
+name = "IsScreenGrab"
+kind = "stub"
+
+[[exports]]
+ordinal = 44
+name = "BuildPDB"
+kind = "stub"
+
+[[exports]]
+ordinal = 45
+name = "LoadModule"
+decl = { attributes = ["ret16"], args = ["string", "pointer"] }
+binding = { rust_id = "KernelLoadModule", id_value = 1260, constant = "KERNEL_LOAD_MODULE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "module", type = "FarPointer", encoding = "string" },
+  { name = "parameters", type = "FarPointer", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 46
+name = "FreeModule"
+decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "KernelFreeModule", id_value = 1261, constant = "KERNEL_FREE_MODULE" }
+[exports.call]
+returns = "word"
+params = [{ name = "module", type = "U16" }]
+
+[[exports]]
+ordinal = 53
+name = "CallProcInstance"
+kind = "stub"
+
+[[exports]]
+ordinal = 55
+name = "Catch"
+decl = { attributes = ["register"], args = ["segmented_pointer"] }
+binding = { rust_id = "KernelCatch", id_value = 1222, constant = "KERNEL_CATCH" }
+[exports.call]
+returns = "word"
+params = [{ name = "buffer", type = "FarOutputBuffer", encoding = "segmented_pointer" }]
+
+[[exports]]
+ordinal = 56
+name = "Throw"
+decl = { attributes = ["register"], args = ["pointer", "word"] }
+binding = { rust_id = "KernelThrow", id_value = 1223, constant = "KERNEL_THROW" }
+[exports.call]
+returns = "void"
+params = [{ name = "buffer", type = "FarBuffer" }, { name = "value", type = "U16" }]
+
+[[exports]]
+ordinal = 75
+name = "OpenPathName"
+kind = "stub"
+
+[[exports]]
+ordinal = 76
+name = "DeletePathName"
+kind = "stub"
+
+[[exports]]
+ordinal = 91
+name = "InitTask"
+decl = { attributes = ["register"] }
+binding = { rust_id = "KernelInitTask", id_value = 204, constant = "KERNEL_INIT_TASK" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
+
+[[exports]]
+ordinal = 92
+name = "GetTempDrive"
+binding = { rust_id = "KernelGetTempDrive", id_value = 1219, constant = "KERNEL_GET_TEMP_DRIVE" }
+[exports.call]
+# Public BYTE is in AL; preserve the independently observed AH=':' via AX.
+returns = "word"
+params = [
+  { name = "drive", type = "Char8" },
+]
+
+[[exports]]
+ordinal = 94
+name = "DefineHandleTable"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 98
+name = "GetLastDiskChange"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 99
+name = "GetLPErrMode"
+kind = "stub"
+
+[[exports]]
+ordinal = 100
+name = "ValidateCodeSegments"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 101
+name = "NoHookDosCall"
+kind = "stub"
+
+[[exports]]
+ordinal = 102
+name = "DOS3Call"
+decl = { attributes = ["register"] }
+binding = { rust_id = "KernelDos3Call", id_value = 205, constant = "KERNEL_DOS3_CALL" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
+
+[[exports]]
+ordinal = 103
+name = "NetBIOSCall"
+decl = { attributes = ["register"] }
+binding = { rust_id = "KernelNetbiosCall", id_value = 206, constant = "KERNEL_NETBIOS_CALL" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
+
+[[exports]]
+ordinal = 105
+name = "GetExeVersion"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelGetExeVersion", id_value = 92, constant = "KERNEL_GET_EXE_VERSION" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 106
+name = "SetSwapAreaSize"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 108
+name = "SwitchStackTo"
+decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
+binding = { rust_id = "KernelSwitchStackTo", id_value = 1257, constant = "KERNEL_SWITCH_STACK_TO" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "stack_selector", type = "U16" },
+  { name = "stack_pointer", type = "U16" },
+  { name = "stack_top", type = "U16" },
+]
+
+[[exports]]
+ordinal = 109
+name = "SwitchStackBack"
+decl = { attributes = ["register"] }
+binding = { rust_id = "KernelSwitchStackBack", id_value = 1258, constant = "KERNEL_SWITCH_STACK_BACK" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
+
+[[exports]]
+ordinal = 110
+name = "PatchCodeHandle"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 113
+name = "__AHSHIFT"
+kind = "equate"
+value = 3
+
+[[exports]]
+ordinal = 114
+name = "__AHINCR"
+kind = "equate"
+value = 8
+
+[[exports]]
+ordinal = 116
+name = "InitLib"
+kind = "stub"
+
+[[exports]]
+ordinal = 117
+name = "OldYield"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 118
+name = "GetTaskQueueDS"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 119
+name = "GetTaskQueueES"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 120
+name = "UndefDynLink"
+kind = "stub"
+
+[[exports]]
+ordinal = 121
+name = "LocalShrink"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+binding = { rust_id = "KernelLocalShrink", id_value = 1253, constant = "KERNEL_LOCAL_SHRINK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "heap", type = "U16" },
+  { name = "minimum", type = "U16" },
+]
+
+[[exports]]
+ordinal = 122
+name = "IsTaskLocked"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 123
+name = "KbdRst"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 124
+name = "EnableKernel"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 125
+name = "DisableKernel"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 126
+name = "MemoryFreed"
+kind = "stub"
+
+[[exports]]
+ordinal = 131
+name = "GetDOSEnvironment"
+binding = { rust_id = "KernelGetDosEnvironment", id_value = 87, constant = "KERNEL_GET_DOS_ENVIRONMENT" }
+[exports.call]
+returns = "far_pointer"
+
+[[exports]]
+ordinal = 132
+name = "GetWinFlags"
+binding = { rust_id = "KernelGetWinFlags", id_value = 182, constant = "KERNEL_GET_WIN_FLAGS" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 138
+name = "GetHeapSpaces"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 139
+name = "DoSignal"
+kind = "stub"
+
+[[exports]]
+ordinal = 140
+name = "SetSigHandler"
+decl = { attributes = ["ret16"], args = ["segmented_pointer", "pointer", "pointer", "word", "word"] }
+
+[[exports]]
+ordinal = 141
+name = "InitTask1"
+kind = "stub"
+
+[[exports]]
+ordinal = 147
+name = "SetLastError"
+decl = { attributes = ["ret16"], args = ["long"] }
+
+[[exports]]
+ordinal = 148
+name = "GetLastError"
+
+[[exports]]
+ordinal = 149
+name = "GetVersionEx"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 150
+name = "DirectedYield"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 151
+name = "WinOldApCall"
+kind = "stub"
+
+[[exports]]
+ordinal = 152
+name = "GetNumTasks"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelGetNumTasks", id_value = 94, constant = "KERNEL_GET_NUM_TASKS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 154
+name = "GlobalNotify"
+decl = { attributes = ["ret16"], args = ["segmented_pointer"] }
+
+[[exports]]
+ordinal = 155
+name = "GetTaskDS"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelGetTaskDs", id_value = 95, constant = "KERNEL_GET_TASK_DS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 156
+name = "LimitEMSPages"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 157
+name = "GetCurPID"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 158
+name = "IsWinOldApTask"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 160
+name = "EMSCopy"
+kind = "stub"
+
+[[exports]]
+ordinal = 161
+name = "LocalCountFree"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelLocalCountFree", id_value = 282, constant = "KERNEL_LOCAL_COUNT_FREE" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 162
+name = "LocalHeapSize"
+decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelLocalHeapSize", id_value = 283, constant = "KERNEL_LOCAL_HEAP_SIZE" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 165
+name = "A20Proc"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 168
+name = "DirectResAlloc"
+decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 173
+name = "__ROMBIOS"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 174
+name = "__A000H"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 178
+name = "__WINFLAGS"
+kind = "equate"
+value = 1043
+
+[[exports]]
+ordinal = 179
+name = "__D000H"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 181
+name = "__B000H"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 182
+name = "__B800H"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 183
+name = "__0000H"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 190
+name = "__E000H"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 193
+name = "__0040H"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 194
+name = "__F000H"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 195
+name = "__C000H"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 200
+name = "ValidateFreeSpaces"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 201
+name = "ReplaceInst"
+kind = "stub"
+
+[[exports]]
+ordinal = 202
+name = "RegisterPtrace"
+kind = "stub"
+
+[[exports]]
+ordinal = 204
+name = "SwapRecording"
+kind = "stub"
+
+[[exports]]
+ordinal = 205
+name = "CVWBreak"
+kind = "stub"
+
+[[exports]]
+ordinal = 208
+name = "K208"
+decl = { args = ["word", "long", "long", "long"] }
+
+[[exports]]
+ordinal = 209
+name = "K209"
+decl = { args = ["long", "long", "word", "long"] }
+
+[[exports]]
+ordinal = 210
+name = "K210"
+decl = { args = ["long", "long", "word", "long", "long"] }
+
+[[exports]]
+ordinal = 211
+name = "K211"
+decl = { args = ["long", "long", "word"] }
+
+[[exports]]
+ordinal = 213
+name = "K213"
+decl = { args = ["long", "long", "word", "word"] }
+
+[[exports]]
+ordinal = 214
+name = "K214"
+decl = { args = ["long", "long", "word"] }
+
+[[exports]]
+ordinal = 215
+name = "K215"
+decl = { args = ["long", "word"] }
+
+[[exports]]
+ordinal = 216
+name = "RegEnumKey"
+decl = { args = ["long", "long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 217
+name = "RegOpenKey"
+decl = { args = ["long", "string", "pointer"] }
+
+[[exports]]
+ordinal = 218
+name = "RegCreateKey"
+decl = { args = ["long", "string", "pointer"] }
+
+[[exports]]
+ordinal = 219
+name = "RegDeleteKey"
+decl = { args = ["long", "string"] }
+
+[[exports]]
+ordinal = 220
+name = "RegCloseKey"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 221
+name = "RegSetValue"
+decl = { args = ["long", "string", "long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 222
+name = "RegDeleteValue"
+decl = { args = ["long", "string"] }
+
+[[exports]]
+ordinal = 223
+name = "RegEnumValue"
+decl = { args = ["long", "long", "pointer", "pointer", "pointer", "pointer", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 224
+name = "RegQueryValue"
+decl = { args = ["long", "string", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 225
+name = "RegQueryValueEx"
+decl = { args = ["long", "string", "pointer", "pointer", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 226
+name = "RegSetValueEx"
+decl = { args = ["long", "string", "long", "long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 227
+name = "RegFlushKey"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 228
+name = "K228"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 229
+name = "K229"
+decl = { attributes = ["ret16"], args = ["long"] }
+
+[[exports]]
+ordinal = 232
+name = "RegLoadKey"
+kind = "stub"
+
+[[exports]]
+ordinal = 233
+name = "RegUnloadKey"
+kind = "stub"
+
+[[exports]]
+ordinal = 234
+name = "RegSaveKey"
+kind = "stub"
+
+[[exports]]
+ordinal = 235
+name = "InvalidateNlsCache"
+kind = "stub"
+
+[[exports]]
+ordinal = 236
+name = "GetProductName"
+kind = "stub"
+
+[[exports]]
+ordinal = 237
+name = "K237"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 262
+name = "WOWWaitForMsgAndEvent"
+kind = "stub"
+
+[[exports]]
+ordinal = 263
+name = "WOWMsgBox"
+kind = "stub"
+
+[[exports]]
+ordinal = 273
+name = "K273"
+kind = "stub"
+
+[[exports]]
+ordinal = 274
+name = "GetShortPathName"
+decl = { attributes = ["ret16"], args = ["string", "pointer", "word"] }
+
+[[exports]]
+ordinal = 311
+name = "GetSetKernelDOSProc"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 314
+name = "DebugDefineSegment"
+kind = "stub"
+
+[[exports]]
+ordinal = 315
+name = "WriteOutProfiles"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 316
+name = "GetFreeMemInfo"
+
+[[exports]]
+ordinal = 318
+name = "FatalExitHook"
+kind = "stub"
+
+[[exports]]
+ordinal = 319
+name = "FlushCachedFileHandle"
+kind = "stub"
+
+[[exports]]
+ordinal = 323
+name = "IsRomModule"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 324
+name = "LogError"
+decl = { attributes = ["ret16"], args = ["word", "pointer"] }
+
+[[exports]]
+ordinal = 325
+name = "LogParamError"
+decl = { attributes = ["ret16"], args = ["word", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 326
+name = "IsRomFile"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 327
+name = "K327"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 328
+name = "_DebugOutput"
+decl = { type = "varargs", attributes = ["ret16"], args = ["word", "string"] }
+
+[[exports]]
+ordinal = 329
+name = "K329"
+decl = { attributes = ["ret16"], args = ["string", "word"] }
+
+[[exports]]
+ordinal = 332
+name = "THHOOK"
+kind = "variable"
+values = [0, 0, 0, 0, 0, 0, 0, 0]
+
+[[exports]]
+ordinal = 338
+name = "HasGPHandler"
+decl = { attributes = ["ret16"], args = ["segmented_pointer"] }
+
+[[exports]]
+ordinal = 339
+name = "DiagQuery"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 340
+name = "DiagOutput"
+decl = { attributes = ["ret16"], args = ["string"] }
+
+[[exports]]
+ordinal = 341
+name = "ToolHelpHook"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 342
+name = "__GP"
+kind = "variable"
+values = [0, 0]
+
+[[exports]]
+ordinal = 343
+name = "RegisterWinOldApHook"
+kind = "stub"
+
+[[exports]]
+ordinal = 344
+name = "GetWinOldApHooks"
+kind = "stub"
+
+[[exports]]
+ordinal = 351
+name = "BUNNY_351"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 354
+name = "GetAppCompatFlags"
+decl = { args = ["word"] }
+
+[[exports]]
+ordinal = 355
+name = "GetWinDebugInfo"
+decl = { attributes = ["ret16"], args = ["pointer", "word"] }
+
+[[exports]]
+ordinal = 356
+name = "SetWinDebugInfo"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 360
+name = "OpenFileEx"
+decl = { attributes = ["ret16"], args = ["string", "pointer", "word"] }
+
+[[exports]]
+ordinal = 361
+name = "PIGLET_361"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 362
+name = "ThunkTerminateProcess"
+kind = "stub"
+
+[[exports]]
+ordinal = 406
+name = "WritePrivateProfileStruct"
+decl = { attributes = ["ret16"], args = ["string", "string", "pointer", "word", "string"] }
+
+[[exports]]
+ordinal = 407
+name = "GetPrivateProfileStruct"
+decl = { attributes = ["ret16"], args = ["string", "string", "pointer", "word", "string"] }
+
+[[exports]]
+ordinal = 408
+name = "KERNEL_408"
+kind = "stub"
+
+[[exports]]
+ordinal = 409
+name = "KERNEL_409"
+kind = "stub"
+
+[[exports]]
+ordinal = 410
+name = "CreateProcessFromWinExec"
+kind = "stub"
+
+[[exports]]
+ordinal = 423
+name = "LogApiThk"
+decl = { attributes = ["ret16"], args = ["string"] }
+
+[[exports]]
+ordinal = 431
+name = "IsPeFormat"
+decl = { attributes = ["ret16"], args = ["string", "word"] }
+
+[[exports]]
+ordinal = 432
+name = "FileTimeToLocalFileTime"
+kind = "stub"
+
+[[exports]]
+ordinal = 434
+name = "UnicodeToAnsi"
+decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word"] }
+
+[[exports]]
+ordinal = 435
+name = "GetTaskFlags"
+kind = "stub"
+
+[[exports]]
+ordinal = 436
+name = "_ConfirmSysLevel"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 437
+name = "_CheckNotSysLevel"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 438
+name = "_CreateSysLevel"
+decl = { attributes = ["ret16"], args = ["pointer", "long"] }
+
+[[exports]]
+ordinal = 439
+name = "_EnterSysLevel"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 440
+name = "_LeaveSysLevel"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 441
+name = "CreateThread16"
+decl = { args = ["pointer", "long", "segmented_pointer", "segmented_pointer", "long", "pointer"] }
+
+[[exports]]
+ordinal = 442
+name = "VWin32_EventCreate"
+
+[[exports]]
+ordinal = 443
+name = "VWin32_EventDestroy"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 444
+name = "Local32Info"
+decl = { attributes = ["ret16"], args = ["pointer", "word"] }
+
+[[exports]]
+ordinal = 445
+name = "Local32First"
+decl = { attributes = ["ret16"], args = ["pointer", "word"] }
+
+[[exports]]
+ordinal = 446
+name = "Local32Next"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 447
+name = "WIN32_OldYield"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 448
+name = "KERNEL_448"
+kind = "stub"
+
+[[exports]]
+ordinal = 449
+name = "GetpWin16Lock"
+
+[[exports]]
+ordinal = 450
+name = "VWin32_EventWait"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 451
+name = "VWin32_EventSet"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 452
+name = "LoadLibrary32"
+decl = { args = ["string"] }
+
+[[exports]]
+ordinal = 453
+name = "GetProcAddress32"
+decl = { args = ["long", "string"] }
+
+[[exports]]
+ordinal = 454
+name = "__FLATCS"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 455
+name = "__FLATDS"
+kind = "equate"
+value = 0
+
+[[exports]]
+ordinal = 457
+name = "CreateW32Event"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 458
+name = "SetW32Event"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 459
+name = "ResetW32Event"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 460
+name = "WaitForSingleObject"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 461
+name = "WaitForMultipleObjects"
+decl = { args = ["long", "pointer", "long", "long"] }
+
+[[exports]]
+ordinal = 462
+name = "GetCurrentThreadId"
+
+[[exports]]
+ordinal = 463
+name = "SetThreadQueue"
+decl = { args = ["long", "word"] }
+
+[[exports]]
+ordinal = 464
+name = "GetThreadQueue"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 465
+name = "NukeProcess"
+kind = "stub"
+
+[[exports]]
+ordinal = 467
+name = "WOACreateConsole"
+kind = "stub"
+
+[[exports]]
+ordinal = 468
+name = "WOASpawnConApp"
+kind = "stub"
+
+[[exports]]
+ordinal = 469
+name = "WOAGimmeTitle"
+kind = "stub"
+
+[[exports]]
+ordinal = 470
+name = "WOADestroyConsole"
+kind = "stub"
+
+[[exports]]
+ordinal = 471
+name = "GetCurrentProcessId"
+
+[[exports]]
+ordinal = 472
+name = "MapHInstLS"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 473
+name = "MapHInstSL"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 474
+name = "CloseW32Handle"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 475
+name = "GetTEBSelectorFS"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 476
+name = "ConvertToGlobalHandle"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 477
+name = "WOAFullScreen"
+kind = "stub"
+
+[[exports]]
+ordinal = 478
+name = "WOATerminateProcess"
+kind = "stub"
+
+[[exports]]
+ordinal = 479
+name = "KERNEL_479"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 480
+name = "_EnterWin16Lock"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 481
+name = "_LeaveWin16Lock"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 482
+name = "LoadSystemLibrary32"
+decl = { args = ["string"] }
+
+[[exports]]
+ordinal = 483
+name = "MapProcessHandle"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 484
+name = "SetProcessDword"
+decl = { args = ["long", "signed_word", "long"] }
+
+[[exports]]
+ordinal = 485
+name = "GetProcessDword"
+decl = { args = ["long", "signed_word"] }
+
+[[exports]]
+ordinal = 486
+name = "FreeLibrary32"
+decl = { args = ["long"] }
+
+[[exports]]
+ordinal = 487
+name = "GetModuleFileName32"
+decl = { args = ["long", "string", "word"] }
+
+[[exports]]
+ordinal = 488
+name = "GetModuleHandle32"
+decl = { args = ["string"] }
+
+[[exports]]
+ordinal = 489
+name = "KERNEL_489"
+kind = "stub"
+
+[[exports]]
+ordinal = 490
+name = "KERNEL_490"
+decl = { attributes = ["ret16"], args = ["word"] }
+
+[[exports]]
+ordinal = 491
+name = "RegisterServiceProcess"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 492
+name = "WOAAbort"
+kind = "stub"
+
+[[exports]]
+ordinal = 493
+name = "UTInit"
+decl = { attributes = ["ret16"], args = ["long", "long", "long", "long"] }
+
+[[exports]]
+ordinal = 494
+name = "KERNEL_494"
+kind = "stub"
+
+[[exports]]
+ordinal = 495
+name = "WaitForMultipleObjectsEx"
+decl = { args = ["long", "pointer", "long", "long", "long"] }
+
+[[exports]]
+ordinal = 500
+name = "WOW16Call"
+decl = { type = "varargs", args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 501
+name = "KDDBGOUT"
+kind = "stub"
+
+[[exports]]
+ordinal = 502
+name = "WOWGETNEXTVDMCOMMAND"
+kind = "stub"
+
+[[exports]]
+ordinal = 503
+name = "WOWREGISTERSHELLWINDOWHANDLE"
+kind = "stub"
+
+[[exports]]
+ordinal = 504
+name = "WOWLOADMODULE"
+kind = "stub"
+
+[[exports]]
+ordinal = 505
+name = "WOWQUERYPERFORMANCECOUNTER"
+kind = "stub"
+
+[[exports]]
+ordinal = 506
+name = "WOWCURSORICONOP"
+kind = "stub"
+
+[[exports]]
+ordinal = 507
+name = "WOWFAILEDEXEC"
+kind = "stub"
+
+[[exports]]
+ordinal = 508
+name = "WOWCLOSECOMPORT"
+kind = "stub"
+
+[[exports]]
+ordinal = 511
+name = "WOWKILLREMOTETASK"
+kind = "stub"
+
+[[exports]]
+ordinal = 512
+name = "WOWQUERYDEBUG"
+kind = "stub"
+
+[[exports]]
+ordinal = 519
+name = "EXITKERNELTHUNK"
+kind = "stub"
+
+[[exports]]
+ordinal = 520
+name = "__MOD_KERNEL"
+kind = "equate"
+value = 4200
+
+[[exports]]
+ordinal = 521
+name = "__MOD_DKERNEL"
+kind = "equate"
+value = 4201
+
+[[exports]]
+ordinal = 522
+name = "__MOD_USER"
+kind = "equate"
+value = 4203
+
+[[exports]]
+ordinal = 523
+name = "__MOD_DUSER"
+kind = "equate"
+value = 4204
+
+[[exports]]
+ordinal = 524
+name = "__MOD_GDI"
+kind = "equate"
+value = 4205
+
+[[exports]]
+ordinal = 525
+name = "__MOD_DGDI"
+kind = "equate"
+value = 4206
+
+[[exports]]
+ordinal = 526
+name = "__MOD_KEYBOARD"
+kind = "equate"
+value = 4207
+
+[[exports]]
+ordinal = 527
+name = "__MOD_SOUND"
+kind = "equate"
+value = 4208
+
+[[exports]]
+ordinal = 528
+name = "__MOD_SHELL"
+kind = "equate"
+value = 4209
+
+[[exports]]
+ordinal = 529
+name = "__MOD_WINSOCK"
+kind = "equate"
+value = 4210
+
+[[exports]]
+ordinal = 530
+name = "__MOD_TOOLHELP"
+kind = "equate"
+value = 4211
+
+[[exports]]
+ordinal = 531
+name = "__MOD_MMEDIA"
+kind = "equate"
+value = 4212
+
+[[exports]]
+ordinal = 532
+name = "__MOD_COMMDLG"
+kind = "equate"
+value = 4213
+
+[[exports]]
+ordinal = 533
+name = "ConvertDDEHandleLS"
+kind = "stub"
+
+[[exports]]
+ordinal = 534
+name = "ConvertDDEHandleSL"
+kind = "stub"
+
+[[exports]]
+ordinal = 535
+name = "VWin32_BoostThreadGroup"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 536
+name = "VWin32_BoostThreadStatic"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 537
+name = "KERNEL_537"
+kind = "stub"
+
+[[exports]]
+ordinal = 538
+name = "ThunkTheTemplateHandle"
+kind = "stub"
+
+[[exports]]
+ordinal = 540
+name = "KERNEL_540"
+kind = "stub"
+
+[[exports]]
+ordinal = 541
+name = "WOWSETEXITONLASTAPP"
+kind = "stub"
+
+[[exports]]
+ordinal = 542
+name = "KERNEL_542"
+kind = "stub"
+
+[[exports]]
+ordinal = 543
+name = "KERNEL_543"
+kind = "stub"
+
+[[exports]]
+ordinal = 544
+name = "WOWSETCOMPATHANDLE"
+kind = "stub"
+
+[[exports]]
+ordinal = 560
+name = "SetThunkletCallbackGlue"
+decl = { args = ["long", "segmented_pointer"] }
+
+[[exports]]
+ordinal = 561
+name = "AllocLSThunkletCallback"
+decl = { args = ["segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 562
+name = "AllocSLThunkletCallback"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 563
+name = "FindLSThunkletCallback"
+decl = { args = ["segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 564
+name = "FindSLThunkletCallback"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 566
+name = "KERNEL_566"
+kind = "stub"
+
+[[exports]]
+ordinal = 567
+name = "AllocLSThunkletCallbackEx"
+decl = { args = ["segmented_pointer", "long", "word"] }
+
+[[exports]]
+ordinal = 568
+name = "AllocSLThunkletCallbackEx"
+decl = { args = ["long", "long", "word"] }
+
+[[exports]]
+ordinal = 600
+name = "AllocCodeAlias"
+kind = "stub"
+
+[[exports]]
+ordinal = 601
+name = "FreeCodeAlias"
+kind = "stub"
+
+[[exports]]
+ordinal = 602
+name = "GetDummyModuleHandleDS"
+decl = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 603
+name = "KERNEL_603"
+kind = "stub"
+
+[[exports]]
+ordinal = 604
+name = "CBClientGlueSL"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 605
+name = "AllocSLThunkletCallback_dup"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 606
+name = "AllocLSThunkletCallback_dup"
+decl = { args = ["segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 607
+name = "AllocLSThunkletSysthunk"
+decl = { args = ["segmented_pointer", "long", "long"] }
+
+[[exports]]
+ordinal = 608
+name = "AllocSLThunkletSysthunk"
+decl = { args = ["long", "segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 609
+name = "FindLSThunkletCallback_dup"
+decl = { args = ["segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 610
+name = "FindSLThunkletCallback_dup"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 611
+name = "FreeThunklet"
+decl = { attributes = ["ret16"], args = ["long", "long"] }
+
+[[exports]]
+ordinal = 612
+name = "IsSLThunklet"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 613
+name = "HugeMapLS"
+kind = "stub"
+
+[[exports]]
+ordinal = 614
+name = "HugeUnMapLS"
+kind = "stub"
+
+[[exports]]
+ordinal = 615
+name = "ConvertDialog32To16"
+decl = { attributes = ["ret16"], args = ["long", "long", "long"] }
+
+[[exports]]
+ordinal = 616
+name = "ConvertMenu32To16"
+decl = { attributes = ["ret16"], args = ["long", "long", "long"] }
+
+[[exports]]
+ordinal = 617
+name = "GetMenu32Size"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 618
+name = "GetDialog32Size"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+
+[[exports]]
+ordinal = 619
+name = "RegisterCBClient"
+decl = { attributes = ["ret16"], args = ["word", "segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 620
+name = "CBClientThunkSL"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 621
+name = "CBClientThunkSLEx"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 622
+name = "UnRegisterCBClient"
+decl = { attributes = ["ret16"], args = ["word", "segmented_pointer", "long"] }
+
+[[exports]]
+ordinal = 623
+name = "InitCBClient"
+decl = { attributes = ["ret16"], args = ["long"] }
+
+[[exports]]
+ordinal = 624
+name = "SetFastQueue"
+decl = { args = ["long", "long"] }
+
+[[exports]]
+ordinal = 625
+name = "GetFastQueue"
+
+[[exports]]
+ordinal = 626
+name = "SmashEnvironment"
+kind = "stub"
+
+[[exports]]
+ordinal = 627
+name = "IsBadFlatReadWritePtr"
+decl = { attributes = ["ret16"], args = ["segmented_pointer", "long", "word"] }
+
+[[exports]]
+ordinal = 630
+name = "C16ThkSL"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 631
+name = "C16ThkSL01"
+decl = { attributes = ["register"] }
+
+[[exports]]
+ordinal = 651
+name = "ThunkConnect16"
+decl = { args = ["string", "string", "word", "long", "pointer", "string", "word"] }
+
+[[exports]]
+ordinal = 652
+name = "IsThreadId"
+kind = "stub"
+
+[[exports]]
+ordinal = 653
+name = "OkWithKernelToChangeUsers"
+kind = "stub"
+
+[[exports]]
+ordinal = 666
+name = "UTGlue16"
+decl = { args = ["pointer", "long", "pointer", "long"] }
+
+[[exports]]
+ordinal = 667
+name = "EntryAddrProc"
+decl = { args = ["word", "word"] }
+
+[[exports]]
+ordinal = 668
+name = "MyAlloc"
+decl = { args = ["word", "word", "word"] }
+
+[[exports]]
+ordinal = 669
+name = "DllEntryPoint"
+decl = { attributes = ["ret16"], args = ["long", "word", "word", "word", "long", "word"] }
+
+[[exports]]
+ordinal = 700
+name = "SSInit"
+
+[[exports]]
+ordinal = 701
+name = "SSOnBigStack"
+kind = "stub"
+
+[[exports]]
+ordinal = 702
+name = "SSCall"
+kind = "stub"
+
+[[exports]]
+ordinal = 703
+name = "CallProc32WFix"
+kind = "stub"
+
+[[exports]]
+ordinal = 704
+name = "SSConfirmSmallStack"
+decl = { attributes = ["register"] }

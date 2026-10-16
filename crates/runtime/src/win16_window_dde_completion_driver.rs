@@ -38,10 +38,13 @@ impl Win16State {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
                     "DDE source-retired result does not match the exact top DDE continuation"));
             };
-            if continuation.host_operation() != Some(proof.operation) {
+            if continuation.host_operation().is_some_and(|operation| operation != proof.operation) {
                 return Err(RuntimeError::new(Kind::HostFailure,
                     "DDE source proof operation differs from the exact continuation owner"));
             }
+            // An immediate Begin completion has no earlier callback carrier
+            // to bind its native identity. Its checked source proof performs
+            // that first binding; an existing different owner is rejected.
             // The DDE continuation is the canonical owner of native result,
             // normal source proof, and DDE output leases. The central frame
             // keeps the same continuation in place while it drives phases.
@@ -106,7 +109,23 @@ impl Win16State {
                 return Ok(());
             }
         }
-        self.resume_window_completion(cpu, memory, dos, host)
+        let frame_id = frame.id;
+        loop {
+            let operation = self.window_operations.last()
+                .filter(|frame| frame.id == frame_id)
+                .and_then(|frame| frame.host_operation);
+            self.resume_window_completion(cpu, memory, dos, host)?;
+            let Some(frame) = self.window_operations.last()
+                .filter(|frame| frame.id == frame_id) else { return Ok(()); };
+            // A prepared follow-up can return synchronously (for example,
+            // native subclass lookup followed by installation). Finish that
+            // exact new source before exposing the unchanged API gate again.
+            // Stop at callbacks/waits, and never drive an enclosing caller
+            // merely because this operation has popped.
+            if frame.completion.is_none() || frame.host_operation == operation {
+                return Ok(());
+            }
+        }
     }
 
     /// Drive a DDE normal completion without moving its continuation out of

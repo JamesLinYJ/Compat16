@@ -1,0 +1,166 @@
+module = "KERNEL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 30
+name = "WaitEvent"
+binding = { rust_id = "KernelWaitEvent", id_value = 183, constant = "KERNEL_WAIT_EVENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "task_handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 31
+name = "PostEvent"
+binding = { rust_id = "KernelPostEvent", id_value = 184, constant = "KERNEL_POST_EVENT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "task_handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 47
+name = "GetModuleHandle"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetModuleHandle", id_value = 159, constant = "KERNEL_GET_MODULE_HANDLE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "module_or_name", type = "U32", encoding = "segmented_string" },
+]
+
+[[exports]]
+ordinal = 48
+name = "GetModuleUsage"
+binding = { rust_id = "KernelGetModuleUsage", id_value = 160, constant = "KERNEL_GET_MODULE_USAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "module", type = "U16" },
+]
+
+[[exports]]
+ordinal = 49
+name = "GetModuleFileName"
+binding = { rust_id = "KernelGetModuleFileName", id_value = 157, constant = "KERNEL_GET_MODULE_FILE_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "module", type = "U16" },
+  { name = "output_buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16" },
+]
+
+[[exports]]
+ordinal = 50
+name = "GetProcAddress"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetProcAddress", id_value = 164, constant = "KERNEL_GET_PROC_ADDRESS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "module", type = "U16" },
+  { name = "procedure_name_or_ordinal", type = "U32", encoding = "string" },
+]
+
+[[exports]]
+ordinal = 51
+name = "MakeProcInstance"
+decl = { attributes = [] }
+binding = { rust_id = "KernelMakeProcInstance", id_value = 185, constant = "KERNEL_MAKE_PROC_INSTANCE" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "instance", type = "U16" },
+]
+
+[[exports]]
+ordinal = 52
+name = "FreeProcInstance"
+binding = { rust_id = "KernelFreeProcInstance", id_value = 186, constant = "KERNEL_FREE_PROC_INSTANCE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 54
+name = "GetInstanceData"
+binding = { rust_id = "KernelGetInstanceData", id_value = 161, constant = "KERNEL_GET_INSTANCE_DATA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "previous_instance", type = "U16" },
+  { name = "current_instance_buffer_offset", type = "U16" },
+  { name = "byte_count", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 93
+name = "GetCodeHandle"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetCodeHandle", id_value = 162, constant = "KERNEL_GET_CODE_HANDLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 95
+name = "LoadLibrary"
+decl = { attributes = ["ret16", "stack_prolog"] }
+binding = { rust_id = "KernelLoadLibrary", id_value = 165, constant = "KERNEL_LOAD_LIBRARY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "library_name", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 96
+name = "FreeLibrary"
+decl = { attributes = [] }
+binding = { rust_id = "KernelFreeLibrary", id_value = 166, constant = "KERNEL_FREE_LIBRARY" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "module", type = "U16" },
+]
+
+[[exports]]
+ordinal = 104
+name = "GetCodeInfo"
+binding = { rust_id = "KernelGetCodeInfo", id_value = 163, constant = "KERNEL_GET_CODE_INFO" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "procedure_or_module_segment", type = "U32", encoding = "segmented_pointer" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 166
+name = "WinExec"
+binding = { rust_id = "KernelWinExec", id_value = 189, constant = "KERNEL_WIN_EXEC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "command_line", type = "FarString" },
+  { name = "show", type = "U16" },
+]
+
+[[exports]]
+ordinal = 466
+name = "ExitProcess"
+binding = { rust_id = "KernelExitProcess", id_value = 207, constant = "KERNEL_EXIT_PROCESS" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "status", type = "U16" },
+]

@@ -12,7 +12,7 @@ use runtime::{
 use windows_sys::Win32::Foundation::{GetLastError, HWND, POINT, SetLastError};
 use windows_sys::Win32::UI::Shell::{HELPWININFOW, MULTIKEYHELPW, WinHelpW};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    ACCEL, CreateAcceleratorTableW, DestroyAcceleratorTable, IsWindow, MSG, SetCursor,
+    ACCEL, CreateAcceleratorTableW, DestroyAcceleratorTable, GetCursor, HCURSOR, IsWindow, MSG, SetCursor,
     ShowCursor, TranslateAcceleratorW,
 };
 
@@ -167,6 +167,12 @@ pub(super) fn execute(
     operation: Operation,
 ) -> Result<ResultValue, RuntimeError> {
     match operation {
+        Operation::GetCursor => {
+            let images = state.borrow().images.clone();
+            // Read the existing USER worker's cursor context. NULL is a valid
+            // result; an externally owned cursor must remain borrowed.
+            get_cursor_with(&images, || unsafe { GetCursor() })
+        }
         Operation::SetCursor { cursor } => {
             let (images, native_cursor) = {
                 let state = state.borrow();
@@ -693,4 +699,12 @@ fn help_data_matches_command(command: u16, data: &Win16HostHelpData) -> bool {
         ),
         _ => false,
     }
+}
+
+/// Keep the one native read separate from token adoption for deterministic tests.
+pub(in crate::windows) fn get_cursor_with(
+    images: &crate::windows::win16_images::Win16Images,
+    read: impl FnOnce() -> HCURSOR,
+) -> Result<ResultValue, RuntimeError> {
+    images.adopt_borrowed_cursor(read()).map(ResultValue::GetCursor)
 }

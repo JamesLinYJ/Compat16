@@ -9,6 +9,19 @@ pub(super) fn decode(
     memory: &impl GuestMemory,
 ) -> Result<Option<Win16ApiRequest>, Win16Error> {
     let request = match descriptor.id {
+        Win16ExportId::KernelCatch => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::Catch { buffer: dword_argument(arguments, 0)? }),
+        Win16ExportId::KernelThrow => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::Throw { buffer: dword_argument(arguments, 0)?,
+                value: word_argument(arguments, 1)? }),
+        Win16ExportId::KernelInitAtomTable
+        | Win16ExportId::KernelFindAtom
+        | Win16ExportId::KernelAddAtom
+        | Win16ExportId::KernelDeleteAtom
+        | Win16ExportId::KernelGetAtomName
+        | Win16ExportId::KernelGetAtomHandle => {
+            kernel_atom_calls::decode(descriptor.id, arguments, selectors, memory)?
+        }
         Win16ExportId::KernelGetInstanceData
         | Win16ExportId::KernelGetCodeHandle
         | Win16ExportId::KernelGetCodeInfo => {
@@ -25,6 +38,7 @@ pub(super) fn decode(
         }
         Win16ExportId::KernelGetWindowsDirectory
         | Win16ExportId::KernelGetSystemDirectory
+        | Win16ExportId::KernelGetTempDrive
         | Win16ExportId::KernelGetTempFileName => {
             let request = super::super::call_kernel_path_info::decode(
                 descriptor.id,
@@ -75,7 +89,8 @@ pub(super) fn decode(
             .ok_or(Win16Error::InvalidRange)?;
             Win16ApiRequest::KernelProfileSection(request)
         }
-        Win16ExportId::KernelGetVersion
+        Win16ExportId::KernelYield
+        | Win16ExportId::KernelGetVersion
         | Win16ExportId::KernelGetCurrentTask
         | Win16ExportId::KernelGetDriveType
         | Win16ExportId::KernelSetErrorMode
@@ -86,11 +101,17 @@ pub(super) fn decode(
         | Win16ExportId::KernelExitProcess => {
             kernel_runtime_calls::decode(descriptor.id, &arguments)?
         }
-        Win16ExportId::KernelLstrlen => Win16ApiRequest::Kernel(
-            super::Win16KernelRequest::Strings(super::Win16KernelStringsRequest::StringLength {
-                text: read_nullable_far_string(dword_argument(&arguments, 0)?, selectors, memory)?,
-            }),
-        ),
+        Win16ExportId::KernelLstrlen => {
+            let far = dword_argument(arguments, 0)?;
+            let byte_count = if far == 0 { 0 } else {
+                u16::try_from(crate::strings::count_ansi_z(
+                    selectors, memory, far, super::super::MAX_WIN16_STRING_BYTES,
+                )?).map_err(|_| Win16Error::InvalidRange)?
+            };
+            Win16ApiRequest::Kernel(super::Win16KernelRequest::Strings(
+                super::Win16KernelStringsRequest::StringLength { byte_count },
+            ))
+        }
         Win16ExportId::KernelLstrcpy => Win16ApiRequest::Kernel(
             super::Win16KernelRequest::Strings(super::Win16KernelStringsRequest::StringCopy {
                 destination: dword_argument(&arguments, 0)?,
@@ -112,7 +133,9 @@ pub(super) fn decode(
         | Win16ExportId::KernelGetModuleUsage
         | Win16ExportId::KernelGetProcAddress
         | Win16ExportId::KernelLoadLibrary
-        | Win16ExportId::KernelFreeLibrary => {
+        | Win16ExportId::KernelFreeLibrary
+        | Win16ExportId::KernelLoadModule
+        | Win16ExportId::KernelFreeModule => {
             kernel_module_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
         Win16ExportId::KernelFindResource
@@ -148,7 +171,15 @@ pub(super) fn decode(
         Win16ExportId::KernelGetWinFlags => Win16ApiRequest::Kernel(
             super::Win16KernelRequest::Runtime(super::Win16KernelRuntimeRequest::GetWinFlags),
         ),
-        Win16ExportId::KernelInitTask => return Err(Win16Error::UnsupportedRegisterContextExport),
+        Win16ExportId::KernelInitTask | Win16ExportId::KernelSwitchStackBack =>
+            return Err(Win16Error::UnsupportedRegisterContextExport),
+        Win16ExportId::KernelSwitchStackTo => Win16ApiRequest::Kernel(
+            super::Win16KernelRequest::SwitchStackTo {
+                stack_selector: word_argument(arguments, 0)?,
+                stack_pointer: word_argument(arguments, 1)?,
+                stack_top: word_argument(arguments, 2)?,
+            },
+        ),
         Win16ExportId::KernelGlobalAlloc
         | Win16ExportId::KernelGlobalFree
         | Win16ExportId::KernelGlobalLock
@@ -165,6 +196,8 @@ pub(super) fn decode(
         | Win16ExportId::KernelLocalHandle
         | Win16ExportId::KernelLocalFlags
         | Win16ExportId::KernelLocalCompact
+        | Win16ExportId::KernelLocalShrink
+        | Win16ExportId::KernelLocalHandleDelta
         | Win16ExportId::KernelLocalCountFree
         | Win16ExportId::KernelLocalHeapSize => {
             kernel_heap_calls::decode(descriptor.id, &arguments)?
@@ -267,3 +300,7 @@ pub(super) fn decode(
     };
     Ok(Some(request))
 }
+
+#[cfg(test)]
+#[path = "call_lstrlen_tests.rs"]
+mod lstrlen_tests;

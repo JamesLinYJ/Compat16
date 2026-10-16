@@ -40,6 +40,12 @@ pub enum Win16UserWindowRequest {
         menu_name: Option<Win16ResourceName>,
     },
 
+    /// Remove only the guest registration owned by this module instance.
+    UnregisterClass {
+        class_name: Win16ClassName,
+        instance: u16,
+    },
+
     /// Create a guest window from copied class/title strings and scalar ABI
     /// values. Window/menu/instance handles and creation data remain guest
     /// values for runtime translation; `parameter` is never a host pointer.
@@ -92,6 +98,35 @@ pub enum Win16UserWindowRequest {
 
     GetCapture,
 
+    /// Bitmap 0/1 selects a solid/gray caret. Other values remain guest GDI
+    /// handles and require a separate lifetime-safe bitmap implementation.
+    CreateCaret {
+        window: u16,
+        bitmap: u16,
+        width: i16,
+        height: i16,
+    },
+
+    DestroyCaret,
+
+    SetCaretPos {
+        x: i16,
+        y: i16,
+    },
+
+    HideCaret {
+        window: u16,
+    },
+
+    ShowCaret {
+        window: u16,
+    },
+
+    /// USER.183 writes one checked packed POINT16 and has no return value.
+    GetCaretPos {
+        point: u32,
+    },
+
     /// USER.39 writes one packed PAINTSTRUCT16 through this raw guest FAR address.
     BeginPaint {
         window: u16,
@@ -102,6 +137,29 @@ pub enum Win16UserWindowRequest {
     EndPaint {
         window: u16,
         paint: u32,
+    },
+
+    /// USER.43 minimizes an overlapped window; the Win16 result is void.
+    CloseWindow {
+        window: u16,
+    },
+
+    /// USER.44 restores an iconic window through native OpenIcon, including
+    /// WM_QUERYOPEN and its guest veto. The result is a success BOOL.
+    OpenIcon {
+        window: u16,
+    },
+
+    /// USER.105 flashes once and returns previous active state, always nonzero
+    /// for minimized windows. Preserve the complete guest BOOL16 argument.
+    FlashWindow {
+        window: u16,
+        invert: u16,
+    },
+
+    /// USER.170 arranges minimized children and returns an unsigned row height.
+    ArrangeIconicWindows {
+        window: u16,
     },
 
     /// Query the native minimized state of a window.
@@ -128,6 +186,10 @@ pub enum Win16UserWindowRequest {
     },
 
     IsWindow {
+        window: u16,
+    },
+    /// Resolve a guest-tracked window to its live guest HTASK.
+    GetWindowTask {
         window: u16,
     },
 
@@ -195,6 +257,7 @@ pub enum Win16UserWindowRequest {
     },
 
     GetDesktopWindow,
+    WindowFromDC { dc: u16 },
 
     GetLastActivePopup {
         window: u16,
@@ -213,6 +276,8 @@ pub enum Win16UserWindowRequest {
     GetWindowDc {
         window: u16,
     },
+
+    GetDcEx { window: u16, region: u16, flags: u32 },
 
     /// Release a device context previously acquired for a translated window.
     ReleaseDc {

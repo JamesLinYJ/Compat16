@@ -1,0 +1,154 @@
+module = "GDI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 119
+name = "AddFontResource"
+binding = { rust_id = "GdiAddFontResource", id_value = 39, constant = "GDI_ADD_FONT_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "filename_or_module", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 136
+name = "RemoveFontResource"
+binding = { rust_id = "GdiRemoveFontResource", id_value = 40, constant = "GDI_REMOVE_FONT_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "filename_or_module", type = "FarString" },
+]
+
+[[exports]]
+ordinal = 193
+name = "SetBoundsRect"
+binding = { rust_id = "GdiSetBoundsRect", id_value = 33, constant = "GDI_SET_BOUNDS_RECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "bounds_rect", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 194
+name = "GetBoundsRect"
+binding = { rust_id = "GdiGetBoundsRect", id_value = 34, constant = "GDI_GET_BOUNDS_RECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "bounds_rect", type = "FarOutputBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 307
+name = "GetCharABCWidths"
+binding = { rust_id = "GdiGetCharABCWidths", id_value = 42, constant = "GDI_GET_CHAR_ABC_WIDTHS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "first_character", type = "U16" },
+  { name = "last_character", type = "U16" },
+  { name = "widths", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 311
+name = "GetFontData"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetFontData", id_value = 43, constant = "GDI_GET_FONT_DATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "table", type = "U32" },
+  { name = "offset", type = "U32" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "byte_count", type = "U32" },
+]
+
+[[exports]]
+ordinal = 313
+name = "GetRasterizerCaps"
+binding = { rust_id = "GdiGetRasterizerCaps", id_value = 44, constant = "GDI_GET_RASTERIZER_CAPS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "status", type = "FarOutputBuffer" },
+  { name = "byte_count", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 332
+name = "GetKerningPairs"
+binding = { rust_id = "GdiGetKerningPairs", id_value = 45, constant = "GDI_GET_KERNING_PAIRS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "pair_count", type = "I16", encoding = "word" },
+  { name = "pairs", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 349
+name = "SetMapperFlags"
+decl = { attributes = [] }
+binding = { rust_id = "GdiSetMapperFlags", id_value = 35, constant = "GDI_SET_MAPPER_FLAGS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 350
+name = "GetCharWidth"
+binding = { rust_id = "GdiGetCharWidth", id_value = 41, constant = "GDI_GET_CHAR_WIDTH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "first_character", type = "U16" },
+  { name = "last_character", type = "U16" },
+  { name = "widths", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 353
+name = "GetAspectRatioFilter"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetAspectRatioFilter", id_value = 36, constant = "GDI_GET_ASPECT_RATIO_FILTER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 462
+name = "IsGDIObject"
+binding = { rust_id = "GdiIsGdiObject", id_value = 38, constant = "GDI_IS_GDI_OBJECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "U16" },
+]
+
+[[exports]]
+ordinal = 486
+name = "GetAspectRatioFilterEx"
+binding = { rust_id = "GdiGetAspectRatioFilterEx", id_value = 37, constant = "GDI_GET_ASPECT_RATIO_FILTER_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "aspect_ratio", type = "FarOutputBuffer" },
+]

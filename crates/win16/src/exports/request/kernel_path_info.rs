@@ -3,6 +3,8 @@
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16KernelPathInfoRequest {
+    /// Raw char bits: low seven bits select a drive and bit 7 forces it.
+    GetTempDrive { drive: u8 },
     /// Keep the raw output address until runtime knows whether the caller's
     /// capacity is large enough to require an actual guest-memory write.
     GetWindowsDirectory { output: u32, capacity: u16 },

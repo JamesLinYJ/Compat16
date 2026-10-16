@@ -139,6 +139,7 @@ fn reap_one_worker(shared: Arc<RetentionShared>) {
     drop(command);
     if let RetentionCommand::Retain(worker) = pending {
         let join_failure = worker.thread.join().err().map(super::worker_join_failure);
+        crate::windows::win16_dialog_icon_retention::retire_worker_after_join(worker.worker_retirement_id);
         let mut reservation = worker.bitmap_retention_slot_reserved;
         let bitmap_failure = super::super::win16_common_controls_bitmap_pins::retire_worker_after_join(
             worker.worker_retirement_id, &worker.toolbar_bitmap_retention, &mut reservation)
@@ -320,6 +321,7 @@ impl WindowWorker {
         } else {
             None
         };
+        crate::windows::win16_dialog_icon_retention::retire_worker_after_join(self.worker_retirement_id);
         let bitmap_failure = super::super::win16_common_controls_bitmap_pins::retire_worker_after_join(
             self.worker_retirement_id, &self.toolbar_bitmap_retention,
             &mut self.bitmap_retention_slot_reserved).err().map(Arc::new);
@@ -383,6 +385,7 @@ impl WindowWorker {
             } else {
                 None
             };
+            crate::windows::win16_dialog_icon_retention::retire_worker_after_join(self.worker_retirement_id);
             self.shutdown_storage
                 .lock()
                 .unwrap_or_else(|poison| poison.into_inner())

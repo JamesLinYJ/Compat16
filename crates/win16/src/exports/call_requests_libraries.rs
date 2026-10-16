@@ -29,6 +29,9 @@ pub(super) fn decode(
     }
 
     let request = match descriptor.id {
+        Win16ExportId::CompobjIsEqualGuid => {
+            super::guid_compare_calls::decode(arguments, selectors, memory)?
+        }
         Win16ExportId::DdeInitialize
         | Win16ExportId::DdeUninitialize
         | Win16ExportId::DdeConnectList
@@ -85,6 +88,8 @@ pub(super) fn decode(
         | Win16ExportId::Ole2DispSafeArrayAccessData
         | Win16ExportId::Ole2DispSafeArrayUnaccessData
         | Win16ExportId::Ole2DispSafeArrayGetElement
+        | Win16ExportId::Ole2DispSafeArrayPutElement
+        | Win16ExportId::Ole2DispSafeArrayPtrOfIndex
         | Win16ExportId::Ole2DispSafeArrayCopy
         | Win16ExportId::Ole2DispSafeArrayAllocDescriptor
         | Win16ExportId::Ole2DispSafeArrayAllocData

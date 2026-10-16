@@ -2,6 +2,11 @@
 
 macro_rules! graphics_runtime_host_ports {
     () => {
+    fn win16_metafile(&mut self, _operation: crate::Win16HostMetafileOperation)
+        -> Result<crate::Win16HostMetafileResult, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 metafile service is unavailable"))
+    }
     fn win16_create_icon_masks(&mut self, _masks: &crate::Win16HostImageMasks)
         -> Result<Option<Win16HostIcon>, RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap, "host icon mask creation is unavailable"))
@@ -19,6 +24,11 @@ macro_rules! graphics_runtime_host_ports {
         -> Result<Option<Win16HostDc>, RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 screen DC acquisition is unavailable"))
+    }
+    fn win16_acquire_screen_dc_ex(&mut self, _region: Option<Win16HostGdiObject>, _flags: u32)
+        -> Result<Option<Win16HostDc>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 extended screen DC acquisition is unavailable"))
     }
     fn win16_release_screen_dc(&mut self, _dc: Win16HostDc) -> Result<bool, RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
@@ -43,10 +53,20 @@ macro_rules! graphics_runtime_host_ports {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 device capability query is unavailable"))
     }
+    fn win16_enum_objects(&mut self, _dc: Win16HostDc, _object_type: i16)
+        -> Result<Vec<crate::Win16HostGdiObjectRecord>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 GDI object enumeration is unavailable"))
+    }
     fn win16_enum_fonts(&mut self, _dc: Win16HostDc, _face: Option<&[u8]>)
         -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 font enumeration is unavailable"))
+    }
+    fn win16_enum_font_families(&mut self, _dc: Win16HostDc, _face: Option<&[u8]>)
+        -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 font family enumeration is unavailable"))
     }
     fn win16_get_stock_object(&mut self, _index: i16)
         -> Result<Option<Win16HostGdiObject>, RuntimeError> {
@@ -98,6 +118,12 @@ macro_rules! graphics_runtime_host_ports {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 icon release is unavailable"))
     }
+    /// Copy into a new owned image identity, independent of the source owner.
+    fn win16_copy_icon(&mut self, _icon: Win16HostIcon)
+        -> Result<Option<Win16HostIcon>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 icon copying is unavailable"))
+    }
     fn win16_load_system_cursor(&mut self, _id: u16) -> Result<Option<Win16HostCursor>, RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 system cursor lookup is unavailable"))
@@ -113,6 +139,12 @@ macro_rules! graphics_runtime_host_ports {
     fn win16_release_cursor(&mut self, _cursor: Win16HostCursor) -> Result<(), RuntimeError> {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 cursor release is unavailable"))
+    }
+    /// Preserve the cursor shape and hotspot in a new owned image identity.
+    fn win16_copy_cursor(&mut self, _cursor: Win16HostCursor)
+        -> Result<Option<Win16HostCursor>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host Win16 cursor copying is unavailable"))
     }
     };
 }

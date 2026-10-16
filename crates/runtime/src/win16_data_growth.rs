@@ -62,7 +62,8 @@ impl Win16State {
                 };
                 match heap.grow(previous_size) {
                     Ok(()) => {}
-                    Err(LocalHeapGrowthError::NotAtTail { .. } | LocalHeapGrowthError::NoUsableGrowth { .. }) => {
+                    Err(LocalHeapGrowthError::TailNotOwned | LocalHeapGrowthError::NotAtTail { .. }
+                        | LocalHeapGrowthError::NoUsableGrowth { .. }) => {
                         return Ok(None);
                     }
                     Err(LocalHeapGrowthError::Heap(LocalHeapError::OutOfMemory)) => return Ok(None),
@@ -96,8 +97,10 @@ impl Win16State {
                     Err(Win16Error::SelectorBlockInterior | Win16Error::OutOfMemory) => return Ok(None),
                     Err(error) => return Err(crate::runtime_error(error)),
                 };
-                if targets.is_empty() { return Ok(None); }
-                let growth_plan = match self.prepare_legacy_cpu_data_growth(
+                if !targets.iter().any(|(reference, _)| *reference == owner.selector()) {
+                    return Ok(None);
+                }
+                let growth_plan = match self.prepare_legacy_cpu_data_resize(
                     owner, old_size, new_size, &targets, memory,
                 ) {
                     Ok(plan) => plan,
@@ -107,7 +110,7 @@ impl Win16State {
                         "prepare exact automatic-data continuation growth receipts", error)),
                 };
                 if let AutomaticDataOwner::Main { module, selector, segment_flags, base, .. } = owner {
-                    self.preflight_module_image_extent_growth(
+                    self.preflight_module_image_extent_change(
                         module, selector, base, segment_flags, old_size, new_size,
                     )?;
                 }
@@ -115,7 +118,7 @@ impl Win16State {
                 writes.push(original.len()..size);
                 let Some(previous) = copy_ram(memory, address, size)? else { return Ok(None); };
                 let commit = commit_local_spans(memory, address, &bytes, &writes)
-                    .and_then(|()| self.extend_data_owner(owner, original.len(), size, memory));
+                    .and_then(|()| self.resize_data_owner(owner, original.len(), size, memory));
                 if let Err(primary_error) = commit {
                     return match memory.write_physical(address, &previous) {
                         Ok(()) if primary_error.kind() == Kind::ResourceExhausted => Ok(None),
@@ -126,11 +129,11 @@ impl Win16State {
                     };
                 }
                 if let AutomaticDataOwner::Main { module, selector, segment_flags, base, .. } = owner {
-                    self.commit_module_image_extent_growth(
+                    self.commit_module_image_extent_change(
                         module, selector, base, segment_flags, old_size, new_size,
                     );
                 }
-                self.commit_legacy_cpu_data_growth(growth_plan);
+                self.commit_legacy_cpu_data_resize(growth_plan);
                 self.update_loaded_data_size(owner, new_size);
                 return Ok(Some(value));
             }
@@ -140,7 +143,7 @@ impl Win16State {
         }
     }
 
-    fn local_data_owner(
+    pub(super) fn local_data_owner(
         &self, address: PhysAddr, size: usize,
     ) -> Result<Option<AutomaticDataOwner>, RuntimeError> {
         if let Some(reservation) = &self.automatic_data {
@@ -234,13 +237,44 @@ impl Win16State {
                 segment, segment_flags, base: address, capacity,
             }));
         }
+        for (&raw, &allocation) in &self.global_handles {
+            let info = self.heap.info(allocation).map_err(crate::runtime_error)?;
+            if info.base != address || info.size as usize != size || info.discarded { continue; }
+            let Some(&selector) = self.global_selectors.get(&raw) else { continue; };
+            let descriptor = self.selectors.describe(selector).map_err(crate::runtime_error)?;
+            if !descriptor.present || descriptor.base != address || descriptor.limit + 1 != info.size {
+                continue;
+            }
+            if self.clipboard_state.owns_identity(raw, Some(allocation))
+                || self.queued_drop_files.iter().any(|entry| entry.allocation == allocation
+                    && entry.native_pending)
+                || self.toolhelp_interrupt_owns_selector(selector)
+                || info.page_lock_count != 0
+                || self.heap.internal_pin_count(allocation).map_err(crate::runtime_error)? != 0 {
+                return Ok(None);
+            }
+            return Ok(Some(AutomaticDataOwner::Global { allocation, selector, owner: info.owner,
+                base: address, capacity: self.heap.reserved_capacity(allocation)
+                    .map_err(crate::runtime_error)? }));
+        }
         Ok(None)
     }
 
-    fn extend_data_owner(
+    pub(super) fn resize_data_owner(
         &mut self, owner: AutomaticDataOwner, old_size: usize, new_size: usize, memory: &Memory,
     ) -> Result<(), RuntimeError> {
         match owner {
+            AutomaticDataOwner::Global { allocation, owner, base, capacity, .. } => {
+                let info = self.heap.info(allocation).map_err(crate::runtime_error)?;
+                if info.base != base || self.heap.reserved_capacity(allocation)
+                    .map_err(crate::runtime_error)? != capacity {
+                    return Err(RuntimeError::new(Kind::InternalInvariant,
+                        "local-heap data allocation changed before extent commit"));
+                }
+                self.heap.resize_reserved_in_place(allocation, owner,
+                    old_size as u32, new_size as u32, &mut self.selectors, memory)
+                    .map_err(crate::runtime_error)
+            }
             AutomaticDataOwner::Main {
                 module, selector, segment, segment_flags, base, capacity,
             } => {
@@ -269,8 +303,13 @@ impl Win16State {
                     return Err(RuntimeError::new(Kind::InternalInvariant,
                         "Win16 main automatic-data growth owner changed before commit"));
                 }
-                self.selectors.extend_allocation_in_place(base,
-                    old_size as u32, new_size as u32, memory).map_err(crate::runtime_error)?;
+                if new_size > old_size {
+                    self.selectors.extend_allocation_in_place(base,
+                        old_size as u32, new_size as u32, memory).map_err(crate::runtime_error)?;
+                } else {
+                    self.selectors.contract_allocation_in_place(base,
+                        old_size as u32, new_size as u32, memory).map_err(crate::runtime_error)?;
+                }
                 reservation.size = new_size as u32;
                 Ok(())
             }
@@ -308,14 +347,15 @@ impl Win16State {
                     return Err(RuntimeError::new(Kind::InternalInvariant,
                         "Win16 DLL automatic-data growth owner changed before commit"));
                 }
-                allocation.extend_in_place(&mut self.heap, &mut self.selectors, memory,
+                allocation.resize_in_place(&mut self.heap, &mut self.selectors, memory,
                     old_size as u32, new_size as u32)
             }
         }
     }
 
-    fn update_loaded_data_size(&mut self, owner: AutomaticDataOwner, size: u32) {
+    pub(super) fn update_loaded_data_size(&mut self, owner: AutomaticDataOwner, size: u32) {
         match owner {
+            AutomaticDataOwner::Global { .. } => {}
             AutomaticDataOwner::Main { module, selector, segment, .. } => {
                 for loaded_segment in &mut self.loaded.segments {
                     if loaded_segment.number == segment && loaded_segment.selector.0 == selector.raw().0 {

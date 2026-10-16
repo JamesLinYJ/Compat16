@@ -1,0 +1,64 @@
+module = "KERNEL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 68
+name = "InitAtomTable"
+binding = { rust_id = "KernelInitAtomTable", id_value = 175, constant = "KERNEL_INIT_ATOM_TABLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "buckets", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 69
+name = "FindAtom"
+binding = { rust_id = "KernelFindAtom", id_value = 176, constant = "KERNEL_FIND_ATOM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "name", type = "AtomName" },
+]
+
+[[exports]]
+ordinal = 70
+name = "AddAtom"
+binding = { rust_id = "KernelAddAtom", id_value = 177, constant = "KERNEL_ADD_ATOM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "name", type = "AtomName" },
+]
+
+[[exports]]
+ordinal = 71
+name = "DeleteAtom"
+binding = { rust_id = "KernelDeleteAtom", id_value = 178, constant = "KERNEL_DELETE_ATOM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "atom", type = "U16" },
+]
+
+[[exports]]
+ordinal = 72
+name = "GetAtomName"
+binding = { rust_id = "KernelGetAtomName", id_value = 179, constant = "KERNEL_GET_ATOM_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "atom", type = "U16" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "capacity", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 73
+name = "GetAtomHandle"
+binding = { rust_id = "KernelGetAtomHandle", id_value = 180, constant = "KERNEL_GET_ATOM_HANDLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "atom", type = "U16" },
+]

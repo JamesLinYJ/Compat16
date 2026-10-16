@@ -4,6 +4,13 @@ use crate::SegmentedPointer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16WinnlsRequest {
+    EnableIme {
+        hwnd: u16,
+        enable: bool,
+    },
+    GetEnableStatus {
+        hwnd: u16,
+    },
     QueryIme {
         /// Only the name is input; the remaining profile fields are output.
         /// `None` denotes an invalid input pointer, not an empty query name.

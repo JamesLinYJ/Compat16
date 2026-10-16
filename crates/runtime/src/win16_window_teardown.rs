@@ -11,7 +11,7 @@ impl Win16State {
         if self.window_teardown_state == super::super::WindowTeardownState::Closed {
             return Ok(());
         }
-        self.close_window_property_callbacks()?;
+        self.close_native_function_callbacks()?;
         if !self.window_callbacks.is_empty()
             || self.callback_kinds.contains(&CallbackKind::Window)
             || !self.window_operations.is_empty()
@@ -67,6 +67,9 @@ impl Win16State {
             super::super::WindowTeardownState::Closed => return Ok(()),
             super::super::WindowTeardownState::Live => {
                 self.window_teardown_state = super::super::WindowTeardownState::AbortPending;
+                // Pending HDWPs contain only owned Rust positions. Abandon
+                // them before native teardown can invoke or cancel callbacks.
+                self.deferred_window_batches.clear();
             }
             super::super::WindowTeardownState::AbortPending
             | super::super::WindowTeardownState::NativeQuiescent => {}
@@ -448,16 +451,16 @@ impl Win16State {
                     && window_callback_host_token(frame.continuation)
                         == Some(cancellation.callback)
             ).count();
-            let property_matches = self.window_property_callbacks.iter().filter(|frame|
-                self.terminal_window_property_callback_identity(frame.callback_id)
+            let function_matches = self.native_function_callbacks.iter().filter(|frame|
+                self.terminal_native_function_callback_identity(frame.callback_id)
                     == Some((cancellation.callback, cancellation.operation_id, cancellation.source))
             ).count();
             let runtime_candidates = self.window_callbacks.iter().filter(|frame|
                 frame.host_operation == Some(cancellation.operation_id)
                     || window_callback_host_token(frame.continuation)
                         == Some(cancellation.callback)
-            ).count() + self.window_property_callbacks.iter().filter(|frame|
-                self.terminal_window_property_callback_identity(frame.callback_id)
+            ).count() + self.native_function_callbacks.iter().filter(|frame|
+                self.terminal_native_function_callback_identity(frame.callback_id)
                     .is_some_and(|(callback, operation, _)|
                         operation == cancellation.operation_id || callback == cancellation.callback)
             ).count();
@@ -486,9 +489,9 @@ impl Win16State {
                     }
                 }
             }
-            if window_matches + property_matches > 1
+            if window_matches + function_matches > 1
                 || retired_proof_count > 1
-                || (runtime_candidates != 0 && window_matches + property_matches != 1)
+                || (runtime_candidates != 0 && window_matches + function_matches != 1)
                 || (runtime_candidates == 0 && retired_proof_count != 1)
                 || !retired_proof_valid
             {
@@ -515,9 +518,9 @@ impl Win16State {
                     "native callback frame lacks its exact abort cancellation receipt"));
             }
         }
-        for frame in &self.window_property_callbacks {
+        for frame in &self.native_function_callbacks {
             let Some((callback, operation, source)) =
-                self.terminal_window_property_callback_identity(frame.callback_id)
+                self.terminal_native_function_callback_identity(frame.callback_id)
             else { continue; };
             if receipt.cancelled_callbacks.iter().filter(|item|
                 item.callback == callback && item.operation_id == operation && item.source == source

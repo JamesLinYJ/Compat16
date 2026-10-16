@@ -16,8 +16,17 @@ pub(in crate::win16_runtime) fn consume_source_retirements(
     continuation: &mut Win16DdeContinuation,
     host: &mut impl RuntimeHost,
 ) -> Result<(), RuntimeError> {
+    continuation.validate_source_record_identities()?;
+    if continuation.normal_source_retirements.iter().any(|entry|
+        entry.shutdown.is_some() || (entry.transfer_guard.is_some() && !entry.transfer_settled))
+    {
+        return Err(invariant("DDE normal consumption preceded exact local transfer settlement"));
+    }
     for index in 0..continuation.normal_source_retirements().len() {
         let entry = &continuation.normal_source_retirements()[index];
+        if entry.shutdown.is_some() {
+            return Err(invariant("normal DDE consumption replayed after terminal settlement began"));
+        }
         if entry.consumed() {
             continue;
         }
@@ -64,10 +73,25 @@ pub(in crate::win16_runtime) struct Win16DdeNormalCompletion {
 
 #[derive(Clone)]
 pub(in crate::win16_runtime) struct Win16DdeSourceRetirementRecord {
-    proof: Arc<Win16DdeSourceRetiredProof>,
-    result: Win16HostDdeResult,
-    consumed: bool,
+    pub(super) native_input_instance: Option<Option<crate::Win16HostDdeInstance>>,
+    pub(super) request: win16_abi::Win16DdeRequest,
+    pub(super) instance: Option<u32>,
+    pub(super) transaction_output: bool,
+    pub(super) transfer_guard: Option<super::DdeDataTransferGuard>,
+    pub(super) transfer_settled: bool,
+    pub(super) shutdown: Option<Win16DdeNormalShutdown>,
+    pub(super) proof: Arc<Win16DdeSourceRetiredProof>,
+    pub(super) result: Win16HostDdeResult,
+    pub(super) consumed: bool,
     first_failure: Option<Arc<RuntimeError>>,
+}
+
+/// Kept separately from normal consumption: the original source proof/result
+/// remain available across a lost shutdown ACK reply.
+#[derive(Clone)]
+pub(super) struct Win16DdeNormalShutdown {
+    pub(super) proof: crate::Win16DdeOperationRetirementProof,
+    pub(super) acknowledged: bool,
 }
 
 impl Win16DdeSourceRetirementRecord {
@@ -224,6 +248,10 @@ impl Win16DdeContinuation {
             }
         }
         self.cached_normal_completion = None;
+        self.native_input_instance = None;
+        self.transfer_guard_retired = false;
+        self.operation_retirement_proof = None;
+        self.operation_retirement_acknowledged = false;
         Ok(())
     }
 
@@ -263,7 +291,7 @@ impl Win16DdeContinuation {
                 "DDE completion result matches duplicate source-retirement proofs",
             ));
         }
-        if entry.consumed {
+        if entry.consumed || entry.shutdown.is_some() {
             return Err(invariant(
                 "DDE completion replayed after its source-retirement proof was consumed",
             ));
@@ -391,12 +419,150 @@ impl Win16DdeContinuation {
             completion.pending_source_proof = None;
         }
         self.normal_source_retirements.push(Win16DdeSourceRetirementRecord {
+            native_input_instance: self.native_input_instance,
+            request: self.request.clone(),
+            instance: self.instance,
+            transaction_output: self.outputs.transaction_result.is_some(),
+            transfer_guard: self.data_transfer_guard,
+            transfer_settled: self.transfer_guard_retired,
+            shutdown: None,
             proof,
             result,
             consumed: false,
             first_failure: inherited_failure,
         });
         Ok(())
+    }
+
+    pub(super) fn capture_native_input_identity(
+        &mut self,
+        dde: &crate::win16_dde::Win16DdeState,
+    ) -> Result<(), RuntimeError> {
+        let normal_source = self.has_normal_source_for_current_operation();
+        if let win16_abi::Win16DdeRequest::Initialize {
+            initial_instance, callback, ..
+        } = self.request {
+            let candidate = self.callback_candidate.ok_or_else(|| invariant(
+                "DDE initialization lost its staged callback input owner"))?;
+            if self.guest_instance() != Some(candidate.guest_instance)
+                || candidate.reinitializing != (initial_instance != 0)
+                || (initial_instance != 0 && candidate.guest_instance != initial_instance)
+                || candidate.callback != callback
+                || (!normal_source && (dde.instance_for_route(candidate.route) != Some(candidate.guest_instance)
+                    || dde.callback_for_route(candidate.route) != Some(callback)))
+            {
+                return Err(invariant("DDE initialization changed its retained callback input owner"));
+            }
+        }
+        let input = match self.native_input_instance {
+            Some(input) => {
+                match self.native_input_guest_instance() {
+                    Some(guest) => {
+                        let live = dde.host_instance(guest);
+                        if live != input && !(normal_source && live.is_none()) {
+                            return Err(invariant("DDE input owner differs from its captured native instance"));
+                        }
+                    }
+                    None if input.is_some() => return Err(invariant(
+                        "DDE request lost its captured explicit native instance input")),
+                    None => {}
+                }
+                input
+            },
+            None => {
+                self.native_input_guest_instance().map(|guest| dde.host_instance(guest)
+                    .ok_or_else(|| invariant("DDE input owner lost its original native instance")))
+                    .transpose()?
+            }
+        };
+        for entry in self.normal_source_retirements.iter_mut().filter(|entry|
+            Some(entry.proof.operation) == self.host_operation)
+        {
+            if entry.native_input_instance.is_some_and(|saved| saved != input) {
+                return Err(invariant("DDE normal source changed its captured native input"));
+            }
+            entry.native_input_instance = Some(input);
+        }
+        self.native_input_instance = Some(input);
+        Ok(())
+    }
+
+    pub(super) fn validate_source_record_identities(&self) -> Result<(), RuntimeError> {
+        for (index, entry) in self.normal_source_retirements.iter().enumerate() {
+            if !entry.proof.has_valid_identity()
+                || self.host_owner_identity() != Some((entry.proof.owner, entry.proof.worker_generation))
+                || self.normal_source_retirements[..index].iter().any(|prior|
+                    prior.proof.operation == entry.proof.operation)
+                || (entry.consumed && (entry.shutdown.is_some()
+                    || (entry.transfer_guard.is_some() && !entry.transfer_settled)))
+            {
+                return Err(invariant("DDE normal source records have conflicting or duplicate identities"));
+            }
+        }
+        if let Some(entry) = self.normal_source_retirements.iter().find(|entry|
+            Some(entry.proof.operation) == self.host_operation)
+        {
+            if entry.request != self.request || entry.instance != self.instance
+                || entry.transfer_guard != self.data_transfer_guard
+                || entry.native_input_instance != self.native_input_instance
+                || self.operation_retirement_proof.as_ref().is_some_and(|proof|
+                    entry.shutdown.as_ref().is_none_or(|shutdown| shutdown.proof != *proof))
+            {
+                return Err(invariant("DDE current normal record changed its continuation ownership"));
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn validate_transfer_settlement_record(
+        &self, result: &Win16HostDdeResult,
+    ) -> Result<(), RuntimeError> {
+        self.validate_source_record_identities()?;
+        let entry = self.normal_source_retirements.iter().find(|entry|
+            Some(entry.proof.operation) == self.host_operation)
+            .ok_or_else(|| invariant("DDE transfer settlement has no exact normal source record"))?;
+        if entry.result != *result || entry.transfer_guard != self.data_transfer_guard
+            || entry.transfer_settled != self.transfer_guard_retired || entry.consumed
+            || entry.shutdown.is_some()
+        {
+            return Err(invariant("DDE transfer settlement changed its cached result or owner phase"));
+        }
+        Ok(())
+    }
+
+    pub(super) fn require_transfer_settlement(
+        &self, result: &Win16HostDdeResult,
+    ) -> Result<(), RuntimeError> {
+        self.validate_transfer_settlement_record(result)?;
+        if !self.transfer_guard_retired {
+            return Err(invariant("DDE transfer has no committed local settlement"));
+        }
+        Ok(())
+    }
+
+    pub(super) fn mark_transfer_settled(&mut self, result: &Win16HostDdeResult) {
+        let entry = self.normal_source_retirements.iter_mut().find(|entry|
+            Some(entry.proof.operation) == self.host_operation)
+            .expect("prevalidated exact DDE transfer settlement record");
+        debug_assert_eq!(entry.result, *result);
+        entry.transfer_settled = true;
+        self.transfer_guard_retired = true;
+    }
+
+    pub(in crate::win16_runtime) fn normal_source_history_consumed(&self) -> bool {
+        self.normal_source_retirements.iter().all(|entry| entry.consumed)
+            && self.validate_source_record_identities().is_ok()
+    }
+
+    pub(in crate::win16_runtime) fn all_normal_sources_consumed(&self) -> bool {
+        self.host_operation.is_some_and(|operation| self.normal_source_retirements.iter()
+            .any(|entry| entry.proof.operation == operation && entry.consumed))
+            && self.normal_source_history_consumed()
+    }
+
+    pub(in crate::win16_runtime) fn has_normal_source_for_current_operation(&self) -> bool {
+        self.host_operation.is_some_and(|operation| self.normal_source_retirements.iter()
+            .any(|entry| entry.proof.operation == operation))
     }
 
     pub(in crate::win16_runtime) fn reserve_source_retirement_record(

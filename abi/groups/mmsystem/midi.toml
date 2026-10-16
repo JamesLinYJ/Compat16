@@ -1,0 +1,421 @@
+module = "MMSYSTEM"
+
+[[exports]]
+ordinal = 201
+name = "midiOutGetNumDevs"
+binding = { rust_id = "MidiOutGetNumDevs", id_value = 941, constant = "MMSYSTEM_MIDI_OUT_GET_NUM_DEVS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 202
+name = "midiOutGetDevCaps"
+binding = { rust_id = "MidiOutGetDevCaps", id_value = 942, constant = "MMSYSTEM_MIDI_OUT_GET_DEV_CAPS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device_id", type = "U16" },
+  { name = "caps", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 203
+name = "midiOutGetErrorText"
+binding = { rust_id = "MidiOutGetErrorText", id_value = 943, constant = "MMSYSTEM_MIDI_OUT_GET_ERROR_TEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "error", type = "U16" },
+  { name = "text", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 204
+name = "midiOutOpen"
+binding = { rust_id = "MidiOutOpen", id_value = 944, constant = "MMSYSTEM_MIDI_OUT_OPEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "FarOutputBuffer" },
+  { name = "device_id", type = "U16" },
+  { name = "callback", type = "U32" },
+  { name = "instance", type = "U32" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 205
+name = "midiOutClose"
+binding = { rust_id = "MidiOutClose", id_value = 945, constant = "MMSYSTEM_MIDI_OUT_CLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 206
+name = "midiOutPrepareHeader"
+binding = { rust_id = "MidiOutPrepareHeader", id_value = 946, constant = "MMSYSTEM_MIDI_OUT_PREPARE_HEADER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 207
+name = "midiOutUnprepareHeader"
+binding = { rust_id = "MidiOutUnprepareHeader", id_value = 947, constant = "MMSYSTEM_MIDI_OUT_UNPREPARE_HEADER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 208
+name = "midiOutShortMsg"
+binding = { rust_id = "MidiOutShortMsg", id_value = 948, constant = "MMSYSTEM_MIDI_OUT_SHORT_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "message", type = "U32" },
+]
+
+[[exports]]
+ordinal = 209
+name = "midiOutLongMsg"
+binding = { rust_id = "MidiOutLongMsg", id_value = 949, constant = "MMSYSTEM_MIDI_OUT_LONG_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 210
+name = "midiOutReset"
+binding = { rust_id = "MidiOutReset", id_value = 950, constant = "MMSYSTEM_MIDI_OUT_RESET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 211
+name = "midiOutGetVolume"
+binding = { rust_id = "MidiOutGetVolume", id_value = 951, constant = "MMSYSTEM_MIDI_OUT_GET_VOLUME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "volume", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 212
+name = "midiOutSetVolume"
+binding = { rust_id = "MidiOutSetVolume", id_value = 952, constant = "MMSYSTEM_MIDI_OUT_SET_VOLUME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "volume", type = "U32" },
+]
+
+[[exports]]
+ordinal = 213
+name = "midiOutCachePatches"
+binding = { rust_id = "MidiOutCachePatches", id_value = 953, constant = "MMSYSTEM_MIDI_OUT_CACHE_PATCHES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "bank", type = "U16" },
+  { name = "patches", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 214
+name = "midiOutCacheDrumPatches"
+binding = { rust_id = "MidiOutCacheDrumPatches", id_value = 954, constant = "MMSYSTEM_MIDI_OUT_CACHE_DRUM_PATCHES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "patch", type = "U16" },
+  { name = "keys", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 215
+name = "midiOutGetID"
+binding = { rust_id = "MidiOutGetId", id_value = 955, constant = "MMSYSTEM_MIDI_OUT_GET_ID" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "device_id", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 216
+name = "midiOutMessage"
+binding = { rust_id = "MidiOutMessage", id_value = 956, constant = "MMSYSTEM_MIDI_OUT_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "device", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "parameter1", type = "U32" },
+  { name = "parameter2", type = "U32" },
+]
+
+[[exports]]
+ordinal = 250
+name = "midiStreamProperty"
+binding = { rust_id = "MidiStreamProperty", id_value = 957, constant = "MMSYSTEM_MIDI_STREAM_PROPERTY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "stream", type = "U16" },
+  { name = "property", type = "FarBuffer" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 251
+name = "midiStreamOpen"
+binding = { rust_id = "MidiStreamOpen", id_value = 958, constant = "MMSYSTEM_MIDI_STREAM_OPEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "stream", type = "FarOutputBuffer" },
+  { name = "devices", type = "FarBuffer" },
+  { name = "count", type = "U32" },
+  { name = "callback", type = "U32" },
+  { name = "instance", type = "U32" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 252
+name = "midiStreamClose"
+binding = { rust_id = "MidiStreamClose", id_value = 959, constant = "MMSYSTEM_MIDI_STREAM_CLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 253
+name = "midiStreamPosition"
+binding = { rust_id = "MidiStreamPosition", id_value = 960, constant = "MMSYSTEM_MIDI_STREAM_POSITION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "stream", type = "U16" },
+  { name = "time", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 254
+name = "midiStreamOut"
+binding = { rust_id = "MidiStreamOut", id_value = 961, constant = "MMSYSTEM_MIDI_STREAM_OUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "stream", type = "U16" },
+  { name = "header", type = "FarBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 255
+name = "midiStreamPause"
+binding = { rust_id = "MidiStreamPause", id_value = 962, constant = "MMSYSTEM_MIDI_STREAM_PAUSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 256
+name = "midiStreamRestart"
+binding = { rust_id = "MidiStreamRestart", id_value = 963, constant = "MMSYSTEM_MIDI_STREAM_RESTART" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 257
+name = "midiStreamStop"
+binding = { rust_id = "MidiStreamStop", id_value = 964, constant = "MMSYSTEM_MIDI_STREAM_STOP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 301
+name = "midiInGetNumDevs"
+binding = { rust_id = "MidiInGetNumDevs", id_value = 965, constant = "MMSYSTEM_MIDI_IN_GET_NUM_DEVS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 302
+name = "midiInGetDevCaps"
+binding = { rust_id = "MidiInGetDevCaps", id_value = 966, constant = "MMSYSTEM_MIDI_IN_GET_DEV_CAPS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device_id", type = "U16" },
+  { name = "caps", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 303
+name = "midiInGetErrorText"
+binding = { rust_id = "MidiInGetErrorText", id_value = 967, constant = "MMSYSTEM_MIDI_IN_GET_ERROR_TEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "error", type = "U16" },
+  { name = "text", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 304
+name = "midiInOpen"
+binding = { rust_id = "MidiInOpen", id_value = 968, constant = "MMSYSTEM_MIDI_IN_OPEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "FarOutputBuffer" },
+  { name = "device_id", type = "U16" },
+  { name = "callback", type = "U32" },
+  { name = "instance", type = "U32" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 305
+name = "midiInClose"
+binding = { rust_id = "MidiInClose", id_value = 969, constant = "MMSYSTEM_MIDI_IN_CLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 306
+name = "midiInPrepareHeader"
+binding = { rust_id = "MidiInPrepareHeader", id_value = 970, constant = "MMSYSTEM_MIDI_IN_PREPARE_HEADER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 307
+name = "midiInUnprepareHeader"
+binding = { rust_id = "MidiInUnprepareHeader", id_value = 971, constant = "MMSYSTEM_MIDI_IN_UNPREPARE_HEADER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 308
+name = "midiInAddBuffer"
+binding = { rust_id = "MidiInAddBuffer", id_value = 972, constant = "MMSYSTEM_MIDI_IN_ADD_BUFFER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "header", type = "FarBuffer", encoding = "segmented_pointer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 309
+name = "midiInStart"
+binding = { rust_id = "MidiInStart", id_value = 973, constant = "MMSYSTEM_MIDI_IN_START" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 310
+name = "midiInStop"
+binding = { rust_id = "MidiInStop", id_value = 974, constant = "MMSYSTEM_MIDI_IN_STOP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 311
+name = "midiInReset"
+binding = { rust_id = "MidiInReset", id_value = 975, constant = "MMSYSTEM_MIDI_IN_RESET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 312
+name = "midiInGetID"
+binding = { rust_id = "MidiInGetId", id_value = 976, constant = "MMSYSTEM_MIDI_IN_GET_ID" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "device_id", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 313
+name = "midiInMessage"
+binding = { rust_id = "MidiInMessage", id_value = 977, constant = "MMSYSTEM_MIDI_IN_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "device", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "parameter1", type = "U32" },
+  { name = "parameter2", type = "U32" },
+]

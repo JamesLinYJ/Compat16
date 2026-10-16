@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use super::{
-    callback_binding_error, combine_callback_failure, AsynchronousCallbackPhase,
+    callback_binding_error, AsynchronousCallbackPhase,
     AsynchronousCallbackRetirement, Win16State,
 };
 use crate::{DiagnosticKind as Kind, RuntimeError};
@@ -13,9 +13,10 @@ impl Win16State {
     pub(in crate::win16_runtime) fn finish_asynchronous_guest_callback(
         &mut self,
         cpu: &mut x86_cpu::Cpu,
-        _memory: &mut Memory,
+        dos: &mut dos_kernel::DosKernel,
+        memory: &mut Memory,
     ) -> Result<AsynchronousCallbackRetirement, RuntimeError> {
-        let (callback_id, callback_token, phase, context, active_call, previous_failure) = {
+        let (callback_id, callback_token, phase, mut active_call) = {
             let frame = self.callback_scheduler.active.last().ok_or_else(||
                 RuntimeError::new(Kind::GuestFault,
                     "Win16 callback gate has no asynchronous callback frame"))?;
@@ -24,29 +25,25 @@ impl Win16State {
                 frame.callback_id,
                 frame.callback_token,
                 frame.phase,
-                frame.context.clone(),
                 frame.active_call.clone(),
-                frame.return_failure.clone(),
             )
         };
-        cpu.check_context(&context).map_err(|error| {
-            combine_restore_failure(previous_failure, RuntimeError::from(error))
-        })?;
         if phase == AsynchronousCallbackPhase::Guest {
-            // Validate the FAR return on a temporary image. The original full
-            // CpuContext remains the continuation's sole restore source.
-            let mut registers = cpu.regs.clone();
+            // A completed checked FAR return restores only this callback's
+            // register/x87 policy. Enclosing tickets and live events survive.
             {
                 let frame = self.callback_scheduler.active.last_mut().ok_or_else(||
                     callback_binding_error("asynchronous callback frame disappeared"))?;
                 frame.phase = AsynchronousCallbackPhase::ReturnValidation;
             }
-            let returned = self.finish_guest_callback_entry(
-                &mut registers,
-                active_call,
+            let returned = self.finish_guest_callback_entry_checked(
+                cpu, dos, memory, &mut active_call,
             );
             let frame = self.callback_scheduler.active.last_mut().ok_or_else(||
                 callback_binding_error("asynchronous callback frame disappeared"))?;
+            // Publish even a partially successful CPU-owner transition before
+            // returning an error; cleanup retries must not replay the restore.
+            frame.active_call = active_call;
             match returned {
                 Ok(()) => frame.phase = AsynchronousCallbackPhase::Returned,
                 Err(error) => {
@@ -64,9 +61,6 @@ impl Win16State {
         let return_failure = self.callback_scheduler.active.last().ok_or_else(||
             callback_binding_error("asynchronous callback frame disappeared before restoration"))?
             .return_failure.clone();
-        cpu.restore_context(&context).map_err(|error| {
-            combine_restore_failure(return_failure.clone(), RuntimeError::from(error))
-        })?;
         if let Some(error) = return_failure {
             // Preserve the exact original cause for a retry or terminal
             // cancellation; neither callback stack is retired on this path.
@@ -102,7 +96,7 @@ impl Win16State {
             self.validate_asynchronous_callback_retirement(retirement)?;
             Ok(retirement)
         } else {
-            let retirement = self.retire_asynchronous_callback_top(callback_id, callback_token)?;
+            let retirement = self.retire_asynchronous_callback_top(dos, memory, callback_id, callback_token)?;
             self.callback_scheduler.retire_requested_registration(callback_token);
             Ok(retirement)
         }
@@ -133,11 +127,13 @@ impl Win16State {
     /// Called only after the family source has accepted this exact receipt.
     pub(in crate::win16_runtime) fn complete_asynchronous_callback_retirement(
         &mut self,
+        dos: &mut dos_kernel::DosKernel,
+        memory: &mut Memory,
         retirement: AsynchronousCallbackRetirement,
     ) -> Result<(), RuntimeError> {
         self.validate_asynchronous_callback_retirement(retirement)?;
         self.retire_asynchronous_callback_top(
-            retirement.callback_id, retirement.callback_token,
+            dos, memory, retirement.callback_id, retirement.callback_token,
         )?;
         self.callback_scheduler.retire_requested_registration(retirement.callback_token);
         Ok(())
@@ -195,7 +191,10 @@ impl Win16State {
     /// Cancellation restores state without synthesizing a guest FAR return.
     pub(in crate::win16_runtime) fn cancel_asynchronous_callback_for_teardown(
         &mut self,
+        ended: &super::super::execute::Win16TaskExecutionEnded,
         cpu: &mut x86_cpu::Cpu,
+        dos: &mut dos_kernel::DosKernel,
+        memory: &mut Memory,
     ) -> Result<AsynchronousCallbackRetirement, RuntimeError> {
         let frame = self.callback_scheduler.active.last().ok_or_else(||
             RuntimeError::new(Kind::GuestFault,
@@ -203,16 +202,18 @@ impl Win16State {
         let callback_id = frame.callback_id;
         let callback_token = frame.callback_token;
         self.require_asynchronous_callback_top(callback_id, callback_token)?;
-        if frame.source_bound {
+        let source_bound = frame.source_bound;
+        let mut active_call = frame.active_call.clone();
+        if source_bound {
             self.callback_scheduler.reserve_source_retirement()?;
         }
-        {
-            let frame = self.callback_scheduler.active.last_mut().ok_or_else(||
-                callback_binding_error("asynchronous callback frame disappeared before cancellation"))?;
-            cpu.restore_context(&frame.context).map_err(|error| {
-                combine_restore_failure(frame.return_failure.clone(), RuntimeError::from(error))
-            })?;
-        }
+        let aborted = self.abort_guest_callback_entry_after_task_execution_ended(
+            ended, callback_id, cpu, dos, memory, &mut active_call,
+        );
+        self.callback_scheduler.active.last_mut().ok_or_else(||
+            callback_binding_error("asynchronous callback frame disappeared during cancellation"))?
+            .active_call = active_call;
+        aborted?;
         let mut buffers = {
             let frame = self.callback_scheduler.active.last_mut().ok_or_else(||
                 callback_binding_error("asynchronous callback frame disappeared before cancellation"))?;
@@ -224,24 +225,12 @@ impl Win16State {
             }
             return Err(error);
         }
-        let mut retirement = self.retire_asynchronous_callback_top(callback_id, callback_token)?;
+        let mut retirement = self.retire_asynchronous_callback_top(dos, memory, callback_id, callback_token)?;
         retirement.terminal_cancelled = true;
         if retirement.source_bound {
             self.callback_scheduler.retain_source_retirement(retirement);
         }
         self.callback_scheduler.retire_requested_registration(retirement.callback_token);
         Ok(retirement)
-    }
-}
-
-fn combine_restore_failure(
-    primary: Option<Arc<RuntimeError>>,
-    restore: RuntimeError,
-) -> RuntimeError {
-    match primary {
-        Some(primary) => combine_callback_failure(
-            primary, restore, "restore the interrupted CPU after asynchronous callback failure",
-        ),
-        None => restore,
     }
 }

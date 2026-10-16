@@ -1,0 +1,118 @@
+module = "NDDEAPI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 100
+name = "NDdeShareAdd"
+decl = { args = ["string", "word", "pointer", "long"] }
+
+[[exports]]
+ordinal = 101
+name = "NDdeShareDel"
+decl = { args = ["string", "string", "word"] }
+
+[[exports]]
+ordinal = 102
+name = "NDdeShareEnum"
+decl = { args = ["string", "word", "pointer", "long", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 103
+name = "NDdeShareGetInfo"
+decl = { args = ["string", "string", "word", "pointer", "long", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 104
+name = "NDdeShareSetInfo"
+decl = { args = ["string", "string", "word", "pointer", "long", "word"] }
+
+[[exports]]
+ordinal = 105
+name = "NDdeGetClientInfo"
+decl = { args = ["word", "string", "long", "string", "long"] }
+
+[[exports]]
+ordinal = 106
+name = "NDdeGetNodeName"
+decl = { args = ["string", "long"] }
+
+[[exports]]
+ordinal = 107
+name = "NDdeGetErrorString"
+decl = { args = ["word", "string", "long"] }
+
+[[exports]]
+ordinal = 108
+name = "NDdeConnectionEnum"
+decl = { args = ["string", "string", "long", "word", "pointer", "long", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 109
+name = "NDdeIsValidShareName"
+decl = { args = ["string"] }
+
+[[exports]]
+ordinal = 110
+name = "NDdeIsValidPassword"
+decl = { args = ["string"] }
+
+[[exports]]
+ordinal = 111
+name = "NDdeIsValidTopic"
+decl = { args = ["string"] }
+
+[[exports]]
+ordinal = 112
+name = "NDdeSessionEnum"
+decl = { args = ["string", "word", "pointer", "long", "pointer", "pointer"] }
+
+[[exports]]
+ordinal = 113
+name = "NDdeSessionClose"
+decl = { args = ["string", "string", "long"] }
+
+[[exports]]
+ordinal = 114
+name = "NDdeGetWindow"
+
+[[exports]]
+ordinal = 115
+name = "NDDEISSHARINGALLOWED"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 200
+name = "PASSWORDGETFROMUSERMODELESS"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 201
+name = "PASSWORDGETFROMCACHE"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 202
+name = "PASSWORDADDTOCACHE"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 203
+name = "GETCURRENTUSERDOMAINNAME"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 204
+name = "PASSWDDLGWB"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 205
+name = "PASSWDDLGNT"
+kind = "stub"
+decl = { attributes = [] }

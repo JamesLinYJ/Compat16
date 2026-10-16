@@ -234,6 +234,7 @@ fn property_enum_callback_inner(
         creation_cookie: None,
         mdi_create_struct: None,
     });
+    crate::windows::win16_gdi::flush_thread_batch();
     if active.response.send(Ok(Win16WindowStep::WindowPropertyCallback {
         operation_id: runtime::Win16HostWindowOperationId(active.id),
         callback,

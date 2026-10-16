@@ -1,0 +1,8 @@
+module = "MSACM"
+
+[[exports]]
+ordinal = 7
+name = "acmGetVersion"
+binding = { rust_id = "MsacmGetVersion", id_value = 1030, constant = "MSACM_GET_VERSION" }
+[exports.call]
+returns = "dword"

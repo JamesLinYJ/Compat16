@@ -23,7 +23,8 @@ impl Win16State {
             Win16ApiRequest::NetworkRedirector(request) => {
                 u32::from(self.dispatch_network_redirector(request, memory, host)?)
             }
-            request @ Win16ApiRequest::User(win16_abi::Win16UserRequest::Mdi(_)) => {
+            request @ (Win16ApiRequest::User(win16_abi::Win16UserRequest::Mdi(_))
+                | Win16ApiRequest::User(win16_abi::Win16UserRequest::ChildLookup(_))) => {
                 return self.begin_window_api(registers, memory, host, request, return_to, descriptor.return_kind);
             }
             Win16ApiRequest::WindowData(request) => {
@@ -35,6 +36,10 @@ impl Win16State {
                     (return_selector, return_offset, return_sp),
                 );
             }
+            Win16ApiRequest::ClassData(request) => self.access_class_data(request, memory, host)?,
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::GetWindowTask { window },
+            )) => u32::from(self.get_window_task(window, memory, host)?),
             Win16ApiRequest::WindowProperties(request) => {
                 return self.begin_window_properties(
                     registers,
@@ -57,6 +62,9 @@ impl Win16State {
                 | win16_abi::Win16UserMessagesRequest::PostAppMessage { .. }
                 | win16_abi::Win16UserMessagesRequest::GetMessagePos
                 | win16_abi::Win16UserMessagesRequest::GetMessageTime
+                | win16_abi::Win16UserMessagesRequest::GetMessageExtraInfo
+                | win16_abi::Win16UserMessagesRequest::InSendMessage
+                | win16_abi::Win16UserMessagesRequest::ReplyMessage { .. }
                 | win16_abi::Win16UserMessagesRequest::CallWindowProc { .. }
                 | win16_abi::Win16UserMessagesRequest::GetKeyboardState { .. }
                 | win16_abi::Win16UserMessagesRequest::SetKeyboardState { .. }
@@ -80,45 +88,17 @@ impl Win16State {
                     (return_selector, return_offset, return_sp),
                 );
             }
-            request @ (Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::SetRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::IsRectEmpty { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::PtInRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::OffsetRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::InflateRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::IntersectRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::GetWindowRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::GetClientRect { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::ClientToScreen { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::GetCursorPos { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::GetWindowPlacement { .. }
-                | win16_abi::Win16UserGeometryRequest::SetWindowPlacement { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::ScreenToClient { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::WindowFromPoint { .. },
+            // Geometry requests share checked guest-memory marshalling and
+            // return handling. Route the family together so new rectangle
+            // helpers cannot be decoded but omitted from runtime dispatch.
+            request @ (Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(_))
+            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::CreateCaret { .. }
+                | win16_abi::Win16UserWindowRequest::DestroyCaret
+                | win16_abi::Win16UserWindowRequest::SetCaretPos { .. }
+                | win16_abi::Win16UserWindowRequest::HideCaret { .. }
+                | win16_abi::Win16UserWindowRequest::ShowCaret { .. }
+                | win16_abi::Win16UserWindowRequest::GetCaretPos { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetClassName { .. },
@@ -126,14 +106,12 @@ impl Win16State {
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::FindWindow { .. },
             ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::SetWindowPos { .. },
-            ))
-            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Geometry(
-                win16_abi::Win16UserGeometryRequest::MoveWindow { .. },
-            ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
-                win16_abi::Win16UserWindowRequest::IsIconic { .. },
+                win16_abi::Win16UserWindowRequest::CloseWindow { .. }
+                | win16_abi::Win16UserWindowRequest::ArrangeIconicWindows { .. }
+                | win16_abi::Win16UserWindowRequest::FlashWindow { .. }
+                | win16_abi::Win16UserWindowRequest::OpenIcon { .. }
+                | win16_abi::Win16UserWindowRequest::IsIconic { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::EnableWindow { .. },
@@ -181,7 +159,8 @@ impl Win16State {
                 win16_abi::Win16UserWindowRequest::GetDlgCtrlID { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
-                win16_abi::Win16UserWindowRequest::GetDesktopWindow,
+                win16_abi::Win16UserWindowRequest::GetDesktopWindow
+                | win16_abi::Win16UserWindowRequest::WindowFromDC { .. },
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetLastActivePopup { .. },
@@ -272,6 +251,10 @@ impl Win16State {
                 request @ (win16_abi::Win16UserResourcesRequest::CreateIcon { .. }
                     | win16_abi::Win16UserResourcesRequest::CreateCursor { .. }),
             )) => u32::from(self.create_image_masks(request, memory, host)?),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Resources(
+                request @ (win16_abi::Win16UserResourcesRequest::CopyIcon { .. }
+                    | win16_abi::Win16UserResourcesRequest::CopyCursor { .. }),
+            )) => u32::from(self.copy_user_image(request, host)?),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Messages(
                 win16_abi::Win16UserMessagesRequest::SetMessageQueue { message_count },
             )) => u32::from(self.set_message_queue(message_count, host)?),
@@ -440,7 +423,17 @@ impl Win16State {
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Drawing(
                 win16_abi::Win16UserDrawingRequest::DrawText { .. },
+            ))
+            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Drawing(
+                win16_abi::Win16UserDrawingRequest::TabbedTextOut { .. },
+            ))
+            | Win16ApiRequest::User(win16_abi::Win16UserRequest::Drawing(
+                win16_abi::Win16UserDrawingRequest::GetTabbedTextExtent { .. },
             ))) => self.user_service_drawing(request, memory, host)?,
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Drawing(
+                request @ win16_abi::Win16UserDrawingRequest::GrayString { .. },
+            )) => return self.begin_gray_string(registers, memory, host, request,
+                (return_selector, return_offset, return_sp)),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetDc { window },
             )) => {
@@ -462,6 +455,14 @@ impl Win16State {
                     host,
                     window,
                     true,
+                    (return_selector, return_offset, return_sp),
+                );
+            }
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::GetDcEx { window, region, flags },
+            )) => {
+                return self.begin_user_get_dc_ex(
+                    registers, memory, host, window, region, flags,
                     (return_selector, return_offset, return_sp),
                 );
             }
@@ -502,6 +503,9 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Ansi(
+                win16_abi::Win16UserAnsiRequest::ClassifyCharacter { value, classification },
+            )) => u32::from(host.win16_classify_character(value, classification)?),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Ansi(
                 win16_abi::Win16UserAnsiRequest::AnsiLower { target },
             )) => self.ansi_case(target, false, memory, host)?,
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Ansi(
@@ -536,6 +540,9 @@ impl Win16State {
             )) => {
                 u32::from(self.register_class(window_class, class_name, menu_name, memory, host)?)
             }
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::UnregisterClass { class_name, instance },
+            )) => u32::from(self.unregister_class(instance, class_name, host)?),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::CreateWindow {
                     class_name,
@@ -627,6 +634,13 @@ impl Win16State {
                 win16_abi::Win16UserRuntimeRequest::WNetGetCaps { index },
             )) => u32::from(host.win16_wnet_get_caps(index)?),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Runtime(
+                win16_abi::Win16UserRuntimeRequest::GetTimerResolution,
+            )) => {
+                // Win3.0/3.1 USER returns this historical constant; it is not
+                // the frequency of a modern host performance clock.
+                1000
+            }
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Runtime(
                 win16_abi::Win16UserRuntimeRequest::GetTickCount,
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Runtime(
@@ -703,3 +717,39 @@ impl Win16State {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "win16_dispatch_geometry_tests.rs"]
+mod geometry_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_map_window_points_tests.rs"]
+mod map_window_points_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_caret_tests.rs"]
+mod caret_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_child_lookup_tests.rs"]
+mod child_lookup_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_set_window_pos_tests.rs"]
+mod set_window_pos_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_get_clip_cursor_tests.rs"]
+mod get_clip_cursor_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_get_cursor_tests.rs"]
+mod get_cursor_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_character_classification_tests.rs"]
+mod character_classification_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_keyboard_state_tests.rs"]
+mod keyboard_state_tests;

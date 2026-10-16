@@ -16,11 +16,11 @@ impl Win16State {
     /// Distinguish exact source ACK progress from an idle/blocked POST, while
     /// keeping the existing message-loop callback-entry contract unchanged.
     pub(in crate::win16_runtime) fn dispatch_midi_notification_with_progress(
-        &mut self, cpu: &mut x86_cpu::Cpu, memory: &mut Memory,
+        &mut self, cpu: &mut x86_cpu::Cpu, dos: &mut dos_kernel::DosKernel, memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<super::MidiDispatch, RuntimeError> {
         let before = self.midi.notification_progress;
-        let no_callback = self.dispatch_pending_midi_notification(cpu, memory, host)?;
+        let no_callback = self.dispatch_pending_midi_notification(cpu, dos, memory, host)?;
         Ok(if !no_callback { super::MidiDispatch::CallbackEntered }
             else if self.midi.notification_progress != before { super::MidiDispatch::Progress }
             else { super::MidiDispatch::Idle })
@@ -30,7 +30,7 @@ impl Win16State {
     /// the existing dispatch owner; source ACK follows proof consumption.
     pub(in crate::win16_runtime) fn dispatch_pending_midi_notification(
         &mut self,
-        cpu: &mut x86_cpu::Cpu,
+        cpu: &mut x86_cpu::Cpu, dos: &mut dos_kernel::DosKernel,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<bool, RuntimeError> {
@@ -51,7 +51,8 @@ impl Win16State {
         match target {
             Win16MidiNotificationTarget::Function { identity, event } => {
                 Ok(!self.begin_midi_asynchronous_guest_callback(
-                    cpu, memory, host, identity, event,
+                    cpu,
+                    dos, memory, host, identity, event,
                 )?)
             }
             Win16MidiNotificationTarget::Post { identity, notification } => {

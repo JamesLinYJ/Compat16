@@ -16,4 +16,6 @@ pub enum Win16UserSystemRequest {
         index: u16,
     },
     GetDialogBaseUnits,
+    /// Desktop-wide query for an owned, visible top-level window.
+    AnyPopup,
 }

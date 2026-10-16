@@ -323,3 +323,77 @@ fn failed_zero_extension_realloc_restores_selector_bytes_and_heap_metadata() {
     selectors.write(&mut memory, pointer, &[0x5a]).unwrap();
     assert_eq!(memory.bytes[base.0 as usize], 0x5a);
 }
+
+#[test]
+fn global_realloc_moveable_flag_can_relocate_a_fixed_block_without_converting_it() {
+    use crate::global::{GMEM_MOVEABLE, GMEM_ZEROINIT};
+
+    let mut memory = TestMemory::new(0x1000);
+    memory.bytes.fill(0xa5);
+    let mut selectors = SelectorTable::new().unwrap();
+    let mut heap = GlobalHeap::new(PhysAddr(0x100), 0x100).unwrap();
+    let fixed = heap.alloc(&mut memory, OwnerId(4), 16, AllocationFlags::fixed()).unwrap();
+    let adjacent = heap.alloc(&mut memory, OwnerId(4), 16, AllocationFlags::fixed()).unwrap();
+    let original = heap.info(fixed).unwrap();
+    let primary = selectors.alloc_block(original.base, 16, AccessRights::read_write(), &memory).unwrap();
+    heap.bind_runtime_primary(fixed, primary).unwrap();
+    memory.write(original.base, &[0x4d, 0x5a]).unwrap();
+    let mut updates = Vec::new();
+
+    assert_eq!(heap.realloc_global(fixed, 48, 0, Some(primary), &mut memory,
+        &mut selectors, &mut updates), Err(Win16Error::OutOfMemory));
+    assert_eq!(heap.info(fixed).unwrap(), original);
+    assert!(updates.is_empty());
+    assert_eq!(heap.realloc_global(fixed, 48, GMEM_MOVEABLE | GMEM_ZEROINIT,
+        Some(primary), &mut memory, &mut selectors, &mut updates), Ok(fixed));
+
+    let moved = heap.info(fixed).unwrap();
+    assert_ne!(moved.base, original.base);
+    assert_eq!(moved.size, 48);
+    assert!(!moved.movable);
+    assert_eq!(moved.allocation_flags & GMEM_MOVEABLE, 0);
+    assert_eq!(heap.info(adjacent).unwrap().base, PhysAddr(0x110));
+    assert_eq!(memory.bytes[0x110..0x120], [0xa5; 16]);
+    assert_eq!(updates.len(), 1);
+    let (old, replacement) = updates[0];
+    assert_eq!(old, primary);
+    assert_eq!(replacement.raw(), primary.raw());
+    assert_ne!(replacement.generation(), primary.generation());
+    assert_eq!(heap.runtime_primary_selector(fixed).unwrap(), Some(replacement));
+    assert_eq!(selectors.describe(replacement).unwrap().base, moved.base);
+    assert_eq!(selectors.describe(replacement).unwrap().limit, 47);
+    assert_eq!(selectors.describe(primary), Err(Win16Error::StaleSelector));
+    let mut contents = [0; 48];
+    selectors.read(&memory, SegmentedPointer::new(replacement, 0), &mut contents).unwrap();
+    assert_eq!(&contents[..2], &[0x4d, 0x5a]);
+    assert_eq!(&contents[2..16], &[0xa5; 14]);
+    assert_eq!(&contents[16..], &[0; 32]);
+    heap.free(fixed, &mut selectors).unwrap();
+    assert_eq!(selectors.describe(replacement), Err(Win16Error::StaleSelector));
+}
+
+#[test]
+fn global_realloc_moveable_flag_does_not_override_fixed_block_retention_pins() {
+    use crate::global::GMEM_MOVEABLE;
+
+    for alias_pin in [false, true] {
+        let mut memory = TestMemory::new(0x1000);
+        let mut selectors = SelectorTable::new().unwrap();
+        let mut heap = GlobalHeap::new(PhysAddr(0x100), 0x100).unwrap();
+        let fixed = heap.alloc(&mut memory, OwnerId(4), 16, AllocationFlags::fixed()).unwrap();
+        heap.alloc(&mut memory, OwnerId(4), 16, AllocationFlags::fixed()).unwrap();
+        if alias_pin {
+            heap.retain_selector_alias(fixed).unwrap();
+        } else {
+            heap.page_lock(fixed).unwrap();
+        }
+        let original = heap.info(fixed).unwrap();
+        let before = memory.bytes.clone();
+        let mut updates = Vec::new();
+        assert_eq!(heap.realloc_global(fixed, 48, GMEM_MOVEABLE, None,
+            &mut memory, &mut selectors, &mut updates), Err(Win16Error::Locked));
+        assert_eq!(heap.info(fixed).unwrap(), original);
+        assert_eq!(memory.bytes, before);
+        assert!(updates.is_empty());
+    }
+}

@@ -3,7 +3,7 @@
 use super::*;
 
 impl Win16State {
-    pub(super) fn begin_dialog_callback(
+    pub(in crate::win16_runtime) fn begin_dialog_callback(
         &mut self,
         registers: &mut Registers,
         memory: &mut Memory,
@@ -42,7 +42,7 @@ impl Win16State {
         } else {
             None
         };
-        let pending_procedure = pending_route.and_then(|(procedure, _)| procedure);
+        let pending_procedure = pending_route.and_then(|(procedure, _, _)| procedure);
         let window = match (mapped_window, pending_route) {
             (Some(window), _) => window,
             (None, Some(_)) => self.map_window_handle(native_window, false)?,
@@ -78,31 +78,64 @@ impl Win16State {
                 .copied()
                 .or(pending_procedure)
         };
-        let known_null_procedure = pending_route.is_some_and(|(procedure, _)| procedure.is_none())
+        let known_null_procedure = pending_route.is_some_and(|(procedure, _, _)| procedure.is_none())
             || self.dialog_procedures.get(&window)
                 .is_some_and(|(procedure, _)| *procedure == 0);
-        let dialog_instance = pending_route.map(|(_, instance)| instance)
+        let dialog_instance = pending_route.map(|(_, instance, _)| instance)
             .or_else(|| self.dialog_procedures.get(&window).map(|(_, instance)| *instance));
+        let source_root = WindowClassRoot::from_native_message(source, native_window);
+        let existing_root = self.window_class_root(window);
+        let pending_root = pending_route.map_or(WindowClassRoot::Unresolved, |(_, _, root)| root);
+        let valid_root = source_root != WindowClassRoot::Unresolved
+            && [existing_root, pending_root].into_iter().all(|root|
+                root == WindowClassRoot::Unresolved || root == source_root);
+        let class_root = if valid_root { source_root } else { WindowClassRoot::Unresolved };
         let Some((address, instance)) = procedure.filter(|(address, _)| *address != 0) else {
-            if let Some(instance) = dialog_instance {
-                self.initialize_dialog_window_data(window, instance)?;
-                if is_init {
-                    self.dialog_procedures.insert(window, (0, instance));
+            let owner = if self.has_pending_window_parent_mutation() {
+                Some(self.retain_default_dialog_parent_callback(
+                    registers, operation_id, callback, native_window, window,
+                    class_root, source, is_destroy,
+                )?)
+            } else { None };
+            let setup = (|| {
+                if !valid_root {
+                    return Err(RuntimeError::new(Kind::InternalInvariant,
+                        "native DLGPROC source differs from its exact dialog class provenance"));
                 }
+                if let Some(instance) = dialog_instance {
+                    self.initialize_dialog_window_data(window, instance)?;
+                    self.record_window_class_root(window, native_window, class_root)?;
+                    if is_init {
+                        self.dialog_procedures.insert(window, (0, instance));
+                    }
+                }
+                self.refresh_pending_window_parents(host)?;
+                if is_destroy {
+                    self.mark_pending_dialog_destroyed(native_window);
+                    self.retire_window_tree(window)?;
+                }
+                if !known_null_procedure {
+                    host.report_diagnostic(&Diagnostic::warning(
+                        Kind::CompatibilityGap,
+                        "native dialog procedure has no active checked Win16 DLGPROC; dialog default handling was used",
+                    ));
+                }
+                // Windows 3.1 SDK DEFPROCS/DEFDLG.C:16-20 calls a DLGPROC only
+                // when lpfnDlg is non-NULL; false returns fall through to
+                // DefDlgProc. Keep this trampoline false and preserve MSGRESULT.
+                Ok(())
+            })();
+            if let Err(error) = setup {
+                return Err(match owner {
+                    Some(callback_id) => self.fail_preparing_window_callback(callback_id, error),
+                    None => error,
+                });
             }
-            if is_destroy {
-                self.mark_pending_dialog_destroyed(native_window);
-                self.retire_window_tree(window)?;
+            if owner.is_some() {
+                let frame = self.window_callbacks.last_mut().expect("default dialog owner retained");
+                frame.payload_cleaned = true;
+                frame.window_tree_retired = is_destroy;
             }
-            if !known_null_procedure {
-                host.report_diagnostic(&Diagnostic::warning(
-                    Kind::CompatibilityGap,
-                    "native dialog procedure has no active checked Win16 DLGPROC; dialog default handling was used",
-                ));
-            }
-            // Windows 3.1 SDK DEFPROCS/DEFDLG.C:16-20 calls a DLGPROC only
-            // when lpfnDlg is non-NULL; false returns fall through to
-            // DefDlgProc. Keep this trampoline false and preserve MSGRESULT.
             return Ok(false);
         };
 
@@ -147,6 +180,7 @@ impl Win16State {
             guest_notification,
             mdi_child_creation: None,
             callback_address: address,
+            class_root,
             host_operation: Some(operation_id),
             native_source: Some(source),
             continuation: WindowCallbackContinuation::HostDialog {
@@ -158,6 +192,11 @@ impl Win16State {
         })?;
 
         let setup = (|| {
+            self.refresh_pending_window_parents(host)?;
+            if !valid_root {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "native DLGPROC source differs from its exact dialog class provenance"));
+            }
             if is_destroy {
                 self.mark_pending_dialog_destroyed(native_window);
                 self.record_preparing_window_callback_phase(
@@ -166,6 +205,7 @@ impl Win16State {
                 );
             }
             self.initialize_dialog_window_data(window, instance)?;
+            self.record_window_class_root(window, native_window, class_root)?;
             self.record_preparing_window_callback_phase(
                 callback_id,
                 WindowCallbackSetupPhase::DialogDataInitialized,

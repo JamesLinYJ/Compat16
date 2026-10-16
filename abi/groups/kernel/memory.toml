@@ -1,0 +1,631 @@
+module = "KERNEL"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 4
+name = "LocalInit"
+binding = { rust_id = "KernelLocalInit", id_value = 271, constant = "KERNEL_LOCAL_INIT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "end", type = "U16" },
+]
+
+[[exports]]
+ordinal = 5
+name = "LocalAlloc"
+binding = { rust_id = "KernelLocalAlloc", id_value = 272, constant = "KERNEL_LOCAL_ALLOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "flags", type = "U16" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 6
+name = "LocalReAlloc"
+binding = { rust_id = "KernelLocalReAlloc", id_value = 273, constant = "KERNEL_LOCAL_REALLOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "size", type = "U16" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 7
+name = "LocalFree"
+binding = { rust_id = "KernelLocalFree", id_value = 274, constant = "KERNEL_LOCAL_FREE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 8
+name = "LocalLock"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLocalLock", id_value = 275, constant = "KERNEL_LOCAL_LOCK" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 9
+name = "LocalUnlock"
+binding = { rust_id = "KernelLocalUnlock", id_value = 276, constant = "KERNEL_LOCAL_UNLOCK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 10
+name = "LocalSize"
+binding = { rust_id = "KernelLocalSize", id_value = 277, constant = "KERNEL_LOCAL_SIZE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 11
+name = "LocalHandle"
+binding = { rust_id = "KernelLocalHandle", id_value = 278, constant = "KERNEL_LOCAL_HANDLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "offset", type = "U16" },
+]
+
+[[exports]]
+ordinal = 12
+name = "LocalFlags"
+binding = { rust_id = "KernelLocalFlags", id_value = 279, constant = "KERNEL_LOCAL_FLAGS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 13
+name = "LocalCompact"
+binding = { rust_id = "KernelLocalCompact", id_value = 280, constant = "KERNEL_LOCAL_COMPACT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "minimum", type = "U16" },
+]
+
+[[exports]]
+ordinal = 15
+name = "GlobalAlloc"
+decl = { attributes = ["register"] }
+binding = { rust_id = "KernelGlobalAlloc", id_value = 192, constant = "KERNEL_GLOBAL_ALLOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "flags", type = "U16" },
+  { name = "size", type = "U32" },
+]
+
+[[exports]]
+ordinal = 16
+name = "GlobalReAlloc"
+binding = { rust_id = "KernelGlobalReAlloc", id_value = 581, constant = "KERNEL_GLOBAL_REALLOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "size", type = "U32" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 17
+name = "GlobalFree"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalFree", id_value = 193, constant = "KERNEL_GLOBAL_FREE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 18
+name = "GlobalLock"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalLock", id_value = 194, constant = "KERNEL_GLOBAL_LOCK" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 19
+name = "GlobalUnlock"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalUnlock", id_value = 195, constant = "KERNEL_GLOBAL_UNLOCK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 20
+name = "GlobalSize"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalSize", id_value = 196, constant = "KERNEL_GLOBAL_SIZE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 21
+name = "GlobalHandle"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalHandle", id_value = 197, constant = "KERNEL_GLOBAL_HANDLE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 22
+name = "GlobalFlags"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalFlags", id_value = 582, constant = "KERNEL_GLOBAL_FLAGS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 23
+name = "LockSegment"
+binding = { rust_id = "KernelLockSegment", id_value = 583, constant = "KERNEL_LOCK_SEGMENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "segment", type = "U16" },
+]
+
+[[exports]]
+ordinal = 24
+name = "UnlockSegment"
+decl = { attributes = [] }
+binding = { rust_id = "KernelUnlockSegment", id_value = 584, constant = "KERNEL_UNLOCK_SEGMENT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "segment", type = "U16" },
+]
+
+[[exports]]
+ordinal = 25
+name = "GlobalCompact"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalCompact", id_value = 585, constant = "KERNEL_GLOBAL_COMPACT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "minimum_free", type = "U32" },
+]
+
+[[exports]]
+ordinal = 26
+name = "GlobalFreeAll"
+binding = { rust_id = "KernelGlobalFreeAll", id_value = 127, constant = "KERNEL_GLOBAL_FREE_ALL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 28
+name = "GlobalMasterHandle"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalMasterHandle", id_value = 798, constant = "KERNEL_GLOBAL_MASTER_HANDLE" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 111
+name = "GlobalWire"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalWire", id_value = 588, constant = "KERNEL_GLOBAL_WIRE" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 112
+name = "GlobalUnWire"
+binding = { rust_id = "KernelGlobalUnWire", id_value = 589, constant = "KERNEL_GLOBAL_UNWIRE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 159
+name = "GlobalHandleNoRIP"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalHandleNoRip", id_value = 128, constant = "KERNEL_GLOBAL_HANDLE_NO_RIP" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 163
+name = "GlobalLRUOldest"
+binding = { rust_id = "KernelGlobalLruOldest", id_value = 799, constant = "KERNEL_GLOBAL_LRU_OLDEST" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 164
+name = "GlobalLRUNewest"
+binding = { rust_id = "KernelGlobalLruNewest", id_value = 800, constant = "KERNEL_GLOBAL_LRU_NEWEST" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 169
+name = "GetFreeSpace"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetFreeSpace", id_value = 586, constant = "KERNEL_GET_FREE_SPACE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 170
+name = "AllocCStoDSAlias"
+binding = { rust_id = "KernelAllocCStoDSAlias", id_value = 810, constant = "KERNEL_ALLOC_CS_TO_DS_ALIAS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "source_selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 171
+name = "AllocDStoCSAlias"
+binding = { rust_id = "KernelAllocDStoCSAlias", id_value = 811, constant = "KERNEL_ALLOC_DS_TO_CS_ALIAS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 172
+name = "AllocAlias"
+binding = { rust_id = "KernelAllocAlias", id_value = 812, constant = "KERNEL_ALLOC_ALIAS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 175
+name = "AllocSelector"
+binding = { rust_id = "KernelAllocSelector", id_value = 813, constant = "KERNEL_ALLOC_SELECTOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "source_selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 176
+name = "FreeSelector"
+binding = { rust_id = "KernelFreeSelector", id_value = 814, constant = "KERNEL_FREE_SELECTOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 177
+name = "PrestoChangoSelector"
+binding = { rust_id = "KernelPrestoChangoSelector", id_value = 815, constant = "KERNEL_PRESTO_CHANGO_SELECTOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "source_selector", type = "U16" },
+  { name = "destination_selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 180
+name = "LongPtrAdd"
+decl = { attributes = [] }
+binding = { rust_id = "KernelLongPtrAdd", id_value = 816, constant = "KERNEL_LONG_PTR_ADD" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "pointer", type = "U32" },
+  { name = "add", type = "U32" },
+]
+
+[[exports]]
+ordinal = 184
+name = "GlobalDOSAlloc"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalDosAlloc", id_value = 805, constant = "KERNEL_GLOBAL_DOS_ALLOC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "size", type = "U32" },
+]
+
+[[exports]]
+ordinal = 185
+name = "GlobalDOSFree"
+binding = { rust_id = "KernelGlobalDosFree", id_value = 806, constant = "KERNEL_GLOBAL_DOS_FREE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 186
+name = "GetSelectorBase"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetSelectorBase", id_value = 817, constant = "KERNEL_GET_SELECTOR_BASE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 187
+name = "SetSelectorBase"
+binding = { rust_id = "KernelSetSelectorBase", id_value = 818, constant = "KERNEL_SET_SELECTOR_BASE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "base", type = "U32" },
+]
+
+[[exports]]
+ordinal = 188
+name = "GetSelectorLimit"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetSelectorLimit", id_value = 819, constant = "KERNEL_GET_SELECTOR_LIMIT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 189
+name = "SetSelectorLimit"
+binding = { rust_id = "KernelSetSelectorLimit", id_value = 820, constant = "KERNEL_SET_SELECTOR_LIMIT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "limit", type = "U32" },
+]
+
+[[exports]]
+ordinal = 191
+name = "GlobalPageLock"
+binding = { rust_id = "KernelGlobalPageLock", id_value = 801, constant = "KERNEL_GLOBAL_PAGE_LOCK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 192
+name = "GlobalPageUnlock"
+binding = { rust_id = "KernelGlobalPageUnlock", id_value = 802, constant = "KERNEL_GLOBAL_PAGE_UNLOCK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 196
+name = "SelectorAccessRights"
+binding = { rust_id = "KernelSelectorAccessRights", id_value = 821, constant = "KERNEL_SELECTOR_ACCESS_RIGHTS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "operation", type = "U16" },
+  { name = "value", type = "U16" },
+]
+
+[[exports]]
+ordinal = 197
+name = "GlobalFix"
+binding = { rust_id = "KernelGlobalFix", id_value = 587, constant = "KERNEL_GLOBAL_FIX" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 198
+name = "GlobalUnfix"
+binding = { rust_id = "KernelGlobalUnfix", id_value = 590, constant = "KERNEL_GLOBAL_UNFIX" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 206
+name = "AllocSelectorArray"
+binding = { rust_id = "KernelAllocSelectorArray", id_value = 822, constant = "KERNEL_ALLOC_SELECTOR_ARRAY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 230
+name = "GlobalSmartPageLock"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalSmartPageLock", id_value = 803, constant = "KERNEL_GLOBAL_SMART_PAGE_LOCK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 231
+name = "GlobalSmartPageUnlock"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGlobalSmartPageUnlock", id_value = 804, constant = "KERNEL_GLOBAL_SMART_PAGE_UNLOCK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 310
+name = "LocalHandleDelta"
+binding = { rust_id = "KernelLocalHandleDelta", id_value = 281, constant = "KERNEL_LOCAL_HANDLE_DELTA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "delta", type = "U16" },
+]
+
+[[exports]]
+ordinal = 345
+name = "IsSharedSelector"
+binding = { rust_id = "KernelIsSharedSelector", id_value = 823, constant = "KERNEL_IS_SHARED_SELECTOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+]
+
+[[exports]]
+ordinal = 348
+name = "hmemcpy"
+binding = { rust_id = "KernelHmemcpy", id_value = 201, constant = "KERNEL_HMEMCPY" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "destination", type = "FarBuffer" },
+  { name = "source", type = "FarBuffer" },
+  { name = "count", type = "I32" },
+]
+
+[[exports]]
+ordinal = 357
+name = "MapSL"
+decl = { attributes = [] }
+binding = { rust_id = "KernelMapSL", id_value = 824, constant = "KERNEL_MAP_SL" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "far_pointer", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 358
+name = "MapLS"
+decl = { attributes = [] }
+binding = { rust_id = "KernelMapLS", id_value = 825, constant = "KERNEL_MAP_LS" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "guest_linear", type = "U32" },
+]
+
+[[exports]]
+ordinal = 359
+name = "UnMapLS"
+decl = { attributes = [] }
+binding = { rust_id = "KernelUnMapLS", id_value = 826, constant = "KERNEL_UNMAP_LS" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "far_pointer", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 365
+name = "GlobalChangeLockCount"
+decl = { attributes = ["register"] }
+binding = { rust_id = "KernelGlobalChangeLockCount", id_value = 807, constant = "KERNEL_GLOBAL_CHANGE_LOCK_COUNT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "delta", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 403
+name = "FarSetOwner"
+binding = { rust_id = "KernelFarSetOwner", id_value = 808, constant = "KERNEL_FAR_SET_OWNER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "owner", type = "U16" },
+]
+
+[[exports]]
+ordinal = 404
+name = "FarGetOwner"
+binding = { rust_id = "KernelFarGetOwner", id_value = 809, constant = "KERNEL_FAR_GET_OWNER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]

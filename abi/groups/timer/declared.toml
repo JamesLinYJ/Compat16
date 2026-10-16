@@ -1,0 +1,6 @@
+module = "TIMER"
+
+[[exports]]
+ordinal = 2
+name = "DriverProc"
+decl = { args = ["long", "word", "word", "long", "long"] }

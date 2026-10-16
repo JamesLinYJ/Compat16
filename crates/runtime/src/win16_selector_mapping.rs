@@ -98,6 +98,7 @@ impl Win16State {
             ),
             selector_ownership::SelectorBackingIdentity::ModuleImage { base, size, .. } => (base, size),
             selector_ownership::SelectorBackingIdentity::RuntimeArena(arena) => (arena.base, arena.size),
+            selector_ownership::SelectorBackingIdentity::FirmwareRom { .. } => return Ok(0),
         };
         let aligned = u64::from(aligned_base) >= u64::from(owner_base.0)
             && u64::from(aligned_base) < u64::from(owner_base.0).saturating_add(u64::from(owner_size));

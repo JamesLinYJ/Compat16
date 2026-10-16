@@ -1,0 +1,65 @@
+module = "GDI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 230
+name = "CreatePQ"
+binding = { rust_id = "GdiCreatePq", id_value = 56, constant = "GDI_CREATE_PQ" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "capacity", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 231
+name = "MinPQ"
+binding = { rust_id = "GdiMinPq", id_value = 57, constant = "GDI_MIN_PQ" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "queue", type = "U16" },
+]
+
+[[exports]]
+ordinal = 232
+name = "ExtractPQ"
+binding = { rust_id = "GdiExtractPq", id_value = 58, constant = "GDI_EXTRACT_PQ" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "queue", type = "U16" },
+]
+
+[[exports]]
+ordinal = 233
+name = "InsertPQ"
+binding = { rust_id = "GdiInsertPq", id_value = 59, constant = "GDI_INSERT_PQ" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "queue", type = "U16" },
+  { name = "tag", type = "I16", encoding = "word" },
+  { name = "priority", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 234
+name = "SizePQ"
+binding = { rust_id = "GdiSizePq", id_value = 60, constant = "GDI_SIZE_PQ" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "queue", type = "U16" },
+  { name = "size_change", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 235
+name = "DeletePQ"
+binding = { rust_id = "GdiDeletePq", id_value = 61, constant = "GDI_DELETE_PQ" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "queue", type = "U16" },
+]

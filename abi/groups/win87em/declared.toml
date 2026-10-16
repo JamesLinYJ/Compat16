@@ -1,0 +1,31 @@
+module = "WIN87EM"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "__fpMath"
+decl = { attributes = ["register"] }
+binding = { rust_id = "Win87emFpMath", id_value = 152, constant = "WIN87EM_FP_MATH" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
+
+[[exports]]
+ordinal = 3
+name = "__Win87EmInfo"
+decl = { args = ["pointer", "word"] }
+
+[[exports]]
+ordinal = 4
+name = "__Win87EmRestore"
+decl = { args = ["pointer", "word"] }
+
+[[exports]]
+ordinal = 5
+name = "__Win87EmSave"
+decl = { args = ["pointer", "word"] }
+
+[[exports]]
+ordinal = 100
+name = "fpe_return"
+decl = { attributes = ["register"] }

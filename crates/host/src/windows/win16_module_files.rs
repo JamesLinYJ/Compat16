@@ -22,6 +22,8 @@ use windows_sys::Win32::Storage::FileSystem::{
 use windows_sys::Win32::System::SystemInformation::{GetSystemDirectoryW, GetWindowsDirectoryW};
 #[path = "win16_module_files_path.rs"]
 mod path;
+mod task;
+pub(crate) use task::read_module as read_task_module;
 
 /// Resource bound for one guest module image. Exceeding it reports the
 /// Win16 LoadLibrary memory error instead of allocating an unbounded buffer.
@@ -41,7 +43,7 @@ struct NativeFile(HANDLE);
 
 impl Drop for NativeFile {
     fn drop(&mut self) {
-        // SAFETY: This RAII wrapper owns a successful CreateFileW handle
+        // SAFETY: This RAII wrapper owns a successful native file-open handle
         // until this drop.
         unsafe { CloseHandle(self.0) };
     }
@@ -264,13 +266,19 @@ fn search_path_components(
     path: &OsStr,
     file_name: &[u16],
 ) -> Result<Option<Result<Win16ModuleImage, u16>>, RuntimeError> {
+    search_path_with(path, |directory| try_search_directory(codec, directory, file_name))
+}
+
+fn search_path_with(path: &OsStr, mut search: impl FnMut(&[u16])
+    -> Result<Option<Result<Win16ModuleImage, u16>>, RuntimeError>)
+    -> Result<Option<Result<Win16ModuleImage, u16>>, RuntimeError> {
     let mut component = Vec::new();
     let mut component_too_long = false;
     for unit in path.encode_wide().chain(std::iter::once(b';' as u16)) {
         if unit == b';' as u16 {
             if !component_too_long {
                 if let Some(result) =
-                    try_search_directory(codec, trim_path_quotes(&component), file_name)?
+                    search(trim_path_quotes(&component))?
                 {
                     return Ok(Some(result));
                 }
@@ -468,7 +476,13 @@ fn read_candidate(codec: GuestTextCodec, path: &[u16]) -> Result<Win16ModuleImag
             "open Win16 DLL file",
         ));
     }
-    let file = NativeFile(handle);
+    read_owned_candidate(codec, &resolved, NativeFile(handle))
+}
+
+// Native search and capability-rooted task search share the same ordinary
+// disk-file checks, bounded copy and exact guest path projection.
+fn read_owned_candidate(codec: GuestTextCodec, resolved: &[u16], file: NativeFile)
+    -> Result<Win16ModuleImage, CandidateError> {
     unsafe { SetLastError(0) };
     let file_type = unsafe { GetFileType(file.0) };
     if file_type != FILE_TYPE_DISK {
@@ -543,7 +557,7 @@ fn read_candidate(codec: GuestTextCodec, path: &[u16]) -> Result<Win16ModuleImag
     image.truncate(total_read);
     // Every module identity uses the same checked guest path projection as
     // the main executable. Lossy substitutions cannot identify a DLL.
-    let guest_path = path::win16_module_path(&resolved, codec).map_err(|error| {
+    let guest_path = path::win16_module_path(resolved, codec).map_err(|error| {
         if error.kind() == Kind::InvalidInput {
             CandidateError::Missing(3)
         } else {

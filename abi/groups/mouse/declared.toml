@@ -1,0 +1,34 @@
+module = "MOUSE"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "Inquire"
+decl = { args = ["pointer"] }
+
+[[exports]]
+ordinal = 2
+name = "Enable"
+decl = { args = ["segmented_pointer"] }
+
+[[exports]]
+ordinal = 3
+name = "Disable"
+
+[[exports]]
+ordinal = 4
+name = "MOUSEGETINTVECT"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 5
+name = "GETSETMOUSEDATA"
+kind = "stub"
+decl = { attributes = [] }
+
+[[exports]]
+ordinal = 7
+name = "POWEREVENTPROC"
+kind = "stub"
+decl = { attributes = [] }

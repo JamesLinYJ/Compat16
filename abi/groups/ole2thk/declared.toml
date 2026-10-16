@@ -1,0 +1,31 @@
+module = "OLE2THK"
+
+[[exports]]
+ordinal = 2
+name = "ROT16_ISRUNNING16"
+kind = "stub"
+
+[[exports]]
+ordinal = 3
+name = "ISWIN32SHANDLE"
+kind = "stub"
+
+[[exports]]
+ordinal = 4
+name = "___EXPORTEDSTUB"
+kind = "stub"
+
+[[exports]]
+ordinal = 5
+name = "COTHKCOMMON"
+kind = "stub"
+
+[[exports]]
+ordinal = 6
+name = "ROT16_GETTIMEOFLASTCHANGE16"
+kind = "stub"
+
+[[exports]]
+ordinal = 7
+name = "ROT16_GETOBJECT16"
+kind = "stub"

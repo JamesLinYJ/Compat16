@@ -1,0 +1,106 @@
+module = "COMM"
+
+[[exports]]
+ordinal = 1
+name = "INICOM"
+kind = "stub"
+
+[[exports]]
+ordinal = 2
+name = "SETCOM"
+kind = "stub"
+
+[[exports]]
+ordinal = 3
+name = "SETQUE"
+kind = "stub"
+
+[[exports]]
+ordinal = 4
+name = "RECCOM"
+kind = "stub"
+
+[[exports]]
+ordinal = 5
+name = "SNDCOM"
+kind = "stub"
+
+[[exports]]
+ordinal = 6
+name = "CTX"
+kind = "stub"
+
+[[exports]]
+ordinal = 7
+name = "TRMCOM"
+kind = "stub"
+
+[[exports]]
+ordinal = 8
+name = "STACOM"
+kind = "stub"
+
+[[exports]]
+ordinal = 9
+name = "CEXTFCN"
+kind = "stub"
+
+[[exports]]
+ordinal = 10
+name = "CFLUSH"
+kind = "stub"
+
+[[exports]]
+ordinal = 11
+name = "CEVT"
+kind = "stub"
+
+[[exports]]
+ordinal = 12
+name = "CEVTGET"
+kind = "stub"
+
+[[exports]]
+ordinal = 13
+name = "CSETBRK"
+kind = "stub"
+
+[[exports]]
+ordinal = 14
+name = "CCLRBRK"
+kind = "stub"
+
+[[exports]]
+ordinal = 15
+name = "GETDCB"
+kind = "stub"
+
+[[exports]]
+ordinal = 17
+name = "SUSPENDOPENCOMMPORTS"
+kind = "stub"
+
+[[exports]]
+ordinal = 18
+name = "REACTIVATEOPENCOMMPORTS"
+kind = "stub"
+
+[[exports]]
+ordinal = 19
+name = "COMMWRITESTRING"
+kind = "stub"
+
+[[exports]]
+ordinal = 20
+name = "READCOMMSTRING"
+kind = "stub"
+
+[[exports]]
+ordinal = 100
+name = "ENABLENOTIFICATION"
+kind = "stub"
+
+[[exports]]
+ordinal = 101
+name = "ordinal_only__win31"
+kind = "stub"

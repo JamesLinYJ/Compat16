@@ -1,0 +1,351 @@
+module = "GDI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 3
+name = "SetMapMode"
+binding = { rust_id = "GdiSetMapMode", id_value = 301, constant = "GDI_SET_MAP_MODE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "mode", type = "I16", encoding = "word" },
+]
+
+[[exports]]
+ordinal = 11
+name = "SetWindowOrg"
+decl = { attributes = [] }
+binding = { rust_id = "GdiSetWindowOrg", id_value = 332, constant = "GDI_SET_WINDOW_ORG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 12
+name = "SetWindowExt"
+decl = { attributes = [] }
+binding = { rust_id = "GdiSetWindowExt", id_value = 374, constant = "GDI_SET_WINDOW_EXT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 13
+name = "SetViewportOrg"
+decl = { attributes = [] }
+binding = { rust_id = "GdiSetViewportOrg", id_value = 375, constant = "GDI_SET_VIEWPORT_ORG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 14
+name = "SetViewportExt"
+decl = { attributes = [] }
+binding = { rust_id = "GdiSetViewportExt", id_value = 376, constant = "GDI_SET_VIEWPORT_EXT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 15
+name = "OffsetWindowOrg"
+decl = { attributes = [] }
+binding = { rust_id = "GdiOffsetWindowOrg", id_value = 333, constant = "GDI_OFFSET_WINDOW_ORG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 16
+name = "ScaleWindowExt"
+decl = { attributes = [] }
+binding = { rust_id = "GdiScaleWindowExt", id_value = 334, constant = "GDI_SCALE_WINDOW_EXT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x_numerator", type = "I16" },
+  { name = "x_denominator", type = "I16" },
+  { name = "y_numerator", type = "I16" },
+  { name = "y_denominator", type = "I16" },
+]
+
+[[exports]]
+ordinal = 17
+name = "OffsetViewportOrg"
+decl = { attributes = [] }
+binding = { rust_id = "GdiOffsetViewportOrg", id_value = 335, constant = "GDI_OFFSET_VIEWPORT_ORG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+]
+
+[[exports]]
+ordinal = 18
+name = "ScaleViewportExt"
+decl = { attributes = [] }
+binding = { rust_id = "GdiScaleViewportExt", id_value = 336, constant = "GDI_SCALE_VIEWPORT_EXT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x_numerator", type = "I16" },
+  { name = "x_denominator", type = "I16" },
+  { name = "y_numerator", type = "I16" },
+  { name = "y_denominator", type = "I16" },
+]
+
+[[exports]]
+ordinal = 67
+name = "DPtoLP"
+binding = { rust_id = "GdiDptoLp", id_value = 345, constant = "GDI_DP_TO_LP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "points", type = "FarBuffer" },
+  { name = "count", type = "I16" },
+]
+
+[[exports]]
+ordinal = 81
+name = "GetMapMode"
+binding = { rust_id = "GdiGetMapMode", id_value = 381, constant = "GDI_GET_MAP_MODE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 94
+name = "GetViewportExt"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetViewportExt", id_value = 349, constant = "GDI_GET_VIEWPORT_EXT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 95
+name = "GetViewportOrg"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetViewportOrg", id_value = 350, constant = "GDI_GET_VIEWPORT_ORG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 96
+name = "GetWindowExt"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetWindowExt", id_value = 351, constant = "GDI_GET_WINDOW_EXT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 97
+name = "GetWindowOrg"
+decl = { attributes = [] }
+binding = { rust_id = "GdiGetWindowOrg", id_value = 352, constant = "GDI_GET_WINDOW_ORG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dc", type = "U16" },
+]
+
+[[exports]]
+ordinal = 99
+name = "LPtoDP"
+binding = { rust_id = "GdiLptoDp", id_value = 353, constant = "GDI_LP_TO_DP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "points", type = "FarBuffer" },
+  { name = "count", type = "I16" },
+]
+
+[[exports]]
+ordinal = 472
+name = "GetViewportExtEx"
+binding = { rust_id = "GdiGetViewportExtEx", id_value = 361, constant = "GDI_GET_VIEWPORT_EXT_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 473
+name = "GetViewportOrgEx"
+binding = { rust_id = "GdiGetViewportOrgEx", id_value = 362, constant = "GDI_GET_VIEWPORT_ORG_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 474
+name = "GetWindowExtEx"
+binding = { rust_id = "GdiGetWindowExtEx", id_value = 363, constant = "GDI_GET_WINDOW_EXT_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 475
+name = "GetWindowOrgEx"
+binding = { rust_id = "GdiGetWindowOrgEx", id_value = 364, constant = "GDI_GET_WINDOW_ORG_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 476
+name = "OffsetViewportOrgEx"
+binding = { rust_id = "GdiOffsetViewportOrgEx", id_value = 365, constant = "GDI_OFFSET_VIEWPORT_ORG_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 477
+name = "OffsetWindowOrgEx"
+binding = { rust_id = "GdiOffsetWindowOrgEx", id_value = 366, constant = "GDI_OFFSET_WINDOW_ORG_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 479
+name = "SetViewportExtEx"
+binding = { rust_id = "GdiSetViewportExtEx", id_value = 367, constant = "GDI_SET_VIEWPORT_EXT_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 480
+name = "SetViewportOrgEx"
+binding = { rust_id = "GdiSetViewportOrgEx", id_value = 368, constant = "GDI_SET_VIEWPORT_ORG_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 481
+name = "SetWindowExtEx"
+binding = { rust_id = "GdiSetWindowExtEx", id_value = 369, constant = "GDI_SET_WINDOW_EXT_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 482
+name = "SetWindowOrgEx"
+binding = { rust_id = "GdiSetWindowOrgEx", id_value = 370, constant = "GDI_SET_WINDOW_ORG_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x", type = "I16" },
+  { name = "y", type = "I16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 484
+name = "ScaleViewportExtEx"
+binding = { rust_id = "GdiScaleViewportExtEx", id_value = 372, constant = "GDI_SCALE_VIEWPORT_EXT_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x_numerator", type = "I16" },
+  { name = "x_denominator", type = "I16" },
+  { name = "y_numerator", type = "I16" },
+  { name = "y_denominator", type = "I16" },
+  { name = "output", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 485
+name = "ScaleWindowExtEx"
+binding = { rust_id = "GdiScaleWindowExtEx", id_value = 373, constant = "GDI_SCALE_WINDOW_EXT_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "x_numerator", type = "I16" },
+  { name = "x_denominator", type = "I16" },
+  { name = "y_numerator", type = "I16" },
+  { name = "y_denominator", type = "I16" },
+  { name = "output", type = "FarOutputBuffer" },
+]

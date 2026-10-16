@@ -11,6 +11,13 @@
 /// host-only scheduler handle that follows the historical `magic` field.
 pub const TASK_DATABASE_PREFIX_SIZE: usize = 0xFC;
 
+/// Guest SS:SP saved by the task scheduler and stack-switch APIs.
+pub const TASK_DATABASE_STACK_POINTER_OFFSET: usize = 0x02;
+pub const TASK_DATABASE_STACK_SELECTOR_OFFSET: usize = 0x04;
+/// Previous SS:SP saved in the alternate stack's INSTANCEDATA header.
+pub const INSTANCE_DATA_OLD_STACK_POINTER_OFFSET: usize = 0x02;
+pub const INSTANCE_DATA_OLD_STACK_SELECTOR_OFFSET: usize = 0x04;
+
 /// Offset of `nEvents`, the task's pending Win16 event count.
 pub const TASK_DATABASE_EVENT_COUNT_OFFSET: usize = 0x06;
 /// Short runtime-facing name for the event-count field offset.

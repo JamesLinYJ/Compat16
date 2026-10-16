@@ -21,6 +21,11 @@ pub trait SegmentResolver {
     fn code_bits(&self) -> u32 { 16 }
     fn stack32(&self) -> bool { false }
     fn protected_mode(&self) -> bool { false }
+    /// Optional metadata-only certification of one contiguous, permitted
+    /// selector range. No guest reads, callbacks or CPU state changes may
+    /// occur. Mutable mappings must be checked anew at every JIT dispatch.
+    /// This does not infer architectural mode or CPL for legacy selectors.
+    fn jit_range(&self, _segment: u16, _offset: u32, _length: usize, _access: crate::SegmentAccess) -> Option<PhysAddr> { None }
     /// Return architectural execution mode only when the machine owns that
     /// state. The legacy `protected_mode` hint is not sufficient evidence.
     fn execution_mode(&self) -> Option<CpuExecutionMode> { None }
@@ -38,6 +43,13 @@ pub trait SegmentResolver {
     }
     fn resolve_execute(&self, segment: u16, offset: u32, address32: bool) -> Result<PhysAddr, CpuError> {
         self.resolve(segment, offset, address32)
+    }
+    /// Validate a canonical near-transfer target without fetching from it.
+    /// By default this preserves instruction-execute permissions. A runtime
+    /// may additionally admit an exact owned continuation boundary, which it
+    /// must observe before fetching; this never grants instruction access.
+    fn validate_near_code_target(&self, segment: u16, offset: u32) -> Result<(), CpuError> {
+        self.resolve_execute(segment, offset, true).map(|_| ())
     }
 }
 

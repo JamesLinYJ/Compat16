@@ -341,7 +341,7 @@ impl SelectorTable {
     }
 }
 
-fn follows_allocation_extent(
+pub(super) fn follows_allocation_extent(
     descriptor: super::descriptor::Descriptor,
     base: PhysAddr,
     old_size: u32,

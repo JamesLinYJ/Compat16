@@ -1,0 +1,46 @@
+module = "MSACM"
+
+[[exports]]
+ordinal = 2
+name = "DRIVERPROC"
+kind = "stub"
+
+[[exports]]
+ordinal = 4
+name = "___EXPORTEDSTUB"
+kind = "stub"
+
+[[exports]]
+ordinal = 150
+name = "ACMAPPLICATIONEXIT"
+kind = "stub"
+
+[[exports]]
+ordinal = 175
+name = "ACMHUGEPAGELOCK"
+kind = "stub"
+
+[[exports]]
+ordinal = 176
+name = "ACMHUGEPAGEUNLOCK"
+kind = "stub"
+
+[[exports]]
+ordinal = 200
+name = "ACMOPENCONVERSION"
+kind = "stub"
+
+[[exports]]
+ordinal = 201
+name = "ACMCLOSECONVERSION"
+kind = "stub"
+
+[[exports]]
+ordinal = 202
+name = "ACMCONVERT"
+kind = "stub"
+
+[[exports]]
+ordinal = 203
+name = "ACMCHOOSEFORMAT"
+kind = "stub"
