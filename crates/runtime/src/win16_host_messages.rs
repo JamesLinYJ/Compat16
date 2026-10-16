@@ -432,6 +432,7 @@ pub struct Win16HostMinMaxInfo {
 /// An owned request whose completion may follow synchronous guest callbacks.
 #[derive(Debug)]
 pub enum Win16WindowOperation {
+    EnumMetafile { dc: crate::Win16HostDc, bits: Vec<u8> },
     GrayString {
         dc: crate::Win16HostDc,
         brush: Option<crate::Win16HostGdiObject>,
@@ -572,6 +573,7 @@ pub enum Win16WindowOperation {
 /// verify that the proof belongs to the continuation it actually started.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16NativeWindowOperationKind {
+    EnumMetafile,
     GrayString,
     DefaultMdiChild,
     DefFrameProc,
@@ -616,6 +618,7 @@ impl Win16WindowOperation {
     pub fn native_operation_kind(&self) -> Win16NativeWindowOperationKind {
         use Win16NativeWindowOperationKind as Kind;
         match self {
+            Self::EnumMetafile { .. } => Kind::EnumMetafile,
             Self::GrayString { .. } => Kind::GrayString,
             Self::DefFrameProc { .. } => Kind::DefFrameProc,
             Self::DefaultMdiChild { .. } => Kind::DefaultMdiChild,
@@ -699,6 +702,7 @@ pub struct Win16WindowTerminalAck {
 /// copied from the worker's live callback owner before abort changes it.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16NativeCallbackSource {
+    Metafile { dc: crate::Win16HostDc },
     GrayString { dc: crate::Win16HostDc },
     WindowMessage {
         window: Win16HostWindow,
@@ -822,6 +826,7 @@ impl Win16HostWindowCreationResult {
 #[derive(Debug)]
 pub enum Win16WindowResult {
     GrayString(bool),
+    EnumMetafile { success: bool, retired: Vec<crate::Win16HostGdiObject> },
     /// A terminal native modal cancellation; worker code must place this in
     /// the abort receipt and never dispatch it as a guest API completion.
     NativeModalCancelled(Win16NativeModalCancellation),
@@ -1059,6 +1064,15 @@ pub enum Win16WindowStep {
         window: Win16HostWindow,
         name: crate::Win16HostPropertyCallbackName,
         data: u16,
+        source: Win16NativeCallbackSource,
+    },
+    /// Native EnumMetaFile is suspended; payloads contain no native addresses.
+    MetafileCallback {
+        operation_id: Win16HostWindowOperationId,
+        callback: Win16HostCallback,
+        dc: crate::Win16HostDc,
+        record: Vec<u8>,
+        object_count: u16,
         source: Win16NativeCallbackSource,
     },
     GrayStringCallback {

@@ -25,9 +25,14 @@ impl Win16State {
                 | win16_abi::Win16GdiObjectsRequest::CloseMetaFile { .. }
                 | win16_abi::Win16GdiObjectsRequest::GetMetaFile { .. }
                 | win16_abi::Win16GdiObjectsRequest::PlayMetaFile { .. }
+                | win16_abi::Win16GdiObjectsRequest::PlayMetaFileRecord { .. }
                 | win16_abi::Win16GdiObjectsRequest::CopyMetaFile { .. }
                 | win16_abi::Win16GdiObjectsRequest::DeleteMetaFile { .. }
             )) => self.execute_metafile(request, &mut cpu.regs, memory, host)?,
+            Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::EnumMetaFile {
+                dc, metafile, procedure, parameter,
+            }) => return self.begin_enum_metafile(&mut cpu.regs, memory, host,
+                dc, metafile, procedure, parameter, return_to),
             Win16ApiRequest::GdiObjects(win16_abi::Win16GdiObjectsRequest::EnumObjects {
                 dc, object_type, callback, parameter,
             }) => return self.begin_enum_objects(

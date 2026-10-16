@@ -133,6 +133,8 @@ use operation_inputs::{
 };
 #[path = "win16_gray_string.rs"]
 mod win16_gray_string;
+#[path = "win16_metafile_enumeration.rs"]
+pub(in crate::windows) mod metafile_enumeration;
 #[path = "win16_windows_graphics.rs"]
 mod graphics;
 
@@ -196,6 +198,7 @@ struct PendingOperation {
     region_output: Option<(Win16HostGdiObject, Win16RegionLease)>,
     transferred_dc_region: Option<Win16HostGdiObject>,
     graphics: Option<graphics::DrawingLease>,
+    metafile: Option<Arc<metafile_enumeration::MetafileSession>>,
     control_color_return: Option<ControlColorReturnSlot>,
     wait_kind: Option<PendingWaitKind>,
     pending_guest_work: Option<PendingGuestWorkContinuation>,
@@ -499,7 +502,7 @@ impl Win16Windows {
         };
         self.refresh_pending_graphics(objects)?;
         let graphics = match &operation {
-            Win16WindowOperation::GrayString { dc, .. } =>
+            Win16WindowOperation::EnumMetafile { dc, .. } | Win16WindowOperation::GrayString { dc, .. } =>
                 Some(graphics::DrawingLease::capture(&self.dcs, objects, *dc)?),
             _ => None,
         };
@@ -520,6 +523,7 @@ impl Win16Windows {
         let worker_generation = worker.worker_generation();
         let id = allocate_shared_identity(&self.identity_source)?;
         let (reply, response) = mpsc::channel();
+        let metafile = metafile_enumeration::prepare(&operation, id)?;
         let native_font = match &operation {
             Win16WindowOperation::Default { message, .. }
             | Win16WindowOperation::DefFrameProc { message, .. }
@@ -599,6 +603,7 @@ impl Win16Windows {
             toolbar_bitmap_leases,
             native_regions,
             gray_string_brush,
+            metafile: metafile.clone(),
             response: reply,
         };
         if let Err(command) = worker.send_begin(command) {
@@ -635,6 +640,7 @@ impl Win16Windows {
             region_output,
             transferred_dc_region,
             graphics,
+            metafile,
             control_color_return,
             wait_kind,
             pending_guest_work: None,

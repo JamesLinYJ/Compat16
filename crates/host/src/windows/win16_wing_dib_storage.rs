@@ -227,6 +227,20 @@ impl Win16DibSectionOwner {
         Ok(Some(Win16DibDeleteLease { owner: Arc::clone(self), active: true }))
     }
 
+    /// A checked WMF deletion receipt arrived from native GDI. Existing
+    /// native-use guards keep their Arc and mapping alive until they retire;
+    /// new guest accesses and native uses must stop immediately.
+    pub(super) fn acknowledge_external_deletion(&self) -> Result<(), RuntimeError> {
+        self.check_owner_thread()?;
+        let mut state = self.lock_state()?;
+        if state.phase == Phase::Retiring || state.view_pins != 0 {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "external WinG bitmap deletion crossed an active storage transaction"));
+        }
+        state.phase = Phase::Retired;
+        Ok(())
+    }
+
     fn check_owner_thread(&self) -> Result<(), RuntimeError> {
         if thread::current().id() == self.owner_thread {
             Ok(())

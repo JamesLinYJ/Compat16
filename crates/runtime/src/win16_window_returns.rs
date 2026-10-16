@@ -54,6 +54,7 @@ pub(in crate::win16_runtime) enum WindowReturn {
     NativeSubclass(super::super::window_subclass::NativeSubclassChange),
     MessageCall(crate::win16_host_message_calls::Win16MessageCallContinuation),
     UserMessageBox,
+    EnumMetafile { dc: u16, host_dc: crate::Win16HostDc, procedure: u32, parameter: u32 },
     GrayString { procedure: u32, data: u32, count: i16 },
     UserFamily(Win16UserFamilyContinuation),
     CommonControls(super::super::commctrl::Win16CommonControlsContinuation),

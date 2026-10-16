@@ -62,3 +62,29 @@ returns = "word"
 params = [
   { name = "dc", type = "U16" },
 ]
+
+[[exports]]
+ordinal = 176
+name = "PlayMetaFileRecord"
+binding = { rust_id = "GdiPlayMetaFileRecord", id_value = 1263, constant = "GDI_PLAY_META_FILE_RECORD" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "table", type = "U32" },
+  { name = "record", type = "U32" },
+  { name = "object_count", type = "U16" },
+]
+
+[[exports]]
+ordinal = 175
+name = "EnumMetaFile"
+binding = { rust_id = "GdiEnumMetaFile", id_value = 1264, constant = "GDI_ENUM_META_FILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "metafile", type = "U16" },
+  { name = "procedure", type = "U32" },
+  { name = "parameter", type = "U32" },
+]

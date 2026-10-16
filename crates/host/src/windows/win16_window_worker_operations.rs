@@ -88,6 +88,7 @@ pub(super) fn run_operation(
     >,
     native_regions: BTreeMap<Win16HostGdiObject, Option<Win16RegionLease>>,
     gray_string_brush: Option<super::super::win16_gray_string::BrushLease>,
+    metafile: Option<Arc<super::super::metafile_enumeration::MetafileSession>>,
     response: Sender<Result<Win16WindowStep, RuntimeError>>,
 ) {
     if state.borrow().aborted {
@@ -370,6 +371,10 @@ pub(super) fn run_operation(
                 Win16WindowOperation::UserCursorAccelerator(operation) => {
                     super::super::win16_user_cursor_accelerator::execute(state, operation)
                         .map(Win16WindowResult::UserCursorAccelerator)
+                }
+                Win16WindowOperation::EnumMetafile { dc, bits } => {
+                    super::super::metafile_enumeration::execute(state, dc, bits, metafile.as_deref())
+                        .map(|success| Win16WindowResult::EnumMetafile { success, retired: Vec::new() })
                 }
                 request @ Win16WindowOperation::GrayString { .. } => {
                     super::super::win16_gray_string::execute(state, request, gray_string_brush.as_ref())

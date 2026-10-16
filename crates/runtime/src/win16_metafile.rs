@@ -1,5 +1,8 @@
 //! Classic WMF APIs backed by real checked Win16 HGLOBAL allocations.
 
+#[path = "win16_metafile_record.rs"]
+mod record;
+
 use guest_core::{Registers, memory::Memory};
 use win16_abi::{Win16GdiObjectsRequest as Request, global::{GMEM_DDESHARE, GMEM_MOVEABLE, GMEM_ZEROINIT}};
 
@@ -21,6 +24,10 @@ impl Win16State {
     ) -> Result<u32, RuntimeError> {
         let maximum_bytes = memory.size_bytes().saturating_sub(METAHEADER_SIZE);
         let result = match request {
+            Request::PlayMetaFileRecord { dc, table, record, object_count } => {
+                self.play_metafile_record(dc, table, record, object_count, memory, host)?;
+                return Ok(0); // The export descriptor preserves the Win16 void ABI.
+            }
             Request::CreateMetaFile { path } => return self.create_metafile_dc(path, host).map(u32::from),
             Request::CloseMetaFile { dc } => {
                 let Some(native_dc) = self.guest_gdi.dc(dc) else { return Ok(0); };
@@ -183,3 +190,32 @@ impl Win16State {
 fn invariant(message: &'static str) -> RuntimeError {
     RuntimeError::new(Kind::InternalInvariant, message)
 }
+
+impl Win16State {
+    pub(super) fn begin_enum_metafile(&mut self, registers: &mut Registers,
+        memory: &mut Memory, host: &mut impl RuntimeHost, dc: u16, metafile: u16,
+        procedure: u32, parameter: u32, return_to: (u16, u16, u32)) -> Result<Option<u8>, RuntimeError>
+    {
+        let native_dc = self.guest_gdi.dc(dc);
+        let bits = self.copy_global_bytes(metafile, memory)?;
+        registers.es = 0;
+        let bits = bits.filter(|bits| formats::parse_wmf(bits).is_ok());
+        let (Some(host_dc), Some(bits)) = (native_dc, bits) else {
+            return self.complete_return(registers, return_to.0, return_to.1, return_to.2,
+                0, win16_abi::Win16ReturnKind::Word);
+        };
+        if procedure == 0 {
+            return self.complete_return(registers, return_to.0, return_to.1, return_to.2,
+                0, win16_abi::Win16ReturnKind::Word);
+        }
+        let target = self.selectors.pointer_from_far(procedure).map_err(crate::runtime_error)?;
+        self.selectors.translate(target, win16_abi::Access::Execute, 1, memory).map_err(crate::runtime_error)?;
+        self.begin_window_operation(registers, memory, host,
+            crate::Win16WindowOperation::EnumMetafile { dc: host_dc, bits },
+            super::windows::WindowReturn::EnumMetafile { dc, host_dc, procedure, parameter }, return_to)
+    }
+}
+
+#[cfg(test)]
+#[path = "win16_metafile_tests.rs"]
+mod tests;

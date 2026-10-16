@@ -21,6 +21,7 @@ pub(super) enum Win16FarCallbackArgument {
     Word(u16),
     Dword(u32),
     GuestPointer { far: u32, access: Access, bytes: u32 },
+    HugeGuestPointer { far: u32, access: Access, bytes: u32 },
 }
 
 /// For arguments listed in prototype order, Pascal places the last parameter
@@ -102,6 +103,9 @@ impl Win16State {
             .map_err(crate::runtime_error)?;
 
         for argument in arguments {
+            if let Win16FarCallbackArgument::HugeGuestPointer { far, access, bytes } = *argument {
+                self.validate_callback_buffer(memory, far, access, bytes)?;
+            }
             if let Win16FarCallbackArgument::GuestPointer { far, access, bytes } = *argument {
                 let pointer = self.selectors.pointer_from_far(far)
                     .map_err(crate::runtime_error)?;
@@ -123,6 +127,7 @@ impl Win16State {
                     cursor += 2;
                 }
                 Win16FarCallbackArgument::Dword(value)
+                | Win16FarCallbackArgument::HugeGuestPointer { far: value, .. }
                 | Win16FarCallbackArgument::GuestPointer { far: value, .. } => {
                     bytes[cursor..cursor + 4].copy_from_slice(&value.to_le_bytes());
                     cursor += 4;
@@ -300,6 +305,23 @@ impl Win16State {
         frame: &mut Win16FarCallbackFrame,
         policy: CallEffectPolicy,
     ) -> Result<u32, RuntimeError> {
+        self.finish_guest_far_callback_return(cpu, dos, memory, frame, policy, false)
+    }
+
+    /// Compose a proved callback RETF with its enclosing native API owner.
+    /// The CPU issues AdapterReturn only after the checked restore commits;
+    /// the outer continuation must not reuse the consumed raw RETF marker.
+    pub(super) fn finish_native_function_far_callback(
+        &mut self, cpu: &mut Cpu, dos: &mut DosKernel, memory: &mut Memory,
+        frame: &mut Win16FarCallbackFrame,
+    ) -> Result<u32, RuntimeError> {
+        self.finish_guest_far_callback_return(cpu, dos, memory, frame, CallEffectPolicy::PreserveX87, true)
+    }
+
+    fn finish_guest_far_callback_return(
+        &mut self, cpu: &mut Cpu, dos: &mut DosKernel, memory: &mut Memory,
+        frame: &mut Win16FarCallbackFrame, policy: CallEffectPolicy, parent_return: bool,
+    ) -> Result<u32, RuntimeError> {
         if frame.terminal_aborted {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "terminally aborted Win16 callback cannot take a normal guest-return path"));
@@ -318,10 +340,13 @@ impl Win16State {
                 registers: frame.saved.clone(),
                 stack_pointer: LegacyStackPointerTarget::RegisterValue,
             };
-            self.restore_legacy_cpu_call_frame(owner, cpu, memory,
-                policy,
-                CallResumeBoundary::GuestCallReturn { transfer },
-                target)?;
+            if parent_return {
+                self.return_legacy_cpu_call_frame(owner, cpu, memory, policy,
+                    CallResumeBoundary::GuestCallReturn { transfer }, target)?;
+            } else {
+                self.restore_legacy_cpu_call_frame(owner, cpu, memory, policy,
+                    CallResumeBoundary::GuestCallReturn { transfer }, target)?;
+            }
         } else {
             cpu.regs = frame.saved.clone();
         }
@@ -420,7 +445,7 @@ impl Win16FarCallbackArgument {
     fn stack_size(self) -> u16 {
         match self {
             Self::Word(_) => 2,
-            Self::Dword(_) | Self::GuestPointer { .. } => 4,
+            Self::Dword(_) | Self::GuestPointer { .. } | Self::HugeGuestPointer { .. } => 4,
         }
     }
 }

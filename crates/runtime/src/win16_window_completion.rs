@@ -50,6 +50,7 @@ impl Win16State {
                 Some(WindowReturn::WindowProperties(
                     super::super::window_properties::WindowPropertyReturn::Enum { procedure, .. },
                 )) => references.push(*procedure),
+                Some(WindowReturn::EnumMetafile { procedure, .. }) => references.push(*procedure),
                 Some(WindowReturn::GrayString { procedure, .. }) if *procedure != 0 =>
                     references.push(*procedure),
                 Some(WindowReturn::UserFamily(continuation)) => {

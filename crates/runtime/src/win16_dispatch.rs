@@ -193,6 +193,8 @@ impl Win16State {
             || (matches!(&request, Win16ApiRequest::Kernel(
                 win16_abi::Win16KernelRequest::Runtime(win16_abi::Win16KernelRuntimeRequest::Yield)))
                 && self.kernel_yield_queue()?.is_some())
+            || matches!(&request, Win16ApiRequest::GdiObjects(
+                win16_abi::Win16GdiObjectsRequest::EnumMetaFile { .. }))
             || matches!(&request, Win16ApiRequest::Dde(_)
                 | Win16ApiRequest::Commdlg(_)
                 | Win16ApiRequest::Commctrl(_)

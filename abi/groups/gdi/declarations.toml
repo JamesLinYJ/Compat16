@@ -228,16 +228,6 @@ kind = "stub"
 decl = { attributes = [] }
 
 [[exports]]
-ordinal = 175
-name = "EnumMetaFile"
-decl = { args = ["word", "word", "segmented_pointer", "long"] }
-
-[[exports]]
-ordinal = 176
-name = "PlayMetaFileRecord"
-decl = { args = ["word", "pointer", "pointer", "word"] }
-
-[[exports]]
 ordinal = 177
 name = "RCOS"
 kind = "stub"

@@ -8,6 +8,8 @@ pub enum Win16GdiObjectsRequest {
     CloseMetaFile { dc: u16 },
     GetMetaFile { path: Vec<u8> },
     PlayMetaFile { dc: u16, metafile: u16 },
+    EnumMetaFile { dc: u16, metafile: u16, procedure: u32, parameter: u32 },
+    PlayMetaFileRecord { dc: u16, table: u32, record: u32, object_count: u16 },
     CopyMetaFile { metafile: u16, path: Option<Vec<u8>> },
     DeleteMetaFile { metafile: u16 },
 

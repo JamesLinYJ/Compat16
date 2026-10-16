@@ -30,6 +30,18 @@ pub(super) fn decode(
                 metafile: word_argument(arguments, 1)?,
             })
         }
+        Win16ExportId::GdiEnumMetaFile => Win16ApiRequest::GdiObjects(
+            super::Win16GdiObjectsRequest::EnumMetaFile {
+                dc: word_argument(arguments, 0)?, metafile: word_argument(arguments, 1)?,
+                procedure: dword_argument(arguments, 2)?, parameter: dword_argument(arguments, 3)?,
+            }),
+        Win16ExportId::GdiPlayMetaFileRecord => Win16ApiRequest::GdiObjects(
+            super::Win16GdiObjectsRequest::PlayMetaFileRecord {
+                dc: word_argument(arguments, 0)?,
+                table: dword_argument(arguments, 1)?,
+                record: dword_argument(arguments, 2)?,
+                object_count: word_argument(arguments, 3)?,
+            }),
         Win16ExportId::GdiCopyMetaFile => {
             Win16ApiRequest::GdiObjects(super::Win16GdiObjectsRequest::CopyMetaFile {
                 metafile: word_argument(arguments, 0)?,

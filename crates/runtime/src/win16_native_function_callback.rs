@@ -1,7 +1,9 @@
-//! Checked native function callbacks sharing the FAR PASCAL (WORD, DWORD, WORD) ABI.
+//! Checked native function callbacks with explicit FAR PASCAL arguments.
 
 #[path = "win16_native_function_callback_finish.rs"]
 mod finish;
+#[path = "win16_metafile_callback.rs"]
+mod metafile;
 
 use std::sync::Arc;
 
@@ -28,9 +30,8 @@ pub(super) struct NativeFunctionCallbackFrame {
     pub(super) callback_id: super::CallbackFrameId,
     callback: Win16HostCallback,
     procedure: u32,
-    argument_word0: u16,
-    argument_word2: u16,
-    argument_dword1: u32,
+    arguments: Vec<Win16FarCallbackArgument>,
+    metafile: Option<metafile::MetafileCallbackPayload>,
     entry_pending: bool,
     borrowed_dc: Option<(u16, crate::Win16HostDc)>,
     borrowed_bitmaps: Vec<crate::Win16HostGdiObject>,
@@ -48,6 +49,10 @@ pub(super) struct NativeFunctionCallbackFrame {
 }
 
 impl Win16State {
+    pub(super) fn native_function_has_returned_value(&self) -> bool {
+        self.native_function_callbacks.last().is_some_and(|frame| frame.guest_return.is_some())
+    }
+
     pub(super) fn terminal_native_function_callback_identity(
         &self,
         callback_id: super::CallbackFrameId,
@@ -111,9 +116,9 @@ impl Win16State {
                 callback_id,
                 callback,
                 procedure,
-                argument_word0: 0,
-                argument_word2: count as u16,
-                argument_dword1: data,
+                arguments: vec![Win16FarCallbackArgument::Word(0), Win16FarCallbackArgument::Dword(data),
+                    Win16FarCallbackArgument::Word(count as u16)],
+                metafile: None,
                 entry_pending: true,
                 borrowed_dc: None,
                 borrowed_bitmaps: Vec::new(),
@@ -140,7 +145,7 @@ impl Win16State {
             .native_function_callbacks
             .last_mut()
             .expect("new callback retained");
-        frame.argument_word0 = guest_dc;
+        frame.arguments[0] = Win16FarCallbackArgument::Word(guest_dc);
         frame.borrowed_dc = Some((guest_dc, dc));
         Ok(true)
     }
@@ -187,9 +192,9 @@ impl Win16State {
                 callback_id,
                 callback,
                 procedure,
-                argument_word0: guest_window,
-                argument_word2: data,
-                argument_dword1: 0,
+                arguments: vec![Win16FarCallbackArgument::Word(guest_window), Win16FarCallbackArgument::Dword(0),
+                    Win16FarCallbackArgument::Word(data)],
+                metafile: None,
                 borrowed_dc: None,
                 borrowed_bitmaps: Vec::new(),
                 entry_pending: true,
@@ -229,7 +234,7 @@ impl Win16State {
                     "Win16 native function retention changed its exact callback owner",
                 ));
             }
-            frame.argument_dword1 = name_argument;
+            frame.arguments[1] = Win16FarCallbackArgument::Dword(name_argument);
             Ok(())
         })();
         if let Err(error) = setup {
@@ -250,9 +255,7 @@ impl Win16State {
         let Some((
             callback_id,
             procedure,
-            guest_window,
-            data,
-            name_argument,
+            arguments,
             entry_pending,
             active,
             failure,
@@ -261,9 +264,7 @@ impl Win16State {
             (
                 frame.callback_id,
                 frame.procedure,
-                frame.argument_word0,
-                frame.argument_word2,
-                frame.argument_dword1,
+                frame.arguments.clone(),
                 frame.entry_pending,
                 frame.active_call.is_some(),
                 frame.entry_error.as_ref().map(Arc::clone),
@@ -295,13 +296,9 @@ impl Win16State {
             dos,
             memory,
             procedure,
-            &[
-                Win16FarCallbackArgument::Word(guest_window),
-                Win16FarCallbackArgument::Dword(name_argument),
-                Win16FarCallbackArgument::Word(data),
-            ],
-            // PROPENUMPROC and GRAYSTRINGPROC share FAR PASCAL WORD, DWORD,
-            // WORD arguments (eight stack bytes), with the INT16 in AX.
+            &arguments,
+            // Each API declares its complete prototype-order argument vector;
+            // Pascal placement and callee cleanup remain one checked contract.
             Win16FarCallbackConvention::Pascal,
             Win16FarCallbackReturn::Word,
         );

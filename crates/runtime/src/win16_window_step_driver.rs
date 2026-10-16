@@ -340,6 +340,12 @@ impl Win16State {
                     )?;
                     return Ok(());
                 }
+                Win16WindowStep::MetafileCallback { operation_id, callback, dc, record, object_count, source } => {
+                    self.validate_native_window_callback_owner(operation_id, callback, source)?;
+                    self.retain_metafile_callback(registers, memory, host, callback, dc,
+                        record, object_count, operation_id, source)?;
+                    return Ok(());
+                }
                 Win16WindowStep::GrayStringCallback { operation_id, callback, dc, count, source } => {
                     self.validate_native_window_callback_owner(operation_id, callback, source)?;
                     if self.retain_gray_string_callback(registers, callback, dc, count,

@@ -377,8 +377,8 @@ or prove guest callback execution in a desktop application.
 
 The original SDK declares HMETAFILE as a WORD handle at `WINDOWS.H:2342`.
 The following far Pascal declarations and original LIBW.LIB IMPDEF records
-establish the entrypoints. Every result is in AX; no native handle is returned
-directly to guest code.
+establish the entrypoints. WORD results are in AX; PlayMetaFileRecord is void.
+No native handle is returned directly to guest code.
 
 | GDI ordinal | SDK declaration | Header line | IMPDEF | Argument bytes |
 | --- | --- | --- | --- | --- |
@@ -389,6 +389,26 @@ directly to guest code.
 | 159 | `HGLOBAL GetMetaFileBits(HMETAFILE)` | 2353 | `0x3ff4` | 2 |
 | 160 | `HMETAFILE SetMetaFileBits(HGLOBAL)` | 2354 | `0x4034` | 2 |
 | 196 | `HMETAFILE SetMetaFileBitsBetter(HGLOBAL)` | 2356 | `0x429a` | 2 |
+
+The SDK additionally declares `void WINAPI PlayMetaFileRecord(HDC,
+HANDLETABLE FAR*, METARECORD FAR*, UINT)` at `WINDOWS.H:2482` (GDI.176,
+12 argument bytes), and `BOOL WINAPI EnumMetaFile(HDC, HMETAFILE, MFENUMPROC,
+LPARAM)` at line 2490 (GDI.175, 12 argument bytes). The `MFENUMPROC` declaration
+at line 2485 is FAR PASCAL `(WORD, FAR pointer, FAR pointer, INT16, DWORD)`:
+16 argument bytes, a four-byte FAR return, and an INT16 result in AX.
+PlayMetaFileRecord must preserve the void ABI even though its Win32 counterpart
+returns BOOL.
+
+Enumeration copies records into checked, process-owned guest buffers and
+translates each HANDLETABLE WORD through the GDI identity table. Native
+EnumMetaFile owns clipping/selection restoration and table-object cleanup;
+whole-DC SaveDC/RestoreDC would also restore attributes that enumeration leaves
+changed. NT 3.5 `MFPLAY16.C:91-358` documents this native lifecycle and
+`GetEvent` excludes META_EOF from callbacks. `WGMETA.C:218-325,373-410` copies
+the Win16 table in both directions and builds a temporary native table for
+standalone record playback. These references establish contracts; they do not
+establish complete WMF drawing compatibility. Complex bitmap/region records
+and Escape payloads still require nested codecs before pointer-only playback.
 
 LPCSTR is a guest 16:16 pointer to ANSI bytes; HDC, HMETAFILE, and HGLOBAL
 each occupy one WORD. The Win16 METAHEADER at lines 2369-2378 is 18 bytes:

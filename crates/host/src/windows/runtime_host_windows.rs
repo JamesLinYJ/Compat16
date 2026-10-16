@@ -292,6 +292,7 @@ pub(super) fn win16_window_abort(
     let result = host.win16_windows.abort();
     if let Ok(receipt) = &result {
         host.win16_windows.release_graphics_after_abort();
+        host.win16_objects.acknowledge_metafile_storage_retirements()?;
         for callback in &receipt.cancelled_callbacks {
             if let runtime::Win16NativeCallbackSource::GrayString { dc } = callback.source {
                 host.win16_objects.retire_function_bitmaps(dc);

@@ -180,6 +180,7 @@ impl Fixture {
                 toolbar_bitmap_leases: BTreeMap::new(),
                 native_regions: BTreeMap::new(),
                 gray_string_brush: None,
+                metafile: None,
                 response,
             })
             .unwrap_or_else(|_| panic!("begin native USER operation"));

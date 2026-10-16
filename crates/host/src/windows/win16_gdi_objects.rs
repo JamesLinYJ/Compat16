@@ -17,6 +17,10 @@ mod object_query;
 #[path = "win16_gdi_object_enumeration.rs"]
 mod object_enumeration;
 
+#[path = "win16_gdi_metafile_objects.rs"]
+mod metafile_objects;
+pub(super) use metafile_objects::MetafileObjectNote;
+
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostGdiCleanup, Win16HostGdiObject,
     Win16SelectObjectResult,
@@ -64,12 +68,15 @@ impl Win16Objects {
         self.objects.get(token).filter(|object| !object.retired.load(Ordering::Acquire))
     }
 
-    fn existing_native_token(&mut self, native: usize) -> Option<Win16HostGdiObject> {
-        let token = *self.by_native.get(&native)?;
-        if self.live_object(&token).is_some() { return Some(token); }
+    pub(super) fn existing_native_token(&mut self, native: usize) -> Result<Option<Win16HostGdiObject>, RuntimeError> {
+        let Some(&token) = self.by_native.get(&native) else { return Ok(None); };
+        if self.live_object(&token).is_some() { return Ok(Some(token)); }
+        if let Some(owner) = self.objects.get(&token).and_then(|object| object.dib_owner.as_ref()) {
+            owner.acknowledge_external_deletion()?;
+        }
         self.objects.remove(&token);
         self.by_native.remove(&native);
-        None
+        Ok(None)
     }
 
     pub(super) fn class_background(&self, token: Win16HostGdiObject)
@@ -172,7 +179,7 @@ impl Win16Objects {
     fn intern_borrowed_in_callback(&mut self, native: HGDIOBJ,
         callback: Option<runtime::Win16HostDc>) -> Result<Win16HostGdiObject, RuntimeError> {
         let identity = native as usize;
-        if let Some(token) = self.existing_native_token(identity) { return Ok(token); }
+        if let Some(token) = self.existing_native_token(identity)? { return Ok(token); }
         let next_id = self.next_id.checked_add(1).ok_or_else(|| RuntimeError::new(
             Kind::ResourceExhausted, "Win16 host GDI object identity exhausted",
         ))?;
@@ -246,7 +253,18 @@ impl Win16Objects {
     ) -> Result<Option<Win16HostGdiObject>, RuntimeError> {
         if native.is_null() { return Ok(None); }
         let identity = native as usize;
-        if let Some(token) = self.existing_native_token(identity) {
+        let existing = match self.existing_native_token(identity) {
+            Ok(existing) => existing,
+            Err(primary) => {
+                // The factory transferred this new, unpublished object to us.
+                if unsafe { DeleteObject(native) } == 0 {
+                    return Err(primary.with_cleanup("release unpublished GDI object",
+                        RuntimeError::new(Kind::HostFailure, "DeleteObject refused unpublished factory output")));
+                }
+                return Err(primary);
+            }
+        };
+        if let Some(token) = existing {
             if self.live_object(&token).is_some_and(|object|
                 matches!(object.ownership, ObjectOwnership::CallbackBitmap(_))) {
                 // A newly-created owned bitmap is a different lifetime even
@@ -330,7 +348,11 @@ impl Win16Objects {
             ));
         }
         let identity = native as usize;
-        if let Some(token) = self.existing_native_token(identity) {
+        let existing = match self.existing_native_token(identity) {
+            Ok(existing) => existing,
+            Err(primary) => return Err(finish_unpublished_dib(native, owner, primary)),
+        };
+        if let Some(token) = existing {
             let Some(object) = self.live_object(&token) else {
                 return Err(RuntimeError::new(
                     Kind::InternalInvariant,
@@ -500,6 +522,11 @@ impl Win16Objects {
 impl Drop for Win16Objects {
     fn drop(&mut self) {
         for (_, object) in std::mem::take(&mut self.objects) {
+            if object.retired.load(Ordering::Acquire) {
+                if let Some(owner) = &object.dib_owner {
+                    let _receipt = owner.acknowledge_external_deletion();
+                }
+            }
             if object.is_owned() {
                 if let Some(owner) = object.dib_owner {
                     if let Ok(Some(lease)) = owner.begin_delete() {

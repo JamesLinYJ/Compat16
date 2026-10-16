@@ -51,6 +51,7 @@ pub(in crate::windows::win16_windows) enum WorkerCommand {
         >,
         native_regions: BTreeMap<Win16HostGdiObject, Option<Win16RegionLease>>,
         gray_string_brush: Option<super::super::win16_gray_string::BrushLease>,
+        metafile: Option<Arc<super::super::metafile_enumeration::MetafileSession>>,
         response: Sender<Result<Win16WindowStep, RuntimeError>>,
     },
     Resume {

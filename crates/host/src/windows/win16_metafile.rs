@@ -13,9 +13,11 @@ use super::win16_gdi::{Win16Dcs, metafile::NativeMetafile};
 
 #[path = "win16_metafile_format.rs"]
 mod format;
+#[path = "win16_metafile_record.rs"]
+pub(in crate::windows) mod record;
 
 impl NativeMetafile {
-    fn from_bits(bits: &[u8]) -> Option<Self> {
+    pub(in crate::windows) fn from_bits(bits: &[u8]) -> Option<Self> {
         let bits = format::validate(bits)?.bytes;
         let count = u32::try_from(bits.len()).ok()?;
         // SAFETY: fixed framing was checked against the complete owned slice.
@@ -49,9 +51,12 @@ impl NativeMetafile {
 }
 
 pub(super) fn execute(
-    dcs: &Win16Dcs, filesystem: &mut Filesystem, operation: Operation,
+    dcs: &Win16Dcs, objects: &mut super::win16_gdi_objects::Win16Objects, filesystem: &mut Filesystem, operation: Operation,
 ) -> Result<ResultValue, RuntimeError> {
     match operation {
+        Operation::PlayRecord { dc, record, objects: table, .. } => record::play(dcs, objects, dc, record, table),
+        Operation::CallbackTable { .. } | Operation::CommitCallbackTable { .. } => Err(RuntimeError::new(
+            Kind::InternalInvariant, "WMF callback table reached the synchronous playback adapter")),
         Operation::Create { path } => {
             let output = match path {
                 Some(path) => {

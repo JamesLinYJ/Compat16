@@ -76,7 +76,7 @@ pub(super) fn with_metafile<R>(
     run: impl FnOnce(&mut Win16Objects, Win16HostMetafileOperation) -> Result<R, RuntimeError>,
 ) -> Result<R, RuntimeError> {
     let (tokens, count) = match &operation {
-        Win16HostMetafileOperation::Play { dc, .. } => ([Some(*dc), None], 1),
+        Win16HostMetafileOperation::Play { dc, .. } | Win16HostMetafileOperation::PlayRecord { dc, .. } => ([Some(*dc), None], 1),
         _ => ([None, None], 0),
     };
     with_selected(dcs, objects, tokens, count, |objects| run(objects, operation))

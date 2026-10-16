@@ -50,7 +50,7 @@ impl Win16State {
                         "entered native function callback has no retained FAR call frame",
                     )
                 })?;
-            match self.finish_guest_far_callback_checked(cpu, dos, memory, &mut active_call) {
+            match self.finish_native_function_far_callback(cpu, dos, memory, &mut active_call) {
                 Ok(value) => {
                     let frame = self
                         .native_function_callbacks
@@ -58,6 +58,9 @@ impl Win16State {
                         .expect("native function callback frame checked");
                     frame.guest_return = Some(value);
                     frame.active_call = Some(active_call);
+                    let transfer = cpu.control_transfer().ok_or_else(|| RuntimeError::new(
+                        Kind::InternalInvariant, "native callback restore lost its checked ABI return"))?;
+                    self.record_window_callback_return(CallbackKind::NativeFunction, transfer)?;
                     value
                 }
                 Err(error) => {
@@ -83,6 +86,7 @@ impl Win16State {
         // Keep the callback frame and shared ID live across any failed free;
         // release_native_function_payload records a completed unlock so retry
         // resumes at the exact remaining cleanup step.
+        self.commit_metafile_callback_table(memory, host)?;
         self.release_native_function_payload()?;
         let resumed_step = self
             .native_function_callbacks

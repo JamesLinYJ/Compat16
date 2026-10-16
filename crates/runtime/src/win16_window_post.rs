@@ -143,6 +143,7 @@ fn window_step_kind(step: &Win16WindowStep) -> &'static str {
         Win16WindowStep::DialogCallback { .. } => "DialogCallback",
         Win16WindowStep::GuestTimerCallback { .. } => "GuestTimerCallback",
         Win16WindowStep::WindowPropertyCallback { .. } => "WindowPropertyCallback",
+        Win16WindowStep::MetafileCallback { .. } => "MetafileCallback",
         Win16WindowStep::GrayStringCallback { .. } => "GrayStringCallback",
         Win16WindowStep::Untranslated { .. } => "Untranslated",
         Win16WindowStep::Diagnostic(_) => "Diagnostic",

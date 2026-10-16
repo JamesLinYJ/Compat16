@@ -650,6 +650,14 @@ impl Win16State {
                             ),
                         ) => cache_simple_return(phase, u32::from(*value), Win16ReturnKind::Word),
                         (
+                            WindowReturn::EnumMetafile { .. },
+                            Win16WindowResult::EnumMetafile { success, retired },
+                            WindowProjectionJournal::Api(WindowApiProjectionJournal::EnumMetafile(phase)),
+                        ) => {
+                            for token in retired { self.guest_gdi.retire_object_aliases(*token); }
+                            cache_simple_return(phase, u32::from(*success), Win16ReturnKind::Word)
+                        }
+                        (
                             WindowReturn::GrayString { .. },
                             Win16WindowResult::GrayString(value),
                             WindowProjectionJournal::Api(WindowApiProjectionJournal::GrayString(phase)),

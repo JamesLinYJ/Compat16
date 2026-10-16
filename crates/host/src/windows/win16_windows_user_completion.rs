@@ -137,6 +137,7 @@ impl Win16Windows {
                 source,
                 ..
             }
+            | Win16WindowStep::MetafileCallback { operation_id, callback, source, .. }
             | Win16WindowStep::GrayStringCallback { operation_id, callback, source, .. }
             | Win16WindowStep::GuestTimerCallback {
                 operation_id,
@@ -355,6 +356,25 @@ impl Win16Windows {
             );
         }
         self.project_control_color_completion(index, objects)?;
+        if phase == PendingUserCompletionPhase::ResultReceived {
+            let metafile = matches!(self.pending[index].completion.as_ref().map(|completion| &completion.step),
+                Some(Win16WindowStep::Complete(runtime::Win16WindowResult::EnumMetafile { .. })));
+            if metafile {
+                let projection = (|| {
+                    let session = self.pending[index].metafile.as_ref().ok_or_else(|| RuntimeError::new(
+                        Kind::InternalInvariant, "WMF completion has no exact native session"))?;
+                    let retired = session.retired_tokens()?;
+                    objects.acknowledge_metafile_storage_retirements()?;
+                    let Some(Win16WindowStep::Complete(runtime::Win16WindowResult::EnumMetafile { retired: output, .. })) =
+                        self.pending[index].completion.as_mut().map(|completion| &mut completion.step) else {
+                        return Err(RuntimeError::new(Kind::InternalInvariant, "WMF cached result changed during projection"));
+                    };
+                    *output = retired;
+                    Ok(())
+                })();
+                if let Err(error) = projection { return self.retain_cached_user_completion_error(index, error); }
+            }
+        }
         if phase == PendingUserCompletionPhase::ResultReceived {
             let preflight = (|| -> Result<Option<usize>, RuntimeError> {
                 let pending = self.pending.get(index).ok_or_else(|| {

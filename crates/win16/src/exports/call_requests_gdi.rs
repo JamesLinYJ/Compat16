@@ -18,6 +18,8 @@ pub(super) fn decode(
         Win16ExportId::GdiCreateMetaFile
         | Win16ExportId::GdiCloseMetaFile
         | Win16ExportId::GdiGetMetaFile
+        | Win16ExportId::GdiEnumMetaFile
+        | Win16ExportId::GdiPlayMetaFileRecord
         | Win16ExportId::GdiPlayMetaFile
         | Win16ExportId::GdiCopyMetaFile
         | Win16ExportId::GdiDeleteMetaFile => {

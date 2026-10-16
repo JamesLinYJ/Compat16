@@ -138,14 +138,28 @@ pub(super) fn execute_metafile(
     host: &mut WindowsHost,
     operation: runtime::Win16HostMetafileOperation,
 ) -> Result<runtime::Win16HostMetafileResult, RuntimeError> {
+    use runtime::{Win16HostMetafileOperation as Op, Win16HostMetafileResult as Value};
+    match operation {
+        Op::CallbackTable { callback } => return host.win16_windows.metafile_callback_table(callback, &mut host.win16_objects),
+        Op::CommitCallbackTable { callback, objects } => {
+            host.win16_windows.commit_metafile_table(callback, &objects, &host.win16_objects, true)?;
+            return Ok(Value::TableCommitted);
+        }
+        _ => {}
+    }
+    let callback = match &operation { Op::PlayRecord { callback, .. } => *callback, _ => None };
     let dcs = &host.win16_dcs;
     let filesystem = &mut host.filesystem;
-    win16_wing_dib_use::with_metafile(
+    let result = win16_wing_dib_use::with_metafile(
         dcs,
         &mut host.win16_objects,
         operation,
-        |_, operation| win16_metafile::execute(dcs, filesystem, operation),
-    )
+        |objects, operation| win16_metafile::execute(dcs, objects, filesystem, operation),
+    )?;
+    if let (Some(callback), Value::Record { objects, .. }) = (callback, &result) {
+        host.win16_windows.commit_metafile_table(callback, objects, &host.win16_objects, false)?;
+    }
+    Ok(result)
 }
 
 pub(super) fn create_compatible_dc(

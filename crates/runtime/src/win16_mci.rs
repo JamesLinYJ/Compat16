@@ -166,6 +166,7 @@ fn unexpected_mci_post_error(
         crate::Win16WindowStep::DialogCallback { .. } => "DialogCallback",
         crate::Win16WindowStep::GuestTimerCallback { .. } => "GuestTimerCallback",
         crate::Win16WindowStep::WindowPropertyCallback { .. } => "WindowPropertyCallback",
+        crate::Win16WindowStep::MetafileCallback { .. } => "MetafileCallback",
         crate::Win16WindowStep::GrayStringCallback { .. } => "GrayStringCallback",
         crate::Win16WindowStep::Untranslated { .. } => "Untranslated",
         crate::Win16WindowStep::Diagnostic(_) => "Diagnostic",

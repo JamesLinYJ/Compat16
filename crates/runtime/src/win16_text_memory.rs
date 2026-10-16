@@ -77,6 +77,13 @@ impl Win16State {
     }
 
 
+    pub(super) fn validate_callback_buffer(&self, memory: &Memory, far: u32,
+        access: Access, bytes: u32) -> Result<(), RuntimeError> {
+        if bytes == 0 { return Ok(()); }
+        let pointer = self.selectors.pointer_from_far(far).map_err(crate::runtime_error)?;
+        self.text_chunks(memory, pointer, bytes as usize, access).map(|_| ())
+    }
+
     fn text_chunks(
         &self,
         memory: &Memory,
