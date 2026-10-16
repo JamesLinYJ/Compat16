@@ -135,6 +135,10 @@ returns = "void"
 ordinal = 115
 name = "ReplyMessage"
 decl = { args = ["long"] }
+binding = { rust_id = "UserReplyMessage", id_value = 1262, constant = "USER_REPLY_MESSAGE" }
+[exports.call]
+returns = "void"
+params = [{ name = "result", type = "I32" }]
 
 [[exports]]
 ordinal = 117

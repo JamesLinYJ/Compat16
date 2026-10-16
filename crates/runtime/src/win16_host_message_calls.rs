@@ -80,6 +80,9 @@ pub enum Win16MessageCall {
     GetMessageExtraInfo,
     /// Query InSendMessage on the native worker owning the active guest WndProc.
     InSendMessage,
+    /// Run on the same native WndProc stack as InSendMessage. The LONG stays
+    /// signed when widened to native LRESULT; no guest address is forwarded.
+    ReplyMessage { result: i32 },
     GetInputState,
     GetQueueStatus { flags: u16 },
     GetKeyboardState,

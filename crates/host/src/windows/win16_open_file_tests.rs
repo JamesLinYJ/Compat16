@@ -6,9 +6,47 @@ use std::os::windows::fs::OpenOptionsExt;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use windows_sys::Win32::Foundation::{ERROR_ACCESS_DENIED, ERROR_FILE_NOT_FOUND};
+use windows_sys::Win32::Foundation::{ERROR_ACCESS_DENIED, ERROR_FILE_NOT_FOUND, FILETIME};
+use windows_sys::Win32::System::SystemInformation::GetSystemTimeAsFileTime;
 
 const SEED_SECONDS: u64 = 1_087_302_896;
+// WINDOWS.H names 0x0400 OF_SEARCH; reopening uses its OF_VERIFY meaning.
+const OF_SEARCH: u16 = OF_VERIFY;
+
+/// These native timestamp fixtures predate the typed pathname boundary.
+/// Prepare its task-resolved capability input before invoking the host; file
+/// opening, timestamp verification and handle ownership still run in production.
+fn open(
+    files: &mut Win16Files, codec: GuestTextCodec, path: &[u8],
+    style: u16, ofstruct: Vec<u8>,
+) -> Result<Win16HostOpenFile, RuntimeError> {
+    let path = if style & OF_REOPEN != 0 {
+        let saved = &ofstruct[8..];
+        let Some(end) = saved.iter().position(|&byte| byte == 0).filter(|&end| end != 0)
+            else { return Ok(failed(ofstruct, ERROR_INVALID_NAME)); };
+        &saved[..end]
+    } else { path };
+    let wide = codec.to_wide_z(path)?;
+    let text = String::from_utf16(&wide[..wide.len() - 1]).unwrap();
+    let mut filesystem = fixture_filesystem();
+    let mut owner = runtime::Win16KernelFileSystemState::new();
+    let id = guest_core::OwnerId(1);
+    owner.seed_owner(id, runtime::Win16CanonicalPath {
+        drive: filesystem.drive,
+        components: filesystem.current_directory.components().map(|part|
+            part.as_os_str().to_str().unwrap().to_owned()).collect(),
+    })?;
+    // Native fixture filenames identify real files, independently of virtual
+    // DOS aliases; the timestamp tests do not assert the alias codec.
+    let guest_path = owner.resolve_kernel_path_text(id, &text, false)?;
+    let search = (style & 0x9100 == 0 && !text.contains(['\\', '/', ':']))
+        .then_some(text.as_str());
+    super::open(&mut filesystem, files, codec, &guest_path, search, style, ofstruct)
+}
+
+fn fixture_filesystem() -> crate::filesystem::Filesystem {
+    crate::filesystem::Filesystem::new_native_directory(&std::env::temp_dir(), 65001).unwrap()
+}
 
 struct TestFile(PathBuf);
 
@@ -251,9 +289,11 @@ fn open_file_timestamp_failure_closes_temporary_handle_before_delete() {
     let mut files = Win16Files::new();
     let mut saved = file.snapshot(&mut files);
     let handle: OwnedHandle = OpenOptions::new().read(true).share_mode(0).open(&file.0).unwrap().into();
-    let path_z = codec().to_wide_z(&file.path()).unwrap();
-    let failed = finish_open(&mut files, &path_z, OF_REOPEN | OF_VERIFY | OF_DELETE,
-        saved.clone(), handle, Err(ERROR_ACCESS_DENIED)).unwrap();
+    let mut filesystem = fixture_filesystem();
+    let canonical = std::fs::canonicalize(&file.0).unwrap();
+    let path = canonical.strip_prefix(&filesystem.canonical_root).unwrap();
+    let failed = finish_open(&mut filesystem, &mut files, path, OF_REOPEN | OF_VERIFY | OF_DELETE,
+        saved.clone(), handle, GENERIC_READ, Err(ERROR_ACCESS_DENIED)).unwrap();
     assert_eq!(failed.result, -1);
     assert!(failed.file.is_none());
     saved[2..4].copy_from_slice(&(ERROR_ACCESS_DENIED as u16).to_le_bytes());

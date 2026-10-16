@@ -195,6 +195,7 @@ pub(super) fn decode(
         | Win16ExportId::UserGetMessageTime
         | Win16ExportId::UserGetMessageExtraInfo
         | Win16ExportId::UserInSendMessage
+        | Win16ExportId::UserReplyMessage
         | Win16ExportId::UserCallWindowProc
         | Win16ExportId::UserGetKeyboardState
         | Win16ExportId::UserSetKeyboardState

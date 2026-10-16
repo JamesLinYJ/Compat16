@@ -15,7 +15,7 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     GetCapture, GetFocus, GetKeyboardState, ReleaseCapture, SetCapture, SetFocus, SetKeyboardState,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetInputState, GetMessageExtraInfo, GetMessagePos, GetMessageTime, GetQueueStatus, HWND_BROADCAST, InSendMessage,
+    GetInputState, GetMessageExtraInfo, GetMessagePos, GetMessageTime, GetQueueStatus, HWND_BROADCAST, InSendMessage, ReplyMessage,
     KillTimer, PostMessageW, PostThreadMessageW, SendMessageW, SetTimer, TIMERPROC,
 };
 
@@ -26,6 +26,10 @@ use super::win16_window_worker::WorkerState;
 
 #[path = "win16_kernel_yield.rs"]
 mod kernel_yield;
+
+#[cfg(test)]
+#[path = "win16_reply_message_tests.rs"]
+mod reply_message_tests;
 
 const WM_COMMAND: u16 = 0x0111;
 const WM_TIMER: u16 = 0x0113;
@@ -409,6 +413,18 @@ pub(super) fn execute(
             // Capture it now; completion retries only project this saved BOOL.
             Ok(Win16MessageCallResult::Boolean(unsafe {
                 InSendMessage() != 0
+            }))
+        }
+        Win16MessageCall::ReplyMessage { result } => {
+            // Nested Begin commands execute on the suspended native WndProc
+            // stack. Native BOOL is only an internal completion receipt: the
+            // Windows 3.1 entrypoint returns void and preserves guest AX/DX.
+            // Let USER retain the actual send context, including an outer
+            // cross-thread send inherited by nested same-thread callbacks.
+            // Do not copy guest outputs here: early ReplyMessage does not
+            // perform WM_GETTEXT's normal return-time buffer copyback.
+            Ok(Win16MessageCallResult::Boolean(unsafe {
+                ReplyMessage(result as isize) != 0
             }))
         }
         Win16MessageCall::GetInputState => Ok(Win16MessageCallResult::Boolean(

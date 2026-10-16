@@ -78,6 +78,7 @@ impl NativeQueries {
         self.worker.send(WorkerCommand::Begin {
             id: self.next_id(),
             operation,
+            win_exec: None,
             control_color_return: None,
             native_bitmaps: BTreeMap::new(),
             native_font: None,

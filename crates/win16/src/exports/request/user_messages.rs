@@ -99,6 +99,10 @@ pub enum Win16UserMessagesRequest {
     /// current guest window callback.
     InSendMessage,
 
+    /// Release a synchronous sender while this window procedure continues.
+    /// Windows 3.1 declares a signed LONG input and no return value.
+    ReplyMessage { result: i32 },
+
     CallWindowProc {
         procedure: u32,
         window: u16,

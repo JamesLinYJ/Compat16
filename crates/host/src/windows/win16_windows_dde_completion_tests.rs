@@ -25,6 +25,9 @@ fn fixture() -> (Win16Windows, Win16HostDdeStep) {
     (
         Win16Windows {
             worker: None,
+            dcs: super::super::super::win16_gdi::Win16Dcs::with_text_codec(
+                super::super::super::guest_text::GuestTextCodec::new(1252).unwrap(),
+            ),
             worker_start_error: None,
             pending: Vec::new(),
             dde_sources: DdeSourceLedger {

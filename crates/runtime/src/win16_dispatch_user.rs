@@ -64,6 +64,7 @@ impl Win16State {
                 | win16_abi::Win16UserMessagesRequest::GetMessageTime
                 | win16_abi::Win16UserMessagesRequest::GetMessageExtraInfo
                 | win16_abi::Win16UserMessagesRequest::InSendMessage
+                | win16_abi::Win16UserMessagesRequest::ReplyMessage { .. }
                 | win16_abi::Win16UserMessagesRequest::CallWindowProc { .. }
                 | win16_abi::Win16UserMessagesRequest::GetKeyboardState { .. }
                 | win16_abi::Win16UserMessagesRequest::SetKeyboardState { .. }

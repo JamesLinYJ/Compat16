@@ -271,7 +271,24 @@ The original parameter tables also cite Open Watcom declarations where noted
 in their retained revision history. The project license and third-party
 notices remain applicable; conversion to TOML does not remove those obligations.
 
-## USER.192 InSendMessage
+## USER.115 ReplyMessage and USER.192 InSendMessage
+
+The Windows 3.1 SDK `WINDOWS.H:2836` declares
+`void WINAPI ReplyMessage(LRESULT)`, with LRESULT defined as LONG. NT 3.5's
+`MVDM/WOW16/USER/USER.DEF:130` assigns ordinal 115, and
+`MVDM/WOW32/WUMSG.C:1404-1454` forwards the LONG to native ReplyMessage.
+The Win16 contract therefore consumes four Pascal argument bytes and has no
+guest return value; the native BOOL is an internal completion receipt. The
+signed LONG is widened to native LRESULT without truncating to a WORD.
+
+ReplyMessage runs through nested commands on the suspended native USER stack,
+so Windows retains the actual synchronous sender even inside a same-thread
+nested SendMessage. Guest message payloads remain owned until their normal
+callback return. ReplyMessage does not synthesize an early output-buffer
+copyback. The opt-in native tests compare ordinary WM_GETTEXT completion with
+early ReplyMessage and verify that later callback output cannot overwrite the
+sender's already reused text buffer. Runtime tests cover the void ABI and
+retained-completion retries without repeating the native reply.
 
 The Windows 3.1 SDK `WINDOWS.H:2837` declares `BOOL WINAPI InSendMessage(void)`;
 the SDK `LIBW.LIB` IMPDEF at `0x81d2` imports `INSENDMESSAGE` from USER ordinal
@@ -281,7 +298,8 @@ confirms the ordinal, and `MVDM/WOW32/WUMSG.C:852-860` calls native InSendMessag
 and narrows with `GETBOOL16`; its internal ULONG return does not make this a
 DWORD guest result. The runtime queries the native USER worker while the active
 guest window callback retains its native call stack. This is static routing
-evidence; cross-thread sent-message behavior has not been exercised here.
+evidence; the opt-in ReplyMessage tests additionally exercise InSendMessage
+outside a send, in a cross-thread send, and in a nested same-thread send.
 
 ## USER.288 GetMessageExtraInfo and USER.14 GetTimerResolution
 

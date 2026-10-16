@@ -31,6 +31,7 @@ struct KeyboardHost {
     calls: usize,
     result: Option<Win16MessageCallResult>,
     snapshots: Vec<[u8; 256]>,
+    replies: Vec<i32>,
     zero_arg_calls: Vec<u16>,
     park_wait: bool,
     wait_resumes: usize,
@@ -122,6 +123,7 @@ impl RuntimeHost for KeyboardHost {
             }
             Win16WindowOperation::MessageCall(Win16MessageCall::ReleaseCapture) => self.zero_arg_calls.push(19),
             Win16WindowOperation::MessageCall(Win16MessageCall::WaitMessage) => self.zero_arg_calls.push(112),
+            Win16WindowOperation::MessageCall(Win16MessageCall::ReplyMessage { result }) => self.replies.push(result),
             _ => panic!("unexpected host operation"),
         }
         self.calls += 1;
@@ -453,3 +455,6 @@ fn keyboard_state_host_errors_and_malformed_results_do_not_publish_success_or_ou
 
 #[path = "win16_dispatch_message_void_tests.rs"]
 mod message_void_tests;
+
+#[path = "win16_reply_message_tests.rs"]
+mod reply_message_tests;

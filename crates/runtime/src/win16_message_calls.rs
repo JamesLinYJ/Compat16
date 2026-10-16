@@ -384,6 +384,18 @@ impl Win16State {
                 return_to,
             ),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Messages(
+                win16_abi::Win16UserMessagesRequest::ReplyMessage { result },
+            )) => self.begin_message_call(
+                registers,
+                memory,
+                host,
+                Win16MessageCall::ReplyMessage { result },
+                Win16MessageCallContinuation::Boolean {
+                    return_kind: Win16ReturnKind::Void,
+                },
+                return_to,
+            ),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Messages(
                 win16_abi::Win16UserMessagesRequest::GetInputState,
             )) => self.begin_message_call(
                 registers,
