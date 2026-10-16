@@ -319,11 +319,9 @@ LIBW.LIB. USER ordinal 14 is independently established by NT 3.5
 3.0/3.1 return 1000 and implements that constant. The bridge follows that
 historical contract; it does not infer the result from a modern host timer.
 
-USER.115 ReplyMessage remains declaration-only. Its SDK prototype
-(`WINDOWS.H:2836`) is `void WINAPI ReplyMessage(LRESULT)`, but binding it also
-requires retiring every sender-owned buffer and borrowed callback resource when
-the sender is released early. Declaration evidence alone does not establish
-that lifecycle support.
+USER.115 ReplyMessage is implemented through the suspended native USER stack;
+its ABI, nested-send context and buffer lifecycle evidence are documented in
+the ReplyMessage/InSendMessage section above.
 
 ## USER.70 SetCursorPos and USER.16 ClipCursor
 
@@ -559,6 +557,37 @@ This policy is a bounded host conversion, not proof of historical driver
 support equivalence. Tests cover ABI, guest memory/identity boundaries, mock
 cap conversions, and nonprinting native DCs. They do not establish real printer
 behavior or successful execution of this import by a desktop application.
+
+## USER.131/132 class default-menu LONG
+
+The Windows 3.1 SDK `WINDOWS.H:2951-2964` declares GetClassLong/SetClassLong
+with signed int indices and LONG results, and defines GCL_MENUNAME as -8.
+The original [Microsoft SDK GetClassLong and SetClassLong
+entries](https://www.pcjs.org/documents/books/mspl13/win/w3sdkr1/)
+define that field as the class menu-name FAR pointer. NT 3.5
+`MVDM/WOW32/WUCLASS.C` independently retains the guest value in `vpszMenu`
+when mapping the native class menu string.
+
+The runtime keeps the exact original/replacement FAR bits in guest metadata,
+and separately owns the ANSI resource-name bytes or zero-selector resource
+number. Null clears the default. Reading metadata never dereferences an old
+FAR or exposes a native pointer; replacing a string validates and copies it
+before publishing either value. An invalid string returns zero without
+changing the old default. That malformed-input refusal is a checked runtime
+policy, not an assertion about every historical Win16 fault outcome.
+
+Subsequent CreateWindow and custom-dialog preparation resolve the new menu
+through the registering module's existing RT_MENU resource path. Explicit
+menus and WS_CHILD creation keep their existing rules. Already prepared
+creation payloads and existing HWND menus own independent menu instances;
+changing the default does not replace them. This does not add the other
+class WORD metadata setters or change predefined native classes.
+
+Focused runtime checks exercise the Pascal API frames, resource selection,
+creation callbacks, dialog preparation and nested menu snapshots. An opt-in
+native USER check reads actual HWND menus to verify independent instances and
+that clearing the next default leaves existing menus intact. These are
+component checks, separate from original-application acceptance.
 
 ## KERNEL.16 GlobalReAlloc guest locks
 

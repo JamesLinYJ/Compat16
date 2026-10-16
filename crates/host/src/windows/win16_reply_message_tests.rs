@@ -273,6 +273,10 @@ impl Drop for Fixture {
     }
 }
 
+// Reuse the opt-in, serialized USER worker fixture for class-menu payloads.
+#[path = "win16_class_menu_native_tests.rs"]
+mod class_menu_native_tests;
+
 #[test]
 #[ignore = "requires native Windows USER; creates a hidden window without interactive input"]
 fn reply_message_cross_thread_result_precedes_receiver_return_and_keeps_all_32_bits() {

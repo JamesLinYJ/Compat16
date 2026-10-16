@@ -22,6 +22,9 @@ mod unregister;
 #[path = "win16_class_procedure.rs"]
 mod procedure;
 
+#[path = "win16_class_menu.rs"]
+mod menu;
+
 #[path = "win16_class_lookup.rs"]
 mod lookup;
 
@@ -33,6 +36,8 @@ struct GuestWindowClass {
     host_class: Win16HostClass,
     lower_name: Option<Vec<u8>>,
     info: WndClass16,
+    /// Owned resource identity used by future window/dialog creations. The
+    /// original FAR bits in info.lpsz_menu_name remain the guest LONG result.
     menu_name: Option<Win16ResourceName>,
     /// Guest cbClsExtra bytes belong to this registration, not its HWNDs.
     /// They never alias native superclass/private class storage.

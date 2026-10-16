@@ -431,7 +431,7 @@ fn class_data_unsupported_negative_fields_and_widths_report_gaps_without_mutatio
     assert_eq!(call(&mut runtime, &mut host, 132, hwnd, 0, Some(0x7654_3210)), 0);
     for index in [-32, -26, -24, -20, -18, -16, -14, -12, -10, -8, -1, i16::MIN] {
         gap(&mut runtime, &mut host, 130, hwnd, index, Some(0xffff));
-        if index != -24 {
+        if !matches!(index, -24 | -8) {
             gap(&mut runtime, &mut host, 132, hwnd, index, Some(u32::MAX));
         }
     }
@@ -441,7 +441,7 @@ fn class_data_unsupported_negative_fields_and_widths_report_gaps_without_mutatio
     gap(&mut runtime, &mut host, 129, hwnd, -24, None);
     for index in [-16, -8, -1, i16::MIN] {
         gap(&mut runtime, &mut host, 129, hwnd, index, None);
-        gap(&mut runtime, &mut host, 131, hwnd, index, None);
+        if index != -8 { gap(&mut runtime, &mut host, 131, hwnd, index, None); }
     }
     for (index, value) in [(-32, class.atom), (-26, class.info.style), (-20, 4), (-18, 6),
         (-14, 0), (-12, 0), (-10, 0)] {

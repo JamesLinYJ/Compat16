@@ -7,7 +7,7 @@
 
 use guest_core::memory::Memory;
 use win16_abi::{Win16ClassDataRequest, exports::class_data::{
-    GCL_WNDPROC, GCW_ATOM, GCW_CBCLSEXTRA, GCW_CBWNDEXTRA, GCW_HBRBACKGROUND,
+    GCL_MENUNAME, GCL_WNDPROC, GCW_ATOM, GCW_CBCLSEXTRA, GCW_CBWNDEXTRA, GCW_HBRBACKGROUND,
     GCW_HCURSOR, GCW_HICON, GCW_STYLE,
 }};
 
@@ -84,6 +84,9 @@ impl Win16State {
         if let (DataWidth::Long, GCL_WNDPROC, Some(address)) = (width, index, replacement) {
             return self.set_class_window_procedure(window, class, address, memory);
         }
+        if let (DataWidth::Long, GCL_MENUNAME, Some(address)) = (width, index, replacement) {
+            return self.set_class_menu_name(class, address, memory);
+        }
         if replacement.is_some() {
             // Even scalar-looking fields can affect native class behavior,
             // resource ownership, allocation sizes, or saved procedure chains.
@@ -100,8 +103,9 @@ impl Win16State {
             // The window's own saved/subclassed procedure may differ. This is
             // the current registered class procedure, always a guest FAR.
             (DataWidth::Long, GCL_WNDPROC) => info.lpfn_wnd_proc,
-            // HMODULE's owner/instance semantics, MENUNAME pointer lifetime,
-            // and cross-width reads need separate Win16 contracts.
+            (DataWidth::Long, GCL_MENUNAME) => info.lpsz_menu_name,
+            // HMODULE's owner/instance semantics and cross-width reads need
+            // separate Win16 contracts.
             _ => unsupported("has no supported guest class field at this width"),
         })
     }

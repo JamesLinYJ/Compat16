@@ -28,13 +28,14 @@ struct CreationHost {
     return_kind: Win16ReturnKind,
     consumed: usize,
     native_calls: Vec<(Win16HostProcedure, Win16HostWindow, Option<Win16HostCallback>, Win16HostMessage)>,
+    creations: Vec<Win16HostCreationData>,
 }
 
 impl CreationHost {
     fn new(native: u64) -> Self {
         Self { native: Win16HostWindow(native), pending: VecDeque::new(),
             proof: None, replies: Vec::new(), return_to: None,
-            return_kind: Win16ReturnKind::Word, consumed: 0, native_calls: Vec::new() }
+            return_kind: Win16ReturnKind::Word, consumed: 0, native_calls: Vec::new(), creations: Vec::new() }
     }
 
     fn callback(&self, creation: Win16CreationId, data: &Win16HostCreationData,
@@ -92,6 +93,16 @@ impl DosHost for CreationHost {
 }
 
 impl RuntimeHost for CreationHost {
+    fn win16_ansi_compare(&mut self, left: &[u8], right: &[u8], ignore_case: bool)
+        -> Result<i16, RuntimeError>
+    {
+        assert!(left.is_ascii() && right.is_ascii(), "this fixture compares ASCII resource names");
+        let order = if ignore_case { left.to_ascii_lowercase().cmp(&right.to_ascii_lowercase()) }
+            else { left.cmp(right) };
+        Ok(match order { std::cmp::Ordering::Less => -1,
+            std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 })
+    }
+
     fn win16_window_begin(&mut self, operation: Win16WindowOperation)
         -> Result<Win16WindowStep, RuntimeError>
     {
@@ -139,6 +150,7 @@ impl RuntimeHost for CreationHost {
             }
             _ => panic!("unexpected native creation operation"),
         };
+        self.creations.push(data.clone());
         let proof = Arc::new(Win16WindowSourceRetiredProof {
             operation: Win16NativeWindowOperationProof {
                 operation_id: Win16HostWindowOperationId(self.native.0), kind,
@@ -208,6 +220,9 @@ impl crate::RuntimeDdeHost for CreationHost {
 impl crate::RuntimeMciHost for CreationHost {}
 impl crate::RuntimeMidiHost for CreationHost {}
 impl crate::RuntimeNetbiosHost for CreationHost {}
+
+#[path = "win16_class_menu_tests.rs"]
+mod class_menu_tests;
 
 fn registered_class(runtime: &mut Runtime, host: &mut ClassDataHost) -> Registered {
     let info = class_info(runtime, 0);
