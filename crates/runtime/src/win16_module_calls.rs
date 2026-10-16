@@ -17,6 +17,8 @@ mod cpu;
 mod startup;
 #[path = "win16_module_calls/task_exit.rs"]
 mod task_exit;
+#[path = "win16_module_calls/load_module.rs"]
+mod load_module;
 use cpu::ModuleCpuOwners;
 use super::toolhelp_notify_exit::TaskExitModuleScope;
 
@@ -92,6 +94,8 @@ pub(super) struct ModuleCallFrame {
     /// Startup restores an exact parked entry context, without a Pascal API
     /// return or an explicit LoadLibrary reference on the executable.
     startup: bool,
+    /// FreeModule's BOOL is retained through WEP callbacks and return retries.
+    unload_result: Option<u16>,
 }
 
 impl Win16State {

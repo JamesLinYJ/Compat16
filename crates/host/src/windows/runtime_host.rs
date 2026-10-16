@@ -371,6 +371,11 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<Result<runtime::Win16ModuleImage, u16>, RuntimeError> {
         runtime_host_diagnostics::read_win16_module(self, name, application_path)
     }
+    fn win16_read_program_image(
+        &mut self, input: &runtime::Win16HostProgramLoadInput,
+    ) -> Result<Result<runtime::Win16ModuleImage, u16>, RuntimeError> {
+        win16_program_launch::read_image(self, input)
+    }
     fn win16_read_task_module(
         &mut self,
         name: &[u8],

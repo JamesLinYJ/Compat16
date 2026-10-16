@@ -4,6 +4,13 @@ use super::super::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16KernelModulesRequest {
+    /// The parameter block is checked only for an executable, before any
+    /// asynchronous launch. DLL loading does not consume EXECBLOCK.
+    LoadModule { module: Win16ModuleReference, parameters: u32 },
+
+    /// Release a loaded module through the loader's checked WEP owner.
+    FreeModule { module: u16 },
+
     /// Get the selected Win16 module's filename into a checked guest buffer.
     /// A non-positive signed capacity suppresses buffer validation and yields
     /// no output buffer; the runtime returns the API's zero result in that case.

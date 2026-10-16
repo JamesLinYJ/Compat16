@@ -130,7 +130,7 @@ mod win16_host_scroll_bar;
 pub use win16_host_scroll_bar::{Win16HostScrollBarOperation, Win16HostScrollBarResult};
 mod win16_host_shell_execution;
 pub use win16_host_shell_execution::{
-    Win16HostProcess, Win16HostShellActivation, Win16HostShellExecutionOperation,
+    Win16HostProcess, Win16HostProgramLoadInput, Win16HostShellActivation, Win16HostShellExecutionOperation,
     Win16HostShellExecutionResult, Win16HostShellFailure, Win16HostShellInputEncodingFailure,
     Win16HostWinExecFailure,
     Win16HostShellPathEncodingCause, Win16HostShellPathEncodingFailure,

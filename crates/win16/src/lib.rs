@@ -28,6 +28,7 @@ pub mod gdi_dib;
 pub mod generic_thunk;
 pub mod global;
 pub mod local_heap;
+pub mod load_module;
 pub mod msacm_abi;
 pub mod network_print_abi;
 pub mod owner_draw;

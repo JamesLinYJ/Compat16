@@ -153,7 +153,6 @@ impl GuestChildLaunch {
         if request.version != 1
             || !matches!(request.dos_code_page, 437 | 936)
             || request.command_tail.len() > 126
-            || request.command_tail.contains(&0)
             || request.program.contains(&0)
             || request.directory.contains(&0)
             || request.environment.iter().any(|entry| {

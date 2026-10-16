@@ -3,6 +3,10 @@
 #[path = "win16_winexec/image.rs"]
 mod image;
 
+#[cfg(windows)]
+#[path = "win16_winexec/load_module.rs"]
+mod load_module;
+
 #[test]
 fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
     for bytes in [
@@ -12,6 +16,16 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::child(),
         image::failing_app(),
         image::failing_dll(),
+        image::module_parent(image::ModuleLaunch {
+            name: b"BIN\\CHILD.EXE",
+            tail: b"  \"a b\"  z",
+            show: 3,
+            environment: Some(image::ENVIRONMENT),
+            expected_error: None,
+        }),
+        image::module_library_parent(),
+        image::library(),
+        image::child_after_release(),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");
         assert_eq!(module.header.target_os, 2);
@@ -38,7 +52,7 @@ mod native {
         }
     }
 
-    fn run(program: &Path, page: u32) {
+    pub(super) fn run(program: &Path, page: u32) {
         let package = PathBuf::from(
             std::env::var_os("COMPAT16_TEST_PACKAGE_DIR")
                 .expect("set COMPAT16_TEST_PACKAGE_DIR to the matching scripts/build.ps1 package"),

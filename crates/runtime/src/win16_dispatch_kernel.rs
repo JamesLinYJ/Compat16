@@ -448,7 +448,9 @@ impl Win16State {
             }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
                 win16_abi::Win16KernelModulesRequest::LoadLibrary { .. }
-                | win16_abi::Win16KernelModulesRequest::FreeLibrary { .. },
+                | win16_abi::Win16KernelModulesRequest::FreeLibrary { .. }
+                | win16_abi::Win16KernelModulesRequest::LoadModule { .. }
+                | win16_abi::Win16KernelModulesRequest::FreeModule { .. },
             )) => return Err(RuntimeError::new(Kind::InternalInvariant,
                 "DLL loading requires the CPU-owned KERNEL dispatch route")),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Strings(

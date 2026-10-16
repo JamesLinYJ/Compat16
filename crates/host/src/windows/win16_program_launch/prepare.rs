@@ -15,6 +15,11 @@ pub(in crate::windows) fn prepare(
     host: &mut super::super::WindowsHost,
     operation: &Win16HostShellExecutionOperation,
 ) -> Result<Result<PreparedLaunch, u16>, RuntimeError> {
+    if let Win16HostShellExecutionOperation::LoadModule {
+        input, image, command_tail, environment, show,
+    } = operation {
+        return super::module::prepare_module(host, input, image, command_tail, environment, *show);
+    }
     let Win16HostShellExecutionOperation::WinExec {
         command_line,
         directory,
@@ -185,9 +190,11 @@ pub(in crate::windows) fn prepare(
     };
     Ok(Ok(PreparedLaunch {
         file,
+        _source_file: None,
         program,
         directory: cwd,
         native_command,
+        native_environment: None,
         request,
         guest,
     }))
@@ -293,7 +300,7 @@ fn io_code(error: std::io::Error) -> u16 {
     }
 }
 
-fn is_guest(file: &mut File, path: &std::path::Path) -> Result<bool, RuntimeError> {
+pub(super) fn is_guest(file: &mut File, path: &std::path::Path) -> Result<bool, RuntimeError> {
     let mut header = [0_u8; 64];
     let length = file
         .metadata()

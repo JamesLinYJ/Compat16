@@ -28,7 +28,8 @@ impl Win16ShellExecutionContinuation {
         &self,
     ) -> Option<(u16, ExternalApplicationKind)> {
         match self.kind {
-            Win16ShellExecutionContinuationKind::WinExec { identity } => {
+            Win16ShellExecutionContinuationKind::WinExec { identity }
+            | Win16ShellExecutionContinuationKind::LoadModule { identity } => {
                 Some((identity, ExternalApplicationKind::Activation))
             }
             Win16ShellExecutionContinuationKind::Execute { identity } => {
@@ -39,12 +40,15 @@ impl Win16ShellExecutionContinuation {
             }
             Win16ShellExecutionContinuationKind::About { .. } => None,
             Win16ShellExecutionContinuationKind::DragAcceptFiles => None,
+            Win16ShellExecutionContinuationKind::FreeModule { .. } => None,
         }
     }
 }
 
 pub(super) enum Win16ShellExecutionContinuationKind {
     WinExec { identity: u16 },
+    LoadModule { identity: u16 },
+    FreeModule { identity: u16, process: Option<crate::Win16HostProcess> },
     DragAcceptFiles,
     Execute {
         identity: u16,
@@ -133,8 +137,13 @@ fn project_shell_execution_result(
     let reserved_identity = continuation.terminal_external_application();
     let return_kind = continuation.return_kind;
     let value = match (&continuation.kind, result) {
+        (Win16ShellExecutionContinuationKind::FreeModule { identity, process },
+            Win16HostShellExecutionResult::ProcessReleased(released)) => {
+            u32::from(state.finish_external_module_release(*identity, *process, *released)?)
+        }
         (
-            Win16ShellExecutionContinuationKind::WinExec { identity },
+            Win16ShellExecutionContinuationKind::WinExec { identity }
+                | Win16ShellExecutionContinuationKind::LoadModule { identity },
             Win16HostShellExecutionResult::WinExec(Ok(activation)),
         ) => {
             let application_state = match activation {
@@ -153,7 +162,8 @@ fn project_shell_execution_result(
             u32::from(*identity)
         }
         (
-            Win16ShellExecutionContinuationKind::WinExec { identity },
+            Win16ShellExecutionContinuationKind::WinExec { identity }
+                | Win16ShellExecutionContinuationKind::LoadModule { identity },
             Win16HostShellExecutionResult::WinExec(Err(failure)),
         ) => {
             rollback_expected_api_failure(state, *identity, ExternalApplicationKind::Activation,
@@ -457,6 +467,49 @@ fn project_shell_execution_result(
 }
 
 impl Win16State {
+    pub(in crate::win16_runtime) fn begin_external_module_release(
+        &mut self, identity: u16, process: Option<crate::Win16HostProcess>,
+        registers: &mut Registers, memory: &mut Memory, host: &mut impl RuntimeHost,
+        return_to: (u16, u16, u32),
+    ) -> Result<Option<u8>, RuntimeError> {
+        self.modules.records.get_mut(&identity).ok_or_else(|| RuntimeError::new(
+            Kind::InternalInvariant, "FreeModule program identity disappeared before begin"))?
+            .state = super::module_registry::ModuleState::Unloading;
+        self.begin_window_operation(registers, memory, host,
+            Win16WindowOperation::ShellExecution(Win16HostShellExecutionOperation::ReleaseProcess { process }),
+            WindowReturn::ShellExecution(Win16ShellExecutionContinuation {
+                kind: Win16ShellExecutionContinuationKind::FreeModule { identity, process },
+                return_kind: Win16ReturnKind::Word,
+            }), return_to)
+    }
+
+    pub(in crate::win16_runtime) fn begin_module_program(
+        &mut self, operation: Win16HostShellExecutionOperation,
+        registers: &mut Registers, memory: &mut Memory, host: &mut impl RuntimeHost,
+        return_to: (u16, u16, u32),
+    ) -> Result<Option<u8>, RuntimeError> {
+        let identity = match self.reserve_external_application(ExternalApplicationKind::Activation) {
+            Ok(identity) => identity,
+            Err(error) if error.kind() == Kind::ResourceExhausted => {
+                return self.complete_return(registers, return_to.0, return_to.1,
+                    return_to.2, 8, Win16ReturnKind::Word);
+            }
+            Err(error) => return Err(error),
+        };
+        if let Win16HostShellExecutionOperation::LoadModule { image, .. } = &operation {
+            self.modules.records.get_mut(&identity).expect("reserved program module")
+                .external_application.as_mut().expect("reserved external program module")
+                .program_path = Some(image.path.clone());
+        }
+        self.begin_reserved_shell_operation(registers, memory, host,
+            Win16WindowOperation::ShellExecution(operation),
+            identity, ExternalApplicationKind::Activation,
+            WindowReturn::ShellExecution(Win16ShellExecutionContinuation {
+                kind: Win16ShellExecutionContinuationKind::LoadModule { identity },
+                return_kind: Win16ReturnKind::Word,
+            }), return_to)
+    }
+
     pub(in crate::win16_runtime) fn begin_shell_execution_request(
         &mut self,
         request: Win16ShellExecutionRequest,

@@ -57,7 +57,8 @@ pub(super) fn win16_window_begin(
         if let Some(reporter) = &host.program_load_reporter { reporter.ready()?; }
     }
     let win_exec = if let Win16WindowOperation::ShellExecution(
-        ref call @ runtime::Win16HostShellExecutionOperation::WinExec { .. }
+        ref call @ (runtime::Win16HostShellExecutionOperation::WinExec { .. }
+            | runtime::Win16HostShellExecutionOperation::LoadModule { .. })
     ) = operation {
         Some(super::win16_program_launch::prepare(host, call)?)
     } else { None };

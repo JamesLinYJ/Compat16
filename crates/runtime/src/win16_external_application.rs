@@ -33,6 +33,9 @@ pub(super) enum ExternalApplicationState {
 #[derive(Clone, Debug)]
 pub(super) struct ExternalApplicationRecord {
     pub(super) state: ExternalApplicationState,
+    /// LoadModule owns the exact resolved filename used for its child image.
+    /// A shell activation alone does not establish such module metadata.
+    pub(super) program_path: Option<Vec<u8>>,
     /// Unbacked descriptors reserve a unique WORD identity above Shell's
     /// error range. They carry no guest RAM and cannot be executed as code.
     pub(super) selector_reservations: Vec<ExternalSelectorReservation>,
@@ -188,6 +191,7 @@ impl Win16State {
             wep_called: false,
             external_application: Some(ExternalApplicationRecord {
                 state: ExternalApplicationState::Pending(kind),
+                program_path: None,
                 selector_reservations: reservations,
             }),
         };
@@ -248,6 +252,7 @@ impl Win16State {
                 "Win16 shell identity result does not match its reserved operation kind",
             ));
         }
+        if kind == ExternalApplicationKind::Activation { record.explicit_refs = 1; }
         external.state = state;
         record.state = ModuleState::Ready;
         Ok(())
@@ -309,6 +314,32 @@ impl Win16State {
             .get(&handle)?
             .external_application
             .as_ref()
+    }
+
+    pub(super) fn finish_external_module_release(
+        &mut self, handle: u16, process: Option<Win16HostProcess>, released: bool,
+    ) -> Result<u16, RuntimeError> {
+        let record = self.modules.records.get(&handle).ok_or_else(|| RuntimeError::new(
+            Kind::InternalInvariant, "FreeModule lost its retained program identity"))?;
+        let expected = match record.external_application.as_ref().map(|external| &external.state) {
+            Some(ExternalApplicationState::ProcessStarted { process }) => Some(Some(*process)),
+            Some(ExternalApplicationState::NativeActivationReceipt) => Some(None),
+            _ => None,
+        };
+        if record.state != ModuleState::Unloading || record.explicit_refs != 1 || expected != Some(process) {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "FreeModule program lease changed before checked completion"));
+        }
+        let record = self.modules.records.get_mut(&handle).expect("validated program identity");
+        if !released {
+            record.state = ModuleState::Ready;
+            return Ok(0);
+        }
+        release_selector_ledger(&mut self.selectors,
+            &mut record.external_application.as_mut().expect("validated external record")
+                .selector_reservations, Some(handle))?;
+        self.modules.records.remove(&handle).expect("released exact program identity");
+        Ok(1)
     }
 
     fn fail_external_reservation(

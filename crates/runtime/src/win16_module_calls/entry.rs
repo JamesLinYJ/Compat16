@@ -32,6 +32,7 @@ impl Win16State {
             active: None,
             initialized: Vec::new(),
             startup: false,
+            unload_result: None,
         });
         Ok(())
     }
@@ -45,6 +46,14 @@ impl Win16State {
         host: &mut impl RuntimeHost,
         return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
+        self.begin_load_library_image(name, None, cpu, dos, memory, host, return_to)
+    }
+
+    pub(super) fn begin_load_library_image(
+        &mut self, name: &[u8], image: Option<crate::Win16ModuleImage>,
+        cpu: &mut Cpu, dos: &mut DosKernel, memory: &mut Memory,
+        host: &mut impl RuntimeHost, return_to: (u16, u16, u32),
+    ) -> Result<Option<u8>, RuntimeError> {
         self.publish_module_call(
             cpu,
             ModuleAction::Discover {
@@ -55,7 +64,7 @@ impl Win16State {
         )?;
         self.capture_module_cpu_owners(cpu, dos, memory, true)?;
         let mut created = Vec::new();
-        let result = match self.discover_library(name, memory, host, &mut created, 0) {
+        let result = match self.discover_library_image(name, image, memory, host, &mut created, 0) {
             Ok(Ok(root)) => self
                 .relocate_libraries(&created, memory, host)
                 .map(|result| result.map(|()| root)),
@@ -112,6 +121,35 @@ impl Win16State {
         host: &mut impl RuntimeHost,
         return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
+        self.begin_release_module(input, false, cpu, dos, memory, host, return_to)
+    }
+
+    pub(in crate::win16_runtime) fn begin_free_module(
+        &mut self, input: u16, cpu: &mut Cpu, dos: &mut DosKernel,
+        memory: &mut Memory, host: &mut impl RuntimeHost, return_to: (u16, u16, u32),
+    ) -> Result<Option<u8>, RuntimeError> {
+        if let Some(handle) = self.modules.by_handle(input)
+            && let Some(record) = self.modules.records.get(&handle)
+            && record.state == ModuleState::Ready && record.explicit_refs == 1
+        {
+            let process = match record.external_application.as_ref().map(|external| &external.state) {
+                Some(super::super::external_application::ExternalApplicationState::ProcessStarted { process }) => Some(Some(*process)),
+                Some(super::super::external_application::ExternalApplicationState::NativeActivationReceipt) => Some(None),
+                _ => None,
+            };
+            if let Some(process) = process {
+                return self.dispatch_owned_window_call(cpu, dos, memory, host, |state, cpu, memory, host| {
+                    state.begin_external_module_release(handle, process, &mut cpu.regs, memory, host, return_to)
+                });
+            }
+        }
+        self.begin_release_module(input, true, cpu, dos, memory, host, return_to)
+    }
+
+    fn begin_release_module(
+        &mut self, input: u16, boolean_result: bool, cpu: &mut Cpu, dos: &mut DosKernel,
+        memory: &mut Memory, host: &mut impl RuntimeHost, return_to: (u16, u16, u32),
+    ) -> Result<Option<u8>, RuntimeError> {
         self.publish_module_call(
             cpu,
             ModuleAction::Unload {
@@ -122,12 +160,21 @@ impl Win16State {
             VecDeque::new(),
             return_to,
         )?;
+        let mut released = false;
         if let Some(handle) = self.modules.by_handle(input) {
             if let Some(record) = self.modules.records.get_mut(&handle) {
-                if !record.pinned {
-                    record.explicit_refs = record.explicit_refs.saturating_sub(1);
+                // Pinning is a physical-lifetime root, not an exemption from
+                // balancing successful LoadModule/LoadLibrary references.
+                let baseline = u16::from(handle == self.modules.main);
+                if record.external_application.is_none() && record.explicit_refs > baseline {
+                    record.explicit_refs -= 1;
+                    released = true;
                 }
             }
+        }
+        if boolean_result {
+            self.module_callbacks.last_mut().expect("published module release owner")
+                .unload_result = Some(u16::from(released));
         }
         self.module_reap_pending = true;
         let candidates = self.modules.unreachable(&[]);

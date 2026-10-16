@@ -2,6 +2,12 @@
 
 pub const ENVIRONMENT: &[u8; 20] = b"C16=guest\0PATH=BIN\0\0";
 
+#[path = "image/load_module.rs"]
+mod load_module;
+pub use load_module::{
+    ModuleLaunch, child_after_release, library, module_library_parent, module_parent,
+};
+
 #[derive(Default)]
 struct Code {
     bytes: Vec<u8>,
@@ -109,6 +115,10 @@ fn parent_program(command: &[u8], expected: Option<u16>, check_child: bool, show
 }
 
 pub fn child() -> Vec<u8> {
+    child_program(false)
+}
+
+fn child_program(wait_for_release: bool) -> Vec<u8> {
     let mut data = vec![0_u8; 512];
     data[32..42].copy_from_slice(b"CHILD.OUT\0");
     let mut code = Code::default();
@@ -138,6 +148,9 @@ pub fn child() -> Vec<u8> {
     code.fail_if(0x82);
     code.interrupt(0x3e00);
     code.call(29); // Publish readiness only after the output exists.
+    if wait_for_release {
+        load_module::wait_for_release(&mut code, &mut data);
+    }
     ne("CHILD", &code.finish(), &data, &["KERNEL"], false)
 }
 
@@ -164,6 +177,17 @@ fn put(bytes: &mut [u8], offset: usize, value: u16) {
 }
 
 fn ne(name: &str, code: &Code, data: &[u8], modules: &[&str], library: bool) -> Vec<u8> {
+    ne_with_exports(name, code, data, modules, library, &[])
+}
+
+fn ne_with_exports(
+    name: &str,
+    code: &Code,
+    data: &[u8],
+    modules: &[&str],
+    library: bool,
+    exports: &[(&str, u16)],
+) -> Vec<u8> {
     // Microsoft NE layout: two segment records, counted resident/module
     // strings, and eight-byte additive imported-ordinal relocation records.
     let mut bytes = vec![0_u8; 0x600 + data.len()];
@@ -190,7 +214,16 @@ fn ne(name: &str, code: &Code, data: &[u8], modules: &[&str], library: bool) -> 
     bytes[cursor] = name.len() as u8;
     cursor += 1;
     bytes[cursor..cursor + name.len()].copy_from_slice(name.as_bytes());
-    cursor += name.len() + 3;
+    cursor += name.len() + 2;
+    for (index, (export, _)) in exports.iter().enumerate() {
+        bytes[cursor] = export.len() as u8;
+        cursor += 1;
+        bytes[cursor..cursor + export.len()].copy_from_slice(export.as_bytes());
+        cursor += export.len();
+        put(&mut bytes, cursor, index as u16 + 1);
+        cursor += 2;
+    }
+    cursor += 1; // Zero name terminates the resident name table.
     put(&mut bytes, h + 0x28, (cursor - h) as u16);
     let references = cursor;
     cursor += modules.len() * 2;
@@ -204,7 +237,25 @@ fn ne(name: &str, code: &Code, data: &[u8], modules: &[&str], library: bool) -> 
         cursor += name.len();
     }
     put(&mut bytes, h + 4, (cursor - h) as u16);
-    put(&mut bytes, h + 6, 1); // Zero entry bundle follows imported names.
+    put(
+        &mut bytes,
+        h + 6,
+        if exports.is_empty() {
+            1
+        } else {
+            (3 + exports.len() * 3) as u16
+        },
+    );
+    if !exports.is_empty() {
+        bytes[cursor] = exports.len() as u8;
+        bytes[cursor + 1] = 1; // Fixed entries in the first code segment.
+        cursor += 2;
+        for (_, offset) in exports {
+            bytes[cursor] = 1;
+            put(&mut bytes, cursor + 1, *offset);
+            cursor += 3;
+        }
+    }
     cursor += 1;
     assert!(cursor < 0x200);
     put(&mut bytes, 0x80, 0x20);

@@ -97,7 +97,8 @@ pub enum Win16HostDriveKind {
     RamDisk,
 }
 
-/// A copied library file. Parsing, relocation and execution stay in guest code.
+/// A copied guest module file. Relocation and execution stay in guest code.
+#[derive(Debug)]
 pub struct Win16ModuleImage {
     pub path: Vec<u8>,
     pub image: Vec<u8>,
@@ -790,6 +791,15 @@ pub trait RuntimeHost:
             DiagnosticKind::CompatibilityGap,
             "host Win16 module file search is unavailable",
         ))
+    }
+    /// Resolve an executable name using the calling task's directory and PATH,
+    /// returning an owned bounded image for LoadModule's DLL/EXE decision.
+    fn win16_read_program_image(
+        &mut self,
+        _input: &crate::Win16HostProgramLoadInput,
+    ) -> Result<Result<Win16ModuleImage, u16>, RuntimeError> {
+        Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
+            "host task-aware program image loading is unavailable"))
     }
     /// KERNEL loader search with a path resolved in the calling Win16 task.
     /// `path` includes the default DLL extension when the name omitted one;

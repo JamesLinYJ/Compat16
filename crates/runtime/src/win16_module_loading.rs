@@ -92,6 +92,12 @@ impl Win16State {
     pub(super) fn discover_library(&mut self, name: &[u8], memory: &mut Memory,
         host: &mut impl RuntimeHost, created: &mut Vec<u16>, depth: usize)
         -> Result<Result<u16, u16>, RuntimeError> {
+        self.discover_library_image(name, None, memory, host, created, depth)
+    }
+
+    pub(super) fn discover_library_image(&mut self, name: &[u8], image: Option<crate::Win16ModuleImage>,
+        memory: &mut Memory, host: &mut impl RuntimeHost, created: &mut Vec<u16>, depth: usize)
+        -> Result<Result<u16, u16>, RuntimeError> {
         let existing = self.modules.by_name(name);
         let data_only_builtin = existing.filter(|&handle| module_registry::is_data_only_builtin(
             &self.modules.records[&handle],
@@ -108,7 +114,10 @@ impl Win16State {
             }
         }
         if depth >= MAX_MODULE_DEPTH { return Ok(Err(8)); }
-        let file = match self.read_task_library(name, host)? {
+        let file = match match image {
+            Some(image) => Ok(image),
+            None => self.read_task_library(name, host)?,
+        } {
             Ok(file) => file,
             Err(error) => {
                 let simple_name = !name.iter().any(|byte| *byte == b'/' || *byte == b'\\');

@@ -17,7 +17,7 @@ use windows_sys::Win32::Foundation::{
     ERROR_PATH_NOT_FOUND, ERROR_SHARING_VIOLATION, GetLastError, HWND, MAX_PATH,
 };
 use windows_sys::Win32::System::Threading::{
-    CreateProcessW, PROCESS_INFORMATION, STARTF_USESHOWWINDOW, STARTUPINFOW, WaitForInputIdle,
+    CreateProcessW, CREATE_UNICODE_ENVIRONMENT, PROCESS_INFORMATION, STARTF_USESHOWWINDOW, STARTUPINFOW, WaitForInputIdle,
 };
 use windows_sys::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx, CoUninitialize};
 use windows_sys::Win32::UI::Shell::{
@@ -107,7 +107,28 @@ pub(super) fn execute(
     prepared: Option<Result<win16_program_launch::PreparedLaunch, u16>>,
 ) -> Result<super::super::win16_modal::NativeModalOperationOutcome, RuntimeError> {
     match operation {
-        Win16HostShellExecutionOperation::WinExec { show, .. } => {
+        Win16HostShellExecutionOperation::ReleaseProcess { process } => {
+            let released = match process {
+                None => true,
+                Some(process) => {
+                    let lease = {
+                        let mut worker = state.borrow_mut();
+                        worker.shell_processes.iter().position(|lease|
+                            lease.token == process && lease.handle.is_some())
+                            .map(|index| worker.shell_processes.remove(index))
+                    };
+                    let released = lease.is_some();
+                    // Dropping the caller's HANDLE retires its lease. The
+                    // successfully started application owns its own lifetime.
+                    drop(lease);
+                    released
+                }
+            };
+            Ok(super::super::win16_modal::NativeModalOperationOutcome::Returned(
+                Win16WindowResult::ShellExecution(Win16HostShellExecutionResult::ProcessReleased(released))))
+        }
+        Win16HostShellExecutionOperation::WinExec { show, .. }
+        | Win16HostShellExecutionOperation::LoadModule { show, .. } => {
             let prepared = prepared.ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
                 "WinExec reached USER without an owned executable preparation"))?;
             win_exec(state, prepared, show).map(|result|
@@ -245,6 +266,9 @@ fn win_exec(
     use std::os::windows::ffi::OsStrExt;
     let cwd: Vec<u16> = prepared.directory.as_os_str().encode_wide().chain([0]).collect();
     let application: Vec<u16> = prepared.program.as_os_str().encode_wide().chain([0]).collect();
+    let environment = prepared.native_environment.as_ref()
+        .map_or(std::ptr::null(), |block| block.as_ptr().cast());
+    let flags = if prepared.native_environment.is_some() { CREATE_UNICODE_ENVIRONMENT } else { 0 };
     let command = &mut prepared.native_command;
     let mut startup = STARTUPINFOW::default();
     startup.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
@@ -252,12 +276,12 @@ fn win_exec(
     startup.wShowWindow = show;
     let mut process = PROCESS_INFORMATION::default();
     let created = unsafe { CreateProcessW(
-        application.as_ptr(), command.as_mut_ptr(), std::ptr::null(), std::ptr::null(), 0, 0,
-        std::ptr::null(), cwd.as_ptr(), &startup, &mut process,
+        application.as_ptr(), command.as_mut_ptr(), std::ptr::null(), std::ptr::null(), 0, flags,
+        environment, cwd.as_ptr(), &startup, &mut process,
     ) };
     if created == 0 {
         let error = unsafe { GetLastError() };
-        if error == ERROR_ELEVATION_REQUIRED {
+        if error == ERROR_ELEVATION_REQUIRED && prepared.native_environment.is_none() {
             let result = shell_execute_for_elevation(
                 state,
                 token,

@@ -133,7 +133,9 @@ pub(super) fn decode(
         | Win16ExportId::KernelGetModuleUsage
         | Win16ExportId::KernelGetProcAddress
         | Win16ExportId::KernelLoadLibrary
-        | Win16ExportId::KernelFreeLibrary => {
+        | Win16ExportId::KernelFreeLibrary
+        | Win16ExportId::KernelLoadModule
+        | Win16ExportId::KernelFreeModule => {
             kernel_module_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
         Win16ExportId::KernelFindResource

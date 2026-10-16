@@ -7,9 +7,11 @@ use std::path::PathBuf;
 
 mod child;
 mod prepare;
+mod module;
 mod spawn;
 pub use child::{GuestChildLaunch, ProgramLoadReporter};
 pub(super) use prepare::prepare;
+pub(super) use module::read_image;
 pub(super) use spawn::launch;
 
 const MAX_IMAGE_BYTES: u64 = 64 * 1024 * 1024;
@@ -40,9 +42,13 @@ pub(super) struct PreparedLaunch {
     // A read-only, non-share-write/delete file lease stabilizes the exact
     // resolved image until the child reports linking/LibMain completion.
     file: File,
+    // A copied LoadModule image uses an anonymous transfer file while this
+    // additional lease keeps its source pathname stable through child entry.
+    _source_file: Option<File>,
     pub(super) program: PathBuf,
     pub(super) directory: PathBuf,
     pub(super) native_command: Vec<u16>,
+    pub(super) native_environment: Option<Vec<u16>>,
     request: LaunchRequest,
     pub(super) guest: bool,
 }
@@ -74,12 +80,12 @@ fn invalid(message: &'static str) -> RuntimeError {
 pub(super) fn native_error_code(error: u32) -> u16 {
     use windows_sys::Win32::Foundation::{
         ERROR_ACCESS_DENIED, ERROR_BAD_EXE_FORMAT, ERROR_FILE_NOT_FOUND, ERROR_NOT_ENOUGH_MEMORY,
-        ERROR_OUTOFMEMORY, ERROR_PATH_NOT_FOUND,
+        ERROR_OUTOFMEMORY, ERROR_PATH_NOT_FOUND, ERROR_ELEVATION_REQUIRED,
     };
     match error {
         ERROR_FILE_NOT_FOUND => 2,
         ERROR_PATH_NOT_FOUND => 3,
-        ERROR_ACCESS_DENIED => 5,
+        ERROR_ACCESS_DENIED | ERROR_ELEVATION_REQUIRED => 5,
         ERROR_NOT_ENOUGH_MEMORY | ERROR_OUTOFMEMORY => 8,
         ERROR_BAD_EXE_FORMAT => 11,
         _ => 31,

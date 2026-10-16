@@ -324,6 +324,7 @@ impl Win16State {
                     }
                 }
                 let frame = self.module_callbacks.last().expect("DLL completion source");
+                let unload_result = frame.unload_result;
                 let mut roots = self.module_code_roots(guest_code_reference(
                     frame.return_to.0,
                     frame.return_to.1,
@@ -348,8 +349,10 @@ impl Win16State {
                 self.module_reap_pending = self.has_reapable_unreachable_modules()?;
                 (
                     *resume,
-                    0,
+                    if *failed_load { 0 } else { unload_result.unwrap_or(0) }.into(),
                     if *failed_load {
+                        Win16ReturnKind::Word
+                    } else if unload_result.is_some() {
                         Win16ReturnKind::Word
                     } else {
                         Win16ReturnKind::Void

@@ -98,11 +98,22 @@ kind = "stub"
 ordinal = 45
 name = "LoadModule"
 decl = { attributes = ["ret16"], args = ["string", "pointer"] }
+binding = { rust_id = "KernelLoadModule", id_value = 1260, constant = "KERNEL_LOAD_MODULE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "module", type = "FarPointer", encoding = "string" },
+  { name = "parameters", type = "FarPointer", encoding = "pointer" },
+]
 
 [[exports]]
 ordinal = 46
 name = "FreeModule"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "KernelFreeModule", id_value = 1261, constant = "KERNEL_FREE_MODULE" }
+[exports.call]
+returns = "word"
+params = [{ name = "module", type = "U16" }]
 
 [[exports]]
 ordinal = 53

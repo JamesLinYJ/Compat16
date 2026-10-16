@@ -116,6 +116,12 @@ impl Win16State {
         }
         match &decoded.request {
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
+                win16_abi::Win16KernelModulesRequest::LoadModule { module, parameters },
+            )) => return self.begin_load_module(module, *parameters, cpu, dos, memory, host, return_to),
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
+                win16_abi::Win16KernelModulesRequest::FreeModule { module },
+            )) => return self.begin_free_module(*module, cpu, dos, memory, host, return_to),
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
                 win16_abi::Win16KernelModulesRequest::LoadLibrary { library_name },
             )) => return self.begin_load_library(library_name, cpu, dos, memory, host, return_to),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
@@ -240,6 +246,40 @@ impl Win16State {
                 Ok(value)
             }
             other => other,
+        }
+    }
+
+    /// CPU-routed KERNEL calls can enter USER after classifying a module as a
+    /// process. Preserve the real entry context only for that operation; DLL
+    /// initialization and WEP keep their own module continuation owners.
+    pub(super) fn dispatch_owned_window_call<H: RuntimeHost>(
+        &mut self,
+        cpu: &mut Cpu,
+        dos: &mut dos_kernel::DosKernel,
+        memory: &mut Memory,
+        host: &mut H,
+        begin: impl FnOnce(&mut Self, &mut Cpu, &mut Memory, &mut H) -> Result<Option<u8>, RuntimeError>,
+    ) -> Result<Option<u8>, RuntimeError> {
+        let context = cpu.capture_context();
+        let owner = self.capture_legacy_cpu_call_frame(cpu, dos, memory)?;
+        let previous_context = self.window_dispatch_context.replace(context);
+        let previous_owner = self.active_dispatch_call_owner.replace(owner);
+        let previous_return = self.active_dispatch_return.take();
+        let result = begin(self, cpu, memory, host);
+        self.window_dispatch_context = previous_context;
+        let unconsumed_owner = self.active_dispatch_call_owner.take();
+        let direct_return = self.active_dispatch_return.take();
+        self.active_dispatch_call_owner = previous_owner;
+        self.active_dispatch_return = previous_return;
+        match result {
+            Ok(value) => {
+                if let Some(owner) = unconsumed_owner {
+                    self.finish_unconsumed_dispatch_call(owner, direct_return, cpu, dos, memory)?;
+                }
+                self.drive_pending_window_completion(cpu, memory, dos, host)?;
+                Ok(value)
+            }
+            Err(error) => Err(error),
         }
     }
 
