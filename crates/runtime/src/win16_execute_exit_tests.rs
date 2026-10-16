@@ -10,7 +10,7 @@ use dos_kernel::{
     DosDirectoryEntry, DosFileAccess, DosFileSharing, DosHost, DosHostError,
     DosHostFile, DosHostSearch, DosSeekOrigin,
 };
-use guest_core::{OwnerId, Selector};
+use guest_core::OwnerId;
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -175,17 +175,21 @@ impl RuntimeNetbiosHost for ExitHost {}
 
 fn fixture(ax: u16) -> (Runtime, OwnerId) {
     let mut image = super::super::test_support::tiny_ne_executable();
+    // Module startup reloads segments from the NE image. Put the executable
+    // bytes in a file-backed segment so startup cannot restore zero-fill over
+    // the instruction stream under test (default NE sector shift is nine).
+    image[0x80..0x82].copy_from_slice(&1_u16.to_le_bytes());
+    image[0x82..0x84].copy_from_slice(&5_u16.to_le_bytes());
     image[0x86..0x88].copy_from_slice(&5_u16.to_le_bytes());
+    image.resize(0x205, 0);
+    let [lo, hi] = ax.to_le_bytes();
+    image[0x200..].copy_from_slice(&[0xb8, lo, hi, 0xcd, 0x21]);
     let mut runtime = Runtime::load(&image, &[], br"C:\EXIT.NE").unwrap();
     let state = runtime.win16.as_mut().unwrap();
     let owner = state.tasks.current().unwrap();
     state.kernel_file_system.seed_owner(owner, Win16CanonicalPath {
         drive: 2, components: Vec::new(),
     }).unwrap();
-    let code = state.selectors.pointer_from_raw(Selector(runtime.cpu.regs.cs), 0).unwrap();
-    let [lo, hi] = ax.to_le_bytes();
-    let address = state.selectors.translate(code, win16_abi::Access::Execute, 5, &runtime.memory).unwrap();
-    runtime.memory.write_physical(address, &[0xb8, lo, hi, 0xcd, 0x21]).unwrap();
     (runtime, owner)
 }
 

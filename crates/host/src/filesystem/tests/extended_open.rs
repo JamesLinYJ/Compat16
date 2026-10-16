@@ -58,11 +58,6 @@ fn extended_open_native_enforces_requested_access_on_returned_handles() {
                 std::fs::write(directory.0.join("ACCESS.DAT"), b"x").unwrap();
             }
             let result = fs.file_extended_open(path, request(disposition, access));
-            if access == DosFileAccess::ReadOnly && disposition != DosFileDisposition::OpenExisting {
-                assert_eq!(result.unwrap_err().code, DosErrorCode::InvalidFunction);
-                assert!(!directory.0.join("ACCESS.DAT").exists());
-                continue;
-            }
             let opened = result.unwrap();
             assert_eq!(
                 opened.outcome,
@@ -93,7 +88,8 @@ fn extended_open_native_enforces_requested_access_on_returned_handles() {
             } else if access == DosFileAccess::ReadOnly {
                 assert_eq!(fs.file_write(duplicate, b"bad").unwrap_err().code, DosErrorCode::AccessDenied);
                 assert_eq!(fs.file_set_len(duplicate, 0).unwrap_err().code, DosErrorCode::AccessDenied);
-                assert_eq!(fs.file_status(duplicate).unwrap().size, 1);
+                assert_eq!(fs.file_status(duplicate).unwrap().size,
+                    if disposition == DosFileDisposition::OpenExisting { 1 } else { 0 });
             }
             fs.file_close(duplicate).unwrap();
             std::fs::remove_file(directory.0.join("ACCESS.DAT")).unwrap();

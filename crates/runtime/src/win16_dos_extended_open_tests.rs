@@ -39,7 +39,11 @@ impl DosHost for ExtendedOpenHost {
         let existing = self.files.iter().position(|entry| entry.0 == directory && entry.1 == path);
         let (index, outcome) = match (existing, request.disposition) {
             (Some(_), DosFileDisposition::CreateNew) => return Err(DosHostError::new(DosErrorCode::FileExists)),
-            (None, DosFileDisposition::OpenExisting) => return Err(DosHostError::new(DosErrorCode::FileNotFound)),
+            (None, DosFileDisposition::OpenExisting | DosFileDisposition::ReplaceExisting) => return Err(DosHostError::new(DosErrorCode::FileNotFound)),
+            (Some(index), DosFileDisposition::ReplaceExisting | DosFileDisposition::ReplaceOrCreate) => {
+                self.files[index].2 = request.attributes;
+                (index, DosFileOpenOutcome::Replaced)
+            }
             (Some(index), _) => (index, DosFileOpenOutcome::Opened),
             (None, _) => {
                 self.files.push((directory, path.to_vec(), request.attributes));
@@ -302,11 +306,30 @@ fn extended_open_routes_preserve_registers_on_create_collision_and_missing_open(
 }
 
 #[test]
-fn extended_open_routes_reject_replacement_and_reserved_modes_without_host_mutation() {
+fn extended_open_routes_replace_and_report_the_actual_action() {
+    for route in ROUTES {
+        let (mut runtime, mut host) = fixture();
+        for (action, outcome) in [(0x12, 2), (0x02, 3), (0x12, 3)] {
+            let mut expected = prepare(&mut runtime, route, OwnerId(1), action);
+            runtime.cpu.regs.set_cx(0x27);
+            expected.set_ax(3 + host.handles.len() as u16);
+            expected.set_cx(outcome);
+            expected.set_carry(false);
+            call(&mut runtime, &mut host, route).unwrap();
+            assert_eq!(runtime.cpu.regs, expected, "{route:?} action {action:04x}");
+        }
+        assert_eq!(host.files.len(), 1);
+        assert_eq!(host.files[0].2, 0x27);
+        assert_eq!(host.calls.len(), 3);
+        runtime.dos.close_all_handles_checked(&mut host).unwrap();
+        assert!(host.handles.is_empty());
+    }
+}
+
+#[test]
+fn extended_open_routes_reject_reserved_modes_without_host_mutation() {
     for route in ROUTES {
         for (ax, bx, action, error) in [
-            (0x6c00, 0x20c2, 0x02, DosErrorCode::InvalidFunction),
-            (0x6c00, 0x20c2, 0x12, DosErrorCode::InvalidFunction),
             (0x6c01, 0x20c2, 0x11, DosErrorCode::InvalidFunction),
             (0x6c00, 0x40c2, 0x11, DosErrorCode::InvalidFunction),
             (0x6c00, 0x21c2, 0x11, DosErrorCode::InvalidAccess),

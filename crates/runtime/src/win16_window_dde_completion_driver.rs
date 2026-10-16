@@ -109,7 +109,23 @@ impl Win16State {
                 return Ok(());
             }
         }
-        self.resume_window_completion(cpu, memory, dos, host)
+        let frame_id = frame.id;
+        loop {
+            let operation = self.window_operations.last()
+                .filter(|frame| frame.id == frame_id)
+                .and_then(|frame| frame.host_operation);
+            self.resume_window_completion(cpu, memory, dos, host)?;
+            let Some(frame) = self.window_operations.last()
+                .filter(|frame| frame.id == frame_id) else { return Ok(()); };
+            // A prepared follow-up can return synchronously (for example,
+            // native subclass lookup followed by installation). Finish that
+            // exact new source before exposing the unchanged API gate again.
+            // Stop at callbacks/waits, and never drive an enclosing caller
+            // merely because this operation has popped.
+            if frame.completion.is_none() || frame.host_operation == operation {
+                return Ok(());
+            }
+        }
     }
 
     /// Drive a DDE normal completion without moving its continuation out of

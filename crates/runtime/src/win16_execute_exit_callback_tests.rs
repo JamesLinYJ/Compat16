@@ -16,21 +16,23 @@ const MAIN_IP: u16 = 0xfb;
 fn fixture(callback: &[u8]) -> (Runtime, OwnerId, u16) {
     let mut image = crate::win16_runtime::test_support::tiny_ne_executable();
     image[0x54..0x56].copy_from_slice(&MAIN_IP.to_le_bytes());
+    image[0x80..0x82].copy_from_slice(&1_u16.to_le_bytes());
+    image[0x82..0x84].copy_from_slice(&0x100_u16.to_le_bytes());
+    image.resize(0x300, 0);
+    image[0x200 + usize::from(CALLBACK_IP)..][..callback.len()].copy_from_slice(callback);
+    image[0x200 + usize::from(MAIN_IP)..].copy_from_slice(&[0xb8, 0x07, 0x4c, 0xcd, 0x21]);
     let mut runtime = Runtime::load(&image, &[], br"C:\EXITCB.NE").unwrap();
+    // This fixture can enter a callback before run_win16_inner. Complete real
+    // module startup first so it cannot reset that already active CPU frame.
+    runtime.win16.as_mut().unwrap().begin_program_modules(
+        &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut ExitHost::default(),
+    ).unwrap();
     let data_selector = runtime.cpu.regs.ds;
     let state = runtime.win16.as_mut().unwrap();
     let owner = state.tasks.current().unwrap();
     state.kernel_file_system.seed_owner(owner, Win16CanonicalPath {
         drive: 2, components: Vec::new(),
     }).unwrap();
-    for (offset, bytes) in [
-        (CALLBACK_IP, callback),
-        (MAIN_IP, &[0xb8, 0x07, 0x4c, 0xcd, 0x21][..]),
-    ] {
-        let pointer = state.selectors.pointer_from_raw(Selector(runtime.cpu.regs.cs), offset).unwrap();
-        let address = state.selectors.translate(pointer, Access::Execute, bytes.len(), &runtime.memory).unwrap();
-        runtime.memory.write_physical(address, bytes).unwrap();
-    }
     assert_eq!(state.toolhelp_notify_register(
         0, (u32::from(runtime.cpu.regs.cs) << 16) | u32::from(CALLBACK_IP),
         NF_TASKSWITCH, &runtime.memory,

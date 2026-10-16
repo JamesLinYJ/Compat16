@@ -86,6 +86,11 @@ impl crate::RuntimeNetbiosHost for OpenFileHost {}
 fn fixture(size: usize, rights: AccessRights) -> (Runtime, u32) {
     // Reuse the ordinary service-gate fixture without adding an NE generator.
     let mut runtime = Runtime::load(&tiny_ne_executable(), &[], br"C:\OPENFILE.NE").unwrap();
+    let state = runtime.win16.as_mut().unwrap();
+    let owner = state.tasks.current().unwrap();
+    state.kernel_file_system.seed_owner(owner, crate::Win16CanonicalPath {
+        drive: 2, components: Vec::new(),
+    }).unwrap();
     runtime.memory.write_physical(PhysAddr(BASE - 1), &vec![0x5a; OFSTRUCT_BYTES + 2]).unwrap();
     let selector = runtime.win16.as_mut().unwrap().selectors
         .alloc_block(PhysAddr(BASE), size as u32, rights, &runtime.memory).unwrap();

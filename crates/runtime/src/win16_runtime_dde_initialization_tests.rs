@@ -389,6 +389,11 @@ fn begin_request(
     host: &mut InitializationHost,
     request: Win16DdeRequest,
 ) -> Result<(u16, u16, u32), RuntimeError> {
+    let return_kind = match &request {
+        Win16DdeRequest::ClientTransaction { .. } => Win16ReturnKind::Dword,
+        Win16DdeRequest::Initialize { .. } | Win16DdeRequest::Uninitialize { .. } => Win16ReturnKind::Word,
+        _ => panic!("fixture needs the request's actual SDK return kind"),
+    };
     let return_to = (runtime.cpu.regs.cs, 0x12, u32::from(runtime.cpu.regs.sp()) + 20);
     let context = runtime.cpu.capture_context();
     let state = runtime.win16.as_mut().unwrap();
@@ -399,7 +404,7 @@ fn begin_request(
     assert!(state.active_dispatch_call_owner.replace(owner).is_none());
     let result = state.begin_dde_request(
         request, &mut runtime.cpu.regs, &mut runtime.memory, host,
-        return_to, Win16ReturnKind::Word,
+        return_to, return_kind,
     );
     state.window_dispatch_context = None;
     assert!(state.active_dispatch_call_owner.is_none());

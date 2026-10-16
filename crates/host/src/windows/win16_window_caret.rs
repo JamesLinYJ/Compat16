@@ -14,7 +14,7 @@ use windows_sys::Win32::Foundation::{HWND, POINT};
 use windows_sys::Win32::Graphics::Gdi::HBITMAP;
 use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateCaret, DestroyCaret, GetCaretPos, GetGUIThreadInfo, GUITHREADINFO,
+    CreateCaret, DestroyCaret, GetCaretPos, GetGUIThreadInfo, GetWindowThreadProcessId, GUITHREADINFO,
     HideCaret, SetCaretPos, ShowCaret,
 };
 
@@ -78,11 +78,18 @@ pub(super) fn shutdown() -> Result<(), RuntimeError> {
     };
     // GetGUIThreadInfo(0) addresses the foreground thread, not this worker.
     // Use its actual ID even when the application is inactive or unfocused.
-    if unsafe { GetGUIThreadInfo(GetCurrentThreadId(), &mut info) } == 0 {
+    let thread = unsafe { GetCurrentThreadId() };
+    if unsafe { GetGUIThreadInfo(thread, &mut info) } == 0 {
         return Err(RuntimeError::new(Kind::HostFailure,
             "query the USER worker's queue caret before shutdown"));
     }
-    if !info.hwndCaret.is_null() && unsafe { DestroyCaret() } == 0 {
+    // The queue snapshot can expose a caret belonging to another GUI thread.
+    // DestroyCaret cannot destroy that owner's resource. A stale HWND after
+    // window destruction likewise proves no live caret window on this worker.
+    // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-destroycaret
+    let owned = !info.hwndCaret.is_null()
+        && unsafe { GetWindowThreadProcessId(info.hwndCaret, std::ptr::null_mut()) } == thread;
+    if owned && unsafe { DestroyCaret() } == 0 {
         return Err(RuntimeError::new(Kind::HostFailure,
             "worker shutdown could not destroy its queue caret; cleanup remains incomplete"));
     }

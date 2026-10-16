@@ -24,7 +24,7 @@ jobs:
   windows:
     name: Windows ${{ matrix.architecture }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -68,7 +68,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'The pinned Cargo did not start.' }
 
       - name: Run existing compatibility tests
-        timeout-minutes: 20
+        # A cold native ARM64 runner compiles both test harnesses and runs the
+        # full suite here. Keep a bound without cancelling its final filters.
+        timeout-minutes: 35
         run: |
           # build.ps1 restores its caller's environment. Initialize MSVC again
           # for tests rather than depending on a preceding build's side effects.
@@ -186,6 +188,8 @@ jobs:
             '-p runtime --lib gdi_services::wire_tests::',
             '-p runtime --lib win16_runtime::task_state::tests::',
             '-p runtime --lib get_window_task_'
+            '-p runtime --lib metafile::tests'
+            '-p host-services --lib metafile_native_ -- --ignored --test-threads=1'
             '-p runtime --lib flash_window_'
             '-p runtime --lib win16_runtime::catch_throw::tests::'
             '-p runtime --lib escape_'
@@ -213,7 +217,9 @@ jobs:
             '-p runtime --lib win16_runtime::catch_throw::tests::' = 15
             '-p runtime --lib escape_' = 7
             '-p host-services --lib escape_' = 3
-            '-p host-services --lib dde_completion_' = 3
+            '-p host-services --lib dde_completion_' = 5
+            '-p runtime --lib metafile::tests' = 8
+            '-p host-services --lib metafile_native_ -- --ignored --test-threads=1' = 9
             '-p runtime --lib initialization_tests::' = 17
             '-p runtime --lib win16_runtime_dde::transfer::tests::' = 16
             '-p runtime --lib win16_dde_callback::retirement::tests::' = 1

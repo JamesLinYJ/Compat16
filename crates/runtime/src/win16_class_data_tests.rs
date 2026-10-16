@@ -62,6 +62,10 @@ struct ClassDataHost {
     diagnostics: Vec<Kind>,
     atom_name: Option<(u16, Vec<u8>)>,
     dbcs_case: bool,
+    subclass_window: Option<Win16HostWindow>,
+    subclass_set_succeeded: bool,
+    subclass_sources: Vec<std::sync::Arc<crate::Win16WindowSourceRetiredProof>>,
+    subclass_consumed: Vec<u64>,
 }
 
 impl DosHost for ClassDataHost {
@@ -98,6 +102,55 @@ impl DosHost for ClassDataHost {
 
 
 impl RuntimeHost for ClassDataHost {
+    fn win16_window_begin(&mut self, operation: crate::Win16WindowOperation)
+        -> Result<crate::Win16WindowStep, RuntimeError> {
+        let kind = operation.native_operation_kind();
+        let native = self.subclass_window.expect("unexpected native USER operation");
+        let previous = Win16HostProcedure(0x1234_5678_9abc_def0);
+        let result = match operation {
+            crate::Win16WindowOperation::QuerySubclassProcedure { window } => {
+                assert_eq!(window, native);
+                assert!(self.subclass_sources.is_empty());
+                crate::Win16WindowResult::SubclassProcedure {
+                    procedure: Some(previous), instance: Some(0x2222),
+                }
+            }
+            crate::Win16WindowOperation::SetProcedure { window, previous: actual, restore } => {
+                assert_eq!(window, native);
+                assert_eq!(actual, previous);
+                assert!(!restore);
+                assert_eq!(self.subclass_sources.len(), 1);
+                crate::Win16WindowResult::Procedure(self.subclass_set_succeeded.then_some(previous))
+            }
+            _ => panic!("unexpected subclass operation"),
+        };
+        let operation_id = crate::Win16HostWindowOperationId(self.subclass_sources.len() as u64 + 1);
+        let proof = std::sync::Arc::new(crate::Win16WindowSourceRetiredProof {
+            operation: crate::Win16NativeWindowOperationProof { operation_id, kind },
+            worker_generation: 1, state: crate::Win16NativeWindowOperationState::Returned,
+        });
+        self.subclass_sources.push(proof.clone());
+        Ok(crate::Win16WindowStep::Started {
+            operation_id, worker_generation: 1, kind,
+            step: Box::new(crate::Win16WindowStep::SourceRetired {
+                proof, result: Box::new(crate::Win16WindowStep::Complete(result)),
+            }),
+        })
+    }
+    fn win16_window_source_retirement(&mut self,
+        operation: crate::Win16NativeWindowOperationProof, worker_generation: u64,
+    ) -> Result<Option<std::sync::Arc<crate::Win16WindowSourceRetiredProof>>, RuntimeError> {
+        assert_eq!(worker_generation, 1);
+        Ok(self.subclass_sources.iter().find(|proof| proof.operation == operation).cloned())
+    }
+    fn win16_window_source_retirement_consumed(&mut self,
+        proof: &crate::Win16WindowSourceRetiredProof,
+    ) -> Result<(), RuntimeError> {
+        assert!(self.subclass_sources.iter().any(|known| **known == *proof));
+        assert!(!self.subclass_consumed.contains(&proof.operation.operation_id.0));
+        self.subclass_consumed.push(proof.operation.operation_id.0);
+        Ok(())
+    }
     fn win16_ansi_lower_string(&mut self, source: &[u8]) -> Result<Vec<u8>, RuntimeError> {
         if self.dbcs_case {
             let mut lower = source.to_vec();

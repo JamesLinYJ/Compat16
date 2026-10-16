@@ -45,7 +45,9 @@ fn open(
 }
 
 fn fixture_filesystem() -> crate::filesystem::Filesystem {
-    crate::filesystem::Filesystem::new_native_directory(&std::env::temp_dir(), 65001).unwrap()
+    // DOS aliases require an OEM page even when the fixture decodes its native
+    // Unicode pathname from UTF-8 through the separate Win16 text codec.
+    crate::filesystem::Filesystem::new_native_directory(&std::env::temp_dir(), 437).unwrap()
 }
 
 struct TestFile(PathBuf);
@@ -110,6 +112,8 @@ fn open_file_initial_open_captures_dos_date_then_time() {
     assert_eq!(&saved[4..8], &expected_stamp());
     assert_eq!(&saved[2..4], &[0, 0]);
     assert_eq!(saved.len(), OFSTRUCT_BYTES);
+    assert!(saved[8].is_ascii_uppercase());
+    assert_eq!(&saved[9..11], b":\\", "OFSTRUCT must expose a reopenable DOS path");
     file.assert_unowned();
 }
 

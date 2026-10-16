@@ -113,15 +113,21 @@ fn open_once(
         Err(error) => return Ok(failed(ofstruct, u32::from(error.code as u16))),
     };
     if !reopen {
-        use std::os::windows::ffi::OsStrExt;
-        let absolute = filesystem.canonical_root.join(&path);
-        let wide: Vec<u16> = absolute.as_os_str().encode_wide().collect();
+        let canonical = match filesystem.canonical_win16_path(guest_path.drive, &path) {
+            Ok(Some(path)) => path,
+            Ok(None) => return Ok(failed(ofstruct, ERROR_FILENAME_EXCED_RANGE)),
+            Err(error) => return Ok(failed(ofstruct, u32::from(error.code as u16))),
+        };
+        // The capability root uses a Win32 verbatim volume prefix. OFSTRUCT
+        // needs a classic drive-qualified guest pathname that OF_REOPEN can
+        // parse again, never a \\?\ or UNC host capability path.
+        let text = format!("{}:\\{}", char::from(b'A' + canonical.drive),
+            canonical.components.join("\\"));
+        let wide: Vec<u16> = text.encode_utf16().collect();
         let encoded = codec.from_wide_bounded(&wide, OFSTRUCT_PATH_CAPACITY - 1)?;
         let guest = if !encoded.truncated && encoded.used_default_char != Some(true) {
             encoded.bytes
         } else {
-            let Some(canonical) = filesystem.canonical_win16_path(guest_path.drive, &path)
-                .ok().flatten() else { return Ok(failed(ofstruct, ERROR_FILENAME_EXCED_RANGE)); };
             let Some(bytes) = filesystem.dos_path_bytes_for_canonical(&canonical) else {
                 return Ok(failed(ofstruct, ERROR_FILENAME_EXCED_RANGE));
             };

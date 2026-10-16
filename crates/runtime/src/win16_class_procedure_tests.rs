@@ -12,6 +12,37 @@ use win16_abi::{Access, AccessRights};
 const GCL_WNDPROC: i16 = -24;
 const GWL_WNDPROC: i16 = -4;
 
+#[test]
+fn class_data_native_subclass_sync_followup_returns_without_redispatching_the_gate() {
+    for succeeded in [false, true] {
+        let mut runtime = fixture();
+        let native = Win16HostWindow(0x5555);
+        let state = runtime.win16.as_mut().unwrap();
+        let hwnd = state.allocate_window_handle(native).unwrap();
+        state.initialize_window_data(hwnd, None, 0x2222, false, None).unwrap();
+        let replacement = procedure(&runtime, 0x40);
+        let mut host = ClassDataHost {
+            subclass_window: Some(native), subclass_set_succeeded: succeeded,
+            ..Default::default()
+        };
+        let old = call(&mut runtime, &mut host, 136, hwnd, GWL_WNDPROC, Some(replacement));
+        let state = runtime.win16.as_ref().unwrap();
+        if succeeded {
+            assert_eq!(state.native_procedure_for_address(old), Some(Win16HostProcedure(0x1234_5678_9abc_def0)));
+            assert_eq!(state.native_subclass_procedure(hwnd), Some((replacement, 0x2222)));
+        } else {
+            assert_eq!(old, 0);
+            assert!(state.native_subclass_procedure(hwnd).is_none());
+        }
+        assert_eq!(host.subclass_sources.len(), 2);
+        let mut consumed = host.subclass_consumed;
+        consumed.sort_unstable();
+        assert_eq!(consumed, [1, 2]);
+        assert!(state.window_operations.is_empty());
+        assert!(state.legacy_cpu_frames.is_empty());
+    }
+}
+
 fn procedure(runtime: &Runtime, offset: u16) -> u32 {
     (u32::from(runtime.cpu.regs.cs) << 16) | u32::from(offset)
 }
