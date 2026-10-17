@@ -14,7 +14,7 @@ pub(super) fn inject_keyboard(event: Win16InjectedKey) {
             event.virtual_key,
             event.scan,
             event.flags,
-            usize::from(event.extra_info),
+            event.extra_info as usize,
         );
     }
 }
@@ -29,7 +29,7 @@ pub(super) fn inject_mouse(event: Win16InjectedMouse) {
             event.dx,
             event.dy,
             i32::from(event.buttons),
-            usize::from(event.extra_info),
+            event.extra_info as usize,
         );
     }
 }
