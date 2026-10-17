@@ -35,6 +35,11 @@ pub(crate) fn dispatch(
         }
         Win16UserSystemRequest::GetDialogBaseUnits => get_dialog_base_units(host),
         Win16UserSystemRequest::AnyPopup => Ok(u32::from(host.win16_any_popup()?)),
+        Win16UserSystemRequest::IconSize => super::user_drag::icon_size(host),
+        Win16UserSystemRequest::DragObject { .. } => Ok(super::user_drag::drag_object()),
+        Win16UserSystemRequest::DragDetect { window, x, y } => {
+            super::user_drag::drag_detect(host, window, x, y)
+        }
         Win16UserSystemRequest::SetSysModalWindow { window } => {
             Ok(u32::from(set_sysmodal_window(state, window)))
         }

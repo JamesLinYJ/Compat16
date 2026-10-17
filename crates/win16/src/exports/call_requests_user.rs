@@ -478,7 +478,10 @@ pub(super) fn decode(
         | Win16ExportId::UserSetSysModalWindow
         | Win16ExportId::UserGetSysModalWindow
         | Win16ExportId::UserGetSysColorBrush
-        | Win16ExportId::UserGetFreeSystemResources => {
+        | Win16ExportId::UserGetFreeSystemResources
+        | Win16ExportId::UserIconSize
+        | Win16ExportId::UserDragObject
+        | Win16ExportId::UserDragDetect => {
             win16_service_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
         _ => return Ok(None),
