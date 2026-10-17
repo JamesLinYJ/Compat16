@@ -391,6 +391,9 @@ mod set_window_pos_tests;
 #[path = "win16_open_icon_tests.rs"]
 mod open_icon_tests;
 
+#[path = "win16_system_colors_native_tests.rs"]
+mod system_colors_native_tests;
+
 #[path = "win16_set_parent_tests.rs"]
 mod set_parent_tests;
 

@@ -24,6 +24,9 @@ mod callback_class_retention_tests;
 #[path = "win16_parent_callback_tests.rs"]
 mod parent_callback_tests;
 
+#[path = "win16_dispatch_system_colors_tests.rs"]
+mod system_colors_tests;
+
 use super::super::{ImportBinding, test_support::tiny_ne_executable, windows::WindowProcedure};
 use crate::{
     Diagnostic, DiagnosticKind as Kind, Runtime, RuntimeError, RuntimeHost,

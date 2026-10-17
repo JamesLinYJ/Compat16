@@ -228,7 +228,15 @@ decl = { args = ["word", "word"] }
 [[exports]]
 ordinal = 181
 name = "SetSysColors"
-decl = { args = ["word", "pointer", "pointer"] }
+decl = { attributes = [], args = ["signed_word", "pointer", "pointer"] }
+binding = { rust_id = "UserSetSysColors", id_value = 1265, constant = "USER_SET_SYS_COLORS" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "count", type = "I16" },
+  { name = "elements", type = "FarBuffer" },
+  { name = "colors", type = "FarBuffer" },
+]
 
 [[exports]]
 ordinal = 182
@@ -262,7 +270,11 @@ params = [
 [[exports]]
 ordinal = 186
 name = "SwapMouseButton"
-decl = { args = ["word"] }
+decl = { attributes = [], args = ["signed_word"] }
+binding = { rust_id = "UserSwapMouseButton", id_value = 1266, constant = "USER_SWAP_MOUSE_BUTTON" }
+[exports.call]
+returns = "word"
+params = [{ name = "swap", type = "I16" }]
 
 [[exports]]
 ordinal = 187

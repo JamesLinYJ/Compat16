@@ -138,6 +138,49 @@ pub(super) fn read_far_string(
     crate::strings::read_ansi_z(selectors, memory, far, MAX_WIN16_STRING_BYTES)
 }
 
+/// Copy a fixed byte span from a checked Win16 far pointer. A zero-length
+/// span does not inspect the pointer; nonempty spans may cross selectors only
+/// through the selector table's checked continuation for the same allocation.
+pub(super) fn read_far_bytes(
+    far: u32,
+    mut remaining: usize,
+    selectors: &SelectorTable,
+    memory: &impl GuestMemory,
+) -> Result<Vec<u8>, Win16Error> {
+    if remaining == 0 {
+        return Ok(Vec::new());
+    }
+    let mut output = Vec::new();
+    output.try_reserve_exact(remaining).map_err(|_| Win16Error::OutOfMemory)?;
+    output.resize(remaining, 0);
+    let mut pointer = selectors.pointer_from_far(far)?;
+    let mut offset = 0_usize;
+    while remaining > 0 {
+        let descriptor = selectors.describe(pointer.selector())?;
+        let available = descriptor
+            .limit
+            .checked_sub(u32::from(pointer.offset()))
+            .and_then(|bytes| bytes.checked_add(1))
+            .and_then(|bytes| usize::try_from(bytes).ok())
+            .ok_or(Win16Error::InvalidRange)?;
+        let count = remaining.min(available);
+        if count == 0 {
+            return Err(Win16Error::InvalidRange);
+        }
+        let end = offset.checked_add(count).ok_or(Win16Error::InvalidRange)?;
+        selectors.read(memory, pointer, &mut output[offset..end])?;
+        remaining -= count;
+        offset = end;
+        if remaining > 0 {
+            pointer = selectors.add_bytes(
+                pointer,
+                u32::try_from(count).map_err(|_| Win16Error::InvalidRange)?,
+            )?;
+        }
+    }
+    Ok(output)
+}
+
 pub(in crate::exports) fn read_nullable_far_string(
     far: u32,
     selectors: &SelectorTable,

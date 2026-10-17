@@ -36,6 +36,10 @@ Original SDK source: Microsoft Windows SDK 3.10 disk 03, archived by PCjs.
   `0x82f2`; module USER, import TABBEDTEXTOUT, ordinal `0x00c4`.
 - USER.197 GetTabbedTextExtent: `WINDOWS.H` line 1663; `LIBW.LIB` IMPDEF byte
   offset `0x8338`; module USER, import GETTABBEDTEXTEXTENT, ordinal `0x00c5`.
+- USER.181 SetSysColors: `WINDOWS.H` line 1338; `LIBW.LIB` IMPDEF byte offset
+  `0x7fa1`; module USER, import SETSYSCOLORS, ordinal `0x00b5`.
+- USER.186 SwapMouseButton: `WINDOWS.H` line 3665; `LIBW.LIB` IMPDEF byte
+  offset `0x8084`; module USER, import SWAPMOUSEBUTTON, ordinal `0x00ba`.
 
 Method: reconstruct CHS sectors as little-endian 32-bit words, repeating the
 final word to fill shortened sector arrays; verify the disk hash; extract FAT12
@@ -63,6 +67,43 @@ and [GetTabbedTextExtentW](https://learn.microsoft.com/en-us/windows/win32/api/w
 This establishes the translation route, not historical rendering equivalence;
 the modern TabbedTextOutW documentation itself notes changed text-alignment
 behavior on Windows Vista and later.
+
+## USER.181 SetSysColors
+
+The Windows 3.1 SDK `WINDOWS.H:1338` declares
+`void WINAPI SetSysColors(int, const int FAR*, const COLORREF FAR*)`.
+`WINAPI` is far Pascal (`WINDOWS.H:124`), `int` is signed 16-bit, and
+`COLORREF` is `DWORD` (`WINDOWS.H:1325`), a 32-bit color value. The `LIBW.LIB`
+IMPDEF record at byte offset `0x7fa1` imports `SETSYSCOLORS` from USER by
+ordinal `0x00b5` (181). This establishes the historical module, ordinal,
+argument widths, and void return.
+
+The bridge rejects negative counts, copies the signed 16-bit system-color
+indices and 32-bit COLORREF array from checked guest memory, and treats count
+zero as an empty call without dereferencing either pointer. The native Windows
+adapter invokes `SetSysColors` on the owning USER worker, with no worker-state
+borrow held across the native call. Its synchronous `WM_SYSCOLORCHANGE`
+notifications enter the existing guest callback/continuation chain. The native
+BOOL is checked as an internal completion type; the Win16 void return follows
+the project's AX/DX-preservation policy, including a native false result.
+This records the ABI and translation path, not historical system-color behavior
+equivalence.
+
+## USER.186 SwapMouseButton
+
+The Windows 3.1 SDK `WINDOWS.H:3665` declares
+`BOOL WINAPI SwapMouseButton(BOOL)`. `WINAPI` is far Pascal
+(`WINDOWS.H:124`), and Win16 `BOOL` is a signed 16-bit `int`; the BOOL return
+is the prior primary-button mapping. The `LIBW.LIB` IMPDEF record at byte
+offset `0x8084` imports `SWAPMOUSEBUTTON` from USER by ordinal `0x00ba` (186).
+This establishes the historical module, ordinal, argument width, return width,
+and calling convention.
+
+The decoder maps any nonzero guest BOOL to `true`, then the host adapter calls
+the native `SwapMouseButton` and returns its previous mapping state as a Win16
+word. See [SwapMouseButton] for the native function's contract.
+
+[SwapMouseButton]: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-swapmousebutton
 
 ## Rectangle predicate exports
 

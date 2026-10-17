@@ -212,8 +212,11 @@ if ($native) {
             $environment=@("SystemRoot=$windows","WINDIR=$windows","PATH=$system;$windows","TEMP=$scratch","TMP=$scratch")
             $powershell=Join-Path $system 'WindowsPowerShell/v1.0/powershell.exe'
             $output=@((Join-Path $scratch 'exit-out.txt'),(Join-Path $scratch 'exit-err.txt'))
-            $run=[Compat16.PfeProbe.ContainedProcess]::Run($powershell,@('-NoProfile','-NonInteractive','-Command','exit 0'),$scratch,$environment,$output,5)
-            Assert-That ($run.StopReason -ceq 'exited' -and $run.ExitCode -eq 0 -and $run.ProcessTreeCleaned -and -not $run.WindowReadinessObserved) 'Ordinary process exit was misclassified.'
+            # A small OS executable isolates normal process exit from Windows
+            # PowerShell's variable cold-start time on fresh hosted runners.
+            $ordinaryProcess=Join-Path $system 'where.exe'
+            $run=[Compat16.PfeProbe.ContainedProcess]::Run($ordinaryProcess,@('/q','cmd.exe'),$scratch,$environment,$output,5)
+            Assert-That ($run.StopReason -ceq 'exited' -and $run.ExitCode -eq 0 -and $run.ProcessTreeCleaned -and -not $run.WindowReadinessObserved) ('Ordinary process exit was misclassified: '+($run|ConvertTo-Json -Compress))
             foreach ($answer in @(1,-1)) {
                 $script:callbackAnswer=$answer
                 $callback=[Func[IntPtr,int]]{param([IntPtr]$job) if ($job -eq [IntPtr]::Zero) {throw 'Callback has no exact job.'}; $script:callbackAnswer}

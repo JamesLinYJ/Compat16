@@ -449,6 +449,8 @@ pub(super) fn decode(
         | Win16ExportId::UserSetCaretBlinkTime
         | Win16ExportId::UserGetCaretBlinkTime
         | Win16ExportId::UserGetSysColor
+        | Win16ExportId::UserSetSysColors
+        | Win16ExportId::UserSwapMouseButton
         | Win16ExportId::UserGetDialogBaseUnits
         | Win16ExportId::UserAnyPopup => {
             win16_service_calls::decode(descriptor.id, &arguments, selectors, memory)?
