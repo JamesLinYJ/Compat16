@@ -48,7 +48,7 @@ impl AuxHost {
                 support: AUXCAPS_VOLUME | AUXCAPS_LRVOLUME,
             },
             volume: 0,
-            message_status: 0x1234,
+            message_status: 0x1234_5678,
             calls: Vec::new(),
             wrong_shape: false,
         }
@@ -244,7 +244,7 @@ fn prepare(runtime: &mut Runtime, ordinal: u16, args: &[u8]) -> (u16, u16, u16) 
     };
     assert_eq!(cleanup.callee_pop_bytes as usize, args.len());
     assert_eq!(cleanup.caller_pop_bytes, 0);
-    assert_eq!(descriptor.return_kind, Win16ReturnKind::Word);
+    assert_eq!(descriptor.return_kind, if ordinal == 354 { Win16ReturnKind::Dword } else { Win16ReturnKind::Word });
     let return_cs = runtime.cpu.regs.cs;
     let return_ip = 0x12_u16;
     let stack = runtime.cpu.regs.sp();
@@ -325,7 +325,7 @@ fn packed_caps(caps: &Win16HostAuxCapabilities) -> [u8; AUXCAPS16_SIZE] {
 }
 
 #[test]
-fn aux_ordinals_are_far_pascal_word_returns() {
+fn aux_ordinals_keep_far_pascal_result_widths() {
     let cases = [
         (350, "auxGetNumDevs", 0),
         (351, "auxGetDevCaps", 8),
@@ -339,7 +339,7 @@ fn aux_ordinals_are_far_pascal_word_returns() {
             lookup_export(b"MMSYSTEM", ExportLookupTarget::Name(name.as_bytes())).unwrap();
         assert_eq!(by_ordinal.id, by_name.id);
         assert_eq!(by_ordinal.ordinal(), ordinal);
-        assert_eq!(by_ordinal.return_kind, Win16ReturnKind::Word);
+        assert_eq!(by_ordinal.return_kind, if ordinal == 354 { Win16ReturnKind::Dword } else { Win16ReturnKind::Word });
         let Win16ExportStackCleanup::Fixed(cleanup) = by_ordinal.stack_cleanup else {
             panic!("{name} lost its fixed Pascal frame");
         };
@@ -538,8 +538,8 @@ fn aux_out_message_forwards_guest_dwords_without_reading_them() {
     let return_to = prepare(&mut runtime, 354, &args);
     let mut host = AuxHost::new();
     assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
-    assert_eq!(runtime.cpu.regs.ax(), 0x1234);
-    assert_eq!(runtime.cpu.regs.dx(), DX);
+    assert_eq!(runtime.cpu.regs.ax(), 0x5678);
+    assert_eq!(runtime.cpu.regs.dx(), 0x1234);
     assert_eq!(
         (
             runtime.cpu.regs.cs,
