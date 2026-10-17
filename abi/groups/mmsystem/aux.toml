@@ -1,0 +1,55 @@
+module = "MMSYSTEM"
+
+[[exports]]
+ordinal = 350
+name = "auxGetNumDevs"
+binding = { rust_id = "AuxGetNumDevs", id_value = 1285, constant = "MMSYSTEM_AUX_GET_NUM_DEVS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 351
+name = "auxGetDevCaps"
+binding = { rust_id = "AuxGetDevCaps", id_value = 1286, constant = "MMSYSTEM_AUX_GET_DEV_CAPS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "capabilities", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 352
+name = "auxGetVolume"
+binding = { rust_id = "AuxGetVolume", id_value = 1287, constant = "MMSYSTEM_AUX_GET_VOLUME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "volume", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 353
+name = "auxSetVolume"
+binding = { rust_id = "AuxSetVolume", id_value = 1288, constant = "MMSYSTEM_AUX_SET_VOLUME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "volume", type = "U32" },
+]
+
+[[exports]]
+ordinal = 354
+name = "auxOutMessage"
+binding = { rust_id = "AuxOutMessage", id_value = 1289, constant = "MMSYSTEM_AUX_OUT_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "parameter1", type = "U32" },
+  { name = "parameter2", type = "U32" },
+]

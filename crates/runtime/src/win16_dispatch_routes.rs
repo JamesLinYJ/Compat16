@@ -53,6 +53,7 @@ pub(super) fn route_for_request(request: &Win16ApiRequest) -> DispatchRoute {
         Win16ApiRequest::MediaIo(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Sound(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Mci(..) => DispatchRoute::Libraries,
+        Win16ApiRequest::Aux(..) => DispatchRoute::Libraries,
         Win16ApiRequest::MediaTime(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Midi(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Multimedia(..) => DispatchRoute::Libraries,

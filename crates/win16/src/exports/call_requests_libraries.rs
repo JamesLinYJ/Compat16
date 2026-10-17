@@ -97,6 +97,13 @@ pub(super) fn decode(
         | Win16ExportId::Ole2DispSafeArrayDestroyData => Win16ApiRequest::Ole2Disp(
             super::super::call_ole2disp::decode(descriptor, arguments, selectors, memory)?,
         ),
+        Win16ExportId::AuxGetNumDevs
+        | Win16ExportId::AuxGetDevCaps
+        | Win16ExportId::AuxGetVolume
+        | Win16ExportId::AuxSetVolume
+        | Win16ExportId::AuxOutMessage => Win16ApiRequest::Aux(
+            super::super::call_aux::decode(descriptor, arguments)?,
+        ),
         Win16ExportId::MediaTimeGetSystemTime
         | Win16ExportId::MediaTimeGetDevCaps
         | Win16ExportId::MediaTimeBeginPeriod

@@ -159,6 +159,11 @@ pub use win16_sound_host::{
 mod win16_host_wave;
 mod win16_host_mci;
 pub use win16_host_mci::*;
+mod win16_host_aux;
+pub use win16_host_aux::{
+    Win16HostAuxCapabilities, Win16HostAuxOperation, Win16HostAuxResult, MMSYSERR_BADDEVICEID,
+    MMSYSERR_INVALPARAM, MMSYSERR_NOERROR,
+};
 mod win16_media_services;
 pub use win16_host_wave::{
     Win16HostWaveBuffer, Win16HostWaveCapabilities, Win16HostWaveCompletion, Win16HostWaveControl,

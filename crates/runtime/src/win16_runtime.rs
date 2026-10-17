@@ -166,6 +166,8 @@ mod classic_dde_memory;
 mod classic_dde_executor;
 #[path = "win16_media_time.rs"]
 mod media_time;
+#[path = "win16_aux.rs"]
+mod aux;
 #[path = "win16_media_io.rs"]
 mod media_io;
 #[path = "win16_runtime_midi.rs"]
@@ -874,6 +876,10 @@ impl Win16State {
 #[cfg(test)]
 #[path = "win16_test_support.rs"]
 mod test_support;
+
+#[cfg(test)]
+#[path = "win16_aux_tests.rs"]
+mod aux_tests;
 
 #[cfg(test)]
 #[path = "win16_destroy_receipt_tests.rs"]
