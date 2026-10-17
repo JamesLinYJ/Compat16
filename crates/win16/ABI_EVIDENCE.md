@@ -906,3 +906,11 @@ beyond that prefix are left unchanged. A null or empty port on
 `SetEnvironment` is stored under the leading device-name bytes (at most 32,
 stopping at NUL). `GetEnvironment` does not read its output buffer to invent
 that key, so a null port on get returns 0.
+
+## GDI CreateScalableFontResource
+
+Windows 3.1 GDI ordinal 310 is the public `CreateScalableFontResource`. It is a far-Pascal `BOOL` with a hidden flag and three `LPCSTR` paths. It creates a TrueType font resource file and does not install the font; the caller still uses `AddFontResource`. The `Engine*` driver ordinals stay unbound.
+
+The public remarks preserved by [CreateScalableFontResourceA](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createscalablefontresourcea) distinguish the two path forms. A bare font filename must be paired with a current path: that filename is what the resource file records, and the current path is only the directory read while the resource is created. A font path that already contains a directory separator or a drive prefix requires the current path to be omitted, and that path is what the resource file records. NULL and an empty string are that omission. A nonempty current path together with a directory-bearing font path returns false. Documented hidden values are 0 and 1; the guest word is forwarded unchanged, and a nonzero native `BOOL` becomes guest 1.
+
+Guest path bytes are copied and resolved through the same DOS filesystem mapping as `AddFontResource`, including native-volume mounts, then passed to `CreateScalableFontResourceW`. The resource file may be absent. The TrueType file must resolve. For a bare filename the native font argument stays the filename, while the native current path is the resolved host directory. For a directory-bearing font path the native current path is null after that path has been resolved. Path failure and a zero native `BOOL` become guest false. The XP WoW module-filename rule used by `AddFontResource` does not apply; these parameters are paths. This does not implement a custom font-resource codec.

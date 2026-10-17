@@ -83,6 +83,14 @@ pub enum Win16GdiServicesOperation {
     RemoveFontResource {
         guest_path: Vec<u8>,
     },
+    /// `current_path` is present only for a bare font filename. A directory
+    /// already present in `font_file` is resolved on its own.
+    CreateScalableFontResource {
+        hidden: u16,
+        resource_file: Vec<u8>,
+        font_file: Vec<u8>,
+        current_path: Option<Vec<u8>>,
+    },
     GetCharWidth {
         dc: Win16HostDc,
         first: u16,

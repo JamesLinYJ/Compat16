@@ -15,9 +15,10 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{RECT, SIZE};
 use windows_sys::Win32::Graphics::Gdi::{
-    ABC, AddFontResourceW, GDI_ERROR, GetAspectRatioFilterEx, GetBoundsRect, GetCharABCWidthsW,
-    GetFontData, GetKerningPairsW, GetObjectType, GetRasterizerCaps, KERNINGPAIR, OBJ_METADC,
-    RASTERIZER_STATUS, RemoveFontResourceW, SetBoundsRect, SetMapperFlags,
+    ABC, AddFontResourceW, CreateScalableFontResourceW, GDI_ERROR, GetAspectRatioFilterEx,
+    GetBoundsRect, GetCharABCWidthsW, GetFontData, GetKerningPairsW, GetObjectType,
+    GetRasterizerCaps, KERNINGPAIR, OBJ_METADC, RASTERIZER_STATUS, RemoveFontResourceW,
+    SetBoundsRect, SetMapperFlags,
 };
 
 use super::{win16_gdi::Win16Dcs, win16_gdi_objects::Win16Objects};
@@ -103,7 +104,7 @@ pub(super) fn execute(
             })
         }
         Op::AddFontResource { guest_path } => {
-            let Some(path) = font_resource_path(filesystem, &guest_path) else {
+            let Some(path) = font_resource_path(filesystem, &guest_path, false) else {
                 return Ok(Value::FontResourceCount(0));
             };
             // The Windows 3.1 SDK declares an ANSI DOS path. Resolve its
@@ -117,7 +118,7 @@ pub(super) fn execute(
             }))
         }
         Op::RemoveFontResource { guest_path } => {
-            let Some(path) = font_resource_path(filesystem, &guest_path) else {
+            let Some(path) = font_resource_path(filesystem, &guest_path, false) else {
                 return Ok(Value::Bool(false));
             };
             // SAFETY: `path` is an owned, NUL-terminated UTF-16 path produced
@@ -126,6 +127,18 @@ pub(super) fn execute(
                 RemoveFontResourceW(path.as_ptr()) != 0
             }))
         }
+        Op::CreateScalableFontResource {
+            hidden,
+            resource_file,
+            font_file,
+            current_path,
+        } => create_scalable_font_resource(
+            filesystem,
+            hidden,
+            &resource_file,
+            &font_file,
+            current_path.as_deref(),
+        ),
         Op::GetCharWidth { dc, first, last } => char_width::execute(dcs, dc, first, last),
         Op::GetCharAbcWidths { dc, first, last } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else {
@@ -376,12 +389,118 @@ pub(super) fn execute(
     }
 }
 
-fn font_resource_path(filesystem: &mut Filesystem, guest_path: &[u8]) -> Option<Vec<u16>> {
+fn create_scalable_font_resource(
+    filesystem: &mut Filesystem,
+    hidden: u16,
+    resource_file: &[u8],
+    font_file: &[u8],
+    current_path: Option<&[u8]>,
+) -> Result<ResultValue, RuntimeError> {
+    let Some(resource) = font_resource_path(filesystem, resource_file, true) else {
+        return Ok(ResultValue::Bool(false));
+    };
+    // A bare filename is stored in the font resource file unchanged. The
+    // current path is only the directory from which the TrueType file is
+    // read, so the resource stays portable. A font path that already has a
+    // directory is stored after DOS resolution, with no current path.
+    let (font, directory) = if let Some(directory) = current_path {
+        let Some(located) = join_guest_font_path(directory, font_file) else {
+            return Ok(ResultValue::Bool(false));
+        };
+        let Some(absolute) = font_resource_path(filesystem, &located, false) else {
+            return Ok(ResultValue::Bool(false));
+        };
+        let Some(directory) = wide_parent_directory(&absolute) else {
+            return Ok(ResultValue::Bool(false));
+        };
+        let Some(font) = guest_filename_wide(filesystem, font_file) else {
+            return Ok(ResultValue::Bool(false));
+        };
+        (font, Some(directory))
+    } else {
+        let Some(font) = font_resource_path(filesystem, font_file, false) else {
+            return Ok(ResultValue::Bool(false));
+        };
+        (font, None)
+    };
+    // SAFETY: `resource`, `font`, and the optional directory are owned
+    // NUL-terminated UTF-16 strings from the DOS filesystem mapping. The
+    // current-path pointer is null when the font path is already absolute.
+    // No guest pointer is forwarded.
+    let created = unsafe {
+        CreateScalableFontResourceW(
+            u32::from(hidden),
+            resource.as_ptr(),
+            font.as_ptr(),
+            directory.as_ref().map_or(ptr::null(), |path| path.as_ptr()),
+        ) != 0
+    };
+    Ok(ResultValue::Bool(created))
+}
+
+fn join_guest_font_path(directory: &[u8], file: &[u8]) -> Option<Vec<u8>> {
+    let separator = !directory.ends_with(b"\\") && !directory.ends_with(b"/");
+    let length = directory
+        .len()
+        .checked_add(file.len())?
+        .checked_add(usize::from(separator))?;
+    let mut joined = Vec::new();
+    joined.try_reserve_exact(length).ok()?;
+    joined.extend_from_slice(directory);
+    if separator {
+        joined.push(b'\\');
+    }
+    joined.extend_from_slice(file);
+    Some(joined)
+}
+
+fn guest_filename_wide(filesystem: &Filesystem, file: &[u8]) -> Option<Vec<u16>> {
+    let text = filesystem.guest_code_page().decode(file).ok()?;
+    if text.is_empty()
+        || text
+            .chars()
+            .any(|character| matches!(character, '\0' | '\\' | '/' | ':'))
+    {
+        return None;
+    }
+    let mut wide = Vec::new();
+    let length = text.encode_utf16().count().checked_add(1)?;
+    wide.try_reserve_exact(length).ok()?;
+    wide.extend(text.encode_utf16());
+    wide.push(0);
+    Some(wide)
+}
+
+fn wide_parent_directory(file: &[u16]) -> Option<Vec<u16>> {
+    let path = file.strip_suffix(&[0])?;
+    let split = path
+        .iter()
+        .rposition(|unit| *unit == u16::from(b'\\') || *unit == u16::from(b'/'))?;
+    let end = if split == 0 || path.get(split.wrapping_sub(1)) == Some(&u16::from(b':')) {
+        split + 1
+    } else {
+        split
+    };
+    let mut directory = Vec::new();
+    directory.try_reserve_exact(end.checked_add(1)?).ok()?;
+    directory.extend_from_slice(&path[..end]);
+    directory.push(0);
+    Some(directory)
+}
+
+fn font_resource_path(
+    filesystem: &mut Filesystem,
+    guest_path: &[u8],
+    allow_missing_final: bool,
+) -> Option<Vec<u16>> {
     // `resolve_path` follows the active DOS filesystem mapping, including
-    // native-volume mounts; `confined_path` resolves an existing guest entry
-    // under that mount before a host-native UTF-16 path is formed.
+    // native-volume mounts; `confined_path` resolves the guest entry under
+    // that mount before a host-native UTF-16 path is formed. The font
+    // resource file may be created, so its final component can be absent.
     let relative = filesystem.resolve_path(guest_path, false).ok()?;
-    let confined = filesystem.confined_path(&relative, true, false).ok()?;
+    let confined = filesystem
+        .confined_path(&relative, true, allow_missing_final)
+        .ok()?;
     let full = filesystem.canonical_root.join(confined);
     use std::os::windows::ffi::OsStrExt;
     let mut path = Vec::new();
@@ -523,3 +642,34 @@ fn zero_rect() -> runtime::Win16DrawingRect {
 #[cfg(test)]
 #[path = "win16_gdi_services_dbcs_tests.rs"]
 mod dbcs_tests;
+
+#[cfg(test)]
+mod scalable_font_path_tests {
+    use super::{join_guest_font_path, wide_parent_directory};
+
+    #[test]
+    fn join_inserts_one_separator() {
+        assert_eq!(
+            join_guest_font_path(b"C:\\FONTS", b"A.TTF").unwrap(),
+            b"C:\\FONTS\\A.TTF"
+        );
+        assert_eq!(
+            join_guest_font_path(b"C:\\FONTS\\", b"A.TTF").unwrap(),
+            b"C:\\FONTS\\A.TTF"
+        );
+        assert_eq!(
+            join_guest_font_path(b"C:/FONTS/", b"A.TTF").unwrap(),
+            b"C:/FONTS/A.TTF"
+        );
+    }
+
+    #[test]
+    fn parent_keeps_the_drive_root_separator() {
+        let nested: Vec<u16> = "C:\\FONTS\\A.TTF\0".encode_utf16().collect();
+        let nested_parent: Vec<u16> = "C:\\FONTS\0".encode_utf16().collect();
+        assert_eq!(wide_parent_directory(&nested).unwrap(), nested_parent);
+        let root: Vec<u16> = "C:\\A.TTF\0".encode_utf16().collect();
+        let drive: Vec<u16> = "C:\\\0".encode_utf16().collect();
+        assert_eq!(wide_parent_directory(&root).unwrap(), drive);
+    }
+}

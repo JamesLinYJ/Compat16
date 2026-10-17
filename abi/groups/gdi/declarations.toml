@@ -606,11 +606,6 @@ params = [
 ]
 
 [[exports]]
-ordinal = 310
-name = "CreateScalableFontResource"
-decl = { args = ["word", "string", "string", "string"] }
-
-[[exports]]
 ordinal = 312
 name = "ConvertOutLineFontFile"
 kind = "stub"
