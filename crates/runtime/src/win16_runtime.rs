@@ -206,6 +206,8 @@ mod toolhelp_global;
 mod toolhelp_global_owner;
 #[path = "win16_profile.rs"]
 mod profile;
+#[path = "win16_profile_struct.rs"]
+mod profile_struct;
 #[path = "win16_gdi.rs"]
 mod gdi;
 #[path = "win16_drawing.rs"]

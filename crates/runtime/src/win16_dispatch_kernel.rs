@@ -690,6 +690,39 @@ impl Win16State {
                 value.as_deref(),
                 &self.private_profile_path(filename.as_deref(), host)?,
             )?),
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
+                win16_abi::Win16KernelProfilesRequest::WritePrivateProfileStruct {
+                    section,
+                    key,
+                    data,
+                    data_size,
+                    filename,
+                },
+            )) => self.write_private_profile_struct(
+                section.as_deref(),
+                key.as_deref(),
+                data.as_deref(),
+                data_size,
+                filename.as_deref(),
+                host,
+            )?,
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
+                win16_abi::Win16KernelProfilesRequest::GetPrivateProfileStruct {
+                    section,
+                    key,
+                    output,
+                    capacity,
+                    filename,
+                },
+            )) => self.get_private_profile_struct(
+                section.as_deref(),
+                key.as_deref(),
+                output,
+                capacity,
+                filename.as_deref(),
+                memory,
+                host,
+            )?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
                 win16_abi::Win16KernelRuntimeRequest::ExitProcess { status },
             )) => {

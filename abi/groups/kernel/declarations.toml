@@ -633,11 +633,6 @@ name = "K273"
 kind = "stub"
 
 [[exports]]
-ordinal = 274
-name = "GetShortPathName"
-decl = { attributes = ["ret16"], args = ["string", "pointer", "word"] }
-
-[[exports]]
 ordinal = 311
 name = "GetSetKernelDOSProc"
 decl = { args = ["pointer"] }
@@ -777,16 +772,6 @@ decl = { attributes = ["ret16"] }
 ordinal = 362
 name = "ThunkTerminateProcess"
 kind = "stub"
-
-[[exports]]
-ordinal = 406
-name = "WritePrivateProfileStruct"
-decl = { attributes = ["ret16"], args = ["string", "string", "pointer", "word", "string"] }
-
-[[exports]]
-ordinal = 407
-name = "GetPrivateProfileStruct"
-decl = { attributes = ["ret16"], args = ["string", "string", "pointer", "word", "string"] }
 
 [[exports]]
 ordinal = 408

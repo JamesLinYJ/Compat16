@@ -96,6 +96,7 @@ pub(crate) fn execute(
         Operation::FindClose { search } => {
             Ok(ResultValue::FindClose(close_search(state, owner, search)))
         }
+        Operation::ShortPath { path } => short_path(filesystem, &path, ansi_code_page),
         Operation::RetireTask => {
             retire_task(state, owner)?;
             Ok(ResultValue::TaskRetired)
@@ -328,6 +329,32 @@ impl Win16HostFileSystemState {
             .filter(|search| search.owner == owner)
             .map(|search| search.handle)
     }
+}
+
+fn short_path(
+    filesystem: &mut Filesystem,
+    path: &Win16CanonicalPath,
+    ansi_code_page: u32,
+) -> Result<ResultValue, RuntimeError> {
+    let Some(text) = filesystem.short_path_text(path) else {
+        return Ok(ResultValue::ShortPath(None));
+    };
+    if text.is_empty() || text.contains('\0') {
+        return Err(RuntimeError::new(Kind::InternalInvariant,
+            "short Win16 path text is empty or contains NUL"));
+    }
+    let codec = super::guest_text::GuestTextCodec::new(ansi_code_page)?;
+    let wide: Vec<u16> = text.encode_utf16().collect();
+    let encoded = codec.from_wide(&wide)?;
+    // Reject a substitution that would make the guest 8.3 name a different path.
+    if encoded.used_default_char == Some(true)
+        || encoded.bytes.is_empty()
+        || encoded.bytes.contains(&0)
+        || codec.to_wide(&encoded.bytes)? != wide
+    {
+        return Ok(ResultValue::ShortPath(None));
+    }
+    Ok(ResultValue::ShortPath(Some(encoded.bytes)))
 }
 
 fn native_path(

@@ -1207,6 +1207,31 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<bool, RuntimeError> {
         win16_profile_sections::write_profile_section(self.win16_dcs.text_codec(), section, entries)
     }
+    fn win16_profile_struct_write(
+        &mut self,
+        section: Option<&[u8]>,
+        key: Option<&[u8]>,
+        data: Option<&[u8]>,
+        data_size: u16,
+        filename: &runtime::Win16ProfilePath,
+    ) -> Result<bool, RuntimeError> {
+        win16_profile_struct::write(
+            &mut self.filesystem, self.win16_dcs.text_codec(), filename,
+            section, key, data, data_size,
+        )
+    }
+    fn win16_profile_struct_read(
+        &mut self,
+        section: Option<&[u8]>,
+        key: Option<&[u8]>,
+        capacity: u16,
+        filename: &runtime::Win16ProfilePath,
+    ) -> Result<(bool, Vec<u8>), RuntimeError> {
+        win16_profile_struct::read(
+            &mut self.filesystem, self.win16_dcs.text_codec(), filename,
+            section, key, capacity,
+        )
+    }
     fn report_diagnostic(&mut self, diagnostic: &Diagnostic) {
         eprintln!("runtime: {diagnostic}");
     }

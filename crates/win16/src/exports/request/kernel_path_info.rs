@@ -15,4 +15,11 @@ pub enum Win16KernelPathInfoRequest {
         unique: u16,
         output: u32,
     },
+    /// Long path bytes stay guest ANSI/DBCS. The output address is raw until
+    /// the short-path length is known, so a short buffer is not written.
+    GetShortPathName {
+        long_path: Option<Vec<u8>>,
+        output: u32,
+        capacity: u16,
+    },
 }

@@ -74,6 +74,7 @@ mod multimedia_wake;
 mod win16_printer;
 mod win16_profile_sections;
 mod win16_private_profile;
+mod win16_profile_struct;
 mod win16_registered_names;
 mod win16_wing_brush;
 
