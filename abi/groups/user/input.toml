@@ -119,7 +119,7 @@ params = [
 ordinal = 289
 name = "keybd_event"
 decl = { attributes = ["register"] }
-binding = { rust_id = "UserKeybdEvent", id_value = 1285, constant = "USER_KEYBD_EVENT" }
+binding = { rust_id = "UserKeybdEvent", id_value = 1343, constant = "USER_KEYBD_EVENT" }
 [exports.call]
 kind = "register_context"
 returns = "register_context"
@@ -128,7 +128,7 @@ returns = "register_context"
 ordinal = 299
 name = "mouse_event"
 decl = { attributes = ["register"] }
-binding = { rust_id = "UserMouseEvent", id_value = 1286, constant = "USER_MOUSE_EVENT" }
+binding = { rust_id = "UserMouseEvent", id_value = 1344, constant = "USER_MOUSE_EVENT" }
 [exports.call]
 kind = "register_context"
 returns = "register_context"
