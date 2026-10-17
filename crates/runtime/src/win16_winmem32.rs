@@ -8,10 +8,13 @@
 //! the next tile is eight selector values higher. `Global16PointerAlloc` returns
 //! a separate data selector whose base is the requested byte, so a window of at
 //! most 64 KiB can cross a parent tile. Guest selectors are never host pointers.
+//! Task exit retires the exiting task's aliases, code selectors first, then
+//! the data selector and the reserved heap object.
 
 use std::collections::BTreeMap;
 
 use guest_core::memory::Memory;
+use guest_core::OwnerId;
 use win16_abi::{
     Access, AccessRights, AllocationFlags, GlobalHandle, GuestMemoryOwner, SegmentedPointer,
     SelectorRef, WINMEM32_INSUFFICIENT_MEMORY, WINMEM32_INSUFFICIENT_SELECTORS,
@@ -30,6 +33,7 @@ pub(crate) struct Win16Winmem32State {
 struct Object {
     handle: GlobalHandle,
     selector: SelectorRef,
+    owner: OwnerId,
     max_size: u32,
     size: u32,
     aliases: Vec<Alias>,
@@ -163,6 +167,7 @@ impl Win16State {
             Object {
                 handle,
                 selector,
+                owner,
                 max_size,
                 size,
                 aliases: Vec::new(),
@@ -495,16 +500,49 @@ impl Win16State {
         Ok(())
     }
 
+    pub(super) fn release_winmem32_on_task_exit(&mut self) -> Result<(), RuntimeError> {
+        let Some(owner) = self.tasks.current() else {
+            return Ok(());
+        };
+        let owned: Vec<u16> = self
+            .winmem32
+            .objects
+            .iter()
+            .filter(|(_, object)| object.owner == owner)
+            .map(|(&raw, _)| raw)
+            .collect();
+        let mut failure: Option<RuntimeError> = None;
+        for raw in owned {
+            if let Err(error) = self.destroy_winmem32(raw) {
+                failure = Some(match failure {
+                    None => error,
+                    Some(primary) => {
+                        primary.with_cleanup("multiple WINMEM32 task-exit releases", error)
+                    }
+                });
+            }
+        }
+        match failure {
+            None => Ok(()),
+            Some(error) => Err(error),
+        }
+    }
+
     fn destroy_winmem32(&mut self, raw: u16) -> Result<(), RuntimeError> {
         let mut object = self.winmem32.objects.remove(&raw).ok_or_else(|| {
             RuntimeError::new(Kind::InternalInvariant, "WINMEM32 object is not tracked")
         })?;
-        while let Some(alias) = object.aliases.pop() {
-            if let Err(error) = self.selectors.free_block(alias.selector) {
-                object.aliases.push(alias);
-                self.winmem32.objects.insert(raw, object);
-                return Err(crate::runtime_error(error).with_context("WINMEM32 alias release"));
-            }
+        // Code aliases are executable. Retire them before data aliases so a
+        // later failure cannot leave a runnable code selector.
+        if let Err(error) = self.release_tracked_aliases(&mut object.aliases, true) {
+            self.winmem32.objects.insert(raw, object);
+            return Err(
+                crate::runtime_error(error).with_context("WINMEM32 code alias release")
+            );
+        }
+        if let Err(error) = self.release_tracked_aliases(&mut object.aliases, false) {
+            self.winmem32.objects.insert(raw, object);
+            return Err(crate::runtime_error(error).with_context("WINMEM32 alias release"));
         }
         if let Err(error) = self.selectors.free_block(object.selector) {
             self.winmem32.objects.insert(raw, object);
@@ -513,6 +551,26 @@ impl Win16State {
         self.heap
             .free(object.handle, &mut self.selectors)
             .map_err(|error| crate::runtime_error(error).with_context("WINMEM32 heap release"))?;
+        Ok(())
+    }
+
+    fn release_tracked_aliases(
+        &mut self,
+        aliases: &mut Vec<Alias>,
+        code: bool,
+    ) -> Result<(), Win16Error> {
+        let mut index = 0;
+        while index < aliases.len() {
+            if aliases[index].pointer.is_none() != code {
+                index += 1;
+                continue;
+            }
+            let alias = aliases.remove(index);
+            if let Err(error) = self.selectors.free_block(alias.selector) {
+                aliases.insert(index, alias);
+                return Err(error);
+            }
+        }
         Ok(())
     }
 }

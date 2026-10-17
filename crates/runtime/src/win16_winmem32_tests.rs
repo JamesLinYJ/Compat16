@@ -594,3 +594,131 @@ fn aliases_are_guest_selectors_and_die_with_the_object() {
             .is_err()
     );
 }
+
+#[test]
+fn task_exit_retires_aliases_selector_and_reserved_heap() {
+    let mut runtime = fresh();
+    write_ds(&mut runtime, 0x10, &0u16.to_le_bytes());
+    write_ds(&mut runtime, 0x14, &0u32.to_le_bytes());
+    write_ds(&mut runtime, 0x18, &0u16.to_le_bytes());
+    let selector_out = far(&runtime, 0x10);
+    let alias_out = far(&runtime, 0x14);
+    assert_eq!(
+        invoke(
+            &mut runtime,
+            2,
+            &[
+                Arg::Dword(0x40),
+                Arg::Dword(selector_out),
+                Arg::Dword(0x40),
+                Arg::Word(0),
+            ],
+        )
+        .unwrap(),
+        0,
+    );
+    let selector = read_word(&runtime, 0x10);
+    assert_eq!(
+        invoke(
+            &mut runtime,
+            5,
+            &[
+                Arg::Word(selector),
+                Arg::Dword(8),
+                Arg::Dword(alias_out),
+                Arg::Dword(4),
+                Arg::Word(0),
+            ],
+        )
+        .unwrap(),
+        0,
+    );
+    let alias = (read_dword(&runtime, 0x14) >> 16) as u16;
+    let code_out = far(&runtime, 0x18);
+    assert_eq!(
+        invoke(
+            &mut runtime,
+            7,
+            &[Arg::Word(selector), Arg::Dword(code_out), Arg::Word(0)],
+        )
+        .unwrap(),
+        0,
+    );
+    let code = read_word(&runtime, 0x18);
+    let state = runtime.win16.as_ref().unwrap();
+    let described = state
+        .selectors
+        .describe(state.selectors.reference(Selector(code)).unwrap())
+        .unwrap();
+    assert!(described.rights.executable());
+    let handle = state.winmem32.objects.get(&selector).unwrap().handle;
+    let heap_before = state.heap.allocation_count();
+
+    let ended = super::super::execute::Win16TaskExecutionEnded::for_test();
+    let result = {
+        let crate::Runtime {
+            win16,
+            cpu,
+            dos,
+            memory,
+            ..
+        } = &mut runtime;
+        win16.as_mut().unwrap().close_remaining_task_resources(
+            &ended,
+            cpu,
+            dos,
+            memory,
+            &mut NoHost,
+        )
+    };
+    if let Err(error) = &result {
+        let message = error.to_string();
+        assert!(
+            !message.contains("WINMEM32"),
+            "task exit reported a WINMEM32 failure: {message}"
+        );
+    }
+
+    let state = runtime.win16.as_ref().unwrap();
+    assert!(state.winmem32.objects.is_empty());
+    assert!(state.heap.allocation_count() < heap_before);
+    assert!(state.heap.info(handle).is_err());
+    for raw in [selector, alias, code] {
+        assert!(state.selectors.reference(Selector(raw)).is_err());
+        assert!(
+            state
+                .selectors
+                .reference_including_unbacked(Selector(raw))
+                .is_err()
+        );
+    }
+
+    let ended = super::super::execute::Win16TaskExecutionEnded::for_test();
+    let again = {
+        let crate::Runtime {
+            win16,
+            cpu,
+            dos,
+            memory,
+            ..
+        } = &mut runtime;
+        win16.as_mut().unwrap().close_remaining_task_resources(
+            &ended,
+            cpu,
+            dos,
+            memory,
+            &mut NoHost,
+        )
+    };
+    if let Err(error) = &again {
+        let message = error.to_string();
+        assert!(
+            !message.contains("WINMEM32"),
+            "repeated task exit reported a WINMEM32 failure: {message}"
+        );
+    }
+    assert_eq!(
+        invoke(&mut runtime, 4, &[Arg::Word(selector), Arg::Word(0)]).unwrap(),
+        3,
+    );
+}
