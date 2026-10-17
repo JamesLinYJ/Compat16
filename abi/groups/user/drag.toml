@@ -5,7 +5,7 @@ defaults = { attributes = ["ret16"] }
 ordinal = 86
 name = "IconSize"
 decl = { attributes = [] }
-binding = { rust_id = "UserIconSize", id_value = 1285, constant = "USER_ICON_SIZE" }
+binding = { rust_id = "UserIconSize", id_value = 1340, constant = "USER_ICON_SIZE" }
 [exports.call]
 returns = "dword"
 
@@ -13,7 +13,7 @@ returns = "dword"
 ordinal = 464
 name = "DragObject"
 decl = { attributes = [], args = ["word", "word", "word", "long", "word"] }
-binding = { rust_id = "UserDragObject", id_value = 1286, constant = "USER_DRAG_OBJECT" }
+binding = { rust_id = "UserDragObject", id_value = 1341, constant = "USER_DRAG_OBJECT" }
 [exports.call]
 returns = "dword"
 params = [
@@ -28,7 +28,7 @@ params = [
 ordinal = 465
 name = "DragDetect"
 decl = { args = ["word", "long"] }
-binding = { rust_id = "UserDragDetect", id_value = 1287, constant = "USER_DRAG_DETECT" }
+binding = { rust_id = "UserDragDetect", id_value = 1342, constant = "USER_DRAG_DETECT" }
 [exports.call]
 returns = "word"
 params = [
