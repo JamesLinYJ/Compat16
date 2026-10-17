@@ -244,6 +244,18 @@ pub(super) fn decode(
         | Win16ExportId::KernelGetTaskDs
         | Win16ExportId::KernelGetExpWinVer
         | Win16ExportId::KernelIsTask
+        | Win16ExportId::KernelSetPriority
+        | Win16ExportId::KernelLockCurrentTask
+        | Win16ExportId::KernelSetTaskQueue
+        | Win16ExportId::KernelGetTaskQueue
+        | Win16ExportId::KernelOldYield
+        | Win16ExportId::KernelGetTaskQueueDs
+        | Win16ExportId::KernelGetTaskQueueEs
+        | Win16ExportId::KernelIsTaskLocked
+        | Win16ExportId::KernelSetLastError
+        | Win16ExportId::KernelGetLastError
+        | Win16ExportId::KernelGetVersionEx
+        | Win16ExportId::KernelDirectedYield
         | Win16ExportId::KernelIsBadReadPtr
         | Win16ExportId::KernelIsBadWritePtr
         | Win16ExportId::KernelIsBadCodePtr

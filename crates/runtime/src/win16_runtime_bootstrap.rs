@@ -221,6 +221,7 @@ impl Win16State {
             untranslated_window_messages: BTreeSet::new(),
             psp_selector, process_views, instance_selector, instance_handle, automatic_data,
             task_handles, first_task_handle: task_handle,
+            task_controls: super::kernel_task::TaskControls::default(),
             module_path: program_path.to_vec(), user_queue: None, user_task_queue: None,
             module_startup: module_calls::ModuleStartupState::Pending,
             program_load_reported: false,
