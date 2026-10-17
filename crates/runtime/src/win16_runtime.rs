@@ -248,6 +248,8 @@ mod network_print_completion;
 mod network_print_cleanup;
 #[path = "win16_network_print_api.rs"]
 mod network_print_api;
+#[path = "win16_gdi_spool.rs"]
+mod gdi_spool;
 #[path = "win16_network_print_notifications.rs"]
 mod network_print_notifications;
 #[path = "win16_network_print_queue_data.rs"]

@@ -817,3 +817,40 @@ create a missing file. These contracts follow the extended-open dispatch in
 the public [MS-DOS FILE.ASM](https://github.com/microsoft/MS-DOS/blob/main/v4.0/src/DOS/FILE.ASM)
 and the native [CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)
 disposition contract; they are separate from application-level acceptance.
+
+## GDI printer-driver spool jobs
+
+The Windows 3.1 SDK `INC/PRINT.H` declares `OpenJob(LPSTR, LPSTR, HPJOB)`,
+`WriteSpool(HPJOB, LPSTR, int)`, `CloseJob(HPJOB)`, `DeleteJob(HPJOB, int)`,
+`StartSpoolPage(HPJOB)` and `EndSpoolPage(HPJOB)`. `HPJOB` is a Win16 handle,
+and each entry uses the SDK's `WINAPI` convention. The NT 3.5 WOW16 `GDI.DEF`
+lists these names at GDI ordinals 240, 241, 243, 244, 246 and 247; `GDI.ASM`
+contains the matching `OPENJOB,10` and `CLOSEJOB` thunks. These are documented
+Windows 3.1 printer-driver interfaces and count as core Win16 exports.
+
+The runtime copies the `WriteSpool` bytes from checked guest memory before
+calling the host. GDI HPJOB words map to opaque spool tokens within the current
+Win16 task, separately tagged from WNet job IDs; task teardown releases native
+printer jobs, and ordinary GDI jobs are excluded from the WNet queue index.
+The Windows host adapter reuses its existing `StartDocPrinterW`, `WritePrinter`,
+page, close and cancel operations. `WriteDialog`, `GetSpoolJob` and
+`DeleteSpoolPage` remain unbound because their behavior is not supplied by this
+spool-job adapter.
+
+The original Microsoft [DDK Adaptation Guide, sections 5.4.1–5.4.4](https://www.pcjs.org/documents/books/mspl13/win/w3ddkadp/)
+describes positive Print Manager statuses as success and negative `SP_*` values
+as failures. GDI HPJOB aliases therefore stay in `1..=0x7fff`, independently of
+WNet's WORD ID space. Native disk-full and memory errors map to `SP_OUTOFDISK`
+and `SP_OUTOFMEMORY`; other native failures map to `SP_ERROR`, not BOOL zero.
+`WriteSpool` returns the actual completed byte count and rejects oversized host
+results. Every export has explicit call parameters and Pascal stack cleanup.
+Failed close/cancel operations retain the guest alias and exact native lease;
+successful document phases are retained across a failed handle close so a retry
+does not submit or cancel the document twice.
+
+The DDK identifies OpenJob's third WORD as the application's abort DC. The
+runtime checks nonzero guest DCs before creating a document. `SetAbortProc`
+still reports an explicit compatibility gap, so this bridge does not install
+guest abort procedures. GDI driver data uses the native RAW datatype, keeping
+device-dependent bytes intact rather than selecting a queue's text processor;
+see the native [WritePrinter contract](https://learn.microsoft.com/en-us/windows/win32/printdocs/writeprinter).

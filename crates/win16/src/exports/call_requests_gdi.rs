@@ -11,6 +11,9 @@ pub(super) fn decode(
     if let Some(request) = super::gdi_services_calls::decode(descriptor.id, arguments, selectors, memory)? {
         return Ok(Some(Win16ApiRequest::GdiServices(request)));
     }
+    if let Some(request) = super::gdi_spool_calls::decode(descriptor.id, arguments, selectors, memory)? {
+        return Ok(Some(Win16ApiRequest::GdiSpool(request)));
+    }
     if let Some(request) = super::super::call_print_queue::decode(descriptor.ordinal(), arguments)? {
         return Ok(Some(Win16ApiRequest::PrintQueue(request)));
     }

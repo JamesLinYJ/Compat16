@@ -50,6 +50,13 @@ pub(crate) struct Win16NetworkPrintQueueEvent {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct GuestPrintJob {
     host_job: Win16HostSpoolJob,
+    kind: GuestPrintJobKind,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum GuestPrintJobKind {
+    Network,
+    Gdi,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -310,7 +317,10 @@ impl Win16NetworkPrintJobs {
         }
         if self.reserved_guest_job_ids.get(&guest_job_id) == Some(&host_job) {
             self.reserved_guest_job_ids.remove(&guest_job_id);
-            self.guest_jobs.insert(guest_job_id, GuestPrintJob { host_job });
+            self.guest_jobs.insert(guest_job_id, GuestPrintJob {
+                host_job,
+                kind: GuestPrintJobKind::Network,
+            });
             self.job_ids_by_host.insert(host_job, guest_job_id);
         } else if self.guest_jobs.get(&guest_job_id).is_none_or(|guest|
             guest.host_job != host_job)
@@ -345,14 +355,40 @@ impl Win16NetworkPrintJobs {
     pub(crate) fn host_job_for_id(&self, guest_job_id: u16) -> Option<Win16HostSpoolJob> {
         self.guest_jobs
             .get(&guest_job_id)
+            .filter(|record| record.kind == GuestPrintJobKind::Network)
+            .map(|record| record.host_job)
+    }
+
+    pub(crate) fn host_gdi_job_for_id(&self, guest_job_id: u16) -> Option<Win16HostSpoolJob> {
+        self.guest_jobs
+            .get(&guest_job_id)
+            .filter(|record| record.kind == GuestPrintJobKind::Gdi)
             .map(|record| record.host_job)
     }
 
     pub(crate) fn guest_job_id_for_host(&self, host_job: Win16HostSpoolJob) -> Option<u16> {
-        self.job_ids_by_host.get(&host_job).copied()
+        let guest_job_id = self.job_ids_by_host.get(&host_job).copied()?;
+        self.guest_jobs
+            .get(&guest_job_id)
+            .filter(|record| record.kind == GuestPrintJobKind::Network)
+            .map(|_| guest_job_id)
     }
 
     pub(crate) fn retire_guest_job(&mut self, guest_job_id: u16) -> Option<Win16HostSpoolJob> {
+        if self.guest_jobs.get(&guest_job_id)?.kind != GuestPrintJobKind::Network {
+            return None;
+        }
+        self.remove_guest_job(guest_job_id)
+    }
+
+    pub(crate) fn retire_gdi_guest_job(&mut self, guest_job_id: u16) -> Option<Win16HostSpoolJob> {
+        if self.guest_jobs.get(&guest_job_id)?.kind != GuestPrintJobKind::Gdi {
+            return None;
+        }
+        self.remove_guest_job(guest_job_id)
+    }
+
+    fn remove_guest_job(&mut self, guest_job_id: u16) -> Option<Win16HostSpoolJob> {
         let record = self.guest_jobs.remove(&guest_job_id)?;
         self.job_ids_by_host.remove(&record.host_job);
         self.reserved_guest_job_ids.remove(&guest_job_id);
@@ -364,7 +400,18 @@ impl Win16NetworkPrintJobs {
         host_job: Win16HostSpoolJob,
     ) -> Result<u16, RuntimeError> {
         if let Some(guest_job_id) = self.job_ids_by_host.get(&host_job) {
-            return Ok(*guest_job_id);
+            return if self
+                .guest_jobs
+                .get(guest_job_id)
+                .is_some_and(|record| record.kind == GuestPrintJobKind::Network)
+            {
+                Ok(*guest_job_id)
+            } else {
+                Err(RuntimeError::new(
+                    Kind::InternalInvariant,
+                    "network spool token is already mapped as a GDI spool job",
+                ))
+            };
         }
         self.guest_jobs.try_reserve(1).map_err(|error| {
             RuntimeError::with_source(
@@ -381,8 +428,53 @@ impl Win16NetworkPrintJobs {
             )
         })?;
         let guest_job_id = self.allocate_job_id()?;
-        self.guest_jobs
-            .insert(guest_job_id, GuestPrintJob { host_job });
+        self.guest_jobs.insert(guest_job_id, GuestPrintJob {
+            host_job,
+            kind: GuestPrintJobKind::Network,
+        });
+        self.job_ids_by_host.insert(host_job, guest_job_id);
+        Ok(guest_job_id)
+    }
+
+    pub(crate) fn gdi_guest_job_id_for(
+        &mut self,
+        host_job: Win16HostSpoolJob,
+    ) -> Result<u16, RuntimeError> {
+        if let Some(guest_job_id) = self.job_ids_by_host.get(&host_job) {
+            return if self
+                .guest_jobs
+                .get(guest_job_id)
+                .is_some_and(|record| record.kind == GuestPrintJobKind::Gdi)
+            {
+                Ok(*guest_job_id)
+            } else {
+                Err(RuntimeError::new(
+                    Kind::InternalInvariant,
+                    "GDI spool token is already mapped as a network spool job",
+                ))
+            };
+        }
+        self.guest_jobs.try_reserve(1).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "allocate Win16 GDI spool job ID",
+                error,
+            )
+        })?;
+        self.job_ids_by_host.try_reserve(1).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "allocate Win16 GDI spool reverse mapping",
+                error,
+            )
+        })?;
+        // Printer drivers distinguish successful HPJOBs from signed SP_*
+        // failures. Keep GDI aliases positive without shrinking WNet's WORD IDs.
+        let guest_job_id = self.allocate_job_id_with_limit(i16::MAX as u16)?;
+        self.guest_jobs.insert(guest_job_id, GuestPrintJob {
+            host_job,
+            kind: GuestPrintJobKind::Gdi,
+        });
         self.job_ids_by_host.insert(host_job, guest_job_id);
         Ok(guest_job_id)
     }
@@ -932,7 +1024,16 @@ impl Win16NetworkPrintJobs {
         self.unexposed_host_job_batches.retain(|batch| !batch.is_empty());
         self.reserved_guest_job_ids.retain(|_, reserved| *reserved != host_job);
         if let Some(job_id) = self.job_ids_by_host.get(&host_job).copied() {
-            let _ = self.retire_guest_job(job_id);
+            let kind = self.guest_jobs.get(&job_id).map(|record| record.kind);
+            match kind {
+                Some(GuestPrintJobKind::Network) => {
+                    let _ = self.retire_guest_job(job_id);
+                }
+                Some(GuestPrintJobKind::Gdi) => {
+                    let _ = self.retire_gdi_guest_job(job_id);
+                }
+                None => {}
+            }
         }
         self.open_jobs.len() + self.guest_jobs.len() + self.unexposed_host_jobs.len()
             + self.unexposed_host_job_batches.iter().map(Vec::len).sum::<usize>() != before
@@ -978,7 +1079,11 @@ impl Win16NetworkPrintJobs {
     }
 
     fn allocate_job_id(&mut self) -> Result<u16, RuntimeError> {
-        let first = if self.next_job_id == NULL_JOB_ID || self.next_job_id == INVALID_HFILE {
+        self.allocate_job_id_with_limit(INVALID_HFILE - 1)
+    }
+
+    fn allocate_job_id_with_limit(&mut self, maximum: u16) -> Result<u16, RuntimeError> {
+        let first = if self.next_job_id == NULL_JOB_ID || self.next_job_id > maximum {
             1
         } else {
             self.next_job_id
@@ -988,20 +1093,14 @@ impl Win16NetworkPrintJobs {
             if !self.guest_jobs.contains_key(&candidate)
                 && !self.reserved_guest_job_ids.contains_key(&candidate)
             {
-                self.next_job_id = candidate.wrapping_add(1);
-                if self.next_job_id == NULL_JOB_ID || self.next_job_id == INVALID_HFILE {
-                    self.next_job_id = 1;
-                }
+                self.next_job_id = if candidate == maximum { 1 } else { candidate + 1 };
                 return Ok(candidate);
             }
-            candidate = candidate.wrapping_add(1);
-            if candidate == NULL_JOB_ID || candidate == INVALID_HFILE {
-                candidate = 1;
-            }
+            candidate = if candidate == maximum { 1 } else { candidate + 1 };
             if candidate == first {
                 return Err(RuntimeError::new(
                     Kind::ResourceExhausted,
-                    "Win16 network print job ID space is exhausted",
+                    "Win16 print job ID space is exhausted",
                 ));
             }
         }
@@ -1264,3 +1363,7 @@ const _: () = {
     assert!(offset_of!(JobStruct16, copies) == 18);
     assert!(offset_of!(JobStruct16, comment) == 20);
 };
+
+#[cfg(test)]
+#[path = "win16_gdi_spool_identity_tests.rs"]
+mod gdi_spool_identity_tests;

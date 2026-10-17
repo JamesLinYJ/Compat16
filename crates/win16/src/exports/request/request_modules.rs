@@ -10,6 +10,9 @@ pub use user_hooks::Win16UserHooksRequest;
 #[path = "gdi_services.rs"]
 mod gdi_services;
 pub use gdi_services::{Win16FontResourceInput, Win16GdiServicesRequest};
+#[path = "gdi_spool.rs"]
+mod gdi_spool;
+pub use gdi_spool::Win16GdiSpoolRequest;
 #[path = "ole1.rs"]
 mod ole1;
 pub use ole1::Win16Ole1Request;
