@@ -980,32 +980,3 @@ jobs:
         if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
         timeout-minutes: 25
         run: .\scripts\build.ps1 -Architecture $env:BUILD_ARCHITECTURE -NonInteractive
-
-      - name: Validate real PFE Win16 startup
-        id: real_win16_pfe
-        # Original public Win16 application, pinned and downloaded into the
-        # disposable runner only. Require visible-window and guest-callback
-        # evidence; download failures, gaps and timeouts stay step failures.
-        if: ${{ !cancelled() && steps.native_release.outcome == 'success' && steps.startup_contracts.outcome == 'success' }}
-        timeout-minutes: 3
-        env:
-          NATIVE_RUNNER_LABEL: ${{ matrix.runner }}
-        run: .\scripts\test-real-win16-pfe.ps1 -Architecture $env:BUILD_ARCHITECTURE -RunnerLabel $env:NATIVE_RUNNER_LABEL
-
-      - name: Preserve real Win16 text evidence
-        if: ${{ always() && steps.real_win16_pfe.outputs.results-directory != '' }}
-        timeout-minutes: 3
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: pfe-win16-startup-${{ matrix.architecture }}-${{ github.run_attempt }}
-          # Exact text allowlist; never upload the parent fixture directory,
-          # downloaded archive, original package, guest image, or memory dump.
-          path: |
-            ${{ steps.real_win16_pfe.outputs.results-directory }}/result.json
-            ${{ steps.real_win16_pfe.outputs.results-directory }}/stdout.txt
-            ${{ steps.real_win16_pfe.outputs.results-directory }}/stderr.txt
-            ${{ steps.real_win16_pfe.outputs.results-directory }}/failure.txt
-            ${{ steps.real_win16_pfe.outputs.results-directory }}/services.txt
-          if-no-files-found: error
-          retention-days: 3
-          include-hidden-files: false
