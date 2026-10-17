@@ -140,6 +140,14 @@ mod media_time;
 pub use media_time::{
     MMTIME16_SIZE, TIMECAPS16_SIZE, Win16MediaTimeRequest, Win16Mmtime16, Win16TimeCaps16,
 };
+#[path = "joystick.rs"]
+mod joystick;
+pub use joystick::{
+    JOYCAPS16_SIZE, JOYERR_NOCANDO, JOYERR_PARMS, JOYERR_UNPLUGGED, JOYINFO16_SIZE,
+    JOYINFOEX16_BUTTONS_OFFSET, JOYINFOEX16_SIZE, JOYINFOEX16_X_OFFSET, JOYINFOEX16_Y_OFFSET,
+    JOYINFOEX16_Z_OFFSET, JOY_RETURN_SUPPORTED, JOY_RETURNBUTTONS, JOY_RETURNX, JOY_RETURNY,
+    JOY_RETURNZ, MMSYSERR_NODRIVER, Win16JoyCaps16, Win16JoyInfo16, Win16JoystickRequest,
+};
 #[path = "media_io.rs"]
 mod media_io;
 pub use media_io::{

@@ -49,6 +49,8 @@ mod call_media_io;
 mod call_mci;
 #[path = "exports/call_win16_media_time.rs"]
 mod call_media_time;
+#[path = "exports/call_win16_joystick.rs"]
+mod call_joystick;
 #[path = "exports/call_win16_midi.rs"]
 mod call_midi;
 #[path = "exports/call_win16_multimedia.rs"]
@@ -99,6 +101,10 @@ pub use request::{
     Win16KernelStringRequest, Win16KernelStringsRequest, Win16KernelTaskRequest,
     Win16KeyboardConversion, Win16KeyboardRequest, Win16LibraryCodePageRequest,
     Win16LibraryInterruptsRequest, Win16LibraryRequest, Win16LibraryStringsRequest,
+    JOYCAPS16_SIZE, JOYERR_NOCANDO, JOYERR_PARMS, JOYERR_UNPLUGGED, JOYINFO16_SIZE,
+    JOYINFOEX16_BUTTONS_OFFSET, JOYINFOEX16_SIZE, JOYINFOEX16_X_OFFSET, JOYINFOEX16_Y_OFFSET,
+    JOYINFOEX16_Z_OFFSET, JOY_RETURN_SUPPORTED, JOY_RETURNBUTTONS, JOY_RETURNX, JOY_RETURNY,
+    JOY_RETURNZ, MMSYSERR_NODRIVER, Win16JoyCaps16, Win16JoyInfo16, Win16JoystickRequest,
     Win16LibraryToolhelpRequest, Win16LzExpandRequest, Win16MediaIoRequest, Win16MediaTimeRequest,
     Win16MidiDirection, Win16MidiRequest, Win16MidiStreamArgument,
     MIDIHDR16_SIZE, MIDIINCAPS16_SIZE, MIDIOUTCAPS16_SIZE, Win16MidiHeader16,

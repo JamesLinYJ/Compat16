@@ -47,50 +47,6 @@ name = "MMDRVINSTALL"
 kind = "stub"
 
 [[exports]]
-ordinal = 101
-name = "joyGetNumDevs"
-
-[[exports]]
-ordinal = 102
-name = "joyGetDevCaps"
-decl = { args = ["word", "pointer", "word"] }
-
-[[exports]]
-ordinal = 103
-name = "joyGetPos"
-decl = { args = ["word", "pointer"] }
-
-[[exports]]
-ordinal = 104
-name = "joyGetThreshold"
-decl = { args = ["word", "pointer"] }
-
-[[exports]]
-ordinal = 105
-name = "joyReleaseCapture"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 106
-name = "joySetCapture"
-decl = { args = ["word", "word", "word", "word"] }
-
-[[exports]]
-ordinal = 107
-name = "joySetThreshold"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 109
-name = "joySetCalibration"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 110
-name = "joyGetPosEx"
-decl = { args = ["word", "pointer"] }
-
-[[exports]]
 ordinal = 111
 name = "JOYCONFIGCHANGED"
 kind = "stub"

@@ -391,6 +391,35 @@ pub trait RuntimeHost:
             "host Win16 multimedia I/O services are unavailable",
         ))
     }
+    /// No physical joystick. A count of zero and `MMSYSERR_NODRIVER` are the
+    /// Windows 3.1 results when the joystick driver is absent.
+    fn win16_joystick(
+        &mut self,
+        operation: crate::Win16HostJoystickOperation,
+    ) -> Result<crate::Win16HostJoystickResult, RuntimeError> {
+        use crate::{Win16HostJoystickOperation as Operation, Win16HostJoystickResult as Reply};
+        Ok(match operation {
+            Operation::DeviceCount => Reply::Count(0),
+            Operation::DevCaps { .. } => Reply::Caps {
+                result: win16_abi::MMSYSERR_NODRIVER,
+                caps: None,
+            },
+            Operation::Position { .. } => Reply::Position {
+                result: win16_abi::MMSYSERR_NODRIVER,
+                x: 0,
+                y: 0,
+                z: 0,
+                buttons: 0,
+            },
+            Operation::ThresholdGet { .. } => Reply::Threshold {
+                result: win16_abi::MMSYSERR_NODRIVER,
+                value: 0,
+            },
+            Operation::ThresholdSet { .. }
+            | Operation::SetCapture { .. }
+            | Operation::ReleaseCapture { .. } => Reply::Status(win16_abi::MMSYSERR_NODRIVER),
+        })
+    }
     /// Execute an owned direct MSACM request. Guest memory, callbacks, and
     /// 16-bit handles must already have been translated by the runtime.
     fn win16_acm(

@@ -159,6 +159,10 @@ pub use win16_sound_host::{
 mod win16_host_wave;
 mod win16_host_mci;
 pub use win16_host_mci::*;
+mod win16_host_joystick;
+pub use win16_host_joystick::{
+    Win16HostJoystickCaps, Win16HostJoystickOperation, Win16HostJoystickResult,
+};
 mod win16_media_services;
 pub use win16_host_wave::{
     Win16HostWaveBuffer, Win16HostWaveCapabilities, Win16HostWaveCompletion, Win16HostWaveControl,

@@ -168,6 +168,8 @@ mod classic_dde_executor;
 mod media_time;
 #[path = "win16_media_io.rs"]
 mod media_io;
+#[path = "win16_joystick.rs"]
+mod joystick;
 #[path = "win16_runtime_midi.rs"]
 mod midi;
 #[path = "win16_window_post.rs"]
