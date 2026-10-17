@@ -71,7 +71,7 @@ params = [
 [[exports]]
 ordinal = 406
 name = "WritePrivateProfileStruct"
-binding = { rust_id = "KernelWritePrivateProfileStruct", id_value = 1286, constant = "KERNEL_WRITE_PRIVATE_PROFILE_STRUCT" }
+binding = { rust_id = "KernelWritePrivateProfileStruct", id_value = 1346, constant = "KERNEL_WRITE_PRIVATE_PROFILE_STRUCT" }
 [exports.call]
 returns = "word"
 params = [
@@ -85,7 +85,7 @@ params = [
 [[exports]]
 ordinal = 407
 name = "GetPrivateProfileStruct"
-binding = { rust_id = "KernelGetPrivateProfileStruct", id_value = 1287, constant = "KERNEL_GET_PRIVATE_PROFILE_STRUCT" }
+binding = { rust_id = "KernelGetPrivateProfileStruct", id_value = 1347, constant = "KERNEL_GET_PRIVATE_PROFILE_STRUCT" }
 [exports.call]
 returns = "word"
 params = [

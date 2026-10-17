@@ -182,7 +182,7 @@ params = [
 [[exports]]
 ordinal = 274
 name = "GetShortPathName"
-binding = { rust_id = "KernelGetShortPathName", id_value = 1285, constant = "KERNEL_GET_SHORT_PATH_NAME" }
+binding = { rust_id = "KernelGetShortPathName", id_value = 1345, constant = "KERNEL_GET_SHORT_PATH_NAME" }
 [exports.call]
 returns = "word"
 params = [
