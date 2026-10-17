@@ -194,7 +194,7 @@ pub fn decode_generic_thunk_frame(
             target_convention,
             parameters: Vec::new(),
             disposition: Win16GenericThunkDisposition::ReturnZero,
-            stack_cleanup: unknown_tail_cleanup(api),
+            stack_cleanup: unknown_tail_cleanup(api, parameter_count),
         });
     }
 
@@ -285,20 +285,30 @@ fn exact_cleanup(cleanup: StackCleanup, parameter_count: u32) -> Win16GenericThu
     }
 }
 
-fn unknown_tail_cleanup(api: Win16GenericThunkApi) -> Win16GenericThunkStackCleanup {
+fn unknown_tail_cleanup(
+    api: Win16GenericThunkApi,
+    parameter_count: u32,
+) -> Win16GenericThunkStackCleanup {
+    // The variadic tail is not read. CallProc32W is still far Pascal, so the
+    // callee pops the three fixed DWORDs plus one DWORD per declared parameter.
+    // CallProcEx32W is cdecl: the callee pops nothing, and the caller's tail
+    // extent stays unknown. A Pascal width that does not fit in a Win16 pop
+    // count stays unknown rather than wrapping.
+    let pascal_pop = parameter_count
+        .checked_add(FIXED_DWORD_ARGUMENTS.len() as u32)
+        .and_then(|dwords| dwords.checked_mul(4))
+        .and_then(|bytes| u16::try_from(bytes).ok());
     Win16GenericThunkStackCleanup {
         fixed_argument_bytes: (FIXED_DWORD_ARGUMENTS.len() * 4) as u16,
         variadic_argument_bytes: None,
-        // The CallProcEx32W entrypoint itself is documented CDECL, so its callee
-        // never pops source arguments, even on a zero-result path. The caller's
-        // actual variadic tail extent is intentionally unknown here.
-        // Microsoft's available sources do not specify CallProc32W's cleanup
-        // behavior when it rejects an over-limit count.
         callee_pop_bytes: match api {
             Win16GenericThunkApi::CallProcEx32W => Some(0),
-            Win16GenericThunkApi::CallProc32W => None,
+            Win16GenericThunkApi::CallProc32W => pascal_pop,
         },
-        caller_pop_bytes: None,
+        caller_pop_bytes: match api {
+            Win16GenericThunkApi::CallProc32W if pascal_pop.is_some() => Some(0),
+            _ => None,
+        },
     }
 }
 

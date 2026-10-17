@@ -213,6 +213,15 @@ impl Win16State {
             "multiple Win16 task cleanup failures",
             mixer_cleanup,
         );
+        // COMM ports are owned by the task that opened them. Retire the host
+        // token and the event-word allocation while the guest heap is live.
+        // A failed close stays in the table for a later retry.
+        remember(
+            &mut failures,
+            "multiple Win16 task cleanup failures",
+            self.retire_comm_ports(host)
+                .map_err(|error| error.with_context("Win16 COMM port cleanup")),
+        );
         let automation_cleanup = self.close_automation(memory, host)
             .map_err(|error| error.with_context("Win16 Automation cleanup"));
         let automation_retired = automation_cleanup.is_ok();

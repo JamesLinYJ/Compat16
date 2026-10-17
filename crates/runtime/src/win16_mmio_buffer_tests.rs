@@ -430,6 +430,81 @@ fn buffered_read_fills_one_guest_window_then_the_next() {
 }
 
 #[test]
+fn buffered_seek_cur_zero_stays_at_the_logical_cursor() {
+    let mut runtime = load_guest();
+    let mut host = MemHost::new(b"abcdefghijklmnopqrst");
+    let guest = open_alias(&mut runtime, 0);
+    let buffer = map(&mut runtime, BUFFER_BASE, 8);
+    let copy = map(&mut runtime, COPY_BASE, 4);
+    assert_eq!(
+        api(
+            &mut runtime,
+            &mut host,
+            Win16MediaIoRequest::SetBuffer {
+                handle: guest,
+                buffer,
+                size: 8,
+                flags: 0,
+            }
+        ),
+        0
+    );
+    assert_eq!(
+        api(
+            &mut runtime,
+            &mut host,
+            Win16MediaIoRequest::Advance {
+                handle: guest,
+                info: 0,
+                flags: 0,
+            }
+        ),
+        0
+    );
+    assert_eq!(host.pos, 8);
+    assert_eq!(
+        api(
+            &mut runtime,
+            &mut host,
+            Win16MediaIoRequest::Read {
+                handle: guest,
+                buffer: copy,
+                count: 3,
+            }
+        ),
+        3
+    );
+    assert_eq!(read_guest(&runtime, copy, 3), b"abc");
+    assert_eq!(host.pos, 8);
+    assert_eq!(
+        api(
+            &mut runtime,
+            &mut host,
+            Win16MediaIoRequest::Seek {
+                handle: guest,
+                offset: 0,
+                origin: 1,
+            }
+        ),
+        3
+    );
+    assert_eq!(host.pos, 3);
+    assert_eq!(
+        api(
+            &mut runtime,
+            &mut host,
+            Win16MediaIoRequest::Read {
+                handle: guest,
+                buffer: copy,
+                count: 3,
+            }
+        ),
+        3
+    );
+    assert_eq!(read_guest(&runtime, copy, 3), b"def");
+}
+
+#[test]
 fn direct_dirty_bytes_flush_on_write_advance_seek_and_close() {
     let mut runtime = load_guest();
     let mut host = MemHost::new(b"");

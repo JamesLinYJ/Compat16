@@ -31,6 +31,7 @@ struct CommHost {
     controls: Vec<(Win16HostCommPort, Win16HostCommControl)>,
     flushes: Vec<(Win16HostCommPort, Win16HostCommQueue)>,
     fail_serial: bool,
+    fail_close: bool,
 }
 
 impl CommHost {
@@ -48,6 +49,7 @@ impl CommHost {
             controls: Vec::new(),
             flushes: Vec::new(),
             fail_serial: false,
+            fail_close: false,
         }
     }
 
@@ -217,6 +219,9 @@ impl RuntimeHost for CommHost {
     }
 
     fn win16_comm_close(&mut self, port: Win16HostCommPort) -> Result<(), RuntimeError> {
+        if self.fail_close {
+            return Err(RuntimeError::new(Kind::HostFailure, "comm close failed"));
+        }
         self.closed.push(port);
         Ok(())
     }
@@ -746,4 +751,81 @@ fn lpt_does_not_accept_serial_state_or_line_control() {
     let stored = read_guest(&runtime, state, 25);
     assert_eq!(stored[0], 0x80);
     assert_eq!(u16::from_le_bytes([stored[1], stored[2]]), CBR_9600);
+}
+
+#[test]
+fn task_exit_retries_comm_port_and_event_word_retirement() {
+    let mut runtime = fixture();
+    let mut host = CommHost::new();
+    let device = guest(&mut runtime, 0x8_0000, b"COM1:\0");
+    let (ax, _) = call(
+        &mut runtime,
+        &mut host,
+        200,
+        &[Slot::Dword(device), Slot::Word(64), Slot::Word(32)],
+    );
+    assert_eq!(ax, 0);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        208,
+        &[Slot::Word(0), Slot::Word(EV_RXCHAR)],
+    );
+    assert_eq!(ax, 0);
+    let event = (u32::from(dx) << 16) | u32::from(ax);
+    assert_eq!(read_guest(&runtime, event, 2), [0, 0]);
+
+    host.fail_close = true;
+    let state = runtime.win16.as_mut().unwrap();
+    assert!(state.retire_comm_ports(&mut host).is_err());
+    assert!(host.closed.is_empty());
+    assert!(!state.comm_ports.is_empty());
+    assert_eq!(read_guest(&runtime, event, 2), [0, 0]);
+
+    let (ax, _) = call(
+        &mut runtime,
+        &mut host,
+        200,
+        &[Slot::Dword(device), Slot::Word(64), Slot::Word(32)],
+    );
+    assert_eq!(ax, 0xfffe);
+
+    host.fail_close = false;
+    runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .retire_comm_ports(&mut host)
+        .unwrap();
+    assert_eq!(host.closed, vec![host.token]);
+    assert!(runtime.win16.as_ref().unwrap().comm_ports.is_empty());
+    let state = runtime.win16.as_ref().unwrap();
+    let still_readable = state
+        .selectors
+        .pointer_from_far(event)
+        .ok()
+        .and_then(|pointer| {
+            state
+                .selectors
+                .read(&runtime.memory, pointer, &mut [0, 0])
+                .ok()
+        });
+    assert!(still_readable.is_none());
+
+    runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .retire_comm_ports(&mut host)
+        .unwrap();
+    assert_eq!(host.closed.len(), 1);
+
+    let (ax, _) = call(
+        &mut runtime,
+        &mut host,
+        200,
+        &[Slot::Dword(device), Slot::Word(64), Slot::Word(32)],
+    );
+    assert_eq!(ax, 0);
+    assert_eq!(host.opens.len(), 2);
 }
