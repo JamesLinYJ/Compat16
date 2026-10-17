@@ -14,7 +14,7 @@ params = [
 [[exports]]
 ordinal = 602
 name = "timeSetEvent"
-binding = { rust_id = "MediaTimeSetEvent", id_value = 1285, constant = "MMSYSTEM_TIME_SET_EVENT" }
+binding = { rust_id = "MediaTimeSetEvent", id_value = 1338, constant = "MMSYSTEM_TIME_SET_EVENT" }
 [exports.call]
 returns = "word"
 params = [
@@ -28,7 +28,7 @@ params = [
 [[exports]]
 ordinal = 603
 name = "timeKillEvent"
-binding = { rust_id = "MediaTimeKillEvent", id_value = 1286, constant = "MMSYSTEM_TIME_KILL_EVENT" }
+binding = { rust_id = "MediaTimeKillEvent", id_value = 1339, constant = "MMSYSTEM_TIME_KILL_EVENT" }
 [exports.call]
 returns = "word"
 params = [
