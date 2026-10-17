@@ -239,7 +239,7 @@ fn comm_exports_keep_sdk_names_widths_and_pascal_cleanup() {
         open.parameters[0].parameter_type,
         Win16ParameterType::FarString
     );
-    assert_eq!(open.id as u32, 1285);
+    assert_eq!(open.id as u32, 1307);
     let state = lookup_export(b"USER", ExportLookupTarget::Ordinal(201)).unwrap();
     assert_eq!(
         state.parameters[0].parameter_type,
@@ -249,13 +249,13 @@ fn comm_exports_keep_sdk_names_widths_and_pascal_cleanup() {
     assert_eq!(mask.return_kind, Win16ReturnKind::FarPointer);
     let escape = lookup_export(b"USER", ExportLookupTarget::Ordinal(214)).unwrap();
     assert_eq!(escape.return_kind, Win16ReturnKind::Dword);
-    assert_eq!(escape.id as u32, 1299);
+    assert_eq!(escape.id as u32, 1321);
     let notify = lookup_export(b"USER", ExportLookupTarget::Ordinal(245)).unwrap();
     assert_eq!(
         notify.parameters[0].parameter_type,
         Win16ParameterType::SignedScalar
     );
-    assert_eq!(notify.id as u32, 1301);
+    assert_eq!(notify.id as u32, 1323);
 }
 
 #[test]
