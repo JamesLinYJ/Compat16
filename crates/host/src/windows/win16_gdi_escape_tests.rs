@@ -133,7 +133,8 @@ fn escape_job_support_follows_printer_or_plotter_technology() {
     assert!(printer_technology(DT_RASPRINTER as i32));
     assert!(printer_technology(DT_PLOTTER as i32));
     assert!(!printer_technology(DT_RASDISPLAY as i32));
-    assert!(!printer_technology(0));
+    assert_eq!(DT_PLOTTER as i32, 0);
+    assert!(printer_technology(0));
     assert!(!printer_technology(-1));
 }
 
