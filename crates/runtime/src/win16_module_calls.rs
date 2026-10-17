@@ -343,6 +343,7 @@ impl Win16State {
         references.extend(self.font_code_references());
         references.extend(self.object_code_references());
         references.extend(self.line_dda_code_references());
+        references.extend(self.open_file_hook_code_references());
         references.extend(self.window_enumeration_code_references());
         references.extend(self.user_hook_code_references());
         references.extend(self.ole1_callback_code_references());

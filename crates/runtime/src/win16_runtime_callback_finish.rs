@@ -174,6 +174,7 @@ impl Win16State {
             CallbackKind::ToolhelpInterrupt => {
                 self.finish_toolhelp_interrupt_callback(cpu, dos, memory)
             }
+            CallbackKind::OpenFileHook => self.finish_open_file_hook(cpu, dos, memory, host),
         };
         match finished {
             Ok(()) => self.drive_pending_window_completion(cpu, memory, dos, host),

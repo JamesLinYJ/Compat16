@@ -4,15 +4,15 @@ use guest_core::memory::Memory;
 use win16_abi::{
     commdlg_abi::{ChooseColor16, ChooseFont16, FindReplace16, OpenFileName16, PrintDlg16},
     gdi_abi::{decode_devmode16, LogFont16},
-    Win16CommdlgRequest, Win16ReturnKind,
+    Win16CommdlgRequest, Win16ResourceName, Win16ReturnKind,
 };
 
 use super::{
     report_common_dialog_gap, ranges::GuestOutputRange,
     support::{checked_capacity, host_log_font, validate_dev_names,
         MAX_COMMON_DIALOG_BYTES},
-    Win16CommonDialogCall, Win16CommonDialogContinuation, Win16CommonDialogOutput,
-    Win16CommonDialogPreparation, Win16State,
+    OpenFileHookCall, Win16CommonDialogCall, Win16CommonDialogContinuation,
+    Win16CommonDialogOutput, Win16CommonDialogPreparation, Win16State,
 };
 use crate::{
     DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostChooseColorDialog,
@@ -24,6 +24,37 @@ const OFN_ENABLEHOOK: u32 = 0x0000_0020;
 const OFN_ENABLETEMPLATE: u32 = 0x0000_0040;
 const OFN_ENABLETEMPLATEHANDLE: u32 = 0x0000_0080;
 const OFN_VERIFIED_FLAGS: u32 = 0x0001_FFFF;
+// Windows 3.1 SDK COMMDLG error words. These are the published CDERR values
+// for a missing hook, instance, template, or named dialog resource.
+const CDERR_NOTEMPLATE: u32 = 0x0000_0003;
+const CDERR_NOHINSTANCE: u32 = 0x0000_0004;
+const CDERR_FINDRESFAILURE: u32 = 0x0000_0006;
+const CDERR_NOHOOK: u32 = 0x0000_000B;
+const RT_DIALOG: u16 = 5;
+
+/// Hook and template inputs shared by the common-dialog families. Later
+/// families can pass their own flag bits through this record. This slice
+/// calls it only for `OPENFILENAME`.
+pub(super) struct CommonDialogHookTemplate {
+    pub(super) enable_hook: bool,
+    pub(super) enable_template: bool,
+    pub(super) enable_template_handle: bool,
+    /// Guest FAR procedure. Never a host window procedure.
+    pub(super) hook: u32,
+    pub(super) instance: u16,
+    /// Guest FAR of the template name, or a MAKEINTRESOURCE id in the low word.
+    pub(super) template_name: u32,
+}
+
+pub(super) enum CommonDialogHookTemplateResolution {
+    Rejected { extended_error: u32 },
+    Ready {
+        /// `None` is a template with no hook procedure.
+        hook: Option<u32>,
+        /// Owned Win16 dialog template. It is not a host window procedure.
+        template: Option<crate::Win16HostDialogTemplate>,
+    },
+}
 const CC_ENABLEHOOK: u32 = 0x0000_0010;
 const CC_ENABLETEMPLATE: u32 = 0x0000_0020;
 const CC_ENABLETEMPLATEHANDLE: u32 = 0x0000_0040;
@@ -104,7 +135,7 @@ impl Win16State {
     }
 
     fn prepare_open_file(
-        &self,
+        &mut self,
         memory: &Memory,
         request: Win16CommdlgRequest,
         structure_far: u32,
@@ -124,16 +155,28 @@ impl Win16State {
             return Err(RuntimeError::new(Kind::GuestFault,
                 "Win16 OPENFILENAME lStructSize does not match the packed Win16 record"));
         }
-        let enabled = value.flags & (OFN_ENABLEHOOK | OFN_ENABLETEMPLATE
-            | OFN_ENABLETEMPLATEHANDLE);
-        if enabled != 0 {
-            report_common_dialog_gap(host,
-                "Win16 OPENFILENAME hooks and NE templates are not implemented; returning FALSE");
-            return Ok(Win16CommonDialogPreparation::Immediate(0));
-        }
         if value.flags & !OFN_VERIFIED_FLAGS != 0 {
             report_common_dialog_gap(host,
                 "Win16 OPENFILENAME uses flags outside the verified Windows 3.x set; returning FALSE");
+            return Ok(Win16CommonDialogPreparation::Immediate(0));
+        }
+        let hook_template = value.flags
+            & (OFN_ENABLEHOOK | OFN_ENABLETEMPLATE | OFN_ENABLETEMPLATEHANDLE);
+        let resolved = if hook_template == 0 {
+            None
+        } else {
+            Some(self.resolve_common_dialog_hook_template(memory, host,
+                CommonDialogHookTemplate {
+                    enable_hook: value.flags & OFN_ENABLEHOOK != 0,
+                    enable_template: value.flags & OFN_ENABLETEMPLATE != 0,
+                    enable_template_handle: value.flags & OFN_ENABLETEMPLATEHANDLE != 0,
+                    hook: value.hook,
+                    instance: value.instance,
+                    template_name: value.template,
+                })?)
+        };
+        if let Some(CommonDialogHookTemplateResolution::Rejected { extended_error }) = resolved {
+            self.common_dialog_state.last_extended_error = extended_error;
             return Ok(Win16CommonDialogPreparation::Immediate(0));
         }
         let owner = self.common_dialog_owner(value.owner)?;
@@ -149,6 +192,16 @@ impl Win16State {
         if !file.contains(&0) {
             return Err(RuntimeError::new(Kind::GuestFault,
                 "Win16 OPENFILENAME input file buffer has no terminator within nMaxFile"));
+        }
+        if let Some(CommonDialogHookTemplateResolution::Ready { hook, template }) = resolved {
+            let Some(procedure) = hook else {
+                report_common_dialog_gap(host,
+                    "Win16 OPENFILENAME template was read from the guest; no file dialog is opened and the call returns FALSE");
+                return Ok(Win16CommonDialogPreparation::Immediate(0));
+            };
+            return Ok(Win16CommonDialogPreparation::OpenFileHook(OpenFileHookCall {
+                procedure, structure_far, return_kind, template,
+            }));
         }
         let file_title = self.optional_output_range(memory, value.file_title,
             value.max_file_title)?;
@@ -192,6 +245,81 @@ impl Win16State {
             Operation::SaveFile(dialog)
         } else { Operation::OpenFile(dialog) };
         Ok(window_call(operation, return_kind, output))
+    }
+
+    /// Validate an OPENFILENAME-style hook and dialog template.
+    ///
+    /// The hook value stays the guest procedure address. `OFN_ENABLETEMPLATE`
+    /// reads `RT_DIALOG` from the guest NE module. `OFN_ENABLETEMPLATEHANDLE`
+    /// reads a preloaded template from the guest global named by `hInstance`
+    /// and ignores the template name, which is the Windows 3.1 SDK rule.
+    /// A decoded template is an owned byte layout, not a host procedure pointer.
+    pub(super) fn resolve_common_dialog_hook_template(
+        &mut self,
+        memory: &Memory,
+        host: &mut impl RuntimeHost,
+        request: CommonDialogHookTemplate,
+    ) -> Result<CommonDialogHookTemplateResolution, RuntimeError> {
+        let template = if request.enable_template_handle {
+            if request.instance == 0 {
+                return Ok(CommonDialogHookTemplateResolution::Rejected {
+                    extended_error: CDERR_NOHINSTANCE,
+                });
+            }
+            match self.dialog_template_from_global(request.instance, memory)? {
+                Some(template) => Some(template),
+                None => return Ok(CommonDialogHookTemplateResolution::Rejected {
+                    extended_error: CDERR_NOTEMPLATE,
+                }),
+            }
+        } else if request.enable_template {
+            if request.instance == 0 {
+                return Ok(CommonDialogHookTemplateResolution::Rejected {
+                    extended_error: CDERR_NOHINSTANCE,
+                });
+            }
+            if request.template_name == 0 {
+                return Ok(CommonDialogHookTemplateResolution::Rejected {
+                    extended_error: CDERR_NOTEMPLATE,
+                });
+            }
+            let name = if request.template_name >> 16 == 0 {
+                Win16ResourceName::Id(request.template_name as u16)
+            } else {
+                let bytes = self.read_z_string(memory, request.template_name,
+                    MAX_COMMON_DIALOG_BYTES)?.ok_or_else(|| RuntimeError::new(
+                    Kind::GuestFault, "Win16 common-dialog template name is null"))?;
+                Win16ResourceName::Name(bytes)
+            };
+            let info = self.find_resource(
+                request.instance, &name, &Win16ResourceName::Id(RT_DIALOG), host,
+            )?;
+            if info == 0 {
+                return Ok(CommonDialogHookTemplateResolution::Rejected {
+                    extended_error: CDERR_FINDRESFAILURE,
+                });
+            }
+            match self.dialog_template_from_resource(request.instance, &name, host)? {
+                Some(template) => Some(template),
+                None => return Ok(CommonDialogHookTemplateResolution::Rejected {
+                    extended_error: CDERR_NOTEMPLATE,
+                }),
+            }
+        } else {
+            None
+        };
+        let hook = if request.enable_hook {
+            if request.hook == 0 {
+                return Ok(CommonDialogHookTemplateResolution::Rejected {
+                    extended_error: CDERR_NOHOOK,
+                });
+            }
+            self.validate_dialog_procedure(request.hook, memory)?;
+            Some(request.hook)
+        } else {
+            None
+        };
+        Ok(CommonDialogHookTemplateResolution::Ready { hook, template })
     }
 
     fn prepare_choose_color(

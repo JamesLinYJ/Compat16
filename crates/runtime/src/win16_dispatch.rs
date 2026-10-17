@@ -230,7 +230,7 @@ impl Win16State {
                     call, cpu, dos, memory, host, return_to, descriptor.return_kind,
                 ),
                 request => self.dispatch_libraries(
-                    request, &mut cpu.regs, memory, host, descriptor, return_to,
+                    request, cpu, dos, memory, host, descriptor, return_to,
                 ),
             },
         };

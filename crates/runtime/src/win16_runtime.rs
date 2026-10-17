@@ -519,6 +519,7 @@ enum CallbackKind {
     FileCdr,
     ToolhelpNotify,
     ToolhelpInterrupt,
+    OpenFileHook,
 }
 
 fn retire_callback_binding_from_stacks(
@@ -678,6 +679,7 @@ pub(crate) struct Win16State {
     font_callbacks: Vec<font_callback::FontCallbackFrame>,
     object_callbacks: Vec<object_callback::ObjectCallbackFrame>,
     line_dda_callbacks: Vec<line_dda::LineDdaCallbackFrame>,
+    open_file_hooks: Vec<commdlg::OpenFileHookFrame>,
     window_enumerations: Vec<window_enumeration::WindowEnumerationFrame>,
     deferred_window_batches: window_operations::DeferredWindowBatches,
     user_hooks: user_hooks::Win16UserHooks,
