@@ -5,6 +5,13 @@ defaults = { attributes = ["ret16"] }
 ordinal = 5
 name = "SetRelAbs"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "GdiInternalSetRelAbs", id_value = 3000000, constant = "GDI_INTERNAL_SETRELABS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 38
@@ -26,56 +33,132 @@ ordinal = 46
 name = "BITMAPBITS"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalBitmapbits", id_value = 3000001, constant = "GDI_INTERNAL_BITMAPBITS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 73
 name = "ExcludeVisRect"
 decl = { args = ["word", "signed_word", "signed_word", "signed_word", "signed_word"] }
+binding = { rust_id = "GdiInternalExcludeVisRect", id_value = 3000002, constant = "GDI_INTERNAL_EXCLUDEVISRECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "I16" },
+  { name = "a4", type = "I16" },
+]
 
 [[exports]]
 ordinal = 86
 name = "GetRelAbs"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalGetRelAbs", id_value = 3000003, constant = "GDI_INTERNAL_GETRELABS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 98
 name = "IntersectVisRect"
 decl = { args = ["word", "signed_word", "signed_word", "signed_word", "signed_word"] }
+binding = { rust_id = "GdiInternalIntersectVisRect", id_value = 3000004, constant = "GDI_INTERNAL_INTERSECTVISRECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "I16" },
+  { name = "a4", type = "I16" },
+]
 
 [[exports]]
 ordinal = 102
 name = "OffsetVisRgn"
 decl = { args = ["word", "signed_word", "signed_word"] }
+binding = { rust_id = "GdiInternalOffsetVisRgn", id_value = 3000005, constant = "GDI_INTERNAL_OFFSETVISRGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "I16" },
+]
 
 [[exports]]
 ordinal = 105
 name = "SelectVisRgn"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "GdiInternalSelectVisRgn", id_value = 3000006, constant = "GDI_INTERNAL_SELECTVISRGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 117
 name = "SetDCOrg"
 decl = { attributes = [], args = ["word", "signed_word", "signed_word"] }
+binding = { rust_id = "GdiInternalSetDCOrg", id_value = 3000007, constant = "GDI_INTERNAL_SETDCORG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "I16" },
+]
 
 [[exports]]
 ordinal = 118
 name = "GetSystemIconFont"
+binding = { rust_id = "GdiInternalGetSystemIconFont", id_value = 3000008, constant = "GDI_INTERNAL_GETSYSTEMICONFONT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 120
 name = "GetContinuingTextExtent"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetContinuingTextExtent", id_value = 3000009, constant = "GDI_INTERNAL_GETCONTINUINGTEXTEXTENT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 121
 name = "Death"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalDeath", id_value = 3000010, constant = "GDI_INTERNAL_DEATH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 122
 name = "Resurrection"
 decl = { args = ["word", "word", "word", "word", "word", "word", "word"] }
+binding = { rust_id = "GdiInternalResurrection", id_value = 3000011, constant = "GDI_INTERNAL_RESURRECTION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U16" },
+  { name = "a5", type = "U16" },
+  { name = "a6", type = "U16" },
+]
 
 
 
@@ -83,314 +166,520 @@ decl = { args = ["word", "word", "word", "word", "word", "word", "word"] }
 ordinal = 129
 name = "SaveVisRgn"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalSaveVisRgn", id_value = 3000012, constant = "GDI_INTERNAL_SAVEVISRGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 130
 name = "RestoreVisRgn"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalRestoreVisRgn", id_value = 3000013, constant = "GDI_INTERNAL_RESTOREVISRGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 131
 name = "InquireVisRgn"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalInquireVisRgn", id_value = 3000014, constant = "GDI_INTERNAL_INQUIREVISRGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 135
 name = "ScanLR"
 decl = { args = ["word", "word", "word", "long", "word"] }
+binding = { rust_id = "GdiInternalScanLR", id_value = 3000015, constant = "GDI_INTERNAL_SCANLR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 137
 name = "GSV"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGsv", id_value = 3000016, constant = "GDI_INTERNAL_GSV" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 138
 name = "DPXlate"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDPXlate", id_value = 3000017, constant = "GDI_INTERNAL_DPXLATE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 139
 name = "SetWinViewExt"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalSetWinViewExt", id_value = 3000018, constant = "GDI_INTERNAL_SETWINVIEWEXT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 140
 name = "ScaleExt"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalScaleExt", id_value = 3000019, constant = "GDI_INTERNAL_SCALEEXT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 141
 name = "WordSet"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalWordSet", id_value = 3000020, constant = "GDI_INTERNAL_WORDSET" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 142
 name = "RectStuff"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalRectStuff", id_value = 3000021, constant = "GDI_INTERNAL_RECTSTUFF" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 143
 name = "OffsetOrg"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalOffsetOrg", id_value = 3000022, constant = "GDI_INTERNAL_OFFSETORG" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 144
 name = "LockDC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalLockDC", id_value = 3000023, constant = "GDI_INTERNAL_LOCKDC" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 145
 name = "UnlockDC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalUnlockDC", id_value = 3000024, constant = "GDI_INTERNAL_UNLOCKDC" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 146
 name = "LockUnlock"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalLockUnlock", id_value = 3000025, constant = "GDI_INTERNAL_LOCKUNLOCK" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 147
 name = "GDI_FarFrame"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGdiFarFrame", id_value = 3000026, constant = "GDI_INTERNAL_GDI_FARFRAME" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 152
 name = "GDIInitApp"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGDIInitApp", id_value = 3000027, constant = "GDI_INTERNAL_GDIINITAPP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 157
 name = "CompatibleBitmap"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalCompatibleBitmap", id_value = 3000028, constant = "GDI_INTERNAL_COMPATIBLEBITMAP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 158
 name = "EnumCallback"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalEnumCallback", id_value = 3000029, constant = "GDI_INTERNAL_ENUMCALLBACK" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 164
 name = "PixToLine"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalPixToLine", id_value = 3000030, constant = "GDI_INTERNAL_PIXTOLINE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 169
 name = "IsDCDirty"
 decl = { args = ["word", "segmented_pointer"] }
+binding = { rust_id = "GdiInternalIsDCDirty", id_value = 3000031, constant = "GDI_INTERNAL_ISDCDIRTY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 170
 name = "SetDCStatus"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalSetDCStatus", id_value = 3000032, constant = "GDI_INTERNAL_SETDCSTATUS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 171
 name = "LVBUNION"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalLvbunion", id_value = 3000033, constant = "GDI_INTERNAL_LVBUNION" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 174
 name = "BLOAT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalBloat", id_value = 3000034, constant = "GDI_INTERNAL_BLOAT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 177
 name = "RCOS"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalRcos", id_value = 3000035, constant = "GDI_INTERNAL_RCOS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 178
 name = "RSIN"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalRsin", id_value = 3000036, constant = "GDI_INTERNAL_RSIN" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 179
 name = "GetDCState"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalGetDCState", id_value = 3000037, constant = "GDI_INTERNAL_GETDCSTATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 180
 name = "SetDCState"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "GdiInternalSetDCState", id_value = 3000038, constant = "GDI_INTERNAL_SETDCSTATE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 182
 name = "REQUESTSEM"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalRequestsem", id_value = 3000039, constant = "GDI_INTERNAL_REQUESTSEM" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 183
 name = "CLEARSEM"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalClearsem", id_value = 3000040, constant = "GDI_INTERNAL_CLEARSEM" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 184
 name = "STUFFVISIBLE"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalStuffvisible", id_value = 3000041, constant = "GDI_INTERNAL_STUFFVISIBLE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 185
 name = "STUFFINREGION"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalStuffinregion", id_value = 3000042, constant = "GDI_INTERNAL_STUFFINREGION" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 186
 name = "DELETEABOVELINEFONTS"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDeleteabovelinefonts", id_value = 3000043, constant = "GDI_INTERNAL_DELETEABOVELINEFONTS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 188
 name = "GetTextExtentEx"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetTextExtentEx", id_value = 3000044, constant = "GDI_INTERNAL_GETTEXTEXTENTEX" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 190
 name = "SetDCHook"
 decl = { args = ["word", "segmented_pointer", "long"] }
+binding = { rust_id = "GdiInternalSetDCHook", id_value = 3000045, constant = "GDI_INTERNAL_SETDCHOOK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 191
 name = "GetDCHook"
 decl = { attributes = [], args = ["word", "pointer"] }
+binding = { rust_id = "GdiInternalGetDCHook", id_value = 3000046, constant = "GDI_INTERNAL_GETDCHOOK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 192
 name = "SetHookFlags"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "GdiInternalSetHookFlags", id_value = 3000047, constant = "GDI_INTERNAL_SETHOOKFLAGS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 195
 name = "SelectBitmap"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "GdiInternalSelectBitmap", id_value = 3000048, constant = "GDI_INTERNAL_SELECTBITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 201
 name = "DMBITBLT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmbitblt", id_value = 3000049, constant = "GDI_INTERNAL_DMBITBLT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 202
 name = "DMCOLORINFO"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmcolorinfo", id_value = 3000050, constant = "GDI_INTERNAL_DMCOLORINFO" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 206
 name = "dmEnumDFonts"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmEnumDFonts", id_value = 3000051, constant = "GDI_INTERNAL_DMENUMDFONTS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 207
 name = "DMENUMOBJ"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmenumobj", id_value = 3000052, constant = "GDI_INTERNAL_DMENUMOBJ" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 208
 name = "DMOUTPUT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmoutput", id_value = 3000053, constant = "GDI_INTERNAL_DMOUTPUT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 209
 name = "DMPIXEL"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmpixel", id_value = 3000054, constant = "GDI_INTERNAL_DMPIXEL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 210
 name = "dmRealizeObject"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmRealizeObject", id_value = 3000055, constant = "GDI_INTERNAL_DMREALIZEOBJECT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 211
 name = "DMSTRBLT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmstrblt", id_value = 3000056, constant = "GDI_INTERNAL_DMSTRBLT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 212
 name = "DMSCANLR"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmscanlr", id_value = 3000057, constant = "GDI_INTERNAL_DMSCANLR" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 213
 name = "BRUTE"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalBrute", id_value = 3000058, constant = "GDI_INTERNAL_BRUTE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 214
 name = "DMEXTTEXTOUT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmexttextout", id_value = 3000059, constant = "GDI_INTERNAL_DMEXTTEXTOUT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 215
 name = "DMGETCHARWIDTH"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmgetcharwidth", id_value = 3000060, constant = "GDI_INTERNAL_DMGETCHARWIDTH" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 216
 name = "DMSTRETCHBLT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmstretchblt", id_value = 3000061, constant = "GDI_INTERNAL_DMSTRETCHBLT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 217
 name = "DMDIBBITS"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmdibbits", id_value = 3000062, constant = "GDI_INTERNAL_DMDIBBITS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 218
 name = "DMSTRETCHDIBITS"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmstretchdibits", id_value = 3000063, constant = "GDI_INTERNAL_DMSTRETCHDIBITS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 219
 name = "DMSETDIBTODEV"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmsetdibtodev", id_value = 3000064, constant = "GDI_INTERNAL_DMSETDIBTODEV" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 220
 name = "DMTRANSPOSE"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDmtranspose", id_value = 3000065, constant = "GDI_INTERNAL_DMTRANSPOSE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 240
@@ -422,6 +711,14 @@ params = [
 ordinal = 242
 name = "WriteDialog"
 decl = { args = ["word", "string", "word"] }
+binding = { rust_id = "GdiInternalWriteDialog", id_value = 3000066, constant = "GDI_INTERNAL_WRITEDIALOG" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "NullableFarString" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 243
@@ -448,6 +745,13 @@ params = [
 ordinal = 245
 name = "GetSpoolJob"
 decl = { attributes = [], args = ["word", "pointer"] }
+binding = { rust_id = "GdiInternalGetSpoolJob", id_value = 3000067, constant = "GDI_INTERNAL_GETSPOOLJOB" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 246
@@ -472,121 +776,250 @@ ordinal = 248
 name = "QueryJob"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalQueryJob", id_value = 3000068, constant = "GDI_INTERNAL_QUERYJOB" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 250
 name = "Copy"
 decl = { args = ["pointer", "pointer", "word"] }
+binding = { rust_id = "GdiInternalCopy", id_value = 3000069, constant = "GDI_INTERNAL_COPY" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 253
 name = "DeleteSpoolPage"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDeleteSpoolPage", id_value = 3000070, constant = "GDI_INTERNAL_DELETESPOOLPAGE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 254
 name = "SpoolFile"
 decl = { args = ["pointer", "pointer", "pointer", "pointer"] }
+binding = { rust_id = "GdiInternalSpoolFile", id_value = 3000071, constant = "GDI_INTERNAL_SPOOLFILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 267
 name = "StartDocPrintEra"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalStartDocPrintEra", id_value = 3000072, constant = "GDI_INTERNAL_STARTDOCPRINTERA" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 268
 name = "StartPagePrinter"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalStartPagePrinter", id_value = 3000073, constant = "GDI_INTERNAL_STARTPAGEPRINTER" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 269
 name = "WritePrinter"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalWritePrinter", id_value = 3000074, constant = "GDI_INTERNAL_WRITEPRINTER" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 270
 name = "EndPagePrinter"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalEndPagePrinter", id_value = 3000075, constant = "GDI_INTERNAL_ENDPAGEPRINTER" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 271
 name = "AbortPrinter"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalAbortPrinter", id_value = 3000076, constant = "GDI_INTERNAL_ABORTPRINTER" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 272
 name = "EndDocPrinter"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalEndDocPrinter", id_value = 3000077, constant = "GDI_INTERNAL_ENDDOCPRINTER" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 274
 name = "ClosePrinter"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalClosePrinter", id_value = 3000078, constant = "GDI_INTERNAL_CLOSEPRINTER" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 280
 name = "GetRealDriverInfo"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetRealDriverInfo", id_value = 3000079, constant = "GDI_INTERNAL_GETREALDRIVERINFO" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 281
 name = "DrvSetPrinterData"
 decl = { attributes = [], args = ["string", "string", "long", "pointer", "long"] }
+binding = { rust_id = "GdiInternalDrvSetPrinterData", id_value = 3000080, constant = "GDI_INTERNAL_DRVSETPRINTERDATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "NullableFarString" },
+  { name = "a1", type = "NullableFarString" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 282
 name = "DrvGetPrinterData"
 decl = { attributes = [], args = ["string", "string", "pointer", "pointer", "long", "pointer"] }
+binding = { rust_id = "GdiInternalDrvGetPrinterData", id_value = 3000081, constant = "GDI_INTERNAL_DRVGETPRINTERDATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "NullableFarString" },
+  { name = "a1", type = "NullableFarString" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 299
 name = "ENGINEGETCHARWIDTHEX"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalEnginegetcharwidthex", id_value = 3000082, constant = "GDI_INTERNAL_ENGINEGETCHARWIDTHEX" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 300
 name = "EngineEnumerateFont"
 decl = { attributes = [], args = ["string", "segmented_pointer", "long"] }
+binding = { rust_id = "GdiInternalEngineEnumerateFont", id_value = 3000083, constant = "GDI_INTERNAL_ENGINEENUMERATEFONT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "NullableFarString" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 301
 name = "EngineDeleteFont"
 decl = { args = ["pointer"] }
+binding = { rust_id = "GdiInternalEngineDeleteFont", id_value = 3000084, constant = "GDI_INTERNAL_ENGINEDELETEFONT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 302
 name = "EngineRealizeFont"
 decl = { attributes = [], args = ["pointer", "pointer", "pointer"] }
+binding = { rust_id = "GdiInternalEngineRealizeFont", id_value = 3000085, constant = "GDI_INTERNAL_ENGINEREALIZEFONT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 303
 name = "EngineGetCharWidth"
 decl = { args = ["pointer", "word", "word", "pointer"] }
+binding = { rust_id = "GdiInternalEngineGetCharWidth", id_value = 3000086, constant = "GDI_INTERNAL_ENGINEGETCHARWIDTH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 304
 name = "EngineSetFontContext"
 decl = { args = ["pointer", "word"] }
+binding = { rust_id = "GdiInternalEngineSetFontContext", id_value = 3000087, constant = "GDI_INTERNAL_ENGINESETFONTCONTEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 305
 name = "EngineGetGlyphBMP"
 decl = { args = ["word", "pointer", "word", "word", "pointer", "long", "pointer"] }
+binding = { rust_id = "GdiInternalEngineGetGlyphBMP", id_value = 3000088, constant = "GDI_INTERNAL_ENGINEGETGLYPHBMP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "U32" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 306
 name = "EngineMakeFontDir"
 decl = { attributes = [], args = ["word", "pointer", "pointer"] }
+binding = { rust_id = "GdiInternalEngineMakeFontDir", id_value = 3000089, constant = "GDI_INTERNAL_ENGINEMAKEFONTDIR" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 309
@@ -610,593 +1043,1175 @@ ordinal = 312
 name = "ConvertOutLineFontFile"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalConvertOutLineFontFile", id_value = 3000090, constant = "GDI_INTERNAL_CONVERTOUTLINEFONTFILE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 314
 name = "EngineExtTextOut"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalEngineExtTextOut", id_value = 3000091, constant = "GDI_INTERNAL_ENGINEEXTTEXTOUT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 315
 name = "EngineRealizeFontExt"
 decl = { attributes = [], args = ["long", "long", "long", "long"] }
+binding = { rust_id = "GdiInternalEngineRealizeFontExt", id_value = 3000092, constant = "GDI_INTERNAL_ENGINEREALIZEFONTEXT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 316
 name = "EngineGetCharWidthStr"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalEngineGetCharWidthStr", id_value = 3000093, constant = "GDI_INTERNAL_ENGINEGETCHARWIDTHSTR" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 317
 name = "EngineGetGlyphBmpExt"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalEngineGetGlyphBmpExt", id_value = 3000094, constant = "GDI_INTERNAL_ENGINEGETGLYPHBMPEXT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 347
 name = "MFDRAWTEXT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalMfdrawtext", id_value = 3000095, constant = "GDI_INTERNAL_MFDRAWTEXT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 352
 name = "GetPhysicalFontHandle"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalGetPhysicalFontHandle", id_value = 3000096, constant = "GDI_INTERNAL_GETPHYSICALFONTHANDLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 354
 name = "ShrinkGDIHeap"
+binding = { rust_id = "GdiInternalShrinkGDIHeap", id_value = 3000097, constant = "GDI_INTERNAL_SHRINKGDIHEAP" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 355
 name = "FTrapping0"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalFTrapping0", id_value = 3000098, constant = "GDI_INTERNAL_FTRAPPING0" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 400
 name = "FastWindowFrame"
 decl = { args = ["word", "pointer", "signed_word", "signed_word", "long"] }
+binding = { rust_id = "GdiInternalFastWindowFrame", id_value = 3000099, constant = "GDI_INTERNAL_FASTWINDOWFRAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "I16" },
+  { name = "a4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 401
 name = "GdiMoveBitmap"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalGdiMoveBitmap", id_value = 3000100, constant = "GDI_INTERNAL_GDIMOVEBITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 402
 name = "GDIGETBITSGLOBAL"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGdigetbitsglobal", id_value = 3000101, constant = "GDI_INTERNAL_GDIGETBITSGLOBAL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 403
 name = "GdiInit2"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "GdiInternalGdiInit2", id_value = 3000102, constant = "GDI_INTERNAL_GDIINIT2" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 404
 name = "GetTTGlyphIndexMap"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetTTGlyphIndexMap", id_value = 3000103, constant = "GDI_INTERNAL_GETTTGLYPHINDEXMAP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 405
 name = "FinalGdiInit"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalFinalGdiInit", id_value = 3000104, constant = "GDI_INTERNAL_FINALGDIINIT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 406
 name = "CREATEREALBITMAPINDIRECT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalCreaterealbitmapindirect", id_value = 3000105, constant = "GDI_INTERNAL_CREATEREALBITMAPINDIRECT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 407
 name = "CreateUserBitmap"
 decl = { args = ["word", "word", "word", "word", "pointer"] }
+binding = { rust_id = "GdiInternalCreateUserBitmap", id_value = 3000106, constant = "GDI_INTERNAL_CREATEUSERBITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 408
 name = "CREATEREALBITMAP"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalCreaterealbitmap", id_value = 3000107, constant = "GDI_INTERNAL_CREATEREALBITMAP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 409
 name = "CreateUserDiscardableBitmap"
 decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "GdiInternalCreateUserDiscardableBitmap", id_value = 3000108, constant = "GDI_INTERNAL_CREATEUSERDISCARDABLEBITMAP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 410
 name = "IsValidMetaFile"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalIsValidMetaFile", id_value = 3000109, constant = "GDI_INTERNAL_ISVALIDMETAFILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 411
 name = "GetCurLogFont"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalGetCurLogFont", id_value = 3000110, constant = "GDI_INTERNAL_GETCURLOGFONT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 412
 name = "IsDCCurrentPalette"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalIsDCCurrentPalette", id_value = 3000111, constant = "GDI_INTERNAL_ISDCCURRENTPALETTE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 449
 name = "DEVICECOLORMATCH"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDevicecolormatch", id_value = 3000112, constant = "GDI_INTERNAL_DEVICECOLORMATCH" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 452
 name = "GdiSeeGdiDo"
 decl = { attributes = [], args = ["word", "word", "word", "word"] }
+binding = { rust_id = "GdiInternalGdiSeeGdiDo", id_value = 3000113, constant = "GDI_INTERNAL_GDISEEGDIDO" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 460
 name = "GdiTaskTermination"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalGdiTaskTermination", id_value = 3000114, constant = "GDI_INTERNAL_GDITASKTERMINATION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 461
 name = "SetObjectOwner"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "GdiInternalSetObjectOwner", id_value = 3000115, constant = "GDI_INTERNAL_SETOBJECTOWNER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 463
 name = "MakeObjectPrivate"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "GdiInternalMakeObjectPrivate", id_value = 3000116, constant = "GDI_INTERNAL_MAKEOBJECTPRIVATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 464
 name = "FIXUPBOGUSPUBLISHERMETAFILE"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalFixupboguspublishermetafile", id_value = 3000117, constant = "GDI_INTERNAL_FIXUPBOGUSPUBLISHERMETAFILE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 467
 name = "UnicodeToAnsi"
 decl = { args = ["segmented_pointer", "segmented_pointer"] }
+binding = { rust_id = "GdiInternalUnicodeToAnsi", id_value = 3000118, constant = "GDI_INTERNAL_UNICODETOANSI" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 488
 name = "GetFontAssocStatus"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalGetFontAssocStatus", id_value = 3000119, constant = "GDI_INTERNAL_GETFONTASSOCSTATUS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 489
 name = "CreateDIBSection"
 decl = { args = ["word", "pointer", "word", "pointer", "long", "long"] }
+binding = { rust_id = "GdiInternalCreateDIBSection", id_value = 3000120, constant = "GDI_INTERNAL_CREATEDIBSECTION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U32" },
+]
 
 [[exports]]
 ordinal = 490
 name = "CloseEnhMetafile"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalCloseEnhMetafile", id_value = 3000121, constant = "GDI_INTERNAL_CLOSEENHMETAFILE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 491
 name = "CopyEnhMetafile"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalCopyEnhMetafile", id_value = 3000122, constant = "GDI_INTERNAL_COPYENHMETAFILE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 492
 name = "CreateEnhMetafile"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalCreateEnhMetafile", id_value = 3000123, constant = "GDI_INTERNAL_CREATEENHMETAFILE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 493
 name = "DeleteEnhMetafile"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalDeleteEnhMetafile", id_value = 3000124, constant = "GDI_INTERNAL_DELETEENHMETAFILE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 495
 name = "GDIComment"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGDIComment", id_value = 3000125, constant = "GDI_INTERNAL_GDICOMMENT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 496
 name = "GetEnhMetafile"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetEnhMetafile", id_value = 3000126, constant = "GDI_INTERNAL_GETENHMETAFILE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 497
 name = "GetEnhMetafileBits"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetEnhMetafileBits", id_value = 3000127, constant = "GDI_INTERNAL_GETENHMETAFILEBITS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 498
 name = "GetEnhMetafileDescription"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetEnhMetafileDescription", id_value = 3000128, constant = "GDI_INTERNAL_GETENHMETAFILEDESCRIPTION" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 499
 name = "GetEnhMetafileHeader"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetEnhMetafileHeader", id_value = 3000129, constant = "GDI_INTERNAL_GETENHMETAFILEHEADER" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 501
 name = "GetEnhMetafilePaletteEntries"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetEnhMetafilePaletteEntries", id_value = 3000130, constant = "GDI_INTERNAL_GETENHMETAFILEPALETTEENTRIES" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 504
 name = "PlayEnhMetafileRecord"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalPlayEnhMetafileRecord", id_value = 3000131, constant = "GDI_INTERNAL_PLAYENHMETAFILERECORD" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 505
 name = "SetEnhMetafileBits"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalSetEnhMetafileBits", id_value = 3000132, constant = "GDI_INTERNAL_SETENHMETAFILEBITS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 506
 name = "SetMetaRgn"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalSetMetaRgn", id_value = 3000133, constant = "GDI_INTERNAL_SETMETARGN" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 523
 name = "ExtCreatePen"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalExtCreatePen", id_value = 3000134, constant = "GDI_INTERNAL_EXTCREATEPEN" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 526
 name = "GetMiterLimit"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetMiterLimit", id_value = 3000135, constant = "GDI_INTERNAL_GETMITERLIMIT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 527
 name = "SetMiterLimit"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalSetMiterLimit", id_value = 3000136, constant = "GDI_INTERNAL_SETMITERLIMIT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 528
 name = "GDIParametersInfo"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGDIParametersInfo", id_value = 3000137, constant = "GDI_INTERNAL_GDIPARAMETERSINFO" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 530
 name = "RawTextOut"
 decl = { args = ["word", "signed_word", "signed_word", "string", "word"] }
+binding = { rust_id = "GdiInternalRawTextOut", id_value = 3000138, constant = "GDI_INTERNAL_RAWTEXTOUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 531
 name = "RawExtTextOut"
 decl = { args = ["word", "signed_word", "signed_word", "word", "pointer", "string", "word", "pointer"] }
+binding = { rust_id = "GdiInternalRawExtTextOut", id_value = 3000139, constant = "GDI_INTERNAL_RAWEXTTEXTOUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+  { name = "a6", type = "U16" },
+  { name = "a7", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 532
 name = "RawGetTextExtent"
 decl = { args = ["word", "string", "word"] }
+binding = { rust_id = "GdiInternalRawGetTextExtent", id_value = 3000140, constant = "GDI_INTERNAL_RAWGETTEXTEXTENT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 533
 name = "RawGetTextExtentEx"
+binding = { rust_id = "GdiInternalRawGetTextExtentEx", id_value = 3000141, constant = "GDI_INTERNAL_RAWGETTEXTEXTENTEX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 536
 name = "BiDiLayout"
+binding = { rust_id = "GdiInternalBiDiLayout", id_value = 3000142, constant = "GDI_INTERNAL_BIDILAYOUT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 537
 name = "BiDiCreateTabString"
+binding = { rust_id = "GdiInternalBiDiCreateTabString", id_value = 3000143, constant = "GDI_INTERNAL_BIDICREATETABSTRING" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 538
 name = "BiDiCreateString"
+binding = { rust_id = "GdiInternalBiDiCreateString", id_value = 3000144, constant = "GDI_INTERNAL_BIDICREATESTRING" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 539
 name = "BiDiStringOut"
+binding = { rust_id = "GdiInternalBiDiStringOut", id_value = 3000145, constant = "GDI_INTERNAL_BIDISTRINGOUT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 540
 name = "BiDiGlyphOut"
 decl = { args = ["word", "word", "word", "word", "string", "word", "word", "word"] }
+binding = { rust_id = "GdiInternalBiDiGlyphOut", id_value = 3000146, constant = "GDI_INTERNAL_BIDIGLYPHOUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "NullableFarString" },
+  { name = "a5", type = "U16" },
+  { name = "a6", type = "U16" },
+  { name = "a7", type = "U16" },
+]
 
 [[exports]]
 ordinal = 541
 name = "BiDiJustifyString"
+binding = { rust_id = "GdiInternalBiDiJustifyString", id_value = 3000147, constant = "GDI_INTERNAL_BIDIJUSTIFYSTRING" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 542
 name = "BiDiSetStringTabs"
+binding = { rust_id = "GdiInternalBiDiSetStringTabs", id_value = 3000148, constant = "GDI_INTERNAL_BIDISETSTRINGTABS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 543
 name = "BiDiGetStringExtent"
+binding = { rust_id = "GdiInternalBiDiGetStringExtent", id_value = 3000149, constant = "GDI_INTERNAL_BIDIGETSTRINGEXTENT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 544
 name = "BiDiGetNextGlyph"
+binding = { rust_id = "GdiInternalBiDiGetNextGlyph", id_value = 3000150, constant = "GDI_INTERNAL_BIDIGETNEXTGLYPH" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 545
 name = "BiDiGetPrevGlyph"
+binding = { rust_id = "GdiInternalBiDiGetPrevGlyph", id_value = 3000151, constant = "GDI_INTERNAL_BIDIGETPREVGLYPH" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 546
 name = "BiDiIsStringRTL"
+binding = { rust_id = "GdiInternalBiDiIsStringRTL", id_value = 3000152, constant = "GDI_INTERNAL_BIDIISSTRINGRTL" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 547
 name = "BiDiGlyphLength"
+binding = { rust_id = "GdiInternalBiDiGlyphLength", id_value = 3000153, constant = "GDI_INTERNAL_BIDIGLYPHLENGTH" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 548
 name = "BiDiCaretStringToPel"
+binding = { rust_id = "GdiInternalBiDiCaretStringToPel", id_value = 3000154, constant = "GDI_INTERNAL_BIDICARETSTRINGTOPEL" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 549
 name = "BiDiCaretPelToString"
+binding = { rust_id = "GdiInternalBiDiCaretPelToString", id_value = 3000155, constant = "GDI_INTERNAL_BIDICARETPELTOSTRING" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 550
 name = "BiDiStringToGlyph"
+binding = { rust_id = "GdiInternalBiDiStringToGlyph", id_value = 3000156, constant = "GDI_INTERNAL_BIDISTRINGTOGLYPH" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 551
 name = "BiDiGlyphToString"
+binding = { rust_id = "GdiInternalBiDiGlyphToString", id_value = 3000157, constant = "GDI_INTERNAL_BIDIGLYPHTOSTRING" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 552
 name = "BiDiPelToGlyph"
+binding = { rust_id = "GdiInternalBiDiPelToGlyph", id_value = 3000158, constant = "GDI_INTERNAL_BIDIPELTOGLYPH" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 553
 name = "BiDiGlyphToPel"
+binding = { rust_id = "GdiInternalBiDiGlyphToPel", id_value = 3000159, constant = "GDI_INTERNAL_BIDIGLYPHTOPEL" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 554
 name = "BiDiBounds"
+binding = { rust_id = "GdiInternalBiDiBounds", id_value = 3000160, constant = "GDI_INTERNAL_BIDIBOUNDS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 555
 name = "BiDiDeleteString"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalBiDiDeleteString", id_value = 3000161, constant = "GDI_INTERNAL_BIDIDELETESTRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 556
 name = "BiDiSetDefaults"
+binding = { rust_id = "GdiInternalBiDiSetDefaults", id_value = 3000162, constant = "GDI_INTERNAL_BIDISETDEFAULTS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 558
 name = "BiDiGetDefaults"
+binding = { rust_id = "GdiInternalBiDiGetDefaults", id_value = 3000163, constant = "GDI_INTERNAL_BIDIGETDEFAULTS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 559
 name = "BiDiCalcString"
 decl = { args = ["word", "word", "pointer", "word", "word", "word", "word", "word"] }
+binding = { rust_id = "GdiInternalBiDiCalcString", id_value = 3000164, constant = "GDI_INTERNAL_BIDICALCSTRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U16" },
+  { name = "a5", type = "U16" },
+  { name = "a6", type = "U16" },
+  { name = "a7", type = "U16" },
+]
 
 [[exports]]
 ordinal = 560
 name = "BiDiShape"
 decl = { args = ["word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word"] }
+binding = { rust_id = "GdiInternalBiDiShape", id_value = 3000165, constant = "GDI_INTERNAL_BIDISHAPE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U16" },
+  { name = "a5", type = "U16" },
+  { name = "a6", type = "U16" },
+  { name = "a7", type = "U16" },
+  { name = "a8", type = "U16" },
+  { name = "a9", type = "U16" },
+  { name = "a10", type = "U16" },
+  { name = "a11", type = "U16" },
+  { name = "a12", type = "U16" },
+  { name = "a13", type = "U16" },
+  { name = "a14", type = "U16" },
+  { name = "a15", type = "U16" },
+  { name = "a16", type = "U16" },
+  { name = "a17", type = "U16" },
+  { name = "a18", type = "U16" },
+  { name = "a19", type = "U16" },
+]
 
 [[exports]]
 ordinal = 561
 name = "BiDiFontComplement"
+binding = { rust_id = "GdiInternalBiDiFontComplement", id_value = 3000166, constant = "GDI_INTERNAL_BIDIFONTCOMPLEMENT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 563
 name = "BiDiCalcTabString"
+binding = { rust_id = "GdiInternalBiDiCalcTabString", id_value = 3000167, constant = "GDI_INTERNAL_BIDICALCTABSTRING" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 564
 name = "BiDiSetKashida"
+binding = { rust_id = "GdiInternalBiDiSetKashida", id_value = 3000168, constant = "GDI_INTERNAL_BIDISETKASHIDA" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 565
 name = "BiDiKExtTextOut"
+binding = { rust_id = "GdiInternalBiDiKExtTextOut", id_value = 3000169, constant = "GDI_INTERNAL_BIDIKEXTTEXTOUT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 566
 name = "BiDiShapeEx"
+binding = { rust_id = "GdiInternalBiDiShapeEx", id_value = 3000170, constant = "GDI_INTERNAL_BIDISHAPEEX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 569
 name = "BiDiCreateStringEx"
 decl = { args = ["word", "word", "word", "pointer", "word", "word", "word", "word", "word"] }
+binding = { rust_id = "GdiInternalBiDiCreateStringEx", id_value = 3000171, constant = "GDI_INTERNAL_BIDICREATESTRINGEX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U16" },
+  { name = "a5", type = "U16" },
+  { name = "a6", type = "U16" },
+  { name = "a7", type = "U16" },
+  { name = "a8", type = "U16" },
+]
 
 [[exports]]
 ordinal = 570
 name = "GetUnicodeMap"
+binding = { rust_id = "GdiInternalGetUnicodeMap", id_value = 3000172, constant = "GDI_INTERNAL_GETUNICODEMAP" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 571
 name = "GetTextExtentRtoL"
+binding = { rust_id = "GdiInternalGetTextExtentRtoL", id_value = 3000173, constant = "GDI_INTERNAL_GETTEXTEXTENTRTOL" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 572
 name = "GetHDCCharSet"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalGetHDCCharSet", id_value = 3000174, constant = "GDI_INTERNAL_GETHDCCHARSET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 573
 name = "BiDiLayoutEx"
 decl = { args = ["pointer", "word", "word", "word", "pointer", "word", "word", "word", "word", "pointer", "pointer", "word", "word", "word"] }
+binding = { rust_id = "GdiInternalBiDiLayoutEx", id_value = 3000175, constant = "GDI_INTERNAL_BIDILAYOUTEX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "U16" },
+  { name = "a6", type = "U16" },
+  { name = "a7", type = "U16" },
+  { name = "a8", type = "U16" },
+  { name = "a9", type = "FarPointer" },
+  { name = "a10", type = "FarPointer" },
+  { name = "a11", type = "U16" },
+  { name = "a12", type = "U16" },
+  { name = "a13", type = "U16" },
+]
 
 [[exports]]
 ordinal = 574
 name = "BiDiCreateTabStringEx"
+binding = { rust_id = "GdiInternalBiDiCreateTabStringEx", id_value = 3000176, constant = "GDI_INTERNAL_BIDICREATETABSTRINGEX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 575
 name = "BiDiCalcTabStringEx"
+binding = { rust_id = "GdiInternalBiDiCalcTabStringEx", id_value = 3000177, constant = "GDI_INTERNAL_BIDICALCTABSTRINGEX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 576
 name = "BiDiCalcStringEx"
+binding = { rust_id = "GdiInternalBiDiCalcStringEx", id_value = 3000178, constant = "GDI_INTERNAL_BIDICALCSTRINGEX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 588
 name = "SetTextCodePage"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "GdiInternalSetTextCodePage", id_value = 3000179, constant = "GDI_INTERNAL_SETTEXTCODEPAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 589
 name = "GetTextCodePage"
+binding = { rust_id = "GdiInternalGetTextCodePage", id_value = 3000180, constant = "GDI_INTERNAL_GETTEXTCODEPAGE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 604
 name = "SetSolidBrush"
 decl = { args = ["word", "long"] }
+binding = { rust_id = "GdiInternalSetSolidBrush", id_value = 3000181, constant = "GDI_INTERNAL_SETSOLIDBRUSH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 605
 name = "SysDeleteObject"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalSysDeleteObject", id_value = 3000182, constant = "GDI_INTERNAL_SYSDELETEOBJECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 606
 name = "SetMagicColors"
 decl = { args = ["word", "long", "word"] }
+binding = { rust_id = "GdiInternalSetMagicColors", id_value = 3000183, constant = "GDI_INTERNAL_SETMAGICCOLORS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 607
 name = "GetRegionData"
 decl = { attributes = [], args = ["word", "long", "pointer"] }
+binding = { rust_id = "GdiInternalGetRegionData", id_value = 3000184, constant = "GDI_INTERNAL_GETREGIONDATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 608
 name = "ExtCreateRegion"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalExtCreateRegion", id_value = 3000185, constant = "GDI_INTERNAL_EXTCREATEREGION" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 609
 name = "GdiFreeResources"
 decl = { args = ["long"] }
+binding = { rust_id = "GdiInternalGdiFreeResources", id_value = 3000186, constant = "GDI_INTERNAL_GDIFREERESOURCES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 610
 name = "GdiSignalProc32"
 decl = { args = ["long", "long", "long", "word"] }
+binding = { rust_id = "GdiInternalGdiSignalProc32", id_value = 3000187, constant = "GDI_INTERNAL_GDISIGNALPROC32" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 611
 name = "GetRandomRgn"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetRandomRgn", id_value = 3000188, constant = "GDI_INTERNAL_GETRANDOMRGN" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 612
 name = "GetTextCharset"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiInternalGetTextCharset", id_value = 3000189, constant = "GDI_INTERNAL_GETTEXTCHARSET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 613
 name = "EnumFontFamiliesEx"
 decl = { args = ["word", "pointer", "segmented_pointer", "long", "long"] }
+binding = { rust_id = "GdiInternalEnumFontFamiliesEx", id_value = 3000190, constant = "GDI_INTERNAL_ENUMFONTFAMILIESEX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 614
 name = "AddLpkToGDI"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalAddLpkToGDI", id_value = 3000191, constant = "GDI_INTERNAL_ADDLPKTOGDI" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 615
 name = "GetCharacterPlacement"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetCharacterPlacement", id_value = 3000192, constant = "GDI_INTERNAL_GETCHARACTERPLACEMENT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 616
 name = "GetFontLanguageInfo"
 decl = { attributes = [], args = ["word"] }
+binding = { rust_id = "GdiInternalGetFontLanguageInfo", id_value = 3000193, constant = "GDI_INTERNAL_GETFONTLANGUAGEINFO" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 650
 name = "BuildInverseTableDIB"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalBuildInverseTableDIB", id_value = 3000194, constant = "GDI_INTERNAL_BUILDINVERSETABLEDIB" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 701
 name = "GDITHKCONNECTIONDATALS"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGdithkconnectiondatals", id_value = 3000195, constant = "GDI_INTERNAL_GDITHKCONNECTIONDATALS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 702
 name = "FT_GDIFTHKTHKCONNECTIONDATA"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalFtGdifthkthkconnectiondata", id_value = 3000196, constant = "GDI_INTERNAL_FT_GDIFTHKTHKCONNECTIONDATA" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 703
 name = "FDTHKCONNECTIONDATASL"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalFdthkconnectiondatasl", id_value = 3000197, constant = "GDI_INTERNAL_FDTHKCONNECTIONDATASL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 704
 name = "ICMTHKCONNECTIONDATASL"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalIcmthkconnectiondatasl", id_value = 3000198, constant = "GDI_INTERNAL_ICMTHKCONNECTIONDATASL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 820
 name = "ICMCreateTransform"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalICMCreateTransform", id_value = 3000199, constant = "GDI_INTERNAL_ICMCREATETRANSFORM" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 821
 name = "ICMDeleteTransform"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalICMDeleteTransform", id_value = 3000200, constant = "GDI_INTERNAL_ICMDELETETRANSFORM" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 822
 name = "ICMTranslateRGB"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalICMTranslateRGB", id_value = 3000201, constant = "GDI_INTERNAL_ICMTRANSLATERGB" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 823
 name = "ICMTranslateRGBs"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalICMTranslateRGBs", id_value = 3000202, constant = "GDI_INTERNAL_ICMTRANSLATERGBS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 824
 name = "ICMCheckColorsInGamut"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalICMCheckColorsInGamut", id_value = 3000203, constant = "GDI_INTERNAL_ICMCHECKCOLORSINGAMUT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 1000
 name = "SetLayout"
 decl = { args = ["word", "long"] }
+binding = { rust_id = "GdiInternalSetLayout", id_value = 3000204, constant = "GDI_INTERNAL_SETLAYOUT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 1001
 name = "GetLayout"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "GdiInternalGetLayout", id_value = 3000205, constant = "GDI_INTERNAL_GETLAYOUT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 5000
 name = "DllEntryPoint"
 decl = { attributes = [], args = ["long", "word", "word", "word", "long", "word"] }
+binding = { rust_id = "GdiInternalDllEntryPoint", id_value = 3000206, constant = "GDI_INTERNAL_DLLENTRYPOINT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U16" },
+]

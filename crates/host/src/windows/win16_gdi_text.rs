@@ -15,8 +15,20 @@ use super::super::win16_gdi::Win16Dcs;
 /// Convert a counted guest byte string using the encoding captured by its DC
 /// table. Conversion uses the selected Windows code page instead of the
 /// process ACP, retaining Windows' legacy replacement behavior.
-fn guest_text(dcs: &Win16Dcs, bytes: &[u8]) -> Result<GuestTextBuffer, RuntimeError> {
-    let codec = dcs.text_codec();
+fn text_codec(dcs: &Win16Dcs, code_page: Option<u16>) -> Result<super::super::guest_text::GuestTextCodec, RuntimeError> {
+    match code_page {
+        Some(page) => super::super::guest_text::GuestTextCodec::new(u32::from(page))
+            .map_err(|error| error.with_context("select Win16 GDI text code page")),
+        None => Ok(dcs.text_codec()),
+    }
+}
+
+fn guest_text(
+    dcs: &Win16Dcs,
+    bytes: &[u8],
+    code_page: Option<u16>,
+) -> Result<GuestTextBuffer, RuntimeError> {
+    let codec = text_codec(dcs, code_page)?;
     let mut wide = GuestTextBuffer::acquire();
     codec
         .to_wide_into(bytes, &mut wide)
@@ -38,11 +50,12 @@ pub(super) fn text_out(
     x: i32,
     y: i32,
     bytes: &[u8],
+    code_page: Option<u16>,
 ) -> Result<bool, RuntimeError> {
     let Some(dc_use) = dcs.lease_dc(dc)? else {
         return Ok(false);
     };
-    let wide = guest_text(dcs, bytes)?;
+    let wide = guest_text(dcs, bytes, code_page)?;
     let Ok(count) = i32::try_from(wide.len()) else {
         return Ok(false);
     };
@@ -56,11 +69,12 @@ pub(super) fn text_extent(
     dcs: &Win16Dcs,
     dc: Win16HostDc,
     bytes: &[u8],
+    code_page: Option<u16>,
 ) -> Result<Option<(bool, SIZE)>, RuntimeError> {
     let Some(dc_use) = dcs.lease_dc(dc)? else {
         return Ok(None);
     };
-    let wide = guest_text(dcs, bytes)?;
+    let wide = guest_text(dcs, bytes, code_page)?;
     let Ok(count) = i32::try_from(wide.len()) else {
         return Ok(Some((false, SIZE { cx: 0, cy: 0 })));
     };
@@ -84,7 +98,7 @@ pub(super) fn tabbed_text(
     };
     // Win16 counts guest bytes; the W APIs count UTF-16 units. Tabs remain
     // logical positions and must not be scaled by the text's byte length.
-    let wide = guest_text(dcs, bytes)?;
+    let wide = guest_text(dcs, bytes, None)?;
     let (Ok(count), Ok(tab_count)) = (i32::try_from(wide.len()), i32::try_from(tab_stops.len())) else {
         return Ok(Win16DrawingResult::PackedTextExtent(0));
     };
@@ -114,6 +128,7 @@ pub(super) fn ext_text_out(
     rect: Option<Win16DrawingRect>,
     bytes: &[u8],
     spacing: Option<&[i32]>,
+    code_page: Option<u16>,
 ) -> Result<bool, RuntimeError> {
     let Some(dc_use) = dcs.lease_dc(dc)? else {
         return Ok(false);
@@ -129,7 +144,7 @@ pub(super) fn ext_text_out(
     let mut wide = GuestTextBuffer::acquire();
     let native_spacing = match spacing {
         Some(values) => {
-            let codec = dcs.text_codec();
+            let codec = text_codec(dcs, code_page)?;
             let spans = match codec.to_wide_with_ranges_into(bytes, &mut wide) {
                 Ok(converted) => converted,
                 // The runtime host reports a mapping gap and returns ordinary
@@ -144,7 +159,7 @@ pub(super) fn ext_text_out(
             Some(converted)
         }
         None => {
-            dcs.text_codec().to_wide_into(bytes, &mut wide)
+            text_codec(dcs, code_page)?.to_wide_into(bytes, &mut wide)
                 .map_err(|error| error.with_context("decode Win16 GDI guest text"))?;
             None
         }

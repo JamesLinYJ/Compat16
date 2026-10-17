@@ -22,7 +22,10 @@ pub use request_modules::Win16KernelInstanceRequest;
 pub use request_modules::Win16Ole1Request;
 pub use request_modules::Win16UserMdiRequest;
 pub use request_modules::Win16UserChildLookupRequest;
-pub use request_modules::{Win16FontResourceInput, Win16GdiServicesRequest, Win16GdiSpoolRequest};
+pub use request_modules::{
+    Win16FontResourceInput, Win16GdiInternalArg, Win16GdiInternalRequest, Win16GdiServicesRequest,
+    Win16GdiSpoolRequest,
+};
 pub use request_modules::{NF_NORMAL, NF_TASKSWITCH, NF_RIP};
 pub(super) use request_modules::decode_print_queue_export;
 pub use request_modules::{
@@ -108,6 +111,7 @@ pub enum Win16ApiRequest {
     NetworkRedirector(Win16UserNetworkRequest),
     GdiServices(Win16GdiServicesRequest),
     GdiSpool(Win16GdiSpoolRequest),
+    GdiInternal(Win16GdiInternalRequest),
     Ole1(Win16Ole1Request),
     Commctrl(Win16CommctrlRequest),
     Commdlg(Win16CommdlgRequest),

@@ -149,6 +149,7 @@ fn drawing_dcs(operation: &Win16DrawingOperation) -> ([Option<Win16HostDc>; 2], 
         Op::StretchDibits { dc, .. }
         | Op::LineTo { dc, .. }
         | Op::Rectangle { dc, .. }
+        | Op::SetLayout { dc, .. }
         | Op::TextOut { dc, .. }
         | Op::SetPixel { dc, .. }
         | Op::GetPixel { dc, .. }

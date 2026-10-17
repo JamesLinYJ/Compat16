@@ -78,7 +78,15 @@ pub enum Win16DrawingOperation {
         right: i32,
         bottom: i32,
     },
-    TextOut { dc: Win16HostDc, x: i32, y: i32, text: Vec<u8> },
+    TextOut {
+        dc: Win16HostDc,
+        x: i32,
+        y: i32,
+        text: Vec<u8>,
+        /// Concrete Windows code page for this byte string. `None` uses the
+        /// DC table's codec.
+        code_page: Option<u16>,
+    },
     BitBlt {
         destination: Win16HostDc,
         destination_x: i32,
@@ -91,7 +99,7 @@ pub enum Win16DrawingOperation {
         rop: u32,
     },
     CreateSolidBrush { color: u32 },
-    GetTextExtent { dc: Win16HostDc, text: Vec<u8> },
+    GetTextExtent { dc: Win16HostDc, text: Vec<u8>, code_page: Option<u16> },
     GetTextExtentPoint { dc: Win16HostDc, text: Vec<u8> },
     SetStretchBltMode { dc: Win16HostDc, mode: i32 },
     GetStretchBltMode { dc: Win16HostDc },
@@ -160,7 +168,13 @@ pub enum Win16DrawingOperation {
         rect: Option<Win16DrawingRect>,
         text: Vec<u8>,
         spacing: Option<Vec<i32>>,
+        code_page: Option<u16>,
     },
+    /// Applies `SetLayout` to the host DC. The dword is the previous layout,
+    /// or `GDI_ERROR` when the host cannot change it.
+    SetLayout { dc: Win16HostDc, layout: u32 },
+    /// Reports whether this host can decode guest text with `page`.
+    AcceptTextCodePage { page: u16 },
     Arc {
         dc: Win16HostDc,
         left: i32,
@@ -318,4 +332,5 @@ pub enum Win16DrawingResult {
     },
     LineDda { success: bool, points: Vec<Win16DrawingPoint> },
     Dibits(i32),
+    Dword(u32),
 }
