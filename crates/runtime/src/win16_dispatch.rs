@@ -7,6 +7,10 @@ use win16_abi::{
 };
 use x86_cpu::{CallEffectPolicy, CallResumeBoundary, Cpu, LegacyRegisterTransfer};
 
+#[cfg(test)]
+#[path = "win16_dispatch_input_event_tests.rs"]
+mod input_event_tests;
+
 impl Win16State {
     pub(crate) fn dispatch(
         &mut self,
@@ -99,6 +103,9 @@ impl Win16State {
                     Ok(None)
                 }
                 Win16ApiRequest::FpMath { context } => self.fp_math(context, cpu, memory),
+                Win16ApiRequest::User(win16_abi::Win16UserRequest::Input(request)) => {
+                    self.inject_user_input(request, cpu, memory, host)
+                }
                 _ => Err(RuntimeError::new(
                     Kind::InternalInvariant,
                     "Win16 register-context export decoded to a stack request",

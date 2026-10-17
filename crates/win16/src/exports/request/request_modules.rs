@@ -234,6 +234,9 @@ mod system;
 pub use system::Win16SystemRequest;
 pub(in crate::exports) use system::decode_system;
 
+#[path = "user_input.rs"]
+mod user_input;
+pub use user_input::Win16UserInputRequest;
 #[path = "family_requests.rs"]
 mod family_requests;
 pub use family_requests::*;

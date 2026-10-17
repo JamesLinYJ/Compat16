@@ -151,6 +151,7 @@ pub enum Win16UserRequest {
     Runtime(Win16UserRuntimeRequest),
     StringFormat(Win16UserStringFormatRequest),
     Comm(Win16UserCommRequest),
+    Input(Win16UserInputRequest),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

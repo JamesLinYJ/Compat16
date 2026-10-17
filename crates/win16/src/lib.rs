@@ -122,6 +122,7 @@ pub use exports::{
     Win16UserSessionRequest,
     Win16UserMenuRequest, Win16UserMessagesRequest, Win16UserRequest, Win16UserResourcesRequest,
     Win16UserRuntimeRequest, Win16UserScrollBarRequest, Win16UserSystemRequest, Win16UserCommRequest,
+    Win16UserInputRequest,
     Win16UserStringFormatRequest, Win16UserTextRequest, Win16UserUpdateRequest, Win16UserWindowRequest,
     Win16VariableRuntimeState, Win16VerRequest, Win16WaveControl, Win16WaveDirection,
     Win16WaveHeader16, Win16WaveInputCapabilities16, Win16WaveOutputCapabilities16,

@@ -29,6 +29,12 @@ pub fn decode_export_call_with_register_context(
                 Win16ExportId::KernelSwitchStackBack => Win16ApiRequest::Kernel(
                     Win16KernelRequest::SwitchStackBack { context: register_context },
                 ),
+                Win16ExportId::UserKeybdEvent | Win16ExportId::UserMouseEvent => {
+                    Win16ApiRequest::User(Win16UserRequest::Input(super::input_event::decode(
+                        descriptor.id,
+                        &register_context,
+                    )))
+                }
                 _ => return Err(Win16Error::UnsupportedRegisterContextExport),
             };
             let stack_cleanup = match descriptor.stack_cleanup {

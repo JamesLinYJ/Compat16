@@ -294,6 +294,8 @@ mod code_lifetime;
 mod catch_throw;
 #[path = "win16_keyboard.rs"]
 mod keyboard;
+#[path = "win16_input_events.rs"]
+mod input_events;
 #[path = "win16_text.rs"]
 mod text;
 #[path = "win16_text_memory.rs"]
