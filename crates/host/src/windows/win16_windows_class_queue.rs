@@ -188,6 +188,15 @@ impl Win16Windows {
         &self,
         window: runtime::Win16HostWindow,
     ) -> Result<Option<runtime::Win16HostCtl3dFrameFacts>, RuntimeError> {
+        // A guest `Ctl3dDlgFramePaint` can run on this thread while the USER
+        // worker is inside the synchronous window callback that entered the
+        // guest. That worker is not reading its command queue, so sending
+        // `Ctl3dFrame` and blocking on the reply cannot finish. Style and
+        // iconic state are read here instead. Those queries do not call the
+        // window procedure.
+        if let Some(state) = super::worker_context() {
+            return Ok(super::win16_ctl3d_worker::frame_facts(&state, window));
+        }
         if self.aborted {
             return Err(RuntimeError::new(
                 Kind::HostFailure,

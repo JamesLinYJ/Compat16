@@ -1054,6 +1054,10 @@ pub(in crate::windows) fn requeue_deferred_guest_notifications() -> Result<(), R
     win16_guest_notifications::requeue_deferred()
 }
 
+#[cfg(test)]
+#[path = "win16_ctl3d_reentrancy_tests.rs"]
+mod win16_ctl3d_reentrancy_tests;
+
 impl Drop for Win16Windows {
     fn drop(&mut self) {
         let _ = self.abort();
