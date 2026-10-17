@@ -135,7 +135,7 @@ pub use network::{
     Win16AsyncLookup, Win16GuestBuffer, Win16GuestInOutBuffer, Win16HostQuery, Win16SelectInput,
     Win16SocketSetInput, Win16WinsockDecodeFailure, Win16WinsockRequest,
 };
-#[path = "aux.rs"]
+#[path = "auxiliary.rs"]
 mod aux;
 pub use aux::{
     AUXCAPS16_SIZE, AUXCAPS_AUXIN, AUXCAPS_CDAUDIO, AUXCAPS_LRVOLUME, AUXCAPS_VOLUME,

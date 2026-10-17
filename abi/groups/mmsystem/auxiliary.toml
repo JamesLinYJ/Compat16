@@ -3,14 +3,14 @@ module = "MMSYSTEM"
 [[exports]]
 ordinal = 350
 name = "auxGetNumDevs"
-binding = { rust_id = "AuxGetNumDevs", id_value = 1285, constant = "MMSYSTEM_AUX_GET_NUM_DEVS" }
+binding = { rust_id = "AuxGetNumDevs", id_value = 1333, constant = "MMSYSTEM_AUX_GET_NUM_DEVS" }
 [exports.call]
 returns = "word"
 
 [[exports]]
 ordinal = 351
 name = "auxGetDevCaps"
-binding = { rust_id = "AuxGetDevCaps", id_value = 1286, constant = "MMSYSTEM_AUX_GET_DEV_CAPS" }
+binding = { rust_id = "AuxGetDevCaps", id_value = 1334, constant = "MMSYSTEM_AUX_GET_DEV_CAPS" }
 [exports.call]
 returns = "word"
 params = [
@@ -22,7 +22,7 @@ params = [
 [[exports]]
 ordinal = 352
 name = "auxGetVolume"
-binding = { rust_id = "AuxGetVolume", id_value = 1287, constant = "MMSYSTEM_AUX_GET_VOLUME" }
+binding = { rust_id = "AuxGetVolume", id_value = 1335, constant = "MMSYSTEM_AUX_GET_VOLUME" }
 [exports.call]
 returns = "word"
 params = [
@@ -33,7 +33,7 @@ params = [
 [[exports]]
 ordinal = 353
 name = "auxSetVolume"
-binding = { rust_id = "AuxSetVolume", id_value = 1288, constant = "MMSYSTEM_AUX_SET_VOLUME" }
+binding = { rust_id = "AuxSetVolume", id_value = 1336, constant = "MMSYSTEM_AUX_SET_VOLUME" }
 [exports.call]
 returns = "word"
 params = [
@@ -44,9 +44,9 @@ params = [
 [[exports]]
 ordinal = 354
 name = "auxOutMessage"
-binding = { rust_id = "AuxOutMessage", id_value = 1289, constant = "MMSYSTEM_AUX_OUT_MESSAGE" }
+binding = { rust_id = "AuxOutMessage", id_value = 1337, constant = "MMSYSTEM_AUX_OUT_MESSAGE" }
 [exports.call]
-returns = "word"
+returns = "dword"
 params = [
   { name = "device", type = "U16" },
   { name = "message", type = "U16" },
