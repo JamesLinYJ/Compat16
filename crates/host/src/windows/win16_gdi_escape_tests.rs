@@ -112,12 +112,29 @@ fn escape_caps_support_requires_print_device_page_and_representable_output() {
             assert_eq!(mock_caps(query, DT_RASPRINTER, (5100, 6600), value), None);
         }
     }
-    assert_eq!(
-        query_caps(Query::QuerySupport, |_| panic!(
-            "self query is not a POINT query"
-        )),
-        None
-    );
+    for query in [
+        Query::QuerySupport,
+        Query::StartDocument,
+        Query::NewFrame,
+        Query::EndDocument,
+        Query::AbortDocument,
+    ] {
+        assert_eq!(
+            query_caps(query, |_| panic!(
+                "job and self queries are not POINT queries"
+            )),
+            None
+        );
+    }
+}
+
+#[test]
+fn escape_job_support_follows_printer_or_plotter_technology() {
+    assert!(printer_technology(DT_RASPRINTER as i32));
+    assert!(printer_technology(DT_PLOTTER as i32));
+    assert!(!printer_technology(DT_RASDISPLAY as i32));
+    assert!(!printer_technology(0));
+    assert!(!printer_technology(-1));
 }
 
 fn assert_unsupported(dcs: &Win16Dcs, dc: Win16HostDc, query: Query) {
@@ -139,6 +156,10 @@ fn escape_native_memory_dc_is_not_a_printer_and_self_query_matches_native() {
         Query::PhysicalPageSize,
         Query::PrintingOffset,
         Query::ScalingFactor,
+        Query::StartDocument,
+        Query::NewFrame,
+        Query::EndDocument,
+        Query::AbortDocument,
     ] {
         assert_unsupported(&dcs, dc, query);
     }
@@ -167,6 +188,10 @@ fn escape_native_memory_dc_is_not_a_printer_and_self_query_matches_native() {
         Query::PhysicalPageSize,
         Query::PrintingOffset,
         Query::ScalingFactor,
+        Query::StartDocument,
+        Query::NewFrame,
+        Query::EndDocument,
+        Query::AbortDocument,
     ] {
         assert_unsupported(&dcs, dc, query);
         assert_unsupported(&dcs, Win16HostDc(u64::MAX), query);

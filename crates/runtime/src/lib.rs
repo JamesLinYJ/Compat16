@@ -286,7 +286,10 @@ pub use win16_host_printer::{
     Win16PrinterCapabilities, Win16PrinterCapabilitiesResult, Win16PrinterCapabilityData,
 };
 mod win16_host_dc;
-pub use win16_host_dc::{Win16HostDevMode, Win16HostOutlineTextMetrics, Win16HostTextFace, Win16HostTextMetrics};
+pub use win16_host_dc::{
+    Win16HostDevMode, Win16HostOutlineTextMetrics, Win16HostTextFace, Win16HostTextMetrics,
+    win16_outline_text_map_mode_supported,
+};
 mod win16_host_acm;
 pub use win16_host_acm::{
     Win16HostAcmChooseKind, Win16HostAcmDetailQuery, Win16HostAcmDriverDetails,

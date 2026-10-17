@@ -619,6 +619,24 @@ support equivalence. Tests cover ABI, guest memory/identity boundaries, mock
 cap conversions, and nonprinting native DCs. They do not establish real printer
 behavior or successful execution of this import by a desktop application.
 
+STARTDOC (10), NEWFRAME (1), ENDDOC (11), and ABORTDOC (2) use the same
+`Escape` prototype. STARTDOC's `nCount` is the document-name byte count. A NUL
+only in the last counted byte is a terminator and is not part of the name; an
+earlier NUL is rejected. Its output pointer is unused. The other three ignore
+both pointers. Success is a positive signed int. `SP_ERROR` (-1) is the
+failure value. Zero remains reserved for an unimplemented escape.
+
+Win32 supersedes these with `StartDoc`, `StartPage`, `EndPage`, `EndDoc`, and
+`AbortDoc`. The 3.1 header does not describe that page split. This bridge
+pairs STARTDOC with `StartDoc` plus the first `StartPage`, NEWFRAME with
+`EndPage` plus the next `StartPage`, and ENDDOC with `EndPage` plus `EndDoc`.
+A NEWFRAME that already advanced the page, followed by ENDDOC, can therefore
+close one extra page. A non-positive result stops the pair. A failed first
+`StartPage` aborts the job started by STARTDOC. `QUERYESCSUPPORT` for these
+four codes is true only for printer or plotter technology. `SETABORTPROC`,
+`PASSTHROUGH`, `NEXTBAND`, `SETCOPYCOUNT`, and private codes still return zero
+and do not call the host. No guest pointer is passed to native `Escape`.
+
 ## USER.131/132 class default-menu LONG
 
 The Windows 3.1 SDK `WINDOWS.H:2951-2964` declares GetClassLong/SetClassLong
