@@ -4,3 +4,7 @@ module = "OLE2PROX"
 ordinal = 1
 name = "DLLGETCLASSOBJECT"
 kind = "stub"
+binding = { rust_id = "Ole2ProxDLLGETCLASSOBJECT", id_value = 4000204, constant = "OLE2PROX_DLLGETCLASSOBJECT" }
+[exports.call]
+returns = "dword"
+

@@ -212,6 +212,7 @@ impl Win16State {
             deferred_window_batches: super::window_operations::DeferredWindowBatches::default(),
             user_hooks: super::user_hooks::Win16UserHooks::default(),
             user_declared: super::user_declared::UserDeclaredSession::default(),
+            ole_remainder_reported: BTreeSet::new(),
             window_callbacks: Vec::new(), retired_window_payloads: Vec::new(),
             native_function_callbacks: Vec::new(), loaded, heap, tasks,
             window_operations: Vec::new(), window_abort_receipt: None,

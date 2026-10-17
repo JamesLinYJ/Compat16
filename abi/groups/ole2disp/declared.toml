@@ -4,41 +4,99 @@ module = "OLE2DISP"
 ordinal = 1
 name = "DLLGETCLASSOBJECT"
 kind = "stub"
+binding = { rust_id = "Ole2DispDLLGETCLASSOBJECT", id_value = 4000135, constant = "OLE2DISP_DLLGETCLASSOBJECT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 13
 name = "VARIANTTIMETODOSDATETIME"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARIANTTIMETODOSDATETIME", id_value = 4000136, constant = "OLE2DISP_VARIANTTIMETODOSDATETIME" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 14
 name = "DOSDATETIMETOVARIANTTIME"
 kind = "stub"
+binding = { rust_id = "Ole2DispDOSDATETIMETOVARIANTTIME", id_value = 4000137, constant = "OLE2DISP_DOSDATETIMETOVARIANTTIME" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 28
 name = "DispGetParam"
 decl = { args = ["pointer", "word", "word", "pointer", "pointer"] }
+binding = { rust_id = "Ole2DispDispGetParam", id_value = 4000138, constant = "OLE2DISP_DISPGETPARAM" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 29
 name = "DispGetIDsOfNames"
 decl = { args = ["segmented_pointer", "segmented_pointer", "word", "segmented_pointer"] }
+binding = { rust_id = "Ole2DispDispGetIDsOfNames", id_value = 4000139, constant = "OLE2DISP_DISPGETIDSOFNAMES" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 30
 name = "DispInvoke"
 decl = { args = ["segmented_pointer", "segmented_pointer", "long", "word", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+binding = { rust_id = "Ole2DispDispInvoke", id_value = 4000140, constant = "OLE2DISP_DISPINVOKE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+  { name = "a6", type = "FarPointer" },
+  { name = "a7", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 31
 name = "CreateDispTypeInfo"
 decl = { args = ["pointer", "long", "pointer"] }
+binding = { rust_id = "Ole2DispCreateDispTypeInfo", id_value = 4000141, constant = "OLE2DISP_CREATEDISPTYPEINFO" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 32
 name = "CreateStdDispatch"
 decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2DispCreateStdDispatch", id_value = 4000142, constant = "OLE2DISP_CREATESTDDISPATCH" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 33
@@ -56,256 +114,439 @@ values = [132100, 0, 192, 1174405120]
 ordinal = 35
 name = "RegisterActiveObject"
 decl = { args = ["segmented_pointer", "pointer", "long", "pointer"] }
+binding = { rust_id = "Ole2DispRegisterActiveObject", id_value = 4000143, constant = "OLE2DISP_REGISTERACTIVEOBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 36
 name = "RevokeActiveObject"
 decl = { args = ["long", "segmented_pointer"] }
+binding = { rust_id = "Ole2DispRevokeActiveObject", id_value = 4000144, constant = "OLE2DISP_REVOKEACTIVEOBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 37
 name = "GetActiveObject"
 decl = { args = ["pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2DispGetActiveObject", id_value = 4000145, constant = "OLE2DISP_GETACTIVEOBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 42
 name = "SafeArrayRedim"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "Ole2DispSafeArrayRedim", id_value = 4000146, constant = "OLE2DISP_SAFEARRAYREDIM" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 49
 name = "VARI2FROMDISP"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARI2FROMDISP", id_value = 4000147, constant = "OLE2DISP_VARI2FROMDISP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 51
 name = "VARI4FROMI2"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARI4FROMI2", id_value = 4000148, constant = "OLE2DISP_VARI4FROMI2" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 52
 name = "VARI4FROMR4"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARI4FROMR4", id_value = 4000149, constant = "OLE2DISP_VARI4FROMR4" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 53
 name = "VARI4FROMR8"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARI4FROMR8", id_value = 4000150, constant = "OLE2DISP_VARI4FROMR8" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 54
 name = "VARI4FROMCY"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARI4FROMCY", id_value = 4000151, constant = "OLE2DISP_VARI4FROMCY" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 55
 name = "VARI4FROMDATE"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARI4FROMDATE", id_value = 4000152, constant = "OLE2DISP_VARI4FROMDATE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 57
 name = "VARI4FROMDISP"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARI4FROMDISP", id_value = 4000153, constant = "OLE2DISP_VARI4FROMDISP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 58
 name = "VARI4FROMBOOL"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARI4FROMBOOL", id_value = 4000154, constant = "OLE2DISP_VARI4FROMBOOL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 59
 name = "VARR4FROMI2"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR4FROMI2", id_value = 4000155, constant = "OLE2DISP_VARR4FROMI2" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 60
 name = "VARR4FROMI4"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR4FROMI4", id_value = 4000156, constant = "OLE2DISP_VARR4FROMI4" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 62
 name = "VARR4FROMCY"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR4FROMCY", id_value = 4000157, constant = "OLE2DISP_VARR4FROMCY" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 63
 name = "VARR4FROMDATE"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR4FROMDATE", id_value = 4000158, constant = "OLE2DISP_VARR4FROMDATE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 65
 name = "VARR4FROMDISP"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR4FROMDISP", id_value = 4000159, constant = "OLE2DISP_VARR4FROMDISP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 66
 name = "VARR4FROMBOOL"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR4FROMBOOL", id_value = 4000160, constant = "OLE2DISP_VARR4FROMBOOL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 67
 name = "VARR8FROMI2"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR8FROMI2", id_value = 4000161, constant = "OLE2DISP_VARR8FROMI2" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 68
 name = "VARR8FROMI4"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR8FROMI4", id_value = 4000162, constant = "OLE2DISP_VARR8FROMI4" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 69
 name = "VARR8FROMR4"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR8FROMR4", id_value = 4000163, constant = "OLE2DISP_VARR8FROMR4" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 70
 name = "VARR8FROMCY"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR8FROMCY", id_value = 4000164, constant = "OLE2DISP_VARR8FROMCY" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 71
 name = "VARR8FROMDATE"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR8FROMDATE", id_value = 4000165, constant = "OLE2DISP_VARR8FROMDATE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 73
 name = "VARR8FROMDISP"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR8FROMDISP", id_value = 4000166, constant = "OLE2DISP_VARR8FROMDISP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 74
 name = "VARR8FROMBOOL"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR8FROMBOOL", id_value = 4000167, constant = "OLE2DISP_VARR8FROMBOOL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 75
 name = "VARDATEFROMI2"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARDATEFROMI2", id_value = 4000168, constant = "OLE2DISP_VARDATEFROMI2" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 76
 name = "VARDATEFROMI4"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARDATEFROMI4", id_value = 4000169, constant = "OLE2DISP_VARDATEFROMI4" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 77
 name = "VARDATEFROMR4"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARDATEFROMR4", id_value = 4000170, constant = "OLE2DISP_VARDATEFROMR4" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 78
 name = "VARDATEFROMR8"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARDATEFROMR8", id_value = 4000171, constant = "OLE2DISP_VARDATEFROMR8" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 79
 name = "VARDATEFROMCY"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARDATEFROMCY", id_value = 4000172, constant = "OLE2DISP_VARDATEFROMCY" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 81
 name = "VARDATEFROMDISP"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARDATEFROMDISP", id_value = 4000173, constant = "OLE2DISP_VARDATEFROMDISP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 82
 name = "VARDATEFROMBOOL"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARDATEFROMBOOL", id_value = 4000174, constant = "OLE2DISP_VARDATEFROMBOOL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 83
 name = "VARCYFROMI2"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARCYFROMI2", id_value = 4000175, constant = "OLE2DISP_VARCYFROMI2" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 84
 name = "VARCYFROMI4"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARCYFROMI4", id_value = 4000176, constant = "OLE2DISP_VARCYFROMI4" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 85
 name = "VARCYFROMR4"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARCYFROMR4", id_value = 4000177, constant = "OLE2DISP_VARCYFROMR4" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 86
 name = "VARCYFROMR8"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARCYFROMR8", id_value = 4000178, constant = "OLE2DISP_VARCYFROMR8" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 87
 name = "VARCYFROMDATE"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARCYFROMDATE", id_value = 4000179, constant = "OLE2DISP_VARCYFROMDATE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 89
 name = "VARCYFROMDISP"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARCYFROMDISP", id_value = 4000180, constant = "OLE2DISP_VARCYFROMDISP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 90
 name = "VARCYFROMBOOL"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARCYFROMBOOL", id_value = 4000181, constant = "OLE2DISP_VARCYFROMBOOL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 99
 name = "VARBOOLFROMI2"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARBOOLFROMI2", id_value = 4000182, constant = "OLE2DISP_VARBOOLFROMI2" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 100
 name = "VARBOOLFROMI4"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARBOOLFROMI4", id_value = 4000183, constant = "OLE2DISP_VARBOOLFROMI4" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 101
 name = "VARBOOLFROMR4"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARBOOLFROMR4", id_value = 4000184, constant = "OLE2DISP_VARBOOLFROMR4" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 102
 name = "VARBOOLFROMR8"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARBOOLFROMR8", id_value = 4000185, constant = "OLE2DISP_VARBOOLFROMR8" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 103
 name = "VARBOOLFROMDATE"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARBOOLFROMDATE", id_value = 4000186, constant = "OLE2DISP_VARBOOLFROMDATE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 104
 name = "VARBOOLFROMCY"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARBOOLFROMCY", id_value = 4000187, constant = "OLE2DISP_VARBOOLFROMCY" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 105
 name = "VARBOOLFROMSTR"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARBOOLFROMSTR", id_value = 4000188, constant = "OLE2DISP_VARBOOLFROMSTR" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 106
 name = "VARBOOLFROMDISP"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARBOOLFROMDISP", id_value = 4000189, constant = "OLE2DISP_VARBOOLFROMDISP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 107
 name = "DOINVOKEMETHOD"
 kind = "stub"
+binding = { rust_id = "Ole2DispDOINVOKEMETHOD", id_value = 4000190, constant = "OLE2DISP_DOINVOKEMETHOD" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 110
 name = "SetErrorInfo"
 decl = { args = ["long", "segmented_pointer"] }
+binding = { rust_id = "Ole2DispSetErrorInfo", id_value = 4000191, constant = "OLE2DISP_SETERRORINFO" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 111
 name = "GetErrorInfo"
 decl = { args = ["long", "pointer"] }
+binding = { rust_id = "Ole2DispGetErrorInfo", id_value = 4000192, constant = "OLE2DISP_GETERRORINFO" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 112
 name = "CreateErrorInfo"
 decl = { args = ["pointer"] }
+binding = { rust_id = "Ole2DispCreateErrorInfo", id_value = 4000193, constant = "OLE2DISP_CREATEERRORINFO" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 113
@@ -329,33 +570,55 @@ values = [3742055776, 270226575, 550286, 433138475]
 ordinal = 126
 name = "VARI4FROMUI1"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARI4FROMUI1", id_value = 4000194, constant = "OLE2DISP_VARI4FROMUI1" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 127
 name = "VARR4FROMUI1"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR4FROMUI1", id_value = 4000195, constant = "OLE2DISP_VARR4FROMUI1" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 128
 name = "VARR8FROMUI1"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARR8FROMUI1", id_value = 4000196, constant = "OLE2DISP_VARR8FROMUI1" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 129
 name = "VARDATEFROMUI1"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARDATEFROMUI1", id_value = 4000197, constant = "OLE2DISP_VARDATEFROMUI1" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 130
 name = "VARCYFROMUI1"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARCYFROMUI1", id_value = 4000198, constant = "OLE2DISP_VARCYFROMUI1" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 132
 name = "VARBOOLFROMUI1"
 kind = "stub"
+binding = { rust_id = "Ole2DispVARBOOLFROMUI1", id_value = 4000199, constant = "OLE2DISP_VARBOOLFROMUI1" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 133
 name = "DLLCANUNLOADNOW"
 kind = "stub"
+binding = { rust_id = "Ole2DispDLLCANUNLOADNOW", id_value = 4000200, constant = "OLE2DISP_DLLCANUNLOADNOW" }
+[exports.call]
+returns = "dword"
+

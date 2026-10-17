@@ -4,33 +4,55 @@ module = "OLE2CONV"
 ordinal = 1
 name = "GETFILTERINFO"
 kind = "stub"
+binding = { rust_id = "Ole2ConvGETFILTERINFO", id_value = 4000128, constant = "OLE2CONV_GETFILTERINFO" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 2
 name = "IMPORTGR"
 kind = "stub"
+binding = { rust_id = "Ole2ConvIMPORTGR", id_value = 4000129, constant = "OLE2CONV_IMPORTGR" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 3
 name = "GETFILTERPREF"
 kind = "stub"
+binding = { rust_id = "Ole2ConvGETFILTERPREF", id_value = 4000130, constant = "OLE2CONV_GETFILTERPREF" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 4
 name = "IMPORTEMBEDDEDGR"
 kind = "stub"
+binding = { rust_id = "Ole2ConvIMPORTEMBEDDEDGR", id_value = 4000131, constant = "OLE2CONV_IMPORTEMBEDDEDGR" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 5
 name = "QD2GDI"
 kind = "stub"
+binding = { rust_id = "Ole2ConvQD2GDI", id_value = 4000132, constant = "OLE2CONV_QD2GDI" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 6
 name = "STATUSPROC"
 kind = "stub"
+binding = { rust_id = "Ole2ConvSTATUSPROC", id_value = 4000133, constant = "OLE2CONV_STATUSPROC" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 7
 name = "ENUMFONTFUNC"
 kind = "stub"
+binding = { rust_id = "Ole2ConvENUMFONTFUNC", id_value = 4000134, constant = "OLE2CONV_ENUMFONTFUNC" }
+[exports.call]
+returns = "dword"
+

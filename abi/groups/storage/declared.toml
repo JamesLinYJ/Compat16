@@ -4,38 +4,103 @@ module = "STORAGE"
 ordinal = 1
 name = "StgCreateDocFileA"
 decl = { args = ["string", "long", "long", "pointer"] }
+binding = { rust_id = "StorageStgCreateDocFileA", id_value = 4000530, constant = "STORAGE_STGCREATEDOCFILEA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 2
 name = "StgCreateDocfileOnILockBytes"
 decl = { args = ["segmented_pointer", "long", "long", "pointer"] }
+binding = { rust_id = "StorageStgCreateDocfileOnILockBytes", id_value = 4000531, constant = "STORAGE_STGCREATEDOCFILEONILOCKBYTES" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 3
 name = "StgOpenStorage"
 decl = { args = ["string", "segmented_pointer", "long", "pointer", "long", "pointer"] }
+binding = { rust_id = "StorageStgOpenStorage", id_value = 4000532, constant = "STORAGE_STGOPENSTORAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 4
 name = "StgOpenStorageOnILockBytes"
 decl = { args = ["segmented_pointer", "segmented_pointer", "long", "pointer", "long", "pointer"] }
+binding = { rust_id = "StorageStgOpenStorageOnILockBytes", id_value = 4000533, constant = "STORAGE_STGOPENSTORAGEONILOCKBYTES" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 5
 name = "StgIsStorageFile"
 decl = { args = ["string"] }
+binding = { rust_id = "StorageStgIsStorageFile", id_value = 4000534, constant = "STORAGE_STGISSTORAGEFILE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+]
 
 [[exports]]
 ordinal = 6
 name = "StgIsStorageILockBytes"
 decl = { args = ["segmented_pointer"] }
+binding = { rust_id = "StorageStgIsStorageILockBytes", id_value = 4000535, constant = "STORAGE_STGISSTORAGEILOCKBYTES" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 7
 name = "StgSetTimes"
 decl = { args = ["string", "pointer", "pointer", "pointer"] }
+binding = { rust_id = "StorageStgSetTimes", id_value = 4000536, constant = "STORAGE_STGSETTIMES" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 103
 name = "DllGetClassObject"
 kind = "stub"
+binding = { rust_id = "StorageDllGetClassObject", id_value = 4000537, constant = "STORAGE_DLLGETCLASSOBJECT" }
+[exports.call]
+returns = "dword"
+

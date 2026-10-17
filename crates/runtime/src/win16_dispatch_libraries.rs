@@ -19,6 +19,10 @@ impl Win16State {
     ) -> Result<Option<u8>, RuntimeError> {
         let (return_selector, return_offset, return_sp) = return_to;
         let value = match request {
+            Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::OleRemainder {
+                module,
+                ordinal,
+            }) => self.ole_remainder(module, ordinal, descriptor.return_kind, host)?,
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::IsEqualGuid {
                 left, right,
             }) => u32::from(left == right),

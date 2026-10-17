@@ -4,16 +4,39 @@ module = "TYPELIB"
 ordinal = 2
 name = "CreateTypeLib"
 decl = { args = ["word", "string", "pointer"] }
+binding = { rust_id = "TypelibCreateTypeLib", id_value = 4000538, constant = "TYPELIB_CREATETYPELIB" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 3
 name = "LoadTypeLib"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "TypelibLoadTypeLib", id_value = 4000539, constant = "TYPELIB_LOADTYPELIB" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 4
 name = "LHashValOfNameSys"
 decl = { args = ["word", "long", "string"] }
+binding = { rust_id = "TypelibLHashValOfNameSys", id_value = 4000540, constant = "TYPELIB_LHASHVALOFNAMESYS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarString" },
+]
 
 [[exports]]
 ordinal = 5
@@ -49,17 +72,49 @@ values = [132098, 0, 192, 1174405120]
 ordinal = 10
 name = "RegisterTypeLib"
 decl = { args = ["segmented_pointer", "string", "string"] }
+binding = { rust_id = "TypelibRegisterTypeLib", id_value = 4000541, constant = "TYPELIB_REGISTERTYPELIB" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "FarString" },
+]
 
 [[exports]]
 ordinal = 11
 name = "LoadRegTypeLib"
 decl = { args = ["pointer", "word", "word", "long", "pointer"] }
+binding = { rust_id = "TypelibLoadRegTypeLib", id_value = 4000542, constant = "TYPELIB_LOADREGTYPELIB" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 14
 name = "QueryPathOfRegTypeLib"
 decl = { args = ["pointer", "word", "word", "long", "pointer"] }
+binding = { rust_id = "TypelibQueryPathOfRegTypeLib", id_value = 4000543, constant = "TYPELIB_QUERYPATHOFREGTYPELIB" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 15
 name = "OaBuildVersion"
+binding = { rust_id = "TypelibOaBuildVersion", id_value = 4000544, constant = "TYPELIB_OABUILDVERSION" }
+[exports.call]
+returns = "dword"
+
