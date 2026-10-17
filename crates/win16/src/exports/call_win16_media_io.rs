@@ -75,6 +75,38 @@ pub(super) fn decode(
             chunk: dword_argument(arguments, 1)?,
             flags: word_argument(arguments, 2)?,
         },
+        1215 => Win16MediaIoRequest::GetInfo {
+            handle: word_argument(arguments, 0)?,
+            info: dword_argument(arguments, 1)?,
+            flags: word_argument(arguments, 2)?,
+        },
+        1216 => Win16MediaIoRequest::SetInfo {
+            handle: word_argument(arguments, 0)?,
+            info: dword_argument(arguments, 1)?,
+            flags: word_argument(arguments, 2)?,
+        },
+        1217 => Win16MediaIoRequest::SetBuffer {
+            handle: word_argument(arguments, 0)?,
+            buffer: dword_argument(arguments, 1)?,
+            size: dword_argument(arguments, 2)? as i32,
+            flags: word_argument(arguments, 3)?,
+        },
+        1219 => Win16MediaIoRequest::Advance {
+            handle: word_argument(arguments, 0)?,
+            info: dword_argument(arguments, 1)?,
+            flags: word_argument(arguments, 2)?,
+        },
+        1221 => Win16MediaIoRequest::InstallIoProc {
+            fourcc: dword_argument(arguments, 0)?,
+            procedure: dword_argument(arguments, 1)?,
+            flags: dword_argument(arguments, 2)?,
+        },
+        1222 => Win16MediaIoRequest::SendMessage {
+            handle: word_argument(arguments, 0)?,
+            message: word_argument(arguments, 1)?,
+            param1: dword_argument(arguments, 2)? as i32,
+            param2: dword_argument(arguments, 3)? as i32,
+        },
         1226 => Win16MediaIoRequest::Rename {
             old_path: ordinary_string(dword_argument(arguments, 0)?, selectors, memory)?,
             new_path: ordinary_string(dword_argument(arguments, 1)?, selectors, memory)?,
@@ -115,3 +147,7 @@ fn ordinary_string(
     }
     Err(Win16Error::InvalidRange)
 }
+
+#[cfg(test)]
+#[path = "call_mmio_buffer_tests.rs"]
+mod mmio_buffer_tests;

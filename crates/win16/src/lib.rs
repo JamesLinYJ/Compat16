@@ -92,7 +92,7 @@ pub use exports::{
     Win16MidiDirection, Win16MidiRequest, Win16MidiStreamArgument, Win16MidiHeader16,
     Win16MidiInCaps16, Win16MidiOutCaps16, MIDIHDR16_SIZE, MIDIINCAPS16_SIZE,
     MIDIOUTCAPS16_SIZE,
-    Win16MmckInfo16, Win16Mmtime16, Win16Ole2DispArgument, Win16Ole2DispCall,
+    Win16MmckInfo16, Win16MmioInfo16, Win16Mmtime16, Win16Ole2DispArgument, Win16Ole2DispCall,
     Win16Ole2DispConvertCall, Win16Ole2DispConvertInput, Win16Ole2DispConvertOperation,
     Win16Ole2DispLocaleFlags, Win16Ole2NlsRequest, Win16Ole2NlsString, Win16OutputBuffer,
     Win16Parameter, Win16ParameterType, Win16ResourceName, Win16ReturnKind,

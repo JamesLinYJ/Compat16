@@ -1,5 +1,12 @@
 //! Synchronous MMIO calls with guest HMMIO aliases and checked FAR data.
 
+#[path = "win16_mmio_buffer.rs"]
+mod buffer;
+
+#[cfg(test)]
+#[path = "win16_mmio_buffer_tests.rs"]
+mod buffer_tests;
+
 use guest_core::{GuestMemory, memory::Memory};
 use win16_abi::{
     Access, Win16MediaIoRequest, Win16MmckInfo16, MAX_WIN16_STRING_BYTES,
@@ -36,15 +43,29 @@ impl Win16State {
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
         match request {
+            buffered @ (Win16MediaIoRequest::GetInfo { .. }
+            | Win16MediaIoRequest::SetInfo { .. }
+            | Win16MediaIoRequest::SetBuffer { .. }
+            | Win16MediaIoRequest::Advance { .. }
+            | Win16MediaIoRequest::InstallIoProc { .. }
+            | Win16MediaIoRequest::SendMessage { .. }) =>
+                self.mmio_buffer_request(buffered, memory, host),
             Win16MediaIoRequest::Open { path_far, info, flags } =>
                 self.open(path_far, info, flags, memory, host),
             Win16MediaIoRequest::Close { handle, flags } => {
                 let Some(native) = self.media_services.mmio_handle(handle) else {
                     return Ok(MMIOERR_CANNOTCLOSE);
                 };
+                if self.media_services.mmio_is_buffered(handle) {
+                    let flushed = self.flush_mmio_buffer(handle, memory, host)?;
+                    if flushed != 0 { return Ok(flushed); }
+                }
                 match host.win16_media_io(Operation::Close { handle: native, flags })? {
                     ResultValue::Scalar(result) => {
-                        if result == 0 { self.media_services.remove_mmio(handle); }
+                        if result == 0 {
+                            let owned = self.media_services.remove_mmio(handle);
+                            self.release_mmio_allocation(owned)?;
+                        }
                         Ok(u32::from(result as u16))
                     }
                     _ => Err(invariant("mmioClose returned the wrong host result shape")),
@@ -52,6 +73,9 @@ impl Win16State {
             }
             Win16MediaIoRequest::Read { handle, buffer, count } => {
                 if count < 0 { return Ok(u32::MAX); }
+                if self.media_services.mmio_is_buffered(handle) {
+                    return self.read_through_mmio_buffer(handle, buffer, count, memory, host);
+                }
                 let Some(native) = self.media_services.mmio_handle(handle) else {
                     return Ok(u32::MAX);
                 };
@@ -92,6 +116,9 @@ impl Win16State {
             }
             Win16MediaIoRequest::Write { handle, buffer, count } => {
                 if count < 0 { return Ok(u32::MAX); }
+                if self.media_services.mmio_is_buffered(handle) {
+                    return self.write_through_mmio_buffer(handle, buffer, count, memory, host);
+                }
                 let Some(native) = self.media_services.mmio_handle(handle) else {
                     return Ok(u32::MAX);
                 };
@@ -122,6 +149,9 @@ impl Win16State {
                 }
             }
             Win16MediaIoRequest::Seek { handle, offset, origin } => {
+                if self.media_services.mmio_is_buffered(handle) {
+                    return self.seek_through_mmio_buffer(handle, offset, origin, memory, host);
+                }
                 let Some(native) = self.media_services.mmio_handle(handle) else {
                     return Ok(u32::MAX);
                 };
@@ -133,6 +163,10 @@ impl Win16State {
                 }
             }
             Win16MediaIoRequest::Flush { handle, flags } => {
+                if self.media_services.mmio_is_buffered(handle) {
+                    let flushed = self.flush_mmio_buffer(handle, memory, host)?;
+                    if flushed != 0 { return Ok(flushed); }
+                }
                 let Some(native) = self.media_services.mmio_handle(handle) else {
                     return Ok(MMIOERR_CANNOTWRITE);
                 };
@@ -219,7 +253,7 @@ impl Win16State {
         match result {
             OpenResult::File(None) if flags & MMIO_NO_HANDLE_FLAGS == 0 => Ok(0),
             OpenResult::File(Some(handle)) if flags & MMIO_NO_HANDLE_FLAGS == 0 && handle.0 != 0 => {
-                if let Some(alias) = self.media_services.insert_mmio(handle) {
+                if let Some(alias) = self.media_services.insert_mmio(handle, flags) {
                     return Ok(u32::from(alias));
                 }
                 let error = match host.win16_media_io(Operation::Close { handle, flags: 0 }) {
