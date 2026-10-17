@@ -4,6 +4,9 @@ module = "KERNEL"
 ordinal = 2
 name = "ExitKernel"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelExitKernel", id_value = 1000000, constant = "KERNEL_EXITKERNEL" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 3
@@ -16,6 +19,12 @@ returns = "dword"
 ordinal = 14
 name = "LocalNotify"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelLocalNotify", id_value = 1000001, constant = "KERNEL_LOCALNOTIFY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 29
@@ -43,36 +52,67 @@ returns = "dword"
 ordinal = 38
 name = "SetTaskSignalProc"
 decl = { args = ["word", "segmented_pointer"] }
+binding = { rust_id = "KernelSetTaskSignalProc", id_value = 1000002, constant = "KERNEL_SETTASKSIGNALPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
 ordinal = 39
 name = "SetTaskSwitchProc"
 kind = "stub"
+binding = { rust_id = "KernelSetTaskSwitchProc", id_value = 1000003, constant = "KERNEL_SETTASKSWITCHPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
 ordinal = 40
 name = "SetTaskInterchange"
 kind = "stub"
+binding = { rust_id = "KernelSetTaskInterchange", id_value = 1000004, constant = "KERNEL_SETTASKINTERCHANGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
 ordinal = 41
 name = "EnableDos"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelEnableDos", id_value = 1000005, constant = "KERNEL_ENABLEDOS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 42
 name = "DisableDos"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelDisableDos", id_value = 1000006, constant = "KERNEL_DISABLEDOS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 43
 name = "IsScreenGrab"
 kind = "stub"
+binding = { rust_id = "KernelIsScreenGrab", id_value = 1000007, constant = "KERNEL_ISSCREENGRAB" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 44
 name = "BuildPDB"
 kind = "stub"
+binding = { rust_id = "KernelBuildPDB", id_value = 1000008, constant = "KERNEL_BUILDPDB" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 45
@@ -99,6 +139,9 @@ params = [{ name = "module", type = "U16" }]
 ordinal = 53
 name = "CallProcInstance"
 kind = "stub"
+binding = { rust_id = "KernelCallProcInstance", id_value = 1000009, constant = "KERNEL_CALLPROCINSTANCE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 55
@@ -122,11 +165,24 @@ params = [{ name = "buffer", type = "FarBuffer" }, { name = "value", type = "U16
 ordinal = 75
 name = "OpenPathName"
 kind = "stub"
+binding = { rust_id = "KernelOpenPathName", id_value = 1000010, constant = "KERNEL_OPENPATHNAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "NullableFarString" },
+  { name = "ofstruct", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 76
 name = "DeletePathName"
 kind = "stub"
+binding = { rust_id = "KernelDeletePathName", id_value = 1000011, constant = "KERNEL_DELETEPATHNAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "path", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 91
@@ -152,26 +208,44 @@ params = [
 ordinal = 94
 name = "DefineHandleTable"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "KernelDefineHandleTable", id_value = 1000012, constant = "KERNEL_DEFINEHANDLETABLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 98
 name = "GetLastDiskChange"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelGetLastDiskChange", id_value = 1000013, constant = "KERNEL_GETLASTDISKCHANGE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 99
 name = "GetLPErrMode"
 kind = "stub"
+binding = { rust_id = "KernelGetLPErrMode", id_value = 1000014, constant = "KERNEL_GETLPERRMODE" }
+[exports.call]
+returns = "far_pointer"
 
 [[exports]]
 ordinal = 100
 name = "ValidateCodeSegments"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelValidateCodeSegments", id_value = 1000015, constant = "KERNEL_VALIDATECODESEGMENTS" }
+[exports.call]
+returns = "void"
 
 [[exports]]
 ordinal = 101
 name = "NoHookDosCall"
 kind = "stub"
+binding = { rust_id = "KernelNoHookDosCall", id_value = 1000016, constant = "KERNEL_NOHOOKDOSCALL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 102
@@ -203,6 +277,12 @@ returns = "word"
 ordinal = 106
 name = "SetSwapAreaSize"
 decl = { args = ["word"] }
+binding = { rust_id = "KernelSetSwapAreaSize", id_value = 1000017, constant = "KERNEL_SETSWAPAREASIZE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 108
@@ -230,6 +310,12 @@ returns = "register_context"
 ordinal = 110
 name = "PatchCodeHandle"
 decl = { args = ["word"] }
+binding = { rust_id = "KernelPatchCodeHandle", id_value = 1000018, constant = "KERNEL_PATCHCODEHANDLE" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 113
@@ -247,11 +333,17 @@ value = 8
 ordinal = 116
 name = "InitLib"
 kind = "stub"
+binding = { rust_id = "KernelInitLib", id_value = 1000019, constant = "KERNEL_INITLIB" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 120
 name = "UndefDynLink"
 kind = "stub"
+binding = { rust_id = "KernelUndefDynLink", id_value = 1000020, constant = "KERNEL_UNDEFDYNLINK" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 121
@@ -269,21 +361,33 @@ params = [
 ordinal = 123
 name = "KbdRst"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelKbdRst", id_value = 1000021, constant = "KERNEL_KBDRST" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 124
 name = "EnableKernel"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelEnableKernel", id_value = 1000022, constant = "KERNEL_ENABLEKERNEL" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 125
 name = "DisableKernel"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelDisableKernel", id_value = 1000023, constant = "KERNEL_DISABLEKERNEL" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 126
 name = "MemoryFreed"
 kind = "stub"
+binding = { rust_id = "KernelMemoryFreed", id_value = 1000024, constant = "KERNEL_MEMORYFREED" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 131
@@ -303,26 +407,51 @@ returns = "dword"
 ordinal = 138
 name = "GetHeapSpaces"
 decl = { args = ["word"] }
+binding = { rust_id = "KernelGetHeapSpaces", id_value = 1000025, constant = "KERNEL_GETHEAPSPACES" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 139
 name = "DoSignal"
 kind = "stub"
+binding = { rust_id = "KernelDoSignal", id_value = 1000026, constant = "KERNEL_DOSIGNAL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 140
 name = "SetSigHandler"
 decl = { attributes = ["ret16"], args = ["segmented_pointer", "pointer", "pointer", "word", "word"] }
+binding = { rust_id = "KernelSetSigHandler", id_value = 1000027, constant = "KERNEL_SETSIGHANDLER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg1", type = "FarPointer" },
+  { name = "arg2", type = "FarPointer" },
+  { name = "arg3", type = "U16" },
+  { name = "arg4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 141
 name = "InitTask1"
 kind = "stub"
+binding = { rust_id = "KernelInitTask1", id_value = 1000028, constant = "KERNEL_INITTASK1" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 151
 name = "WinOldApCall"
 kind = "stub"
+binding = { rust_id = "KernelWinOldApCall", id_value = 1000029, constant = "KERNEL_WINOLDAPCALL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 152
@@ -336,6 +465,12 @@ returns = "word"
 ordinal = 154
 name = "GlobalNotify"
 decl = { attributes = ["ret16"], args = ["segmented_pointer"] }
+binding = { rust_id = "KernelGlobalNotify", id_value = 1000030, constant = "KERNEL_GLOBALNOTIFY" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "arg0", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
 ordinal = 155
@@ -349,21 +484,42 @@ returns = "word"
 ordinal = 156
 name = "LimitEMSPages"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelLimitEMSPages", id_value = 1000031, constant = "KERNEL_LIMITEMSPAGES" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 157
 name = "GetCurPID"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelGetCurPID", id_value = 1000032, constant = "KERNEL_GETCURPID" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 158
 name = "IsWinOldApTask"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "KernelIsWinOldApTask", id_value = 1000033, constant = "KERNEL_ISWINOLDAPTASK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 160
 name = "EMSCopy"
 kind = "stub"
+binding = { rust_id = "KernelEMSCopy", id_value = 1000034, constant = "KERNEL_EMSCOPY" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 161
@@ -385,11 +541,25 @@ returns = "word"
 ordinal = 165
 name = "A20Proc"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "KernelA20Proc", id_value = 1000035, constant = "KERNEL_A20PROC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 168
 name = "DirectResAlloc"
 decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
+binding = { rust_id = "KernelDirectResAlloc", id_value = 1000036, constant = "KERNEL_DIRECTRESALLOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "U16" },
+  { name = "arg2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 173
@@ -461,240 +631,541 @@ value = 0
 ordinal = 200
 name = "ValidateFreeSpaces"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelValidateFreeSpaces", id_value = 1000037, constant = "KERNEL_VALIDATEFREESPACES" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 201
 name = "ReplaceInst"
 kind = "stub"
+binding = { rust_id = "KernelReplaceInst", id_value = 1000038, constant = "KERNEL_REPLACEINST" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 202
 name = "RegisterPtrace"
 kind = "stub"
+binding = { rust_id = "KernelRegisterPtrace", id_value = 1000039, constant = "KERNEL_REGISTERPTRACE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 204
 name = "SwapRecording"
 kind = "stub"
+binding = { rust_id = "KernelSwapRecording", id_value = 1000040, constant = "KERNEL_SWAPRECORDING" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 205
 name = "CVWBreak"
 kind = "stub"
+binding = { rust_id = "KernelCVWBreak", id_value = 1000041, constant = "KERNEL_CVWBREAK" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 208
 name = "K208"
 decl = { args = ["word", "long", "long", "long"] }
+binding = { rust_id = "KernelK208", id_value = 1000042, constant = "KERNEL_K208" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U32" },
+  { name = "arg3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 209
 name = "K209"
 decl = { args = ["long", "long", "word", "long"] }
+binding = { rust_id = "KernelK209", id_value = 1000043, constant = "KERNEL_K209" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U16" },
+  { name = "arg3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 210
 name = "K210"
 decl = { args = ["long", "long", "word", "long", "long"] }
+binding = { rust_id = "KernelK210", id_value = 1000044, constant = "KERNEL_K210" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U16" },
+  { name = "arg3", type = "U32" },
+  { name = "arg4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 211
 name = "K211"
 decl = { args = ["long", "long", "word"] }
+binding = { rust_id = "KernelK211", id_value = 1000045, constant = "KERNEL_K211" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 213
 name = "K213"
 decl = { args = ["long", "long", "word", "word"] }
+binding = { rust_id = "KernelK213", id_value = 1000046, constant = "KERNEL_K213" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U16" },
+  { name = "arg3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 214
 name = "K214"
 decl = { args = ["long", "long", "word"] }
+binding = { rust_id = "KernelK214", id_value = 1000047, constant = "KERNEL_K214" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 215
 name = "K215"
 decl = { args = ["long", "word"] }
+binding = { rust_id = "KernelK215", id_value = 1000048, constant = "KERNEL_K215" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 216
 name = "RegEnumKey"
 decl = { args = ["long", "long", "pointer", "long"] }
+binding = { rust_id = "KernelRegEnumKey", id_value = 1000049, constant = "KERNEL_REGENUMKEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "FarPointer" },
+  { name = "arg3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 217
 name = "RegOpenKey"
 decl = { args = ["long", "string", "pointer"] }
+binding = { rust_id = "KernelRegOpenKey", id_value = 1000050, constant = "KERNEL_REGOPENKEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "NullableFarString" },
+  { name = "arg2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 218
 name = "RegCreateKey"
 decl = { args = ["long", "string", "pointer"] }
+binding = { rust_id = "KernelRegCreateKey", id_value = 1000051, constant = "KERNEL_REGCREATEKEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "NullableFarString" },
+  { name = "arg2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 219
 name = "RegDeleteKey"
 decl = { args = ["long", "string"] }
+binding = { rust_id = "KernelRegDeleteKey", id_value = 1000052, constant = "KERNEL_REGDELETEKEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 220
 name = "RegCloseKey"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelRegCloseKey", id_value = 1000053, constant = "KERNEL_REGCLOSEKEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 221
 name = "RegSetValue"
 decl = { args = ["long", "string", "long", "pointer", "long"] }
+binding = { rust_id = "KernelRegSetValue", id_value = 1000054, constant = "KERNEL_REGSETVALUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "NullableFarString" },
+  { name = "arg2", type = "U32" },
+  { name = "arg3", type = "FarPointer" },
+  { name = "arg4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 222
 name = "RegDeleteValue"
 decl = { args = ["long", "string"] }
+binding = { rust_id = "KernelRegDeleteValue", id_value = 1000055, constant = "KERNEL_REGDELETEVALUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 223
 name = "RegEnumValue"
 decl = { args = ["long", "long", "pointer", "pointer", "pointer", "pointer", "pointer", "pointer"] }
+binding = { rust_id = "KernelRegEnumValue", id_value = 1000056, constant = "KERNEL_REGENUMVALUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "FarPointer" },
+  { name = "arg3", type = "FarPointer" },
+  { name = "arg4", type = "FarPointer" },
+  { name = "arg5", type = "FarPointer" },
+  { name = "arg6", type = "FarPointer" },
+  { name = "arg7", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 224
 name = "RegQueryValue"
 decl = { args = ["long", "string", "pointer", "pointer"] }
+binding = { rust_id = "KernelRegQueryValue", id_value = 1000057, constant = "KERNEL_REGQUERYVALUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "NullableFarString" },
+  { name = "arg2", type = "FarPointer" },
+  { name = "arg3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 225
 name = "RegQueryValueEx"
 decl = { args = ["long", "string", "pointer", "pointer", "pointer", "pointer"] }
+binding = { rust_id = "KernelRegQueryValueEx", id_value = 1000058, constant = "KERNEL_REGQUERYVALUEEX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "NullableFarString" },
+  { name = "arg2", type = "FarPointer" },
+  { name = "arg3", type = "FarPointer" },
+  { name = "arg4", type = "FarPointer" },
+  { name = "arg5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 226
 name = "RegSetValueEx"
 decl = { args = ["long", "string", "long", "long", "pointer", "long"] }
+binding = { rust_id = "KernelRegSetValueEx", id_value = 1000059, constant = "KERNEL_REGSETVALUEEX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "NullableFarString" },
+  { name = "arg2", type = "U32" },
+  { name = "arg3", type = "U32" },
+  { name = "arg4", type = "FarPointer" },
+  { name = "arg5", type = "U32" },
+]
 
 [[exports]]
 ordinal = 227
 name = "RegFlushKey"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelRegFlushKey", id_value = 1000060, constant = "KERNEL_REGFLUSHKEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 228
 name = "K228"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "KernelK228", id_value = 1000061, constant = "KERNEL_K228" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 229
 name = "K229"
 decl = { attributes = ["ret16"], args = ["long"] }
+binding = { rust_id = "KernelK229", id_value = 1000062, constant = "KERNEL_K229" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 232
 name = "RegLoadKey"
 kind = "stub"
+binding = { rust_id = "KernelRegLoadKey", id_value = 1000063, constant = "KERNEL_REGLOADKEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "key", type = "U32" },
+  { name = "subkey", type = "NullableFarString" },
+  { name = "file", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 233
 name = "RegUnloadKey"
 kind = "stub"
+binding = { rust_id = "KernelRegUnloadKey", id_value = 1000064, constant = "KERNEL_REGUNLOADKEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "key", type = "U32" },
+  { name = "subkey", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 234
 name = "RegSaveKey"
 kind = "stub"
+binding = { rust_id = "KernelRegSaveKey", id_value = 1000065, constant = "KERNEL_REGSAVEKEY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "key", type = "U32" },
+  { name = "file", type = "NullableFarString" },
+  { name = "security", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 235
 name = "InvalidateNlsCache"
 kind = "stub"
+binding = { rust_id = "KernelInvalidateNlsCache", id_value = 1000066, constant = "KERNEL_INVALIDATENLSCACHE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 236
 name = "GetProductName"
 kind = "stub"
+binding = { rust_id = "KernelGetProductName", id_value = 1000067, constant = "KERNEL_GETPRODUCTNAME" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 237
 name = "K237"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelK237", id_value = 1000068, constant = "KERNEL_K237" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 262
 name = "WOWWaitForMsgAndEvent"
 kind = "stub"
+binding = { rust_id = "KernelWOWWaitForMsgAndEvent", id_value = 1000069, constant = "KERNEL_WOWWAITFORMSGANDEVENT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 263
 name = "WOWMsgBox"
 kind = "stub"
+binding = { rust_id = "KernelWOWMsgBox", id_value = 1000070, constant = "KERNEL_WOWMSGBOX" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 273
 name = "K273"
 kind = "stub"
+binding = { rust_id = "KernelK273", id_value = 1000071, constant = "KERNEL_K273" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 311
 name = "GetSetKernelDOSProc"
 decl = { args = ["pointer"] }
+binding = { rust_id = "KernelGetSetKernelDOSProc", id_value = 1000072, constant = "KERNEL_GETSETKERNELDOSPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 314
 name = "DebugDefineSegment"
 kind = "stub"
+binding = { rust_id = "KernelDebugDefineSegment", id_value = 1000073, constant = "KERNEL_DEBUGDEFINESEGMENT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 315
 name = "WriteOutProfiles"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelWriteOutProfiles", id_value = 1000074, constant = "KERNEL_WRITEOUTPROFILES" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 316
 name = "GetFreeMemInfo"
+binding = { rust_id = "KernelGetFreeMemInfo", id_value = 1000075, constant = "KERNEL_GETFREEMEMINFO" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 318
 name = "FatalExitHook"
 kind = "stub"
+binding = { rust_id = "KernelFatalExitHook", id_value = 1000076, constant = "KERNEL_FATALEXITHOOK" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 319
 name = "FlushCachedFileHandle"
 kind = "stub"
+binding = { rust_id = "KernelFlushCachedFileHandle", id_value = 1000077, constant = "KERNEL_FLUSHCACHEDFILEHANDLE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 323
 name = "IsRomModule"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "KernelIsRomModule", id_value = 1000078, constant = "KERNEL_ISROMMODULE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 324
 name = "LogError"
 decl = { attributes = ["ret16"], args = ["word", "pointer"] }
+binding = { rust_id = "KernelLogError", id_value = 1000079, constant = "KERNEL_LOGERROR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 325
 name = "LogParamError"
 decl = { attributes = ["ret16"], args = ["word", "pointer", "pointer"] }
+binding = { rust_id = "KernelLogParamError", id_value = 1000080, constant = "KERNEL_LOGPARAMERROR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "FarPointer" },
+  { name = "arg2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 326
 name = "IsRomFile"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "KernelIsRomFile", id_value = 1000081, constant = "KERNEL_ISROMFILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 327
 name = "K327"
 decl = { attributes = ["register"] }
+binding = { rust_id = "KernelK327", id_value = 1000082, constant = "KERNEL_K327" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
 
 [[exports]]
 ordinal = 328
 name = "_DebugOutput"
 decl = { type = "varargs", attributes = ["ret16"], args = ["word", "string"] }
+binding = { rust_id = "KernelDebugOutput", id_value = 1000083, constant = "KERNEL_DEBUGOUTPUT" }
+[exports.call]
+kind = "variable_stack"
+convention = "varargs"
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 329
 name = "K329"
 decl = { attributes = ["ret16"], args = ["string", "word"] }
+binding = { rust_id = "KernelK329", id_value = 1000084, constant = "KERNEL_K329" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "NullableFarString" },
+  { name = "arg1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 332
@@ -706,21 +1177,42 @@ values = [0, 0, 0, 0, 0, 0, 0, 0]
 ordinal = 338
 name = "HasGPHandler"
 decl = { attributes = ["ret16"], args = ["segmented_pointer"] }
+binding = { rust_id = "KernelHasGPHandler", id_value = 1000085, constant = "KERNEL_HASGPHANDLER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
 ordinal = 339
 name = "DiagQuery"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelDiagQuery", id_value = 1000086, constant = "KERNEL_DIAGQUERY" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 340
 name = "DiagOutput"
 decl = { attributes = ["ret16"], args = ["string"] }
+binding = { rust_id = "KernelDiagOutput", id_value = 1000087, constant = "KERNEL_DIAGOUTPUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 341
 name = "ToolHelpHook"
 decl = { args = ["pointer"] }
+binding = { rust_id = "KernelToolHelpHook", id_value = 1000088, constant = "KERNEL_TOOLHELPHOOK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 342
@@ -732,174 +1224,361 @@ values = [0, 0]
 ordinal = 343
 name = "RegisterWinOldApHook"
 kind = "stub"
+binding = { rust_id = "KernelRegisterWinOldApHook", id_value = 1000089, constant = "KERNEL_REGISTERWINOLDAPHOOK" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 344
 name = "GetWinOldApHooks"
 kind = "stub"
+binding = { rust_id = "KernelGetWinOldApHooks", id_value = 1000090, constant = "KERNEL_GETWINOLDAPHOOKS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 351
 name = "BUNNY_351"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelBunny351", id_value = 1000091, constant = "KERNEL_BUNNY_351" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 354
 name = "GetAppCompatFlags"
 decl = { args = ["word"] }
+binding = { rust_id = "KernelGetAppCompatFlags", id_value = 1000092, constant = "KERNEL_GETAPPCOMPATFLAGS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 355
 name = "GetWinDebugInfo"
 decl = { attributes = ["ret16"], args = ["pointer", "word"] }
+binding = { rust_id = "KernelGetWinDebugInfo", id_value = 1000093, constant = "KERNEL_GETWINDEBUGINFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+  { name = "arg1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 356
 name = "SetWinDebugInfo"
 decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "KernelSetWinDebugInfo", id_value = 1000094, constant = "KERNEL_SETWINDEBUGINFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 360
 name = "OpenFileEx"
 decl = { attributes = ["ret16"], args = ["string", "pointer", "word"] }
+binding = { rust_id = "KernelOpenFileEx", id_value = 1000095, constant = "KERNEL_OPENFILEEX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "NullableFarString" },
+  { name = "arg1", type = "FarPointer" },
+  { name = "arg2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 361
 name = "PIGLET_361"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelPiglet361", id_value = 1000096, constant = "KERNEL_PIGLET_361" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 362
 name = "ThunkTerminateProcess"
 kind = "stub"
+binding = { rust_id = "KernelThunkTerminateProcess", id_value = 1000097, constant = "KERNEL_THUNKTERMINATEPROCESS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 408
 name = "KERNEL_408"
 kind = "stub"
+binding = { rust_id = "KernelKernel408", id_value = 1000098, constant = "KERNEL_KERNEL_408" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 409
 name = "KERNEL_409"
 kind = "stub"
+binding = { rust_id = "KernelKernel409", id_value = 1000099, constant = "KERNEL_KERNEL_409" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 410
 name = "CreateProcessFromWinExec"
 kind = "stub"
+binding = { rust_id = "KernelCreateProcessFromWinExec", id_value = 1000100, constant = "KERNEL_CREATEPROCESSFROMWINEXEC" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 423
 name = "LogApiThk"
 decl = { attributes = ["ret16"], args = ["string"] }
+binding = { rust_id = "KernelLogApiThk", id_value = 1000101, constant = "KERNEL_LOGAPITHK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 431
 name = "IsPeFormat"
 decl = { attributes = ["ret16"], args = ["string", "word"] }
+binding = { rust_id = "KernelIsPeFormat", id_value = 1000102, constant = "KERNEL_ISPEFORMAT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "NullableFarString" },
+  { name = "arg1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 432
 name = "FileTimeToLocalFileTime"
 kind = "stub"
+binding = { rust_id = "KernelFileTimeToLocalFileTime", id_value = 1000103, constant = "KERNEL_FILETIMETOLOCALFILETIME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "file_time", type = "FarPointer" },
+  { name = "local_time", type = "FarOutputBuffer" },
+]
 
 [[exports]]
 ordinal = 434
 name = "UnicodeToAnsi"
 decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word"] }
+binding = { rust_id = "KernelUnicodeToAnsi", id_value = 1000104, constant = "KERNEL_UNICODETOANSI" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "source", type = "FarPointer" },
+  { name = "destination", type = "FarPointer" },
+  { name = "code_page", type = "U16" },
+]
 
 [[exports]]
 ordinal = 435
 name = "GetTaskFlags"
 kind = "stub"
+binding = { rust_id = "KernelGetTaskFlags", id_value = 1000105, constant = "KERNEL_GETTASKFLAGS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 436
 name = "_ConfirmSysLevel"
 decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "KernelConfirmSysLevel", id_value = 1000106, constant = "KERNEL_CONFIRMSYSLEVEL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 437
 name = "_CheckNotSysLevel"
 decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "KernelCheckNotSysLevel", id_value = 1000107, constant = "KERNEL_CHECKNOTSYSLEVEL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 438
 name = "_CreateSysLevel"
 decl = { attributes = ["ret16"], args = ["pointer", "long"] }
+binding = { rust_id = "KernelCreateSysLevel", id_value = 1000108, constant = "KERNEL_CREATESYSLEVEL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 439
 name = "_EnterSysLevel"
 decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "KernelEnterSysLevel", id_value = 1000109, constant = "KERNEL_ENTERSYSLEVEL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 440
 name = "_LeaveSysLevel"
 decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "KernelLeaveSysLevel", id_value = 1000110, constant = "KERNEL_LEAVESYSLEVEL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 441
 name = "CreateThread16"
 decl = { args = ["pointer", "long", "segmented_pointer", "segmented_pointer", "long", "pointer"] }
+binding = { rust_id = "KernelCreateThread16", id_value = 1000111, constant = "KERNEL_CREATETHREAD16" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "FarPointer" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg3", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg4", type = "U32" },
+  { name = "arg5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 442
 name = "VWin32_EventCreate"
+binding = { rust_id = "KernelVWin32EventCreate", id_value = 1000112, constant = "KERNEL_VWIN32_EVENTCREATE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 443
 name = "VWin32_EventDestroy"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelVWin32EventDestroy", id_value = 1000113, constant = "KERNEL_VWIN32_EVENTDESTROY" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 444
 name = "Local32Info"
 decl = { attributes = ["ret16"], args = ["pointer", "word"] }
+binding = { rust_id = "KernelLocal32Info", id_value = 1000114, constant = "KERNEL_LOCAL32INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+  { name = "arg1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 445
 name = "Local32First"
 decl = { attributes = ["ret16"], args = ["pointer", "word"] }
+binding = { rust_id = "KernelLocal32First", id_value = 1000115, constant = "KERNEL_LOCAL32FIRST" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+  { name = "arg1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 446
 name = "Local32Next"
 decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "KernelLocal32Next", id_value = 1000116, constant = "KERNEL_LOCAL32NEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 447
 name = "WIN32_OldYield"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelWin32OldYield", id_value = 1000117, constant = "KERNEL_WIN32_OLDYIELD" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 448
 name = "KERNEL_448"
 kind = "stub"
+binding = { rust_id = "KernelKernel448", id_value = 1000118, constant = "KERNEL_KERNEL_448" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 449
 name = "GetpWin16Lock"
+binding = { rust_id = "KernelGetpWin16Lock", id_value = 1000119, constant = "KERNEL_GETPWIN16LOCK" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 450
 name = "VWin32_EventWait"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelVWin32EventWait", id_value = 1000120, constant = "KERNEL_VWIN32_EVENTWAIT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 451
 name = "VWin32_EventSet"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelVWin32EventSet", id_value = 1000121, constant = "KERNEL_VWIN32_EVENTSET" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 452
 name = "LoadLibrary32"
 decl = { args = ["string"] }
+binding = { rust_id = "KernelLoadLibrary32", id_value = 1000122, constant = "KERNEL_LOADLIBRARY32" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 453
 name = "GetProcAddress32"
 decl = { args = ["long", "string"] }
+binding = { rust_id = "KernelGetProcAddress32", id_value = 1000123, constant = "KERNEL_GETPROCADDRESS32" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 454
@@ -917,249 +1596,490 @@ value = 0
 ordinal = 457
 name = "CreateW32Event"
 decl = { args = ["long", "long"] }
+binding = { rust_id = "KernelCreateW32Event", id_value = 1000124, constant = "KERNEL_CREATEW32EVENT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 458
 name = "SetW32Event"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelSetW32Event", id_value = 1000125, constant = "KERNEL_SETW32EVENT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 459
 name = "ResetW32Event"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelResetW32Event", id_value = 1000126, constant = "KERNEL_RESETW32EVENT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 460
 name = "WaitForSingleObject"
 decl = { args = ["long", "long"] }
+binding = { rust_id = "KernelWaitForSingleObject", id_value = 1000127, constant = "KERNEL_WAITFORSINGLEOBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 461
 name = "WaitForMultipleObjects"
 decl = { args = ["long", "pointer", "long", "long"] }
+binding = { rust_id = "KernelWaitForMultipleObjects", id_value = 1000128, constant = "KERNEL_WAITFORMULTIPLEOBJECTS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "FarPointer" },
+  { name = "arg2", type = "U32" },
+  { name = "arg3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 462
 name = "GetCurrentThreadId"
+binding = { rust_id = "KernelGetCurrentThreadId", id_value = 1000129, constant = "KERNEL_GETCURRENTTHREADID" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 463
 name = "SetThreadQueue"
 decl = { args = ["long", "word"] }
+binding = { rust_id = "KernelSetThreadQueue", id_value = 1000130, constant = "KERNEL_SETTHREADQUEUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 464
 name = "GetThreadQueue"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelGetThreadQueue", id_value = 1000131, constant = "KERNEL_GETTHREADQUEUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 465
 name = "NukeProcess"
 kind = "stub"
+binding = { rust_id = "KernelNukeProcess", id_value = 1000132, constant = "KERNEL_NUKEPROCESS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 467
 name = "WOACreateConsole"
 kind = "stub"
+binding = { rust_id = "KernelWOACreateConsole", id_value = 1000133, constant = "KERNEL_WOACREATECONSOLE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 468
 name = "WOASpawnConApp"
 kind = "stub"
+binding = { rust_id = "KernelWOASpawnConApp", id_value = 1000134, constant = "KERNEL_WOASPAWNCONAPP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 469
 name = "WOAGimmeTitle"
 kind = "stub"
+binding = { rust_id = "KernelWOAGimmeTitle", id_value = 1000135, constant = "KERNEL_WOAGIMMETITLE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 470
 name = "WOADestroyConsole"
 kind = "stub"
+binding = { rust_id = "KernelWOADestroyConsole", id_value = 1000136, constant = "KERNEL_WOADESTROYCONSOLE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 471
 name = "GetCurrentProcessId"
+binding = { rust_id = "KernelGetCurrentProcessId", id_value = 1000137, constant = "KERNEL_GETCURRENTPROCESSID" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 472
 name = "MapHInstLS"
 decl = { attributes = ["register"] }
+binding = { rust_id = "KernelMapHInstLS", id_value = 1000138, constant = "KERNEL_MAPHINSTLS" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
 
 [[exports]]
 ordinal = 473
 name = "MapHInstSL"
 decl = { attributes = ["register"] }
+binding = { rust_id = "KernelMapHInstSL", id_value = 1000139, constant = "KERNEL_MAPHINSTSL" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
 
 [[exports]]
 ordinal = 474
 name = "CloseW32Handle"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelCloseW32Handle", id_value = 1000140, constant = "KERNEL_CLOSEW32HANDLE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 475
 name = "GetTEBSelectorFS"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelGetTEBSelectorFS", id_value = 1000141, constant = "KERNEL_GETTEBSELECTORFS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 476
 name = "ConvertToGlobalHandle"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelConvertToGlobalHandle", id_value = 1000142, constant = "KERNEL_CONVERTTOGLOBALHANDLE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 477
 name = "WOAFullScreen"
 kind = "stub"
+binding = { rust_id = "KernelWOAFullScreen", id_value = 1000143, constant = "KERNEL_WOAFULLSCREEN" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 478
 name = "WOATerminateProcess"
 kind = "stub"
+binding = { rust_id = "KernelWOATerminateProcess", id_value = 1000144, constant = "KERNEL_WOATERMINATEPROCESS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 479
 name = "KERNEL_479"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelKernel479", id_value = 1000145, constant = "KERNEL_KERNEL_479" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 480
 name = "_EnterWin16Lock"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelEnterWin16Lock", id_value = 1000146, constant = "KERNEL_ENTERWIN16LOCK" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 481
 name = "_LeaveWin16Lock"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelLeaveWin16Lock", id_value = 1000147, constant = "KERNEL_LEAVEWIN16LOCK" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 482
 name = "LoadSystemLibrary32"
 decl = { args = ["string"] }
+binding = { rust_id = "KernelLoadSystemLibrary32", id_value = 1000148, constant = "KERNEL_LOADSYSTEMLIBRARY32" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 483
 name = "MapProcessHandle"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelMapProcessHandle", id_value = 1000149, constant = "KERNEL_MAPPROCESSHANDLE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 484
 name = "SetProcessDword"
 decl = { args = ["long", "signed_word", "long"] }
+binding = { rust_id = "KernelSetProcessDword", id_value = 1000150, constant = "KERNEL_SETPROCESSDWORD" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "I16" },
+  { name = "arg2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 485
 name = "GetProcessDword"
 decl = { args = ["long", "signed_word"] }
+binding = { rust_id = "KernelGetProcessDword", id_value = 1000151, constant = "KERNEL_GETPROCESSDWORD" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "I16" },
+]
 
 [[exports]]
 ordinal = 486
 name = "FreeLibrary32"
 decl = { args = ["long"] }
+binding = { rust_id = "KernelFreeLibrary32", id_value = 1000152, constant = "KERNEL_FREELIBRARY32" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 487
 name = "GetModuleFileName32"
 decl = { args = ["long", "string", "word"] }
+binding = { rust_id = "KernelGetModuleFileName32", id_value = 1000153, constant = "KERNEL_GETMODULEFILENAME32" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "NullableFarString" },
+  { name = "arg2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 488
 name = "GetModuleHandle32"
 decl = { args = ["string"] }
+binding = { rust_id = "KernelGetModuleHandle32", id_value = 1000154, constant = "KERNEL_GETMODULEHANDLE32" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "NullableFarString" },
+]
 
 [[exports]]
 ordinal = 489
 name = "KERNEL_489"
 kind = "stub"
+binding = { rust_id = "KernelKernel489", id_value = 1000155, constant = "KERNEL_KERNEL_489" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 490
 name = "KERNEL_490"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "KernelKernel490", id_value = 1000156, constant = "KERNEL_KERNEL_490" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 491
 name = "RegisterServiceProcess"
 decl = { args = ["long", "long"] }
+binding = { rust_id = "KernelRegisterServiceProcess", id_value = 1000157, constant = "KERNEL_REGISTERSERVICEPROCESS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 492
 name = "WOAAbort"
 kind = "stub"
+binding = { rust_id = "KernelWOAAbort", id_value = 1000158, constant = "KERNEL_WOAABORT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 493
 name = "UTInit"
 decl = { attributes = ["ret16"], args = ["long", "long", "long", "long"] }
+binding = { rust_id = "KernelUTInit", id_value = 1000159, constant = "KERNEL_UTINIT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U32" },
+  { name = "arg3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 494
 name = "KERNEL_494"
 kind = "stub"
+binding = { rust_id = "KernelKernel494", id_value = 1000160, constant = "KERNEL_KERNEL_494" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 495
 name = "WaitForMultipleObjectsEx"
 decl = { args = ["long", "pointer", "long", "long", "long"] }
+binding = { rust_id = "KernelWaitForMultipleObjectsEx", id_value = 1000161, constant = "KERNEL_WAITFORMULTIPLEOBJECTSEX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "FarPointer" },
+  { name = "arg2", type = "U32" },
+  { name = "arg3", type = "U32" },
+  { name = "arg4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 500
 name = "WOW16Call"
 decl = { type = "varargs", args = ["word", "word", "word"] }
+binding = { rust_id = "KernelWow16Call", id_value = 1000162, constant = "KERNEL_WOW16CALL" }
+[exports.call]
+kind = "variable_stack"
+convention = "varargs"
+returns = "dword"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "U16" },
+  { name = "arg2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 501
 name = "KDDBGOUT"
 kind = "stub"
+binding = { rust_id = "KernelKddbgout", id_value = 1000163, constant = "KERNEL_KDDBGOUT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 502
 name = "WOWGETNEXTVDMCOMMAND"
 kind = "stub"
+binding = { rust_id = "KernelWowgetnextvdmcommand", id_value = 1000164, constant = "KERNEL_WOWGETNEXTVDMCOMMAND" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 503
 name = "WOWREGISTERSHELLWINDOWHANDLE"
 kind = "stub"
+binding = { rust_id = "KernelWowregistershellwindowhandle", id_value = 1000165, constant = "KERNEL_WOWREGISTERSHELLWINDOWHANDLE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 504
 name = "WOWLOADMODULE"
 kind = "stub"
+binding = { rust_id = "KernelWowloadmodule", id_value = 1000166, constant = "KERNEL_WOWLOADMODULE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 505
 name = "WOWQUERYPERFORMANCECOUNTER"
 kind = "stub"
+binding = { rust_id = "KernelWowqueryperformancecounter", id_value = 1000167, constant = "KERNEL_WOWQUERYPERFORMANCECOUNTER" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 506
 name = "WOWCURSORICONOP"
 kind = "stub"
+binding = { rust_id = "KernelWowcursoriconop", id_value = 1000168, constant = "KERNEL_WOWCURSORICONOP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 507
 name = "WOWFAILEDEXEC"
 kind = "stub"
+binding = { rust_id = "KernelWowfailedexec", id_value = 1000169, constant = "KERNEL_WOWFAILEDEXEC" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 508
 name = "WOWCLOSECOMPORT"
 kind = "stub"
+binding = { rust_id = "KernelWowclosecomport", id_value = 1000170, constant = "KERNEL_WOWCLOSECOMPORT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 511
 name = "WOWKILLREMOTETASK"
 kind = "stub"
+binding = { rust_id = "KernelWowkillremotetask", id_value = 1000171, constant = "KERNEL_WOWKILLREMOTETASK" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 512
 name = "WOWQUERYDEBUG"
 kind = "stub"
+binding = { rust_id = "KernelWowquerydebug", id_value = 1000172, constant = "KERNEL_WOWQUERYDEBUG" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 519
 name = "EXITKERNELTHUNK"
 kind = "stub"
+binding = { rust_id = "KernelExitkernelthunk", id_value = 1000173, constant = "KERNEL_EXITKERNELTHUNK" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 520
@@ -1243,301 +2163,634 @@ value = 4213
 ordinal = 533
 name = "ConvertDDEHandleLS"
 kind = "stub"
+binding = { rust_id = "KernelConvertDDEHandleLS", id_value = 1000174, constant = "KERNEL_CONVERTDDEHANDLELS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 534
 name = "ConvertDDEHandleSL"
 kind = "stub"
+binding = { rust_id = "KernelConvertDDEHandleSL", id_value = 1000175, constant = "KERNEL_CONVERTDDEHANDLESL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 535
 name = "VWin32_BoostThreadGroup"
 decl = { args = ["long", "long"] }
+binding = { rust_id = "KernelVWin32BoostThreadGroup", id_value = 1000176, constant = "KERNEL_VWIN32_BOOSTTHREADGROUP" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 536
 name = "VWin32_BoostThreadStatic"
 decl = { args = ["long", "long"] }
+binding = { rust_id = "KernelVWin32BoostThreadStatic", id_value = 1000177, constant = "KERNEL_VWIN32_BOOSTTHREADSTATIC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 537
 name = "KERNEL_537"
 kind = "stub"
+binding = { rust_id = "KernelKernel537", id_value = 1000178, constant = "KERNEL_KERNEL_537" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 538
 name = "ThunkTheTemplateHandle"
 kind = "stub"
+binding = { rust_id = "KernelThunkTheTemplateHandle", id_value = 1000179, constant = "KERNEL_THUNKTHETEMPLATEHANDLE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 540
 name = "KERNEL_540"
 kind = "stub"
+binding = { rust_id = "KernelKernel540", id_value = 1000180, constant = "KERNEL_KERNEL_540" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 541
 name = "WOWSETEXITONLASTAPP"
 kind = "stub"
+binding = { rust_id = "KernelWowsetexitonlastapp", id_value = 1000181, constant = "KERNEL_WOWSETEXITONLASTAPP" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 542
 name = "KERNEL_542"
 kind = "stub"
+binding = { rust_id = "KernelKernel542", id_value = 1000182, constant = "KERNEL_KERNEL_542" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 543
 name = "KERNEL_543"
 kind = "stub"
+binding = { rust_id = "KernelKernel543", id_value = 1000183, constant = "KERNEL_KERNEL_543" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 544
 name = "WOWSETCOMPATHANDLE"
 kind = "stub"
+binding = { rust_id = "KernelWowsetcompathandle", id_value = 1000184, constant = "KERNEL_WOWSETCOMPATHANDLE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 560
 name = "SetThunkletCallbackGlue"
 decl = { args = ["long", "segmented_pointer"] }
+binding = { rust_id = "KernelSetThunkletCallbackGlue", id_value = 1000185, constant = "KERNEL_SETTHUNKLETCALLBACKGLUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "FarPointer", encoding = "segmented_pointer" },
+]
 
 [[exports]]
 ordinal = 561
 name = "AllocLSThunkletCallback"
 decl = { args = ["segmented_pointer", "long"] }
+binding = { rust_id = "KernelAllocLSThunkletCallback", id_value = 1000186, constant = "KERNEL_ALLOCLSTHUNKLETCALLBACK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 562
 name = "AllocSLThunkletCallback"
 decl = { args = ["long", "long"] }
+binding = { rust_id = "KernelAllocSLThunkletCallback", id_value = 1000187, constant = "KERNEL_ALLOCSLTHUNKLETCALLBACK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 563
 name = "FindLSThunkletCallback"
 decl = { args = ["segmented_pointer", "long"] }
+binding = { rust_id = "KernelFindLSThunkletCallback", id_value = 1000188, constant = "KERNEL_FINDLSTHUNKLETCALLBACK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 564
 name = "FindSLThunkletCallback"
 decl = { args = ["long", "long"] }
+binding = { rust_id = "KernelFindSLThunkletCallback", id_value = 1000189, constant = "KERNEL_FINDSLTHUNKLETCALLBACK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 566
 name = "KERNEL_566"
 kind = "stub"
+binding = { rust_id = "KernelKernel566", id_value = 1000190, constant = "KERNEL_KERNEL_566" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 567
 name = "AllocLSThunkletCallbackEx"
 decl = { args = ["segmented_pointer", "long", "word"] }
+binding = { rust_id = "KernelAllocLSThunkletCallbackEx", id_value = 1000191, constant = "KERNEL_ALLOCLSTHUNKLETCALLBACKEX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 568
 name = "AllocSLThunkletCallbackEx"
 decl = { args = ["long", "long", "word"] }
+binding = { rust_id = "KernelAllocSLThunkletCallbackEx", id_value = 1000192, constant = "KERNEL_ALLOCSLTHUNKLETCALLBACKEX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 600
 name = "AllocCodeAlias"
 kind = "stub"
+binding = { rust_id = "KernelAllocCodeAlias", id_value = 1000193, constant = "KERNEL_ALLOCCODEALIAS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 601
 name = "FreeCodeAlias"
 kind = "stub"
+binding = { rust_id = "KernelFreeCodeAlias", id_value = 1000194, constant = "KERNEL_FREECODEALIAS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 602
 name = "GetDummyModuleHandleDS"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "KernelGetDummyModuleHandleDS", id_value = 1000195, constant = "KERNEL_GETDUMMYMODULEHANDLEDS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 603
 name = "KERNEL_603"
 kind = "stub"
+binding = { rust_id = "KernelKernel603", id_value = 1000196, constant = "KERNEL_KERNEL_603" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 604
 name = "CBClientGlueSL"
 decl = { attributes = ["register"] }
+binding = { rust_id = "KernelCBClientGlueSL", id_value = 1000197, constant = "KERNEL_CBCLIENTGLUESL" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
 
 [[exports]]
 ordinal = 605
 name = "AllocSLThunkletCallback_dup"
 decl = { args = ["long", "long"] }
+binding = { rust_id = "KernelAllocSLThunkletCallbackDup", id_value = 1000198, constant = "KERNEL_ALLOCSLTHUNKLETCALLBACK_DUP" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 606
 name = "AllocLSThunkletCallback_dup"
 decl = { args = ["segmented_pointer", "long"] }
+binding = { rust_id = "KernelAllocLSThunkletCallbackDup", id_value = 1000199, constant = "KERNEL_ALLOCLSTHUNKLETCALLBACK_DUP" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 607
 name = "AllocLSThunkletSysthunk"
 decl = { args = ["segmented_pointer", "long", "long"] }
+binding = { rust_id = "KernelAllocLSThunkletSysthunk", id_value = 1000200, constant = "KERNEL_ALLOCLSTHUNKLETSYSTHUNK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 608
 name = "AllocSLThunkletSysthunk"
 decl = { args = ["long", "segmented_pointer", "long"] }
+binding = { rust_id = "KernelAllocSLThunkletSysthunk", id_value = 1000201, constant = "KERNEL_ALLOCSLTHUNKLETSYSTHUNK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 609
 name = "FindLSThunkletCallback_dup"
 decl = { args = ["segmented_pointer", "long"] }
+binding = { rust_id = "KernelFindLSThunkletCallbackDup", id_value = 1000202, constant = "KERNEL_FINDLSTHUNKLETCALLBACK_DUP" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 610
 name = "FindSLThunkletCallback_dup"
 decl = { args = ["long", "long"] }
+binding = { rust_id = "KernelFindSLThunkletCallbackDup", id_value = 1000203, constant = "KERNEL_FINDSLTHUNKLETCALLBACK_DUP" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 611
 name = "FreeThunklet"
 decl = { attributes = ["ret16"], args = ["long", "long"] }
+binding = { rust_id = "KernelFreeThunklet", id_value = 1000204, constant = "KERNEL_FREETHUNKLET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 612
 name = "IsSLThunklet"
 decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "KernelIsSLThunklet", id_value = 1000205, constant = "KERNEL_ISSLTHUNKLET" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 613
 name = "HugeMapLS"
 kind = "stub"
+binding = { rust_id = "KernelHugeMapLS", id_value = 1000206, constant = "KERNEL_HUGEMAPLS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 614
 name = "HugeUnMapLS"
 kind = "stub"
+binding = { rust_id = "KernelHugeUnMapLS", id_value = 1000207, constant = "KERNEL_HUGEUNMAPLS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 615
 name = "ConvertDialog32To16"
 decl = { attributes = ["ret16"], args = ["long", "long", "long"] }
+binding = { rust_id = "KernelConvertDialog32To16", id_value = 1000208, constant = "KERNEL_CONVERTDIALOG32TO16" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 616
 name = "ConvertMenu32To16"
 decl = { attributes = ["ret16"], args = ["long", "long", "long"] }
+binding = { rust_id = "KernelConvertMenu32To16", id_value = 1000209, constant = "KERNEL_CONVERTMENU32TO16" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 617
 name = "GetMenu32Size"
 decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "KernelGetMenu32Size", id_value = 1000210, constant = "KERNEL_GETMENU32SIZE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 618
 name = "GetDialog32Size"
 decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "KernelGetDialog32Size", id_value = 1000211, constant = "KERNEL_GETDIALOG32SIZE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 619
 name = "RegisterCBClient"
 decl = { attributes = ["ret16"], args = ["word", "segmented_pointer", "long"] }
+binding = { rust_id = "KernelRegisterCBClient", id_value = 1000212, constant = "KERNEL_REGISTERCBCLIENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 620
 name = "CBClientThunkSL"
 decl = { attributes = ["register"] }
+binding = { rust_id = "KernelCBClientThunkSL", id_value = 1000213, constant = "KERNEL_CBCLIENTTHUNKSL" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
 
 [[exports]]
 ordinal = 621
 name = "CBClientThunkSLEx"
 decl = { attributes = ["register"] }
+binding = { rust_id = "KernelCBClientThunkSLEx", id_value = 1000214, constant = "KERNEL_CBCLIENTTHUNKSLEX" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
 
 [[exports]]
 ordinal = 622
 name = "UnRegisterCBClient"
 decl = { attributes = ["ret16"], args = ["word", "segmented_pointer", "long"] }
+binding = { rust_id = "KernelUnRegisterCBClient", id_value = 1000215, constant = "KERNEL_UNREGISTERCBCLIENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 623
 name = "InitCBClient"
 decl = { attributes = ["ret16"], args = ["long"] }
+binding = { rust_id = "KernelInitCBClient", id_value = 1000216, constant = "KERNEL_INITCBCLIENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 624
 name = "SetFastQueue"
 decl = { args = ["long", "long"] }
+binding = { rust_id = "KernelSetFastQueue", id_value = 1000217, constant = "KERNEL_SETFASTQUEUE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 625
 name = "GetFastQueue"
+binding = { rust_id = "KernelGetFastQueue", id_value = 1000218, constant = "KERNEL_GETFASTQUEUE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 626
 name = "SmashEnvironment"
 kind = "stub"
+binding = { rust_id = "KernelSmashEnvironment", id_value = 1000219, constant = "KERNEL_SMASHENVIRONMENT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 627
 name = "IsBadFlatReadWritePtr"
 decl = { attributes = ["ret16"], args = ["segmented_pointer", "long", "word"] }
+binding = { rust_id = "KernelIsBadFlatReadWritePtr", id_value = 1000220, constant = "KERNEL_ISBADFLATREADWRITEPTR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 630
 name = "C16ThkSL"
 decl = { attributes = ["register"] }
+binding = { rust_id = "KernelC16ThkSL", id_value = 1000221, constant = "KERNEL_C16THKSL" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
 
 [[exports]]
 ordinal = 631
 name = "C16ThkSL01"
 decl = { attributes = ["register"] }
+binding = { rust_id = "KernelC16ThkSL01", id_value = 1000222, constant = "KERNEL_C16THKSL01" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
 
 [[exports]]
 ordinal = 651
 name = "ThunkConnect16"
 decl = { args = ["string", "string", "word", "long", "pointer", "string", "word"] }
+binding = { rust_id = "KernelThunkConnect16", id_value = 1000223, constant = "KERNEL_THUNKCONNECT16" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "NullableFarString" },
+  { name = "arg1", type = "NullableFarString" },
+  { name = "arg2", type = "U16" },
+  { name = "arg3", type = "U32" },
+  { name = "arg4", type = "FarPointer" },
+  { name = "arg5", type = "NullableFarString" },
+  { name = "arg6", type = "U16" },
+]
 
 [[exports]]
 ordinal = 652
 name = "IsThreadId"
 kind = "stub"
+binding = { rust_id = "KernelIsThreadId", id_value = 1000224, constant = "KERNEL_ISTHREADID" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "thread", type = "U32" },
+]
 
 [[exports]]
 ordinal = 653
 name = "OkWithKernelToChangeUsers"
 kind = "stub"
+binding = { rust_id = "KernelOkWithKernelToChangeUsers", id_value = 1000225, constant = "KERNEL_OKWITHKERNELTOCHANGEUSERS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 666
 name = "UTGlue16"
 decl = { args = ["pointer", "long", "pointer", "long"] }
+binding = { rust_id = "KernelUTGlue16", id_value = 1000226, constant = "KERNEL_UTGLUE16" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "FarPointer" },
+  { name = "arg1", type = "U32" },
+  { name = "arg2", type = "FarPointer" },
+  { name = "arg3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 667
 name = "EntryAddrProc"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "KernelEntryAddrProc", id_value = 1000227, constant = "KERNEL_ENTRYADDRPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 668
 name = "MyAlloc"
 decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "KernelMyAlloc", id_value = 1000228, constant = "KERNEL_MYALLOC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "arg0", type = "U16" },
+  { name = "arg1", type = "U16" },
+  { name = "arg2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 669
 name = "DllEntryPoint"
 decl = { attributes = ["ret16"], args = ["long", "word", "word", "word", "long", "word"] }
+binding = { rust_id = "KernelDllEntryPoint", id_value = 1000229, constant = "KERNEL_DLLENTRYPOINT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "arg0", type = "U32" },
+  { name = "arg1", type = "U16" },
+  { name = "arg2", type = "U16" },
+  { name = "arg3", type = "U16" },
+  { name = "arg4", type = "U32" },
+  { name = "arg5", type = "U16" },
+]
 
 [[exports]]
 ordinal = 700
 name = "SSInit"
+binding = { rust_id = "KernelSSInit", id_value = 1000230, constant = "KERNEL_SSINIT" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 701
 name = "SSOnBigStack"
 kind = "stub"
+binding = { rust_id = "KernelSSOnBigStack", id_value = 1000231, constant = "KERNEL_SSONBIGSTACK" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 702
 name = "SSCall"
 kind = "stub"
+binding = { rust_id = "KernelSSCall", id_value = 1000232, constant = "KERNEL_SSCALL" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 703
 name = "CallProc32WFix"
 kind = "stub"
+binding = { rust_id = "KernelCallProc32WFix", id_value = 1000233, constant = "KERNEL_CALLPROC32WFIX" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 704
 name = "SSConfirmSmallStack"
 decl = { attributes = ["register"] }
+binding = { rust_id = "KernelSSConfirmSmallStack", id_value = 1000234, constant = "KERNEL_SSCONFIRMSMALLSTACK" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"

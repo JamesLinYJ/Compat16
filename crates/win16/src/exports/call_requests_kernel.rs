@@ -311,9 +311,46 @@ pub(super) fn decode(
         | Win16ExportId::KernelGetFreeSpace => {
             win16_service_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
-        _ => return Ok(None),
+        _ => Win16ApiRequest::Kernel(super::Win16KernelRequest::Remainder(
+            super::Win16KernelRemainderRequest::Stack {
+                ordinal: descriptor.ordinal(),
+                arguments: arguments.to_vec(),
+            },
+        )),
     };
     Ok(Some(request))
+}
+
+/// `_DebugOutput` and `WOW16Call` are varargs. The declared prefix is checked
+/// with caller cleanup. Extra arguments stay on the caller. Both return 0.
+pub(super) fn decode_kernel_varargs(
+    descriptor: &Win16ExportDescriptor,
+    frame: crate::Win16CallFrame,
+    selectors: &SelectorTable,
+    memory: &impl GuestMemory,
+) -> Result<DecodedWin16Call, Win16Error> {
+    let kinds: Vec<crate::ArgumentKind> = descriptor
+        .parameters
+        .iter()
+        .map(|parameter| parameter.kind)
+        .collect();
+    let arguments = frame.decode_arguments(
+        selectors,
+        memory,
+        crate::Win16CallingConvention::Cdecl,
+        &kinds,
+    )?;
+    let stack_cleanup = frame.cleanup(crate::Win16CallingConvention::Cdecl, &kinds)?;
+    Ok(DecodedWin16Call {
+        export: descriptor.id,
+        request: Win16ApiRequest::Kernel(super::Win16KernelRequest::Remainder(
+            super::Win16KernelRemainderRequest::Stack {
+                ordinal: descriptor.ordinal(),
+                arguments,
+            },
+        )),
+        stack_cleanup,
+    })
 }
 
 #[cfg(test)]
