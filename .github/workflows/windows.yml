@@ -225,8 +225,8 @@ jobs:
             '-p runtime --lib get_window_task_' = 6
             '-p runtime --lib flash_window_' = 6
             '-p runtime --lib win16_runtime::catch_throw::tests::' = 15
-            '-p runtime --lib escape_' = 7
-            '-p host-services --lib escape_' = 3
+            '-p runtime --lib escape_' = 12
+            '-p host-services --lib escape_' = 4
             '-p host-services --lib dde_completion_' = 5
             '-p runtime --lib metafile::tests' = 8
             '-p host-services --lib metafile_native_ -- --ignored --test-threads=1' = 9
