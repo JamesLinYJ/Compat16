@@ -8,9 +8,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use runtime::{
-    RuntimeError, Win16HostPoint, Win16HostRect, Win16HostWindow,
-    Win16WindowCall, Win16WindowCallResult, Win16WindowInsertAfter,
+    RuntimeError, Win16ArrangeChild, Win16ChildArrangeMode, Win16HostPoint, Win16HostRect,
+    Win16HostWindow, Win16WindowCall, Win16WindowCallResult, Win16WindowInsertAfter,
     Win16WindowSearchClass, Win16WindowTarget, Win16WindowPlacement,
+    MDITILE_HORIZONTAL, MDITILE_SKIPDISABLED,
 };
 use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND, POINT, RECT};
 use windows_sys::Win32::Graphics::Gdi::{ClientToScreen, MapWindowPoints, ScreenToClient, WindowFromDC};
@@ -19,7 +20,8 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     EnableWindow, GetActiveWindow, IsWindowEnabled, SetActiveWindow,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    ArrangeIconicWindows, CloseWindow, FlashWindow, GetWindowLongW, GWL_STYLE, WS_CHILD, WS_POPUP,
+    ArrangeIconicWindows, CascadeWindows, CloseWindow, FlashWindow, GetWindowLongW, GWL_STYLE,
+    MDITILE_ZORDER, TileWindows, WS_CHILD, WS_POPUP,
     BringWindowToTop, ChildWindowFromPoint, ChildWindowFromPointEx, FindWindowW,
     GetClientRect, GetClassNameW,
     GetClipCursor, GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
@@ -121,6 +123,9 @@ pub(super) fn execute(
             })),
         Call::ArrangeIconicWindows { window } => ResultValue::Integer(
             arrange_iconic_windows_with(state, window, |native| unsafe { ArrangeIconicWindows(native) }) as i32,
+        ),
+        Call::ArrangeChildWindows { parent, children, flags, mode } => ResultValue::Integer(
+            arrange_child_windows(state, parent, children, flags, mode),
         ),
         // OpenIcon owns WM_QUERYOPEN, restoration and activation, and returns
         // success rather than ShowWindow's previous visibility. Resolve exact
@@ -462,8 +467,57 @@ fn host_point(point: POINT) -> Win16HostPoint {
 // NULL has special meanings in several USER APIs. This API requires an exact
 // live parent mapping, never an implicit desktop fallback. Owned windows use
 // cookie identity; foreign windows retain ordinary USER liveness resolution.
-// Identity resolution
-// finishes (and releases all state borrows) before synchronous native callbacks.
+// Identity resolution finishes, and releases all state borrows, before the
+// synchronous native placement call.
+fn arrange_child_windows(
+    state: &SharedWorker,
+    parent: Win16HostWindow,
+    children: &[Win16HostWindow],
+    flags: u16,
+    mode: Win16ChildArrangeMode,
+) -> i32 {
+    let mut hwnds = Vec::new();
+    for &child in children {
+        let Some(hwnd) = super::win16_window_identity::resolve_user_window(state, child)
+            else { continue; };
+        // IsIconic, IsWindowEnabled, and IsWindowVisible do not enter a guest
+        // procedure. Drop each resolution before the next query.
+        let child_state = Win16ArrangeChild {
+            window: child,
+            iconic: unsafe { IsIconic(hwnd) != 0 },
+            enabled: unsafe { IsWindowEnabled(hwnd) != 0 },
+            visible: unsafe { IsWindowVisible(hwnd) != 0 },
+        };
+        if child_state.participates(flags) {
+            hwnds.push(hwnd);
+        }
+    }
+    if hwnds.is_empty() {
+        return 0;
+    }
+    let Some(parent_hwnd) = super::win16_window_identity::resolve_user_window(state, parent)
+        else { return 0; };
+    // MDITILE_ZORDER asks native USER for stacking order. The guest flag word
+    // only contributes the Windows 3.1 horizontal and skip-disabled bits.
+    let how = match mode {
+        Win16ChildArrangeMode::Cascade => u32::from(flags & MDITILE_SKIPDISABLED) | MDITILE_ZORDER,
+        Win16ChildArrangeMode::Tile => {
+            u32::from(flags & (MDITILE_HORIZONTAL | MDITILE_SKIPDISABLED)) | MDITILE_ZORDER
+        }
+    };
+    let count = unsafe {
+        match mode {
+            Win16ChildArrangeMode::Cascade => CascadeWindows(
+                parent_hwnd, how, std::ptr::null(), hwnds.len() as u32, hwnds.as_ptr(),
+            ),
+            Win16ChildArrangeMode::Tile => TileWindows(
+                parent_hwnd, how, std::ptr::null(), hwnds.len() as u32, hwnds.as_ptr(),
+            ),
+        }
+    };
+    i32::from(count)
+}
+
 pub(super) fn arrange_iconic_windows_with(
     state: &SharedWorker,
     target: Win16WindowTarget,

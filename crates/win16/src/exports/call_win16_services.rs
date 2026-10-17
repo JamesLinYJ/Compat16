@@ -77,6 +77,24 @@ pub(super) fn decode(
         Win16ExportId::UserGetDialogBaseUnits => {
             Win16ApiRequest::UserSystem(Win16UserSystemRequest::GetDialogBaseUnits)
         }
+        Win16ExportId::UserSetSysModalWindow => Win16ApiRequest::UserSystem(
+            Win16UserSystemRequest::SetSysModalWindow {
+                window: word_argument(arguments, 0)?,
+            },
+        ),
+        Win16ExportId::UserGetSysModalWindow => {
+            Win16ApiRequest::UserSystem(Win16UserSystemRequest::GetSysModalWindow)
+        }
+        Win16ExportId::UserGetSysColorBrush => Win16ApiRequest::UserSystem(
+            Win16UserSystemRequest::GetSysColorBrush {
+                index: word_argument(arguments, 0)? as i16,
+            },
+        ),
+        Win16ExportId::UserGetFreeSystemResources => Win16ApiRequest::UserSystem(
+            Win16UserSystemRequest::GetFreeSystemResources {
+                selector: word_argument(arguments, 0)?,
+            },
+        ),
         Win16ExportId::KernelGlobalReAlloc => Win16ApiRequest::KernelGlobalHeap(
             Win16KernelGlobalHeapRequest::GlobalReAlloc {
                 handle: word_argument(arguments, 0)?,

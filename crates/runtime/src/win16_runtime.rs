@@ -800,6 +800,9 @@ pub(crate) struct Win16State {
     /// Parentage alone is insufficient because ordinary controls can also be
     /// children of an MDI client.
     mdi_children: BTreeSet<u16>,
+    /// USER.188/189. One guest HWND, never a host pointer. `None` is no
+    /// system-modal window.
+    sysmodal_window: Option<u16>,
     /// Exact runtime creation generation for each guest HWND whose native
     /// creation operation exposed an identity to the host. A receipt for an
     /// older HWND incarnation cannot retire a reused guest handle.

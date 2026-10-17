@@ -384,6 +384,34 @@ impl Win16State {
                 return_to,
             ),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Messages(
+                win16_abi::Win16UserMessagesRequest::QuerySendMessage { message },
+            )) => {
+                let sent = self.current_sent_message();
+                let output = if message == 0 {
+                    None
+                } else {
+                    let pointer = self.selectors.pointer_from_far(message)
+                        .map_err(crate::runtime_error)?;
+                    Some(GuestOutputRange::capture(
+                        self, memory, pointer, win16_abi::Msg16::SIZE,
+                    )?)
+                };
+                self.begin_message_call(
+                    registers,
+                    memory,
+                    host,
+                    Win16MessageCall::QuerySendMessage,
+                    Win16MessageCallContinuation::QuerySendMessage {
+                        output,
+                        window: sent.map(|(window, _, _, _)| window),
+                        message: sent.map(|(_, message, _, _)| message).unwrap_or(0),
+                        w_param: sent.map(|(_, _, w_param, _)| w_param).unwrap_or(0),
+                        l_param: sent.map(|(_, _, _, l_param)| l_param).unwrap_or(0),
+                    },
+                    return_to,
+                )
+            }
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Messages(
                 win16_abi::Win16UserMessagesRequest::ReplyMessage { result },
             )) => self.begin_message_call(
                 registers,
@@ -762,6 +790,32 @@ impl Win16State {
             WindowReturn::MessageCall(continuation),
             return_to,
         )
+    }
+
+    /// Innermost guest window callback that is processing a sent message.
+    /// Posted dispatch and timers are skipped so an outer SendMessage remains
+    /// visible to QuerySendMessage.
+    fn current_sent_message(&self) -> Option<(u16, u16, u16, u32)> {
+        for frame in self.window_callbacks.iter().rev() {
+            match frame.continuation {
+                super::windows::WindowCallbackContinuation::Host { window, .. }
+                | super::windows::WindowCallbackContinuation::HostDialog { window, .. } => {
+                    return Some((
+                        window,
+                        frame.payload.message,
+                        frame.payload.w_param,
+                        frame.payload.l_param,
+                    ));
+                }
+                super::windows::WindowCallbackContinuation::GuestProcedureCall {
+                    forwarded: Some(source),
+                } => {
+                    return Some((source.window, source.message, source.w_param, source.l_param));
+                }
+                _ => {}
+            }
+        }
+        None
     }
 
     fn check_guest_procedure(&self, procedure: u32, memory: &Memory) -> Result<(), RuntimeError> {

@@ -97,6 +97,16 @@ pub(super) fn decode(
                 window: word_argument(arguments, 0)?,
             },
         )),
+        Win16ExportId::UserCascadeChildWindows | Win16ExportId::UserTileChildWindows => {
+            let parent = word_argument(arguments, 0)?;
+            let flags = word_argument(arguments, 1)?;
+            let request = if id == Win16ExportId::UserCascadeChildWindows {
+                super::Win16UserWindowRequest::CascadeChildWindows { parent, flags }
+            } else {
+                super::Win16UserWindowRequest::TileChildWindows { parent, flags }
+            };
+            Win16ApiRequest::User(super::Win16UserRequest::Window(request))
+        }
         Win16ExportId::UserIsIconic => Win16ApiRequest::User(super::Win16UserRequest::Window(
             super::Win16UserWindowRequest::IsIconic {
                 window: word_argument(arguments, 0)?,

@@ -220,6 +220,9 @@ impl Win16State {
         self.window_handles.remove(&guest);
         self.window_system_classes.remove(&guest);
         self.mdi_children.remove(&guest);
+        if self.sysmodal_window == Some(guest) {
+            self.sysmodal_window = None;
+        }
         self.window_creations.remove(&guest);
         self.window_procedures.remove(&guest);
         self.dialog_procedures.remove(&guest);

@@ -80,6 +80,9 @@ pub enum Win16MessageCall {
     GetMessageExtraInfo,
     /// Query InSendMessage on the native worker owning the active guest WndProc.
     InSendMessage,
+    /// Same native send state as InSendMessage, plus the message time and
+    /// cursor point used to fill a guest MSG16. No guest address is read.
+    QuerySendMessage,
     /// Run on the same native WndProc stack as InSendMessage. The LONG stays
     /// signed when widened to native LRESULT; no guest address is forwarded.
     ReplyMessage { result: i32 },
@@ -94,6 +97,9 @@ pub enum Win16MessageCall {
 pub enum Win16MessageCallResult {
     Yielded,
     Boolean(bool),
+    /// `in_send` is native InSendMessage. Time and point are meaningful only
+    /// when that flag is set; they are GetMessageTime and GetMessagePos.
+    QuerySend { in_send: bool, time: u32, x: i16, y: i16 },
     Window(Option<Win16HostWindow>),
     Dword(u32),
     Long(i32),
@@ -124,4 +130,14 @@ pub(crate) enum Win16MessageCallContinuation {
         output_range: Option<GuestOutputRange>,
     },
     SetKeyboardState,
+    /// USER.184. The optional range is captured before the host call. The
+    /// window word is the guest HWND of the active sent message, when one
+    /// is on the callback stack.
+    QuerySendMessage {
+        output: Option<GuestOutputRange>,
+        window: Option<u16>,
+        message: u16,
+        w_param: u16,
+        l_param: u32,
+    },
 }

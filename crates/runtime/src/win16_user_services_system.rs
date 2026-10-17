@@ -12,6 +12,7 @@ use crate::{RuntimeError, RuntimeHost};
 /// export dispatcher route one typed family arm without duplicating the
 /// native call and result-width rules.
 pub(crate) fn dispatch(
+    state: &mut super::Win16State,
     request: Win16UserSystemRequest,
     host: &mut impl RuntimeHost,
 ) -> Result<u32, RuntimeError> {
@@ -34,6 +35,67 @@ pub(crate) fn dispatch(
         }
         Win16UserSystemRequest::GetDialogBaseUnits => get_dialog_base_units(host),
         Win16UserSystemRequest::AnyPopup => Ok(u32::from(host.win16_any_popup()?)),
+        Win16UserSystemRequest::SetSysModalWindow { window } => {
+            Ok(u32::from(set_sysmodal_window(state, window)))
+        }
+        Win16UserSystemRequest::GetSysModalWindow => Ok(u32::from(sysmodal_window(state))),
+        Win16UserSystemRequest::GetSysColorBrush { index } => Ok(u32::from(sys_color_brush(index))),
+        Win16UserSystemRequest::GetFreeSystemResources { selector } => {
+            Ok(u32::from(free_system_resources(selector)))
+        }
+    }
+}
+
+/// Windows 3.1 COLOR_SCROLLBAR through COLOR_BTNHIGHLIGHT.
+const WIN16_LAST_SYS_COLOR: i16 = 20;
+/// NT WOW reports this percentage because the 16-bit USER and GDI heaps
+/// are not present. The three SDK selectors share it.
+const WOW_FREE_RESOURCE_PERCENT: u16 = 90;
+const GFSR_SYSTEM_RESOURCES: u16 = 0;
+const GFSR_GDI_RESOURCES: u16 = 1;
+const GFSR_USER_RESOURCES: u16 = 2;
+
+fn set_sysmodal_window(state: &mut super::Win16State, window: u16) -> u16 {
+    let previous = sysmodal_window(state);
+    if window == 0 {
+        state.sysmodal_window = None;
+        return previous;
+    }
+    if !state.window_handles.contains_key(&window) {
+        return 0;
+    }
+    state.sysmodal_window = Some(window);
+    previous
+}
+
+fn sysmodal_window(state: &mut super::Win16State) -> u16 {
+    match state.sysmodal_window {
+        Some(window) if state.window_handles.contains_key(&window) => window,
+        Some(_) => {
+            state.sysmodal_window = None;
+            0
+        }
+        None => 0,
+    }
+}
+
+/// USER.281 returns the COLOR_*+1 pseudo-brush already used for class
+/// backgrounds and WM_CTLCOLOR. No GDI object is allocated.
+fn sys_color_brush(index: i16) -> u16 {
+    if (0..=WIN16_LAST_SYS_COLOR).contains(&index) {
+        u16::from(index as u16) + 1
+    } else {
+        0
+    }
+}
+
+/// USER.284. Unknown selectors stay zero rather than a percentage.
+fn free_system_resources(selector: u16) -> u16 {
+    match selector {
+        GFSR_SYSTEM_RESOURCES | GFSR_GDI_RESOURCES | GFSR_USER_RESOURCES => {
+            WOW_FREE_RESOURCE_PERCENT
+        }
+        _ => 0,
     }
 }
 

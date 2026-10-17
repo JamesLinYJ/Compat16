@@ -342,6 +342,38 @@ guest window callback retains its native call stack. This is static routing
 evidence; the opt-in ReplyMessage tests additionally exercise InSendMessage
 outside a send, in a cross-thread send, and in a nested same-thread send.
 
+## USER window management: 184, 188, 189, 198, 199, 281, and 284
+
+`QuerySendMessage` is `BOOL WINAPI QuerySendMessage(HANDLE, HANDLE, HANDLE, LPMSG)`.
+The three handles are reserved and ignored. Its BOOL is the same native
+`InSendMessage` result as USER.192, including a nested same-thread send. When
+that result is nonzero and a guest window callback is active, the runtime
+writes an 18-byte `MSG16` from that callback's guest HWND, message, wParam,
+and lParam, plus `GetMessageTime` and `GetMessagePos`. A null `LPMSG` is not
+written. Posted dispatch and timers are not treated as the sent message.
+Windows 3.1 text describes an intertask send only; this tree follows the
+native predicate already chosen for `InSendMessage`.
+
+`SetSysModalWindow` and `GetSysModalWindow` store one guest HWND. Zero clears
+it and returns the previous value. An unknown nonzero handle does not replace
+the current window and returns zero. Retiring that guest HWND clears the
+flag. No host pointer is stored; the modern host has no equivalent API.
+
+`CascadeChildWindows` and `TileChildWindows` submit only `mdi_children` whose
+recorded parent is the argument. Iconic and hidden children are omitted.
+`MDITILE_SKIPDISABLED` also omits a disabled child. Tile honors
+`MDITILE_HORIZONTAL`; other flag bits are masked off. The count is the number
+of windows passed to native `CascadeWindows` or `TileWindows`. Those calls
+also set `MDITILE_ZORDER` so stacking order is native. This tree does not
+reimplement the Windows 3.1 geometry.
+
+`GetSysColorBrush` returns the existing `COLOR_* + 1` pseudo-brush for indices
+0 through 20 (`COLOR_SCROLLBAR` through `COLOR_BTNHIGHLIGHT`) and zero
+otherwise. No GDI object is allocated. `GetFreeSystemResources` returns 90
+for the SDK selectors 0, 1, and 2, the NT WOW compatibility percentage used
+because this runtime has no 16-bit USER or GDI heap, and zero for any other
+selector.
+
 ## USER.288 GetMessageExtraInfo and USER.14 GetTimerResolution
 
 `WINDOWS.H:2801` declares `LPARAM WINAPI GetMessageExtraInfo(void)`, with LPARAM

@@ -195,6 +195,7 @@ pub(super) fn decode(
         | Win16ExportId::UserGetMessageTime
         | Win16ExportId::UserGetMessageExtraInfo
         | Win16ExportId::UserInSendMessage
+        | Win16ExportId::UserQuerySendMessage
         | Win16ExportId::UserReplyMessage
         | Win16ExportId::UserCallWindowProc
         | Win16ExportId::UserGetKeyboardState
@@ -337,6 +338,8 @@ pub(super) fn decode(
         }
         Win16ExportId::UserCloseWindow
         | Win16ExportId::UserArrangeIconicWindows
+        | Win16ExportId::UserCascadeChildWindows
+        | Win16ExportId::UserTileChildWindows
         | Win16ExportId::UserFlashWindow
         | Win16ExportId::UserOpenIcon
         | Win16ExportId::UserIsIconic
@@ -452,7 +455,11 @@ pub(super) fn decode(
         | Win16ExportId::UserSetSysColors
         | Win16ExportId::UserSwapMouseButton
         | Win16ExportId::UserGetDialogBaseUnits
-        | Win16ExportId::UserAnyPopup => {
+        | Win16ExportId::UserAnyPopup
+        | Win16ExportId::UserSetSysModalWindow
+        | Win16ExportId::UserGetSysModalWindow
+        | Win16ExportId::UserGetSysColorBrush
+        | Win16ExportId::UserGetFreeSystemResources => {
             win16_service_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
         _ => return Ok(None),
