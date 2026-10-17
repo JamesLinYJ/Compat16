@@ -13,12 +13,18 @@ ordinal = 3
 name = "EnableOEMLayer"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserEnableOEMLayer", id_value = 2000000, constant = "USER_ENABLE_OEM_LAYER" }
+[exports.call]
+returns = "void"
 
 [[exports]]
 ordinal = 4
 name = "DisableOEMLayer"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserDisableOEMLayer", id_value = 2000001, constant = "USER_DISABLE_OEM_LAYER" }
+[exports.call]
+returns = "void"
 
 [[exports]]
 ordinal = 13
@@ -79,6 +85,9 @@ ordinal = 51
 name = "BEAR51"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserBEAR51", id_value = 2000002, constant = "USER_BEAR51" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 52
@@ -214,6 +223,13 @@ returns = "word"
 ordinal = 172
 name = "SwitchToThisWindow"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "UserSwitchToThisWindow", id_value = 2000003, constant = "USER_SWITCH_TO_THIS_WINDOW" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 181
@@ -274,11 +290,27 @@ returns = "word"
 ordinal = 216
 name = "UserSeeUserDo"
 decl = { attributes = [], args = ["word", "word", "word", "word"] }
+binding = { rust_id = "UserUserSeeUserDo", id_value = 2000004, constant = "USER_USER_SEE_USER_DO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 217
 name = "LookupMenuHandle"
 decl = { args = ["word", "signed_word"] }
+binding = { rust_id = "UserLookupMenuHandle", id_value = 2000005, constant = "USER_LOOKUP_MENU_HANDLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "I16" },
+]
 
 [[exports]]
 ordinal = 224
@@ -294,11 +326,22 @@ params = [
 ordinal = 226
 name = "LockInput"
 decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "UserLockInput", id_value = 2000006, constant = "USER_LOCK_INPUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 231
 name = "GetSystemDebugState"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetSystemDebugState", id_value = 2000007, constant = "USER_GET_SYSTEM_DEBUG_STATE" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 236
@@ -326,70 +369,154 @@ returns = "word"
 ordinal = 251
 name = "SendDriverMessage"
 decl = { attributes = [], args = ["word", "word", "long", "long"] }
+binding = { rust_id = "UserSendDriverMessage", id_value = 2000008, constant = "USER_SEND_DRIVER_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U32" },
+  { name = "p3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 252
 name = "OpenDriver"
 decl = { args = ["string", "string", "long"] }
+binding = { rust_id = "UserOpenDriver", id_value = 2000009, constant = "USER_OPEN_DRIVER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarString" },
+  { name = "p1", type = "FarString" },
+  { name = "p2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 253
 name = "CloseDriver"
 decl = { attributes = [], args = ["word", "long", "long"] }
+binding = { rust_id = "UserCloseDriver", id_value = 2000010, constant = "USER_CLOSE_DRIVER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U32" },
+  { name = "p2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 254
 name = "GetDriverModuleHandle"
 decl = { args = ["word"] }
+binding = { rust_id = "UserGetDriverModuleHandle", id_value = 2000011, constant = "USER_GET_DRIVER_MODULE_HANDLE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 255
 name = "DefDriverProc"
 decl = { attributes = [], args = ["long", "word", "word", "long", "long"] }
+binding = { rust_id = "UserDefDriverProc", id_value = 2000012, constant = "USER_DEF_DRIVER_PROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "p0", type = "U32" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U32" },
+  { name = "p4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 256
 name = "GetDriverInfo"
 decl = { args = ["word", "pointer"] }
+binding = { rust_id = "UserGetDriverInfo", id_value = 2000013, constant = "USER_GET_DRIVER_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 257
 name = "GetNextDriver"
 decl = { args = ["word", "long"] }
+binding = { rust_id = "UserGetNextDriver", id_value = 2000014, constant = "USER_GET_NEXT_DRIVER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 273
 name = "ControlPanelInfo"
 decl = { args = ["word", "word", "string"] }
+binding = { rust_id = "UserControlPanelInfo", id_value = 2000015, constant = "USER_CONTROL_PANEL_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "FarString" },
+]
 
 [[exports]]
 ordinal = 274
 name = "GetNextQueueWindow"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetNextQueueWindow", id_value = 2000016, constant = "USER_GET_NEXT_QUEUE_WINDOW" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 275
 name = "RepaintScreen"
+binding = { rust_id = "UserRepaintScreen", id_value = 2000017, constant = "USER_REPAINT_SCREEN" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 276
 name = "LockMyTask"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserLockMyTask", id_value = 2000018, constant = "USER_LOCK_MY_TASK" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 278
 name = "GetDesktopHwnd"
+binding = { rust_id = "UserGetDesktopHwnd", id_value = 2000019, constant = "USER_GET_DESKTOP_HWND" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 279
 name = "OldSetDeskPattern"
+binding = { rust_id = "UserOldSetDeskPattern", id_value = 2000020, constant = "USER_OLD_SET_DESK_PATTERN" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 285
 name = "SetDeskWallPaper"
 decl = { args = ["pointer"] }
+binding = { rust_id = "UserSetDeskWallPaper", id_value = 2000021, constant = "USER_SET_DESK_WALL_PAPER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 286
@@ -411,103 +538,240 @@ ordinal = 300
 name = "UnloadInstalledDrivers"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserUnloadInstalledDrivers", id_value = 2000022, constant = "USER_UNLOAD_INSTALLED_DRIVERS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 301
 name = "EDITWNDPROC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserEDITWNDPROC", id_value = 2000023, constant = "USER_EDITWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 302
 name = "STATICWNDPROC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserSTATICWNDPROC", id_value = 2000024, constant = "USER_STATICWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 303
 name = "BUTTONWNDPROC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserBUTTONWNDPROC", id_value = 2000025, constant = "USER_BUTTONWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 304
 name = "SBWNDPROC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserSBWNDPROC", id_value = 2000026, constant = "USER_SBWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 305
 name = "DESKTOPWNDPROC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserDESKTOPWNDPROC", id_value = 2000027, constant = "USER_DESKTOPWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 306
 name = "MENUWNDPROC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserMENUWNDPROC", id_value = 2000028, constant = "USER_MENUWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 307
 name = "LBOXCTLWNDPROC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserLBOXCTLWNDPROC", id_value = 2000029, constant = "USER_LBOXCTLWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 314
 name = "SignalProc"
 decl = { args = ["word", "word", "word", "word", "word"] }
+binding = { rust_id = "UserSignalProc", id_value = 2000030, constant = "USER_SIGNAL_PROC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 320
 name = "SysErrorBox"
 decl = { args = ["string", "string", "word", "word", "word"] }
+binding = { rust_id = "UserSysErrorBox", id_value = 2000031, constant = "USER_SYS_ERROR_BOX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarString" },
+  { name = "p1", type = "FarString" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 321
 name = "SetEventHook"
 decl = { attributes = [], args = ["segmented_pointer"] }
+binding = { rust_id = "UserSetEventHook", id_value = 2000032, constant = "USER_SET_EVENT_HOOK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 322
 name = "WinOldAppHackOMatic"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserWinOldAppHackOMatic", id_value = 2000033, constant = "USER_WIN_OLD_APP_HACK_O_MATIC" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 323
 name = "GetMessage2"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetMessage2", id_value = 2000034, constant = "USER_GET_MESSAGE2" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 324
 name = "FillWindow"
 decl = { args = ["word", "word", "word", "word"] }
+binding = { rust_id = "UserFillWindow", id_value = 2000035, constant = "USER_FILL_WINDOW" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 325
 name = "PaintRect"
 decl = { args = ["word", "word", "word", "word", "pointer"] }
+binding = { rust_id = "UserPaintRect", id_value = 2000036, constant = "USER_PAINT_RECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 326
 name = "GetControlBrush"
 decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "UserGetControlBrush", id_value = 2000037, constant = "USER_GET_CONTROL_BRUSH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 331
 name = "EnableHardwareInput"
 decl = { args = ["word"] }
+binding = { rust_id = "UserEnableHardwareInput", id_value = 2000038, constant = "USER_ENABLE_HARDWARE_INPUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 332
 name = "UserYield"
+binding = { rust_id = "UserUserYield", id_value = 2000039, constant = "USER_USER_YIELD" }
+[exports.call]
+returns = "void"
 
 [[exports]]
 ordinal = 333
 name = "IsUserIdle"
+binding = { rust_id = "UserIsUserIdle", id_value = 2000040, constant = "USER_IS_USER_IDLE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 335
@@ -520,45 +784,90 @@ returns = "word"
 ordinal = 336
 name = "LoadCursorIconHandler"
 decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "UserLoadCursorIconHandler", id_value = 2000041, constant = "USER_LOAD_CURSOR_ICON_HANDLER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 337
 name = "GetMouseEventProc"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetMouseEventProc", id_value = 2000042, constant = "USER_GET_MOUSE_EVENT_PROC" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 338
 name = "ECGETDS"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserECGETDS", id_value = 2000043, constant = "USER_ECGETDS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 343
 name = "GetFilePortName"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetFilePortName", id_value = 2000044, constant = "USER_GET_FILE_PORT_NAME" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 344
 name = "COMBOBOXCTLWNDPROC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserCOMBOBOXCTLWNDPROC", id_value = 2000045, constant = "USER_COMBOBOXCTLWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 345
 name = "BEAR345"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserBEAR345", id_value = 2000046, constant = "USER_BEAR345" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 356
 name = "LoadDIBCursorHandler"
 decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "UserLoadDIBCursorHandler", id_value = 2000047, constant = "USER_LOAD_DIB_CURSOR_HANDLER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 357
 name = "LoadDIBIconHandler"
 decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "UserLoadDIBIconHandler", id_value = 2000048, constant = "USER_LOAD_DIB_ICON_HANDLER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 359
@@ -577,11 +886,30 @@ params = [
 ordinal = 362
 name = "DCHook"
 decl = { args = ["word", "word", "long", "long"] }
+binding = { rust_id = "UserDCHook", id_value = 2000049, constant = "USER_DC_HOOK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U32" },
+  { name = "p3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 364
 name = "LookupIconIdFromDirectoryEx"
 decl = { args = ["pointer", "word", "word", "word", "word"] }
+binding = { rust_id = "UserLookupIconIdFromDirectoryEx", id_value = 2000050, constant = "USER_LOOKUP_ICON_ID_FROM_DIRECTORY_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 368
@@ -612,102 +940,221 @@ ordinal = 372
 name = "GetInternalIconHeader"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetInternalIconHeader", id_value = 2000051, constant = "USER_GET_INTERNAL_ICON_HEADER" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 374
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
+binding = { rust_id = "UserDllEntryPoint", id_value = 2000052, constant = "USER_DLL_ENTRY_POINT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U32" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U32" },
+  { name = "p5", type = "U16" },
+]
 
 [[exports]]
 ordinal = 375
 name = "DrawTextEx"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserDrawTextEx", id_value = 2000053, constant = "USER_DRAW_TEXT_EX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 376
 name = "SetMessageExtraInfo"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserSetMessageExtraInfo", id_value = 2000054, constant = "USER_SET_MESSAGE_EXTRA_INFO" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 378
 name = "SetPropEx"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserSetPropEx", id_value = 2000055, constant = "USER_SET_PROP_EX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 379
 name = "GetPropEx"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetPropEx", id_value = 2000056, constant = "USER_GET_PROP_EX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 380
 name = "RemovePropEx"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserRemovePropEx", id_value = 2000057, constant = "USER_REMOVE_PROP_EX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 382
 name = "SetWindowContextHelpID"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserSetWindowContextHelpID", id_value = 2000058, constant = "USER_SET_WINDOW_CONTEXT_HELP_ID" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 383
 name = "GetWindowContextHelpID"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetWindowContextHelpID", id_value = 2000059, constant = "USER_GET_WINDOW_CONTEXT_HELP_ID" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 389
 name = "LoadImage"
 decl = { attributes = [], args = ["word", "string", "word", "word", "word", "word"] }
+binding = { rust_id = "UserLoadImage", id_value = 2000060, constant = "USER_LOAD_IMAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarString" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+  { name = "p5", type = "U16" },
+]
 
 [[exports]]
 ordinal = 390
 name = "CopyImage"
 decl = { args = ["word", "word", "word", "word", "word"] }
+binding = { rust_id = "UserCopyImage", id_value = 2000061, constant = "USER_COPY_IMAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 391
 name = "SignalProc32"
 decl = { args = ["long", "long", "long", "word"] }
+binding = { rust_id = "UserSignalProc32", id_value = 2000062, constant = "USER_SIGNAL_PROC32" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U32" },
+  { name = "p1", type = "U32" },
+  { name = "p2", type = "U32" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 394
 name = "DrawIconEx"
 decl = { args = ["word", "word", "word", "word", "word", "word", "word", "word", "word"] }
+binding = { rust_id = "UserDrawIconEx", id_value = 2000063, constant = "USER_DRAW_ICON_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+  { name = "p5", type = "U16" },
+  { name = "p6", type = "U16" },
+  { name = "p7", type = "U16" },
+  { name = "p8", type = "U16" },
+]
 
 [[exports]]
 ordinal = 395
 name = "GetIconInfo"
 decl = { args = ["word", "pointer"] }
+binding = { rust_id = "UserGetIconInfo", id_value = 2000064, constant = "USER_GET_ICON_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 397
 name = "RegisterClassEx"
 decl = { args = ["pointer"] }
+binding = { rust_id = "UserRegisterClassEx", id_value = 2000065, constant = "USER_REGISTER_CLASS_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 398
 name = "GetClassInfoEx"
 decl = { args = ["word", "segmented_string", "pointer"] }
+binding = { rust_id = "UserGetClassInfoEx", id_value = 2000066, constant = "USER_GET_CLASS_INFO_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarStringOrChar" },
+  { name = "p2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 400
 name = "FinalUserInit"
+binding = { rust_id = "UserFinalUserInit", id_value = 2000067, constant = "USER_FINAL_USER_INIT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 408
 name = "CreateCursorIconIndirect"
 decl = { args = ["word", "pointer", "pointer", "pointer"] }
+binding = { rust_id = "UserCreateCursorIconIndirect", id_value = 2000068, constant = "USER_CREATE_CURSOR_ICON_INDIRECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarPointer" },
+  { name = "p2", type = "FarPointer" },
+  { name = "p3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 409
 name = "InitThreadInput"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "UserInitThreadInput", id_value = 2000069, constant = "USER_INIT_THREAD_INPUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 415
@@ -728,183 +1175,395 @@ returns = "dword"
 ordinal = 427
 name = "FindWindowEx"
 decl = { args = ["word", "word", "string", "string"] }
+binding = { rust_id = "UserFindWindowEx", id_value = 2000070, constant = "USER_FIND_WINDOW_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "FarString" },
+  { name = "p3", type = "FarString" },
+]
 
 [[exports]]
 ordinal = 428
 name = "TileWindows"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserTileWindows", id_value = 2000071, constant = "USER_TILE_WINDOWS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 429
 name = "CascadeWindows"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserCascadeWindows", id_value = 2000072, constant = "USER_CASCADE_WINDOWS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 441
 name = "InsertMenuItem"
 decl = { args = ["word", "word", "word", "pointer"] }
+binding = { rust_id = "UserInsertMenuItem", id_value = 2000073, constant = "USER_INSERT_MENU_ITEM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 443
 name = "GetMenuItemInfo"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetMenuItemInfo", id_value = 2000074, constant = "USER_GET_MENU_ITEM_INFO" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 446
 name = "SetMenuItemInfo"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserSetMenuItemInfo", id_value = 2000075, constant = "USER_SET_MENU_ITEM_INFO" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 448
 name = "DrawAnimatedRects"
 decl = { args = ["word", "word", "pointer", "pointer"] }
+binding = { rust_id = "UserDrawAnimatedRects", id_value = 2000076, constant = "USER_DRAW_ANIMATED_RECTS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "FarPointer" },
+  { name = "p3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 449
 name = "DrawState"
 decl = { args = ["word", "word", "segmented_pointer", "long", "word", "signed_word", "signed_word", "signed_word", "signed_word", "word"] }
+binding = { rust_id = "UserDrawState", id_value = 2000077, constant = "USER_DRAW_STATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "FarPointer" },
+  { name = "p3", type = "U32" },
+  { name = "p4", type = "U16" },
+  { name = "p5", type = "I16" },
+  { name = "p6", type = "I16" },
+  { name = "p7", type = "I16" },
+  { name = "p8", type = "I16" },
+  { name = "p9", type = "U16" },
+]
 
 [[exports]]
 ordinal = 450
 name = "CreateIconFromResourceEx"
 decl = { args = ["pointer", "long", "word", "long", "word", "word", "word"] }
+binding = { rust_id = "UserCreateIconFromResourceEx", id_value = 2000078, constant = "USER_CREATE_ICON_FROM_RESOURCE_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+  { name = "p1", type = "U32" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U32" },
+  { name = "p4", type = "U16" },
+  { name = "p5", type = "U16" },
+  { name = "p6", type = "U16" },
+]
 
 [[exports]]
 ordinal = 455
 name = "GetIconID"
 decl = { args = ["word", "long"] }
+binding = { rust_id = "UserGetIconID", id_value = 2000079, constant = "USER_GET_ICON_ID" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 456
 name = "LoadIconHandler"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "UserLoadIconHandler", id_value = 2000080, constant = "USER_LOAD_ICON_HANDLER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 459
 name = "DumpIcon"
 decl = { attributes = [], args = ["segmented_pointer", "pointer", "pointer", "pointer"] }
+binding = { rust_id = "UserDumpIcon", id_value = 2000081, constant = "USER_DUMP_ICON" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+  { name = "p1", type = "FarPointer" },
+  { name = "p2", type = "FarPointer" },
+  { name = "p3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 460
 name = "GetInternalWindowPos"
 decl = { args = ["word", "pointer", "pointer"] }
+binding = { rust_id = "UserGetInternalWindowPos", id_value = 2000082, constant = "USER_GET_INTERNAL_WINDOW_POS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarPointer" },
+  { name = "p2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 461
 name = "SetInternalWindowPos"
 decl = { args = ["word", "word", "pointer", "pointer"] }
+binding = { rust_id = "UserSetInternalWindowPos", id_value = 2000083, constant = "USER_SET_INTERNAL_WINDOW_POS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "FarPointer" },
+  { name = "p3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 462
 name = "CalcChildScroll"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "UserCalcChildScroll", id_value = 2000084, constant = "USER_CALC_CHILD_SCROLL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 463
 name = "ScrollChildren"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "UserScrollChildren", id_value = 2000085, constant = "USER_SCROLL_CHILDREN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 470
 name = "StringFunc"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserStringFunc", id_value = 2000086, constant = "USER_STRING_FUNC" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 475
 name = "SetScrollInfo"
 decl = { args = ["word", "signed_word", "pointer", "word"] }
+binding = { rust_id = "UserSetScrollInfo", id_value = 2000087, constant = "USER_SET_SCROLL_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "I16" },
+  { name = "p2", type = "FarPointer" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 476
 name = "GetScrollInfo"
 decl = { args = ["word", "signed_word", "pointer"] }
+binding = { rust_id = "UserGetScrollInfo", id_value = 2000088, constant = "USER_GET_SCROLL_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "I16" },
+  { name = "p2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 477
 name = "GetKeyboardLayoutName"
 decl = { args = ["pointer"] }
+binding = { rust_id = "UserGetKeyboardLayoutName", id_value = 2000089, constant = "USER_GET_KEYBOARD_LAYOUT_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 478
 name = "LoadKeyboardLayout"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserLoadKeyboardLayout", id_value = 2000090, constant = "USER_LOAD_KEYBOARD_LAYOUT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 479
 name = "MenuItemFromPoint"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserMenuItemFromPoint", id_value = 2000091, constant = "USER_MENU_ITEM_FROM_POINT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 480
 name = "GetUserLocalObjType"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetUserLocalObjType", id_value = 2000092, constant = "USER_GET_USER_LOCAL_OBJ_TYPE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 486
 name = "RawGetTabbedTextExtent"
+binding = { rust_id = "UserRawGetTabbedTextExtent", id_value = 2000093, constant = "USER_RAW_GET_TABBED_TEXT_EXTENT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 487
 name = "RawDrawText"
 decl = { args = ["word", "string", "signed_word", "pointer", "word"] }
+binding = { rust_id = "UserRawDrawText", id_value = 2000094, constant = "USER_RAW_DRAW_TEXT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarString" },
+  { name = "p2", type = "I16" },
+  { name = "p3", type = "FarPointer" },
+  { name = "p4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 488
 name = "RawTabbedTextOut"
+binding = { rust_id = "UserRawTabbedTextOut", id_value = 2000095, constant = "USER_RAW_TABBED_TEXT_OUT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 489
 name = "GetKeyboardLanguage"
+binding = { rust_id = "UserGetKeyboardLanguage", id_value = 2000096, constant = "USER_GET_KEYBOARD_LANGUAGE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 490
 name = "SetKeyboardLanguage"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "UserSetKeyboardLanguage", id_value = 2000097, constant = "USER_SET_KEYBOARD_LANGUAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 491
 name = "BiDiGrayString"
+binding = { rust_id = "UserBiDiGrayString", id_value = 2000098, constant = "USER_BI_DI_GRAY_STRING" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 492
 name = "MakeScrollBarsRToL"
 decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "UserMakeScrollBarsRToL", id_value = 2000099, constant = "USER_MAKE_SCROLL_BARS_R_TO_L" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 493
 name = "IsCharBiDi"
+binding = { rust_id = "UserIsCharBiDi", id_value = 2000100, constant = "USER_IS_CHAR_BI_DI" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 494
 name = "IsCharEnglish"
+binding = { rust_id = "UserIsCharEnglish", id_value = 2000101, constant = "USER_IS_CHAR_ENGLISH" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 495
 name = "LenFruser1"
+binding = { rust_id = "UserLenFruser1", id_value = 2000102, constant = "USER_LEN_FRUSER1" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 496
 name = "DrawTextRToL"
+binding = { rust_id = "UserDrawTextRToL", id_value = 2000103, constant = "USER_DRAW_TEXT_R_TO_L" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 498
 name = "BEAR498"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserBEAR498", id_value = 2000104, constant = "USER_BEAR498" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 500
 name = "FARCALLNETDRIVER"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserFARCALLNETDRIVER", id_value = 2000105, constant = "USER_FARCALLNETDRIVER" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 521
@@ -934,441 +1593,909 @@ ordinal = 534
 name = "WNetLogon"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserWNetLogon", id_value = 2000106, constant = "USER_W_NET_LOGON" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 535
 name = "WOWWORDBREAKPROC"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserWOWWORDBREAKPROC", id_value = 2000107, constant = "USER_WOWWORDBREAKPROC" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 537
 name = "MOUSEEVENT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserMOUSEEVENT", id_value = 2000108, constant = "USER_MOUSEEVENT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 538
 name = "KEYBDEVENT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserKEYBDEVENT", id_value = 2000109, constant = "USER_KEYBDEVENT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 595
 name = "OLDEXITWINDOWS"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserOLDEXITWINDOWS", id_value = 2000110, constant = "USER_OLDEXITWINDOWS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 600
 name = "GetShellWindow"
+binding = { rust_id = "UserGetShellWindow", id_value = 2000111, constant = "USER_GET_SHELL_WINDOW" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 601
 name = "DoHotkeyStuff"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserDoHotkeyStuff", id_value = 2000112, constant = "USER_DO_HOTKEY_STUFF" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 602
 name = "SetCheckCursorTimer"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserSetCheckCursorTimer", id_value = 2000113, constant = "USER_SET_CHECK_CURSOR_TIMER" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 604
 name = "BroadcastSystemMessage"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserBroadcastSystemMessage", id_value = 2000114, constant = "USER_BROADCAST_SYSTEM_MESSAGE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 605
 name = "HackTaskMonitor"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserHackTaskMonitor", id_value = 2000115, constant = "USER_HACK_TASK_MONITOR" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 606
 name = "FormatMessage"
 decl = { args = ["long", "segmented_pointer", "word", "word", "pointer", "word", "pointer"] }
+binding = { rust_id = "UserFormatMessage", id_value = 2000116, constant = "USER_FORMAT_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "p0", type = "U32" },
+  { name = "p1", type = "FarPointer" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "FarPointer" },
+  { name = "p5", type = "U16" },
+  { name = "p6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 608
 name = "GetForegroundWindow"
+binding = { rust_id = "UserGetForegroundWindow", id_value = 2000117, constant = "USER_GET_FOREGROUND_WINDOW" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 609
 name = "SetForegroundWindow"
 decl = { args = ["word"] }
+binding = { rust_id = "UserSetForegroundWindow", id_value = 2000118, constant = "USER_SET_FOREGROUND_WINDOW" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 610
 name = "DestroyIcon32"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "UserDestroyIcon32", id_value = 2000119, constant = "USER_DESTROY_ICON32" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 620
 name = "ChangeDisplaySettings"
 decl = { attributes = [], args = ["pointer", "long"] }
+binding = { rust_id = "UserChangeDisplaySettings", id_value = 2000120, constant = "USER_CHANGE_DISPLAY_SETTINGS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "p0", type = "FarPointer" },
+  { name = "p1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 621
 name = "EnumDisplaySettings"
 decl = { args = ["string", "long", "pointer"] }
+binding = { rust_id = "UserEnumDisplaySettings", id_value = 2000121, constant = "USER_ENUM_DISPLAY_SETTINGS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarString" },
+  { name = "p1", type = "U32" },
+  { name = "p2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 640
 name = "MsgWaitForMultipleObjects"
 decl = { attributes = [], args = ["long", "pointer", "long", "long", "long"] }
+binding = { rust_id = "UserMsgWaitForMultipleObjects", id_value = 2000122, constant = "USER_MSG_WAIT_FOR_MULTIPLE_OBJECTS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "p0", type = "U32" },
+  { name = "p1", type = "FarPointer" },
+  { name = "p2", type = "U32" },
+  { name = "p3", type = "U32" },
+  { name = "p4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 650
 name = "ActivateKeyboardLayout"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserActivateKeyboardLayout", id_value = 2000123, constant = "USER_ACTIVATE_KEYBOARD_LAYOUT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 651
 name = "GetKeyboardLayout"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetKeyboardLayout", id_value = 2000124, constant = "USER_GET_KEYBOARD_LAYOUT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 652
 name = "GetKeyboardLayoutList"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetKeyboardLayoutList", id_value = 2000125, constant = "USER_GET_KEYBOARD_LAYOUT_LIST" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 654
 name = "UnloadKeyboardLayout"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserUnloadKeyboardLayout", id_value = 2000126, constant = "USER_UNLOAD_KEYBOARD_LAYOUT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 655
 name = "PostPostedMessages"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserPostPostedMessages", id_value = 2000127, constant = "USER_POST_POSTED_MESSAGES" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 656
 name = "DrawFrameControl"
 decl = { args = ["word", "pointer", "word", "word"] }
+binding = { rust_id = "UserDrawFrameControl", id_value = 2000128, constant = "USER_DRAW_FRAME_CONTROL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarPointer" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 657
 name = "DrawCaptionTemp"
 decl = { args = ["word", "word", "pointer", "word", "word", "pointer", "word"] }
+binding = { rust_id = "UserDrawCaptionTemp", id_value = 2000129, constant = "USER_DRAW_CAPTION_TEMP" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "FarPointer" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+  { name = "p5", type = "FarPointer" },
+  { name = "p6", type = "U16" },
+]
 
 [[exports]]
 ordinal = 658
 name = "DispatchInput"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserDispatchInput", id_value = 2000130, constant = "USER_DISPATCH_INPUT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 659
 name = "DrawEdge"
 decl = { args = ["word", "pointer", "word", "word"] }
+binding = { rust_id = "UserDrawEdge", id_value = 2000131, constant = "USER_DRAW_EDGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarPointer" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 660
 name = "DrawCaption"
 decl = { args = ["word", "word", "pointer", "word"] }
+binding = { rust_id = "UserDrawCaption", id_value = 2000132, constant = "USER_DRAW_CAPTION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "FarPointer" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 661
 name = "SetSysColorsTemp"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserSetSysColorsTemp", id_value = 2000133, constant = "USER_SET_SYS_COLORS_TEMP" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 662
 name = "DrawMenubarTemp"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserDrawMenubarTemp", id_value = 2000134, constant = "USER_DRAW_MENUBAR_TEMP" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 663
 name = "GetMenuDefaultItem"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetMenuDefaultItem", id_value = 2000135, constant = "USER_GET_MENU_DEFAULT_ITEM" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 664
 name = "SetMenuDefaultItem"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserSetMenuDefaultItem", id_value = 2000136, constant = "USER_SET_MENU_DEFAULT_ITEM" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 667
 name = "TrackPopupMenuEx"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserTrackPopupMenuEx", id_value = 2000137, constant = "USER_TRACK_POPUP_MENU_EX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 668
 name = "SetWindowRgn"
 decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "UserSetWindowRgn", id_value = 2000138, constant = "USER_SET_WINDOW_RGN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 669
 name = "GetWindowRgn"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetWindowRgn", id_value = 2000139, constant = "USER_GET_WINDOW_RGN" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 800
 name = "CHOOSEFONT_CALLBACK16"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserChooseFontCallback16", id_value = 2000140, constant = "USER_CHOOSEFONT_CALLBACK16" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 801
 name = "FINDREPLACE_CALLBACK16"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserFindReplaceCallback16", id_value = 2000141, constant = "USER_FINDREPLACE_CALLBACK16" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 802
 name = "OPENFILENAME_CALLBACK16"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserOpenFileNameCallback16", id_value = 2000142, constant = "USER_OPENFILENAME_CALLBACK16" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 803
 name = "PRINTDLG_CALLBACK16"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserPrintDlgCallback16", id_value = 2000143, constant = "USER_PRINTDLG_CALLBACK16" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 804
 name = "CHOOSECOLOR_CALLBACK16"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserChooseColorCallback16", id_value = 2000144, constant = "USER_CHOOSECOLOR_CALLBACK16" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 819
 name = "PeekMessage32"
 decl = { args = ["pointer", "word", "word", "word", "word", "word"] }
+binding = { rust_id = "UserPeekMessage32", id_value = 2000145, constant = "USER_PEEK_MESSAGE32" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+  { name = "p5", type = "U16" },
+]
 
 [[exports]]
 ordinal = 820
 name = "GetMessage32"
 decl = { attributes = [], args = ["pointer", "word", "word", "word", "word"] }
+binding = { rust_id = "UserGetMessage32", id_value = 2000146, constant = "USER_GET_MESSAGE32" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 821
 name = "TranslateMessage32"
 decl = { args = ["pointer", "word"] }
+binding = { rust_id = "UserTranslateMessage32", id_value = 2000147, constant = "USER_TRANSLATE_MESSAGE32" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 822
 name = "DispatchMessage32"
 decl = { attributes = [], args = ["pointer", "word"] }
+binding = { rust_id = "UserDispatchMessage32", id_value = 2000148, constant = "USER_DISPATCH_MESSAGE32" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "p0", type = "FarPointer" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 823
 name = "CallMsgFilter32"
 decl = { args = ["pointer", "word", "word"] }
+binding = { rust_id = "UserCallMsgFilter32", id_value = 2000149, constant = "USER_CALL_MSG_FILTER32" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 825
 name = "PostMessage32"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserPostMessage32", id_value = 2000150, constant = "USER_POST_MESSAGE32" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 826
 name = "PostThreadMessage32"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserPostThreadMessage32", id_value = 2000151, constant = "USER_POST_THREAD_MESSAGE32" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 827
 name = "MessageBoxIndirect"
 decl = { args = ["pointer"] }
+binding = { rust_id = "UserMessageBoxIndirect", id_value = 2000152, constant = "USER_MESSAGE_BOX_INDIRECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 851
 name = "MsgThkConnectionDataLS"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserMsgThkConnectionDataLS", id_value = 2000153, constant = "USER_MSG_THK_CONNECTION_DATA_LS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 853
 name = "FT_USRFTHKTHKCONNECTIONDATA"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserFtUsrFThkThkConnectionData", id_value = 2000154, constant = "USER_FT_USRFTHKTHKCONNECTIONDATA" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 854
 name = "FT__USRF2THKTHKCONNECTIONDATA"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserFtUsrF2ThkThkConnectionData", id_value = 2000155, constant = "USER_FT_USRF2THKTHKCONNECTIONDATA" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 855
 name = "Usr32ThkConnectionDataSL"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserUsr32ThkConnectionDataSL", id_value = 2000156, constant = "USER_USR32THK_CONNECTION_DATA_SL" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 890
 name = "InstallIMT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserInstallIMT", id_value = 2000157, constant = "USER_INSTALL_IMT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 891
 name = "UninstallIMT"
 kind = "stub"
 decl = { attributes = [] }
+binding = { rust_id = "UserUninstallIMT", id_value = 2000158, constant = "USER_UNINSTALL_IMT" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 901
 name = "FindResourceEx"
+binding = { rust_id = "UserFindResourceEx", id_value = 2000159, constant = "USER_FIND_RESOURCE_EX" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 902
 name = "LoadSystemLanguageString"
 decl = { args = ["word", "word", "pointer", "word", "word"] }
+binding = { rust_id = "UserLoadSystemLanguageString", id_value = 2000160, constant = "USER_LOAD_SYSTEM_LANGUAGE_STRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "FarPointer" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 903
 name = "GetClipboardCodePage"
 decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "UserGetClipboardCodePage", id_value = 2000161, constant = "USER_GET_CLIPBOARD_CODE_PAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 904
 name = "ResetDialogTemplate"
+binding = { rust_id = "UserResetDialogTemplate", id_value = 2000162, constant = "USER_RESET_DIALOG_TEMPLATE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 905
 name = "ChangeDialogTemplate"
+binding = { rust_id = "UserChangeDialogTemplate", id_value = 2000163, constant = "USER_CHANGE_DIALOG_TEMPLATE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 906
 name = "GetNumLanguages"
+binding = { rust_id = "UserGetNumLanguages", id_value = 2000164, constant = "USER_GET_NUM_LANGUAGES" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 907
 name = "GetLanguageName"
 decl = { args = ["word", "word", "pointer", "word"] }
+binding = { rust_id = "UserGetLanguageName", id_value = 2000165, constant = "USER_GET_LANGUAGE_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "FarPointer" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 908
 name = "GetLanguageResId"
+binding = { rust_id = "UserGetLanguageResId", id_value = 2000166, constant = "USER_GET_LANGUAGE_RES_ID" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 909
 name = "SetWindowTextEx"
 decl = { args = ["word", "string", "word"] }
+binding = { rust_id = "UserSetWindowTextEx", id_value = 2000167, constant = "USER_SET_WINDOW_TEXT_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarString" },
+  { name = "p2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 910
 name = "BiDiMessageBoxEx"
 decl = { args = ["word", "string", "string", "word", "word"] }
+binding = { rust_id = "UserBiDiMessageBoxEx", id_value = 2000168, constant = "USER_BI_DI_MESSAGE_BOX_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarString" },
+  { name = "p2", type = "FarString" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 911
 name = "SetDlgItemTextEx"
 decl = { args = ["word", "word", "string", "word"] }
+binding = { rust_id = "UserSetDlgItemTextEx", id_value = 2000169, constant = "USER_SET_DLG_ITEM_TEXT_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "FarString" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 912
 name = "ChangeKeyboardLanguage"
 decl = { attributes = [], args = ["word", "word"] }
+binding = { rust_id = "UserChangeKeyboardLanguage", id_value = 2000170, constant = "USER_CHANGE_KEYBOARD_LANGUAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 913
 name = "GetCodePageSystemFont"
 decl = { args = ["word", "word"] }
+binding = { rust_id = "UserGetCodePageSystemFont", id_value = 2000171, constant = "USER_GET_CODE_PAGE_SYSTEM_FONT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 914
 name = "QueryCodePage"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "UserQueryCodePage", id_value = 2000172, constant = "USER_QUERY_CODE_PAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 915
 name = "GetAppCodePage"
 decl = { attributes = [], args = ["word"] }
+binding = { rust_id = "UserGetAppCodePage", id_value = 2000173, constant = "USER_GET_APP_CODE_PAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 916
 name = "CreateDialogIndirectParamML"
 decl = { args = ["word", "pointer", "word", "pointer", "long", "word", "word", "string", "word"] }
+binding = { rust_id = "UserCreateDialogIndirectParamML", id_value = 2000174, constant = "USER_CREATE_DIALOG_INDIRECT_PARAM_ML" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarPointer" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "FarPointer" },
+  { name = "p4", type = "U32" },
+  { name = "p5", type = "U16" },
+  { name = "p6", type = "U16" },
+  { name = "p7", type = "FarString" },
+  { name = "p8", type = "U16" },
+]
 
 [[exports]]
 ordinal = 917
 name = "CreateDialogParamML"
+binding = { rust_id = "UserCreateDialogParamML", id_value = 2000175, constant = "USER_CREATE_DIALOG_PARAM_ML" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 918
 name = "DialogBoxIndirectParamML"
 decl = { args = ["word", "word", "word", "pointer", "long", "word", "word", "string", "word"] }
+binding = { rust_id = "UserDialogBoxIndirectParamML", id_value = 2000176, constant = "USER_DIALOG_BOX_INDIRECT_PARAM_ML" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "FarPointer" },
+  { name = "p4", type = "U32" },
+  { name = "p5", type = "U16" },
+  { name = "p6", type = "U16" },
+  { name = "p7", type = "FarString" },
+  { name = "p8", type = "U16" },
+]
 
 [[exports]]
 ordinal = 919
 name = "LoadLanguageString"
 decl = { args = ["word", "word", "word", "pointer", "word"] }
+binding = { rust_id = "UserLoadLanguageString", id_value = 2000177, constant = "USER_LOAD_LANGUAGE_STRING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "FarPointer" },
+  { name = "p4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 920
 name = "SetAppCodePage"
 decl = { attributes = [], args = ["word", "word", "word", "word"] }
+binding = { rust_id = "UserSetAppCodePage", id_value = 2000178, constant = "USER_SET_APP_CODE_PAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+  { name = "p2", type = "U16" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 922
 name = "GetBaseCodePage"
 decl = { attributes = [] }
+binding = { rust_id = "UserGetBaseCodePage", id_value = 2000179, constant = "USER_GET_BASE_CODE_PAGE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 923
 name = "FindLanguageResource"
 decl = { args = ["word", "string", "string", "word"] }
+binding = { rust_id = "UserFindLanguageResource", id_value = 2000180, constant = "USER_FIND_LANGUAGE_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarString" },
+  { name = "p2", type = "FarString" },
+  { name = "p3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 924
 name = "ChangeKeyboardCodePage"
 decl = { attributes = [], args = ["word", "word"] }
+binding = { rust_id = "UserChangeKeyboardCodePage", id_value = 2000181, constant = "USER_CHANGE_KEYBOARD_CODE_PAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 925
 name = "LangToBestCodePage"
+binding = { rust_id = "UserLangToBestCodePage", id_value = 2000182, constant = "USER_LANG_TO_BEST_CODE_PAGE" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 926
 name = "GetNumKeyboards"
+binding = { rust_id = "UserGetNumKeyboards", id_value = 2000183, constant = "USER_GET_NUM_KEYBOARDS" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 927
 name = "IsCharHebrew"
 decl = { args = ["word"] }
+binding = { rust_id = "UserIsCharHebrew", id_value = 2000184, constant = "USER_IS_CHAR_HEBREW" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 928
 name = "IsCharFrench"
 decl = { args = ["word"] }
+binding = { rust_id = "UserIsCharFrench", id_value = 2000185, constant = "USER_IS_CHAR_FRENCH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 929
 name = "IsCharArabic"
 decl = { args = ["word"] }
+binding = { rust_id = "UserIsCharArabic", id_value = 2000186, constant = "USER_IS_CHAR_ARABIC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 930
 name = "MessageBoxEx"
 decl = { args = ["word", "string", "string", "word", "word"] }
+binding = { rust_id = "UserMessageBoxEx", id_value = 2000187, constant = "USER_MESSAGE_BOX_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U16" },
+  { name = "p1", type = "FarString" },
+  { name = "p2", type = "FarString" },
+  { name = "p3", type = "U16" },
+  { name = "p4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 1000
 name = "SetProcessDefaultLayout"
 decl = { args = ["long"] }
+binding = { rust_id = "UserSetProcessDefaultLayout", id_value = 2000188, constant = "USER_SET_PROCESS_DEFAULT_LAYOUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 1001
 name = "GetProcessDefaultLayout"
 decl = { args = ["pointer"] }
+binding = { rust_id = "UserGetProcessDefaultLayout", id_value = 2000189, constant = "USER_GET_PROCESS_DEFAULT_LAYOUT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "p0", type = "FarPointer" },
+]
+

@@ -67,6 +67,8 @@ mod profile_calls;
 mod win16_service_calls;
 #[path = "call_user_system.rs"]
 mod user_system_calls;
+#[path = "call_user_declared.rs"]
+mod call_user_declared;
 #[path = "call_user_comm.rs"]
 mod call_user_comm;
 #[path = "call_user_resources.rs"]

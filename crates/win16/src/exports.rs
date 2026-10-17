@@ -138,7 +138,7 @@ pub use request::{
     Win16StringComparison, Win16SystemRequest, Win16TimeCaps16, Win16ToolhelpRequest,
     Win16ToolhelpStackRequest, Win16CharacterClassification, Win16UserAnsiRequest, Win16UserAtomsRequest,
     Win16UserDrawingRequest, Win16UserGeometryRequest, Win16UserInputRequest, Win16UserMenuRequest,
-    Win16UserMessagesRequest, Win16UserRequest, Win16UserResourcesRequest, Win16UserRuntimeRequest,
+    Win16UserDeclaredCall, Win16UserMessagesRequest, Win16UserRequest, Win16UserResourcesRequest, Win16UserRuntimeRequest,
     Win16UserStringFormatRequest,
     Win16UserScrollBarRequest, Win16UserSystemRequest, Win16UserCommRequest, Win16UserTextRequest,
     Win16UserUpdateRequest, Win16UserWindowRequest, Win16VerRequest, Win16WaveControl,

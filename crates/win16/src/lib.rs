@@ -120,7 +120,7 @@ pub use exports::{
     Win16UserClipboardRequest, Win16UserCursorAcceleratorRequest, Win16UserDialogRequest,
     Win16UserDrawingRequest, Win16UserFamilyRequest, Win16UserGeometryRequest,
     Win16UserSessionRequest,
-    Win16UserMenuRequest, Win16UserMessagesRequest, Win16UserRequest, Win16UserResourcesRequest,
+    Win16UserDeclaredCall, Win16UserMenuRequest, Win16UserMessagesRequest, Win16UserRequest, Win16UserResourcesRequest,
     Win16UserRuntimeRequest, Win16UserScrollBarRequest, Win16UserSystemRequest, Win16UserCommRequest,
     Win16UserInputRequest,
     Win16UserStringFormatRequest, Win16UserTextRequest, Win16UserUpdateRequest, Win16UserWindowRequest,
