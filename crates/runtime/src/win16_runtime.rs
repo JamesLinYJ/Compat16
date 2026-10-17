@@ -120,6 +120,8 @@ mod ole2nls;
 mod winnls;
 #[path = "win16_print_queue.rs"]
 mod print_queue;
+#[path = "win16_winmem32.rs"]
+mod winmem32;
 #[path = "win16_ole1_server_callback.rs"]
 mod win16_ole1_server_callback;
 #[path = "win16_ole1_server_callbacks.rs"]
@@ -634,6 +636,7 @@ pub(crate) struct Win16State {
     )>,
     com_operations: com_operations::Win16ComOperationTable,
     print_queues: print_queue::Win16PrintQueueState,
+    winmem32: winmem32::Win16Winmem32State,
     pub(crate) selectors: SelectorTable,
     gate_selector: Selector,
     callback_gate_selector: Selector,

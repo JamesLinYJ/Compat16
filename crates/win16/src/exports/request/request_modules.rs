@@ -19,6 +19,13 @@ pub use ole1::Win16Ole1Request;
 #[path = "winnls.rs"]
 mod winnls;
 pub use winnls::Win16WinnlsRequest;
+#[path = "winmem32.rs"]
+mod winmem32;
+pub use winmem32::{
+    WINMEM32_INSUFFICIENT_MEMORY, WINMEM32_INSUFFICIENT_SELECTORS, WINMEM32_INVALID_ARGUMENT,
+    WINMEM32_INVALID_FLAGS, WINMEM32_INVALID_FUNCTION, WINMEM32_MAX_16BIT_ALIAS_BYTES,
+    WINMEM32_MAX_OBJECT_BYTES, WINMEM32_VERSION_1_00, Win16Winmem32Request, decode_winmem32,
+};
 #[path = "print_queue.rs"]
 mod print_queue;
 pub use print_queue::{Win16PrintQueueRequest, decode_print_queue_export};

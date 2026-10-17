@@ -170,6 +170,7 @@ impl Win16State {
             ole1_com_callback_resume_failures: Vec::new(),
             com_operations: super::com_operations::Win16ComOperationTable::default(),
             print_queues: super::print_queue::Win16PrintQueueState::default(),
+            winmem32: super::winmem32::Win16Winmem32State::default(),
             selectors, gate_selector, callback_gate_selector, bindings, builtin_data_exports,
             runtime_selector_aliases,
             runtime_arena_backing,

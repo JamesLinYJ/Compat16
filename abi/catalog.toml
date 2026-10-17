@@ -119,7 +119,7 @@ groups = [
   "groups/wing/declared.toml",
   "groups/wing/gdi_device.toml",
   "groups/wing/wing_device.toml",
-  "groups/winmem32/declared.toml",
+  "groups/winmem32/winmem32.toml",
   "groups/winnls/declared.toml",
   "groups/winnls/winnls.toml",
   "groups/winoldap/declared.toml",

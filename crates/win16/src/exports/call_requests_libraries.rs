@@ -18,6 +18,10 @@ pub(super) fn decode(
         return super::super::call_winnls::decode(descriptor, arguments, selectors, memory)
             .map(|request| Some(Win16ApiRequest::Winnls(request)));
     }
+    if descriptor.module().eq_ignore_ascii_case("WINMEM32") {
+        return super::super::call_winmem32::decode(descriptor.ordinal(), arguments)
+            .map(|request| request.map(Win16ApiRequest::Winmem32));
+    }
     if descriptor.module().eq_ignore_ascii_case("MSACM") {
         return call_win16_multimedia::decode_multimedia_export(
             descriptor.module().as_bytes(),
