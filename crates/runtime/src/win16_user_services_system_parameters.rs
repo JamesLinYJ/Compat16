@@ -115,9 +115,9 @@ impl Win16State {
         GuestOutputRange::capture(self, memory, pointer, length)
     }
 
-    /// Convert known Windows 3.x SPI actions to explicit host request shapes.
-    /// Unrecognized actions take the documented FALSE path instead of being
-    /// forwarded through an assumed data layout.
+    /// Convert a Windows 3.1 `SystemParametersInfo` action into a host request.
+    /// Unnamed slots and later Win32 actions return FALSE and report a
+    /// compatibility gap. They are not forwarded through an assumed layout.
     pub(super) fn prepare_system_parameters_info(
         &self,
         request: Win16SystemParametersInfoRequest,
@@ -133,7 +133,7 @@ impl Win16State {
         };
         let prepared = match request.action {
             SPI_GETBEEP | SPI_GETSCREENSAVEACTIVE | SPI_GETICONTITLEWRAP
-            | SPI_GETMENUDROPALIGNMENT => {
+            | SPI_GETMENUDROPALIGNMENT | SPI_GETFASTTASKSWITCH => {
                 let Some(pointer) = self.spi_data_pointer(request.data)? else {
                     return Ok(Prepared::Immediate(0));
                 };
@@ -142,7 +142,8 @@ impl Win16State {
                 HostRequest::GetBool(request.action)
             }
             SPI_SETBEEP | SPI_SETSCREENSAVEACTIVE | SPI_SETICONTITLEWRAP
-            | SPI_SETMENUDROPALIGNMENT => HostRequest::SetBool {
+            | SPI_SETMENUDROPALIGNMENT | SPI_SETMOUSEBUTTONSWAP
+            | SPI_SETFASTTASKSWITCH => HostRequest::SetBool {
                 action: request.action,
                 value: request.param != 0,
                 flags: request.flags,
@@ -157,7 +158,8 @@ impl Win16State {
                 HostRequest::GetWord(request.action)
             }
             SPI_SETBORDER | SPI_SETKEYBOARDSPEED | SPI_SETSCREENSAVETIMEOUT
-            | SPI_SETGRIDGRANULARITY | SPI_SETKEYBOARDDELAY => HostRequest::SetWord {
+            | SPI_SETGRIDGRANULARITY | SPI_SETKEYBOARDDELAY | SPI_SETDOUBLECLKWIDTH
+            | SPI_SETDOUBLECLKHEIGHT | SPI_SETDOUBLECLICKTIME => HostRequest::SetWord {
                 action: request.action,
                 value: request.param,
                 flags: request.flags,
@@ -328,8 +330,12 @@ fn logfont_from_host(font: Win16HostLogFont) -> LogFont16 {
     }
 }
 
-// Win3.x SystemParametersInfo action values shared with the documented
-// Windows API. Newer-only actions are intentionally not guessed here.
+// Windows 3.1 public `SystemParametersInfo` actions. Slots 7–9 are unnamed
+// in the SDK header. The three double-click setters pass the guest WORD as
+// `uiParam` and do not read `lpvParam`; a zero double-click time is forwarded
+// unchanged. Mouse-button swap and fast task switching treat any nonzero WORD
+// as TRUE. `SPI_GETFASTTASKSWITCH` writes a 16-bit BOOL and ignores `uiParam`.
+// Actions after 36, including `SPI_SETDRAGFULLWINDOWS` (37), stay gaps.
 const SPI_GETBEEP: u16 = 1;
 const SPI_SETBEEP: u16 = 2;
 const SPI_GETMOUSE: u16 = 3;
@@ -355,5 +361,11 @@ const SPI_GETICONTITLEWRAP: u16 = 25;
 const SPI_SETICONTITLEWRAP: u16 = 26;
 const SPI_GETMENUDROPALIGNMENT: u16 = 27;
 const SPI_SETMENUDROPALIGNMENT: u16 = 28;
+const SPI_SETDOUBLECLKWIDTH: u16 = 29;
+const SPI_SETDOUBLECLKHEIGHT: u16 = 30;
 const SPI_GETICONTITLELOGFONT: u16 = 31;
+const SPI_SETDOUBLECLICKTIME: u16 = 32;
+const SPI_SETMOUSEBUTTONSWAP: u16 = 33;
 const SPI_SETICONTITLELOGFONT: u16 = 34;
+const SPI_GETFASTTASKSWITCH: u16 = 35;
+const SPI_SETFASTTASKSWITCH: u16 = 36;

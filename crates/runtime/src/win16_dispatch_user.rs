@@ -760,3 +760,7 @@ mod character_classification_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_keyboard_state_tests.rs"]
 mod keyboard_state_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_system_parameters_tests.rs"]
+mod system_parameters_tests;
