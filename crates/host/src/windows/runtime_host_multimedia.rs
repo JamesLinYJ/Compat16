@@ -57,7 +57,8 @@ pub(super) fn media_time(
     host: &mut WindowsHost,
     operation: runtime::Win16HostMediaTimeOperation,
 ) -> Result<runtime::Win16HostMediaTimeResult, RuntimeError> {
-    host.win16_media_services.execute_time(operation)
+    let sender = host.win16_callback_sender.clone();
+    host.win16_media_services.execute_time(operation, &sender)
 }
 
 pub(super) fn media_io(

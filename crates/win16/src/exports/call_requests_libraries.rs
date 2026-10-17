@@ -101,7 +101,9 @@ pub(super) fn decode(
         | Win16ExportId::MediaTimeGetDevCaps
         | Win16ExportId::MediaTimeBeginPeriod
         | Win16ExportId::MediaTimeEndPeriod
-        | Win16ExportId::MediaTimeGetTime => Win16ApiRequest::MediaTime(
+        | Win16ExportId::MediaTimeGetTime
+        | Win16ExportId::MediaTimeSetEvent
+        | Win16ExportId::MediaTimeKillEvent => Win16ApiRequest::MediaTime(
             super::super::call_media_time::decode(descriptor, arguments)?,
         ),
         Win16ExportId::MediaIoOpen

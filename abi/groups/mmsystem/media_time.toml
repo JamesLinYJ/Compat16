@@ -12,6 +12,30 @@ params = [
 ]
 
 [[exports]]
+ordinal = 602
+name = "timeSetEvent"
+binding = { rust_id = "MediaTimeSetEvent", id_value = 1285, constant = "MMSYSTEM_TIME_SET_EVENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "delay", type = "U16" },
+  { name = "resolution", type = "U16" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "user", type = "U32" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 603
+name = "timeKillEvent"
+binding = { rust_id = "MediaTimeKillEvent", id_value = 1286, constant = "MMSYSTEM_TIME_KILL_EVENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "timer", type = "U16" },
+]
+
+[[exports]]
 ordinal = 604
 name = "timeGetDevCaps"
 binding = { rust_id = "MediaTimeGetDevCaps", id_value = 1014, constant = "MMSYSTEM_TIME_GET_DEV_CAPS" }

@@ -213,7 +213,7 @@ pub use win16_host_path_info::{
 pub use win16_media_services::{
     Win16HostMediaIoHandle, Win16HostMediaIoOperation, Win16HostMediaIoResult,
     Win16HostMediaOpenResult, Win16HostMediaTimeOperation, Win16HostMediaTimeResult,
-    Win16HostMediaTimeValue, Win16HostMmckInfo,
+    Win16HostMediaTimeValue, Win16HostMmckInfo, multimedia_timer_callback_arguments,
 };
 mod win16_host_shell_icons;
 pub use win16_host_shell_icons::{Win16HostShellIconCall, Win16HostShellIconResult};

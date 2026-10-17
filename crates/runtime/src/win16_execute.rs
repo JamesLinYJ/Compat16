@@ -838,12 +838,15 @@ impl Runtime {
                     {
                         if let Some(event) = host.win16_take_guest_callback()? {
                             source_progress = true;
-                            state.begin_asynchronous_guest_callback(
+                            let callback = event.callback;
+                            let began = state.begin_asynchronous_guest_callback(
                                 &mut self.cpu,
                                 &mut self.dos,
                                 &mut self.memory,
                                 event,
-                            )?;
+                            );
+                            state.note_multimedia_timer_callback_entered(callback);
+                            began?;
                         }
                     }
                     // An unsolicited DDE callback runs only when the ordinary
