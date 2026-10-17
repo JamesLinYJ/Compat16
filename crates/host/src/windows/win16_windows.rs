@@ -59,6 +59,8 @@ mod win16_window_dialog_creation;
 mod win16_window_identity;
 #[path = "win16_window_input.rs"]
 mod win16_window_input;
+#[path = "win16_ctl3d_worker.rs"]
+mod win16_ctl3d_worker;
 #[path = "win16_window_worker.rs"]
 mod win16_window_worker;
 pub(super) use win16_window_worker::{
@@ -1051,6 +1053,10 @@ pub(in crate::windows) fn is_guest_notification_remove_retrieval() -> bool {
 pub(in crate::windows) fn requeue_deferred_guest_notifications() -> Result<(), RuntimeError> {
     win16_guest_notifications::requeue_deferred()
 }
+
+#[cfg(test)]
+#[path = "win16_ctl3d_reentrancy_tests.rs"]
+mod win16_ctl3d_reentrancy_tests;
 
 impl Drop for Win16Windows {
     fn drop(&mut self) {

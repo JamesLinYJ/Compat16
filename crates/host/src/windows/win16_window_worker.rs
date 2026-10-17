@@ -785,6 +785,9 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
                 unsafe { windows_sys::Win32::UI::Input::KeyboardAndMouse::GetKeyState(key) };
             let _ = response.send(state);
         }
+        WorkerCommand::Ctl3dFrame { window, response } => {
+            let _ = response.send(super::win16_ctl3d_worker::frame_facts(state, window));
+        }
         WorkerCommand::Keyboard { call, response } => {
             // Layout and dead-key state belong to this USER input queue.
             // Release the Rust borrow before invoking Windows.

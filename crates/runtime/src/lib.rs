@@ -68,6 +68,8 @@ pub use win16_host_midi::{
     Win16HostMidiNotificationDisposition, Win16HostMidiCancellationReason,
     Win16HostMidiResult, Win16HostMidiSubmission,
 };
+mod win16_host_ctl3d;
+pub use win16_host_ctl3d::Win16HostCtl3dFrameFacts;
 mod win16_host_nonclient;
 pub use win16_host_control_messages::{
     Win16HostButtonMessage, Win16HostComboBoxMessage, Win16HostControlCall,
