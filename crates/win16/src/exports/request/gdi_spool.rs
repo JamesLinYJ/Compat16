@@ -25,4 +25,23 @@ pub enum Win16GdiSpoolRequest {
     EndSpoolPage {
         job: u16,
     },
+    /// Counted environment bytes. `None` is a null pointer or a zero count,
+    /// both of which leave the guest pointer unread.
+    SetEnvironment {
+        port: Option<Vec<u8>>,
+        environment: Option<Vec<u8>>,
+        capacity: u16,
+    },
+    /// `environment` is a guest far address. Zero asks for the stored size
+    /// and does not name an output buffer.
+    GetEnvironment {
+        port: Option<Vec<u8>>,
+        environment: u32,
+        capacity: u16,
+    },
+    /// `dc` is a guest HDC word. `code` is the abort-procedure code, not a pointer.
+    QueryAbort {
+        dc: u16,
+        code: i16,
+    },
 }

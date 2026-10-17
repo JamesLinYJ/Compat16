@@ -256,6 +256,7 @@ impl Win16State {
             win87em_exception_handler: None,
             files: BTreeMap::new(), next_file: FIRST_GUEST_HFILE,
             network_print_jobs: BTreeMap::new(),
+            printer_environments: BTreeMap::new(),
             global_handles: BTreeMap::new(), global_selectors: BTreeMap::new(),
             queued_drop_files: Vec::new(),
             finished_queued_drop_leases: Vec::new(),

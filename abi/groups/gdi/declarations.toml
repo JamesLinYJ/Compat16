@@ -95,16 +95,6 @@ name = "InquireVisRgn"
 decl = { args = ["word"] }
 
 [[exports]]
-ordinal = 132
-name = "SetEnvironment"
-decl = { args = ["string", "string", "word"] }
-
-[[exports]]
-ordinal = 133
-name = "GetEnvironment"
-decl = { args = ["string", "string", "word"] }
-
-[[exports]]
 ordinal = 135
 name = "ScanLR"
 decl = { args = ["word", "word", "word", "long", "word"] }
@@ -180,11 +170,6 @@ ordinal = 152
 name = "GDIInitApp"
 kind = "stub"
 decl = { attributes = [] }
-
-[[exports]]
-ordinal = 155
-name = "QueryAbort"
-decl = { args = ["word", "word"] }
 
 [[exports]]
 ordinal = 157
