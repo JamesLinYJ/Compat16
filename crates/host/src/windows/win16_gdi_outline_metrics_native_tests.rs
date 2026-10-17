@@ -5,8 +5,9 @@ use runtime::Win16HostDc;
 use std::{mem::size_of, ptr};
 use windows_sys::Win32::Graphics::Gdi::{
     ANSI_CHARSET, CreateFontIndirectW, DeleteObject, GetMapMode, GetOutlineTextMetricsW,
-    GetTextMetricsW, HDC, HGDIOBJ, LOGFONTW, MM_ANISOTROPIC, MM_TEXT,
-    OUTLINETEXTMETRICW, SelectObject, SetMapMode, TEXTMETRICW, TMPF_TRUETYPE,
+    GetTextMetricsW, HDC, HGDIOBJ, LOGFONTW, MM_ANISOTROPIC, MM_HIENGLISH, MM_HIMETRIC,
+    MM_ISOTROPIC, MM_LOENGLISH, MM_LOMETRIC, MM_TEXT, MM_TWIPS, OUTLINETEXTMETRICW,
+    SelectObject, SetMapMode, TEXTMETRICW, TMPF_TRUETYPE,
 };
 
 struct MemoryDc {
@@ -76,7 +77,7 @@ impl Drop for MappingMode {
 
 #[test]
 #[ignore = "requires native Windows GDI and an installed TrueType font"]
-fn get_outline_text_metrics_native_matches_independent_oracle_and_rejects_non_mm_text() {
+fn get_outline_text_metrics_native_matches_fixed_modes_and_rejects_extent_modes() {
     let dcs = Win16Dcs::with_text_codec(GuestTextCodec::new(1252).unwrap());
     let token = dcs.create_compatible(None).unwrap().expect("private memory DC");
     let owned_dc = MemoryDc { dcs, token };
@@ -201,13 +202,64 @@ fn get_outline_text_metrics_native_matches_independent_oracle_and_rejects_non_mm
     }
     assert!(!actual.names[0].is_empty() && !actual.names[1].is_empty());
 
-    // A second helper call must enforce the bounded MM_TEXT-only policy.
-    let mapping = MappingMode { dc, previous: unsafe { SetMapMode(dc, MM_ANISOTROPIC) } };
-    assert_eq!(mapping.previous, MM_TEXT);
-    assert!(owned_dc.dcs.get_outline_text_metrics(token).unwrap().is_none());
-    drop(mapping);
+    for mode in [MM_LOMETRIC, MM_HIMETRIC, MM_LOENGLISH, MM_HIENGLISH, MM_TWIPS] {
+        assert_fixed_mode_matches_oracle(&owned_dc.dcs, token, dc, mode);
+    }
+    assert_eq!(unsafe { GetMapMode(dc) }, MM_TEXT);
+    // Extent modes stay rejected until a tested window/viewport path exists.
+    for mode in [MM_ANISOTROPIC, MM_ISOTROPIC] {
+        let mapping = MappingMode { dc, previous: unsafe { SetMapMode(dc, mode) } };
+        assert_eq!(unsafe { GetMapMode(dc) }, mode);
+        assert!(owned_dc.dcs.get_outline_text_metrics(token).unwrap().is_none());
+        drop(mapping);
+    }
     assert_eq!(unsafe { GetMapMode(dc) }, MM_TEXT);
     assert_eq!(owned_dc.dcs.get_outline_text_metrics(token).unwrap().unwrap(), actual);
     // Reverse drop order restores the font, deletes it, releases the lease,
     // and finally deletes the memory DC, including on assertion failure.
+}
+
+fn assert_fixed_mode_matches_oracle(dcs: &Win16Dcs, token: Win16HostDc, dc: HDC, mode: i32) {
+    let mapping = MappingMode { dc, previous: unsafe { SetMapMode(dc, mode) } };
+    assert_eq!(unsafe { GetMapMode(dc) }, mode);
+    let guest = dcs.get_outline_text_metrics(token).unwrap()
+        .unwrap_or_else(|| panic!("fixed mapping mode {mode} must return metrics"));
+    let (native, units, copied) = native_outline(dc);
+    assert_eq!(guest.fixed.len(), 106);
+    assert_eq!(&guest.fixed[..2], &[0, 0], "guest size stays with the runtime packer");
+    let height = i16::from_le_bytes([guest.fixed[2], guest.fixed[3]]);
+    assert_eq!(i32::from(height), native.otmTextMetrics.tmHeight, "mode {mode} height");
+    let ascent = i16::from_le_bytes([guest.fixed[56], guest.fixed[57]]);
+    assert_eq!(i32::from(ascent), native.otmAscent, "mode {mode} ascent");
+    let em = u16::from_le_bytes([guest.fixed[54], guest.fixed[55]]);
+    assert_eq!(u32::from(em), u32::try_from(native.otmEMSquare).unwrap());
+    assert_eq!(guest.fixed[34], native.otmPanoseNumber.bFamilyType);
+    let position = i16::from_le_bytes([guest.fixed[102], guest.fixed[103]]);
+    assert_eq!(i32::from(position), native.otmsUnderscorePosition);
+    let size = i16::from_le_bytes([guest.fixed[104], guest.fixed[105]]);
+    assert_eq!(i32::from(size), i32::try_from(native.otmsUnderscoreSize).unwrap());
+    for (index, offset) in [
+        native.otmpFamilyName, native.otmpFaceName, native.otmpStyleName, native.otmpFullName,
+    ].into_iter().enumerate() {
+        let offset = offset as usize;
+        assert!(offset >= size_of::<OUTLINETEXTMETRICW>() && offset < copied && offset % 2 == 0);
+        let tail = &units[offset / 2..];
+        let end = tail.iter().position(|unit| *unit == 0).expect("native name terminator");
+        assert_eq!(guest.names[index], tail[..end], "mode {mode} name {index}");
+    }
+    drop(mapping);
+}
+
+fn native_outline(dc: HDC) -> (OUTLINETEXTMETRICW, Vec<u16>, usize) {
+    let required = unsafe { GetOutlineTextMetricsW(dc, 0, ptr::null_mut()) } as usize;
+    assert!(required >= size_of::<OUTLINETEXTMETRICW>());
+    let mut storage = vec![0usize; required.div_ceil(size_of::<usize>())];
+    let pointer = storage.as_mut_ptr().cast::<OUTLINETEXTMETRICW>();
+    let copied = unsafe { GetOutlineTextMetricsW(dc, required.try_into().unwrap(), pointer) } as usize;
+    assert!((size_of::<OUTLINETEXTMETRICW>()..=required).contains(&copied));
+    let native = unsafe { pointer.read() };
+    let units = unsafe {
+        std::slice::from_raw_parts(storage.as_ptr().cast::<u16>(), copied / 2)
+    }.to_vec();
+    (native, units, copied)
 }

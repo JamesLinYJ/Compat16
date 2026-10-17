@@ -1,5 +1,8 @@
-//! Bounded Win16 Escape queries. Printing commands and private driver escapes
-//! are intentionally absent; unsupported codes return the documented zero.
+//! Bounded Win16 Escape queries and the print-job subset.
+//!
+//! SETABORTPROC, PASSTHROUGH, NEXTBAND, SETCOPYCOUNT, and private driver
+//! escapes stay unimplemented and return zero. No guest pointer is passed to
+//! native Escape.
 
 use super::*;
 use crate::Win16EscapeQuery as Query;
@@ -19,6 +22,13 @@ impl Win16State {
         let Some(query) = escape_query(escape) else {
             return Ok(0);
         };
+        if let Some(command) = print_command(query) {
+            // Printing failure is SP_ERROR. Zero remains the unimplemented code.
+            let Some(_) = self.guest_gdi.dc(dc) else {
+                return Ok(SP_ERROR16);
+            };
+            return self.escape_print(memory, dc, command, input_size, input, host);
+        }
         let Some(dc) = self.guest_gdi.dc(dc) else {
             return Ok(0);
         };
@@ -79,6 +89,135 @@ impl Win16State {
             _ => Err(wrong_device_result("Escape POINT query")),
         }
     }
+
+    /// Windows 3.1 STARTDOC carries a counted document name and ignores output.
+    /// NEWFRAME, ENDDOC, and ABORTDOC ignore both pointers. Win32 split the
+    /// page boundary into StartPage/EndPage, which the 3.1 header does not
+    /// describe: STARTDOC and NEWFRAME leave a page open, and ENDDOC closes
+    /// that page before ending the job.
+    fn escape_print(
+        &mut self,
+        memory: &Memory,
+        dc: u16,
+        command: PrintCommand,
+        input_size: i16,
+        input: u32,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        match command {
+            PrintCommand::Start => {
+                let Some(document_name) = self.start_doc_name(memory, input_size, input)? else {
+                    return Ok(SP_ERROR16);
+                };
+                let started = self.start_doc(
+                    dc,
+                    Some(DocInfo16 {
+                        document_name: Some(document_name),
+                        output: None,
+                    }),
+                    host,
+                )?;
+                if !positive_escape(started) {
+                    return Ok(started);
+                }
+                let page = match self.print(PrintOperation::StartPage, dc, host) {
+                    Ok(status) if positive_escape(status) => return Ok(started),
+                    Ok(status) => status,
+                    Err(error) => {
+                        self.print(PrintOperation::AbortDocument, dc, host)?;
+                        return Err(error);
+                    }
+                };
+                self.print(PrintOperation::AbortDocument, dc, host)?;
+                Ok(page)
+            }
+            PrintCommand::NewFrame => {
+                let ended = self.print(PrintOperation::EndPage, dc, host)?;
+                if !positive_escape(ended) {
+                    return Ok(ended);
+                }
+                self.print(PrintOperation::StartPage, dc, host)
+            }
+            PrintCommand::End => {
+                let ended = self.print(PrintOperation::EndPage, dc, host)?;
+                if !positive_escape(ended) {
+                    return Ok(ended);
+                }
+                self.print(PrintOperation::EndDocument, dc, host)
+            }
+            PrintCommand::Abort => self.print(PrintOperation::AbortDocument, dc, host),
+        }
+    }
+
+    fn start_doc_name(
+        &self,
+        memory: &Memory,
+        input_size: i16,
+        input: u32,
+    ) -> Result<Option<Vec<u8>>, RuntimeError> {
+        // nCount is the byte count. Selector zero is the Win16 null pointer.
+        if input_size <= 0 || input >> 16 == 0 {
+            return Ok(None);
+        }
+        let length = usize::from(input_size as u16);
+        let offset = usize::from(input as u16);
+        let Some(end) = offset.checked_add(length) else {
+            return Ok(None);
+        };
+        if end > 0x1_0000 {
+            return Ok(None);
+        }
+        let pointer = self
+            .selectors
+            .pointer_from_far(input)
+            .map_err(crate::runtime_error)?;
+        let mut bytes = Vec::new();
+        bytes.try_reserve_exact(length).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve Win16 STARTDOC name",
+                error,
+            )
+        })?;
+        bytes.resize(length, 0);
+        self.selectors
+            .read(memory, pointer, &mut bytes)
+            .map_err(crate::runtime_error)?;
+        // Accept either lstrlen or lstrlen+1. A NUL anywhere earlier is not a name.
+        let terminator = bytes
+            .iter()
+            .position(|byte| *byte == 0)
+            .unwrap_or(bytes.len());
+        if terminator + 1 < bytes.len() {
+            return Ok(None);
+        }
+        bytes.truncate(terminator);
+        Ok(Some(bytes))
+    }
+}
+
+enum PrintCommand {
+    Start,
+    NewFrame,
+    End,
+    Abort,
+}
+
+fn print_command(query: Query) -> Option<PrintCommand> {
+    match query {
+        Query::StartDocument => Some(PrintCommand::Start),
+        Query::NewFrame => Some(PrintCommand::NewFrame),
+        Query::EndDocument => Some(PrintCommand::End),
+        Query::AbortDocument => Some(PrintCommand::Abort),
+        Query::QuerySupport
+        | Query::PhysicalPageSize
+        | Query::PrintingOffset
+        | Query::ScalingFactor => None,
+    }
+}
+
+fn positive_escape(status: u32) -> bool {
+    i16::try_from(status).ok().is_some_and(|value| value > 0)
 }
 
 fn escape_query(escape: i16) -> Option<Query> {
@@ -87,6 +226,10 @@ fn escape_query(escape: i16) -> Option<Query> {
         12 => Some(Query::PhysicalPageSize),
         13 => Some(Query::PrintingOffset),
         14 => Some(Query::ScalingFactor),
+        10 => Some(Query::StartDocument),
+        1 => Some(Query::NewFrame),
+        11 => Some(Query::EndDocument),
+        2 => Some(Query::AbortDocument),
         _ => None,
     }
 }

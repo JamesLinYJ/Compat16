@@ -2,7 +2,7 @@
 
 use super::super::super::{ImportBinding, test_support::tiny_ne_executable};
 use super::*;
-use crate::{DiagnosticKind as Kind, Runtime, Win16HostDc};
+use crate::{DiagnosticKind as Kind, Runtime, Win16HostDc, Win16PrintOperation};
 use devices::{keyboard::KeyStroke, video::ConsoleSnapshot};
 use dos_kernel::{
     DosDirectoryEntry, DosFileAccess, DosFileSharing, DosHost, DosHostError, DosHostFile,
@@ -20,7 +20,9 @@ const NATIVE_DC: Win16HostDc = Win16HostDc(0x1234_5678_9abc);
 struct EscapeHost {
     calls: Vec<Operation>,
     result: Option<HostResult>,
+    results: Vec<HostResult>,
     fail: bool,
+    fail_at: Option<usize>,
 }
 
 impl DosHost for EscapeHost {
@@ -136,9 +138,13 @@ impl DosHost for EscapeHost {
 
 impl RuntimeHost for EscapeHost {
     fn win16_gdi_device(&mut self, operation: Operation) -> Result<HostResult, RuntimeError> {
+        let index = self.calls.len();
         self.calls.push(operation);
-        if self.fail {
+        if self.fail || self.fail_at == Some(index) {
             return Err(RuntimeError::new(Kind::HostFailure, "test native failure"));
+        }
+        if !self.results.is_empty() {
+            return Ok(self.results.remove(0));
         }
         Ok(self.result.take().expect("test supplies a native result"))
     }
@@ -342,8 +348,8 @@ fn escape_point_queries_use_exact_dc_and_four_signed_output_bytes() {
 
 #[test]
 fn escape_unsupported_commands_and_query_codes_never_reach_host() {
-    // NEWFRAME, ABORTDOC, SETABORTPROC, STARTDOC, PASSTHROUGH, negative/private.
-    for code in [1, 2, 9, 10, 19, -1, -32768, 32767] {
+    // NEXTBAND, SETABORTPROC, SETCOPYCOUNT, PASSTHROUGH, negative/private.
+    for code in [3, 9, 17, 19, -1, -32768, 32767] {
         let (mut runtime, dc, output) = fixture();
         let mut host = EscapeHost::default();
         let return_to = prepare(&mut runtime, dc, code, -1, u32::MAX, u32::MAX);
@@ -542,4 +548,327 @@ fn escape_failed_malformed_and_overflowing_host_results_leave_output_unchanged()
         Kind::InternalInvariant
     );
     assert_eq!(read_output(&runtime, output), [0x5a; 32]);
+}
+
+#[test]
+fn escape_query_support_for_print_jobs_uses_the_host_bool_and_leaves_output() {
+    for (code, query) in [
+        (10_i16, Query::StartDocument),
+        (1, Query::NewFrame),
+        (11, Query::EndDocument),
+        (2, Query::AbortDocument),
+    ] {
+        for supported in [false, true] {
+            let (mut runtime, dc, output) = fixture();
+            let input = output | 0xfffe;
+            write_input(&mut runtime, input, code);
+            let mut host = EscapeHost {
+                result: Some(HostResult::Bool(supported)),
+                ..Default::default()
+            };
+            let return_to = prepare(&mut runtime, dc, 8, 2, input, output);
+            dispatch(&mut runtime, &mut host).unwrap();
+            assert_return(&runtime, return_to, u16::from(supported));
+            assert_eq!(
+                host.calls,
+                [Operation::QueryEscapeSupport {
+                    dc: NATIVE_DC,
+                    query
+                }]
+            );
+            // The probed int is at the end of the segment. Neither that word's
+            // neighbors in the watched window nor the unused output are written.
+            assert_eq!(read_output(&runtime, output), [0x5a; 32]);
+        }
+    }
+}
+
+#[test]
+fn escape_start_doc_copies_the_counted_name_and_opens_the_first_page() {
+    // 6 is lstrlen. 7 includes the terminator, which is not part of the name.
+    for counted in [6_i16, 7] {
+        let (mut runtime, dc, output) = fixture();
+        let mut name = b"Report\0".to_vec();
+        name.resize(32, 0x5a);
+        let state = runtime.win16.as_mut().unwrap();
+        let pointer = state.selectors.pointer_from_far(output).unwrap();
+        state
+            .selectors
+            .write(&mut runtime.memory, pointer, &name)
+            .unwrap();
+        let mut host = EscapeHost {
+            results: vec![HostResult::Count(42), HostResult::Count(1)],
+            ..Default::default()
+        };
+        let return_to = prepare(&mut runtime, dc, 10, counted, output, output | 16);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 42);
+        assert_eq!(
+            host.calls,
+            [
+                Operation::StartDoc {
+                    dc: NATIVE_DC,
+                    document_name: Some(b"Report".to_vec()),
+                    output: None,
+                },
+                Operation::Print {
+                    operation: Win16PrintOperation::StartPage,
+                    dc: NATIVE_DC,
+                },
+            ]
+        );
+        let bytes = read_output(&runtime, output);
+        assert_eq!(&bytes[..7], b"Report\0");
+        assert_eq!(&bytes[7..], &[0x5a; 25]);
+    }
+}
+
+#[test]
+fn escape_start_doc_rejects_a_bad_name_before_host_work() {
+    for (count, input, handle) in [
+        (0_i16, u32::MAX, true),
+        (-1, u32::MAX, true),
+        (4, 0, true),
+        (4, 0x0000_0010, true),
+        (7, u32::MAX, false),
+        (7, 0xffff_0000, false),
+    ] {
+        let (mut runtime, dc, output) = fixture();
+        let input = if input == u32::MAX { output } else { input };
+        let mut host = EscapeHost::default();
+        let return_to = prepare(
+            &mut runtime,
+            if handle { dc } else { 0xffff },
+            10,
+            count,
+            input,
+            u32::MAX,
+        );
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 0xffff);
+        assert!(host.calls.is_empty());
+        assert_eq!(read_output(&runtime, output), [0x5a; 32]);
+    }
+    let (mut runtime, dc, output) = fixture();
+    let state = runtime.win16.as_mut().unwrap();
+    let pointer = state.selectors.pointer_from_far(output).unwrap();
+    state
+        .selectors
+        .write(&mut runtime.memory, pointer, b"Re\0port")
+        .unwrap();
+    let mut host = EscapeHost::default();
+    let return_to = prepare(&mut runtime, dc, 10, 7, output, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 0xffff);
+    assert!(host.calls.is_empty());
+    let bytes = read_output(&runtime, output);
+    assert_eq!(&bytes[..7], b"Re\0port");
+    assert_eq!(&bytes[7..], &[0x5a; 25]);
+
+    let (mut runtime, dc, output) = fixture();
+    let mut host = EscapeHost::default();
+    let return_to = prepare(&mut runtime, dc, 10, 32, output | 0xfff0, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 0xffff);
+    assert!(host.calls.is_empty());
+    assert_eq!(read_output(&runtime, output), [0x5a; 32]);
+
+    let (mut runtime, dc, original) = fixture();
+    let state = runtime.win16.as_mut().unwrap();
+    let selector = state
+        .selectors
+        .alloc_block(
+            PhysAddr(0x80000),
+            1,
+            AccessRights::read_only(),
+            &runtime.memory,
+        )
+        .unwrap();
+    let mut host = EscapeHost::default();
+    prepare(
+        &mut runtime,
+        dc,
+        10,
+        4,
+        SegmentedPointer::new(selector, 0).far_value(),
+        u32::MAX,
+    );
+    assert_eq!(
+        dispatch(&mut runtime, &mut host).unwrap_err().kind(),
+        Kind::GuestFault
+    );
+    assert!(host.calls.is_empty());
+    assert_eq!(read_output(&runtime, original), [0x5a; 32]);
+}
+
+#[test]
+fn escape_start_doc_stops_when_the_job_or_the_first_page_fails() {
+    let (mut runtime, dc, output) = fixture();
+    write_name(&mut runtime, output);
+    let mut host = EscapeHost {
+        result: Some(HostResult::Count(-1)),
+        ..Default::default()
+    };
+    let return_to = prepare(&mut runtime, dc, 10, 7, output, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 0xffff);
+    assert!(matches!(
+        host.calls.as_slice(),
+        [Operation::StartDoc { .. }]
+    ));
+
+    let (mut runtime, dc, output) = fixture();
+    write_name(&mut runtime, output);
+    let mut host = EscapeHost {
+        results: vec![
+            HostResult::Count(42),
+            HostResult::Count(-1),
+            HostResult::Count(1),
+        ],
+        ..Default::default()
+    };
+    let return_to = prepare(&mut runtime, dc, 10, 7, output, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 0xffff);
+    assert_eq!(host.calls.len(), 3);
+    assert!(matches!(
+        &host.calls[1],
+        Operation::Print {
+            operation: Win16PrintOperation::StartPage,
+            ..
+        }
+    ));
+    assert!(matches!(
+        &host.calls[2],
+        Operation::Print {
+            operation: Win16PrintOperation::AbortDocument,
+            ..
+        }
+    ));
+
+    let (mut runtime, dc, output) = fixture();
+    write_name(&mut runtime, output);
+    let mut host = EscapeHost {
+        results: vec![HostResult::Count(42), HostResult::Count(1)],
+        fail_at: Some(1),
+        ..Default::default()
+    };
+    prepare(&mut runtime, dc, 10, 7, output, u32::MAX);
+    assert_eq!(
+        dispatch(&mut runtime, &mut host).unwrap_err().kind(),
+        Kind::HostFailure
+    );
+    assert_eq!(host.calls.len(), 3);
+    assert!(matches!(
+        &host.calls[2],
+        Operation::Print {
+            operation: Win16PrintOperation::AbortDocument,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn escape_page_commands_pair_end_page_and_ignore_unused_pointers() {
+    let (mut runtime, dc, output) = fixture();
+    let mut host = EscapeHost {
+        results: vec![HostResult::Count(3), HostResult::Count(4)],
+        ..Default::default()
+    };
+    let return_to = prepare(&mut runtime, dc, 1, -1, u32::MAX, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 4);
+    assert_eq!(
+        host.calls,
+        [
+            Operation::Print {
+                operation: Win16PrintOperation::EndPage,
+                dc: NATIVE_DC,
+            },
+            Operation::Print {
+                operation: Win16PrintOperation::StartPage,
+                dc: NATIVE_DC,
+            },
+        ]
+    );
+    assert_eq!(read_output(&runtime, output), [0x5a; 32]);
+
+    let (mut runtime, dc, output) = fixture();
+    let mut host = EscapeHost {
+        result: Some(HostResult::Count(-1)),
+        ..Default::default()
+    };
+    let return_to = prepare(&mut runtime, dc, 1, 0, 0, 0);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 0xffff);
+    assert_eq!(host.calls.len(), 1);
+    assert_eq!(read_output(&runtime, output), [0x5a; 32]);
+
+    let (mut runtime, dc, _) = fixture();
+    let mut host = EscapeHost {
+        results: vec![HostResult::Count(1), HostResult::Count(5)],
+        ..Default::default()
+    };
+    let return_to = prepare(&mut runtime, dc, 11, 0, u32::MAX, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 5);
+    assert_eq!(
+        host.calls,
+        [
+            Operation::Print {
+                operation: Win16PrintOperation::EndPage,
+                dc: NATIVE_DC,
+            },
+            Operation::Print {
+                operation: Win16PrintOperation::EndDocument,
+                dc: NATIVE_DC,
+            },
+        ]
+    );
+
+    let (mut runtime, dc, _) = fixture();
+    let mut host = EscapeHost {
+        result: Some(HostResult::Count(0)),
+        ..Default::default()
+    };
+    let return_to = prepare(&mut runtime, dc, 11, 9, 0xffff_0000, 0xffff_0000);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 0);
+    assert!(matches!(
+        host.calls.as_slice(),
+        [Operation::Print {
+            operation: Win16PrintOperation::EndPage,
+            ..
+        }]
+    ));
+
+    for (code, status) in [(2_i16, 1_i32), (2, -2)] {
+        let (mut runtime, dc, output) = fixture();
+        let mut host = EscapeHost {
+            result: Some(HostResult::Count(status)),
+            ..Default::default()
+        };
+        let return_to = prepare(&mut runtime, dc, code, 0, 0, 0);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, status as u16);
+        assert_eq!(
+            host.calls,
+            [Operation::Print {
+                operation: Win16PrintOperation::AbortDocument,
+                dc: NATIVE_DC,
+            }]
+        );
+        assert_eq!(read_output(&runtime, output), [0x5a; 32]);
+    }
+}
+
+fn write_name(runtime: &mut Runtime, far: u32) {
+    let state = runtime.win16.as_mut().unwrap();
+    let pointer = state.selectors.pointer_from_far(far).unwrap();
+    let mut bytes = b"Report".to_vec();
+    bytes.resize(32, 0x5a);
+    state
+        .selectors
+        .write(&mut runtime.memory, pointer, &bytes)
+        .unwrap();
 }

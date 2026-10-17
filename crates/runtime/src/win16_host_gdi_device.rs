@@ -59,12 +59,18 @@ pub enum Win16DitherPattern {
 
 /// Read-only Escape queries with explicit host conversions. No arbitrary
 /// driver escape code or guest pointer can cross this boundary.
+/// Job variants are support probes only; execution uses StartDoc and the
+/// print operations, still without a guest pointer.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16EscapeQuery {
     QuerySupport,
     PhysicalPageSize,
     PrintingOffset,
     ScalingFactor,
+    StartDocument,
+    NewFrame,
+    EndDocument,
+    AbortDocument,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

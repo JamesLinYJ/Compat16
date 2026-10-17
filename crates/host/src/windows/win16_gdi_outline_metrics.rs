@@ -1,4 +1,8 @@
-//! Bounded MM_TEXT projection of native outline metrics to the Win16 layout.
+//! Bounded fixed-mapping-mode projection of native outline metrics.
+//!
+//! MM_TEXT through MM_TWIPS use the logical units native GDI already returns.
+//! MM_ISOTROPIC and MM_ANISOTROPIC stay rejected. Unrepresentable fields fail
+//! closed. Guest output is not prefilled with a debug poison pattern.
 //!
 //! Native offset and layout contract:
 //! https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-outlinetextmetricw
@@ -10,9 +14,23 @@
 use std::mem::size_of;
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostDc, Win16HostOutlineTextMetrics};
 use windows_sys::Win32::Graphics::Gdi::{
-    GetMapMode, GetOutlineTextMetricsW, MM_TEXT, OUTLINETEXTMETRICW,
+    GetMapMode, GetOutlineTextMetricsW, MM_ANISOTROPIC, MM_HIENGLISH, MM_HIMETRIC, MM_ISOTROPIC,
+    MM_LOENGLISH, MM_LOMETRIC, MM_TEXT, MM_TWIPS, OUTLINETEXTMETRICW,
 };
 use super::Win16Dcs;
+
+// The runtime predicate uses the public numeric constants. Keep those names
+// attached to the same values the host reads from the DC.
+const _: () = assert!(
+    MM_TEXT == 1
+        && MM_LOMETRIC == 2
+        && MM_HIMETRIC == 3
+        && MM_LOENGLISH == 4
+        && MM_HIENGLISH == 5
+        && MM_TWIPS == 6
+        && MM_ISOTROPIC == 7
+        && MM_ANISOTROPIC == 8
+);
 
 // A Win16 result must fit a WORD (including its rounded stored size). Native
 // UTF-16 names require at most twice that space plus the native fixed header.
@@ -26,7 +44,9 @@ impl Win16Dcs {
         let Some(dc_use) = self.lease_dc(token)? else { return Ok(None); };
         // SAFETY: One DC lease covers mapping validation, query, retrieval and
         // copying. No native pointer or borrowed native storage escapes it.
-        if unsafe { GetMapMode(dc_use.native()) } != MM_TEXT { return Ok(None); }
+        // Fixed modes are already in logical units. Extent modes stay unsupported.
+        let mode = unsafe { GetMapMode(dc_use.native()) };
+        if !runtime::win16_outline_text_map_mode_supported(mode) { return Ok(None); }
         // SAFETY: The live DC is queried without an output buffer.
         let required = unsafe { GetOutlineTextMetricsW(dc_use.native(), 0, std::ptr::null_mut()) } as usize;
         if !(size_of::<OUTLINETEXTMETRICW>()..=MAX_NATIVE_OUTLINE_BYTES).contains(&required) {
