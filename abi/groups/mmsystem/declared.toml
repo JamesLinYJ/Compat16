@@ -52,16 +52,6 @@ name = "JOYCONFIGCHANGED"
 kind = "stub"
 
 [[exports]]
-ordinal = 602
-name = "timeSetEvent"
-decl = { args = ["word", "word", "segmented_pointer", "long", "word"] }
-
-[[exports]]
-ordinal = 603
-name = "timeKillEvent"
-decl = { args = ["word"] }
-
-[[exports]]
 ordinal = 800
 name = "mixerGetNumDevs"
 

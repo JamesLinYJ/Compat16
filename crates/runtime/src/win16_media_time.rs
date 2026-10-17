@@ -1,7 +1,8 @@
 //! Synchronous timer queries and balanced WinMM period references.
 
 use compat_services::win16_multimedia::{
-    TIME_BYTES, TIME_MIDI, TIME_MS, TIME_SAMPLES, TIME_SMPTE, TIMERR_STRUCT,
+    TIME_BYTES, TIME_MIDI, TIME_MS, TIME_PERIODIC, TIME_SAMPLES, TIME_SMPTE, TIMERR_NOCANDO,
+    TIMERR_STRUCT,
 };
 use guest_core::memory::Memory;
 use win16_abi::{Access, Win16MediaTimeRequest, Win16Mmtime16,
@@ -103,6 +104,138 @@ impl Win16State {
                 ResultValue::Time(value) => Ok(value),
                 _ => Err(invariant("timeGetTime returned the wrong result shape")),
             },
+            Win16MediaTimeRequest::SetEvent {
+                delay,
+                resolution,
+                procedure,
+                user,
+                flags,
+            } => self.media_time_set_event(delay, resolution, procedure, user, flags, memory, host),
+            Win16MediaTimeRequest::KillEvent { timer } => self.media_time_kill_event(timer, host),
+        }
+    }
+
+    fn media_time_set_event(
+        &mut self,
+        delay: u16,
+        resolution: u16,
+        procedure: u32,
+        user: u32,
+        flags: u16,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        // SDK 3.1 publishes only TIME_ONESHOT (0) and TIME_PERIODIC. A null
+        // procedure cannot be called, so both cases use the documented NULL id.
+        if procedure == 0 || (flags != 0 && flags != TIME_PERIODIC) {
+            return Ok(0);
+        }
+        let callback = self.register_guest_callback(
+            memory,
+            procedure,
+            super::far_callback::Win16FarCallbackConvention::Pascal,
+            super::far_callback::Win16FarCallbackReturn::Void,
+        )?;
+        let Some(guest_timer) = self.media_services.reserve_timer(callback, flags == 0) else {
+            let _ = self.unregister_guest_callback(callback);
+            return Ok(0);
+        };
+        let reply = match host.win16_media_time(Operation::SetEvent {
+            delay,
+            resolution,
+            user,
+            periodic: flags == TIME_PERIODIC,
+            callback,
+            guest_timer,
+        }) {
+            Ok(reply) => reply,
+            Err(error) => {
+                let _ = self.media_services.remove_timer(guest_timer);
+                let _ = self.unregister_guest_callback(callback);
+                return Err(error);
+            }
+        };
+        let ResultValue::SetEvent { timer } = reply else {
+            let _ = self.media_services.remove_timer(guest_timer);
+            let _ = self.unregister_guest_callback(callback);
+            return Err(invariant("timeSetEvent returned the wrong result shape"));
+        };
+        let Some(timer) = timer.filter(|timer| *timer != 0) else {
+            let _ = self.media_services.remove_timer(guest_timer);
+            let _ = self.unregister_guest_callback(callback);
+            return Ok(0);
+        };
+        if !self.media_services.bind_timer(guest_timer, timer) {
+            let _ = host.win16_media_time(Operation::KillEvent { timer });
+            let _ = self.media_services.remove_timer(guest_timer);
+            let _ = self.unregister_guest_callback(callback);
+            return Err(invariant("timeSetEvent reservation could not be bound"));
+        }
+        Ok(u32::from(guest_timer))
+    }
+
+    fn media_time_kill_event(
+        &mut self,
+        timer: u16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        let Some((native, callback)) = self.media_services.timer(timer) else {
+            return Ok(u32::from(TIMERR_NOCANDO));
+        };
+        let Some(native) = native else {
+            return Ok(u32::from(TIMERR_NOCANDO));
+        };
+        match host.win16_media_time(Operation::KillEvent { timer: native })? {
+            ResultValue::Kill(0) => {
+                let _ = self.media_services.remove_timer(timer);
+                let _ = self.unregister_guest_callback(callback);
+                Ok(0)
+            }
+            // A non-zero code, including TIMERR_NOCANDO, leaves the record so
+            // a callback that already left the native timer can still be entered.
+            ResultValue::Kill(code) => Ok(u32::from(code as u16)),
+            _ => Err(invariant("timeKillEvent returned the wrong result shape")),
+        }
+    }
+
+    /// A delivered one-shot has already been consumed by the native timer.
+    /// Drop the guest id and ask the callback registration to retire when its
+    /// active frame returns. Periodic timers stay until `timeKillEvent`.
+    pub(in crate::win16_runtime) fn note_multimedia_timer_callback_entered(
+        &mut self,
+        callback: crate::Win16GuestCallbackToken,
+    ) {
+        let Some(guest) = self.media_services.one_shot_guest_for_callback(callback) else {
+            return;
+        };
+        let _ = self.media_services.remove_timer(guest);
+        let _ = self.unregister_guest_callback(callback);
+    }
+
+    pub(in crate::win16_runtime) fn retire_multimedia_services(
+        &mut self,
+        host: &mut impl RuntimeHost,
+    ) -> Result<(), RuntimeError> {
+        let mut first_error = None;
+        for (native, callback) in self.media_services.take_timers() {
+            if let Some(native) = native {
+                match host.win16_media_time(Operation::KillEvent { timer: native }) {
+                    Ok(ResultValue::Kill(_)) => {}
+                    Ok(_) => keep_cleanup(
+                        &mut first_error,
+                        invariant("multimedia timer teardown returned the wrong host result"),
+                    ),
+                    Err(error) => keep_cleanup(&mut first_error, error),
+                }
+            }
+            let _ = self.unregister_guest_callback(callback);
+        }
+        if let Err(error) = self.media_services.retire_all(host) {
+            keep_cleanup(&mut first_error, error);
+        }
+        match first_error {
+            Some(error) => Err(error),
+            None => Ok(()),
         }
     }
 }
@@ -152,3 +285,13 @@ fn is_guest_api_failure(error: &RuntimeError) -> bool {
 fn invariant(message: &str) -> RuntimeError {
     RuntimeError::new(Kind::InternalInvariant, message)
 }
+
+fn keep_cleanup(slot: &mut Option<RuntimeError>, error: RuntimeError) {
+    if slot.is_none() {
+        *slot = Some(error);
+    }
+}
+
+#[cfg(test)]
+#[path = "win16_media_timer_tests.rs"]
+mod timer_tests;

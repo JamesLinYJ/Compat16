@@ -17,6 +17,16 @@ pub(super) fn decode(
             time: dword_argument(arguments, 0)?,
             size: word_argument(arguments, 1)?,
         }),
+        602 => Ok(Win16MediaTimeRequest::SetEvent {
+            delay: word_argument(arguments, 0)?,
+            resolution: word_argument(arguments, 1)?,
+            procedure: dword_argument(arguments, 2)?,
+            user: dword_argument(arguments, 3)?,
+            flags: word_argument(arguments, 4)?,
+        }),
+        603 => Ok(Win16MediaTimeRequest::KillEvent {
+            timer: word_argument(arguments, 0)?,
+        }),
         604 => Ok(Win16MediaTimeRequest::GetDevCaps {
             caps: dword_argument(arguments, 0)?,
             size: word_argument(arguments, 1)?,
