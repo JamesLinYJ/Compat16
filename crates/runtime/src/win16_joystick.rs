@@ -204,9 +204,8 @@ impl Win16State {
         if flags & !JOY_RETURN_SUPPORTED != 0 {
             return Ok(u32::from(JOYERR_NOCANDO));
         }
-        if flags == 0 {
-            return Ok(0);
-        }
+        // A zero request mask still checks that the device exists.
+        // In particular, it must not report success when no driver is installed.
         let reply = host.win16_joystick(Operation::Position { device })?;
         let ResultValue::Position {
             result,

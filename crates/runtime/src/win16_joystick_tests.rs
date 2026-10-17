@@ -759,4 +759,15 @@ fn default_host_reports_no_joystick_driver() {
     );
     dispatch(&mut runtime, &mut NoHost).unwrap();
     assert_word(&runtime, back, 6);
+
+    // Requesting no fields does not bypass device existence validation.
+    let (mut runtime, output) = fixture();
+    let mut header = [SENTINEL; 52];
+    header[0..4].copy_from_slice(&52_u32.to_le_bytes());
+    header[4..8].copy_from_slice(&0_u32.to_le_bytes());
+    write_output(&mut runtime, output, &header);
+    let back = gate(&mut runtime, 110, StackArgs::new().dword(output).word(0));
+    dispatch(&mut runtime, &mut NoHost).unwrap();
+    assert_word(&runtime, back, 6);
+    assert_eq!(&read_output(&runtime, output)[..52], &header);
 }
