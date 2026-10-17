@@ -94,6 +94,8 @@ mod gdi_services;
 mod metafile;
 #[path = "win16_kernel_task.rs"]
 mod kernel_task;
+#[path = "win16_kernel_remainder.rs"]
+mod kernel_remainder;
 #[path = "win16_window_task.rs"]
 mod window_task;
 #[path = "win16_kernel_module.rs"]

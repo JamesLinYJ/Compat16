@@ -738,6 +738,24 @@ impl Win16State {
                     descriptor.return_kind,
                 );
             }
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Remainder(request)) => {
+                match self.execute_kernel_remainder(request, memory, host)? {
+                    super::kernel_remainder::KernelRemainderOutcome::Value(result) => result,
+                    super::kernel_remainder::KernelRemainderOutcome::Terminate(status) => {
+                        if let Some(exit_status) = self.finish_task(memory, host, status)? {
+                            return Ok(Some(exit_status));
+                        }
+                        return self.complete_return(
+                            registers,
+                            return_selector,
+                            return_offset,
+                            return_sp,
+                            u32::from(status),
+                            descriptor.return_kind,
+                        );
+                    }
+                }
+            }
             _ => {
                 return Err(RuntimeError::new(
                     Kind::InternalInvariant,

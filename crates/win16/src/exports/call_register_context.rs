@@ -19,6 +19,14 @@ pub fn decode_export_call_with_register_context(
         Win16ExportAbiKind::VariableStack if descriptor.id == Win16ExportId::UserWsprintf => {
             decode_export_call(descriptor, frame, selectors, memory)
         }
+        Win16ExportAbiKind::VariableStack
+            if matches!(
+                descriptor.id,
+                Win16ExportId::KernelDebugOutput | Win16ExportId::KernelWow16Call
+            ) =>
+        {
+            super::call_requests_kernel::decode_kernel_varargs(descriptor, frame, selectors, memory)
+        }
         Win16ExportAbiKind::VariableStack => Err(Win16Error::VariableStackRequiresSpecialDecoder),
         Win16ExportAbiKind::RegisterContext => {
             let request = match descriptor.id {
@@ -34,6 +42,11 @@ pub fn decode_export_call_with_register_context(
                         descriptor.id,
                         &register_context,
                     )))
+                }
+                id if super::super::request::is_kernel_register_remainder(id.ordinal()) => {
+                    Win16ApiRequest::Kernel(Win16KernelRequest::Remainder(
+                        Win16KernelRemainderRequest::Register { ordinal: id.ordinal() },
+                    ))
                 }
                 _ => return Err(Win16Error::UnsupportedRegisterContextExport),
             };

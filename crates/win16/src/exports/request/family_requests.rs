@@ -95,6 +95,10 @@ pub use kernel_files::Win16KernelFilesRequest;
 mod kernel_profiles;
 pub use kernel_profiles::Win16KernelProfilesRequest;
 
+#[path = "kernel_remainder.rs"]
+mod kernel_remainder;
+pub use kernel_remainder::{Win16KernelRemainderRequest, is_kernel_register_remainder};
+
 #[path = "library_strings.rs"]
 mod library_strings;
 pub use library_strings::Win16LibraryStringsRequest;
@@ -172,6 +176,8 @@ pub enum Win16KernelRequest {
     Atoms(Win16KernelAtomsRequest),
     Files(Win16KernelFilesRequest),
     Profiles(Win16KernelProfilesRequest),
+    /// KERNEL exports that were declaration-only. Guest scalars are not host pointers.
+    Remainder(Win16KernelRemainderRequest),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

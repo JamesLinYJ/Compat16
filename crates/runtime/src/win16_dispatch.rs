@@ -106,6 +106,9 @@ impl Win16State {
                 Win16ApiRequest::User(win16_abi::Win16UserRequest::Input(request)) => {
                     self.inject_user_input(request, cpu, memory, host)
                 }
+                Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Remainder(
+                    win16_abi::Win16KernelRemainderRequest::Register { .. },
+                )) => self.fail_kernel_register_remainder(cpu, memory),
                 _ => Err(RuntimeError::new(
                     Kind::InternalInvariant,
                     "Win16 register-context export decoded to a stack request",
