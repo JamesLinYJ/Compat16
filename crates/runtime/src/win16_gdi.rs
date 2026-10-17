@@ -15,14 +15,14 @@ enum GuestGdiObject {
     ReservedObject,
     Dc(Win16HostDc),
     Object(Win16HostGdiObject),
+    /// A SaveDC level captured from `host`. It is not a drawable HDC.
+    SavedDc { host: Win16HostDc, level: i32 },
 }
 
 #[derive(Default)]
 struct DcAttributes {
     rel_abs: Option<u16>,
-    state: Option<u16>,
     code_page: Option<u16>,
-    layout: Option<u32>,
 }
 
 pub(super) struct GuestGdiHandles {
@@ -59,28 +59,12 @@ impl GuestGdiHandles {
         self.dc_attributes_mut(handle).rel_abs = Some(mode);
     }
 
-    pub(super) fn dc_state(&self, handle: u16) -> Option<u16> {
-        self.dc_attributes.get(&handle).and_then(|entry| entry.state)
-    }
-
-    pub(super) fn set_dc_state(&mut self, handle: u16, state: u16) {
-        self.dc_attributes_mut(handle).state = Some(state);
-    }
-
     pub(super) fn dc_code_page(&self, handle: u16) -> Option<u16> {
         self.dc_attributes.get(&handle).and_then(|entry| entry.code_page)
     }
 
     pub(super) fn set_dc_code_page(&mut self, handle: u16, page: u16) {
         self.dc_attributes_mut(handle).code_page = Some(page);
-    }
-
-    pub(super) fn dc_layout(&self, handle: u16) -> Option<u32> {
-        self.dc_attributes.get(&handle).and_then(|entry| entry.layout)
-    }
-
-    pub(super) fn set_dc_layout(&mut self, handle: u16, layout: u32) {
-        self.dc_attributes_mut(handle).layout = Some(layout);
     }
 
     pub(super) fn session_text_code_page(&self) -> u16 {
@@ -145,8 +129,40 @@ impl GuestGdiHandles {
             return false;
         }
         self.objects.remove(&handle);
+        self.forget_saved_dc(expected);
         self.forget_dc_attributes(handle);
         true
+    }
+
+    pub(super) fn allocate_saved_dc(&mut self, host: Win16HostDc, level: i32) -> Option<u16> {
+        self.allocate(GuestGdiObject::SavedDc { host, level })
+    }
+
+    pub(super) fn take_saved_dc(&mut self, handle: u16) -> Option<(Win16HostDc, i32)> {
+        match self.objects.remove(&handle) {
+            Some(GuestGdiObject::SavedDc { host, level }) => Some((host, level)),
+            Some(other) => {
+                self.objects.insert(handle, other);
+                None
+            }
+            None => None,
+        }
+    }
+
+    pub(super) fn restore_saved_dc(&mut self, handle: u16, host: Win16HostDc, level: i32) -> bool {
+        match self.objects.entry(handle) {
+            std::collections::btree_map::Entry::Vacant(slot) => {
+                slot.insert(GuestGdiObject::SavedDc { host, level });
+                true
+            }
+            std::collections::btree_map::Entry::Occupied(_) => false,
+        }
+    }
+
+    fn forget_saved_dc(&mut self, host: Win16HostDc) {
+        self.objects.retain(|_, object| {
+            !matches!(object, GuestGdiObject::SavedDc { host: saved, .. } if *saved == host)
+        });
     }
 
     pub(super) fn allocate_object(&mut self, object: Win16HostGdiObject) -> Option<u16> {
@@ -195,7 +211,7 @@ impl GuestGdiHandles {
         match self.objects.get(&handle)? {
             GuestGdiObject::Dc(native) => Some(*native),
             GuestGdiObject::ReservedDc | GuestGdiObject::ReservedObject
-            | GuestGdiObject::Object(_) => None,
+            | GuestGdiObject::Object(_) | GuestGdiObject::SavedDc { .. } => None,
         }
     }
 
@@ -207,7 +223,7 @@ impl GuestGdiHandles {
         match self.objects.get(&handle)? {
             GuestGdiObject::Object(native) => Some(*native),
             GuestGdiObject::ReservedDc | GuestGdiObject::ReservedObject
-            | GuestGdiObject::Dc(_) => None,
+            | GuestGdiObject::Dc(_) | GuestGdiObject::SavedDc { .. } => None,
         }
     }
 
@@ -390,7 +406,8 @@ impl Win16State {
             match object {
                 GuestGdiObject::ReservedDc => Some((handle, None)),
                 GuestGdiObject::Dc(native) => Some((handle, Some(*native))),
-                GuestGdiObject::ReservedObject | GuestGdiObject::Object(_) => None,
+                GuestGdiObject::ReservedObject | GuestGdiObject::Object(_)
+                | GuestGdiObject::SavedDc { .. } => None,
             }
         }).collect();
         let mut first_error = None;
@@ -432,7 +449,8 @@ impl Win16State {
             match object {
                 GuestGdiObject::ReservedObject => Some((handle, *object)),
                 GuestGdiObject::Object(_) => Some((handle, *object)),
-                GuestGdiObject::ReservedDc | GuestGdiObject::Dc(_) => None,
+                GuestGdiObject::ReservedDc | GuestGdiObject::Dc(_)
+                | GuestGdiObject::SavedDc { .. } => None,
             }
         }).collect();
         let mut first_error = None;
@@ -467,7 +485,8 @@ impl Win16State {
                         Err(error) => if first_error.is_none() { first_error = Some(error); },
                     }
                 }
-                GuestGdiObject::ReservedDc | GuestGdiObject::Dc(_) => {
+                GuestGdiObject::ReservedDc | GuestGdiObject::Dc(_)
+                | GuestGdiObject::SavedDc { .. } => {
                     unreachable!("object snapshot contains a device context")
                 }
             }

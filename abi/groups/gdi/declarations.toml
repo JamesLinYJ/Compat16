@@ -419,7 +419,7 @@ name = "SetDCState"
 decl = { args = ["word", "word"] }
 binding = { rust_id = "GdiInternalSetDCState", id_value = 3000038, constant = "GDI_INTERNAL_SETDCSTATE" }
 [exports.call]
-returns = "word"
+returns = "void"
 params = [
   { name = "a0", type = "U16" },
   { name = "a1", type = "U16" },
@@ -786,7 +786,7 @@ name = "Copy"
 decl = { args = ["pointer", "pointer", "word"] }
 binding = { rust_id = "GdiInternalCopy", id_value = 3000069, constant = "GDI_INTERNAL_COPY" }
 [exports.call]
-returns = "word"
+returns = "void"
 params = [
   { name = "a0", type = "FarPointer" },
   { name = "a1", type = "FarPointer" },
@@ -2185,7 +2185,7 @@ name = "SetLayout"
 decl = { args = ["word", "long"] }
 binding = { rust_id = "GdiInternalSetLayout", id_value = 3000204, constant = "GDI_INTERNAL_SETLAYOUT" }
 [exports.call]
-returns = "word"
+returns = "dword"
 params = [
   { name = "a0", type = "U16" },
   { name = "a1", type = "U32" },

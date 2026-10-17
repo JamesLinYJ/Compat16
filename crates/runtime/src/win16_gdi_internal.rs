@@ -18,6 +18,7 @@ const ABSOLUTE: u16 = 1;
 const DEFAULT_CHARSET: u32 = 1;
 const GCP_ERROR: u32 = 0x8000;
 const SCAN_NOT_FOUND: u32 = 0xFFFF;
+const GDI_ERROR: u32 = 0xFFFF_FFFF;
 
 impl Win16State {
     pub(super) fn execute_gdi_internal(
@@ -30,8 +31,8 @@ impl Win16State {
         match request.ordinal {
             5 => self.gdi_set_rel_abs(word(args, 0)?, word(args, 1)?),
             86 => Ok(self.gdi_get_rel_abs(word(args, 0)?)),
-            179 => Ok(self.gdi_dc_state(word(args, 0)?)),
-            180 => self.gdi_set_dc_state(word(args, 0)?, word(args, 1)?),
+            179 => self.gdi_get_dc_state(word(args, 0)?, host),
+            180 => self.gdi_set_dc_state(word(args, 0)?, word(args, 1)?, host),
             195 => self.select_object(word(args, 0)?, word(args, 1)?, host).map(u32::from),
             250 => self.gdi_copy(memory, far(args, 0)?, far(args, 1)?, word(args, 2)?),
             407 => self.create_bitmap(
@@ -62,13 +63,14 @@ impl Win16State {
             531 => self.gdi_raw_ext_text_out(memory, host, args),
             532 => self.gdi_raw_text_extent(memory, host, word(args, 0)?, far(args, 1)?, word(args, 2)?),
             572 | 612 => Ok(DEFAULT_CHARSET),
-            588 => self.gdi_set_text_code_page(word(args, 0)?, word(args, 1)?),
+            588 => self.gdi_set_text_code_page(word(args, 0)?, word(args, 1)?, host),
             589 => Ok(u32::from(self.guest_gdi.session_text_code_page())),
             605 => self.delete_object(word(args, 0)?, memory, host).map(u32::from),
             616 => Ok(self.gdi_font_language_info(word(args, 0)?)),
-            1000 => self.gdi_set_layout(word(args, 0)?, dword(args, 1)?),
+            1000 => self.gdi_set_layout(word(args, 0)?, dword(args, 1)?, host),
             135 => Ok(SCAN_NOT_FOUND),
-            403 | 405 | 5000 => Ok(1),
+            403 => Ok(u32::from(word(args, 0)?)),
+            405 | 5000 => Ok(1),
             _ => Ok(0),
         }
     }
@@ -90,25 +92,79 @@ impl Win16State {
         }
     }
 
-    fn gdi_dc_state(&self, dc: u16) -> u32 {
-        if self.guest_gdi.dc(dc).is_none() {
-            0
-        } else {
-            u32::from(self.guest_gdi.dc_state(dc).unwrap_or(0))
+    fn gdi_get_dc_state(
+        &mut self,
+        dc: u16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        let Some(host_dc) = self.guest_gdi.dc(dc) else {
+            return Ok(0);
+        };
+        let HostResult::SaveDc(level) = host.win16_gdi(Operation::SaveDc { dc: host_dc })? else {
+            return Err(wrong_result("GetDCState"));
+        };
+        if level == 0 {
+            return Ok(0);
+        }
+        let Some(handle) = self.guest_gdi.allocate_saved_dc(host_dc, level) else {
+            let _ = host.win16_gdi(Operation::RestoreDc { dc: host_dc, saved: level })?;
+            return Ok(0);
+        };
+        Ok(u32::from(handle))
+    }
+
+    fn gdi_set_dc_state(
+        &mut self,
+        dc: u16,
+        state: u16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        let Some(host_dc) = self.guest_gdi.dc(dc) else {
+            return Ok(0);
+        };
+        let Some((saved_host, level)) = self.guest_gdi.take_saved_dc(state) else {
+            return Ok(0);
+        };
+        if saved_host != host_dc {
+            self.return_saved_dc(state, saved_host, level)?;
+            return Ok(0);
+        }
+        match host.win16_gdi(Operation::RestoreDc { dc: host_dc, saved: level })? {
+            HostResult::Bool(true) => Ok(0),
+            HostResult::Bool(false) => {
+                self.return_saved_dc(state, saved_host, level)?;
+                Ok(0)
+            }
+            _ => Err(wrong_result("SetDCState")),
         }
     }
 
-    fn gdi_set_dc_state(&mut self, dc: u16, state: u16) -> Result<u32, RuntimeError> {
+    fn return_saved_dc(
+        &mut self,
+        handle: u16,
+        host: crate::Win16HostDc,
+        level: i32,
+    ) -> Result<(), RuntimeError> {
+        if self.guest_gdi.restore_saved_dc(handle, host, level) {
+            Ok(())
+        } else {
+            Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "Win16 DC state handle was reused before it could be restored",
+            ))
+        }
+    }
+
+    fn gdi_set_text_code_page(
+        &mut self,
+        dc: u16,
+        page: u16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
         if self.guest_gdi.dc(dc).is_none() {
             return Ok(0);
         }
-        let previous = self.guest_gdi.dc_state(dc).unwrap_or(0);
-        self.guest_gdi.set_dc_state(dc, state);
-        Ok(u32::from(previous))
-    }
-
-    fn gdi_set_text_code_page(&mut self, dc: u16, page: u16) -> Result<u32, RuntimeError> {
-        if self.guest_gdi.dc(dc).is_none() {
+        if page != 0 && !self.host_accepts_text_code_page(page, host)? {
             return Ok(0);
         }
         let previous = self.guest_gdi.dc_code_page(dc).unwrap_or(0);
@@ -117,13 +173,34 @@ impl Win16State {
         Ok(u32::from(previous))
     }
 
-    fn gdi_set_layout(&mut self, dc: u16, layout: u32) -> Result<u32, RuntimeError> {
-        if self.guest_gdi.dc(dc).is_none() {
-            return Ok(0);
+    fn host_accepts_text_code_page(
+        &mut self,
+        page: u16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<bool, RuntimeError> {
+        match host.win16_gdi(Operation::AcceptTextCodePage { page }) {
+            Ok(HostResult::Bool(accepted)) => Ok(accepted),
+            Ok(_) => Err(wrong_result("SetTextCodePage")),
+            Err(error) if error.kind() == Kind::CompatibilityGap => Ok(false),
+            Err(error) => Err(error),
         }
-        let previous = self.guest_gdi.dc_layout(dc).unwrap_or(0);
-        self.guest_gdi.set_dc_layout(dc, layout);
-        Ok(previous as u16 as u32)
+    }
+
+    fn gdi_set_layout(
+        &mut self,
+        dc: u16,
+        layout: u32,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        let Some(host_dc) = self.guest_gdi.dc(dc) else {
+            return Ok(GDI_ERROR);
+        };
+        match host.win16_gdi(Operation::SetLayout { dc: host_dc, layout }) {
+            Ok(HostResult::Dword(previous)) => Ok(previous),
+            Ok(_) => Err(wrong_result("SetLayout")),
+            Err(error) if error.kind() == Kind::CompatibilityGap => Ok(GDI_ERROR),
+            Err(error) => Err(error),
+        }
     }
 
     fn gdi_font_language_info(&self, dc: u16) -> u32 {
@@ -137,8 +214,8 @@ impl Win16State {
     fn gdi_copy(
         &self,
         memory: &mut Memory,
-        destination: u32,
         source: u32,
+        destination: u32,
         count: u16,
     ) -> Result<u32, RuntimeError> {
         if count == 0 {
@@ -155,7 +232,7 @@ impl Win16State {
             .pointer_from_far(destination)
             .map_err(crate::runtime_error)?;
         self.write_text_bytes(memory, destination_pointer, &bytes)?;
-        Ok(u32::from(count))
+        Ok(0)
     }
 
     fn gdi_is_valid_metafile(
@@ -179,6 +256,7 @@ impl Win16State {
         text: u32,
         count: u16,
     ) -> Result<u32, RuntimeError> {
+        let code_page = self.text_code_page(dc);
         let Some(dc) = self.guest_gdi.dc(dc) else {
             return Ok(0);
         };
@@ -188,6 +266,7 @@ impl Win16State {
             x: i32::from(x),
             y: i32::from(y),
             text,
+            code_page,
         })? {
             HostResult::Bool(result) => Ok(u32::from(u16::from(result))),
             _ => Err(wrong_result("RawTextOut")),
@@ -202,11 +281,12 @@ impl Win16State {
         text: u32,
         count: u16,
     ) -> Result<u32, RuntimeError> {
+        let code_page = self.text_code_page(dc);
         let Some(dc) = self.guest_gdi.dc(dc) else {
             return Ok(0);
         };
         let text = self.read_counted_guest(memory, text, count)?;
-        match host.win16_gdi(Operation::GetTextExtent { dc, text })? {
+        match host.win16_gdi(Operation::GetTextExtent { dc, text, code_page })? {
             HostResult::Size { width, height } => Ok(pack_words(width, height)),
             _ => Err(wrong_result("RawGetTextExtent")),
         }
@@ -219,6 +299,7 @@ impl Win16State {
         args: &[Arg],
     ) -> Result<u32, RuntimeError> {
         let dc_handle = word(args, 0)?;
+        let code_page = self.text_code_page(dc_handle);
         let Some(dc) = self.guest_gdi.dc(dc_handle) else {
             return Ok(0);
         };
@@ -239,10 +320,15 @@ impl Win16State {
             rect,
             text,
             spacing,
+            code_page,
         })? {
             HostResult::Bool(success) => Ok(u32::from(u16::from(success))),
             _ => Err(wrong_result("RawExtTextOut")),
         }
+    }
+
+    fn text_code_page(&self, dc: u16) -> Option<u16> {
+        self.guest_gdi.dc_code_page(dc).filter(|page| *page != 0)
     }
 
     fn read_counted_guest(

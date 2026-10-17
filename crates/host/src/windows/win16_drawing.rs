@@ -109,8 +109,8 @@ pub(super) fn execute(
                 unsafe { Rectangle(native, left, top, right, bottom) != 0 }
             })?))
         }
-        Op::TextOut { dc, x, y, text } => {
-            Ok(ResultValue::Bool(text::text_out(dcs, dc, x, y, &text)?))
+        Op::TextOut { dc, x, y, text, code_page } => {
+            Ok(ResultValue::Bool(text::text_out(dcs, dc, x, y, &text, code_page)?))
         }
         Op::BitBlt {
             destination,
@@ -155,15 +155,15 @@ pub(super) fn execute(
         Op::CreateSolidBrush { color } => {
             Ok(ResultValue::Object(objects.create_solid_brush(color)?))
         }
-        Op::GetTextExtent { dc, text } => {
-            let measured = text::text_extent(dcs, dc, &text)?;
+        Op::GetTextExtent { dc, text, code_page } => {
+            let measured = text::text_extent(dcs, dc, &text, code_page)?;
             Ok(match measured {
                 Some((true, size)) => ResultValue::Size { width: size.cx, height: size.cy },
                 _ => ResultValue::Size { width: 0, height: 0 },
             })
         }
         Op::GetTextExtentPoint { dc, text } => {
-            let measured = text::text_extent(dcs, dc, &text)?;
+            let measured = text::text_extent(dcs, dc, &text, None)?;
             Ok(match measured {
                 Some((success, size)) => ResultValue::BoolSize {
                     success,
@@ -458,11 +458,20 @@ pub(super) fn execute(
                 unsafe { RectVisible(native, &rect) != 0 }
             },
         )?)),
-        Op::ExtTextOut { dc, x, y, options, rect, text, spacing } => {
+        Op::ExtTextOut { dc, x, y, options, rect, text, spacing, code_page } => {
             Ok(ResultValue::Bool(text::ext_text_out(
-                dcs, dc, x, y, options, rect, &text, spacing.as_deref(),
+                dcs, dc, x, y, options, rect, &text, spacing.as_deref(), code_page,
             )?))
         }
+        Op::SetLayout { dc, layout } => Ok(ResultValue::Dword(with_dc(
+            dcs, dc, 0xFFFF_FFFF, |native| {
+                // SAFETY: The HDC lease is live and the layout dword is a scalar.
+                unsafe { windows_sys::Win32::Graphics::Gdi::SetLayout(native, layout) }
+            },
+        )?)),
+        Op::AcceptTextCodePage { page } => Ok(ResultValue::Bool(
+            super::guest_text::GuestTextCodec::new(u32::from(page)).is_ok(),
+        )),
         operation => extra::execute(dcs, objects, operation),
     }
 }

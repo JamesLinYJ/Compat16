@@ -61,6 +61,7 @@ impl Win16State {
                     x: i32::from(x),
                     y: i32::from(y),
                     text,
+                    code_page: None,
                 })? {
                     HostResult::Bool(result) => Ok(u32::from(u16::from(result))),
                     _ => Err(wrong_result("TextOut")),
@@ -77,7 +78,7 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::GetTextExtent { dc, text })? {
+                match host.win16_gdi(Operation::GetTextExtent { dc, text, code_page: None })? {
                     HostResult::Size { width, height } => Ok(pack_words(width, height)),
                     _ => Err(wrong_result("GetTextExtent")),
                 }
@@ -202,6 +203,7 @@ impl Win16State {
                     rect,
                     text,
                     spacing,
+                    code_page: None,
                 })? {
                     HostResult::Bool(success) => Ok(u32::from(u16::from(success))),
                     _ => Err(wrong_result("ExtTextOut")),
