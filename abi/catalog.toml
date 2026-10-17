@@ -47,6 +47,7 @@ groups = [
   "groups/lzexpand/declared.toml",
   "groups/mmsystem/auxiliary.toml",
   "groups/mmsystem/declared.toml",
+  "groups/mmsystem/joystick.toml",
   "groups/mmsystem/mci.toml",
   "groups/mmsystem/media_io.toml",
   "groups/mmsystem/media_services.toml",

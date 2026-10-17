@@ -166,6 +166,10 @@ pub use win16_host_aux::{
     Win16HostAuxCapabilities, Win16HostAuxOperation, Win16HostAuxResult, MMSYSERR_BADDEVICEID,
     MMSYSERR_INVALPARAM, MMSYSERR_NOERROR,
 };
+mod win16_host_joystick;
+pub use win16_host_joystick::{
+    Win16HostJoystickCaps, Win16HostJoystickOperation, Win16HostJoystickResult,
+};
 mod win16_media_services;
 pub use win16_host_wave::{
     Win16HostWaveBuffer, Win16HostWaveCapabilities, Win16HostWaveCompletion, Win16HostWaveControl,

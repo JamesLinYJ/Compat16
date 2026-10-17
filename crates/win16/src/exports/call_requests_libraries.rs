@@ -115,6 +115,17 @@ pub(super) fn decode(
         | Win16ExportId::MediaTimeGetTime => Win16ApiRequest::MediaTime(
             super::super::call_media_time::decode(descriptor, arguments)?,
         ),
+        Win16ExportId::MmsystemJoyGetNumDevs
+        | Win16ExportId::MmsystemJoyGetDevCaps
+        | Win16ExportId::MmsystemJoyGetPos
+        | Win16ExportId::MmsystemJoyGetThreshold
+        | Win16ExportId::MmsystemJoyReleaseCapture
+        | Win16ExportId::MmsystemJoySetCapture
+        | Win16ExportId::MmsystemJoySetThreshold
+        | Win16ExportId::MmsystemJoySetCalibration
+        | Win16ExportId::MmsystemJoyGetPosEx => Win16ApiRequest::Joystick(
+            super::super::call_joystick::decode(descriptor, arguments)?,
+        ),
         Win16ExportId::MediaIoOpen
         | Win16ExportId::MediaIoClose
         | Win16ExportId::MediaIoRead

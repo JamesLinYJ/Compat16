@@ -55,6 +55,7 @@ pub(super) fn route_for_request(request: &Win16ApiRequest) -> DispatchRoute {
         Win16ApiRequest::Mci(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Aux(..) => DispatchRoute::Libraries,
         Win16ApiRequest::MediaTime(..) => DispatchRoute::Libraries,
+        Win16ApiRequest::Joystick(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Midi(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Multimedia(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Ole2Disp(..) => DispatchRoute::Libraries,
