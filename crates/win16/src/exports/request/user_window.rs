@@ -84,6 +84,21 @@ pub enum Win16UserWindowRequest {
         timer_id: u16,
     },
 
+    /// Same far-Pascal frame as SetTimer. `callback` stays a guest FARPROC.
+    /// A firing timer is delivered as WM_SYSTIMER, not WM_TIMER.
+    SetSystemTimer {
+        window: u16,
+        timer_id: u16,
+        interval: u16,
+        callback: u32,
+    },
+
+    /// Destroys only a system timer. A SetTimer entry with the same id remains.
+    KillSystemTimer {
+        window: u16,
+        timer_id: u16,
+    },
+
     SetCapture {
         window: u16,
     },

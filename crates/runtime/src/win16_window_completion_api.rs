@@ -225,7 +225,6 @@ pub(super) fn finish_queued_message(
 ) -> Result<(u32, Win16ReturnKind), RuntimeError> {
     use crate::{Win16MessageParam as Param, Win16MessageSource as Source};
     use QueuedMessageProjectionPhase as Phase;
-    const WM_TIMER: u16 = 0x0113;
 
     if owner.phase == Phase::Complete {
         return owner.value.map(|value| (value, Win16ReturnKind::Word)).ok_or_else(||
@@ -346,9 +345,9 @@ pub(super) fn finish_queued_message(
     };
     let timer_registration = match message.l_param {
         Param::TimerHostId(host_id) => {
-            if message.message != WM_TIMER {
+            if !crate::Win16ScalarMessage::is_timer_message(message.message) {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
-                    "native USER queue returned a timer identity for a non-WM_TIMER message"));
+                    "native USER queue returned a timer identity for a non-timer message"));
             }
             Some(access.timers.registration_for_host(host_id).ok_or_else(||
                 RuntimeError::new(Kind::InternalInvariant,
@@ -356,6 +355,9 @@ pub(super) fn finish_queued_message(
         }
         _ => None,
     };
+    if let Some((_, _, registration)) = timer_registration {
+        output_message_id = registration.guest_message();
+    }
     let window = match (notification_target, timer_registration) {
         (Some(crate::Win16GuestNotificationTarget::Window { window, guest_hwnd }), _) => {
             if message.window != Some(window)
@@ -435,7 +437,8 @@ pub(super) fn finish_queued_message(
             }
             l_param
         }
-        Param::GuestBits(value) if message.window.is_none() || message.message == WM_TIMER => value,
+        Param::GuestBits(value) if message.window.is_none()
+            || crate::Win16ScalarMessage::is_timer_message(message.message) => value,
         Param::GuestBits(value) if message.message >= 0x0400
             && (access.window_procedures.contains_key(&window)
                 || access.dialog_procedures.contains_key(&window)) => value,
@@ -545,17 +548,19 @@ pub(super) fn finish_message_call(
             }
             (Call::Dword { return_kind }, ResultValue::Dword(result)) => (*result, *return_kind),
             (Call::Dword { return_kind }, ResultValue::Long(result)) => (*result as u32, *return_kind),
-            (Call::SetTimer { guest_window, host_window, guest_timer_id, callback },
+            (Call::SetTimer { guest_window, host_window, guest_timer_id, callback, system },
                 ResultValue::Timer(Some(host_id))) => {
                 access.timers.insert(*guest_window, *guest_timer_id,
                     super::super::message_calls::Win16TimerRegistration {
                         host_id: *host_id, host_window: *host_window, callback: *callback,
+                        system: *system,
                     });
                 (u32::from(*guest_timer_id), Win16ReturnKind::Word)
             }
             (Call::SetTimer { .. }, ResultValue::Timer(None)) => (0, Win16ReturnKind::Word),
-            (Call::KillTimer { guest_window, guest_timer_id }, ResultValue::Boolean(succeeded)) => {
-                if *succeeded { access.timers.remove(*guest_window, *guest_timer_id); }
+            (Call::KillTimer { guest_window, guest_timer_id, system },
+                ResultValue::Boolean(succeeded)) => {
+                if *succeeded { access.timers.remove(*guest_window, *guest_timer_id, *system); }
                 (u32::from(*succeeded), Win16ReturnKind::Word)
             }
             (Call::GetKeyboardState { output_range, .. },

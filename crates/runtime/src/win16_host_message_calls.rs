@@ -62,6 +62,9 @@ pub enum Win16MessageCall {
         /// Install a host-owned TIMERPROC thunk. No guest code address crosses
         /// this boundary; the runtime resolves its callback registration.
         guest_callback: bool,
+        /// SetSystemTimer stays in its own kill namespace. Native scheduling
+        /// still posts WM_TIMER; the guest message is rewritten from this flag.
+        system: bool,
     },
     KillTimer {
         window: Option<Win16HostWindow>,
@@ -123,8 +126,13 @@ pub(crate) enum Win16MessageCallContinuation {
         host_window: Option<Win16HostWindow>,
         guest_timer_id: u16,
         callback: Option<u32>,
+        system: bool,
     },
-    KillTimer { guest_window: u16, guest_timer_id: u16 },
+    KillTimer {
+        guest_window: u16,
+        guest_timer_id: u16,
+        system: bool,
+    },
     GetKeyboardState {
         output_far: u32,
         output_range: Option<GuestOutputRange>,

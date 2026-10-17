@@ -259,6 +259,7 @@ pub(super) fn execute(
             interval_ms,
             native_timer_id,
             guest_callback,
+            system,
         } => {
             let hwnd = match window {
                 Some(window) => match resolve_window(state, window) {
@@ -273,6 +274,7 @@ pub(super) fn execute(
                         if record.active
                             && record.window == window
                             && record.guest_timer_id == timer_id
+                            && record.system == system
                             && record.hwnd == hwnd as usize =>
                     {
                         Some(record)
@@ -291,6 +293,8 @@ pub(super) fn execute(
                     return Ok(Win16MessageCallResult::Timer(None));
                 };
                 id
+            } else if system {
+                usize::from(timer_id) | worker_window::SYSTEM_TIMER_NATIVE_ID_BIT
             } else {
                 usize::from(timer_id)
             };
@@ -314,6 +318,7 @@ pub(super) fn execute(
                 hwnd: hwnd as usize,
                 native_id,
                 guest_callback,
+                system,
                 active: true,
             };
             let same_id_replacement = !hwnd.is_null() && !guest_callback;

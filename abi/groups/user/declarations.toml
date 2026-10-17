@@ -21,11 +21,6 @@ kind = "stub"
 decl = { attributes = [] }
 
 [[exports]]
-ordinal = 11
-name = "SetSystemTimer"
-decl = { args = ["word", "word", "word", "segmented_pointer"] }
-
-[[exports]]
 ordinal = 13
 name = "GetTickCount"
 decl = { attributes = [] }
@@ -232,11 +227,6 @@ params = [
   { name = "elements", type = "FarBuffer" },
   { name = "colors", type = "FarBuffer" },
 ]
-
-[[exports]]
-ordinal = 182
-name = "KillSystemTimer"
-decl = { args = ["word", "word"] }
 
 [[exports]]
 ordinal = 185

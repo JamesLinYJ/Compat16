@@ -9,8 +9,6 @@ use crate::{
     Win16MessageSource,
 };
 
-const WM_TIMER: u16 = 0x0113;
-
 impl Win16State {
     pub(in crate::win16_runtime) fn write_queued_message(
         &mut self,
@@ -49,9 +47,9 @@ impl Win16State {
         let mut output_message_id = message.message;
         let timer_registration = match &message.l_param {
             Win16MessageParam::TimerHostId(host_id) => {
-                if message.message != WM_TIMER {
+                if !crate::Win16ScalarMessage::is_timer_message(message.message) {
                     return Err(RuntimeError::new(Kind::InternalInvariant,
-                        "native USER queue returned a timer identity for a non-WM_TIMER message"));
+                        "native USER queue returned a timer identity for a non-timer message"));
                 }
                 Some(self.timers.registration_for_host(*host_id).ok_or_else(||
                     RuntimeError::new(Kind::InternalInvariant,
@@ -95,6 +93,9 @@ impl Win16State {
             }
             _ => (None, None),
         };
+        if let Some((_, _, registration)) = timer_registration {
+            output_message_id = registration.guest_message();
+        }
         let window = match (notification_target, timer_registration) {
             (Some(crate::Win16GuestNotificationTarget::Window { window, guest_hwnd }), _) => {
                 if message.window != Some(window)
@@ -187,7 +188,8 @@ impl Win16State {
             // guest WndProc/DLGPROC's private message range. Native USER
             // pointers are never exposed through this case.
             Win16MessageParam::GuestBits(value)
-                if message.window.is_none() || message.message == WM_TIMER => value,
+                if message.window.is_none()
+                    || crate::Win16ScalarMessage::is_timer_message(message.message) => value,
             Win16MessageParam::GuestBits(value)
                 if message.message >= 0x0400
                     && (self.window_procedures.contains_key(&window)

@@ -74,7 +74,9 @@ impl Win16State {
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::SetTimer { .. }
+                | win16_abi::Win16UserWindowRequest::SetSystemTimer { .. }
                 | win16_abi::Win16UserWindowRequest::KillTimer { .. }
+                | win16_abi::Win16UserWindowRequest::KillSystemTimer { .. }
                 | win16_abi::Win16UserWindowRequest::SetCapture { .. }
                 | win16_abi::Win16UserWindowRequest::ReleaseCapture
                 | win16_abi::Win16UserWindowRequest::SetFocus { .. }

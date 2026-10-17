@@ -183,7 +183,8 @@ fn callback_class_true_timerproc_is_class_free_but_window_fallback_retains_class
                 if registered {
                     runtime.win16.as_mut().unwrap().timers.insert(hwnd, 7,
                         Win16TimerRegistration { host_id: 41, host_window: Some(native),
-                            callback: (!fallback).then_some(class.info.lpfn_wnd_proc) });
+                            callback: (!fallback).then_some(class.info.lpfn_wnd_proc),
+                            system: false });
                 }
                 if route == 1 {
                     let state = runtime.win16.as_mut().unwrap();
@@ -216,7 +217,7 @@ fn callback_class_stale_timer_fallback_cannot_enter_reused_hwnd_procedure() {
         let state = runtime.win16.as_mut().unwrap();
         let old_native = state.window_handles[&hwnd];
         state.timers.insert(hwnd, 7, Win16TimerRegistration {
-            host_id: 41, host_window: Some(old_native), callback: None,
+            host_id: 41, host_window: Some(old_native), callback: None, system: false,
         });
         state.retire_window_handle(hwnd).unwrap();
         state.next_window_handle = hwnd;
@@ -224,7 +225,7 @@ fn callback_class_stale_timer_fallback_cannot_enter_reused_hwnd_procedure() {
         let state = runtime.win16.as_mut().unwrap();
         let new_native = state.window_handles[&hwnd];
         state.timers.insert(hwnd, 7, Win16TimerRegistration {
-            host_id: 42, host_window: Some(new_native), callback: None,
+            host_id: 42, host_window: Some(new_native), callback: None, system: false,
         });
         let saved = (runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.sp());
         assert!(!enter_timer(&mut runtime, Some(old_native), Some(41), 0).unwrap());
