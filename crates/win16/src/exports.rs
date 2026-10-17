@@ -129,7 +129,7 @@ pub use request::{
     Win16SoundPlayApi, Win16SoundRequest,
     Win16MciGuestRange, Win16MciOpenExtension, Win16MciOpenValue, Win16MciOutputBuffer, Win16MciParameters,
     Win16MciRequest, Win16MciResourceName, Win16MciSetExtension,
-    Win16MmckInfo16, Win16Mmtime16, Win16ModuleReference, Win16Ole2DispArgument, Win16Ole2DispCall,
+    Win16MmckInfo16, Win16MmioInfo16, Win16Mmtime16, Win16ModuleReference, Win16Ole2DispArgument, Win16Ole2DispCall,
     Win16Ole2DispConvertCall, Win16Ole2DispConvertInput, Win16Ole2DispConvertOperation,
     Win16Ole2DispLocaleFlags, Win16Ole2NlsRequest, Win16Ole2NlsString, Win16OutputBuffer,
     Win16ProcReference, Win16ResourceName, Win16SelectInput, Win16ShellDropRequest,

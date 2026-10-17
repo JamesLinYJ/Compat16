@@ -150,7 +150,13 @@ pub(super) fn decode(
         | Win16ExportId::MediaIoDescend
         | Win16ExportId::MediaIoAscend
         | Win16ExportId::MediaIoCreateChunk
-        | Win16ExportId::MediaIoRename => Win16ApiRequest::MediaIo(
+        | Win16ExportId::MediaIoRename
+        | Win16ExportId::MediaIoGetInfo
+        | Win16ExportId::MediaIoSetInfo
+        | Win16ExportId::MediaIoSetBuffer
+        | Win16ExportId::MediaIoAdvance
+        | Win16ExportId::MediaIoInstallIoProc
+        | Win16ExportId::MediaIoSendMessage => Win16ApiRequest::MediaIo(
             super::super::call_media_io::decode(descriptor, arguments, selectors, memory)?,
         ),
         Win16ExportId::MidiOutGetNumDevs

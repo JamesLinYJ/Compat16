@@ -175,6 +175,7 @@ pub use mixer::{
 mod media_io;
 pub use media_io::{
     MMCKINFO16_SIZE, MMIOINFO16_ERROR_OFFSET, MMIOINFO16_SIZE, Win16MediaIoRequest, Win16MmckInfo16,
+    Win16MmioInfo16,
 };
 #[path = "midi.rs"]
 mod midi;

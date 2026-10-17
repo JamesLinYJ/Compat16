@@ -134,33 +134,3 @@ decl = { args = ["word"] }
 ordinal = 1150
 name = "mmShowMMCPLPropertySheet"
 decl = { args = ["word", "string", "string", "string"] }
-
-[[exports]]
-ordinal = 1215
-name = "mmioGetInfo"
-decl = { args = ["word", "pointer", "word"] }
-
-[[exports]]
-ordinal = 1216
-name = "mmioSetInfo"
-decl = { args = ["word", "pointer", "word"] }
-
-[[exports]]
-ordinal = 1217
-name = "mmioSetBuffer"
-decl = { args = ["word", "segmented_pointer", "long", "word"] }
-
-[[exports]]
-ordinal = 1219
-name = "mmioAdvance"
-decl = { args = ["word", "pointer", "word"] }
-
-[[exports]]
-ordinal = 1221
-name = "mmioInstallIOProc"
-decl = { args = ["long", "segmented_pointer", "long"] }
-
-[[exports]]
-ordinal = 1222
-name = "mmioSendMessage"
-decl = { args = ["word", "word", "long", "long"] }

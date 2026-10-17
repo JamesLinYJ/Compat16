@@ -189,6 +189,13 @@ impl Win16State {
             "multiple Win16 task cleanup failures",
             acm_cleanup,
         );
+        let buffer_cleanup = self.retire_mmio_guest_buffers(memory, host)
+            .map_err(|error| error.with_context("Win16 MMIO buffer cleanup"));
+        remember(
+            &mut failures,
+            "multiple Win16 task cleanup failures",
+            buffer_cleanup,
+        );
         let multimedia_cleanup = self
             .retire_multimedia_services(host)
             .map_err(|error| error.with_context("Win16 multimedia cleanup"));

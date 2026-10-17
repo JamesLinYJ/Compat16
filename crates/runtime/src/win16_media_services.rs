@@ -123,11 +123,35 @@ struct MediaTimerRecord {
     one_shot: bool,
 }
 
-/// Per-guest HMMIO aliases, timer-period references, and multimedia timer ids.
+/// Guest-visible buffered MMIO window. Pointers stay guest far values.
+#[derive(Clone, Debug)]
+pub(crate) struct Win16MmioBufferState {
+    pub base: u32,
+    pub size: u32,
+    pub next: u32,
+    pub end_read: u32,
+    pub end_write: u32,
+    pub file_offset: i32,
+    pub disk_offset: i32,
+    pub dirty: bool,
+    pub owned: u16,
+    pub info: [u32; 3],
+    pub error: u16,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Win16MmioFile {
+    native: Win16HostMediaIoHandle,
+    open_flags: u32,
+}
+
+/// Per-guest HMMIO buffers, timer-period references, and multimedia timer ids.
 #[derive(Debug)]
 pub struct Win16MediaServicesState {
     next_mmio_alias: u16,
-    mmio_handles: BTreeMap<u16, Win16HostMediaIoHandle>,
+    mmio_handles: BTreeMap<u16, Win16MmioFile>,
+    mmio_buffers: BTreeMap<u16, Win16MmioBufferState>,
+    mmio_io_procs: BTreeMap<u32, u32>,
     period_references: BTreeMap<u16, u32>,
     next_timer: u16,
     timers: BTreeMap<u16, MediaTimerRecord>,
@@ -141,6 +165,8 @@ impl Default for Win16MediaServicesState {
             period_references: BTreeMap::new(),
             next_timer: 1,
             timers: BTreeMap::new(),
+            mmio_buffers: BTreeMap::new(),
+            mmio_io_procs: BTreeMap::new(),
         }
     }
 }
@@ -151,18 +177,70 @@ impl Win16MediaServicesState {
     }
 
     pub(crate) fn mmio_handle(&self, guest: u16) -> Option<Win16HostMediaIoHandle> {
-        self.mmio_handles.get(&guest).copied()
+        self.mmio_handles.get(&guest).map(|file| file.native)
+    }
+
+    pub(crate) fn mmio_open_flags(&self, guest: u16) -> Option<u32> {
+        self.mmio_handles.get(&guest).map(|file| file.open_flags)
+    }
+
+    pub(crate) fn mmio_is_buffered(&self, guest: u16) -> bool {
+        self.mmio_buffers.contains_key(&guest)
+    }
+
+    pub(crate) fn mmio_buffer(&self, guest: u16) -> Option<&Win16MmioBufferState> {
+        self.mmio_buffers.get(&guest)
+    }
+
+    pub(crate) fn set_mmio_buffer(&mut self, guest: u16, buffer: Win16MmioBufferState) {
+        self.mmio_buffers.insert(guest, buffer);
+    }
+
+    pub(crate) fn clear_mmio_buffer(&mut self, guest: u16) -> u16 {
+        self.mmio_buffers.remove(&guest).map(|buffer| buffer.owned).unwrap_or(0)
+    }
+
+    pub(crate) fn take_mmio_buffers(&mut self) -> Vec<Win16MmioBufferState> {
+        std::mem::take(&mut self.mmio_buffers).into_values().collect()
+    }
+
+    pub(crate) fn mmio_buffer_guests(&self) -> Vec<u16> {
+        self.mmio_buffers.keys().copied().collect()
+    }
+
+    /// Install, remove, or find a guest I/O procedure. The stored value is a
+    /// guest far pointer, never a host address. `MMIO_GLOBALPROC` shares this
+    /// table because the runtime has one guest process.
+    pub(crate) fn mmio_install_io_proc(&mut self, fourcc: u32, procedure: u32, flags: u32) -> u32 {
+        const INSTALL: u32 = 0x0001_0000;
+        const REMOVE: u32 = 0x0002_0000;
+        const FIND: u32 = 0x0004_0000;
+        const GLOBAL: u32 = 0x1000_0000;
+        let operation = flags & (INSTALL | REMOVE | FIND);
+        if operation == FIND || operation == REMOVE {
+            return if operation == FIND {
+                self.mmio_io_procs.get(&fourcc).copied().unwrap_or(0)
+            } else {
+                self.mmio_io_procs.remove(&fourcc).unwrap_or(0)
+            };
+        }
+        if operation != INSTALL || flags & !INSTALL & !GLOBAL != 0 || procedure == 0 || fourcc == 0 {
+            return 0;
+        }
+        self.mmio_io_procs.insert(fourcc, procedure);
+        procedure
     }
 
     pub(crate) fn insert_mmio(
         &mut self,
         handle: Win16HostMediaIoHandle,
+        open_flags: u32,
     ) -> Option<u16> {
         if self.mmio_handles.len() >= usize::from(u16::MAX) { return None; }
         let mut candidate = self.next_mmio_alias.max(1);
         for _ in 0..=u16::MAX {
             if !self.mmio_handles.contains_key(&candidate) {
-                self.mmio_handles.insert(candidate, handle);
+                self.mmio_handles.insert(candidate, Win16MmioFile { native: handle, open_flags });
                 self.next_mmio_alias = candidate.wrapping_add(1).max(1);
                 return Some(candidate);
             }
@@ -171,8 +249,9 @@ impl Win16MediaServicesState {
         None
     }
 
-    pub(crate) fn remove_mmio(&mut self, guest: u16) {
+    pub(crate) fn remove_mmio(&mut self, guest: u16) -> u16 {
         self.mmio_handles.remove(&guest);
+        self.clear_mmio_buffer(guest)
     }
 
     pub(crate) fn can_begin_period(&self, period: u16) -> bool {
@@ -263,7 +342,7 @@ impl Win16MediaServicesState {
         loop {
             let Some((guest, handle)) = self.mmio_handles
                 .range((std::ops::Bound::Excluded(after), std::ops::Bound::Unbounded))
-                .next().map(|(guest, handle)| (*guest, *handle)) else { break; };
+                .next().map(|(guest, file)| (*guest, file.native)) else { break; };
             after = guest;
             match host.win16_media_io(Win16HostMediaIoOperation::Close { handle, flags: 0 }) {
                 Ok(Win16HostMediaIoResult::Scalar(0)) => {
