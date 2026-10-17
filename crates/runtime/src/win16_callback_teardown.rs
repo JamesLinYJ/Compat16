@@ -180,9 +180,6 @@ impl Win16State {
                     ended, cpu, dos, memory,
                 )?
             }
-            CallbackKind::OpenFileHook => {
-                self.cancel_open_file_hook_for_teardown(ended, cpu, dos, memory)?
-            }
         }
         Ok(true)
     }

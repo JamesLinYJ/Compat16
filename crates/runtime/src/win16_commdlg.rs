@@ -1,9 +1,7 @@
 //! Runtime-side validation and result commit for Win16 common dialogs.
 
-use dos_kernel::DosKernel;
-use guest_core::memory::Memory;
+use guest_core::{memory::Memory, Registers};
 use win16_abi::{Win16CommdlgRequest, Win16ReturnKind};
-use x86_cpu::Cpu;
 
 use super::{windows::WindowReturn, Win16State};
 use crate::{Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16WindowOperation};
@@ -17,10 +15,10 @@ mod find_replace;
 mod prepare;
 #[path = "win16_commdlg_finish.rs"]
 mod finish;
-#[path = "win16_commdlg_hook.rs"]
-mod hook;
+#[cfg(test)]
+#[path = "win16_commdlg_hook_tests.rs"]
+mod hook_tests;
 
-pub(in crate::win16_runtime) use hook::OpenFileHookFrame;
 pub(in crate::win16_runtime) use find_replace::Win16CommonDialogState;
 use ranges::GuestOutputRange;
 use support::GuestGlobalCapture;
@@ -30,17 +28,9 @@ pub(in crate::win16_runtime) struct Win16CommonDialogCall {
     pub continuation: Win16CommonDialogContinuation,
 }
 
-pub(in crate::win16_runtime) struct OpenFileHookCall {
-    pub(super) procedure: u32,
-    pub(super) structure_far: u32,
-    pub(super) return_kind: Win16ReturnKind,
-    pub(super) template: Option<crate::Win16HostDialogTemplate>,
-}
-
 pub(in crate::win16_runtime) enum Win16CommonDialogPreparation {
     Immediate(u32),
     WindowService(Win16CommonDialogCall),
-    OpenFileHook(OpenFileHookCall),
 }
 
 #[derive(Clone)]
@@ -104,15 +94,14 @@ impl Win16State {
     pub(in crate::win16_runtime) fn begin_common_dialog_request(
         &mut self,
         request: Win16CommdlgRequest,
-        cpu: &mut Cpu,
-        dos: &mut DosKernel,
+        registers: &mut Registers,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
         return_to: (u16, u16, u32),
         return_kind: Win16ReturnKind,
     ) -> Result<Option<u8>, RuntimeError> {
         if matches!(request, Win16CommdlgRequest::ExtendedError) {
-            return self.complete_return(&mut cpu.regs, return_to.0, return_to.1,
+            return self.complete_return(registers, return_to.0, return_to.1,
                 return_to.2, self.common_dialog_state.last_extended_error, return_kind);
         }
 
@@ -123,21 +112,18 @@ impl Win16State {
         let prepared = match self.prepare_common_dialog(memory, request, return_kind, host) {
             Ok(prepared) => prepared,
             Err(error) if is_guest_api_failure(&error) => {
-                return self.complete_return(&mut cpu.regs, return_to.0, return_to.1,
+                return self.complete_return(registers, return_to.0, return_to.1,
                     return_to.2, guest_failure_value, return_kind);
             }
             Err(error) => return Err(error),
         };
         match prepared {
             Win16CommonDialogPreparation::Immediate(value) => self.complete_return(
-                &mut cpu.regs, return_to.0, return_to.1, return_to.2, value, return_kind,
+                registers, return_to.0, return_to.1, return_to.2, value, return_kind,
             ),
-            Win16CommonDialogPreparation::OpenFileHook(call) => {
-                self.begin_open_file_hook(cpu, dos, memory, host, call, return_to)
-            }
             Win16CommonDialogPreparation::WindowService(call) => {
                 let request_id = call.continuation.find_replace_request_id();
-                let started = self.begin_window_operation(&mut cpu.regs, memory, host,
+                let started = self.begin_window_operation(registers, memory, host,
                     Win16WindowOperation::CommonDialog(call.operation),
                     WindowReturn::CommonDialog(call.continuation), return_to);
                 match (started, request_id) {

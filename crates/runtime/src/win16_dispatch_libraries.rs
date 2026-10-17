@@ -1,9 +1,8 @@
 //! Runtime request arms owned by the Libraries service group.
 
-use dos_kernel::DosKernel;
+use guest_core::Registers;
 use guest_core::memory::Memory;
 use win16_abi::{Win16ApiRequest, Win16ExportDescriptor};
-use x86_cpu::Cpu;
 
 use super::Win16State;
 use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost};
@@ -12,25 +11,12 @@ impl Win16State {
     pub(super) fn dispatch_libraries(
         &mut self,
         request: Win16ApiRequest,
-        cpu: &mut Cpu,
-        dos: &mut DosKernel,
+        registers: &mut Registers,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
         descriptor: &Win16ExportDescriptor,
         return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
-        // Common dialogs may enter a guest hook before returning. Take the
-        // dispatch CPU owner inside that path so the service gate is not
-        // restored over the hook entry.
-        let request = match request {
-            Win16ApiRequest::Commdlg(request) => {
-                return self.begin_common_dialog_request(
-                    request, cpu, dos, memory, host, return_to, descriptor.return_kind,
-                );
-            }
-            other => other,
-        };
-        let registers = &mut cpu.regs;
         let (return_selector, return_offset, return_sp) = return_to;
         let value = match request {
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::IsEqualGuid {
@@ -99,6 +85,16 @@ impl Win16State {
                         self.toolhelp_stack_trace_next(output, memory, host)?
                     }
                 })
+            }
+            Win16ApiRequest::Commdlg(request) => {
+                return self.begin_common_dialog_request(
+                    request,
+                    registers,
+                    memory,
+                    host,
+                    (return_selector, return_offset, return_sp),
+                    descriptor.return_kind,
+                );
             }
             Win16ApiRequest::Ctl3d(request) => self.ctl3d_request(request, host)?,
             Win16ApiRequest::Commctrl(request) => {

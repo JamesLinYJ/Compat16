@@ -11,8 +11,8 @@ use super::{
     report_common_dialog_gap, ranges::GuestOutputRange,
     support::{checked_capacity, host_log_font, validate_dev_names,
         MAX_COMMON_DIALOG_BYTES},
-    OpenFileHookCall, Win16CommonDialogCall, Win16CommonDialogContinuation,
-    Win16CommonDialogOutput, Win16CommonDialogPreparation, Win16State,
+    Win16CommonDialogCall, Win16CommonDialogContinuation, Win16CommonDialogOutput,
+    Win16CommonDialogPreparation, Win16State,
 };
 use crate::{
     DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostChooseColorDialog,
@@ -193,15 +193,14 @@ impl Win16State {
             return Err(RuntimeError::new(Kind::GuestFault,
                 "Win16 OPENFILENAME input file buffer has no terminator within nMaxFile"));
         }
-        if let Some(CommonDialogHookTemplateResolution::Ready { hook, template }) = resolved {
-            let Some(procedure) = hook else {
-                report_common_dialog_gap(host,
-                    "Win16 OPENFILENAME template was read from the guest; no file dialog is opened and the call returns FALSE");
-                return Ok(Win16CommonDialogPreparation::Immediate(0));
-            };
-            return Ok(Win16CommonDialogPreparation::OpenFileHook(OpenFileHookCall {
-                procedure, structure_far, return_kind, template,
-            }));
+        if let Some(CommonDialogHookTemplateResolution::Ready { .. }) = resolved {
+            // A Common Dialog hook is a dialog procedure for a live HWND.
+            // No file-dialog window exists, so the guest procedure is not
+            // entered. Template bytes were already decoded above; a bad
+            // template returned its SDK CDERR before this gap.
+            report_common_dialog_gap(host,
+                "Win16 OPENFILENAME hook is not called: no file-dialog window exists, so the call returns FALSE");
+            return Ok(Win16CommonDialogPreparation::Immediate(0));
         }
         let file_title = self.optional_output_range(memory, value.file_title,
             value.max_file_title)?;
