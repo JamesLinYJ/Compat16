@@ -3,35 +3,80 @@ module = "COMPOBJ"
 [[exports]]
 ordinal = 1
 name = "CoBuildVersion"
+binding = { rust_id = "CompobjCoBuildVersion", id_value = 4000344, constant = "COMPOBJ_COBUILDVERSION" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 2
 name = "CoInitialize"
 decl = { args = ["long"] }
+binding = { rust_id = "CompobjCoInitialize", id_value = 4000345, constant = "COMPOBJ_COINITIALIZE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 3
 name = "CoUninitialize"
+binding = { rust_id = "CompobjCoUninitialize", id_value = 4000346, constant = "COMPOBJ_COUNINITIALIZE" }
+[exports.call]
+returns = "void"
 
 [[exports]]
 ordinal = 4
 name = "CoGetMalloc"
 decl = { args = ["long", "pointer"] }
+binding = { rust_id = "CompobjCoGetMalloc", id_value = 4000347, constant = "COMPOBJ_COGETMALLOC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 5
 name = "CoRegisterClassObject"
 decl = { args = ["pointer", "segmented_pointer", "long", "long", "pointer"] }
+binding = { rust_id = "CompobjCoRegisterClassObject", id_value = 4000348, constant = "COMPOBJ_COREGISTERCLASSOBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 6
 name = "CoRevokeClassObject"
 decl = { args = ["long"] }
+binding = { rust_id = "CompobjCoRevokeClassObject", id_value = 4000349, constant = "COMPOBJ_COREVOKECLASSOBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+]
 
 [[exports]]
 ordinal = 7
 name = "CoGetClassObject"
 decl = { args = ["segmented_pointer", "long", "pointer", "segmented_pointer", "segmented_pointer"] }
+binding = { rust_id = "CompobjCoGetClassObject", id_value = 4000350, constant = "COMPOBJ_COGETCLASSOBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 8
@@ -62,16 +107,40 @@ kind = "stub"
 ordinal = 13
 name = "CoCreateInstance"
 decl = { args = ["segmented_pointer", "segmented_pointer", "long", "segmented_pointer", "segmented_pointer"] }
+binding = { rust_id = "CompobjCoCreateInstance", id_value = 4000356, constant = "COMPOBJ_COCREATEINSTANCE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 14
 name = "StringFromIID"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "CompobjStringFromIID", id_value = 4000357, constant = "COMPOBJ_STRINGFROMIID" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 15
 name = "CoDisconnectObject"
 decl = { args = ["segmented_pointer", "long"] }
+binding = { rust_id = "CompobjCoDisconnectObject", id_value = 4000358, constant = "COMPOBJ_CODISCONNECTOBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 16
@@ -82,16 +151,33 @@ kind = "stub"
 ordinal = 17
 name = "CoFreeUnusedLibraries"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "CompobjCoFreeUnusedLibraries", id_value = 4000360, constant = "COMPOBJ_COFREEUNUSEDLIBRARIES" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 19
 name = "StringFromCLSID"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "CompobjStringFromCLSID", id_value = 4000361, constant = "COMPOBJ_STRINGFROMCLSID" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 20
 name = "CLSIDFromString"
 decl = { args = ["string", "pointer"] }
+binding = { rust_id = "CompobjCLSIDFromString", id_value = 4000362, constant = "COMPOBJ_CLSIDFROMSTRING" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 21
@@ -107,6 +193,12 @@ kind = "stub"
 ordinal = 23
 name = "IsValidInterface"
 decl = { args = ["segmented_pointer"] }
+binding = { rust_id = "CompobjIsValidInterface", id_value = 4000365, constant = "COMPOBJ_ISVALIDINTERFACE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 24
@@ -127,6 +219,13 @@ kind = "stub"
 ordinal = 27
 name = "CoRegisterMessageFilter"
 decl = { args = ["segmented_pointer", "pointer"] }
+binding = { rust_id = "CompobjCoRegisterMessageFilter", id_value = 4000369, constant = "COMPOBJ_COREGISTERMESSAGEFILTER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 28
@@ -142,11 +241,27 @@ kind = "stub"
 ordinal = 30
 name = "CoFileTimeToDosDateTime"
 decl = { attributes = ["ret16"], args = ["pointer", "pointer", "pointer"] }
+binding = { rust_id = "CompobjCoFileTimeToDosDateTime", id_value = 4000372, constant = "COMPOBJ_COFILETIMETODOSDATETIME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 31
 name = "CoDosDateTimeToFileTime"
 decl = { attributes = ["ret16"], args = ["word", "word", "pointer"] }
+binding = { rust_id = "CompobjCoDosDateTimeToFileTime", id_value = 4000373, constant = "COMPOBJ_CODOSDATETIMETOFILETIME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 32
@@ -161,6 +276,9 @@ kind = "stub"
 [[exports]]
 ordinal = 34
 name = "CoGetCurrentProcess"
+binding = { rust_id = "CompobjCoGetCurrentProcess", id_value = 4000376, constant = "COMPOBJ_COGETCURRENTPROCESS" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 35
@@ -171,6 +289,12 @@ kind = "stub"
 ordinal = 36
 name = "CoIsOle1Class"
 decl = { args = ["pointer"] }
+binding = { rust_id = "CompobjCoIsOle1Class", id_value = 4000378, constant = "COMPOBJ_COISOLE1CLASS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 37
@@ -320,16 +444,38 @@ values = [22, 0, 192, 1174405120]
 ordinal = 61
 name = "CLSIDFromProgID"
 decl = { args = ["string", "pointer"] }
+binding = { rust_id = "CompobjCLSIDFromProgID", id_value = 4000379, constant = "COMPOBJ_CLSIDFROMPROGID" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 62
 name = "ProgIDFromCLSID"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "CompobjProgIDFromCLSID", id_value = 4000380, constant = "COMPOBJ_PROGIDFROMCLSID" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 63
 name = "CoLockObjectExternal"
 decl = { args = ["segmented_pointer", "word", "word"] }
+binding = { rust_id = "CompobjCoLockObjectExternal", id_value = 4000381, constant = "COMPOBJ_COLOCKOBJECTEXTERNAL" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 64
@@ -341,11 +487,25 @@ values = [23, 0, 192, 1174405120]
 ordinal = 65
 name = "CoGetTreatAsClass"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "CompobjCoGetTreatAsClass", id_value = 4000382, constant = "COMPOBJ_COGETTREATASCLASS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 66
 name = "CoTreatAsClass"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "CompobjCoTreatAsClass", id_value = 4000383, constant = "COMPOBJ_COTREATASCLASS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 67
@@ -361,6 +521,13 @@ kind = "stub"
 ordinal = 69
 name = "IIDFromString"
 decl = { args = ["string", "pointer"] }
+binding = { rust_id = "CompobjIIDFromString", id_value = 4000386, constant = "COMPOBJ_IIDFROMSTRING" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 70
@@ -372,6 +539,13 @@ values = [24, 0, 192, 1174405120]
 ordinal = 71
 name = "CoCreateStandardMalloc"
 decl = { args = ["long", "pointer"] }
+binding = { rust_id = "CompobjCoCreateStandardMalloc", id_value = 4000387, constant = "COMPOBJ_COCREATESTANDARDMALLOC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 72
@@ -383,16 +557,39 @@ values = [25, 0, 192, 1174405120]
 ordinal = 73
 name = "CoCreateGuid"
 decl = { args = ["pointer"] }
+binding = { rust_id = "CompobjCoCreateGuid", id_value = 4000388, constant = "COMPOBJ_COCREATEGUID" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 75
 name = "FnAssert"
 decl = { args = ["string", "string", "string", "word"] }
+binding = { rust_id = "CompobjFnAssert", id_value = 4000389, constant = "COMPOBJ_FNASSERT" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "FarString" },
+  { name = "a3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 76
 name = "StringFromGUID2"
 decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word"] }
+binding = { rust_id = "CompobjStringFromGUID2", id_value = 4000390, constant = "COMPOBJ_STRINGFROMGUID2" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 77
@@ -423,6 +620,12 @@ kind = "stub"
 ordinal = 82
 name = "CoFileTimeNow"
 decl = { args = ["pointer"] }
+binding = { rust_id = "CompobjCoFileTimeNow", id_value = 4000396, constant = "COMPOBJ_COFILETIMENOW" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 83
@@ -483,11 +686,25 @@ kind = "stub"
 ordinal = 94
 name = "LookupETask"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "CompobjLookupETask", id_value = 4000408, constant = "COMPOBJ_LOOKUPETASK" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 95
 name = "SetETask"
 decl = { attributes = ["ret16"], args = ["word", "pointer"] }
+binding = { rust_id = "CompobjSetETask", id_value = 4000409, constant = "COMPOBJ_SETETASK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 96
@@ -588,11 +805,28 @@ kind = "stub"
 ordinal = 115
 name = "CoGetState"
 decl = { args = ["pointer"] }
+binding = { rust_id = "CompobjCoGetState", id_value = 4000429, constant = "COMPOBJ_COGETSTATE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 116
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
+binding = { rust_id = "CompobjDllEntryPoint", id_value = 4000430, constant = "COMPOBJ_DLLENTRYPOINT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U16" },
+]
 
 [[exports]]
 ordinal = 117
@@ -768,6 +1002,14 @@ kind = "stub"
 ordinal = 151
 name = "CoMemAlloc"
 decl = { args = ["long", "long", "long"] }
+binding = { rust_id = "CompobjCoMemAlloc", id_value = 4000465, constant = "COMPOBJ_COMEMALLOC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 152
@@ -1018,6 +1260,13 @@ kind = "stub"
 ordinal = 201
 name = "CALLOBJECTINWOW"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "CompobjCALLOBJECTINWOW", id_value = 4000515, constant = "COMPOBJ_CALLOBJECTINWOW" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 203
@@ -1048,43 +1297,114 @@ kind = "stub"
 ordinal = 500
 name = "IMalloc16_QueryInterface"
 decl = { type = "cdecl", args = ["pointer", "pointer", "pointer"] }
+binding = { rust_id = "CompobjIMalloc16QueryInterface", id_value = 4000521, constant = "COMPOBJ_IMALLOC16_QUERYINTERFACE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 501
 name = "IMalloc16_AddRef"
 decl = { type = "cdecl", args = ["pointer"] }
+binding = { rust_id = "CompobjIMalloc16AddRef", id_value = 4000522, constant = "COMPOBJ_IMALLOC16_ADDREF" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 502
 name = "IMalloc16_Release"
 decl = { type = "cdecl", args = ["pointer"] }
+binding = { rust_id = "CompobjIMalloc16Release", id_value = 4000523, constant = "COMPOBJ_IMALLOC16_RELEASE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 503
 name = "IMalloc16_Alloc"
 decl = { type = "cdecl", args = ["pointer", "long"] }
+binding = { rust_id = "CompobjIMalloc16Alloc", id_value = 4000524, constant = "COMPOBJ_IMALLOC16_ALLOC" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 504
 name = "IMalloc16_Realloc"
 decl = { type = "cdecl", args = ["pointer", "segmented_pointer", "long"] }
+binding = { rust_id = "CompobjIMalloc16Realloc", id_value = 4000525, constant = "COMPOBJ_IMALLOC16_REALLOC" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 505
 name = "IMalloc16_Free"
 decl = { type = "cdecl", args = ["pointer", "segmented_pointer"] }
+binding = { rust_id = "CompobjIMalloc16Free", id_value = 4000526, constant = "COMPOBJ_IMALLOC16_FREE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 506
 name = "IMalloc16_GetSize"
 decl = { type = "cdecl", args = ["pointer", "segmented_pointer"] }
+binding = { rust_id = "CompobjIMalloc16GetSize", id_value = 4000527, constant = "COMPOBJ_IMALLOC16_GETSIZE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 507
 name = "IMalloc16_DidAlloc"
 decl = { type = "cdecl", args = ["pointer", "segmented_pointer"] }
+binding = { rust_id = "CompobjIMalloc16DidAlloc", id_value = 4000528, constant = "COMPOBJ_IMALLOC16_DIDALLOC" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 508
 name = "IMalloc16_HeapMinimize"
 decl = { type = "cdecl", args = ["pointer"] }
+binding = { rust_id = "CompobjIMalloc16HeapMinimize", id_value = 4000529, constant = "COMPOBJ_IMALLOC16_HEAPMINIMIZE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]

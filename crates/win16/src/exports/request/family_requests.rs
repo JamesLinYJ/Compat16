@@ -102,6 +102,10 @@ pub use kernel_profiles::Win16KernelProfilesRequest;
 mod kernel_remainder;
 pub use kernel_remainder::{Win16KernelRemainderRequest, is_kernel_register_remainder};
 
+#[path = "ole_remainder.rs"]
+mod ole_remainder;
+pub use ole_remainder::Win16OleRemainderModule;
+
 #[path = "library_strings.rs"]
 mod library_strings;
 pub use library_strings::Win16LibraryStringsRequest;
@@ -189,6 +193,11 @@ pub enum Win16LibraryRequest {
     /// COMPOBJ.18 compares two copied GUID records; no COM object or host
     /// pointer crosses the ABI boundary and neither input is retained.
     IsEqualGuid { left: [u8; 16], right: [u8; 16] },
+    /// Declaration-only OLE stack export. Binding ids are `4000000`–`4999999`.
+    OleRemainder {
+        module: Win16OleRemainderModule,
+        ordinal: u16,
+    },
     Strings(Win16LibraryStringsRequest),
     Interrupts(Win16LibraryInterruptsRequest),
     Toolhelp(Win16LibraryToolhelpRequest),

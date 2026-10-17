@@ -4,13 +4,37 @@ module = "OLE2NLS"
 ordinal = 9
 name = "RegisterNLSInfoChanged"
 decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "Ole2NlsRegisterNLSInfoChanged", id_value = 4000201, constant = "OLE2NLS_REGISTERNLSINFOCHANGED" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 11
 name = "LIBMAIN"
 kind = "stub"
+binding = { rust_id = "Ole2NlsLIBMAIN", id_value = 4000202, constant = "OLE2NLS_LIBMAIN" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "instance", type = "U16" },
+  { name = "data_segment", type = "U16" },
+  { name = "heap_size", type = "U16" },
+  { name = "command_line", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 12
 name = "NOTIFYWINDOWPROC"
 kind = "stub"
+binding = { rust_id = "Ole2NlsNOTIFYWINDOWPROC", id_value = 4000203, constant = "OLE2NLS_NOTIFYWINDOWPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]

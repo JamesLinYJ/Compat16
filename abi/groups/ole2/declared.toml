@@ -3,50 +3,127 @@ module = "OLE2"
 [[exports]]
 ordinal = 1
 name = "OleBuildVersion"
+binding = { rust_id = "Ole2OleBuildVersion", id_value = 4000000, constant = "OLE2_OLEBUILDVERSION" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 2
 name = "OleInitialize"
 decl = { args = ["segmented_pointer"] }
+binding = { rust_id = "Ole2OleInitialize", id_value = 4000001, constant = "OLE2_OLEINITIALIZE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 3
 name = "OleUninitialize"
+binding = { rust_id = "Ole2OleUninitialize", id_value = 4000002, constant = "OLE2_OLEUNINITIALIZE" }
+[exports.call]
+returns = "void"
 
 [[exports]]
 ordinal = 4
 name = "DllGetClassObject"
 decl = { args = ["pointer", "pointer", "pointer"] }
+binding = { rust_id = "Ole2DllGetClassObject", id_value = 4000003, constant = "OLE2_DLLGETCLASSOBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 5
 name = "WEP"
 decl = { args = ["word", "word", "word", "pointer"] }
+binding = { rust_id = "Ole2WEP", id_value = 4000004, constant = "OLE2_WEP" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 6
 name = "OleQueryLinkFromData"
 decl = { args = ["segmented_pointer"] }
+binding = { rust_id = "Ole2OleQueryLinkFromData", id_value = 4000005, constant = "OLE2_OLEQUERYLINKFROMDATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 7
 name = "OleQueryCreateFromData"
 decl = { args = ["segmented_pointer"] }
+binding = { rust_id = "Ole2OleQueryCreateFromData", id_value = 4000006, constant = "OLE2_OLEQUERYCREATEFROMDATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 8
 name = "OleCreateFromData"
 decl = { args = ["segmented_pointer", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2OleCreateFromData", id_value = 4000007, constant = "OLE2_OLECREATEFROMDATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 9
 name = "OleCreateLinkFromData"
 decl = { args = ["segmented_pointer", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2OleCreateLinkFromData", id_value = 4000008, constant = "OLE2_OLECREATELINKFROMDATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 10
 name = "OleCreate"
 decl = { args = ["pointer", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2OleCreate", id_value = 4000009, constant = "OLE2_OLECREATE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 11
@@ -57,91 +134,226 @@ kind = "stub"
 ordinal = 12
 name = "OleLoad"
 decl = { args = ["segmented_pointer", "pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2OleLoad", id_value = 4000011, constant = "OLE2_OLELOAD" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 13
 name = "OleSave"
 decl = { args = ["segmented_pointer", "segmented_pointer", "word"] }
+binding = { rust_id = "Ole2OleSave", id_value = 4000012, constant = "OLE2_OLESAVE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 14
 name = "OleRun"
 decl = { args = ["segmented_pointer"] }
+binding = { rust_id = "Ole2OleRun", id_value = 4000013, constant = "OLE2_OLERUN" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 16
 name = "OleIsRunning"
 decl = { attributes = ["ret16"], args = ["segmented_pointer"] }
+binding = { rust_id = "Ole2OleIsRunning", id_value = 4000014, constant = "OLE2_OLEISRUNNING" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 17
 name = "OleLockRunning"
 decl = { args = ["segmented_pointer", "word", "word"] }
+binding = { rust_id = "Ole2OleLockRunning", id_value = 4000015, constant = "OLE2_OLELOCKRUNNING" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 18
 name = "ReadClassStg"
 decl = { args = ["segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2ReadClassStg", id_value = 4000016, constant = "OLE2_READCLASSSTG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 19
 name = "WriteClassStg"
 decl = { args = ["segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2WriteClassStg", id_value = 4000017, constant = "OLE2_WRITECLASSSTG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 20
 name = "ReadClassStm"
 decl = { args = ["segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2ReadClassStm", id_value = 4000018, constant = "OLE2_READCLASSSTM" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 21
 name = "WriteClassStm"
 decl = { args = ["segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2WriteClassStm", id_value = 4000019, constant = "OLE2_WRITECLASSSTM" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 22
 name = "BindMoniker"
 decl = { args = ["segmented_pointer", "long", "pointer", "pointer"] }
+binding = { rust_id = "Ole2BindMoniker", id_value = 4000020, constant = "OLE2_BINDMONIKER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 23
 name = "MkParseDisplayName"
 decl = { args = ["segmented_pointer", "string", "pointer", "pointer"] }
+binding = { rust_id = "Ole2MkParseDisplayName", id_value = 4000021, constant = "OLE2_MKPARSEDISPLAYNAME" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 24
 name = "OleSaveToStream"
 decl = { args = ["segmented_pointer", "segmented_pointer"] }
+binding = { rust_id = "Ole2OleSaveToStream", id_value = 4000022, constant = "OLE2_OLESAVETOSTREAM" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 25
 name = "OleLoadFromStream"
 decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+binding = { rust_id = "Ole2OleLoadFromStream", id_value = 4000023, constant = "OLE2_OLELOADFROMSTREAM" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 26
 name = "CreateBindCtx"
 decl = { args = ["long", "pointer"] }
+binding = { rust_id = "Ole2CreateBindCtx", id_value = 4000024, constant = "OLE2_CREATEBINDCTX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 27
 name = "CreateItemMoniker"
 decl = { args = ["string", "string", "pointer"] }
+binding = { rust_id = "Ole2CreateItemMoniker", id_value = 4000025, constant = "OLE2_CREATEITEMMONIKER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 28
 name = "CreateFileMoniker"
 decl = { args = ["string", "pointer"] }
+binding = { rust_id = "Ole2CreateFileMoniker", id_value = 4000026, constant = "OLE2_CREATEFILEMONIKER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 29
 name = "CreateGenericComposite"
 decl = { args = ["segmented_pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2CreateGenericComposite", id_value = 4000027, constant = "OLE2_CREATEGENERICCOMPOSITE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 30
 name = "GetRunningObjectTable"
 decl = { args = ["long", "pointer"] }
+binding = { rust_id = "Ole2GetRunningObjectTable", id_value = 4000028, constant = "OLE2_GETRUNNINGOBJECTTABLE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 31
@@ -152,6 +364,12 @@ kind = "stub"
 ordinal = 32
 name = "ReleaseStgMedium"
 decl = { args = ["pointer"] }
+binding = { rust_id = "Ole2ReleaseStgMedium", id_value = 4000030, constant = "OLE2_RELEASESTGMEDIUM" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 33
@@ -167,41 +385,98 @@ kind = "stub"
 ordinal = 35
 name = "RegisterDragDrop"
 decl = { args = ["word", "segmented_pointer"] }
+binding = { rust_id = "Ole2RegisterDragDrop", id_value = 4000033, constant = "OLE2_REGISTERDRAGDROP" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 36
 name = "RevokeDragDrop"
 decl = { args = ["word"] }
+binding = { rust_id = "Ole2RevokeDragDrop", id_value = 4000034, constant = "OLE2_REVOKEDRAGDROP" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 37
 name = "DoDragDrop"
 decl = { args = ["segmented_pointer", "segmented_pointer", "long", "pointer"] }
+binding = { rust_id = "Ole2DoDragDrop", id_value = 4000035, constant = "OLE2_DODRAGDROP" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 38
 name = "CreateOleAdviseHolder"
 decl = { args = ["pointer"] }
+binding = { rust_id = "Ole2CreateOleAdviseHolder", id_value = 4000036, constant = "OLE2_CREATEOLEADVISEHOLDER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 39
 name = "CreateDataAdviseHolder"
 decl = { args = ["pointer"] }
+binding = { rust_id = "Ole2CreateDataAdviseHolder", id_value = 4000037, constant = "OLE2_CREATEDATAADVISEHOLDER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 40
 name = "OleCreateMenuDescriptor"
 decl = { attributes = ["ret16"], args = ["word", "pointer"] }
+binding = { rust_id = "Ole2OleCreateMenuDescriptor", id_value = 4000038, constant = "OLE2_OLECREATEMENUDESCRIPTOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 41
 name = "OleSetMenuDescriptor"
 decl = { args = ["word", "word", "word", "segmented_pointer", "segmented_pointer"] }
+binding = { rust_id = "Ole2OleSetMenuDescriptor", id_value = 4000039, constant = "OLE2_OLESETMENUDESCRIPTOR" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 42
 name = "OleDestroyMenuDescriptor"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "Ole2OleDestroyMenuDescriptor", id_value = 4000040, constant = "OLE2_OLEDESTROYMENUDESCRIPTOR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 43
@@ -237,71 +512,190 @@ kind = "stub"
 ordinal = 49
 name = "OleSetClipboard"
 decl = { args = ["segmented_pointer"] }
+binding = { rust_id = "Ole2OleSetClipboard", id_value = 4000047, constant = "OLE2_OLESETCLIPBOARD" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 50
 name = "OleGetClipboard"
 decl = { args = ["pointer"] }
+binding = { rust_id = "Ole2OleGetClipboard", id_value = 4000048, constant = "OLE2_OLEGETCLIPBOARD" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 51
 name = "OleDuplicateData"
 decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
+binding = { rust_id = "Ole2OleDuplicateData", id_value = 4000049, constant = "OLE2_OLEDUPLICATEDATA" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 52
 name = "OleGetIconOfFile"
 decl = { attributes = ["ret16"], args = ["string", "word"] }
+binding = { rust_id = "Ole2OleGetIconOfFile", id_value = 4000050, constant = "OLE2_OLEGETICONOFFILE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 53
 name = "OleGetIconOfClass"
 decl = { attributes = ["ret16"], args = ["pointer", "string", "word"] }
+binding = { rust_id = "Ole2OleGetIconOfClass", id_value = 4000051, constant = "OLE2_OLEGETICONOFCLASS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 54
 name = "CreateILockBytesOnHGlobal"
 decl = { args = ["word", "word", "pointer"] }
+binding = { rust_id = "Ole2CreateILockBytesOnHGlobal", id_value = 4000052, constant = "OLE2_CREATEILOCKBYTESONHGLOBAL" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 55
 name = "GetHGlobalFromILockBytes"
 decl = { args = ["segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2GetHGlobalFromILockBytes", id_value = 4000053, constant = "OLE2_GETHGLOBALFROMILOCKBYTES" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 56
 name = "OleMetafilePictFromIconAndLabel"
 decl = { attributes = ["ret16"], args = ["word", "string", "string", "word"] }
+binding = { rust_id = "Ole2OleMetafilePictFromIconAndLabel", id_value = 4000054, constant = "OLE2_OLEMETAFILEPICTFROMICONANDLABEL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "FarString" },
+  { name = "a3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 57
 name = "GetClassFile"
 decl = { args = ["string", "pointer"] }
+binding = { rust_id = "Ole2GetClassFile", id_value = 4000055, constant = "OLE2_GETCLASSFILE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 58
 name = "OleDraw"
 decl = { args = ["segmented_pointer", "long", "word", "pointer"] }
+binding = { rust_id = "Ole2OleDraw", id_value = 4000056, constant = "OLE2_OLEDRAW" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 59
 name = "OleCreateDefaultHandler"
 decl = { args = ["pointer", "segmented_pointer", "pointer", "pointer"] }
+binding = { rust_id = "Ole2OleCreateDefaultHandler", id_value = 4000057, constant = "OLE2_OLECREATEDEFAULTHANDLER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 60
 name = "OleCreateEmbeddingHelper"
 decl = { args = ["pointer", "segmented_pointer", "long", "segmented_pointer", "pointer", "pointer"] }
+binding = { rust_id = "Ole2OleCreateEmbeddingHelper", id_value = 4000058, constant = "OLE2_OLECREATEEMBEDDINGHELPER" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 61
 name = "OleConvertIStorageToOLESTREAMEx"
 decl = { args = ["segmented_pointer", "word", "long", "long", "long", "pointer", "segmented_pointer"] }
+binding = { rust_id = "Ole2OleConvertIStorageToOLESTREAMEx", id_value = 4000059, constant = "OLE2_OLECONVERTISTORAGETOOLESTREAMEX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "FarPointer" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 62
 name = "OleConvertOLESTREAMToIStorageEx"
 decl = { args = ["segmented_pointer", "segmented_pointer", "pointer", "pointer", "pointer", "pointer", "pointer"] }
+binding = { rust_id = "Ole2OleConvertOLESTREAMToIStorageEx", id_value = 4000060, constant = "OLE2_OLECONVERTOLESTREAMTOISTORAGEEX" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 63
@@ -332,6 +726,18 @@ kind = "stub"
 ordinal = 68
 name = "OleCreateLinkToFile"
 decl = { args = ["string", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2OleCreateLinkToFile", id_value = 4000066, constant = "OLE2_OLECREATELINKTOFILE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 69
@@ -342,106 +748,260 @@ kind = "stub"
 ordinal = 70
 name = "OleConvertIStorageToOLESTREAM"
 decl = { args = ["segmented_pointer", "segmented_pointer"] }
+binding = { rust_id = "Ole2OleConvertIStorageToOLESTREAM", id_value = 4000068, constant = "OLE2_OLECONVERTISTORAGETOOLESTREAM" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 71
 name = "OleConvertOLESTREAMToIStorage"
 decl = { args = ["segmented_pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2OleConvertOLESTREAMToIStorage", id_value = 4000069, constant = "OLE2_OLECONVERTOLESTREAMTOISTORAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 74
 name = "ReadFmtUserTypeStg"
 decl = { args = ["segmented_pointer", "pointer", "pointer"] }
+binding = { rust_id = "Ole2ReadFmtUserTypeStg", id_value = 4000070, constant = "OLE2_READFMTUSERTYPESTG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 75
 name = "WriteFmtUserTypeStg"
 decl = { args = ["segmented_pointer", "word", "string"] }
+binding = { rust_id = "Ole2WriteFmtUserTypeStg", id_value = 4000071, constant = "OLE2_WRITEFMTUSERTYPESTG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarString" },
+]
 
 [[exports]]
 ordinal = 76
 name = "OleFlushClipboard"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "Ole2OleFlushClipboard", id_value = 4000072, constant = "OLE2_OLEFLUSHCLIPBOARD" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 77
 name = "OleIsCurrentClipboard"
 decl = { args = ["segmented_pointer"] }
+binding = { rust_id = "Ole2OleIsCurrentClipboard", id_value = 4000073, constant = "OLE2_OLEISCURRENTCLIPBOARD" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 78
 name = "OleTranslateAccelerator"
 decl = { args = ["segmented_pointer", "pointer", "pointer"] }
+binding = { rust_id = "Ole2OleTranslateAccelerator", id_value = 4000074, constant = "OLE2_OLETRANSLATEACCELERATOR" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 79
 name = "OleDoAutoConvert"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "Ole2OleDoAutoConvert", id_value = 4000075, constant = "OLE2_OLEDOAUTOCONVERT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 80
 name = "OleGetAutoConvert"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "Ole2OleGetAutoConvert", id_value = 4000076, constant = "OLE2_OLEGETAUTOCONVERT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 81
 name = "OleSetAutoConvert"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "Ole2OleSetAutoConvert", id_value = 4000077, constant = "OLE2_OLESETAUTOCONVERT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 82
 name = "GetConvertStg"
 decl = { args = ["segmented_pointer"] }
+binding = { rust_id = "Ole2GetConvertStg", id_value = 4000078, constant = "OLE2_GETCONVERTSTG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 83
 name = "SetConvertStg"
 decl = { args = ["segmented_pointer", "word"] }
+binding = { rust_id = "Ole2SetConvertStg", id_value = 4000079, constant = "OLE2_SETCONVERTSTG" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 84
 name = "CreateStreamOnHGlobal"
 decl = { args = ["word", "word", "pointer"] }
+binding = { rust_id = "Ole2CreateStreamOnHGlobal", id_value = 4000080, constant = "OLE2_CREATESTREAMONHGLOBAL" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 85
 name = "GetHGlobalFromStream"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "Ole2GetHGlobalFromStream", id_value = 4000081, constant = "OLE2_GETHGLOBALFROMSTREAM" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 86
 name = "OleSetContainedObject"
 decl = { args = ["segmented_pointer", "word"] }
+binding = { rust_id = "Ole2OleSetContainedObject", id_value = 4000082, constant = "OLE2_OLESETCONTAINEDOBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 87
 name = "OleNoteObjectVisible"
 decl = { args = ["segmented_pointer", "word"] }
+binding = { rust_id = "Ole2OleNoteObjectVisible", id_value = 4000083, constant = "OLE2_OLENOTEOBJECTVISIBLE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 88
 name = "OleCreateStaticFromData"
 decl = { args = ["segmented_pointer", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "Ole2OleCreateStaticFromData", id_value = 4000084, constant = "OLE2_OLECREATESTATICFROMDATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 89
 name = "OleRegGetUserType"
 decl = { args = ["pointer", "long", "pointer"] }
+binding = { rust_id = "Ole2OleRegGetUserType", id_value = 4000085, constant = "OLE2_OLEREGGETUSERTYPE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 90
 name = "OleRegGetMiscStatus"
 decl = { args = ["pointer", "long", "pointer"] }
+binding = { rust_id = "Ole2OleRegGetMiscStatus", id_value = 4000086, constant = "OLE2_OLEREGGETMISCSTATUS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 91
 name = "OleRegEnumFormatEtc"
 decl = { args = ["pointer", "long", "pointer"] }
+binding = { rust_id = "Ole2OleRegEnumFormatEtc", id_value = 4000087, constant = "OLE2_OLEREGENUMFORMATETC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 92
 name = "OleRegEnumVerbs"
 decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "Ole2OleRegEnumVerbs", id_value = 4000088, constant = "OLE2_OLEREGENUMVERBS" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 93
@@ -769,123 +1329,361 @@ values = [294, 0, 192, 1174405120]
 ordinal = 500
 name = "HGLOBALLockBytesImpl16_QueryInterface"
 decl = { type = "cdecl", args = ["segmented_pointer", "pointer", "pointer"] }
+binding = { rust_id = "Ole2HGLOBALLockBytesImpl16QueryInterface", id_value = 4000103, constant = "OLE2_HGLOBALLOCKBYTESIMPL16_QUERYINTERFACE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 501
 name = "HGLOBALLockBytesImpl16_AddRef"
 decl = { type = "cdecl", args = ["pointer"] }
+binding = { rust_id = "Ole2HGLOBALLockBytesImpl16AddRef", id_value = 4000104, constant = "OLE2_HGLOBALLOCKBYTESIMPL16_ADDREF" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 502
 name = "HGLOBALLockBytesImpl16_Release"
 decl = { type = "cdecl", args = ["pointer"] }
+binding = { rust_id = "Ole2HGLOBALLockBytesImpl16Release", id_value = 4000105, constant = "OLE2_HGLOBALLOCKBYTESIMPL16_RELEASE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 503
 name = "HGLOBALLockBytesImpl16_ReadAt"
 decl = { type = "cdecl", args = ["pointer", "int64", "pointer", "long", "pointer"] }
+binding = { rust_id = "Ole2HGLOBALLockBytesImpl16ReadAt", id_value = 4000106, constant = "OLE2_HGLOBALLOCKBYTESIMPL16_READAT" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 504
 name = "HGLOBALLockBytesImpl16_WriteAt"
 decl = { type = "cdecl", args = ["pointer", "int64", "pointer", "long", "pointer"] }
+binding = { rust_id = "Ole2HGLOBALLockBytesImpl16WriteAt", id_value = 4000107, constant = "OLE2_HGLOBALLOCKBYTESIMPL16_WRITEAT" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 505
 name = "HGLOBALLockBytesImpl16_Flush"
 decl = { type = "cdecl", args = ["pointer"] }
+binding = { rust_id = "Ole2HGLOBALLockBytesImpl16Flush", id_value = 4000108, constant = "OLE2_HGLOBALLOCKBYTESIMPL16_FLUSH" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 506
 name = "HGLOBALLockBytesImpl16_SetSize"
 decl = { type = "cdecl", args = ["pointer", "int64"] }
+binding = { rust_id = "Ole2HGLOBALLockBytesImpl16SetSize", id_value = 4000109, constant = "OLE2_HGLOBALLOCKBYTESIMPL16_SETSIZE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 507
 name = "HGLOBALLockBytesImpl16_LockRegion"
 decl = { type = "cdecl", args = ["pointer", "int64", "int64", "long"] }
+binding = { rust_id = "Ole2HGLOBALLockBytesImpl16LockRegion", id_value = 4000110, constant = "OLE2_HGLOBALLOCKBYTESIMPL16_LOCKREGION" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U32" },
+]
 
 [[exports]]
 ordinal = 508
 name = "HGLOBALLockBytesImpl16_UnlockRegion"
 decl = { type = "cdecl", args = ["pointer", "int64", "int64", "long"] }
+binding = { rust_id = "Ole2HGLOBALLockBytesImpl16UnlockRegion", id_value = 4000111, constant = "OLE2_HGLOBALLOCKBYTESIMPL16_UNLOCKREGION" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U32" },
+]
 
 [[exports]]
 ordinal = 509
 name = "HGLOBALLockBytesImpl16_Stat"
 decl = { type = "cdecl", args = ["pointer", "pointer", "long"] }
+binding = { rust_id = "Ole2HGLOBALLockBytesImpl16Stat", id_value = 4000112, constant = "OLE2_HGLOBALLOCKBYTESIMPL16_STAT" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 510
 name = "HGLOBALStreamImpl16_QueryInterface"
 decl = { type = "cdecl", args = ["segmented_pointer", "pointer", "pointer"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16QueryInterface", id_value = 4000113, constant = "OLE2_HGLOBALSTREAMIMPL16_QUERYINTERFACE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 511
 name = "HGLOBALStreamImpl16_AddRef"
 decl = { type = "cdecl", args = ["pointer"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16AddRef", id_value = 4000114, constant = "OLE2_HGLOBALSTREAMIMPL16_ADDREF" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 512
 name = "HGLOBALStreamImpl16_Release"
 decl = { type = "cdecl", args = ["pointer"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16Release", id_value = 4000115, constant = "OLE2_HGLOBALSTREAMIMPL16_RELEASE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 513
 name = "HGLOBALStreamImpl16_Read"
 decl = { type = "cdecl", args = ["pointer", "pointer", "long", "pointer"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16Read", id_value = 4000116, constant = "OLE2_HGLOBALSTREAMIMPL16_READ" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 514
 name = "HGLOBALStreamImpl16_Write"
 decl = { type = "cdecl", args = ["pointer", "pointer", "long", "pointer"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16Write", id_value = 4000117, constant = "OLE2_HGLOBALSTREAMIMPL16_WRITE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 515
 name = "HGLOBALStreamImpl16_Seek"
 decl = { type = "cdecl", args = ["pointer", "int64", "long", "pointer"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16Seek", id_value = 4000118, constant = "OLE2_HGLOBALSTREAMIMPL16_SEEK" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 516
 name = "HGLOBALStreamImpl16_SetSize"
 decl = { type = "cdecl", args = ["pointer", "int64"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16SetSize", id_value = 4000119, constant = "OLE2_HGLOBALSTREAMIMPL16_SETSIZE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 517
 name = "HGLOBALStreamImpl16_CopyTo"
 decl = { type = "cdecl", args = ["pointer", "segmented_pointer", "int64", "pointer", "pointer"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16CopyTo", id_value = 4000120, constant = "OLE2_HGLOBALSTREAMIMPL16_COPYTO" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 518
 name = "HGLOBALStreamImpl16_Commit"
 decl = { type = "cdecl", args = ["pointer", "long"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16Commit", id_value = 4000121, constant = "OLE2_HGLOBALSTREAMIMPL16_COMMIT" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 519
 name = "HGLOBALStreamImpl16_Revert"
 decl = { type = "cdecl", args = ["pointer"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16Revert", id_value = 4000122, constant = "OLE2_HGLOBALSTREAMIMPL16_REVERT" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 520
 name = "HGLOBALStreamImpl16_LockRegion"
 decl = { type = "cdecl", args = ["pointer", "int64", "int64", "long"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16LockRegion", id_value = 4000123, constant = "OLE2_HGLOBALSTREAMIMPL16_LOCKREGION" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U32" },
+]
 
 [[exports]]
 ordinal = 521
 name = "HGLOBALStreamImpl16_UnlockRegion"
 decl = { type = "cdecl", args = ["pointer", "int64", "int64", "long"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16UnlockRegion", id_value = 4000124, constant = "OLE2_HGLOBALSTREAMIMPL16_UNLOCKREGION" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U32" },
+]
 
 [[exports]]
 ordinal = 522
 name = "HGLOBALStreamImpl16_Stat"
 decl = { type = "cdecl", args = ["pointer", "pointer", "long"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16Stat", id_value = 4000125, constant = "OLE2_HGLOBALSTREAMIMPL16_STAT" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 523
 name = "HGLOBALStreamImpl16_Clone"
 decl = { type = "cdecl", args = ["pointer", "pointer"] }
+binding = { rust_id = "Ole2HGLOBALStreamImpl16Clone", id_value = 4000126, constant = "OLE2_HGLOBALSTREAMIMPL16_CLONE" }
+[exports.call]
+convention = "cdecl"
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 524
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
+binding = { rust_id = "Ole2DllEntryPoint", id_value = 4000127, constant = "OLE2_DLLENTRYPOINT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U16" },
+]

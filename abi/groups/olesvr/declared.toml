@@ -4,16 +4,43 @@ module = "OLESVR"
 ordinal = 21
 name = "SRVRWNDPROC"
 kind = "stub"
+binding = { rust_id = "OleSvrSRVRWNDPROC", id_value = 4000333, constant = "OLESVR_SRVRWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 22
 name = "DOCWNDPROC"
 kind = "stub"
+binding = { rust_id = "OleSvrDOCWNDPROC", id_value = 4000334, constant = "OLESVR_DOCWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 23
 name = "ITEMWNDPROC"
 kind = "stub"
+binding = { rust_id = "OleSvrITEMWNDPROC", id_value = 4000335, constant = "OLESVR_ITEMWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 24
@@ -54,3 +81,14 @@ kind = "stub"
 ordinal = 32
 name = "DllEntryPoint"
 decl = { attributes = ["ret16"], args = ["long", "word", "word", "word", "long", "word"] }
+binding = { rust_id = "OleSvrDllEntryPoint", id_value = 4000343, constant = "OLESVR_DLLENTRYPOINT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U16" },
+]

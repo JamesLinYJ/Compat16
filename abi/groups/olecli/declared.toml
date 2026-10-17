@@ -4,11 +4,29 @@ module = "OLECLI"
 ordinal = 100
 name = "DOCWNDPROC"
 kind = "stub"
+binding = { rust_id = "OleCliDOCWNDPROC", id_value = 4000211, constant = "OLECLI_DOCWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 101
 name = "SRVRWNDPROC"
 kind = "stub"
+binding = { rust_id = "OleCliSRVRWNDPROC", id_value = 4000212, constant = "OLECLI_SRVRWNDPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 102
@@ -589,6 +607,15 @@ kind = "stub"
 ordinal = 950
 name = "CONNECTDLGPROC"
 kind = "stub"
+binding = { rust_id = "OleCliCONNECTDLGPROC", id_value = 4000328, constant = "OLECLI_CONNECTDLGPROC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 951

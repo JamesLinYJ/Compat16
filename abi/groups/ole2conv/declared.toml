@@ -34,3 +34,12 @@ kind = "stub"
 ordinal = 7
 name = "ENUMFONTFUNC"
 kind = "stub"
+binding = { rust_id = "Ole2ConvENUMFONTFUNC", id_value = 4000134, constant = "OLE2CONV_ENUMFONTFUNC" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "logfont", type = "FarPointer" },
+  { name = "text_metric", type = "FarPointer" },
+  { name = "font_type", type = "U16" },
+  { name = "parameter", type = "U32" },
+]
