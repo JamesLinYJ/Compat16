@@ -71,7 +71,7 @@ impl Fixture {
 fn create_scalable_font_resource_catalog_is_word_pascal_gdi_310() {
     let descriptor = &GDI_CREATE_SCALABLE_FONT_RESOURCE;
     assert_eq!(descriptor.id, Win16ExportId::GdiCreateScalableFontResource);
-    assert_eq!(descriptor.id as u32, 1288);
+    assert_eq!(descriptor.id as u32, 1324);
     assert_eq!(descriptor.module(), "GDI");
     assert_eq!(descriptor.ordinal(), 310);
     assert_eq!(descriptor.name(), "CreateScalableFontResource");

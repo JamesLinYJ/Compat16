@@ -62,7 +62,7 @@ params = [
 ordinal = 310
 name = "CreateScalableFontResource"
 decl = { args = ["word", "string", "string", "string"] }
-binding = { rust_id = "GdiCreateScalableFontResource", id_value = 1288, constant = "GDI_CREATE_SCALABLE_FONT_RESOURCE" }
+binding = { rust_id = "GdiCreateScalableFontResource", id_value = 1324, constant = "GDI_CREATE_SCALABLE_FONT_RESOURCE" }
 [exports.call]
 returns = "word"
 params = [
