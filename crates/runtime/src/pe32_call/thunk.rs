@@ -10,7 +10,11 @@ use super::frame::Pe32CallConvention;
 /// Validated target portion of a decoded generic-thunk invocation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Pe32GenericThunkTarget<'a> {
-    /// CallProcEx32W documents zero for a NULL target or a count above 32.
+    /// Documented zero result for a null target or a count above 32.
+    ///
+    /// `CallProcEx32W` always uses this result. `CallProc32W` uses it only
+    /// when the decoded frame already carries that disposition for one of
+    /// those two reasons. Other legacy flags stay gaps.
     ReturnZero,
     Invoke {
         procedure: u32,
@@ -22,8 +26,11 @@ pub(crate) enum Pe32GenericThunkTarget<'a> {
 }
 
 /// Validate the decoded call contract without inferring a function signature.
-/// Source-specific pointer ordering comes from the decoded frame. Legacy
-/// target flags and early-return cleanup remain separate from CallProcEx32W.
+/// Source-specific pointer ordering comes from the decoded frame. A null
+/// `CallProc32W` target or a count above 32 returns zero when the decoded
+/// frame already says so. Other legacy flags stay gaps. This helper does not
+/// turn a pointer mask into a host pointer, and it does not decide Win16
+/// stack cleanup.
 pub(crate) fn validate_generic_thunk_target<'a>(
     frame: &'a Win16GenericThunkFrame,
     prepared_arguments: &'a [u32],
@@ -38,6 +45,22 @@ fn validate_legacy_call_proc<'a>(
     frame: &'a Win16GenericThunkFrame,
     prepared_arguments: &'a [u32],
 ) -> Result<Pe32GenericThunkTarget<'a>, RuntimeError> {
+    // Windows 95 generic-thunk notes: a null target or a count above 32 yields
+    // zero. The decoder records that as `ReturnZero` and leaves the argument
+    // tail unread. The convention bit in `nParams` is not part of that count
+    // and is not a reason to invoke.
+    let decoded_count = frame.encoded_parameter_count & !CPEX_DEST_CDECL;
+    let documented_zero =
+        frame.target_procedure == 0 || decoded_count > GENERIC_THUNK_MAX_PARAMETERS;
+    if frame.disposition == Win16GenericThunkDisposition::ReturnZero && documented_zero {
+        if frame.parameter_count != decoded_count
+            || !frame.parameters.is_empty()
+            || !prepared_arguments.is_empty()
+        {
+            return Err(invariant("CallProc32W zero-result frame is inconsistent"));
+        }
+        return Ok(Pe32GenericThunkTarget::ReturnZero);
+    }
     if frame.encoded_parameter_count > GENERIC_THUNK_MAX_PARAMETERS
         || frame.target_convention != Win32ThunkTargetConvention::Stdcall
         || frame.target_procedure == 0
@@ -45,7 +68,7 @@ fn validate_legacy_call_proc<'a>(
     {
         return Err(RuntimeError::new(
             Kind::CompatibilityGap,
-            "CallProc32W flags, null-target, or rejection contract is not established",
+            "CallProc32W flags or rejection contract is not established",
         ));
     }
     if frame.parameter_count != frame.encoded_parameter_count
@@ -149,4 +172,135 @@ pub(crate) const fn process_detach_arguments(module_base: u32) -> [u32; 3] {
 
 fn invariant(message: &'static str) -> RuntimeError {
     RuntimeError::new(Kind::InternalInvariant, message)
+}
+
+#[cfg(test)]
+mod tests {
+    use win16_abi::generic_thunk::{
+        CPEX_DEST_CDECL, Win16GenericThunkApi, Win16GenericThunkDisposition,
+        Win16GenericThunkFrame, Win16GenericThunkStackCleanup, Win32ThunkTargetConvention,
+    };
+
+    use crate::DiagnosticKind;
+
+    use super::{Pe32CallConvention, Pe32GenericThunkTarget, validate_generic_thunk_target};
+
+    fn legacy_frame(
+        target_procedure: u32,
+        encoded_parameter_count: u32,
+        parameter_count: u32,
+        target_convention: Win32ThunkTargetConvention,
+        disposition: Win16GenericThunkDisposition,
+        parameters: Vec<u32>,
+        pointer_mask: u32,
+    ) -> Win16GenericThunkFrame {
+        Win16GenericThunkFrame {
+            api: Win16GenericThunkApi::CallProc32W,
+            target_procedure,
+            pointer_mask,
+            encoded_parameter_count,
+            parameter_count,
+            target_convention,
+            parameters,
+            disposition,
+            // Pop counts stay unset. This validator does not choose Win16 cleanup.
+            stack_cleanup: Win16GenericThunkStackCleanup {
+                fixed_argument_bytes: 12,
+                variadic_argument_bytes: None,
+                callee_pop_bytes: None,
+                caller_pop_bytes: None,
+            },
+        }
+    }
+
+    fn assert_documented_zero(frame: &Win16GenericThunkFrame) {
+        assert_eq!(
+            validate_generic_thunk_target(frame, &[]).unwrap(),
+            Pe32GenericThunkTarget::ReturnZero,
+        );
+    }
+
+    #[test]
+    fn call_proc32w_null_target_returns_zero() {
+        for encoded in [1_u32, 1 | CPEX_DEST_CDECL] {
+            let convention = if encoded & CPEX_DEST_CDECL == 0 {
+                Win32ThunkTargetConvention::Stdcall
+            } else {
+                Win32ThunkTargetConvention::Cdecl
+            };
+            let frame = legacy_frame(
+                0,
+                encoded,
+                1,
+                convention,
+                Win16GenericThunkDisposition::ReturnZero,
+                Vec::new(),
+                0x0000_0001,
+            );
+            assert_documented_zero(&frame);
+        }
+    }
+
+    #[test]
+    fn call_proc32w_over_long_count_returns_zero() {
+        for encoded in [33_u32, 33 | CPEX_DEST_CDECL] {
+            let convention = if encoded & CPEX_DEST_CDECL == 0 {
+                Win32ThunkTargetConvention::Stdcall
+            } else {
+                Win32ThunkTargetConvention::Cdecl
+            };
+            let frame = legacy_frame(
+                0x0001_0000,
+                encoded,
+                33,
+                convention,
+                Win16GenericThunkDisposition::ReturnZero,
+                Vec::new(),
+                u32::MAX,
+            );
+            assert_documented_zero(&frame);
+        }
+    }
+
+    #[test]
+    fn call_proc32w_cdecl_flag_stays_a_gap() {
+        let parameters = vec![0x1111_2222, 0x3333_4444];
+        let frame = legacy_frame(
+            0x0040_0000,
+            2 | CPEX_DEST_CDECL,
+            2,
+            Win32ThunkTargetConvention::Cdecl,
+            Win16GenericThunkDisposition::Invoke,
+            parameters.clone(),
+            0,
+        );
+        let error = validate_generic_thunk_target(&frame, &parameters).unwrap_err();
+        assert_eq!(error.kind(), DiagnosticKind::CompatibilityGap);
+        assert!(error.to_string().contains("not established"));
+    }
+
+    #[test]
+    fn call_proc32w_count_at_limit_keeps_guest_dwords() {
+        let parameters = vec![0x20_u32; 32];
+        let frame = legacy_frame(
+            0x0040_1000,
+            32,
+            32,
+            Win32ThunkTargetConvention::Stdcall,
+            Win16GenericThunkDisposition::Invoke,
+            parameters.clone(),
+            0x0000_0001,
+        );
+        let Pe32GenericThunkTarget::Invoke {
+            procedure,
+            convention,
+            arguments,
+        } = validate_generic_thunk_target(&frame, &parameters).unwrap()
+        else {
+            panic!("in-range CallProc32W returned zero");
+        };
+        assert_eq!(procedure, 0x0040_1000);
+        assert_eq!(convention, Pe32CallConvention::Stdcall);
+        assert_eq!(arguments, parameters.as_slice());
+    }
 }
