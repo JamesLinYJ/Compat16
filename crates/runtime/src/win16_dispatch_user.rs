@@ -770,3 +770,7 @@ mod keyboard_state_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_window_management_tests.rs"]
 mod window_management_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_system_parameters_tests.rs"]
+mod system_parameters_tests;
