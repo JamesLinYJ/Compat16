@@ -195,6 +195,102 @@ fn bad_register_name_clears_valid_output_before_address_error() {
     assert_eq!(output, [0; 4]);
 }
 
+#[test]
+fn ole_create_reads_protocol_before_class() {
+    let mut runtime = crate::Runtime::load(&tiny_ne_executable(), &[], b"C:\\OLE1.NE").unwrap();
+    let (state_slot, memory) = (&mut runtime.win16, &mut runtime.memory);
+    let state = state_slot.as_mut().expect("NE image has Win16 state");
+
+    let protocol_selector = state
+        .selectors
+        .alloc_block(PhysAddr(0x83000), 32, AccessRights::read_write(), memory)
+        .unwrap();
+    let class_selector = state
+        .selectors
+        .alloc_block(PhysAddr(0x84000), 16, AccessRights::read_write(), memory)
+        .unwrap();
+    let object_selector = state
+        .selectors
+        .alloc_block(PhysAddr(0x85000), 16, AccessRights::read_write(), memory)
+        .unwrap();
+    let stack_selector = state
+        .selectors
+        .alloc_block(PhysAddr(0x86000), 64, AccessRights::read_write(), memory)
+        .unwrap();
+    let protocol = SegmentedPointer::new(protocol_selector, 0);
+    let class = SegmentedPointer::new(class_selector, 0);
+    let object_name = SegmentedPointer::new(object_selector, 0);
+    let stack = SegmentedPointer::new(stack_selector, 0);
+    state
+        .selectors
+        .write(memory, protocol, b"StdFileEditing\0")
+        .unwrap();
+    state.selectors.write(memory, class, b"Picture\0").unwrap();
+    state
+        .selectors
+        .write(memory, object_name, b"Chart\0")
+        .unwrap();
+
+    let protocol_far = protocol.far_value();
+    let class_far = class.far_value();
+    let object_far = object_name.far_value();
+    let client_far = 0x1234_0008;
+    let output_far = 0x2222_0004;
+    let mut frame = vec![0; 4];
+    frame.extend_from_slice(&9u16.to_le_bytes());
+    frame.extend_from_slice(&1u16.to_le_bytes());
+    for argument in [
+        output_far,
+        object_far,
+        0x11u32,
+        class_far,
+        client_far,
+        protocol_far,
+    ] {
+        frame.extend_from_slice(&argument.to_le_bytes());
+    }
+    state.selectors.write(memory, stack, &frame).unwrap();
+
+    let descriptor = lookup_export(b"OLECLI", ExportLookupTarget::Ordinal(34)).unwrap();
+    let decoded = decode_export_call(
+        descriptor,
+        Win16CallFrame::new(stack, FAR_EXPORT_RETURN_WIDTH),
+        &state.selectors,
+        memory,
+    )
+    .unwrap();
+    let Win16ApiRequest::Ole1(request) = decoded.request else {
+        panic!("OLECLI OleCreate did not decode as an OLE1 request");
+    };
+    assert_eq!(
+        request,
+        Win16Ole1Request::Create {
+            class_name: b"Picture".to_vec(),
+            client: client_far,
+            protocol: b"StdFileEditing".to_vec(),
+            document: 0x11,
+            item_name: Some(b"Chart".to_vec()),
+            object_output: output_far,
+            render_option: 1,
+            clip_format: 9,
+            activate: false,
+        }
+    );
+}
+
+#[test]
+fn show_item_command_uses_server_argument_order() {
+    let bytes = super::stdexecute::encode_win16_ole1_std_execute(
+        super::stdexecute::Win16Ole1StdExecuteCommand::ShowItem {
+            document: b"Doc",
+            item: b"Item",
+            take_focus: true,
+        },
+    )
+    .unwrap();
+    assert_eq!(bytes, b"[StdShowItem(\"Doc\",\"Item\",\"true\")]\0");
+}
+
 fn tiny_ne_executable() -> Vec<u8> {
     fn put_u16(bytes: &mut [u8], offset: usize, value: u16) {
         bytes[offset..offset + 2].copy_from_slice(&value.to_le_bytes());

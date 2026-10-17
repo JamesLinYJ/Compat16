@@ -160,13 +160,13 @@ pub fn decode_ole1(
             let object_output = dword_argument(arguments, 5)?;
             let render_option = word_argument(arguments, 6)?;
             let clip_format = word_argument(arguments, 7)?;
-            let Some(class_name) = required_string(class_far, selectors, memory) else {
-                return Ok(Some(creation_address_error(object_output)));
-            };
             let Some(item_name) = nullable_string(item_far, selectors, memory) else {
                 return Ok(Some(creation_address_error(object_output)));
             };
             if ordinal == 33 {
+                let Some(class_name) = required_string(class_far, selectors, memory) else {
+                    return Ok(Some(creation_address_error(object_output)));
+                };
                 let Some(template_name) = required_string(third_far, selectors, memory) else {
                     return Ok(Some(creation_address_error(object_output)));
                 };
@@ -181,7 +181,12 @@ pub fn decode_ole1(
                     clip_format,
                 }
             } else {
-                let Some(protocol) = required_string(third_far, selectors, memory) else {
+                // Windows 3.1 SDK OleCreate order: protocol, client, class,
+                // client document, object name, output, render, format.
+                let Some(protocol) = required_string(class_far, selectors, memory) else {
+                    return Ok(Some(creation_address_error(object_output)));
+                };
+                let Some(class_name) = required_string(third_far, selectors, memory) else {
                     return Ok(Some(creation_address_error(object_output)));
                 };
                 Win16Ole1Request::Create {
@@ -238,13 +243,20 @@ pub fn decode_ole1(
             let object_output = dword_argument(arguments, 7)?;
             let render_option = word_argument(arguments, 8)?;
             let clip_format = word_argument(arguments, 9)?;
-            let (Some(class_name), Some(file_name), Some(native_type), Some(link_source), Some(item_name)) = (
+            let (
+                Some(class_name),
+                Some(file_name),
+                Some(native_type),
+                Some(link_source),
+                Some(item_name),
+            ) = (
                 required_string(class_far, selectors, memory),
                 required_string(file_far, selectors, memory),
                 required_string(native_type_far, selectors, memory),
                 required_string(link_source_far, selectors, memory),
                 nullable_string(item_far, selectors, memory),
-            ) else {
+            )
+            else {
                 return Ok(Some(creation_address_error(object_output)));
             };
             Win16Ole1Request::CreateLinkFromFile {
