@@ -5,3 +5,12 @@ defaults = { attributes = ["ret16"] }
 ordinal = 1
 name = "DisplayDib"
 decl = { args = ["pointer", "pointer", "word"] }
+
+binding = { rust_id = "DriverDispdib1Displaydib", id_value = 5000252, constant = "DRIVER_DISPDIB_1" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarBuffer" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U16" },
+]

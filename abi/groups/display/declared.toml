@@ -5,252 +5,427 @@ ordinal = 1
 name = "BitBlt"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay1Bitblt", id_value = 5000021, constant = "DRIVER_DISPLAY_1" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 2
 name = "ColorInfo"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay2Colorinfo", id_value = 5000022, constant = "DRIVER_DISPLAY_2" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 3
 name = "Control"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay3Control", id_value = 5000023, constant = "DRIVER_DISPLAY_3" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 4
 name = "Disable"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay4Disable", id_value = 5000024, constant = "DRIVER_DISPLAY_4" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 5
 name = "Enable"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay5Enable", id_value = 5000025, constant = "DRIVER_DISPLAY_5" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 6
 name = "EnumFonts"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay6Enumfonts", id_value = 5000026, constant = "DRIVER_DISPLAY_6" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 7
 name = "EnumObj"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay7Enumobj", id_value = 5000027, constant = "DRIVER_DISPLAY_7" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 8
 name = "Output"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay8Output", id_value = 5000028, constant = "DRIVER_DISPLAY_8" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 9
 name = "Pixel"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay9Pixel", id_value = 5000029, constant = "DRIVER_DISPLAY_9" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 10
 name = "RealizeObject"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay10Realizeobject", id_value = 5000030, constant = "DRIVER_DISPLAY_10" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 11
 name = "StrBlt"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay11Strblt", id_value = 5000031, constant = "DRIVER_DISPLAY_11" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 12
 name = "ScanLR"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay12Scanlr", id_value = 5000032, constant = "DRIVER_DISPLAY_12" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 13
 name = "DeviceMode"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay13Devicemode", id_value = 5000033, constant = "DRIVER_DISPLAY_13" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 14
 name = "ExtTextOut"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay14Exttextout", id_value = 5000034, constant = "DRIVER_DISPLAY_14" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 15
 name = "GetCharWidth"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay15Getcharwidth", id_value = 5000035, constant = "DRIVER_DISPLAY_15" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 16
 name = "DeviceBitmap"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay16Devicebitmap", id_value = 5000036, constant = "DRIVER_DISPLAY_16" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 17
 name = "FastBorder"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay17Fastborder", id_value = 5000037, constant = "DRIVER_DISPLAY_17" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 18
 name = "SetAttribute"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay18Setattribute", id_value = 5000038, constant = "DRIVER_DISPLAY_18" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 19
 name = "DeviceBitmapBits"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay19Devicebitmapbits", id_value = 5000039, constant = "DRIVER_DISPLAY_19" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 20
 name = "CreateBitmap"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay20Createbitmap", id_value = 5000040, constant = "DRIVER_DISPLAY_20" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 21
 name = "DIBScreenBlt"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay21Dibscreenblt", id_value = 5000041, constant = "DRIVER_DISPLAY_21" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 22
 name = "SetPalette"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay22Setpalette", id_value = 5000042, constant = "DRIVER_DISPLAY_22" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 23
 name = "GetPalette"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay23Getpalette", id_value = 5000043, constant = "DRIVER_DISPLAY_23" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 24
 name = "SetPaletteTranslate"
 decl = { attributes = ["ret16"], args = ["word", "pointer"] }
 
+binding = { rust_id = "DriverDisplay24Setpalettetranslate", id_value = 5000044, constant = "DRIVER_DISPLAY_24" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 25
 name = "GetPaletteTranslate"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay25Getpalettetranslate", id_value = 5000045, constant = "DRIVER_DISPLAY_25" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 26
 name = "UpdateColors"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay26Updatecolors", id_value = 5000046, constant = "DRIVER_DISPLAY_26" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 27
 name = "StretchBlt"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay27Stretchblt", id_value = 5000047, constant = "DRIVER_DISPLAY_27" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 28
 name = "StretchDIBits"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay28Stretchdibits", id_value = 5000048, constant = "DRIVER_DISPLAY_28" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 29
 name = "SelectBitmap"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay29Selectbitmap", id_value = 5000049, constant = "DRIVER_DISPLAY_29" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 30
 name = "BitmapBits"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay30Bitmapbits", id_value = 5000050, constant = "DRIVER_DISPLAY_30" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 31
 name = "ReEnable"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay31Reenable", id_value = 5000051, constant = "DRIVER_DISPLAY_31" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 39
 name = "DIBBlt"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay39Dibblt", id_value = 5000052, constant = "DRIVER_DISPLAY_39" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 40
 name = "CreateDIBitmap"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay40Createdibitmap", id_value = 5000053, constant = "DRIVER_DISPLAY_40" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 41
 name = "DIBToDevice"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay41Dibtodevice", id_value = 5000054, constant = "DRIVER_DISPLAY_41" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 90
 name = "Do_Polylines"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay90DoPolylines", id_value = 5000055, constant = "DRIVER_DISPLAY_90" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 91
 name = "Do_Scanlines"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay91DoScanlines", id_value = 5000056, constant = "DRIVER_DISPLAY_91" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 92
 name = "SaveScreenBitmap"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay92Savescreenbitmap", id_value = 5000057, constant = "DRIVER_DISPLAY_92" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 101
 name = "Inquire"
 decl = { attributes = ["ret16"], args = ["pointer"] }
 
+binding = { rust_id = "DriverDisplay101Inquire", id_value = 5000058, constant = "DRIVER_DISPLAY_101" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 102
 name = "SetCursor"
 decl = { attributes = ["ret16"], args = ["pointer"] }
 
+binding = { rust_id = "DriverDisplay102Setcursor", id_value = 5000059, constant = "DRIVER_DISPLAY_102" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 103
 name = "MoveCursor"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
 
+binding = { rust_id = "DriverDisplay103Movecursor", id_value = 5000060, constant = "DRIVER_DISPLAY_103" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 [[exports]]
 ordinal = 104
 name = "CheckCursor"
 decl = { attributes = ["ret16"] }
 
+binding = { rust_id = "DriverDisplay104Checkcursor", id_value = 5000061, constant = "DRIVER_DISPLAY_104" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 400
 name = "PExtTextOut"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay400Pexttextout", id_value = 5000062, constant = "DRIVER_DISPLAY_400" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 401
 name = "PStrBlt"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay401Pstrblt", id_value = 5000063, constant = "DRIVER_DISPLAY_401" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 402
 name = "RExtTextOut"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay402Rexttextout", id_value = 5000064, constant = "DRIVER_DISPLAY_402" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 403
 name = "RStrBlt"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay403Rstrblt", id_value = 5000065, constant = "DRIVER_DISPLAY_403" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 450
 name = "GetDriverResourceID"
 decl = { args = ["word", "string"] }
 
+binding = { rust_id = "DriverDisplay450Getdriverresourceid", id_value = 5000066, constant = "DRIVER_DISPLAY_450" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarString" },
+]
 [[exports]]
 ordinal = 500
 name = "UserRepaintDisable"
 decl = { attributes = ["ret16"], args = ["word"] }
 
+binding = { rust_id = "DriverDisplay500Userrepaintdisable", id_value = 5000067, constant = "DRIVER_DISPLAY_500" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 501
 name = "ORDINAL_ONLY1"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay501OrdinalOnly1", id_value = 5000068, constant = "DRIVER_DISPLAY_501" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 502
 name = "ORDINAL_ONLY2"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay502OrdinalOnly2", id_value = 5000069, constant = "DRIVER_DISPLAY_502" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 600
 name = "InkReady"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay600Inkready", id_value = 5000070, constant = "DRIVER_DISPLAY_600" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 601
 name = "GetLPDevice"
 kind = "stub"
+
+binding = { rust_id = "DriverDisplay601Getlpdevice", id_value = 5000071, constant = "DRIVER_DISPLAY_601" }
+[exports.call]
+returns = "dword"

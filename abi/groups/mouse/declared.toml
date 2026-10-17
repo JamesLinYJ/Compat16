@@ -6,29 +6,54 @@ ordinal = 1
 name = "Inquire"
 decl = { args = ["pointer"] }
 
+binding = { rust_id = "DriverMouse1Inquire", id_value = 5000081, constant = "DRIVER_MOUSE_1" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 2
 name = "Enable"
 decl = { args = ["segmented_pointer"] }
 
+binding = { rust_id = "DriverMouse2Enable", id_value = 5000082, constant = "DRIVER_MOUSE_2" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 3
 name = "Disable"
 
+binding = { rust_id = "DriverMouse3Disable", id_value = 5000083, constant = "DRIVER_MOUSE_3" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 4
 name = "MOUSEGETINTVECT"
 kind = "stub"
 decl = { attributes = [] }
 
+binding = { rust_id = "DriverMouse4Mousegetintvect", id_value = 5000084, constant = "DRIVER_MOUSE_4" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 5
 name = "GETSETMOUSEDATA"
 kind = "stub"
 decl = { attributes = [] }
 
+binding = { rust_id = "DriverMouse5Getsetmousedata", id_value = 5000085, constant = "DRIVER_MOUSE_5" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 7
 name = "POWEREVENTPROC"
 kind = "stub"
 decl = { attributes = [] }
+
+binding = { rust_id = "DriverMouse7Powereventproc", id_value = 5000086, constant = "DRIVER_MOUSE_7" }
+[exports.call]
+returns = "dword"

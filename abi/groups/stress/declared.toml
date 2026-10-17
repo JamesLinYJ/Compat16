@@ -6,51 +6,104 @@ ordinal = 2
 name = "AllocMem"
 decl = { args = ["long"] }
 
+binding = { rust_id = "DriverStress2Allocmem", id_value = 5000174, constant = "DRIVER_STRESS_2" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+]
 [[exports]]
 ordinal = 3
 name = "FreeAllMem"
 decl = { attributes = [] }
 
+binding = { rust_id = "DriverStress3Freeallmem", id_value = 5000175, constant = "DRIVER_STRESS_3" }
+[exports.call]
+returns = "void"
 [[exports]]
 ordinal = 6
 name = "AllocFileHandles"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverStress6Allocfilehandles", id_value = 5000176, constant = "DRIVER_STRESS_6" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 7
 name = "UnAllocFileHandles"
 decl = { attributes = [] }
 
+binding = { rust_id = "DriverStress7Unallocfilehandles", id_value = 5000177, constant = "DRIVER_STRESS_7" }
+[exports.call]
+returns = "void"
 [[exports]]
 ordinal = 8
 name = "GetFreeFileHandles"
 
+binding = { rust_id = "DriverStress8Getfreefilehandles", id_value = 5000178, constant = "DRIVER_STRESS_8" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 10
 name = "AllocDiskSpace"
 decl = { args = ["long", "word"] }
 
+binding = { rust_id = "DriverStress10Allocdiskspace", id_value = 5000179, constant = "DRIVER_STRESS_10" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+]
 [[exports]]
 ordinal = 11
 name = "UnAllocDiskSpace"
 decl = { attributes = [], args = ["word"] }
 
+binding = { rust_id = "DriverStress11Unallocdiskspace", id_value = 5000180, constant = "DRIVER_STRESS_11" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 12
 name = "AllocUserMem"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverStress12Allocusermem", id_value = 5000181, constant = "DRIVER_STRESS_12" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 13
 name = "FreeAllUserMem"
 decl = { attributes = [] }
 
+binding = { rust_id = "DriverStress13Freeallusermem", id_value = 5000182, constant = "DRIVER_STRESS_13" }
+[exports.call]
+returns = "void"
 [[exports]]
 ordinal = 14
 name = "AllocGDIMem"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverStress14Allocgdimem", id_value = 5000183, constant = "DRIVER_STRESS_14" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 15
 name = "FreeAllGDIMem"
 decl = { attributes = [] }
+
+binding = { rust_id = "DriverStress15Freeallgdimem", id_value = 5000184, constant = "DRIVER_STRESS_15" }
+[exports.call]
+returns = "void"

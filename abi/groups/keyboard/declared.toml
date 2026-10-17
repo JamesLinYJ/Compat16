@@ -5,46 +5,80 @@ ordinal = 1
 name = "Inquire"
 decl = { attributes = ["ret16"], args = ["pointer"] }
 
+binding = { rust_id = "DriverKeyboard1Inquire", id_value = 5000072, constant = "DRIVER_KEYBOARD_1" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 2
 name = "Enable"
 decl = { attributes = ["ret16"], args = ["segmented_pointer", "pointer"] }
 
+binding = { rust_id = "DriverKeyboard2Enable", id_value = 5000073, constant = "DRIVER_KEYBOARD_2" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 3
 name = "Disable"
 decl = { attributes = ["ret16"] }
 
+binding = { rust_id = "DriverKeyboard3Disable", id_value = 5000074, constant = "DRIVER_KEYBOARD_3" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 9
 name = "INQUIREEX"
 kind = "stub"
 
+binding = { rust_id = "DriverKeyboard9Inquireex", id_value = 5000075, constant = "DRIVER_KEYBOARD_9" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 10
 name = "TOASCIIEX"
 kind = "stub"
 
+binding = { rust_id = "DriverKeyboard10Toasciiex", id_value = 5000076, constant = "DRIVER_KEYBOARD_10" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 11
 name = "VKKEYSCANEX"
 kind = "stub"
 
+binding = { rust_id = "DriverKeyboard11Vkkeyscanex", id_value = 5000077, constant = "DRIVER_KEYBOARD_11" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 12
 name = "MAPVIRTUALKEYEX"
 kind = "stub"
 
+binding = { rust_id = "DriverKeyboard12Mapvirtualkeyex", id_value = 5000078, constant = "DRIVER_KEYBOARD_12" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 13
 name = "NEWTABLEEX"
 kind = "stub"
 
+binding = { rust_id = "DriverKeyboard13Newtableex", id_value = 5000079, constant = "DRIVER_KEYBOARD_13" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 14
 name = "__EXPORTEDSTUB"
 kind = "stub"
 
+binding = { rust_id = "DriverKeyboard14Exportedstub", id_value = 5000080, constant = "DRIVER_KEYBOARD_14" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 132
 name = "GetKBCodePage"

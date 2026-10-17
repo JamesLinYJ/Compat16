@@ -6,250 +6,641 @@ ordinal = 10
 name = "InitRC"
 decl = { args = ["word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin10Initrc", id_value = 5000123, constant = "DRIVER_PENWIN_10" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 11
 name = "Recognize"
 decl = { args = ["segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin11Recognize", id_value = 5000124, constant = "DRIVER_PENWIN_11" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 12
 name = "RecognizeData"
 decl = { args = ["segmented_pointer", "word"] }
 
+binding = { rust_id = "DriverPenwin12Recognizedata", id_value = 5000125, constant = "DRIVER_PENWIN_12" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "U16" },
+]
 [[exports]]
 ordinal = 13
 name = "BoundingRectFromPoints"
 decl = { attributes = [], args = ["segmented_pointer", "signed_word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin13Boundingrectfrompoints", id_value = 5000126, constant = "DRIVER_PENWIN_13" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 14
 name = "InstallRecognizer"
 decl = { args = ["string"] }
 
+binding = { rust_id = "DriverPenwin14Installrecognizer", id_value = 5000127, constant = "DRIVER_PENWIN_14" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+]
 [[exports]]
 ordinal = 15
 name = "UninstallRecognizer"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverPenwin15Uninstallrecognizer", id_value = 5000128, constant = "DRIVER_PENWIN_15" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 16
 name = "TrainInk"
 decl = { args = ["segmented_pointer", "word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin16Trainink", id_value = 5000129, constant = "DRIVER_PENWIN_16" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 17
 name = "TrainContext"
 decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer", "signed_word"] }
 
+binding = { rust_id = "DriverPenwin17Traincontext", id_value = 5000130, constant = "DRIVER_PENWIN_17" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a4", type = "I16" },
+]
 [[exports]]
 ordinal = 101
 name = "PostVirtualMouseEvent"
 decl = { attributes = [], args = ["word", "signed_word", "signed_word"] }
 
+binding = { rust_id = "DriverPenwin101Postvirtualmouseevent", id_value = 5000131, constant = "DRIVER_PENWIN_101" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "I16" },
+]
 [[exports]]
 ordinal = 102
 name = "PostVirtualKeyEvent"
 decl = { attributes = [], args = ["word", "word"] }
 
+binding = { rust_id = "DriverPenwin102Postvirtualkeyevent", id_value = 5000132, constant = "DRIVER_PENWIN_102" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 [[exports]]
 ordinal = 104
 name = "AtomicVirtualEvent"
 decl = { attributes = [], args = ["word"] }
 
+binding = { rust_id = "DriverPenwin104Atomicvirtualevent", id_value = 5000133, constant = "DRIVER_PENWIN_104" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 110
 name = "IsPenAware"
 
+binding = { rust_id = "DriverPenwin110Ispenaware", id_value = 5000134, constant = "DRIVER_PENWIN_110" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 111
 name = "RegisterPenApp"
 decl = { attributes = [], args = ["word", "word"] }
 
+binding = { rust_id = "DriverPenwin111Registerpenapp", id_value = 5000135, constant = "DRIVER_PENWIN_111" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 [[exports]]
 ordinal = 114
 name = "SetRecogHook"
 decl = { args = ["word", "word", "word"] }
 
+binding = { rust_id = "DriverPenwin114Setrecoghook", id_value = 5000136, constant = "DRIVER_PENWIN_114" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 [[exports]]
 ordinal = 115
 name = "SetPenHook"
 decl = { args = ["word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin115Setpenhook", id_value = 5000137, constant = "DRIVER_PENWIN_115" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 121
 name = "GetSymbolMaxLength"
 decl = { args = ["segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin121Getsymbolmaxlength", id_value = 5000138, constant = "DRIVER_PENWIN_121" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 122
 name = "GetSymbolCount"
 decl = { args = ["segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin122Getsymbolcount", id_value = 5000139, constant = "DRIVER_PENWIN_122" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 123
 name = "FirstSymbolFromGraph"
 decl = { attributes = [], args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin123Firstsymbolfromgraph", id_value = 5000140, constant = "DRIVER_PENWIN_123" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 124
 name = "EnumSymbols"
 decl = { args = ["segmented_pointer", "word", "segmented_pointer", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin124Enumsymbols", id_value = 5000141, constant = "DRIVER_PENWIN_124" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 125
 name = "SymbolToCharacter"
 decl = { args = ["segmented_pointer", "signed_word", "segmented_pointer", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin125Symboltocharacter", id_value = 5000142, constant = "DRIVER_PENWIN_125" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 126
 name = "CharacterToSymbol"
 decl = { args = ["string", "signed_word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin126Charactertosymbol", id_value = 5000143, constant = "DRIVER_PENWIN_126" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 131
 name = "DPtoTP"
 decl = { args = ["segmented_pointer", "signed_word"] }
 
+binding = { rust_id = "DriverPenwin131Dptotp", id_value = 5000144, constant = "DRIVER_PENWIN_131" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "I16" },
+]
 [[exports]]
 ordinal = 132
 name = "TPtoDP"
 decl = { args = ["segmented_pointer", "signed_word"] }
 
+binding = { rust_id = "DriverPenwin132Tptodp", id_value = 5000145, constant = "DRIVER_PENWIN_132" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "I16" },
+]
 [[exports]]
 ordinal = 135
 name = "IsPenEvent"
 decl = { args = ["word", "long"] }
 
+binding = { rust_id = "DriverPenwin135Ispenevent", id_value = 5000146, constant = "DRIVER_PENWIN_135" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+]
 [[exports]]
 ordinal = 137
 name = "EndPenCollection"
 decl = { args = ["signed_word"] }
 
+binding = { rust_id = "DriverPenwin137Endpencollection", id_value = 5000147, constant = "DRIVER_PENWIN_137" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "I16" },
+]
 [[exports]]
 ordinal = 138
 name = "GetPenHwData"
 decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin138Getpenhwdata", id_value = 5000148, constant = "DRIVER_PENWIN_138" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 139
 name = "GetPenHwEventData"
 decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin139Getpenhweventdata", id_value = 5000149, constant = "DRIVER_PENWIN_139" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a4", type = "I16" },
+  { name = "a5", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 144
 name = "GetPenAsyncState"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverPenwin144Getpenasyncstate", id_value = 5000150, constant = "DRIVER_PENWIN_144" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 150
 name = "SetGlobalRC"
 decl = { args = ["segmented_pointer", "string", "string"] }
 
+binding = { rust_id = "DriverPenwin150Setglobalrc", id_value = 5000151, constant = "DRIVER_PENWIN_150" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "FarString" },
+]
 [[exports]]
 ordinal = 151
 name = "GetGlobalRC"
 decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "signed_word"] }
 
+binding = { rust_id = "DriverPenwin151Getglobalrc", id_value = 5000152, constant = "DRIVER_PENWIN_151" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "I16" },
+]
 [[exports]]
 ordinal = 170
 name = "ProcessWriting"
 decl = { args = ["word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin170Processwriting", id_value = 5000153, constant = "DRIVER_PENWIN_170" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 172
 name = "CorrectWriting"
 decl = { args = ["word", "segmented_pointer", "word", "segmented_pointer", "long", "long"] }
 
+binding = { rust_id = "DriverPenwin172Correctwriting", id_value = 5000154, constant = "DRIVER_PENWIN_172" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U32" },
+]
 [[exports]]
 ordinal = 173
 name = "EmulatePen"
 decl = { attributes = [], args = ["word"] }
 
+binding = { rust_id = "DriverPenwin173Emulatepen", id_value = 5000155, constant = "DRIVER_PENWIN_173" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 207
 name = "UpdatePenInfo"
 decl = { attributes = [], args = ["segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin207Updatepeninfo", id_value = 5000156, constant = "DRIVER_PENWIN_207" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 210
 name = "CreatePenData"
 decl = { args = ["segmented_pointer", "signed_word", "word", "word"] }
 
+binding = { rust_id = "DriverPenwin210Creatependata", id_value = 5000157, constant = "DRIVER_PENWIN_210" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+]
 [[exports]]
 ordinal = 211
 name = "GetPenDataInfo"
 decl = { args = ["word", "segmented_pointer", "segmented_pointer", "long"] }
 
+binding = { rust_id = "DriverPenwin211Getpendatainfo", id_value = 5000158, constant = "DRIVER_PENWIN_211" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "U32" },
+]
 [[exports]]
 ordinal = 212
 name = "AddPointsPenData"
 decl = { args = ["word", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin212Addpointspendata", id_value = 5000159, constant = "DRIVER_PENWIN_212" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 213
 name = "BeginEnumStrokes"
 decl = { attributes = [], args = ["word"] }
 
+binding = { rust_id = "DriverPenwin213Beginenumstrokes", id_value = 5000160, constant = "DRIVER_PENWIN_213" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 214
 name = "DrawPenData"
 decl = { attributes = [], args = ["word", "segmented_pointer", "word"] }
 
+binding = { rust_id = "DriverPenwin214Drawpendata", id_value = 5000161, constant = "DRIVER_PENWIN_214" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a2", type = "U16" },
+]
 [[exports]]
 ordinal = 215
 name = "MetricScalePenData"
 decl = { args = ["word", "word"] }
 
+binding = { rust_id = "DriverPenwin215Metricscalependata", id_value = 5000162, constant = "DRIVER_PENWIN_215" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 [[exports]]
 ordinal = 216
 name = "OffsetPenData"
 decl = { args = ["word", "signed_word", "signed_word"] }
 
+binding = { rust_id = "DriverPenwin216Offsetpendata", id_value = 5000163, constant = "DRIVER_PENWIN_216" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "I16" },
+  { name = "a2", type = "I16" },
+]
 [[exports]]
 ordinal = 218
 name = "DuplicatePenData"
 decl = { args = ["word", "word"] }
 
+binding = { rust_id = "DriverPenwin218Duplicatependata", id_value = 5000164, constant = "DRIVER_PENWIN_218" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 [[exports]]
 ordinal = 219
 name = "GetPenDataStroke"
 decl = { args = ["segmented_pointer", "word", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin219Getpendatastroke", id_value = 5000165, constant = "DRIVER_PENWIN_219" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a4", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 221
 name = "GetPointsFromPenData"
 decl = { args = ["word", "word", "word", "word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin221Getpointsfrompendata", id_value = 5000166, constant = "DRIVER_PENWIN_221" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 222
 name = "ResizePenData"
 decl = { args = ["word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin222Resizependata", id_value = 5000167, constant = "DRIVER_PENWIN_222" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 223
 name = "CompactPenData"
 decl = { args = ["word", "word"] }
 
+binding = { rust_id = "DriverPenwin223Compactpendata", id_value = 5000168, constant = "DRIVER_PENWIN_223" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 [[exports]]
 ordinal = 242
 name = "RedisplayPenData"
 decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "long"] }
 
+binding = { rust_id = "DriverPenwin242Redisplaypendata", id_value = 5000169, constant = "DRIVER_PENWIN_242" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a4", type = "I16" },
+  { name = "a5", type = "U32" },
+]
 [[exports]]
 ordinal = 250
 name = "ShowKeyboard"
 decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin250Showkeyboard", id_value = 5000170, constant = "DRIVER_PENWIN_250" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 402
 name = "GetVersionPenWin"
 
+binding = { rust_id = "DriverPenwin402Getversionpenwin", id_value = 5000171, constant = "DRIVER_PENWIN_402" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 418
 name = "ExecuteGesture"
 decl = { args = ["word", "long", "segmented_pointer"] }
 
+binding = { rust_id = "DriverPenwin418Executegesture", id_value = 5000172, constant = "DRIVER_PENWIN_418" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 420
 name = "DictionarySearch"
 decl = { args = ["segmented_pointer", "segmented_pointer", "signed_word", "segmented_pointer", "signed_word"] }
+
+binding = { rust_id = "DriverPenwin420Dictionarysearch", id_value = 5000173, constant = "DRIVER_PENWIN_420" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a4", type = "I16" },
+]

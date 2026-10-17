@@ -6,24 +6,50 @@ ordinal = 1
 name = "InquireSystem"
 decl = { attributes = [], args = ["word", "word"] }
 
+binding = { rust_id = "DriverSystem1Inquiresystem", id_value = 5000089, constant = "DRIVER_SYSTEM_1" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 [[exports]]
 ordinal = 2
 name = "CreateSystemTimer"
 decl = { args = ["word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverSystem2Createsystemtimer", id_value = 5000090, constant = "DRIVER_SYSTEM_2" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 3
 name = "KillSystemTimer"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverSystem3Killsystemtimer", id_value = 5000091, constant = "DRIVER_SYSTEM_3" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 4
 name = "EnableSystemTimers"
 
+binding = { rust_id = "DriverSystem4Enablesystemtimers", id_value = 5000092, constant = "DRIVER_SYSTEM_4" }
+[exports.call]
+returns = "void"
 [[exports]]
 ordinal = 5
 name = "DisableSystemTimers"
 
+binding = { rust_id = "DriverSystem5Disablesystemtimers", id_value = 5000093, constant = "DRIVER_SYSTEM_5" }
+[exports.call]
+returns = "void"
 [[exports]]
 ordinal = 6
 name = "GetSystemMSecCount"
@@ -36,23 +62,48 @@ returns = "dword"
 ordinal = 7
 name = "Get80x87SaveSize"
 
+binding = { rust_id = "DriverSystem7Get80x87savesize", id_value = 5000094, constant = "DRIVER_SYSTEM_7" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 8
 name = "Save80x87State"
 decl = { args = ["pointer"] }
 
+binding = { rust_id = "DriverSystem8Save80x87state", id_value = 5000095, constant = "DRIVER_SYSTEM_8" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 9
 name = "Restore80x87State"
 decl = { args = ["pointer"] }
 
+binding = { rust_id = "DriverSystem9Restore80x87state", id_value = 5000096, constant = "DRIVER_SYSTEM_9" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 13
 name = "INQUIRELONGINTS"
 kind = "stub"
 decl = { attributes = [] }
 
+binding = { rust_id = "DriverSystem13Inquirelongints", id_value = 5000097, constant = "DRIVER_SYSTEM_13" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 20
 name = "A20_Proc"
 decl = { args = ["word"] }
+
+binding = { rust_id = "DriverSystem20A20Proc", id_value = 5000098, constant = "DRIVER_SYSTEM_20" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]

@@ -68,6 +68,7 @@ pub(super) fn route_for_request(request: &Win16ApiRequest) -> DispatchRoute {
         Win16ApiRequest::PrintQueue(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Ole1(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Printer(..) => DispatchRoute::Libraries,
+        Win16ApiRequest::Driver(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Shell(..) => DispatchRoute::Libraries,
         Win16ApiRequest::ShellIcon(..) => DispatchRoute::Libraries,
         Win16ApiRequest::ShellExecution(..) => DispatchRoute::Libraries,
