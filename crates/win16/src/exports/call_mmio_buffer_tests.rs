@@ -94,7 +94,7 @@ fn mmio_buffer_helpers_keep_ordinals_names_and_return_widths() {
         1215,
         b"mmioGetInfo",
         Win16ExportId::MediaIoGetInfo,
-        1285,
+        1348,
         WordReturn,
         8,
         &[
@@ -107,7 +107,7 @@ fn mmio_buffer_helpers_keep_ordinals_names_and_return_widths() {
         1216,
         b"mmioSetInfo",
         Win16ExportId::MediaIoSetInfo,
-        1286,
+        1349,
         WordReturn,
         8,
         &[
@@ -120,7 +120,7 @@ fn mmio_buffer_helpers_keep_ordinals_names_and_return_widths() {
         1217,
         b"mmioSetBuffer",
         Win16ExportId::MediaIoSetBuffer,
-        1287,
+        1350,
         WordReturn,
         12,
         &[
@@ -134,7 +134,7 @@ fn mmio_buffer_helpers_keep_ordinals_names_and_return_widths() {
         1219,
         b"mmioAdvance",
         Win16ExportId::MediaIoAdvance,
-        1288,
+        1351,
         WordReturn,
         8,
         &[
@@ -147,7 +147,7 @@ fn mmio_buffer_helpers_keep_ordinals_names_and_return_widths() {
         1221,
         b"mmioInstallIOProc",
         Win16ExportId::MediaIoInstallIoProc,
-        1289,
+        1352,
         FarReturn,
         12,
         &[
@@ -160,7 +160,7 @@ fn mmio_buffer_helpers_keep_ordinals_names_and_return_widths() {
         1222,
         b"mmioSendMessage",
         Win16ExportId::MediaIoSendMessage,
-        1290,
+        1353,
         DwordReturn,
         12,
         &[

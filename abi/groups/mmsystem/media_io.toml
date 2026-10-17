@@ -62,7 +62,7 @@ params = [
 [[exports]]
 ordinal = 1215
 name = "mmioGetInfo"
-binding = { rust_id = "MediaIoGetInfo", id_value = 1285, constant = "MMSYSTEM_MMIO_GET_INFO" }
+binding = { rust_id = "MediaIoGetInfo", id_value = 1348, constant = "MMSYSTEM_MMIO_GET_INFO" }
 [exports.call]
 returns = "word"
 params = [
@@ -74,7 +74,7 @@ params = [
 [[exports]]
 ordinal = 1216
 name = "mmioSetInfo"
-binding = { rust_id = "MediaIoSetInfo", id_value = 1286, constant = "MMSYSTEM_MMIO_SET_INFO" }
+binding = { rust_id = "MediaIoSetInfo", id_value = 1349, constant = "MMSYSTEM_MMIO_SET_INFO" }
 [exports.call]
 returns = "word"
 params = [
@@ -86,7 +86,7 @@ params = [
 [[exports]]
 ordinal = 1217
 name = "mmioSetBuffer"
-binding = { rust_id = "MediaIoSetBuffer", id_value = 1287, constant = "MMSYSTEM_MMIO_SET_BUFFER" }
+binding = { rust_id = "MediaIoSetBuffer", id_value = 1350, constant = "MMSYSTEM_MMIO_SET_BUFFER" }
 [exports.call]
 returns = "word"
 params = [
@@ -110,7 +110,7 @@ params = [
 [[exports]]
 ordinal = 1219
 name = "mmioAdvance"
-binding = { rust_id = "MediaIoAdvance", id_value = 1288, constant = "MMSYSTEM_MMIO_ADVANCE" }
+binding = { rust_id = "MediaIoAdvance", id_value = 1351, constant = "MMSYSTEM_MMIO_ADVANCE" }
 [exports.call]
 returns = "word"
 params = [
@@ -133,7 +133,7 @@ params = [
 [[exports]]
 ordinal = 1221
 name = "mmioInstallIOProc"
-binding = { rust_id = "MediaIoInstallIoProc", id_value = 1289, constant = "MMSYSTEM_MMIO_INSTALL_IO_PROC" }
+binding = { rust_id = "MediaIoInstallIoProc", id_value = 1352, constant = "MMSYSTEM_MMIO_INSTALL_IO_PROC" }
 [exports.call]
 returns = "far_pointer"
 params = [
@@ -145,7 +145,7 @@ params = [
 [[exports]]
 ordinal = 1222
 name = "mmioSendMessage"
-binding = { rust_id = "MediaIoSendMessage", id_value = 1290, constant = "MMSYSTEM_MMIO_SEND_MESSAGE" }
+binding = { rust_id = "MediaIoSendMessage", id_value = 1353, constant = "MMSYSTEM_MMIO_SEND_MESSAGE" }
 [exports.call]
 returns = "dword"
 params = [
