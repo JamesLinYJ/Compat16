@@ -42,6 +42,12 @@ pub enum Win16GdiServicesRequest {
     RemoveFontResource {
         input: Win16FontResourceInput,
     },
+    CreateScalableFontResource {
+        hidden: u16,
+        resource_file: Option<Vec<u8>>,
+        font_file: Option<Vec<u8>>,
+        current_path: Option<Vec<u8>>,
+    },
     GetCharWidth {
         dc: u16,
         first: u16,
