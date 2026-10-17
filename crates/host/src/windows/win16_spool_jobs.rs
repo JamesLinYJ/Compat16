@@ -11,10 +11,9 @@ use windows_sys::Win32::Foundation::{
     ERROR_INVALID_HANDLE, ERROR_NOT_SUPPORTED, GetLastError,
 };
 use windows_sys::Win32::Graphics::Printing::{
-    AbortPrinter, ClosePrinter, DOC_INFO_1W, EndDocPrinter, EndPagePrinter,
-    JOB_CONTROL_DELETE,
+    AbortPrinter, ClosePrinter, EndPagePrinter,
     OpenPrinterW, PRINTER_HANDLE,
-    SetJobW, StartDocPrinterW, StartPagePrinter, WritePrinter,
+    StartDocPrinterW, StartPagePrinter, WritePrinter,
 };
 
 use super::guest_text::GuestTextCodec;
@@ -34,6 +33,12 @@ pub(super) fn ordinal_equal_ignore_case(left: &[u16], right: &[u16]) -> bool {
 
 #[path = "win16_spool_network.rs"]
 mod network;
+
+#[path = "win16_spool_document.rs"]
+mod document;
+
+#[path = "win16_spool_close.rs"]
+mod close;
 
 #[derive(Default)]
 pub(crate) struct Win16SpoolJobs {
@@ -73,14 +78,6 @@ struct StartedJob {
     queue_name: Vec<u8>,
 }
 
-#[derive(Clone, Copy)]
-pub(super) enum StartDocPrinterDataType {
-    QueueDefault,
-    Raw,
-}
-
-const RAW_DATATYPE: [u16; 4] = [b'R' as u16, b'A' as u16, b'W' as u16, 0];
-
 impl Win16SpoolJobs {
     /// Release a borrowed snapshot token from the sibling queue adapter.
     /// This closes the duplicated printer handle without canceling a native job.
@@ -98,10 +95,11 @@ impl Win16SpoolJobs {
     ) -> Result<ResultValue, RuntimeError> {
         match operation {
             Operation::OpenJob {
+                owner,
                 output_target,
                 document_name,
                 legacy_argument: _,
-            } => self.open_job(codec, &output_target, &document_name),
+            } => self.open_job(codec, owner, &output_target, &document_name),
             Operation::NetworkOpenJob {
                 owner,
                 queue,
@@ -129,11 +127,8 @@ impl Win16SpoolJobs {
                     )
                 })?;
                 let mut written = 0u32;
-                let data = if bytes.is_empty() {
-                    ptr::null()
-                } else {
-                    bytes.as_ptr().cast()
-                };
+                let empty = 0_u8;
+                let data = (bytes.first().unwrap_or(&empty) as *const u8).cast();
                 // SAFETY: bytes owns `byte_count` readable bytes for the
                 // duration of this synchronous call; `written` is writable.
                 let succeeded =
@@ -240,6 +235,7 @@ impl Win16SpoolJobs {
     fn open_job(
         &mut self,
         codec: GuestTextCodec,
+        owner: Win16HostTaskOwner,
         output_target: &[u8],
         document_name: &[u8],
     ) -> Result<ResultValue, RuntimeError> {
@@ -248,8 +244,8 @@ impl Win16SpoolJobs {
                 codec,
                 output_target,
                 Some(document_name),
-                None,
-                StartDocPrinterDataType::QueueDefault,
+                Some(owner),
+                false,
             )? {
                 Ok(started) => ResultValue::OpenJob {
                     job: Some(started.token),
@@ -269,7 +265,7 @@ impl Win16SpoolJobs {
         output_target: &[u8],
         document_name: Option<&[u8]>,
         task_owner: Option<Win16HostTaskOwner>,
-        data_type: StartDocPrinterDataType,
+        index_network_job: bool,
     ) -> Result<Result<StartedJob, u32>, RuntimeError> {
         self.jobs.try_reserve(1).map_err(|error| {
             RuntimeError::with_source(
@@ -278,7 +274,7 @@ impl Win16SpoolJobs {
                 error,
             )
         })?;
-        if task_owner.is_some() {
+        if index_network_job {
             self.network_job_index.try_reserve(1).map_err(|error| {
                 RuntimeError::with_source(
                     Kind::ResourceExhausted,
@@ -325,25 +321,11 @@ impl Win16SpoolJobs {
             return Ok(Err(last_error()));
         }
 
-        let document_info = DOC_INFO_1W {
-            pDocName: document
-                .as_ref()
-                .map_or(ptr::null_mut(), |value| value.as_ptr().cast_mut()),
-            // The Win16 argument names an output port. It is used to locate
-            // the Windows queue; passing it as pOutputFile would reinterpret
-            // values such as LPT1: as a filename in the modern API.
-            pOutputFile: ptr::null_mut(),
-            // SDK fact: WINNET.H exposes queue/title/copies for WNetOpenJob and
-            // HFILE/buffer for WNetWriteJob, with no datatype argument. Bridge
-            // policy: the dedicated WNet byte stream is submitted as RAW; the
-            // ordinary GDI OpenJob path preserves the queue's default datatype.
-            pDatatype: match data_type {
-                StartDocPrinterDataType::QueueDefault => ptr::null_mut(),
-                StartDocPrinterDataType::Raw => RAW_DATATYPE.as_ptr().cast_mut(),
-            },
-        };
-        // SAFETY: the record and UTF-16 strings remain live for the call.
-        let job_id = unsafe { StartDocPrinterW(printer, 1, &document_info) };
+        let job_id = document::start_with(printer, document.as_deref(), |printer, level, info| {
+            // SAFETY: the record and terminated strings remain live throughout
+            // this synchronous call; the printer handle is owned by this job.
+            unsafe { StartDocPrinterW(printer, level, info) }
+        });
         if job_id == 0 {
             let error = last_error();
             if unsafe { ClosePrinter(printer) } == 0 {
@@ -365,7 +347,7 @@ impl Win16SpoolJobs {
                 network_index_kind: NetworkJobIndexKind::OwnedDocument,
             },
         );
-        if let Some(owner) = task_owner {
+        if index_network_job && let Some(owner) = task_owner {
             self.network_job_index.insert(
                 (owner, indexed_printer_name, job_id, NetworkJobIndexKind::OwnedDocument),
                 token,
@@ -471,70 +453,6 @@ impl Win16SpoolJobs {
             });
         };
         operation(native)
-    }
-
-    fn close_job(
-        &mut self,
-        job: Win16HostSpoolJob,
-        cancel: bool,
-    ) -> Result<ResultValue, RuntimeError> {
-        self.orphaned_printers.try_reserve(1).map_err(|error| {
-            RuntimeError::with_source(
-                Kind::ResourceExhausted,
-                "reserve Win16 spool printer cleanup",
-                error,
-            )
-        })?;
-        let Some(native) = self.jobs.remove(&job) else {
-            return Ok(ResultValue::Status {
-                succeeded: false,
-                native_error: Some(ERROR_INVALID_HANDLE),
-            });
-        };
-        remove_network_job_index(&mut self.network_job_index, job, &native);
-        let mut succeeded = true;
-        let mut first_error = None;
-        // Each job owns one printer handle and one StartDocPrinter job. Cancel
-        // addresses that job ID; DeletePrinter would remove the user's actual
-        // printer queue and is deliberately not used.
-        if cancel && native.document_open {
-            // AbortPrinter is the native operation for an open document; a
-            // completed document is cancelled by its exact spooler job ID.
-            if unsafe { AbortPrinter(native.printer) } == 0 {
-                succeeded = false;
-                first_error = Some(last_error());
-            }
-        } else if cancel {
-            // Cancel the exact job returned by StartDocPrinterW.
-            if unsafe {
-                SetJobW(
-                    native.printer,
-                    native.job_id,
-                    0,
-                    ptr::null(),
-                    JOB_CONTROL_DELETE,
-                )
-            } == 0
-            {
-                succeeded = false;
-                first_error = Some(last_error());
-            }
-        } else if unsafe { EndDocPrinter(native.printer) } == 0 {
-            succeeded = false;
-            first_error = Some(last_error());
-        }
-        if unsafe { ClosePrinter(native.printer) } == 0 {
-            succeeded = false;
-            if first_error.is_none() {
-                first_error = Some(last_error());
-            }
-            self.orphaned_printers
-                .push((native.network_owner, native.printer));
-        }
-        Ok(ResultValue::Status {
-            succeeded,
-            native_error: first_error,
-        })
     }
 
     fn allocate_token(&mut self) -> Result<Win16HostSpoolJob, RuntimeError> {

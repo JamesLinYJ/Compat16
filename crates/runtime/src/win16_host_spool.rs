@@ -24,11 +24,14 @@ impl Win16HostSpoolJob {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16HostSpoolOperation {
     OpenJob {
+        /// Task that owns this GDI spool document until CloseJob or teardown.
+        owner: Win16HostTaskOwner,
         /// Win16's output port/device string, for example `LPT1:`.
         output_target: Vec<u8>,
         document_name: Vec<u8>,
-        /// OpenJob's third SDK parameter is HPJOB; the XP WOW thunk receives
-        /// it as a WORD and ignores it. Preserve the raw guest word.
+        /// PRINT.H spells this WORD as HPJOB; DDK section 5.4.1 identifies it
+        /// as the application's abort DC. The runtime validates the guest DC;
+        /// this WORD is never interpreted as a native Windows handle.
         legacy_argument: u16,
     },
     /// WNetOpenJob creates a spooler document and returns an HFILE-shaped

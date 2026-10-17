@@ -49,7 +49,7 @@ impl Win16SpoolJobs {
             queue,
             document_name,
             Some(owner),
-            super::StartDocPrinterDataType::Raw,
+            true,
         )? {
             Ok(started) => started,
             Err(error) => return Ok(ResultValue::NetworkOpenJob {

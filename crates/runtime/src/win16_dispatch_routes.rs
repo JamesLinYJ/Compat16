@@ -42,6 +42,7 @@ pub(super) fn route_for_request(request: &Win16ApiRequest) -> DispatchRoute {
         Win16ApiRequest::WindowProperties(..) => DispatchRoute::User,
         Win16ApiRequest::GdiDevice(..) => DispatchRoute::Gdi,
         Win16ApiRequest::GdiServices(..) => DispatchRoute::Gdi,
+        Win16ApiRequest::GdiSpool(..) => DispatchRoute::Gdi,
         Win16ApiRequest::Commctrl(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Commdlg(..) => DispatchRoute::Libraries,
         Win16ApiRequest::Ctl3d(..) => DispatchRoute::Libraries,

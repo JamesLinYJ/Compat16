@@ -41,6 +41,9 @@ impl Win16State {
             Win16ApiRequest::GdiDevice(request) => {
                 self.execute_gdi_device(request, memory, host)?
             }
+            Win16ApiRequest::GdiSpool(request) => {
+                self.execute_gdi_spool(request, memory, host)?
+            }
             Win16ApiRequest::GdiServices(request) => self.execute_gdi_services(request, memory, host)?,
             request @ (Win16ApiRequest::GdiDrawing(
                 win16_abi::Win16GdiDrawingRequest::AbortPath { .. },

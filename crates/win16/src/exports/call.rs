@@ -15,6 +15,8 @@ mod guid_compare_calls;
 mod gdi_calls;
 #[path = "call_gdi_services.rs"]
 mod gdi_services_calls;
+#[path = "call_gdi_spool.rs"]
+mod gdi_spool_calls;
 #[path = "call_gdi_device.rs"]
 mod gdi_device_calls;
 #[path = "call_gdi_objects.rs"]

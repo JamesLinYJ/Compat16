@@ -411,11 +411,27 @@ decl = { attributes = [] }
 ordinal = 240
 name = "OpenJob"
 decl = { args = ["string", "string", "word"] }
+binding = { rust_id = "GdiOpenJob", id_value = 1279, constant = "GDI_OPEN_JOB" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "output_target", type = "FarString" },
+  { name = "document_name", type = "FarString" },
+  { name = "abort_dc", type = "U16" },
+]
 
 [[exports]]
 ordinal = 241
 name = "WriteSpool"
-decl = { args = ["word", "pointer", "word"] }
+decl = { args = ["word", "pointer", "signed_word"] }
+binding = { rust_id = "GdiWriteSpool", id_value = 1280, constant = "GDI_WRITE_SPOOL" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "job", type = "U16" },
+  { name = "data", type = "FarBuffer" },
+  { name = "count", type = "I16" },
+]
 
 [[exports]]
 ordinal = 242
@@ -426,11 +442,22 @@ decl = { args = ["word", "string", "word"] }
 ordinal = 243
 name = "CloseJob"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiCloseJob", id_value = 1281, constant = "GDI_CLOSE_JOB" }
+[exports.call]
+returns = "word"
+params = [{ name = "job", type = "U16" }]
 
 [[exports]]
 ordinal = 244
 name = "DeleteJob"
-decl = { args = ["word", "word"] }
+decl = { args = ["word", "signed_word"] }
+binding = { rust_id = "GdiDeleteJob", id_value = 1282, constant = "GDI_DELETE_JOB" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "job", type = "U16" },
+  { name = "unused", type = "I16" },
+]
 
 [[exports]]
 ordinal = 245
@@ -441,11 +468,19 @@ decl = { attributes = [], args = ["word", "pointer"] }
 ordinal = 246
 name = "StartSpoolPage"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiStartSpoolPage", id_value = 1283, constant = "GDI_START_SPOOL_PAGE" }
+[exports.call]
+returns = "word"
+params = [{ name = "job", type = "U16" }]
 
 [[exports]]
 ordinal = 247
 name = "EndSpoolPage"
 decl = { args = ["word"] }
+binding = { rust_id = "GdiEndSpoolPage", id_value = 1284, constant = "GDI_END_SPOOL_PAGE" }
+[exports.call]
+returns = "word"
+params = [{ name = "job", type = "U16" }]
 
 [[exports]]
 ordinal = 248
