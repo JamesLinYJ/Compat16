@@ -710,6 +710,8 @@ pub(crate) struct Win16State {
     instance_handle: u16,
     task_handles: BTreeMap<OwnerId, u16>,
     first_task_handle: u16,
+    /// Guest task priority, queue word, lock, and last-error. No host pointers.
+    task_controls: kernel_task::TaskControls,
     module_path: Vec<u8>,
     modules: module_registry::ModuleRegistry,
     /// Exact identities left after incomplete selector cleanup. Keep their

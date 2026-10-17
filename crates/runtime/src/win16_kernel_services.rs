@@ -63,6 +63,41 @@ impl Win16State {
                 Win16KernelTaskRequest::GetNumTasks => u32::from(self.kernel_get_num_tasks()?),
                 Win16KernelTaskRequest::GetTaskDS => u32::from(self.kernel_get_task_ds()),
                 Win16KernelTaskRequest::IsTask { task } => u32::from(self.kernel_is_task(task)),
+                Win16KernelTaskRequest::SetPriority { task, delta } => {
+                    self.kernel_set_priority(task, delta)?;
+                    0
+                }
+                Win16KernelTaskRequest::LockCurrentTask { lock } => {
+                    u32::from(self.kernel_lock_current_task(lock)?)
+                }
+                Win16KernelTaskRequest::SetTaskQueue { task, queue } => {
+                    u32::from(self.kernel_set_task_queue(task, queue)?)
+                }
+                Win16KernelTaskRequest::GetTaskQueue { task } => {
+                    u32::from(self.kernel_get_task_queue(task)?)
+                }
+                Win16KernelTaskRequest::OldYield => {
+                    self.kernel_old_yield(host)?;
+                    0
+                }
+                Win16KernelTaskRequest::GetTaskQueueDs => {
+                    u32::from(self.kernel_task_queue_for_segment(registers.ds)?)
+                }
+                Win16KernelTaskRequest::GetTaskQueueEs => {
+                    u32::from(self.kernel_task_queue_for_segment(registers.es)?)
+                }
+                Win16KernelTaskRequest::IsTaskLocked => u32::from(self.kernel_is_task_locked()),
+                Win16KernelTaskRequest::SetLastError { error } => {
+                    self.kernel_set_last_error(error)?;
+                    0
+                }
+                Win16KernelTaskRequest::GetLastError => self.kernel_get_last_error()?,
+                Win16KernelTaskRequest::GetVersionEx { version_info } => {
+                    u32::from(self.kernel_get_version_ex(version_info, memory)?)
+                }
+                Win16KernelTaskRequest::DirectedYield { task } => {
+                    u32::from(self.kernel_directed_yield(task))
+                }
             },
             Win16ApiRequest::KernelModule(request) => match request {
                 Win16KernelModuleRequest::GetModuleName { module, output, capacity } => {

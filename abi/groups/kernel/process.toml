@@ -164,3 +164,111 @@ returns = "void"
 params = [
   { name = "status", type = "U16" },
 ]
+
+[[exports]]
+ordinal = 32
+name = "SetPriority"
+binding = { rust_id = "KernelSetPriority", id_value = 1285, constant = "KERNEL_SET_PRIORITY" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "task", type = "U16" },
+  { name = "delta", type = "I16" },
+]
+
+[[exports]]
+ordinal = 33
+name = "LockCurrentTask"
+binding = { rust_id = "KernelLockCurrentTask", id_value = 1286, constant = "KERNEL_LOCK_CURRENT_TASK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "lock", type = "U16" },
+]
+
+[[exports]]
+ordinal = 34
+name = "SetTaskQueue"
+binding = { rust_id = "KernelSetTaskQueue", id_value = 1287, constant = "KERNEL_SET_TASK_QUEUE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "task", type = "U16" },
+  { name = "queue", type = "U16" },
+]
+
+[[exports]]
+ordinal = 35
+name = "GetTaskQueue"
+binding = { rust_id = "KernelGetTaskQueue", id_value = 1288, constant = "KERNEL_GET_TASK_QUEUE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "task", type = "U16" },
+]
+
+[[exports]]
+ordinal = 117
+name = "OldYield"
+binding = { rust_id = "KernelOldYield", id_value = 1289, constant = "KERNEL_OLD_YIELD" }
+[exports.call]
+returns = "void"
+
+[[exports]]
+ordinal = 118
+name = "GetTaskQueueDS"
+binding = { rust_id = "KernelGetTaskQueueDs", id_value = 1290, constant = "KERNEL_GET_TASK_QUEUE_DS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 119
+name = "GetTaskQueueES"
+binding = { rust_id = "KernelGetTaskQueueEs", id_value = 1291, constant = "KERNEL_GET_TASK_QUEUE_ES" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 122
+name = "IsTaskLocked"
+binding = { rust_id = "KernelIsTaskLocked", id_value = 1292, constant = "KERNEL_IS_TASK_LOCKED" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 147
+name = "SetLastError"
+binding = { rust_id = "KernelSetLastError", id_value = 1293, constant = "KERNEL_SET_LAST_ERROR" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "error", type = "U32" },
+]
+
+[[exports]]
+ordinal = 148
+name = "GetLastError"
+decl = { attributes = [] }
+binding = { rust_id = "KernelGetLastError", id_value = 1294, constant = "KERNEL_GET_LAST_ERROR" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 149
+name = "GetVersionEx"
+binding = { rust_id = "KernelGetVersionEx", id_value = 1295, constant = "KERNEL_GET_VERSION_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "version_info", type = "FarPointer" },
+]
+
+[[exports]]
+ordinal = 150
+name = "DirectedYield"
+binding = { rust_id = "KernelDirectedYield", id_value = 1296, constant = "KERNEL_DIRECTED_YIELD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "task", type = "U16" },
+]
