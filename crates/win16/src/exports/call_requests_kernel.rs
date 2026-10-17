@@ -39,7 +39,8 @@ pub(super) fn decode(
         Win16ExportId::KernelGetWindowsDirectory
         | Win16ExportId::KernelGetSystemDirectory
         | Win16ExportId::KernelGetTempDrive
-        | Win16ExportId::KernelGetTempFileName => {
+        | Win16ExportId::KernelGetTempFileName
+        | Win16ExportId::KernelGetShortPathName => {
             let request = super::super::call_kernel_path_info::decode(
                 descriptor.id,
                 arguments,
@@ -214,7 +215,9 @@ pub(super) fn decode(
         | Win16ExportId::KernelGetPrivateProfileString
         | Win16ExportId::KernelGetProfileString
         | Win16ExportId::KernelWritePrivateProfileString
-        | Win16ExportId::KernelGetProfileInt => {
+        | Win16ExportId::KernelGetProfileInt
+        | Win16ExportId::KernelWritePrivateProfileStruct
+        | Win16ExportId::KernelGetPrivateProfileStruct => {
             profile_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
         Win16ExportId::KernelLread

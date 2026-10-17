@@ -1842,4 +1842,33 @@ pub trait RuntimeHost:
             "host Win16 system profile-section write is unavailable",
         ))
     }
+    /// Store opaque profile bytes through the same private-profile file as the
+    /// string APIs. `data` is not text. A null data slice is a null structure.
+    fn win16_profile_struct_write(
+        &mut self,
+        _section: Option<&[u8]>,
+        _key: Option<&[u8]>,
+        _data: Option<&[u8]>,
+        _data_size: u16,
+        _filename: &Win16ProfilePath,
+    ) -> Result<bool, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 profile-struct write is unavailable",
+        ))
+    }
+    /// Read opaque profile bytes. `Ok((false, _))` writes nothing. On success
+    /// the vector length equals `capacity`.
+    fn win16_profile_struct_read(
+        &mut self,
+        _section: Option<&[u8]>,
+        _key: Option<&[u8]>,
+        _capacity: u16,
+        _filename: &Win16ProfilePath,
+    ) -> Result<(bool, Vec<u8>), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 profile-struct read is unavailable",
+        ))
+    }
 }

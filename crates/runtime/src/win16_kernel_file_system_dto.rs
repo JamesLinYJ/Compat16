@@ -221,6 +221,10 @@ pub enum Win16HostFileSystemOperation {
     FindClose {
         search: Win16HostSearchId,
     },
+    /// Project an existing canonical path to its 8.3 guest ANSI/DBCS spelling.
+    ShortPath {
+        path: Win16CanonicalPath,
+    },
     RetireTask,
 }
 
@@ -234,5 +238,7 @@ pub enum Win16HostFileSystemResult {
     FindFirst(Option<Win16HostFindFirst>),
     FindNext(Option<Win16HostFindData>),
     FindClose(bool),
+    /// `None` is an ordinary GetShortPathName failure. Bytes exclude the NUL.
+    ShortPath(Option<Vec<u8>>),
     TaskRetired,
 }

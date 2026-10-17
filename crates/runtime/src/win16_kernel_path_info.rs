@@ -34,6 +34,8 @@ impl Win16State {
                 self.directory_query(Operation::SystemDirectory, output, capacity, memory, host),
             Win16KernelPathInfoRequest::GetTempFileName { drive, prefix, unique, output } =>
                 self.temp_file_name(drive, prefix, unique, output, memory, host),
+            Win16KernelPathInfoRequest::GetShortPathName { long_path, output, capacity } =>
+                self.short_path_name(long_path, output, capacity, memory, host),
         }
     }
 
@@ -168,3 +170,7 @@ fn invariant(message: &'static str) -> RuntimeError {
 #[cfg(test)]
 #[path = "win16_get_temp_drive_tests.rs"]
 mod get_temp_drive_tests;
+
+#[cfg(test)]
+#[path = "win16_short_path_profile_struct_tests.rs"]
+mod short_path_profile_struct_tests;

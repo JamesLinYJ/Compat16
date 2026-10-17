@@ -44,4 +44,23 @@ pub enum Win16KernelProfilesRequest {
         key: Option<Vec<u8>>,
         default_value: i16,
     },
+
+    /// Opaque guest bytes. A null key or null data pointer is forwarded
+    /// without reading a payload. Strings stay the caller's ANSI/DBCS bytes.
+    WritePrivateProfileStruct {
+        section: Option<Vec<u8>>,
+        key: Option<Vec<u8>>,
+        data: Option<Vec<u8>>,
+        data_size: u16,
+        filename: Option<Vec<u8>>,
+    },
+
+    /// `output` stays raw so a null pointer can fail before any guest write.
+    GetPrivateProfileStruct {
+        section: Option<Vec<u8>>,
+        key: Option<Vec<u8>>,
+        output: u32,
+        capacity: u16,
+        filename: Option<Vec<u8>>,
+    },
 }

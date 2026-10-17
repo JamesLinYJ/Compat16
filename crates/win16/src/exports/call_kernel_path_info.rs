@@ -38,7 +38,18 @@ pub(super) fn decode(
                 output: *output,
             }
         }
-        (92 | 97 | 134 | 135, _) => return Err(Win16Error::InvalidRange),
+        (274, [Win16Argument::Dword(path), Win16Argument::Dword(output),
+            Win16Argument::Word(capacity)]) => {
+            let long_path = if *path == 0 { None } else {
+                Some(read_ordinary_far_string(selectors, memory, *path)?)
+            };
+            Win16KernelPathInfoRequest::GetShortPathName {
+                long_path,
+                output: *output,
+                capacity: *capacity,
+            }
+        }
+        (92 | 97 | 134 | 135 | 274, _) => return Err(Win16Error::InvalidRange),
         _ => return Ok(None),
     };
     Ok(Some(request))

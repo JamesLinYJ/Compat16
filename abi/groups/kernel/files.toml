@@ -180,6 +180,18 @@ params = [
 ]
 
 [[exports]]
+ordinal = 274
+name = "GetShortPathName"
+binding = { rust_id = "KernelGetShortPathName", id_value = 1285, constant = "KERNEL_GET_SHORT_PATH_NAME" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "long_path", type = "NullableFarString" },
+  { name = "short_path", type = "FarOutputBuffer" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
 ordinal = 349
 name = "_hread"
 decl = { attributes = [] }
