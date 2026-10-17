@@ -444,6 +444,8 @@ mod dispatch_routes;
 mod dispatch_kernel;
 #[path = "win16_dispatch_user.rs"]
 mod dispatch_user;
+#[path = "win16_user_declared.rs"]
+mod user_declared;
 #[path = "win16_dispatch_gdi.rs"]
 mod dispatch_gdi;
 #[path = "win16_dispatch_libraries.rs"]
@@ -701,6 +703,7 @@ pub(crate) struct Win16State {
     window_enumerations: Vec<window_enumeration::WindowEnumerationFrame>,
     deferred_window_batches: window_operations::DeferredWindowBatches,
     user_hooks: user_hooks::Win16UserHooks,
+    user_declared: user_declared::UserDeclaredSession,
     window_callbacks: Vec<windows::WindowCallbackFrame>,
     retired_window_payloads: Vec<windows::RetiredWindowPayloadOwner>,
     native_function_callbacks: Vec<native_function_callback::NativeFunctionCallbackFrame>,

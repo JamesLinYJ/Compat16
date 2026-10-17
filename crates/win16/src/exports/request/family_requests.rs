@@ -47,6 +47,9 @@ pub use user_runtime::Win16UserRuntimeRequest;
 #[path = "user_string_format.rs"]
 mod user_string_format;
 pub use user_string_format::Win16UserStringFormatRequest;
+#[path = "user_declared.rs"]
+mod user_declared;
+pub use user_declared::Win16UserDeclaredCall;
 #[path = "user_mdi.rs"]
 mod user_mdi;
 pub use user_mdi::Win16UserMdiRequest;
@@ -152,6 +155,7 @@ pub enum Win16UserRequest {
     StringFormat(Win16UserStringFormatRequest),
     Comm(Win16UserCommRequest),
     Input(Win16UserInputRequest),
+    Declared(Win16UserDeclaredCall),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

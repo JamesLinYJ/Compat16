@@ -13,6 +13,11 @@ pub(super) fn decode(
             descriptor.ordinal(), arguments, selectors, memory,
         ).map(|request| request.map(Win16ApiRequest::NetworkRedirector));
     }
+    if let Some(request) = super::call_user_declared::decode(
+        descriptor, arguments, selectors, memory,
+    )? {
+        return Ok(Some(request));
+    }
     let request = match descriptor.id {
         Win16ExportId::UserSetWindowsHook
         | Win16ExportId::UserCallMsgFilter
