@@ -82,41 +82,26 @@ params = [
 ordinal = 8
 name = "COMARSHALINTERFACE"
 kind = "stub"
-binding = { rust_id = "CompobjCOMARSHALINTERFACE", id_value = 4000351, constant = "COMPOBJ_COMARSHALINTERFACE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 9
 name = "COUNMARSHALINTERFACE"
 kind = "stub"
-binding = { rust_id = "CompobjCOUNMARSHALINTERFACE", id_value = 4000352, constant = "COMPOBJ_COUNMARSHALINTERFACE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 10
 name = "COLOADLIBRARY"
 kind = "stub"
-binding = { rust_id = "CompobjCOLOADLIBRARY", id_value = 4000353, constant = "COMPOBJ_COLOADLIBRARY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 11
 name = "COFREELIBRARY"
 kind = "stub"
-binding = { rust_id = "CompobjCOFREELIBRARY", id_value = 4000354, constant = "COMPOBJ_COFREELIBRARY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 12
 name = "COFREEALLLIBRARIES"
 kind = "stub"
-binding = { rust_id = "CompobjCOFREEALLLIBRARIES", id_value = 4000355, constant = "COMPOBJ_COFREEALLLIBRARIES" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 13
@@ -161,9 +146,6 @@ params = [
 ordinal = 16
 name = "CORELEASEMARSHALDATA"
 kind = "stub"
-binding = { rust_id = "CompobjCORELEASEMARSHALDATA", id_value = 4000359, constant = "COMPOBJ_CORELEASEMARSHALDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 17
@@ -201,17 +183,11 @@ params = [
 ordinal = 21
 name = "ISVALIDPTRIN"
 kind = "stub"
-binding = { rust_id = "CompobjISVALIDPTRIN", id_value = 4000363, constant = "COMPOBJ_ISVALIDPTRIN" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 22
 name = "ISVALIDPTROUT"
 kind = "stub"
-binding = { rust_id = "CompobjISVALIDPTROUT", id_value = 4000364, constant = "COMPOBJ_ISVALIDPTROUT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 23
@@ -228,25 +204,16 @@ params = [
 ordinal = 24
 name = "ISVALIDIID"
 kind = "stub"
-binding = { rust_id = "CompobjISVALIDIID", id_value = 4000366, constant = "COMPOBJ_ISVALIDIID" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 25
 name = "RESULTFROMSCODE"
 kind = "stub"
-binding = { rust_id = "CompobjRESULTFROMSCODE", id_value = 4000367, constant = "COMPOBJ_RESULTFROMSCODE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 26
 name = "GETSCODE"
 kind = "stub"
-binding = { rust_id = "CompobjGETSCODE", id_value = 4000368, constant = "COMPOBJ_GETSCODE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 27
@@ -264,17 +231,11 @@ params = [
 ordinal = 28
 name = "COISHANDLERCONNECTED"
 kind = "stub"
-binding = { rust_id = "CompobjCOISHANDLERCONNECTED", id_value = 4000370, constant = "COMPOBJ_COISHANDLERCONNECTED" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 29
 name = "SHRADDREF"
 kind = "stub"
-binding = { rust_id = "CompobjSHRADDREF", id_value = 4000371, constant = "COMPOBJ_SHRADDREF" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 30
@@ -306,17 +267,11 @@ params = [
 ordinal = 32
 name = "COMARSHALHRESULT"
 kind = "stub"
-binding = { rust_id = "CompobjCOMARSHALHRESULT", id_value = 4000374, constant = "COMPOBJ_COMARSHALHRESULT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 33
 name = "COUNMARSHALHRESULT"
 kind = "stub"
-binding = { rust_id = "CompobjCOUNMARSHALHRESULT", id_value = 4000375, constant = "COMPOBJ_COUNMARSHALHRESULT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 34
@@ -329,9 +284,6 @@ returns = "dword"
 ordinal = 35
 name = "SHRCREATE"
 kind = "stub"
-binding = { rust_id = "CompobjSHRCREATE", id_value = 4000377, constant = "COMPOBJ_SHRCREATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 36
@@ -559,17 +511,11 @@ params = [
 ordinal = 67
 name = "COGETSTANDARDMARSHAL"
 kind = "stub"
-binding = { rust_id = "CompobjCOGETSTANDARDMARSHAL", id_value = 4000384, constant = "COMPOBJ_COGETSTANDARDMARSHAL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 68
 name = "PROPAGATERESULT"
 kind = "stub"
-binding = { rust_id = "CompobjPROPAGATERESULT", id_value = 4000385, constant = "COMPOBJ_PROPAGATERESULT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 69
@@ -649,41 +595,26 @@ params = [
 ordinal = 77
 name = "COGETCLASSEXT"
 kind = "stub"
-binding = { rust_id = "CompobjCOGETCLASSEXT", id_value = 4000391, constant = "COMPOBJ_COGETCLASSEXT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 78
 name = "OLE1CLASSFROMCLSID2"
 kind = "stub"
-binding = { rust_id = "CompobjOLE1CLASSFROMCLSID2", id_value = 4000392, constant = "COMPOBJ_OLE1CLASSFROMCLSID2" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 79
 name = "CLSIDFROMOLE1CLASS"
 kind = "stub"
-binding = { rust_id = "CompobjCLSIDFROMOLE1CLASS", id_value = 4000393, constant = "COMPOBJ_CLSIDFROMOLE1CLASS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 80
 name = "COOPENCLASSKEY"
 kind = "stub"
-binding = { rust_id = "CompobjCOOPENCLASSKEY", id_value = 4000394, constant = "COMPOBJ_COOPENCLASSKEY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 81
 name = "GUIDFROMSTRING"
 kind = "stub"
-binding = { rust_id = "CompobjGUIDFROMSTRING", id_value = 4000395, constant = "COMPOBJ_GUIDFROMSTRING" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 82
@@ -700,89 +631,56 @@ params = [
 ordinal = 83
 name = "REMALLOCOID"
 kind = "stub"
-binding = { rust_id = "CompobjREMALLOCOID", id_value = 4000397, constant = "COMPOBJ_REMALLOCOID" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 84
 name = "REMFREEOID"
 kind = "stub"
-binding = { rust_id = "CompobjREMFREEOID", id_value = 4000398, constant = "COMPOBJ_REMFREEOID" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 85
 name = "REMCREATEREMOTEHANDLER"
 kind = "stub"
-binding = { rust_id = "CompobjREMCREATEREMOTEHANDLER", id_value = 4000399, constant = "COMPOBJ_REMCREATEREMOTEHANDLER" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 86
 name = "REMCONNECTTOOBJECT"
 kind = "stub"
-binding = { rust_id = "CompobjREMCONNECTTOOBJECT", id_value = 4000400, constant = "COMPOBJ_REMCONNECTTOOBJECT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 87
 name = "REMGETINFOFORCID"
 kind = "stub"
-binding = { rust_id = "CompobjREMGETINFOFORCID", id_value = 4000401, constant = "COMPOBJ_REMGETINFOFORCID" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 88
 name = "LRPCCALL"
 kind = "stub"
-binding = { rust_id = "CompobjLRPCCALL", id_value = 4000402, constant = "COMPOBJ_LRPCCALL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 89
 name = "LRPCDISPATCH"
 kind = "stub"
-binding = { rust_id = "CompobjLRPCDISPATCH", id_value = 4000403, constant = "COMPOBJ_LRPCDISPATCH" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 90
 name = "LRPCREGISTERMONITOR"
 kind = "stub"
-binding = { rust_id = "CompobjLRPCREGISTERMONITOR", id_value = 4000404, constant = "COMPOBJ_LRPCREGISTERMONITOR" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 91
 name = "LRPCREVOKEMONITOR"
 kind = "stub"
-binding = { rust_id = "CompobjLRPCREVOKEMONITOR", id_value = 4000405, constant = "COMPOBJ_LRPCREVOKEMONITOR" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 92
 name = "LRPCGETTHREADWINDOW"
 kind = "stub"
-binding = { rust_id = "CompobjLRPCGETTHREADWINDOW", id_value = 4000406, constant = "COMPOBJ_LRPCGETTHREADWINDOW" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 93
 name = "TIMERCALLBACKPROC"
 kind = "stub"
-binding = { rust_id = "CompobjTIMERCALLBACKPROC", id_value = 4000407, constant = "COMPOBJ_TIMERCALLBACKPROC" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 94
@@ -812,153 +710,96 @@ params = [
 ordinal = 96
 name = "LRPCFREEMONITORDATA"
 kind = "stub"
-binding = { rust_id = "CompobjLRPCFREEMONITORDATA", id_value = 4000410, constant = "COMPOBJ_LRPCFREEMONITORDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 97
 name = "REMLOOKUPSHUNK"
 kind = "stub"
-binding = { rust_id = "CompobjREMLOOKUPSHUNK", id_value = 4000411, constant = "COMPOBJ_REMLOOKUPSHUNK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 98
 name = "SHRGETSIZE"
 kind = "stub"
-binding = { rust_id = "CompobjSHRGETSIZE", id_value = 4000412, constant = "COMPOBJ_SHRGETSIZE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 99
 name = "CALLTHKMGRUNINITIALIZE"
 kind = "stub"
-binding = { rust_id = "CompobjCALLTHKMGRUNINITIALIZE", id_value = 4000413, constant = "COMPOBJ_CALLTHKMGRUNINITIALIZE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 100
 name = "??0CARRAYFVALUE@@REC@KI@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd100", id_value = 4000414, constant = "COMPOBJ_ORD_100" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 101
 name = "??1CARRAYFVALUE@@REC@XZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd101", id_value = 4000415, constant = "COMPOBJ_ORD_101" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 102
 name = "?ASSERTVALID@CARRAYFVALUE@@RFCXXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd102", id_value = 4000416, constant = "COMPOBJ_ORD_102" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 103
 name = "?FREEEXTRA@CARRAYFVALUE@@RECXXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd103", id_value = 4000417, constant = "COMPOBJ_ORD_103" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 104
 name = "?_GETAT@CARRAYFVALUE@@RFCPEXH@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd104", id_value = 4000418, constant = "COMPOBJ_ORD_104" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 105
 name = "?GETSIZE@CARRAYFVALUE@@RFCHXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd105", id_value = 4000419, constant = "COMPOBJ_ORD_105" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 106
 name = "?REMOVEALL@CARRAYFVALUE@@RECXXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd106", id_value = 4000420, constant = "COMPOBJ_ORD_106" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 107
 name = "SHRDESTROY"
 kind = "stub"
-binding = { rust_id = "CompobjSHRDESTROY", id_value = 4000421, constant = "COMPOBJ_SHRDESTROY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 108
 name = "?INDEXOF@CARRAYFVALUE@@RECHPEXII@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd108", id_value = 4000422, constant = "COMPOBJ_ORD_108" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 109
 name = "?INSERTAT@CARRAYFVALUE@@RECHHPEXH@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd109", id_value = 4000423, constant = "COMPOBJ_ORD_109" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 110
 name = "COSETSTATE"
 kind = "stub"
-binding = { rust_id = "CompobjCOSETSTATE", id_value = 4000424, constant = "COMPOBJ_COSETSTATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 111
 name = "?REMOVEAT@CARRAYFVALUE@@RECXHH@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd111", id_value = 4000425, constant = "COMPOBJ_ORD_111" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 112
 name = "?SETAT@CARRAYFVALUE@@RECXHPEX@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd112", id_value = 4000426, constant = "COMPOBJ_ORD_112" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 113
 name = "?SETATGROW@CARRAYFVALUE@@RECHHPEX@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd113", id_value = 4000427, constant = "COMPOBJ_ORD_113" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 114
 name = "?SETSIZE@CARRAYFVALUE@@RECHHH@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd114", id_value = 4000428, constant = "COMPOBJ_ORD_114" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 115
@@ -991,273 +832,171 @@ params = [
 ordinal = 117
 name = "?RELEASE@CSTDMALLOC@@VEAKXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd117", id_value = 4000431, constant = "COMPOBJ_ORD_117" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 118
 name = "?ALLOC@CSTDMALLOC@@VEAPEXK@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd118", id_value = 4000432, constant = "COMPOBJ_ORD_118" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 119
 name = "SHRRELEASE"
 kind = "stub"
-binding = { rust_id = "CompobjSHRRELEASE", id_value = 4000433, constant = "COMPOBJ_SHRRELEASE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 120
 name = "?GETASSOCAT@CMAPKEYTOVALUE@@BFCPEUCASSOC@1@PEXIAEI@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd120", id_value = 4000434, constant = "COMPOBJ_ORD_120" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 121
 name = "?SETASSOCKEY@CMAPKEYTOVALUE@@BFCHPEUCASSOC@1@PEXI@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd121", id_value = 4000435, constant = "COMPOBJ_ORD_121" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 122
 name = "??1CMAPKEYTOVALUE@@REC@XZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd122", id_value = 4000436, constant = "COMPOBJ_ORD_122" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 123
 name = "?GETASSOCKEYPTR@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEPEXPEI@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd123", id_value = 4000437, constant = "COMPOBJ_ORD_123" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 124
 name = "?NEWASSOC@CMAPKEYTOVALUE@@BECPEUCASSOC@1@IPEXI0@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd124", id_value = 4000438, constant = "COMPOBJ_ORD_124" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 125
 name = "?SIZEASSOC@CMAPKEYTOVALUE@@BFCIXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd125", id_value = 4000439, constant = "COMPOBJ_ORD_125" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 126
 name = "?FREEASSOC@CMAPKEYTOVALUE@@BECXPEUCASSOC@1@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd126", id_value = 4000440, constant = "COMPOBJ_ORD_126" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 127
 name = "?GETSTARTPOSITION@CMAPKEYTOVALUE@@RFCPEXXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd127", id_value = 4000441, constant = "COMPOBJ_ORD_127" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 128
 name = "?GETNEXTASSOC@CMAPKEYTOVALUE@@RFCXPEPEXPEXPEI1@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd128", id_value = 4000442, constant = "COMPOBJ_ORD_128" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 129
 name = "?COMPAREASSOCKEY@CMAPKEYTOVALUE@@BFCHPEUCASSOC@1@PEXI@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd129", id_value = 4000443, constant = "COMPOBJ_ORD_129" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 130
 name = "?REMOVEHKEY@CMAPKEYTOVALUE@@RECHK@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd130", id_value = 4000444, constant = "COMPOBJ_ORD_130" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 131
 name = "?GETHKEY@CMAPKEYTOVALUE@@RFCKPEXI@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd131", id_value = 4000445, constant = "COMPOBJ_ORD_131" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 132
 name = "?GETCOUNT@CMAPKEYTOVALUE@@RFCHXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd132", id_value = 4000446, constant = "COMPOBJ_ORD_132" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 133
 name = "?LOOKUP@CMAPKEYTOVALUE@@RFCHPEXI0@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd133", id_value = 4000447, constant = "COMPOBJ_ORD_133" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 134
 name = "?GETASSOCVALUE@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEX@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd134", id_value = 4000448, constant = "COMPOBJ_ORD_134" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 135
 name = "?REMOVEKEY@CMAPKEYTOVALUE@@RECHPEXI@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd135", id_value = 4000449, constant = "COMPOBJ_ORD_135" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 136
 name = "?REMOVEALL@CMAPKEYTOVALUE@@RECXXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd136", id_value = 4000450, constant = "COMPOBJ_ORD_136" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 137
 name = "SHRALLOC"
 kind = "stub"
-binding = { rust_id = "CompobjSHRALLOC", id_value = 4000451, constant = "COMPOBJ_SHRALLOC" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 138
 name = "?FREEASSOCKEY@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd138", id_value = 4000452, constant = "COMPOBJ_ORD_138" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 139
 name = "?SETAT@CMAPKEYTOVALUE@@RECHPEXI0@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd139", id_value = 4000453, constant = "COMPOBJ_ORD_139" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 140
 name = "?LOOKUPHKEY@CMAPKEYTOVALUE@@RFCHKPEX@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd140", id_value = 4000454, constant = "COMPOBJ_ORD_140" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 141
 name = "?ASSERTVALID@CMAPKEYTOVALUE@@RFCXXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd141", id_value = 4000455, constant = "COMPOBJ_ORD_141" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 142
 name = "?SETASSOCVALUE@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEX@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd142", id_value = 4000456, constant = "COMPOBJ_ORD_142" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 143
 name = "?SETATHKEY@CMAPKEYTOVALUE@@RECHKPEX@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd143", id_value = 4000457, constant = "COMPOBJ_ORD_143" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 144
 name = "??0CMAPKEYTOVALUE@@REC@KIIHP7CIPEXI@ZI@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd144", id_value = 4000458, constant = "COMPOBJ_ORD_144" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 145
 name = "?INITHASHTABLE@CMAPKEYTOVALUE@@BECHXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd145", id_value = 4000459, constant = "COMPOBJ_ORD_145" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 146
 name = "?GETASSOCVALUEPTR@CMAPKEYTOVALUE@@BFCXPEUCASSOC@1@PEPEX@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd146", id_value = 4000460, constant = "COMPOBJ_ORD_146" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 147
 name = "?LOOKUPADD@CMAPKEYTOVALUE@@RFCHPEXI0@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd147", id_value = 4000461, constant = "COMPOBJ_ORD_147" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 148
 name = "MKVDEFAULTHASHKEY"
 kind = "stub"
-binding = { rust_id = "CompobjMKVDEFAULTHASHKEY", id_value = 4000462, constant = "COMPOBJ_MKVDEFAULTHASHKEY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 149
 name = "DELETE16"
 kind = "stub"
-binding = { rust_id = "CompobjDELETE16", id_value = 4000463, constant = "COMPOBJ_DELETE16" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 150
 name = "COMEMCTXOF"
 kind = "stub"
-binding = { rust_id = "CompobjCOMEMCTXOF", id_value = 4000464, constant = "COMPOBJ_COMEMCTXOF" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 151
@@ -1276,393 +1015,246 @@ params = [
 ordinal = 152
 name = "COMEMFREE"
 kind = "stub"
-binding = { rust_id = "CompobjCOMEMFREE", id_value = 4000466, constant = "COMPOBJ_COMEMFREE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 153
 name = "SHRREALLOC"
 kind = "stub"
-binding = { rust_id = "CompobjSHRREALLOC", id_value = 4000467, constant = "COMPOBJ_SHRREALLOC" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 154
 name = "___EXPORTEDSTUB"
 kind = "stub"
-binding = { rust_id = "CompobjOrd154", id_value = 4000468, constant = "COMPOBJ_ORD_154" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 155
 name = "LRPCREGISTERWIN32SMONITOR"
 kind = "stub"
-binding = { rust_id = "CompobjLRPCREGISTERWIN32SMONITOR", id_value = 4000469, constant = "COMPOBJ_LRPCREGISTERWIN32SMONITOR" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 156
 name = "MYREMGETINFOFORCID"
 kind = "stub"
-binding = { rust_id = "CompobjMYREMGETINFOFORCID", id_value = 4000470, constant = "COMPOBJ_MYREMGETINFOFORCID" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 157
 name = "SHRFREE"
 kind = "stub"
-binding = { rust_id = "CompobjSHRFREE", id_value = 4000471, constant = "COMPOBJ_SHRFREE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 158
 name = "OPNEW16"
 kind = "stub"
-binding = { rust_id = "CompobjOPNEW16", id_value = 4000472, constant = "COMPOBJ_OPNEW16" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 159
 name = "ADDCOINFO"
 kind = "stub"
-binding = { rust_id = "CompobjADDCOINFO", id_value = 4000473, constant = "COMPOBJ_ADDCOINFO" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 160
 name = "CORUNMODALLOOP"
 kind = "stub"
-binding = { rust_id = "CompobjCORUNMODALLOOP", id_value = 4000474, constant = "COMPOBJ_CORUNMODALLOOP" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 161
 name = "COHANDLEINCOMINGCALL"
 kind = "stub"
-binding = { rust_id = "CompobjCOHANDLEINCOMINGCALL", id_value = 4000475, constant = "COMPOBJ_COHANDLEINCOMINGCALL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 162
 name = "COSETACKSTATE"
 kind = "stub"
-binding = { rust_id = "CompobjCOSETACKSTATE", id_value = 4000476, constant = "COMPOBJ_COSETACKSTATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 163
 name = "SHRDIDALLOC"
 kind = "stub"
-binding = { rust_id = "CompobjSHRDIDALLOC", id_value = 4000477, constant = "COMPOBJ_SHRDIDALLOC" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 164
 name = "?GETAT@CARRAYFVALUE@@RFCPEXH@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd164", id_value = 4000478, constant = "COMPOBJ_ORD_164" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 165
 name = "?GETUPPERBOUND@CARRAYFVALUE@@RFCHXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd165", id_value = 4000479, constant = "COMPOBJ_ORD_165" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 166
 name = "OPDELETE16"
 kind = "stub"
-binding = { rust_id = "CompobjOPDELETE16", id_value = 4000480, constant = "COMPOBJ_OPDELETE16" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 167
 name = "?GETSIZEVALUE@CARRAYFVALUE@@RFCHXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd167", id_value = 4000481, constant = "COMPOBJ_ORD_167" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 168
 name = "?PROXY1632ADDREF@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd168", id_value = 4000482, constant = "COMPOBJ_ORD_168" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 169
 name = "REMLOOKUPSHUNK_dup"
 kind = "stub"
-binding = { rust_id = "CompobjREMLOOKUPSHUNKDup", id_value = 4000483, constant = "COMPOBJ_REMLOOKUPSHUNK_DUP" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 170
 name = "?ISEMPTY@CMAPKEYTOVALUE@@RFCHXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd170", id_value = 4000484, constant = "COMPOBJ_ORD_170" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 171
 name = "?FREE@CSTDMALLOC@@VEAXPEX@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd171", id_value = 4000485, constant = "COMPOBJ_ORD_171" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 172
 name = "CALLTHKMGRINITIALIZE"
 kind = "stub"
-binding = { rust_id = "CompobjCALLTHKMGRINITIALIZE", id_value = 4000486, constant = "COMPOBJ_CALLTHKMGRINITIALIZE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 173
 name = "?REALLOC@CSTDMALLOC@@VEAPEXPEXK@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd173", id_value = 4000487, constant = "COMPOBJ_ORD_173" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 174
 name = "?SM16RHQI@@ZAPEXPEVCSM16RELEASEHANDLER@@AFUGUID@@PEPEX@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd174", id_value = 4000488, constant = "COMPOBJ_ORD_174" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 175
 name = "?PROXY1632METHOD10@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd175", id_value = 4000489, constant = "COMPOBJ_ORD_175" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 176
 name = "___EXPORTEDSTUB_dup"
 kind = "stub"
-binding = { rust_id = "CompobjOrd176", id_value = 4000490, constant = "COMPOBJ_ORD_176" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 177
 name = "?PROXY1632METHOD20@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd177", id_value = 4000491, constant = "COMPOBJ_ORD_177" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 178
 name = "?PROXY1632METHOD11@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd178", id_value = 4000492, constant = "COMPOBJ_ORD_178" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 179
 name = "?PROXY1632METHOD30@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd179", id_value = 4000493, constant = "COMPOBJ_ORD_179" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 180
 name = "?PROXY1632METHOD21@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd180", id_value = 4000494, constant = "COMPOBJ_ORD_180" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 181
 name = "?PROXY1632METHOD12@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd181", id_value = 4000495, constant = "COMPOBJ_ORD_181" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 182
 name = "?PROXY1632METHOD31@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd182", id_value = 4000496, constant = "COMPOBJ_ORD_182" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 183
 name = "?PROXY1632METHOD22@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd183", id_value = 4000497, constant = "COMPOBJ_ORD_183" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 184
 name = "?PROXY1632METHOD13@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd184", id_value = 4000498, constant = "COMPOBJ_ORD_184" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 185
 name = "?GETSIZE@CSTDMALLOC@@VEAKPEX@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd185", id_value = 4000499, constant = "COMPOBJ_ORD_185" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 186
 name = "?PROXY1632METHOD23@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd186", id_value = 4000500, constant = "COMPOBJ_ORD_186" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 187
 name = "?PROXY1632METHOD14@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd187", id_value = 4000501, constant = "COMPOBJ_ORD_187" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 188
 name = "?PROXY1632METHOD24@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd188", id_value = 4000502, constant = "COMPOBJ_ORD_188" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 189
 name = "?PROXY1632METHOD15@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd189", id_value = 4000503, constant = "COMPOBJ_ORD_189" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 190
 name = "?PROXY1632METHOD25@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd190", id_value = 4000504, constant = "COMPOBJ_ORD_190" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 191
 name = "?PROXY1632METHOD16@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd191", id_value = 4000505, constant = "COMPOBJ_ORD_191" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 192
 name = "?PROXY1632METHOD26@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd192", id_value = 4000506, constant = "COMPOBJ_ORD_192" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 193
 name = "?PROXY1632METHOD17@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd193", id_value = 4000507, constant = "COMPOBJ_ORD_193" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 194
 name = "?PROXY1632METHOD27@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd194", id_value = 4000508, constant = "COMPOBJ_ORD_194" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 195
 name = "?PROXY1632METHOD18@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd195", id_value = 4000509, constant = "COMPOBJ_ORD_195" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 196
 name = "?PROXY1632METHOD28@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd196", id_value = 4000510, constant = "COMPOBJ_ORD_196" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 197
 name = "?ADDREF@CSTDMALLOC@@VEAKXZ"
 kind = "stub"
-binding = { rust_id = "CompobjOrd197", id_value = 4000511, constant = "COMPOBJ_ORD_197" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 198
 name = "?PROXY1632METHOD19@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd198", id_value = 4000512, constant = "COMPOBJ_ORD_198" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 199
 name = "?PROXY1632METHOD29@@ZAKPEVCPROXY1632@@@Z"
 kind = "stub"
-binding = { rust_id = "CompobjOrd199", id_value = 4000513, constant = "COMPOBJ_ORD_199" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 200
 name = "CALL32INITIALIZE"
 kind = "stub"
-binding = { rust_id = "CompobjCALL32INITIALIZE", id_value = 4000514, constant = "COMPOBJ_CALL32INITIALIZE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 201
@@ -1680,41 +1272,26 @@ params = [
 ordinal = 203
 name = "CALLOBJECTINWOWCHECKINIT"
 kind = "stub"
-binding = { rust_id = "CompobjCALLOBJECTINWOWCHECKINIT", id_value = 4000516, constant = "COMPOBJ_CALLOBJECTINWOWCHECKINIT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 204
 name = "CALLOBJECTINWOWCHECKTHKMGR"
 kind = "stub"
-binding = { rust_id = "CompobjCALLOBJECTINWOWCHECKTHKMGR", id_value = 4000517, constant = "COMPOBJ_CALLOBJECTINWOWCHECKTHKMGR" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 205
 name = "CONVERTHR1632"
 kind = "stub"
-binding = { rust_id = "CompobjCONVERTHR1632", id_value = 4000518, constant = "COMPOBJ_CONVERTHR1632" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 206
 name = "CONVERTHR3216"
 kind = "stub"
-binding = { rust_id = "CompobjCONVERTHR3216", id_value = 4000519, constant = "COMPOBJ_CONVERTHR3216" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 207
 name = "ADDAPPCOMPATFLAG"
 kind = "stub"
-binding = { rust_id = "CompobjADDAPPCOMPATFLAG", id_value = 4000520, constant = "COMPOBJ_ADDAPPCOMPATFLAG" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 500
@@ -1831,4 +1408,3 @@ returns = "dword"
 params = [
   { name = "a0", type = "FarPointer" },
 ]
-

@@ -21,9 +21,10 @@ impl Win16State {
         module: Win16OleRemainderModule,
         ordinal: u16,
         return_kind: Win16ReturnKind,
+        name: &str,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        let value = self.ole_remainder_value(module, ordinal, return_kind)?;
+        let value = self.ole_remainder_value(module, ordinal, return_kind, name)?;
         if !is_defined_result(module, ordinal)
             && self.ole_remainder_reported.insert((module as u8, ordinal))
         {
@@ -31,7 +32,7 @@ impl Win16State {
                 Kind::CompatibilityGap,
                 format!(
                     "{module:?} ordinal {ordinal} {} and does not write guest memory",
-                    failure_name(module, return_kind)
+                    failure_name(module, return_kind, name)
                 ),
             ));
         }
@@ -43,6 +44,7 @@ impl Win16State {
         module: Win16OleRemainderModule,
         ordinal: u16,
         return_kind: Win16ReturnKind,
+        name: &str,
     ) -> Result<u32, RuntimeError> {
         if is_version(module, ordinal) {
             return Ok(OLE2_01_BUILD);
@@ -58,12 +60,18 @@ impl Win16State {
             Win16ReturnKind::Word | Win16ReturnKind::Void => 0,
             Win16ReturnKind::Dword
             | Win16ReturnKind::FarPointer
-            | Win16ReturnKind::RegisterContext => match module {
-                Win16OleRemainderModule::OleCli | Win16OleRemainderModule::OleSvr => {
+            | Win16ReturnKind::RegisterContext => {
+                if returns_scalar_zero(name) {
+                    0
+                } else if matches!(
+                    module,
+                    Win16OleRemainderModule::OleCli | Win16OleRemainderModule::OleSvr
+                ) {
                     OLE_ERROR_GENERIC
+                } else {
+                    E_NOTIMPL
                 }
-                _ => E_NOTIMPL,
-            },
+            }
         })
     }
 }
@@ -94,16 +102,58 @@ fn is_defined_result(module: Win16OleRemainderModule, ordinal: u16) -> bool {
         || matches!((module, ordinal), (Win16OleRemainderModule::Compobj, 34))
 }
 
-fn failure_name(module: Win16OleRemainderModule, return_kind: Win16ReturnKind) -> &'static str {
+/// Pointer, handle, count, BOOL, and `LRESULT` results. Zero is the failure.
+/// `E_NOTIMPL` is reserved for HRESULT contracts because `0x80004001` is a
+/// non-null guest far pointer.
+fn returns_scalar_zero(name: &str) -> bool {
+    let upper = name.to_ascii_uppercase();
+    if upper.ends_with("WNDPROC") || upper.ends_with("WINDOWPROC") || upper.ends_with("DLGPROC") {
+        return true;
+    }
+    if upper == "ENUMFONTFUNC" {
+        return true;
+    }
+    if let Some((owner, suffix)) = upper.rsplit_once('_') {
+        if !owner.is_empty()
+            && matches!(
+                suffix,
+                "ADDREF"
+                    | "RELEASE"
+                    | "ALLOC"
+                    | "REALLOC"
+                    | "FREE"
+                    | "GETSIZE"
+                    | "DIDALLOC"
+                    | "HEAPMINIMIZE"
+            )
+        {
+            return true;
+        }
+    }
+    matches!(
+        upper.as_str(),
+        "ISVALIDINTERFACE" | "COISOLE1CLASS" | "COMEMALLOC" | "LOOKUPETASK" | "LHASHVALOFNAMESYS"
+    )
+}
+
+fn failure_name(
+    module: Win16OleRemainderModule,
+    return_kind: Win16ReturnKind,
+    name: &str,
+) -> &'static str {
     match return_kind {
         Win16ReturnKind::Void => "is void",
         Win16ReturnKind::Word => "returns zero",
         Win16ReturnKind::Dword | Win16ReturnKind::FarPointer | Win16ReturnKind::RegisterContext => {
-            match module {
-                Win16OleRemainderModule::OleCli | Win16OleRemainderModule::OleSvr => {
-                    "returns OLE_ERROR_GENERIC"
+            if returns_scalar_zero(name) {
+                "returns zero"
+            } else {
+                match module {
+                    Win16OleRemainderModule::OleCli | Win16OleRemainderModule::OleSvr => {
+                        "returns OLE_ERROR_GENERIC"
+                    }
+                    _ => "returns E_NOTIMPL",
                 }
-                _ => "returns E_NOTIMPL",
             }
         }
     }

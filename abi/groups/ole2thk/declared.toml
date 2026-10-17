@@ -4,47 +4,28 @@ module = "OLE2THK"
 ordinal = 2
 name = "ROT16_ISRUNNING16"
 kind = "stub"
-binding = { rust_id = "Ole2ThkROT16ISRUNNING16", id_value = 4000205, constant = "OLE2THK_ROT16_ISRUNNING16" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 3
 name = "ISWIN32SHANDLE"
 kind = "stub"
-binding = { rust_id = "Ole2ThkISWIN32SHANDLE", id_value = 4000206, constant = "OLE2THK_ISWIN32SHANDLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 4
 name = "___EXPORTEDSTUB"
 kind = "stub"
-binding = { rust_id = "Ole2ThkOrd4", id_value = 4000207, constant = "OLE2THK_ORD_4" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 5
 name = "COTHKCOMMON"
 kind = "stub"
-binding = { rust_id = "Ole2ThkCOTHKCOMMON", id_value = 4000208, constant = "OLE2THK_COTHKCOMMON" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 6
 name = "ROT16_GETTIMEOFLASTCHANGE16"
 kind = "stub"
-binding = { rust_id = "Ole2ThkROT16GETTIMEOFLASTCHANGE16", id_value = 4000209, constant = "OLE2THK_ROT16_GETTIMEOFLASTCHANGE16" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 7
 name = "ROT16_GETOBJECT16"
 kind = "stub"
-binding = { rust_id = "Ole2ThkROT16GETOBJECT16", id_value = 4000210, constant = "OLE2THK_ROT16_GETOBJECT16" }
-[exports.call]
-returns = "dword"
-

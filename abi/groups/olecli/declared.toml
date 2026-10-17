@@ -7,6 +7,12 @@ kind = "stub"
 binding = { rust_id = "OleCliDOCWNDPROC", id_value = 4000211, constant = "OLECLI_DOCWNDPROC" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 101
@@ -15,926 +21,587 @@ kind = "stub"
 binding = { rust_id = "OleCliSRVRWNDPROC", id_value = 4000212, constant = "OLECLI_SRVRWNDPROC" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 102
 name = "MFCALLBACKFUNC"
 kind = "stub"
-binding = { rust_id = "OleCliMFCALLBACKFUNC", id_value = 4000213, constant = "OLECLI_MFCALLBACKFUNC" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 110
 name = "DEFLOADFROMSTREAM"
 kind = "stub"
-binding = { rust_id = "OleCliDEFLOADFROMSTREAM", id_value = 4000214, constant = "OLECLI_DEFLOADFROMSTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 111
 name = "DEFCREATEFROMCLIP"
 kind = "stub"
-binding = { rust_id = "OleCliDEFCREATEFROMCLIP", id_value = 4000215, constant = "OLECLI_DEFCREATEFROMCLIP" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 112
 name = "DEFCREATELINKFROMCLIP"
 kind = "stub"
-binding = { rust_id = "OleCliDEFCREATELINKFROMCLIP", id_value = 4000216, constant = "OLECLI_DEFCREATELINKFROMCLIP" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 113
 name = "DEFCREATEFROMTEMPLATE"
 kind = "stub"
-binding = { rust_id = "OleCliDEFCREATEFROMTEMPLATE", id_value = 4000217, constant = "OLECLI_DEFCREATEFROMTEMPLATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 114
 name = "DEFCREATE"
 kind = "stub"
-binding = { rust_id = "OleCliDEFCREATE", id_value = 4000218, constant = "OLECLI_DEFCREATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 115
 name = "DEFCREATEFROMFILE"
 kind = "stub"
-binding = { rust_id = "OleCliDEFCREATEFROMFILE", id_value = 4000219, constant = "OLECLI_DEFCREATEFROMFILE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 116
 name = "DEFCREATELINKFROMFILE"
 kind = "stub"
-binding = { rust_id = "OleCliDEFCREATELINKFROMFILE", id_value = 4000220, constant = "OLECLI_DEFCREATELINKFROMFILE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 117
 name = "DEFCREATEINVISIBLE"
 kind = "stub"
-binding = { rust_id = "OleCliDEFCREATEINVISIBLE", id_value = 4000221, constant = "OLECLI_DEFCREATEINVISIBLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 200
 name = "LERELEASE"
 kind = "stub"
-binding = { rust_id = "OleCliLERELEASE", id_value = 4000222, constant = "OLECLI_LERELEASE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 201
 name = "LESHOW"
 kind = "stub"
-binding = { rust_id = "OleCliLESHOW", id_value = 4000223, constant = "OLECLI_LESHOW" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 202
 name = "LEGETDATA"
 kind = "stub"
-binding = { rust_id = "OleCliLEGETDATA", id_value = 4000224, constant = "OLECLI_LEGETDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 203
 name = "LESETDATA"
 kind = "stub"
-binding = { rust_id = "OleCliLESETDATA", id_value = 4000225, constant = "OLECLI_LESETDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 204
 name = "LESETHOSTNAMES"
 kind = "stub"
-binding = { rust_id = "OleCliLESETHOSTNAMES", id_value = 4000226, constant = "OLECLI_LESETHOSTNAMES" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 205
 name = "LESETTARGETDEVICE"
 kind = "stub"
-binding = { rust_id = "OleCliLESETTARGETDEVICE", id_value = 4000227, constant = "OLECLI_LESETTARGETDEVICE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 206
 name = "LESETBOUNDS"
 kind = "stub"
-binding = { rust_id = "OleCliLESETBOUNDS", id_value = 4000228, constant = "OLECLI_LESETBOUNDS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 207
 name = "LESAVETOSTREAM"
 kind = "stub"
-binding = { rust_id = "OleCliLESAVETOSTREAM", id_value = 4000229, constant = "OLECLI_LESAVETOSTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 208
 name = "LECLONE"
 kind = "stub"
-binding = { rust_id = "OleCliLECLONE", id_value = 4000230, constant = "OLECLI_LECLONE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 209
 name = "LECOPYFROMLINK"
 kind = "stub"
-binding = { rust_id = "OleCliLECOPYFROMLINK", id_value = 4000231, constant = "OLECLI_LECOPYFROMLINK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 210
 name = "LEEQUAL"
 kind = "stub"
-binding = { rust_id = "OleCliLEEQUAL", id_value = 4000232, constant = "OLECLI_LEEQUAL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 211
 name = "LECOPY"
 kind = "stub"
-binding = { rust_id = "OleCliLECOPY", id_value = 4000233, constant = "OLECLI_LECOPY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 212
 name = "LEQUERYTYPE"
 kind = "stub"
-binding = { rust_id = "OleCliLEQUERYTYPE", id_value = 4000234, constant = "OLECLI_LEQUERYTYPE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 213
 name = "LEQUERYBOUNDS"
 kind = "stub"
-binding = { rust_id = "OleCliLEQUERYBOUNDS", id_value = 4000235, constant = "OLECLI_LEQUERYBOUNDS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 214
 name = "LEDRAW"
 kind = "stub"
-binding = { rust_id = "OleCliLEDRAW", id_value = 4000236, constant = "OLECLI_LEDRAW" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 215
 name = "LEQUERYOPEN"
 kind = "stub"
-binding = { rust_id = "OleCliLEQUERYOPEN", id_value = 4000237, constant = "OLECLI_LEQUERYOPEN" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 216
 name = "LEACTIVATE"
 kind = "stub"
-binding = { rust_id = "OleCliLEACTIVATE", id_value = 4000238, constant = "OLECLI_LEACTIVATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 218
 name = "LEUPDATE"
 kind = "stub"
-binding = { rust_id = "OleCliLEUPDATE", id_value = 4000239, constant = "OLECLI_LEUPDATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 219
 name = "LERECONNECT"
 kind = "stub"
-binding = { rust_id = "OleCliLERECONNECT", id_value = 4000240, constant = "OLECLI_LERECONNECT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 220
 name = "LEENUMFORMAT"
 kind = "stub"
-binding = { rust_id = "OleCliLEENUMFORMAT", id_value = 4000241, constant = "OLECLI_LEENUMFORMAT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 221
 name = "LEQUERYPROTOCOL"
 kind = "stub"
-binding = { rust_id = "OleCliLEQUERYPROTOCOL", id_value = 4000242, constant = "OLECLI_LEQUERYPROTOCOL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 222
 name = "LEQUERYOUTOFDATE"
 kind = "stub"
-binding = { rust_id = "OleCliLEQUERYOUTOFDATE", id_value = 4000243, constant = "OLECLI_LEQUERYOUTOFDATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 223
 name = "LEOBJECTCONVERT"
 kind = "stub"
-binding = { rust_id = "OleCliLEOBJECTCONVERT", id_value = 4000244, constant = "OLECLI_LEOBJECTCONVERT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 224
 name = "LECHANGEDATA"
 kind = "stub"
-binding = { rust_id = "OleCliLECHANGEDATA", id_value = 4000245, constant = "OLECLI_LECHANGEDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 225
 name = "LECLOSE"
 kind = "stub"
-binding = { rust_id = "OleCliLECLOSE", id_value = 4000246, constant = "OLECLI_LECLOSE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 226
 name = "LEGETUPDATEOPTIONS"
 kind = "stub"
-binding = { rust_id = "OleCliLEGETUPDATEOPTIONS", id_value = 4000247, constant = "OLECLI_LEGETUPDATEOPTIONS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 227
 name = "LESETUPDATEOPTIONS"
 kind = "stub"
-binding = { rust_id = "OleCliLESETUPDATEOPTIONS", id_value = 4000248, constant = "OLECLI_LESETUPDATEOPTIONS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 228
 name = "LEEXECUTE"
 kind = "stub"
-binding = { rust_id = "OleCliLEEXECUTE", id_value = 4000249, constant = "OLECLI_LEEXECUTE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 229
 name = "LEOBJECTLONG"
 kind = "stub"
-binding = { rust_id = "OleCliLEOBJECTLONG", id_value = 4000250, constant = "OLECLI_LEOBJECTLONG" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 230
 name = "LECREATEINVISIBLE"
 kind = "stub"
-binding = { rust_id = "OleCliLECREATEINVISIBLE", id_value = 4000251, constant = "OLECLI_LECREATEINVISIBLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 300
 name = "MFRELEASE"
 kind = "stub"
-binding = { rust_id = "OleCliMFRELEASE", id_value = 4000252, constant = "OLECLI_MFRELEASE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 301
 name = "MFGETDATA"
 kind = "stub"
-binding = { rust_id = "OleCliMFGETDATA", id_value = 4000253, constant = "OLECLI_MFGETDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 302
 name = "MFSAVETOSTREAM"
 kind = "stub"
-binding = { rust_id = "OleCliMFSAVETOSTREAM", id_value = 4000254, constant = "OLECLI_MFSAVETOSTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 303
 name = "MFCLONE"
 kind = "stub"
-binding = { rust_id = "OleCliMFCLONE", id_value = 4000255, constant = "OLECLI_MFCLONE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 304
 name = "MFEQUAL"
 kind = "stub"
-binding = { rust_id = "OleCliMFEQUAL", id_value = 4000256, constant = "OLECLI_MFEQUAL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 305
 name = "MFCOPY"
 kind = "stub"
-binding = { rust_id = "OleCliMFCOPY", id_value = 4000257, constant = "OLECLI_MFCOPY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 307
 name = "MFQUERYBOUNDS"
 kind = "stub"
-binding = { rust_id = "OleCliMFQUERYBOUNDS", id_value = 4000258, constant = "OLECLI_MFQUERYBOUNDS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 308
 name = "MFDRAW"
 kind = "stub"
-binding = { rust_id = "OleCliMFDRAW", id_value = 4000259, constant = "OLECLI_MFDRAW" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 309
 name = "MFENUMFORMAT"
 kind = "stub"
-binding = { rust_id = "OleCliMFENUMFORMAT", id_value = 4000260, constant = "OLECLI_MFENUMFORMAT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 310
 name = "MFCHANGEDATA"
 kind = "stub"
-binding = { rust_id = "OleCliMFCHANGEDATA", id_value = 4000261, constant = "OLECLI_MFCHANGEDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 400
 name = "BMRELEASE"
 kind = "stub"
-binding = { rust_id = "OleCliBMRELEASE", id_value = 4000262, constant = "OLECLI_BMRELEASE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 401
 name = "BMGETDATA"
 kind = "stub"
-binding = { rust_id = "OleCliBMGETDATA", id_value = 4000263, constant = "OLECLI_BMGETDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 402
 name = "BMSAVETOSTREAM"
 kind = "stub"
-binding = { rust_id = "OleCliBMSAVETOSTREAM", id_value = 4000264, constant = "OLECLI_BMSAVETOSTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 403
 name = "BMCLONE"
 kind = "stub"
-binding = { rust_id = "OleCliBMCLONE", id_value = 4000265, constant = "OLECLI_BMCLONE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 404
 name = "BMEQUAL"
 kind = "stub"
-binding = { rust_id = "OleCliBMEQUAL", id_value = 4000266, constant = "OLECLI_BMEQUAL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 405
 name = "BMCOPY"
 kind = "stub"
-binding = { rust_id = "OleCliBMCOPY", id_value = 4000267, constant = "OLECLI_BMCOPY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 407
 name = "BMQUERYBOUNDS"
 kind = "stub"
-binding = { rust_id = "OleCliBMQUERYBOUNDS", id_value = 4000268, constant = "OLECLI_BMQUERYBOUNDS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 408
 name = "BMDRAW"
 kind = "stub"
-binding = { rust_id = "OleCliBMDRAW", id_value = 4000269, constant = "OLECLI_BMDRAW" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 409
 name = "BMENUMFORMAT"
 kind = "stub"
-binding = { rust_id = "OleCliBMENUMFORMAT", id_value = 4000270, constant = "OLECLI_BMENUMFORMAT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 410
 name = "BMCHANGEDATA"
 kind = "stub"
-binding = { rust_id = "OleCliBMCHANGEDATA", id_value = 4000271, constant = "OLECLI_BMCHANGEDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 500
 name = "DIBRELEASE"
 kind = "stub"
-binding = { rust_id = "OleCliDIBRELEASE", id_value = 4000272, constant = "OLECLI_DIBRELEASE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 501
 name = "DIBGETDATA"
 kind = "stub"
-binding = { rust_id = "OleCliDIBGETDATA", id_value = 4000273, constant = "OLECLI_DIBGETDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 502
 name = "DIBSAVETOSTREAM"
 kind = "stub"
-binding = { rust_id = "OleCliDIBSAVETOSTREAM", id_value = 4000274, constant = "OLECLI_DIBSAVETOSTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 503
 name = "DIBCLONE"
 kind = "stub"
-binding = { rust_id = "OleCliDIBCLONE", id_value = 4000275, constant = "OLECLI_DIBCLONE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 504
 name = "DIBEQUAL"
 kind = "stub"
-binding = { rust_id = "OleCliDIBEQUAL", id_value = 4000276, constant = "OLECLI_DIBEQUAL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 505
 name = "DIBCOPY"
 kind = "stub"
-binding = { rust_id = "OleCliDIBCOPY", id_value = 4000277, constant = "OLECLI_DIBCOPY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 507
 name = "DIBQUERYBOUNDS"
 kind = "stub"
-binding = { rust_id = "OleCliDIBQUERYBOUNDS", id_value = 4000278, constant = "OLECLI_DIBQUERYBOUNDS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 508
 name = "DIBDRAW"
 kind = "stub"
-binding = { rust_id = "OleCliDIBDRAW", id_value = 4000279, constant = "OLECLI_DIBDRAW" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 509
 name = "DIBENUMFORMAT"
 kind = "stub"
-binding = { rust_id = "OleCliDIBENUMFORMAT", id_value = 4000280, constant = "OLECLI_DIBENUMFORMAT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 510
 name = "DIBCHANGEDATA"
 kind = "stub"
-binding = { rust_id = "OleCliDIBCHANGEDATA", id_value = 4000281, constant = "OLECLI_DIBCHANGEDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 600
 name = "GENRELEASE"
 kind = "stub"
-binding = { rust_id = "OleCliGENRELEASE", id_value = 4000282, constant = "OLECLI_GENRELEASE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 601
 name = "GENGETDATA"
 kind = "stub"
-binding = { rust_id = "OleCliGENGETDATA", id_value = 4000283, constant = "OLECLI_GENGETDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 602
 name = "GENSETDATA"
 kind = "stub"
-binding = { rust_id = "OleCliGENSETDATA", id_value = 4000284, constant = "OLECLI_GENSETDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 603
 name = "GENSAVETOSTREAM"
 kind = "stub"
-binding = { rust_id = "OleCliGENSAVETOSTREAM", id_value = 4000285, constant = "OLECLI_GENSAVETOSTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 604
 name = "GENCLONE"
 kind = "stub"
-binding = { rust_id = "OleCliGENCLONE", id_value = 4000286, constant = "OLECLI_GENCLONE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 605
 name = "GENEQUAL"
 kind = "stub"
-binding = { rust_id = "OleCliGENEQUAL", id_value = 4000287, constant = "OLECLI_GENEQUAL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 606
 name = "GENCOPY"
 kind = "stub"
-binding = { rust_id = "OleCliGENCOPY", id_value = 4000288, constant = "OLECLI_GENCOPY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 608
 name = "GENQUERYBOUNDS"
 kind = "stub"
-binding = { rust_id = "OleCliGENQUERYBOUNDS", id_value = 4000289, constant = "OLECLI_GENQUERYBOUNDS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 609
 name = "GENDRAW"
 kind = "stub"
-binding = { rust_id = "OleCliGENDRAW", id_value = 4000290, constant = "OLECLI_GENDRAW" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 610
 name = "GENENUMFORMAT"
 kind = "stub"
-binding = { rust_id = "OleCliGENENUMFORMAT", id_value = 4000291, constant = "OLECLI_GENENUMFORMAT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 611
 name = "GENCHANGEDATA"
 kind = "stub"
-binding = { rust_id = "OleCliGENCHANGEDATA", id_value = 4000292, constant = "OLECLI_GENCHANGEDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 701
 name = "ERRSHOW"
 kind = "stub"
-binding = { rust_id = "OleCliERRSHOW", id_value = 4000293, constant = "OLECLI_ERRSHOW" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 702
 name = "ERRSETDATA"
 kind = "stub"
-binding = { rust_id = "OleCliERRSETDATA", id_value = 4000294, constant = "OLECLI_ERRSETDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 703
 name = "ERRSETHOSTNAMES"
 kind = "stub"
-binding = { rust_id = "OleCliERRSETHOSTNAMES", id_value = 4000295, constant = "OLECLI_ERRSETHOSTNAMES" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 704
 name = "ERRSETTARGETDEVICE"
 kind = "stub"
-binding = { rust_id = "OleCliERRSETTARGETDEVICE", id_value = 4000296, constant = "OLECLI_ERRSETTARGETDEVICE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 705
 name = "ERRSETBOUNDS"
 kind = "stub"
-binding = { rust_id = "OleCliERRSETBOUNDS", id_value = 4000297, constant = "OLECLI_ERRSETBOUNDS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 706
 name = "ERRCOPYFROMLINK"
 kind = "stub"
-binding = { rust_id = "OleCliERRCOPYFROMLINK", id_value = 4000298, constant = "OLECLI_ERRCOPYFROMLINK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 707
 name = "ERRQUERYOPEN"
 kind = "stub"
-binding = { rust_id = "OleCliERRQUERYOPEN", id_value = 4000299, constant = "OLECLI_ERRQUERYOPEN" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 708
 name = "ERRACTIVATE"
 kind = "stub"
-binding = { rust_id = "OleCliERRACTIVATE", id_value = 4000300, constant = "OLECLI_ERRACTIVATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 709
 name = "ERRCLOSE"
 kind = "stub"
-binding = { rust_id = "OleCliERRCLOSE", id_value = 4000301, constant = "OLECLI_ERRCLOSE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 710
 name = "ERRUPDATE"
 kind = "stub"
-binding = { rust_id = "OleCliERRUPDATE", id_value = 4000302, constant = "OLECLI_ERRUPDATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 711
 name = "ERRRECONNECT"
 kind = "stub"
-binding = { rust_id = "OleCliERRRECONNECT", id_value = 4000303, constant = "OLECLI_ERRRECONNECT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 712
 name = "ERRQUERYPROTOCOL"
 kind = "stub"
-binding = { rust_id = "OleCliERRQUERYPROTOCOL", id_value = 4000304, constant = "OLECLI_ERRQUERYPROTOCOL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 713
 name = "ERRQUERYOUTOFDATE"
 kind = "stub"
-binding = { rust_id = "OleCliERRQUERYOUTOFDATE", id_value = 4000305, constant = "OLECLI_ERRQUERYOUTOFDATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 714
 name = "ERROBJECTCONVERT"
 kind = "stub"
-binding = { rust_id = "OleCliERROBJECTCONVERT", id_value = 4000306, constant = "OLECLI_ERROBJECTCONVERT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 715
 name = "ERRGETUPDATEOPTIONS"
 kind = "stub"
-binding = { rust_id = "OleCliERRGETUPDATEOPTIONS", id_value = 4000307, constant = "OLECLI_ERRGETUPDATEOPTIONS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 716
 name = "ERRSETUPDATEOPTIONS"
 kind = "stub"
-binding = { rust_id = "OleCliERRSETUPDATEOPTIONS", id_value = 4000308, constant = "OLECLI_ERRSETUPDATEOPTIONS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 717
 name = "ERREXECUTE"
 kind = "stub"
-binding = { rust_id = "OleCliERREXECUTE", id_value = 4000309, constant = "OLECLI_ERREXECUTE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 718
 name = "ERROBJECTLONG"
 kind = "stub"
-binding = { rust_id = "OleCliERROBJECTLONG", id_value = 4000310, constant = "OLECLI_ERROBJECTLONG" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 800
 name = "PBLOADFROMSTREAM"
 kind = "stub"
-binding = { rust_id = "OleCliPBLOADFROMSTREAM", id_value = 4000311, constant = "OLECLI_PBLOADFROMSTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 801
 name = "PBCREATEFROMCLIP"
 kind = "stub"
-binding = { rust_id = "OleCliPBCREATEFROMCLIP", id_value = 4000312, constant = "OLECLI_PBCREATEFROMCLIP" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 802
 name = "PBCREATELINKFROMCLIP"
 kind = "stub"
-binding = { rust_id = "OleCliPBCREATELINKFROMCLIP", id_value = 4000313, constant = "OLECLI_PBCREATELINKFROMCLIP" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 803
 name = "PBCREATEFROMTEMPLATE"
 kind = "stub"
-binding = { rust_id = "OleCliPBCREATEFROMTEMPLATE", id_value = 4000314, constant = "OLECLI_PBCREATEFROMTEMPLATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 804
 name = "PBCREATE"
 kind = "stub"
-binding = { rust_id = "OleCliPBCREATE", id_value = 4000315, constant = "OLECLI_PBCREATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 805
 name = "PBDRAW"
 kind = "stub"
-binding = { rust_id = "OleCliPBDRAW", id_value = 4000316, constant = "OLECLI_PBDRAW" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 806
 name = "PBQUERYBOUNDS"
 kind = "stub"
-binding = { rust_id = "OleCliPBQUERYBOUNDS", id_value = 4000317, constant = "OLECLI_PBQUERYBOUNDS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 807
 name = "PBCOPYTOCLIPBOARD"
 kind = "stub"
-binding = { rust_id = "OleCliPBCOPYTOCLIPBOARD", id_value = 4000318, constant = "OLECLI_PBCOPYTOCLIPBOARD" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 808
 name = "PBCREATEFROMFILE"
 kind = "stub"
-binding = { rust_id = "OleCliPBCREATEFROMFILE", id_value = 4000319, constant = "OLECLI_PBCREATEFROMFILE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 809
 name = "PBCREATELINKFROMFILE"
 kind = "stub"
-binding = { rust_id = "OleCliPBCREATELINKFROMFILE", id_value = 4000320, constant = "OLECLI_PBCREATELINKFROMFILE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 810
 name = "PBENUMFORMATS"
 kind = "stub"
-binding = { rust_id = "OleCliPBENUMFORMATS", id_value = 4000321, constant = "OLECLI_PBENUMFORMATS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 811
 name = "PBGETDATA"
 kind = "stub"
-binding = { rust_id = "OleCliPBGETDATA", id_value = 4000322, constant = "OLECLI_PBGETDATA" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 812
 name = "PBCREATEINVISIBLE"
 kind = "stub"
-binding = { rust_id = "OleCliPBCREATEINVISIBLE", id_value = 4000323, constant = "OLECLI_PBCREATEINVISIBLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 910
 name = "OBJQUERYNAME"
 kind = "stub"
-binding = { rust_id = "OleCliOBJQUERYNAME", id_value = 4000324, constant = "OLECLI_OBJQUERYNAME" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 911
 name = "OBJRENAME"
 kind = "stub"
-binding = { rust_id = "OleCliOBJRENAME", id_value = 4000325, constant = "OLECLI_OBJRENAME" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 912
 name = "OBJQUERYTYPE"
 kind = "stub"
-binding = { rust_id = "OleCliOBJQUERYTYPE", id_value = 4000326, constant = "OLECLI_OBJQUERYTYPE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 913
 name = "OBJQUERYSIZE"
 kind = "stub"
-binding = { rust_id = "OleCliOBJQUERYSIZE", id_value = 4000327, constant = "OLECLI_OBJQUERYSIZE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 950
@@ -943,36 +610,29 @@ kind = "stub"
 binding = { rust_id = "OleCliCONNECTDLGPROC", id_value = 4000328, constant = "OLECLI_CONNECTDLGPROC" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 951
 name = "SETNETNAME"
 kind = "stub"
-binding = { rust_id = "OleCliSETNETNAME", id_value = 4000329, constant = "OLECLI_SETNETNAME" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 952
 name = "CHECKNETDRIVE"
 kind = "stub"
-binding = { rust_id = "OleCliCHECKNETDRIVE", id_value = 4000330, constant = "OLECLI_CHECKNETDRIVE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 953
 name = "SETNEXTNETDRIVE"
 kind = "stub"
-binding = { rust_id = "OleCliSETNEXTNETDRIVE", id_value = 4000331, constant = "OLECLI_SETNEXTNETDRIVE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 954
 name = "GETTASKVISIBLEWINDOW"
 kind = "stub"
-binding = { rust_id = "OleCliGETTASKVISIBLEWINDOW", id_value = 4000332, constant = "OLECLI_GETTASKVISIBLEWINDOW" }
-[exports.call]
-returns = "dword"
-

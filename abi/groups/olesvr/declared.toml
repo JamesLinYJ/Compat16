@@ -7,6 +7,12 @@ kind = "stub"
 binding = { rust_id = "OleSvrSRVRWNDPROC", id_value = 4000333, constant = "OLESVR_SRVRWNDPROC" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 22
@@ -15,6 +21,12 @@ kind = "stub"
 binding = { rust_id = "OleSvrDOCWNDPROC", id_value = 4000334, constant = "OLESVR_DOCWNDPROC" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 23
@@ -23,62 +35,47 @@ kind = "stub"
 binding = { rust_id = "OleSvrITEMWNDPROC", id_value = 4000335, constant = "OLESVR_ITEMWNDPROC" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "window", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "w_param", type = "U16" },
+  { name = "l_param", type = "U32" },
+]
 
 [[exports]]
 ordinal = 24
 name = "SENDDATAMSG"
 kind = "stub"
-binding = { rust_id = "OleSvrSENDDATAMSG", id_value = 4000336, constant = "OLESVR_SENDDATAMSG" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 25
 name = "FINDITEMWND"
 kind = "stub"
-binding = { rust_id = "OleSvrFINDITEMWND", id_value = 4000337, constant = "OLESVR_FINDITEMWND" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 27
 name = "TERMINATECLIENTS"
 kind = "stub"
-binding = { rust_id = "OleSvrTERMINATECLIENTS", id_value = 4000338, constant = "OLESVR_TERMINATECLIENTS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 28
 name = "TERMINATEDOCCLIENTS"
 kind = "stub"
-binding = { rust_id = "OleSvrTERMINATEDOCCLIENTS", id_value = 4000339, constant = "OLESVR_TERMINATEDOCCLIENTS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 29
 name = "DELETECLIENTINFO"
 kind = "stub"
-binding = { rust_id = "OleSvrDELETECLIENTINFO", id_value = 4000340, constant = "OLESVR_DELETECLIENTINFO" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 30
 name = "SENDRENAMEMSG"
 kind = "stub"
-binding = { rust_id = "OleSvrSENDRENAMEMSG", id_value = 4000341, constant = "OLESVR_SENDRENAMEMSG" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 31
 name = "ENUMFORTERMINATE"
 kind = "stub"
-binding = { rust_id = "OleSvrENUMFORTERMINATE", id_value = 4000342, constant = "OLESVR_ENUMFORTERMINATE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 32
@@ -95,4 +92,3 @@ params = [
   { name = "a4", type = "U32" },
   { name = "a5", type = "U16" },
 ]
-

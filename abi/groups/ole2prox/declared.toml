@@ -7,4 +7,8 @@ kind = "stub"
 binding = { rust_id = "Ole2ProxDLLGETCLASSOBJECT", id_value = 4000204, constant = "OLE2PROX_DLLGETCLASSOBJECT" }
 [exports.call]
 returns = "dword"
-
+params = [
+  { name = "clsid", type = "FarPointer" },
+  { name = "iid", type = "FarPointer" },
+  { name = "object", type = "FarPointer" },
+]

@@ -129,9 +129,6 @@ params = [
 ordinal = 11
 name = "OLECREATELINK"
 kind = "stub"
-binding = { rust_id = "Ole2OLECREATELINK", id_value = 4000010, constant = "OLE2_OLECREATELINK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 12
@@ -362,9 +359,6 @@ params = [
 ordinal = 31
 name = "OLEGETMALLOC"
 kind = "stub"
-binding = { rust_id = "Ole2OLEGETMALLOC", id_value = 4000029, constant = "OLE2_OLEGETMALLOC" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 32
@@ -381,17 +375,11 @@ params = [
 ordinal = 33
 name = "READSTRINGSTREAM"
 kind = "stub"
-binding = { rust_id = "Ole2READSTRINGSTREAM", id_value = 4000031, constant = "OLE2_READSTRINGSTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 34
 name = "WRITESTRINGSTREAM"
 kind = "stub"
-binding = { rust_id = "Ole2WRITESTRINGSTREAM", id_value = 4000032, constant = "OLE2_WRITESTRINGSTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 35
@@ -494,49 +482,31 @@ params = [
 ordinal = 43
 name = "OPENORCREATESTREAM"
 kind = "stub"
-binding = { rust_id = "Ole2OPENORCREATESTREAM", id_value = 4000041, constant = "OLE2_OPENORCREATESTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 44
 name = "CREATEANTIMONIKER"
 kind = "stub"
-binding = { rust_id = "Ole2CREATEANTIMONIKER", id_value = 4000042, constant = "OLE2_CREATEANTIMONIKER" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 45
 name = "CREATEPOINTERMONIKER"
 kind = "stub"
-binding = { rust_id = "Ole2CREATEPOINTERMONIKER", id_value = 4000043, constant = "OLE2_CREATEPOINTERMONIKER" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 46
 name = "MONIKERRELATIVEPATHTO"
 kind = "stub"
-binding = { rust_id = "Ole2MONIKERRELATIVEPATHTO", id_value = 4000044, constant = "OLE2_MONIKERRELATIVEPATHTO" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 47
 name = "MONIKERCOMMONPREFIXWITH"
 kind = "stub"
-binding = { rust_id = "Ole2MONIKERCOMMONPREFIXWITH", id_value = 4000045, constant = "OLE2_MONIKERCOMMONPREFIXWITH" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 48
 name = "ISACCELERATOR"
 kind = "stub"
-binding = { rust_id = "Ole2ISACCELERATOR", id_value = 4000046, constant = "OLE2_ISACCELERATOR" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 49
@@ -731,41 +701,26 @@ params = [
 ordinal = 63
 name = "SETDOCUMENTBITSTG"
 kind = "stub"
-binding = { rust_id = "Ole2SETDOCUMENTBITSTG", id_value = 4000061, constant = "OLE2_SETDOCUMENTBITSTG" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 64
 name = "GETDOCUMENTBITSTG"
 kind = "stub"
-binding = { rust_id = "Ole2GETDOCUMENTBITSTG", id_value = 4000062, constant = "OLE2_GETDOCUMENTBITSTG" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 65
 name = "WRITEOLESTG"
 kind = "stub"
-binding = { rust_id = "Ole2WRITEOLESTG", id_value = 4000063, constant = "OLE2_WRITEOLESTG" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 66
 name = "READOLESTG"
 kind = "stub"
-binding = { rust_id = "Ole2READOLESTG", id_value = 4000064, constant = "OLE2_READOLESTG" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 67
 name = "OLECREATEFROMFILE"
 kind = "stub"
-binding = { rust_id = "Ole2OLECREATEFROMFILE", id_value = 4000065, constant = "OLE2_OLECREATEFROMFILE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 68
@@ -788,9 +743,6 @@ params = [
 ordinal = 69
 name = "CREATEDATACACHE"
 kind = "stub"
-binding = { rust_id = "Ole2CREATEDATACACHE", id_value = 4000067, constant = "OLE2_CREATEDATACACHE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 70
@@ -1055,113 +1007,71 @@ params = [
 ordinal = 93
 name = "OLEGETENUMFORMATETC"
 kind = "stub"
-binding = { rust_id = "Ole2OLEGETENUMFORMATETC", id_value = 4000089, constant = "OLE2_OLEGETENUMFORMATETC" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 100
 name = "MAKEDEBUGSTREAM"
 kind = "stub"
-binding = { rust_id = "Ole2MAKEDEBUGSTREAM", id_value = 4000090, constant = "OLE2_MAKEDEBUGSTREAM" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 104
 name = "DBGLOGOPEN"
 kind = "stub"
-binding = { rust_id = "Ole2DBGLOGOPEN", id_value = 4000091, constant = "OLE2_DBGLOGOPEN" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 105
 name = "DBGLOGCLOSE"
 kind = "stub"
-binding = { rust_id = "Ole2DBGLOGCLOSE", id_value = 4000092, constant = "OLE2_DBGLOGCLOSE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 106
 name = "DBGLOGOUTPUTDEBUGSTRING"
 kind = "stub"
-binding = { rust_id = "Ole2DBGLOGOUTPUTDEBUGSTRING", id_value = 4000093, constant = "OLE2_DBGLOGOUTPUTDEBUGSTRING" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 107
 name = "DBGLOGWRITE"
 kind = "stub"
-binding = { rust_id = "Ole2DBGLOGWRITE", id_value = 4000094, constant = "OLE2_DBGLOGWRITE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 108
 name = "DBGLOGTIMESTAMP"
 kind = "stub"
-binding = { rust_id = "Ole2DBGLOGTIMESTAMP", id_value = 4000095, constant = "OLE2_DBGLOGTIMESTAMP" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 109
 name = "DBGLOGWRITEBANNER"
 kind = "stub"
-binding = { rust_id = "Ole2DBGLOGWRITEBANNER", id_value = 4000096, constant = "OLE2_DBGLOGWRITEBANNER" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 110
 name = "DBGDUMPOBJECT"
 kind = "stub"
-binding = { rust_id = "Ole2DBGDUMPOBJECT", id_value = 4000097, constant = "OLE2_DBGDUMPOBJECT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 111
 name = "DBGISOBJECTVALID"
 kind = "stub"
-binding = { rust_id = "Ole2DBGISOBJECTVALID", id_value = 4000098, constant = "OLE2_DBGISOBJECTVALID" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 112
 name = "DUMPALLOBJECTS"
 kind = "stub"
-binding = { rust_id = "Ole2DUMPALLOBJECTS", id_value = 4000099, constant = "OLE2_DUMPALLOBJECTS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 113
 name = "VALIDATEALLOBJECTS"
 kind = "stub"
-binding = { rust_id = "Ole2VALIDATEALLOBJECTS", id_value = 4000100, constant = "OLE2_VALIDATEALLOBJECTS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 114
 name = "DBGDUMPCLASSNAME"
 kind = "stub"
-binding = { rust_id = "Ole2DBGDUMPCLASSNAME", id_value = 4000101, constant = "OLE2_DBGDUMPCLASSNAME" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 115
 name = "DBGDUMPEXTERNALOBJECT"
 kind = "stub"
-binding = { rust_id = "Ole2DBGDUMPEXTERNALOBJECT", id_value = 4000102, constant = "OLE2_DBGDUMPEXTERNALOBJECT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 120
@@ -1777,4 +1687,3 @@ params = [
   { name = "a4", type = "U32" },
   { name = "a5", type = "U16" },
 ]
-

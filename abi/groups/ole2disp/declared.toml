@@ -7,6 +7,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispDLLGETCLASSOBJECT", id_value = 4000135, constant = "OLE2DISP_DLLGETCLASSOBJECT" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "clsid", type = "FarPointer" },
+  { name = "iid", type = "FarPointer" },
+  { name = "object", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 13
@@ -15,6 +20,12 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARIANTTIMETODOSDATETIME", id_value = 4000136, constant = "OLE2DISP_VARIANTTIMETODOSDATETIME" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "variant_time_high", type = "U32" },
+  { name = "variant_time_low", type = "U32" },
+  { name = "dos_date", type = "FarPointer" },
+  { name = "dos_time", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 14
@@ -23,6 +34,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispDOSDATETIMETOVARIANTTIME", id_value = 4000137, constant = "OLE2DISP_DOSDATETIMETOVARIANTTIME" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "dos_date", type = "U16" },
+  { name = "dos_time", type = "U16" },
+  { name = "variant_time", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 28
@@ -168,6 +184,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARI2FROMDISP", id_value = 4000147, constant = "OLE2DISP_VARI2FROMDISP" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "FarPointer" },
+  { name = "lcid", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 51
@@ -176,6 +197,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARI4FROMI2", id_value = 4000148, constant = "OLE2DISP_VARI4FROMI2" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 52
@@ -184,6 +209,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARI4FROMR4", id_value = 4000149, constant = "OLE2DISP_VARI4FROMR4" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 53
@@ -192,6 +221,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARI4FROMR8", id_value = 4000150, constant = "OLE2DISP_VARI4FROMR8" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 54
@@ -200,6 +234,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARI4FROMCY", id_value = 4000151, constant = "OLE2DISP_VARI4FROMCY" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 55
@@ -208,6 +247,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARI4FROMDATE", id_value = 4000152, constant = "OLE2DISP_VARI4FROMDATE" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 57
@@ -216,6 +260,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARI4FROMDISP", id_value = 4000153, constant = "OLE2DISP_VARI4FROMDISP" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "FarPointer" },
+  { name = "lcid", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 58
@@ -224,6 +273,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARI4FROMBOOL", id_value = 4000154, constant = "OLE2DISP_VARI4FROMBOOL" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 59
@@ -232,6 +285,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR4FROMI2", id_value = 4000155, constant = "OLE2DISP_VARR4FROMI2" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 60
@@ -240,6 +297,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR4FROMI4", id_value = 4000156, constant = "OLE2DISP_VARR4FROMI4" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 62
@@ -248,6 +309,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR4FROMCY", id_value = 4000157, constant = "OLE2DISP_VARR4FROMCY" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 63
@@ -256,6 +322,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR4FROMDATE", id_value = 4000158, constant = "OLE2DISP_VARR4FROMDATE" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 65
@@ -264,6 +335,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR4FROMDISP", id_value = 4000159, constant = "OLE2DISP_VARR4FROMDISP" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "FarPointer" },
+  { name = "lcid", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 66
@@ -272,6 +348,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR4FROMBOOL", id_value = 4000160, constant = "OLE2DISP_VARR4FROMBOOL" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 67
@@ -280,6 +360,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR8FROMI2", id_value = 4000161, constant = "OLE2DISP_VARR8FROMI2" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 68
@@ -288,6 +372,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR8FROMI4", id_value = 4000162, constant = "OLE2DISP_VARR8FROMI4" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 69
@@ -296,6 +384,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR8FROMR4", id_value = 4000163, constant = "OLE2DISP_VARR8FROMR4" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 70
@@ -304,6 +396,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR8FROMCY", id_value = 4000164, constant = "OLE2DISP_VARR8FROMCY" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 71
@@ -312,6 +409,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR8FROMDATE", id_value = 4000165, constant = "OLE2DISP_VARR8FROMDATE" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 73
@@ -320,6 +422,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR8FROMDISP", id_value = 4000166, constant = "OLE2DISP_VARR8FROMDISP" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "FarPointer" },
+  { name = "lcid", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 74
@@ -328,6 +435,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR8FROMBOOL", id_value = 4000167, constant = "OLE2DISP_VARR8FROMBOOL" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 75
@@ -336,6 +447,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARDATEFROMI2", id_value = 4000168, constant = "OLE2DISP_VARDATEFROMI2" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 76
@@ -344,6 +459,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARDATEFROMI4", id_value = 4000169, constant = "OLE2DISP_VARDATEFROMI4" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 77
@@ -352,6 +471,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARDATEFROMR4", id_value = 4000170, constant = "OLE2DISP_VARDATEFROMR4" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 78
@@ -360,6 +483,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARDATEFROMR8", id_value = 4000171, constant = "OLE2DISP_VARDATEFROMR8" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 79
@@ -368,6 +496,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARDATEFROMCY", id_value = 4000172, constant = "OLE2DISP_VARDATEFROMCY" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 81
@@ -376,6 +509,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARDATEFROMDISP", id_value = 4000173, constant = "OLE2DISP_VARDATEFROMDISP" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "FarPointer" },
+  { name = "lcid", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 82
@@ -384,6 +522,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARDATEFROMBOOL", id_value = 4000174, constant = "OLE2DISP_VARDATEFROMBOOL" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 83
@@ -392,6 +534,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARCYFROMI2", id_value = 4000175, constant = "OLE2DISP_VARCYFROMI2" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 84
@@ -400,6 +546,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARCYFROMI4", id_value = 4000176, constant = "OLE2DISP_VARCYFROMI4" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 85
@@ -408,6 +558,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARCYFROMR4", id_value = 4000177, constant = "OLE2DISP_VARCYFROMR4" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 86
@@ -416,6 +570,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARCYFROMR8", id_value = 4000178, constant = "OLE2DISP_VARCYFROMR8" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 87
@@ -424,6 +583,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARCYFROMDATE", id_value = 4000179, constant = "OLE2DISP_VARCYFROMDATE" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 89
@@ -432,6 +596,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARCYFROMDISP", id_value = 4000180, constant = "OLE2DISP_VARCYFROMDISP" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "FarPointer" },
+  { name = "lcid", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 90
@@ -440,6 +609,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARCYFROMBOOL", id_value = 4000181, constant = "OLE2DISP_VARCYFROMBOOL" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 99
@@ -448,6 +621,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARBOOLFROMI2", id_value = 4000182, constant = "OLE2DISP_VARBOOLFROMI2" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 100
@@ -456,6 +633,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARBOOLFROMI4", id_value = 4000183, constant = "OLE2DISP_VARBOOLFROMI4" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 101
@@ -464,6 +645,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARBOOLFROMR4", id_value = 4000184, constant = "OLE2DISP_VARBOOLFROMR4" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 102
@@ -472,6 +657,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARBOOLFROMR8", id_value = 4000185, constant = "OLE2DISP_VARBOOLFROMR8" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 103
@@ -480,6 +670,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARBOOLFROMDATE", id_value = 4000186, constant = "OLE2DISP_VARBOOLFROMDATE" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 104
@@ -488,6 +683,11 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARBOOLFROMCY", id_value = 4000187, constant = "OLE2DISP_VARBOOLFROMCY" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source_high", type = "U32" },
+  { name = "source_low", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 105
@@ -496,6 +696,12 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARBOOLFROMSTR", id_value = 4000188, constant = "OLE2DISP_VARBOOLFROMSTR" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "FarString" },
+  { name = "lcid", type = "U32" },
+  { name = "flags", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 106
@@ -504,14 +710,16 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARBOOLFROMDISP", id_value = 4000189, constant = "OLE2DISP_VARBOOLFROMDISP" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "FarPointer" },
+  { name = "lcid", type = "U32" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 107
 name = "DOINVOKEMETHOD"
 kind = "stub"
-binding = { rust_id = "Ole2DispDOINVOKEMETHOD", id_value = 4000190, constant = "OLE2DISP_DOINVOKEMETHOD" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 110
@@ -573,6 +781,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARI4FROMUI1", id_value = 4000194, constant = "OLE2DISP_VARI4FROMUI1" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 127
@@ -581,6 +793,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR4FROMUI1", id_value = 4000195, constant = "OLE2DISP_VARR4FROMUI1" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 128
@@ -589,6 +805,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARR8FROMUI1", id_value = 4000196, constant = "OLE2DISP_VARR8FROMUI1" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 129
@@ -597,6 +817,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARDATEFROMUI1", id_value = 4000197, constant = "OLE2DISP_VARDATEFROMUI1" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 130
@@ -605,6 +829,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARCYFROMUI1", id_value = 4000198, constant = "OLE2DISP_VARCYFROMUI1" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 132
@@ -613,6 +841,10 @@ kind = "stub"
 binding = { rust_id = "Ole2DispVARBOOLFROMUI1", id_value = 4000199, constant = "OLE2DISP_VARBOOLFROMUI1" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "source", type = "U16" },
+  { name = "result", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 133
@@ -621,4 +853,3 @@ kind = "stub"
 binding = { rust_id = "Ole2DispDLLCANUNLOADNOW", id_value = 4000200, constant = "OLE2DISP_DLLCANUNLOADNOW" }
 [exports.call]
 returns = "dword"
-

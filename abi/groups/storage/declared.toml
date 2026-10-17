@@ -103,4 +103,8 @@ kind = "stub"
 binding = { rust_id = "StorageDllGetClassObject", id_value = 4000537, constant = "STORAGE_DLLGETCLASSOBJECT" }
 [exports.call]
 returns = "dword"
-
+params = [
+  { name = "clsid", type = "FarPointer" },
+  { name = "iid", type = "FarPointer" },
+  { name = "object", type = "FarPointer" },
+]

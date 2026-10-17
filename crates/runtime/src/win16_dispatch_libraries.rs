@@ -22,7 +22,13 @@ impl Win16State {
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::OleRemainder {
                 module,
                 ordinal,
-            }) => self.ole_remainder(module, ordinal, descriptor.return_kind, host)?,
+            }) => self.ole_remainder(
+                module,
+                ordinal,
+                descriptor.return_kind,
+                descriptor.name(),
+                host,
+            )?,
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::IsEqualGuid {
                 left, right,
             }) => u32::from(left == right),
