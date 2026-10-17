@@ -39,7 +39,7 @@ impl Win16State {
         operation_id: Win16HostWindowOperationId,
         source: Win16NativeCallbackSource,
     ) -> Result<bool, RuntimeError> {
-        let (guest_window, guest_timer_id, timer_proc, window_proc) =
+        let (guest_window, guest_timer_id, timer_proc, window_proc, guest_message) =
             if let Some(host_timer_id) = host_timer_id {
                 let Some((guest_window, guest_timer_id, registration)) =
                     self.timers.registration_for_host(host_timer_id)
@@ -59,7 +59,13 @@ impl Win16State {
                 } else {
                     None
                 };
-                (guest_window, guest_timer_id, registration.callback, window_proc)
+                (
+                    guest_window,
+                    guest_timer_id,
+                    registration.callback,
+                    window_proc,
+                    registration.guest_message(),
+                )
             } else {
                 let guest_window = match host_window {
                     Some(native) => match self.window_handles.iter().find_map(|(guest, found)|
@@ -74,8 +80,13 @@ impl Win16State {
                 } else {
                     None
                 };
-                (guest_window, guest_w_param, (guest_l_param != 0).then_some(guest_l_param),
-                    window_proc)
+                (
+                    guest_window,
+                    guest_w_param,
+                    (guest_l_param != 0).then_some(guest_l_param),
+                    window_proc,
+                    WM_TIMER,
+                )
             };
 
         let (procedure, instance, stack_l_param, stack_w_param, class_root) =
@@ -91,7 +102,7 @@ impl Win16State {
             };
 
         let payload = GuestWindowPayload {
-            message: WM_TIMER,
+            message: guest_message,
             w_param: stack_w_param,
             l_param: stack_l_param,
             allocation: None,

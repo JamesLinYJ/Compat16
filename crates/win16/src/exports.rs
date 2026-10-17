@@ -362,6 +362,10 @@ mod void_text_region_tests;
 mod line_dda_global_void_tests;
 
 #[cfg(test)]
+#[path = "exports/call_system_timer_tests.rs"]
+mod call_system_timer_tests;
+
+#[cfg(test)]
 #[path = "exports/abi_baseline_tests.rs"]
 mod abi_baseline_tests;
 

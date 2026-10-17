@@ -20,7 +20,6 @@ enum ResolvedMessageWindow {
 }
 
 const WM_QUIT: u16 = 0x0012;
-const WM_TIMER: u16 = 0x0113;
 const WM_DROPFILES: u16 = 0x0233;
 
 impl Win16State {
@@ -322,7 +321,7 @@ impl Win16State {
                 return_to,
             );
         }
-        if message.message == WM_TIMER && message.l_param != 0 {
+        if Win16ScalarMessage::is_timer_message(message.message) && message.l_param != 0 {
             return self.begin_guest_dispatch_callback(registers, memory, message, true, return_to);
         }
 
@@ -366,7 +365,7 @@ impl Win16State {
         // window-input family carry typed HWND identities, so they can safely
         // go through native DispatchMessage even for a borrowed native HWND.
         let scalar = Win16ScalarMessage::from_raw(message.message).is_some()
-            || (message.message == WM_TIMER && message.l_param == 0)
+            || (Win16ScalarMessage::is_timer_message(message.message) && message.l_param == 0)
             || message.message == super::messages::WM_CHANGECBCHAIN
             || typed_message.is_some()
             || window_input.is_some();

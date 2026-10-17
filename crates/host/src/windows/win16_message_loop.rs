@@ -12,7 +12,7 @@ use runtime::{
 use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     DispatchMessageW, MSG, PM_REMOVE, PeekMessageW, PostQuitMessage, TranslateMessage,
-    WM_CHANGECBCHAIN, WM_CLOSE, WM_COMMAND, WM_DESTROY, WM_SYSCOMMAND, WM_TIMER, WM_USER,
+    WM_CHANGECBCHAIN, WM_CLOSE, WM_COMMAND, WM_DESTROY, WM_SYSCOMMAND, WM_USER,
 };
 
 use super::win16_window_worker::{self as worker, WorkerCommand, WorkerState};
@@ -400,17 +400,17 @@ pub(super) fn dispatch_message(
         && !(runtime::is_multimedia_notification_message(message.message)
             && !runtime::multimedia_notification_has_guest_far_lparam(message.message)
             && matches!(message.l_param, Win16MessageParam::Scalar(_)))
-        && !(message.message == WM_TIMER as u16 && native_l_param == 0)
+        && !(Win16ScalarMessage::is_timer_message(message.message) && native_l_param == 0)
     {
         return Err(RuntimeError::new(
             Kind::InternalInvariant,
             "an unconverted guest message reached native DispatchMessage",
         ));
     }
-    if message.message == WM_TIMER as u16 && native_l_param != 0 {
+    if Win16ScalarMessage::is_timer_message(message.message) && native_l_param != 0 {
         return Err(RuntimeError::new(
             Kind::InternalInvariant,
-            "guest WM_TIMER callback address reached native DispatchMessage",
+            "guest timer callback address reached native DispatchMessage",
         ));
     }
     let mut native = native_message(hwnd, message, native_l_param);

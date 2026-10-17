@@ -49,6 +49,30 @@ params = [
 ]
 
 [[exports]]
+ordinal = 11
+name = "SetSystemTimer"
+binding = { rust_id = "UserSetSystemTimer", id_value = 1285, constant = "USER_SET_SYSTEM_TIMER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "timer_id", type = "U16" },
+  { name = "interval", type = "U16" },
+  { name = "callback", type = "FarPointer", encoding = "segmented_pointer" },
+]
+
+[[exports]]
+ordinal = 182
+name = "KillSystemTimer"
+binding = { rust_id = "UserKillSystemTimer", id_value = 1286, constant = "USER_KILL_SYSTEM_TIMER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "timer_id", type = "U16" },
+]
+
+[[exports]]
 ordinal = 18
 name = "SetCapture"
 binding = { rust_id = "UserSetCapture", id_value = 440, constant = "USER_SET_CAPTURE" }

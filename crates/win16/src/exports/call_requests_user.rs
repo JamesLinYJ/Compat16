@@ -181,6 +181,8 @@ pub(super) fn decode(
         | Win16ExportId::UserDispatchMessage
         | Win16ExportId::UserSetTimer
         | Win16ExportId::UserKillTimer
+        | Win16ExportId::UserSetSystemTimer
+        | Win16ExportId::UserKillSystemTimer
         | Win16ExportId::UserSetCapture
         | Win16ExportId::UserReleaseCapture
         | Win16ExportId::UserSetFocus

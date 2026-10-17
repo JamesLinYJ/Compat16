@@ -499,7 +499,7 @@ pub(super) fn handle_modal_message(
         CarrierLookup::NotCarrier => return Ok(false),
     };
     let scalar = Win16ScalarMessage::from_raw(notification.message).is_some()
-        && (notification.message != Win16ScalarMessage::Timer as u16
+        && (!Win16ScalarMessage::is_timer_message(notification.message)
             || notification.l_param == 0);
     let multimedia_scalar = runtime::is_multimedia_notification_message(notification.message)
         && !runtime::multimedia_notification_has_guest_far_lparam(notification.message);

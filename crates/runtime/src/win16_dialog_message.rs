@@ -64,13 +64,13 @@ pub(super) fn prepare(
             notify: command.notify,
             control_parent: None,
         }
-    } else if message.message == 0x0113 && message.l_param != 0 {
-        // A queued Win16 WM_TIMER may carry a guest TIMERPROC FAR address.
+    } else if Win16ScalarMessage::is_timer_message(message.message) && message.l_param != 0 {
+        // A queued Win16 timer may carry a guest TIMERPROC FAR address.
         // Native IsDialogMessage can dispatch the MSG, so never let that
         // guest address become a native TIMERPROC.
         host.report_diagnostic(&Diagnostic::warning(
             Kind::CompatibilityGap,
-            "IsDialogMessage WM_TIMER with a guest callback needs timer-aware dispatch",
+            "IsDialogMessage timer callback needs timer-aware dispatch",
         ));
         return Ok(Win16UserFamilyPreparation::immediate(0, return_kind));
     } else if Win16ScalarMessage::from_raw(message.message).is_some() {

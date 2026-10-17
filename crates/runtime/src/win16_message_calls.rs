@@ -220,79 +220,29 @@ impl Win16State {
                     interval,
                     callback,
                 },
-            )) => {
-                let Some(native_window) = self
-                    .window_handles
-                    .get(&window)
-                    .copied()
-                    .filter(|_| window != 0)
-                else {
-                    if window != 0 {
-                        return self.complete_return(
-                            registers,
-                            return_to.0,
-                            return_to.1,
-                            return_to.2,
-                            0,
-                            Win16ReturnKind::Word,
-                        );
-                    }
-                    return self.begin_set_timer(
-                        registers, memory, host, window, None, timer_id, interval, callback,
-                        return_to,
-                    );
-                };
-                self.begin_set_timer(
-                    registers,
-                    memory,
-                    host,
+            )) => self.begin_user_timer(
+                registers, memory, host, window, timer_id, interval, callback, false, return_to,
+            ),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::SetSystemTimer {
                     window,
-                    Some(native_window),
                     timer_id,
                     interval,
                     callback,
-                    return_to,
-                )
-            }
+                },
+            )) => self.begin_user_timer(
+                registers, memory, host, window, timer_id, interval, callback, true, return_to,
+            ),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::KillTimer { window, timer_id },
-            )) => {
-                let Some(registration) = self.timers.get(window, timer_id) else {
-                    return self.complete_return(
-                        registers,
-                        return_to.0,
-                        return_to.1,
-                        return_to.2,
-                        0,
-                        Win16ReturnKind::Word,
-                    );
-                };
-                let native_window = self.window_handles.get(&window).copied();
-                if window != 0 && native_window.is_none() {
-                    return self.complete_return(
-                        registers,
-                        return_to.0,
-                        return_to.1,
-                        return_to.2,
-                        0,
-                        Win16ReturnKind::Word,
-                    );
-                }
-                self.begin_message_call(
-                    registers,
-                    memory,
-                    host,
-                    Win16MessageCall::KillTimer {
-                        window: native_window,
-                        host_timer_id: registration.host_id,
-                    },
-                    Win16MessageCallContinuation::KillTimer {
-                        guest_window: window,
-                        guest_timer_id: timer_id,
-                    },
-                    return_to,
-                )
-            }
+            )) => self.begin_user_kill_timer(
+                registers, memory, host, window, timer_id, false, return_to,
+            ),
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::KillSystemTimer { window, timer_id },
+            )) => self.begin_user_kill_timer(
+                registers, memory, host, window, timer_id, true, return_to,
+            ),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::SetFocus { window },
             )) => self.begin_focus_capture(registers, memory, host, window, true, return_to),
@@ -619,6 +569,101 @@ impl Win16State {
         Ok(Some((window, parameter, guest_class)))
     }
 
+    fn begin_user_timer(
+        &mut self,
+        registers: &mut Registers,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+        window: u16,
+        timer_id: u16,
+        interval: u16,
+        callback: u32,
+        system: bool,
+        return_to: (u16, u16, u32),
+    ) -> Result<Option<u8>, RuntimeError> {
+        let Some(native_window) = self
+            .window_handles
+            .get(&window)
+            .copied()
+            .filter(|_| window != 0)
+        else {
+            if window != 0 {
+                return self.complete_return(
+                    registers,
+                    return_to.0,
+                    return_to.1,
+                    return_to.2,
+                    0,
+                    Win16ReturnKind::Word,
+                );
+            }
+            return self.begin_set_timer(
+                registers, memory, host, window, None, timer_id, interval, callback, system,
+                return_to,
+            );
+        };
+        self.begin_set_timer(
+            registers,
+            memory,
+            host,
+            window,
+            Some(native_window),
+            timer_id,
+            interval,
+            callback,
+            system,
+            return_to,
+        )
+    }
+
+    fn begin_user_kill_timer(
+        &mut self,
+        registers: &mut Registers,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+        window: u16,
+        timer_id: u16,
+        system: bool,
+        return_to: (u16, u16, u32),
+    ) -> Result<Option<u8>, RuntimeError> {
+        let Some(registration) = self.timers.get(window, timer_id, system) else {
+            return self.complete_return(
+                registers,
+                return_to.0,
+                return_to.1,
+                return_to.2,
+                0,
+                Win16ReturnKind::Word,
+            );
+        };
+        let native_window = self.window_handles.get(&window).copied();
+        if window != 0 && native_window.is_none() {
+            return self.complete_return(
+                registers,
+                return_to.0,
+                return_to.1,
+                return_to.2,
+                0,
+                Win16ReturnKind::Word,
+            );
+        }
+        self.begin_message_call(
+            registers,
+            memory,
+            host,
+            Win16MessageCall::KillTimer {
+                window: native_window,
+                host_timer_id: registration.host_id,
+            },
+            Win16MessageCallContinuation::KillTimer {
+                guest_window: window,
+                guest_timer_id: timer_id,
+                system,
+            },
+            return_to,
+        )
+    }
+
     fn begin_set_timer(
         &mut self,
         registers: &mut Registers,
@@ -629,6 +674,7 @@ impl Win16State {
         requested_id: u16,
         interval: u16,
         callback: u32,
+        system: bool,
         return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
         if callback != 0 {
@@ -636,7 +682,7 @@ impl Win16State {
         }
         let guest_timer_id = if requested_id != 0 {
             requested_id
-        } else if let Some(id) = self.timers.allocate_guest_id(guest_window) {
+        } else if let Some(id) = self.timers.allocate_guest_id(guest_window, system) {
             id
         } else {
             host.report_diagnostic(&Diagnostic::warning(
@@ -654,10 +700,11 @@ impl Win16State {
         };
         // The host field is an opaque timer-generation token, not the native
         // UINT_PTR. It lets the worker replace this Win16 timer only after a
-        // new native generation has been installed successfully.
+        // new native generation has been installed successfully. Replacement
+        // stays inside the same SetTimer or SetSystemTimer namespace.
         let native_timer_id = self
             .timers
-            .get(guest_window, guest_timer_id)
+            .get(guest_window, guest_timer_id, system)
             .map(|entry| entry.host_id);
         let call = Win16MessageCall::SetTimer {
             window: native_window,
@@ -665,6 +712,7 @@ impl Win16State {
             interval_ms: interval,
             native_timer_id,
             guest_callback: callback != 0,
+            system,
         };
         self.begin_message_call(
             registers,
@@ -676,6 +724,7 @@ impl Win16State {
                 host_window: native_window,
                 guest_timer_id,
                 callback: (callback != 0).then_some(callback),
+                system,
             },
             return_to,
         )
@@ -772,8 +821,9 @@ impl Win16State {
         self.selectors
             .translate(callback, Access::Execute, 1, memory)
             .map_err(crate::runtime_error)?;
-        // SetTimer only registers the callback. The callback stack is checked
-        // when WM_TIMER actually dispatches, against that call site's SS:SP.
+        // SetTimer and SetSystemTimer only register the callback. The callback
+        // stack is checked when the timer message actually dispatches, against
+        // that call site's SS:SP.
         Ok(())
     }
 }

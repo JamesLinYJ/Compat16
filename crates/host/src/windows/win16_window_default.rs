@@ -594,7 +594,7 @@ fn message_with_invocation(
                 }
             } else {
                 let pointer_free = Win16ScalarMessage::from_raw(notification.message).is_some()
-                    && (notification.message != Win16ScalarMessage::Timer as u16
+                    && (!Win16ScalarMessage::is_timer_message(notification.message)
                         || notification.l_param == 0);
                 if pointer_free {
                     invoke_message(
