@@ -144,6 +144,18 @@ impl Win16State {
                 return_to, return_kind, None,
             ),
             Request::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::CascadeChildWindows { parent, flags },
+            )) => self.begin_arrange_children(
+                registers, memory, host, parent, flags,
+                crate::Win16ChildArrangeMode::Cascade, return_to, return_kind,
+            ),
+            Request::User(win16_abi::Win16UserRequest::Window(
+                win16_abi::Win16UserWindowRequest::TileChildWindows { parent, flags },
+            )) => self.begin_arrange_children(
+                registers, memory, host, parent, flags,
+                crate::Win16ChildArrangeMode::Tile, return_to, return_kind,
+            ),
+            Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::IsIconic { window },
             )) => self.submit_value_call(
                 registers,
@@ -390,5 +402,52 @@ impl Win16State {
                 "non-window request reached the Win16 window-operation bridge",
             )),
         }
+    }
+
+    fn begin_arrange_children(
+        &mut self,
+        registers: &mut Registers,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+        parent: u16,
+        flags: u16,
+        mode: crate::Win16ChildArrangeMode,
+        return_to: (u16, u16, u32),
+        return_kind: Win16ReturnKind,
+    ) -> Result<Option<u8>, RuntimeError> {
+        let Some(&parent_native) = self.window_handles.get(&parent).filter(|_| parent != 0) else {
+            return self.complete_return(
+                registers, return_to.0, return_to.1, return_to.2, 0, return_kind,
+            );
+        };
+        let mut children = Vec::new();
+        for &child in &self.mdi_children {
+            if self.window_parents.get(&child).copied() != Some(parent) {
+                continue;
+            }
+            if let Some(&native) = self.window_handles.get(&child) {
+                children.push(native);
+            }
+        }
+        if children.is_empty() {
+            return self.complete_return(
+                registers, return_to.0, return_to.1, return_to.2, 0, return_kind,
+            );
+        }
+        self.submit_call(
+            registers,
+            memory,
+            host,
+            Win16WindowCall::ArrangeChildWindows {
+                parent: parent_native,
+                children,
+                flags,
+                mode,
+            },
+            Win16WindowCallOutput::Integer,
+            return_to,
+            return_kind,
+            None,
+        )
     }
 }

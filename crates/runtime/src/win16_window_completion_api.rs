@@ -575,6 +575,26 @@ pub(super) fn finish_message_call(
             }
             (Call::SetKeyboardState, ResultValue::Boolean(_succeeded)) =>
                 (0, Win16ReturnKind::Void),
+            (Call::QuerySendMessage { output, window, message, w_param, l_param },
+                ResultValue::QuerySend { in_send, time, x, y }) => {
+                if *in_send {
+                    if let (Some(range), Some(hwnd)) = (output, *window) {
+                        let bytes = win16_abi::Msg16 {
+                            hwnd,
+                            message: *message,
+                            w_param: *w_param,
+                            l_param: *l_param,
+                            time: *time,
+                            pt: win16_abi::Point16 { x: *x, y: *y },
+                        }.encode();
+                        super::super::guest_ranges::commit_guest_output_with_selectors(
+                            access.selectors, memory, range, &bytes,
+                        )?;
+                        *phase = Phase::OutputCommitted;
+                    }
+                }
+                (u32::from(*in_send), Win16ReturnKind::Word)
+            }
             _ => return Err(RuntimeError::new(Kind::InternalInvariant,
                 "USER message result does not match its retained call owner")),
         };

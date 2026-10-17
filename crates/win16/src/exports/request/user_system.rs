@@ -25,4 +25,22 @@ pub enum Win16UserSystemRequest {
     GetDialogBaseUnits,
     /// Desktop-wide query for an owned, visible top-level window.
     AnyPopup,
+
+    /// USER.188 stores one guest HWND. Zero clears the system-modal window.
+    SetSysModalWindow {
+        window: u16,
+    },
+
+    /// USER.189 reads the current system-modal guest HWND.
+    GetSysModalWindow,
+
+    /// USER.281. The signed index selects a Windows 3.1 COLOR_* brush.
+    GetSysColorBrush {
+        index: i16,
+    },
+
+    /// USER.284. The selector is GFSR_SYSTEMRESOURCES, GDI, or USER.
+    GetFreeSystemResources {
+        selector: u16,
+    },
 }

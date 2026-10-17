@@ -344,7 +344,8 @@ pub use win16_host_menus::{
 pub use win16_host_nonclient::{Win16HostNonClientCalcSize, Win16HostWindowPos};
 pub(crate) use win16_host_window_ops::Win16WindowCallOutput;
 pub use win16_host_window_ops::{
-    Win16CaretShape, Win16DeferredWindowPos,
+    Win16ArrangeChild, Win16CaretShape, Win16ChildArrangeMode, Win16DeferredWindowPos,
+    MDITILE_HORIZONTAL, MDITILE_SKIPDISABLED,
     Win16WindowEnumerationScope, Win16WindowEnumerationQuery, Win16WindowEnumerationReply,
     Win16WindowCall, Win16WindowCallResult, Win16WindowInsertAfter, Win16WindowSearchClass,
     Win16WindowTarget, Win16WindowPlacement,

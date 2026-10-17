@@ -64,6 +64,7 @@ impl Win16State {
                 | win16_abi::Win16UserMessagesRequest::GetMessageTime
                 | win16_abi::Win16UserMessagesRequest::GetMessageExtraInfo
                 | win16_abi::Win16UserMessagesRequest::InSendMessage
+                | win16_abi::Win16UserMessagesRequest::QuerySendMessage { .. }
                 | win16_abi::Win16UserMessagesRequest::ReplyMessage { .. }
                 | win16_abi::Win16UserMessagesRequest::CallWindowProc { .. }
                 | win16_abi::Win16UserMessagesRequest::GetKeyboardState { .. }
@@ -109,6 +110,8 @@ impl Win16State {
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::CloseWindow { .. }
                 | win16_abi::Win16UserWindowRequest::ArrangeIconicWindows { .. }
+                | win16_abi::Win16UserWindowRequest::CascadeChildWindows { .. }
+                | win16_abi::Win16UserWindowRequest::TileChildWindows { .. }
                 | win16_abi::Win16UserWindowRequest::FlashWindow { .. }
                 | win16_abi::Win16UserWindowRequest::OpenIcon { .. }
                 | win16_abi::Win16UserWindowRequest::IsIconic { .. },
@@ -666,7 +669,7 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::UserSystem(request) => {
-                super::user_services_system::dispatch(request, host)?
+                super::user_services_system::dispatch(self, request, host)?
             }
             Win16ApiRequest::UserFamily(request) => {
                 return self.begin_user_family_request(
@@ -760,3 +763,7 @@ mod character_classification_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_keyboard_state_tests.rs"]
 mod keyboard_state_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_window_management_tests.rs"]
+mod window_management_tests;

@@ -97,6 +97,11 @@ pub(super) fn decode(
         Win16ExportId::UserInSendMessage => Ok(Win16ApiRequest::User(
             super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::InSendMessage),
         )),
+        Win16ExportId::UserQuerySendMessage => Ok(Win16ApiRequest::User(
+            super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::QuerySendMessage {
+                message: dword_argument(arguments, 3)?,
+            }),
+        )),
         Win16ExportId::UserReplyMessage => Ok(Win16ApiRequest::User(
             super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::ReplyMessage {
                 result: dword_argument(arguments, 0)? as i32,

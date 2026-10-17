@@ -99,6 +99,12 @@ pub enum Win16UserMessagesRequest {
     /// current guest window callback.
     InSendMessage,
 
+    /// USER.184. The three reserved handles stay ignored. `message` is a raw
+    /// guest FAR to an optional MSG16; zero writes nothing.
+    QuerySendMessage {
+        message: u32,
+    },
+
     /// Release a synchronous sender while this window procedure continues.
     /// Windows 3.1 declares a signed LONG input and no return value.
     ReplyMessage { result: i32 },

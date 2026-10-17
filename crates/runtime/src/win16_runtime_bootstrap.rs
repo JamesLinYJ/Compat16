@@ -271,6 +271,7 @@ impl Win16State {
             window_classes: classes::GuestWindowClasses::new(),
             window_system_classes: BTreeMap::new(),
             mdi_children: BTreeSet::new(),
+            sysmodal_window: None,
             window_creations: BTreeMap::new(),
             guest_menus: menu::GuestMenus::new(),
             timers: message_calls::Win16TimerRegistrations::default(),

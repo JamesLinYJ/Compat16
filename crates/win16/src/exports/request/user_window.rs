@@ -162,6 +162,20 @@ pub enum Win16UserWindowRequest {
         window: u16,
     },
 
+    /// USER.198 cascades MDI children of one parent. `flags` keeps the
+    /// Windows 3.1 MDITILE_* word.
+    CascadeChildWindows {
+        parent: u16,
+        flags: u16,
+    },
+
+    /// USER.199 tiles MDI children of one parent. `flags` keeps the
+    /// Windows 3.1 MDITILE_* word.
+    TileChildWindows {
+        parent: u16,
+        flags: u16,
+    },
+
     /// Query the native minimized state of a window.
     IsIconic {
         window: u16,

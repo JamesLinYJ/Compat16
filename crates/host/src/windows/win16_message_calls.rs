@@ -415,6 +415,25 @@ pub(super) fn execute(
                 InSendMessage() != 0
             }))
         }
+        Win16MessageCall::QuerySendMessage => {
+            // Same native predicate as InSendMessage. Time and point are read
+            // only while that predicate is true, so a posted message cannot
+            // leak into the MSG16.
+            let in_send = unsafe { InSendMessage() != 0 };
+            if !in_send {
+                return Ok(Win16MessageCallResult::QuerySend {
+                    in_send: false, time: 0, x: 0, y: 0,
+                });
+            }
+            let time = unsafe { GetMessageTime() } as u32;
+            let pos = unsafe { GetMessagePos() };
+            Ok(Win16MessageCallResult::QuerySend {
+                in_send: true,
+                time,
+                x: pos as i16,
+                y: (pos >> 16) as i16,
+            })
+        }
         Win16MessageCall::ReplyMessage { result } => {
             // Nested Begin commands execute on the suspended native WndProc
             // stack. Native BOOL is only an internal completion receipt: the

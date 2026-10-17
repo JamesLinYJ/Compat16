@@ -48,6 +48,37 @@ pub struct Win16DeferredWindowPos {
     pub flags: u16,
 }
 
+/// Windows 3.1 `MDITILE_*` bits used by CascadeChildWindows and TileChildWindows.
+pub const MDITILE_HORIZONTAL: u16 = 0x0001;
+pub const MDITILE_SKIPDISABLED: u16 = 0x0002;
+
+/// How USER.198 and USER.199 place the same child list.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16ChildArrangeMode {
+    Cascade,
+    Tile,
+}
+
+/// Native facts used to decide whether one MDI child is arranged.
+/// Guest handles never appear here.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Win16ArrangeChild {
+    pub window: Win16HostWindow,
+    pub iconic: bool,
+    pub enabled: bool,
+    pub visible: bool,
+}
+
+impl Win16ArrangeChild {
+    /// Windows 3.1 cascades and tiles visible, non-iconic children.
+    /// `MDITILE_SKIPDISABLED` also omits a disabled child.
+    pub fn participates(self, flags: u16) -> bool {
+        self.visible
+            && !self.iconic
+            && (self.enabled || flags & MDITILE_SKIPDISABLED == 0)
+    }
+}
+
 /// A guest HWND after runtime translation. `Null` preserves the Win16 null
 /// handle for native API semantics; `Invalid` prevents an unknown nonzero
 /// guest token from being mistaken for native NULL; `Mapped` is an opaque
@@ -101,6 +132,15 @@ pub enum Win16WindowCall {
     OpenIcon { window: Win16WindowTarget },
     FlashWindow { window: Win16WindowTarget, invert: bool },
     ArrangeIconicWindows { window: Win16WindowTarget },
+    /// Arrange the supplied MDI children. The runtime already limited the
+    /// list to `mdi_children` of one parent. Iconic, hidden, and optionally
+    /// disabled windows are omitted before native placement.
+    ArrangeChildWindows {
+        parent: Win16HostWindow,
+        children: Vec<Win16HostWindow>,
+        flags: u16,
+        mode: Win16ChildArrangeMode,
+    },
     IsIconic { window: Win16WindowTarget },
     GetWindowRect { window: Win16WindowTarget },
     GetClientRect { window: Win16WindowTarget },

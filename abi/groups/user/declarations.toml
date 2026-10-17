@@ -244,11 +244,6 @@ name = "KillSystemTimer"
 decl = { args = ["word", "word"] }
 
 [[exports]]
-ordinal = 184
-name = "QuerySendMessage"
-decl = { args = ["word", "word", "word", "pointer"] }
-
-[[exports]]
 ordinal = 185
 name = "GrayString"
 decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "signed_word", "signed_word", "signed_word", "signed_word"] }
@@ -284,30 +279,11 @@ binding = { rust_id = "UserEndMenu", id_value = 503, constant = "USER_END_MENU" 
 returns = "word"
 
 [[exports]]
-ordinal = 188
-name = "SetSysModalWindow"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 189
-name = "GetSysModalWindow"
-
-[[exports]]
 ordinal = 192
 name = "InSendMessage"
 binding = { rust_id = "UserInSendMessage", id_value = 1227, constant = "USER_IN_SEND_MESSAGE" }
 [exports.call]
 returns = "word"
-
-[[exports]]
-ordinal = 198
-name = "CascadeChildWindows"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 199
-name = "TileChildWindows"
-decl = { args = ["word", "word"] }
 
 [[exports]]
 ordinal = 200
@@ -509,16 +485,6 @@ name = "GetDesktopHwnd"
 [[exports]]
 ordinal = 279
 name = "OldSetDeskPattern"
-
-[[exports]]
-ordinal = 281
-name = "GetSysColorBrush"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 284
-name = "GetFreeSystemResources"
-decl = { args = ["word"] }
 
 [[exports]]
 ordinal = 285

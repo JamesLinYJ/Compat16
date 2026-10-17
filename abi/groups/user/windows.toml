@@ -1014,3 +1014,75 @@ params = [
   { name = "instance", type = "U16" },
   { name = "parameter", type = "FarPointer", encoding = "segmented_pointer" },
 ]
+
+[[exports]]
+ordinal = 184
+name = "QuerySendMessage"
+binding = { rust_id = "UserQuerySendMessage", id_value = 1300, constant = "USER_QUERY_SEND_MESSAGE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "reserved1", type = "U16" },
+  { name = "reserved2", type = "U16" },
+  { name = "reserved3", type = "U16" },
+  { name = "message", type = "U32", encoding = "pointer" },
+]
+
+[[exports]]
+ordinal = 188
+name = "SetSysModalWindow"
+binding = { rust_id = "UserSetSysModalWindow", id_value = 1301, constant = "USER_SET_SYS_MODAL_WINDOW" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
+
+[[exports]]
+ordinal = 189
+name = "GetSysModalWindow"
+binding = { rust_id = "UserGetSysModalWindow", id_value = 1302, constant = "USER_GET_SYS_MODAL_WINDOW" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 198
+name = "CascadeChildWindows"
+binding = { rust_id = "UserCascadeChildWindows", id_value = 1303, constant = "USER_CASCADE_CHILD_WINDOWS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 199
+name = "TileChildWindows"
+binding = { rust_id = "UserTileChildWindows", id_value = 1304, constant = "USER_TILE_CHILD_WINDOWS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 281
+name = "GetSysColorBrush"
+binding = { rust_id = "UserGetSysColorBrush", id_value = 1305, constant = "USER_GET_SYS_COLOR_BRUSH" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "index", type = "I16" },
+]
+
+[[exports]]
+ordinal = 284
+name = "GetFreeSystemResources"
+binding = { rust_id = "UserGetFreeSystemResources", id_value = 1306, constant = "USER_GET_FREE_SYSTEM_RESOURCES" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+]
