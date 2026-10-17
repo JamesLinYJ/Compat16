@@ -913,5 +913,9 @@ mod aux_tests;
 mod mixer_tests;
 
 #[cfg(test)]
+#[path = "win16_call_proc32w_dispatch_tests.rs"]
+mod call_proc32w_dispatch_tests;
+
+#[cfg(test)]
 #[path = "win16_destroy_receipt_tests.rs"]
 mod destroy_receipt_tests;

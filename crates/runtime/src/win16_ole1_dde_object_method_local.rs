@@ -39,6 +39,30 @@ mod plan_tests {
         assert_eq!(release_method_code(Some(20)), 8);
         assert_eq!(release_method_code(Some(11)), 15);
     }
+
+    #[test]
+    fn ole_update_slot_fails_until_a_checked_update_exists() {
+        assert_eq!(
+            super::synchronous_embedded_status(21),
+            Some(super::super::super::OLE1_ERROR_UPDATE),
+        );
+        assert_ne!(super::synchronous_embedded_status(21), Some(super::OLE1_OK));
+        assert_eq!(super::synchronous_embedded_status(8), Some(super::OLE1_OK));
+        assert_eq!(super::synchronous_embedded_status(32), Some(super::OLE1_OK));
+    }
+}
+
+/// Slots answered without a DDE transaction. Slot 21 is `OleUpdate`: no
+/// checked update exists, so the guest receives `OLE_ERROR_UPDATE` rather
+/// than success for unchanged embedded data.
+pub(super) fn synchronous_embedded_status(slot: u8) -> Option<Win16Ole1Status> {
+    match slot {
+        8 => Some(OLE1_OK),
+        14 | 22 | 24 | 25 => Some(super::super::OLE1_ERROR_NOT_LINK),
+        21 => Some(super::super::OLE1_ERROR_UPDATE),
+        32 | 33 | 34 => Some(OLE1_OK),
+        _ => None,
+    }
 }
 
 fn same_object_far(left: u32, right: u32) -> bool {
@@ -206,11 +230,11 @@ impl Win16State {
         arguments: &[Win16Argument],
         memory: &mut Memory,
     ) -> Result<Option<Win16Ole1Status>, RuntimeError> {
+        if let Some(status) = synchronous_embedded_status(slot) {
+            return Ok(Some(status));
+        }
         let status = match slot {
-            8 => Some(OLE1_OK),
-            14 | 22 | 24 | 25 => Some(super::super::OLE1_ERROR_NOT_LINK),
             15 => Some(self.dde_equal(record, arguments)),
-            21 | 32 | 33 | 34 => Some(OLE1_OK),
             26 => Some(self.dde_rename(record, arguments, memory)?),
             27 => Some(self.dde_query_name(record, arguments, memory)?),
             28 => Some(self.dde_query_type(arguments, memory)?),

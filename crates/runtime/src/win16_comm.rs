@@ -5,7 +5,9 @@
 //! `FlushComm` are sent to that token. A device that cannot accept the
 //! operation returns `IE_HARDWARE` or `IE_DEFAULT`, and the guest-visible
 //! record is left unchanged. This code does not post `WM_COMMNOTIFY` or
-//! read UART registers.
+//! read UART registers. The task that opened a port owns its host token and
+//! event-word allocation; task exit retires both, and a failed close or free
+//! keeps that port so a later pass can retry without closing the token twice.
 
 use std::collections::BTreeMap;
 
@@ -33,6 +35,8 @@ pub(super) struct Win16CommPorts {
 
 struct Port {
     host: Win16HostCommPort,
+    /// Set after the host token has been closed and must not be closed again.
+    host_closed: bool,
     dcb: [u8; DCB16_LEN],
     error: u16,
     break_set: bool,
@@ -46,6 +50,12 @@ struct Port {
     notify_window: u16,
     input_threshold: i16,
     output_threshold: i16,
+}
+
+impl Win16CommPorts {
+    pub(super) fn is_empty(&self) -> bool {
+        self.ports.is_empty()
+    }
 }
 
 impl Win16State {
@@ -129,6 +139,7 @@ impl Win16State {
             id,
             Port {
                 host: token,
+                host_closed: false,
                 dcb: comm_abi::default_dcb(id, in_queue),
                 error: 0,
                 break_set: false,
@@ -349,27 +360,71 @@ impl Win16State {
     }
 
     fn close_comm(&mut self, id: u16, host: &mut impl RuntimeHost) -> Result<u32, RuntimeError> {
-        let Some(port) = self.comm_ports.ports.get(&id) else {
+        if !self.comm_ports.ports.contains_key(&id) {
             return Ok(word(if known_comm_id(id) {
                 IE_NOPEN
             } else {
                 IE_BADID
             }));
+        }
+        self.release_comm_port(id, host)?;
+        Ok(0)
+    }
+
+    /// Close one port's host token, then free its event word. A failure leaves
+    /// the port in place. A token that already closed is not closed again.
+    fn release_comm_port(
+        &mut self,
+        id: u16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<(), RuntimeError> {
+        let Some(port) = self.comm_ports.ports.get(&id) else {
+            return Ok(());
         };
-        let token = port.host;
-        let selector = port.event_selector;
-        host.win16_comm_close(token)?;
-        self.comm_ports.ports.remove(&id);
+        if !port.host_closed {
+            host.win16_comm_close(port.host)?;
+            if let Some(port) = self.comm_ports.ports.get_mut(&id) {
+                port.host_closed = true;
+            }
+        }
+        let selector = self
+            .comm_ports
+            .ports
+            .get(&id)
+            .and_then(|port| port.event_selector);
         if let Some(selector) = selector {
             let freed = self.global_free(selector)?;
             if freed != 0 {
                 return Err(RuntimeError::new(
-                    Kind::InternalInvariant,
-                    "comm event word remained allocated after CloseComm",
+                    Kind::ResourceExhausted,
+                    "comm event word remained allocated",
                 ));
             }
+            if let Some(port) = self.comm_ports.ports.get_mut(&id) {
+                port.event_selector = None;
+            }
         }
-        Ok(0)
+        self.comm_ports.ports.remove(&id);
+        Ok(())
+    }
+
+    pub(in crate::win16_runtime) fn retire_comm_ports(
+        &mut self,
+        host: &mut impl RuntimeHost,
+    ) -> Result<(), RuntimeError> {
+        let mut first = None;
+        let ids: Vec<u16> = self.comm_ports.ports.keys().copied().collect();
+        for id in ids {
+            if let Err(error) = self.release_comm_port(id, host) {
+                if first.is_none() {
+                    first = Some(error);
+                }
+            }
+        }
+        match first {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
     }
 
     fn set_comm_event_mask(

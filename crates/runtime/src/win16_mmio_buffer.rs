@@ -225,6 +225,14 @@ impl Win16State {
         if code != 0 {
             return Ok(u32::MAX);
         }
+        // A buffered read leaves the native cursor at the end of the prefetched
+        // window (`disk_offset`). The guest cursor is `file_offset + next`.
+        // Re-anchor before a relative seek so SEEK_CUR 0 stays on that cursor.
+        if origin == SEEK_CUR {
+            if let Some(code) = self.reanchor_buffered_cursor(guest, host)? {
+                return Ok(code);
+            }
+        }
         let Some(native) = self.media_services.mmio_handle(guest) else {
             return Ok(u32::MAX);
         };
@@ -603,6 +611,32 @@ impl Win16State {
         }
         self.reset_window(guest, position);
         Ok(0)
+    }
+
+    fn reanchor_buffered_cursor(
+        &mut self,
+        guest: u16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<Option<u32>, RuntimeError> {
+        if !self.media_services.mmio_is_buffered(guest) {
+            return Ok(None);
+        }
+        let Some(buffer) = self.media_services.mmio_buffer(guest).cloned() else {
+            return Ok(None);
+        };
+        let Some(logical) = buffer
+            .file_offset
+            .checked_add(i32::try_from(buffer.next).unwrap_or(i32::MAX))
+        else {
+            return Ok(Some(u32::MAX));
+        };
+        let Some(native) = self.media_services.mmio_handle(guest) else {
+            return Ok(Some(u32::MAX));
+        };
+        if self.native_seek(native, logical, SEEK_SET, host)? < 0 {
+            return Ok(Some(u32::MAX));
+        }
+        Ok(None)
     }
 
     fn anchor_position(

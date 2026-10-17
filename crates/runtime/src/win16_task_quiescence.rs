@@ -14,6 +14,7 @@ impl Win16State {
             && self.acm.native_sources_quiescent()
             && self.media_services.native_sources_quiescent()
             && self.mixer.native_sources_quiescent()
+            && self.comm_ports.is_empty()
             && self.wave_audio.native_sources_quiescent()
             && self.sound.native_sources_quiescent()
             && self.network.native_sources_quiescent()

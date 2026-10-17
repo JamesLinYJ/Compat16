@@ -245,7 +245,7 @@ jobs:
             '-p runtime --lib get_window_task_' = 6
             '-p runtime --lib flash_window_' = 6
             '-p runtime --lib win16_runtime::catch_throw::tests::' = 15
-            '-p runtime --lib escape_' = 12
+            '-p runtime --lib escape_' = 13
             '-p host-services --lib escape_' = 4
             '-p host-services --lib dde_completion_' = 5
             '-p runtime --lib metafile::tests' = 8
@@ -256,7 +256,7 @@ jobs:
             '-p host-services --lib dde_normal_tombstone_shutdown_' = 2
             '-p host-services --lib dde_shutdown_' = 4
             '-p runtime --lib win16_runtime::aux_tests::' = 6
-            '-p runtime --lib win16_runtime::comm::tests::' = 6
+            '-p runtime --lib win16_runtime::comm::tests::' = 7
             '-p runtime --lib win16_runtime::commdlg::hook_tests::' = 5
             '-p runtime --lib win16_runtime::ctl3d::tests::' = 5
             '-p runtime --lib win16_runtime::dispatch_user::system_parameters_tests::' = 4
@@ -270,7 +270,7 @@ jobs:
             '-p runtime --lib win16_host_mixer::session_tests::' = 1
             '-p runtime --lib win16_runtime::user_drag::drag_tests::' = 8
             '-p runtime --lib win16_runtime::winmem32::tests::' = 4
-            '-p runtime --lib win16_runtime::media_io::buffer_tests::' = 9
+            '-p runtime --lib win16_runtime::media_io::buffer_tests::' = 10
             '-p runtime --lib win16_runtime::message_calls::timers::tests::' = 2
             '-p runtime --lib win16_runtime::dispatch::input_event_tests::' = 2
             '-p runtime --lib win16_runtime::ole1::tests::' = 8
@@ -456,7 +456,7 @@ jobs:
             throw 'BLOCKED: Visual Studio developer command script unavailable for owned memory DC outline metrics.'
           }
           $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
-          $filter = 'windows::win16_gdi::outline_metrics::native_tests::get_outline_text_metrics_native_matches_independent_oracle_and_rejects_non_mm_text'
+          $filter = 'windows::win16_gdi::outline_metrics::native_tests::get_outline_text_metrics_native_matches_fixed_modes_and_rejects_extent_modes'
           Write-Host 'Compare packed outline metrics with an independent native TrueType oracle on an owned memory DC.'
           $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib {4} -- --ignored --exact --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
           & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput

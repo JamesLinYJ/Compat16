@@ -57,7 +57,7 @@ pub(super) fn set_event(
 ) -> Result<Option<u32>, RuntimeError> {
     let _control = CONTROL.lock().unwrap_or_else(|poison| poison.into_inner());
     let token = NEXT_TOKEN
-        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+        .try_update(Ordering::AcqRel, Ordering::Acquire, |current| {
             (current <= u64::from(u32::MAX)).then(|| current + 1)
         })
         .map_err(|_| {
