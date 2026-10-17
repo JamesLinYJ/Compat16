@@ -3,7 +3,7 @@
 use super::*;
 
 impl Win16State {
-    pub(super) fn create_discardable_bitmap(
+    pub(in super::super) fn create_discardable_bitmap(
         &mut self,
         guest_dc: u16,
         width: i16,

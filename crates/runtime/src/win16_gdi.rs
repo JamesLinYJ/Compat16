@@ -17,9 +17,19 @@ enum GuestGdiObject {
     Object(Win16HostGdiObject),
 }
 
+#[derive(Default)]
+struct DcAttributes {
+    rel_abs: Option<u16>,
+    state: Option<u16>,
+    code_page: Option<u16>,
+    layout: Option<u32>,
+}
+
 pub(super) struct GuestGdiHandles {
     objects: BTreeMap<u16, GuestGdiObject>,
     next_handle: u16,
+    dc_attributes: BTreeMap<u16, DcAttributes>,
+    session_text_code_page: u16,
 }
 
 // WNDCLASS16.hbrBackground reserves values 1..=31 for COLOR_* + 1.
@@ -29,7 +39,60 @@ const FIRST_GUEST_GDI_HANDLE: u16 = 32;
 
 impl GuestGdiHandles {
     pub(super) fn new() -> Self {
-        Self { objects: BTreeMap::new(), next_handle: FIRST_GUEST_GDI_HANDLE }
+        Self {
+            objects: BTreeMap::new(),
+            next_handle: FIRST_GUEST_GDI_HANDLE,
+            dc_attributes: BTreeMap::new(),
+            session_text_code_page: 0,
+        }
+    }
+
+    fn dc_attributes_mut(&mut self, handle: u16) -> &mut DcAttributes {
+        self.dc_attributes.entry(handle).or_default()
+    }
+
+    pub(super) fn rel_abs(&self, handle: u16) -> Option<u16> {
+        self.dc_attributes.get(&handle).and_then(|entry| entry.rel_abs)
+    }
+
+    pub(super) fn set_rel_abs(&mut self, handle: u16, mode: u16) {
+        self.dc_attributes_mut(handle).rel_abs = Some(mode);
+    }
+
+    pub(super) fn dc_state(&self, handle: u16) -> Option<u16> {
+        self.dc_attributes.get(&handle).and_then(|entry| entry.state)
+    }
+
+    pub(super) fn set_dc_state(&mut self, handle: u16, state: u16) {
+        self.dc_attributes_mut(handle).state = Some(state);
+    }
+
+    pub(super) fn dc_code_page(&self, handle: u16) -> Option<u16> {
+        self.dc_attributes.get(&handle).and_then(|entry| entry.code_page)
+    }
+
+    pub(super) fn set_dc_code_page(&mut self, handle: u16, page: u16) {
+        self.dc_attributes_mut(handle).code_page = Some(page);
+    }
+
+    pub(super) fn dc_layout(&self, handle: u16) -> Option<u32> {
+        self.dc_attributes.get(&handle).and_then(|entry| entry.layout)
+    }
+
+    pub(super) fn set_dc_layout(&mut self, handle: u16, layout: u32) {
+        self.dc_attributes_mut(handle).layout = Some(layout);
+    }
+
+    pub(super) fn session_text_code_page(&self) -> u16 {
+        self.session_text_code_page
+    }
+
+    pub(super) fn set_session_text_code_page(&mut self, page: u16) {
+        self.session_text_code_page = page;
+    }
+
+    fn forget_dc_attributes(&mut self, handle: u16) {
+        self.dc_attributes.remove(&handle);
     }
 
     fn allocate(&mut self, object: GuestGdiObject) -> Option<u16> {
@@ -70,6 +133,7 @@ impl GuestGdiHandles {
             return false;
         }
         self.objects.remove(&handle);
+        self.forget_dc_attributes(handle);
         true
     }
 
@@ -81,6 +145,7 @@ impl GuestGdiHandles {
             return false;
         }
         self.objects.remove(&handle);
+        self.forget_dc_attributes(handle);
         true
     }
 

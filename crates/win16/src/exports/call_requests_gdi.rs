@@ -8,6 +8,9 @@ pub(super) fn decode(
     selectors: &SelectorTable,
     memory: &impl GuestMemory,
 ) -> Result<Option<Win16ApiRequest>, Win16Error> {
+    if let Some(request) = super::gdi_internal_calls::decode(descriptor, arguments, selectors, memory)? {
+        return Ok(Some(Win16ApiRequest::GdiInternal(request)));
+    }
     if let Some(request) = super::gdi_services_calls::decode(descriptor.id, arguments, selectors, memory)? {
         return Ok(Some(Win16ApiRequest::GdiServices(request)));
     }

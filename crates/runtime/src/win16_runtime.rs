@@ -90,6 +90,8 @@ mod kernel_memory;
 mod kernel_instance;
 #[path = "win16_gdi_services.rs"]
 mod gdi_services;
+#[path = "win16_gdi_internal.rs"]
+mod gdi_internal;
 #[path = "win16_metafile.rs"]
 mod metafile;
 #[path = "win16_kernel_task.rs"]
