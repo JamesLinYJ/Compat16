@@ -40,7 +40,7 @@ pub enum Win16ProfilePath {
 pub struct Win16HostFile(pub u64);
 
 /// Opaque host communications port. Guest `OpenComm` ids are separate words.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Win16HostCommPort(pub u64);
 
 /// A parsed `COMn` or `LPTn` identity. The guest string is not a host path.
