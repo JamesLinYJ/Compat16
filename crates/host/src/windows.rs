@@ -35,6 +35,7 @@ mod win16;
 mod win16_open_file;
 mod win16_file_paths;
 mod win16_file_devices;
+mod win16_comm;
 mod win16_lz_file_paths;
 mod win16_common;
 mod win16_drawing;
@@ -219,6 +220,7 @@ pub struct WindowsHost {
     dos_service_trace: Option<service_trace::DosServiceTrace>,
     win16_io_trace: Option<win16_io_trace::Win16IoTrace>,
     win16_files: win16::Win16Files,
+    win16_comm: win16_comm::Win16CommPorts,
     win16_file_system: win16_kernel_file_system::Win16HostFileSystemState,
     // Retire MCI before dropping the USER window that supplies its wake lease.
     win16_mci: win16_mci_owner::Win16MciHost,
@@ -388,6 +390,7 @@ impl WindowsHost {
             dos_service_trace: None,
             win16_io_trace: None,
             win16_files: win16::Win16Files::new(),
+            win16_comm: win16_comm::Win16CommPorts::new(),
             win16_file_system: win16_kernel_file_system::Win16HostFileSystemState::default(),
             win16_mci,
             win16_midi,

@@ -52,6 +52,8 @@ pub use kernel_global_heap::Win16KernelGlobalHeapRequest;
 #[path = "user_system.rs"]
 mod user_system;
 pub use user_system::Win16UserSystemRequest;
+mod user_comm;
+pub use user_comm::Win16UserCommRequest;
 #[path = "ver.rs"]
 mod ver;
 pub use ver::Win16VerRequest;

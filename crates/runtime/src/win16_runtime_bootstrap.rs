@@ -289,6 +289,7 @@ impl Win16State {
             reported_global_flags: BTreeSet::new(),
             reported_global_realloc_flags: BTreeSet::new(),
             compat,
+            comm_ports: super::comm::Win16CommPorts::default(),
         };
         // This task has the portable PE32 CPU dispatcher. Reclassify only
         // KERNEL.513–518 gate bindings; this does not assert a native x86

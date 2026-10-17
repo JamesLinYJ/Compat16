@@ -59,7 +59,7 @@ pub use request_modules::{
     Win16UserGeometryRequest, Win16UserMenuRequest, Win16UserMessagesRequest, Win16UserRequest,
     Win16UserResourcesRequest, Win16UserRuntimeRequest, Win16UserScrollBarRequest,
     Win16UserStringFormatRequest,
-    Win16UserSystemRequest, Win16UserTextRequest, Win16UserUpdateRequest, Win16UserWindowRequest,
+    Win16UserSystemRequest, Win16UserCommRequest, Win16UserTextRequest, Win16UserUpdateRequest, Win16UserWindowRequest,
     Win16VerRequest, Win16WaveControl, Win16WaveDirection, Win16WaveHeader16,
     Win16WaveInputCapabilities16, Win16WaveOutputCapabilities16, Win16WaveParameter,
     Win16WaveRequest, Win16WindowDataRequest, Win16WindowPropertyName, Win16WindowPropertyRequest,
