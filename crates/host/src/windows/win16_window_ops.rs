@@ -125,7 +125,7 @@ pub(super) fn execute(
             arrange_iconic_windows_with(state, window, |native| unsafe { ArrangeIconicWindows(native) }) as i32,
         ),
         Call::ArrangeChildWindows { parent, children, flags, mode } => ResultValue::Integer(
-            arrange_child_windows(state, parent, children, flags, mode),
+            arrange_child_windows(state, parent, &children, flags, mode),
         ),
         // OpenIcon owns WM_QUERYOPEN, restoration and activation, and returns
         // success rather than ShowWindow's previous visibility. Resolve exact
