@@ -99,6 +99,7 @@ groups = [
   "groups/user/clipboard.toml",
   "groups/user/controls.toml",
   "groups/user/declarations.toml",
+  "groups/user/drag.toml",
   "groups/user/drawing.toml",
   "groups/user/hooks.toml",
   "groups/user/input.toml",

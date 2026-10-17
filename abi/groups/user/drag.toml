@@ -1,0 +1,37 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 86
+name = "IconSize"
+decl = { attributes = [] }
+binding = { rust_id = "UserIconSize", id_value = 1285, constant = "USER_ICON_SIZE" }
+[exports.call]
+returns = "dword"
+
+[[exports]]
+ordinal = 464
+name = "DragObject"
+decl = { attributes = [], args = ["word", "word", "word", "long", "word"] }
+binding = { rust_id = "UserDragObject", id_value = 1286, constant = "USER_DRAG_OBJECT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "source", type = "U16" },
+  { name = "format", type = "U16" },
+  { name = "data", type = "U32" },
+  { name = "cursor", type = "U16" },
+]
+
+[[exports]]
+ordinal = 465
+name = "DragDetect"
+decl = { args = ["word", "long"] }
+binding = { rust_id = "UserDragDetect", id_value = 1287, constant = "USER_DRAG_DETECT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "point", type = "U32" },
+]

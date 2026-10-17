@@ -261,6 +261,19 @@ pub struct Win16SchedulerReadiness {
     pub callback_pending: bool,
 }
 
+/// One screen-coordinate observation for USER.465 DragDetect.
+///
+/// `x` and `y` are host screen pixels narrowed into signed Win16 range.
+/// `left_down` and `escape_down` follow the high bit of the asynchronous
+/// logical key state. The sample is not a guest pointer or a host HWND.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Win16DragSample {
+    pub x: i16,
+    pub y: i16,
+    pub left_down: bool,
+    pub escape_down: bool,
+}
+
 pub trait RuntimeHost:
     DosHost + RuntimeDdeHost + RuntimeMciHost + RuntimeMidiHost + RuntimeNetbiosHost
 {
@@ -1682,6 +1695,17 @@ pub trait RuntimeHost:
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
             "host Win16 key state is unavailable",
+        ))
+    }
+    /// Read the screen pointer and the two keys DragDetect watches.
+    ///
+    /// `wait_for_change` asks the host to block until the sample differs from
+    /// the previous poll in this process. A host that cannot wait returns the
+    /// current sample; the runtime stops if that sample repeats.
+    fn win16_drag_poll(&mut self, _wait_for_change: bool) -> Result<Win16DragSample, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 drag sample is unavailable",
         ))
     }
     fn win16_get_system_metrics(&mut self, _index: i32) -> Result<i32, RuntimeError> {

@@ -109,11 +109,6 @@ returns = "void"
 params = [{ name = "x", type = "I16" }, { name = "y", type = "I16" }]
 
 [[exports]]
-ordinal = 86
-name = "IconSize"
-decl = { attributes = [] }
-
-[[exports]]
 ordinal = 105
 name = "FlashWindow"
 binding = { rust_id = "UserFlashWindow", id_value = 1221, constant = "USER_FLASH_WINDOW" }
@@ -951,16 +946,6 @@ decl = { args = ["word", "word"] }
 ordinal = 463
 name = "ScrollChildren"
 decl = { args = ["word", "word", "word", "long"] }
-
-[[exports]]
-ordinal = 464
-name = "DragObject"
-decl = { attributes = [], args = ["word", "word", "word", "word", "word", "word"] }
-
-[[exports]]
-ordinal = 465
-name = "DragDetect"
-decl = { args = ["word", "long"] }
 
 [[exports]]
 ordinal = 470

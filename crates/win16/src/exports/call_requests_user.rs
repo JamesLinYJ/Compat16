@@ -452,7 +452,10 @@ pub(super) fn decode(
         | Win16ExportId::UserSetSysColors
         | Win16ExportId::UserSwapMouseButton
         | Win16ExportId::UserGetDialogBaseUnits
-        | Win16ExportId::UserAnyPopup => {
+        | Win16ExportId::UserAnyPopup
+        | Win16ExportId::UserIconSize
+        | Win16ExportId::UserDragObject
+        | Win16ExportId::UserDragDetect => {
             win16_service_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
         _ => return Ok(None),

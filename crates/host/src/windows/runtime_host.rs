@@ -1218,6 +1218,12 @@ impl RuntimeHost for WindowsHost {
     fn set_mouse_position(&mut self, x: u16, y: u16) -> Result<(), RuntimeError> {
         runtime_host_mouse::set_mouse_position(self, x, y)
     }
+    fn win16_drag_poll(
+        &mut self,
+        wait_for_change: bool,
+    ) -> Result<runtime::Win16DragSample, RuntimeError> {
+        runtime_host_mouse::drag_poll(self, wait_for_change)
+    }
     fn render_graphics(&mut self, frame: &devices::vga::VgaFrame) -> Result<(), RuntimeError> {
         runtime_host_windows::render_graphics(self, frame)
     }

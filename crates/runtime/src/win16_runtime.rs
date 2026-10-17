@@ -368,6 +368,8 @@ mod user_services_paint;
 mod user_services_update_region;
 #[path = "win16_user_services_system.rs"]
 mod user_services_system;
+#[path = "win16_user_drag.rs"]
+mod user_drag;
 #[path = "win16_user_services_dialog.rs"]
 mod user_services_dialog;
 #[path = "win16_user_services_controls.rs"]
