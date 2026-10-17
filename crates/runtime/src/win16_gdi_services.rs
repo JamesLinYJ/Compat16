@@ -198,6 +198,44 @@ impl Win16State {
                     _ => Err(wrong_result("RemoveFontResource")),
                 }
             }
+            Req::CreateScalableFontResource {
+                hidden,
+                resource_file,
+                font_file,
+                current_path,
+            } => {
+                let Some(resource_file) = resource_file.filter(|path| !path.is_empty()) else {
+                    return Ok(0);
+                };
+                let Some(font_file) = font_file.filter(|path| !path.is_empty()) else {
+                    return Ok(0);
+                };
+                // NULL and a pointer to a NUL omit the current path. A bare
+                // filename must name that directory; a font path that already
+                // has a directory must omit it. The filename itself stays
+                // intact so the font resource file records the caller's form.
+                let current_path = current_path.filter(|path| !path.is_empty());
+                let current_path = if font_file_has_directory(&font_file) {
+                    if current_path.is_some() {
+                        return Ok(0);
+                    }
+                    None
+                } else {
+                    let Some(current_path) = current_path else {
+                        return Ok(0);
+                    };
+                    Some(current_path)
+                };
+                match host.win16_gdi_services(Operation::CreateScalableFontResource {
+                    hidden,
+                    resource_file,
+                    font_file,
+                    current_path,
+                })? {
+                    Value::Bool(created) => Ok(u32::from(created)),
+                    _ => Err(wrong_result("CreateScalableFontResource")),
+                }
+            }
             Req::GetCharWidth { dc, first, last, output } => {
                 if output == 0 || first > last {
                     return Ok(0);
@@ -471,6 +509,10 @@ fn encode_kerning_pairs(entries: &[crate::Win16HostKerningPair]) -> Option<Vec<u
     Some(bytes)
 }
 
+fn font_file_has_directory(path: &[u8]) -> bool {
+    path.iter().any(|byte| matches!(*byte, b'\\' | b'/')) || path.get(1) == Some(&b':')
+}
+
 fn wrong_result(api: &'static str) -> RuntimeError {
     RuntimeError::new(
         DiagnosticKind::InternalInvariant,
@@ -500,3 +542,7 @@ mod char_width_tests;
 #[cfg(test)]
 #[path = "win16_gdi_services_wire_tests.rs"]
 mod wire_tests;
+
+#[cfg(test)]
+#[path = "win16_gdi_scalable_font_tests.rs"]
+mod scalable_font_tests;

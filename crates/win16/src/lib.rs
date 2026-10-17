@@ -12,6 +12,11 @@ pub mod call_frame;
 pub mod winnls_abi;
 pub use winnls_abi::ImeProfile16;
 pub use exports::Win16WinnlsRequest;
+pub use exports::{
+    WINMEM32_INSUFFICIENT_MEMORY, WINMEM32_INSUFFICIENT_SELECTORS, WINMEM32_INVALID_ARGUMENT,
+    WINMEM32_INVALID_FLAGS, WINMEM32_INVALID_FUNCTION, WINMEM32_MAX_16BIT_ALIAS_BYTES,
+    WINMEM32_MAX_OBJECT_BYTES, WINMEM32_VERSION_1_00, Win16Winmem32Request,
+};
 pub use exports::Win16PrintQueueRequest;
 pub use exports::Win16KernelInstanceRequest;
 pub use exports::Win16Ole1Request;
@@ -21,6 +26,7 @@ pub use exports::{Win16UserNetworkBuffer, Win16UserNetworkRequest};
 pub use exports::Win16UserHooksRequest;
 pub use exports::{Win16FontResourceInput, Win16GdiServicesRequest, Win16GdiSpoolRequest};
 pub use exports::{NF_NORMAL, NF_TASKSWITCH, NF_RIP};
+pub mod comm_abi;
 pub mod commdlg_abi;
 pub mod exports;
 pub mod gdi_abi;
@@ -88,11 +94,21 @@ pub use exports::{
     Win16KernelStringRequest, Win16KernelStringsRequest, Win16KernelTaskRequest,
     Win16KeyboardConversion, Win16KeyboardRequest, Win16LibraryCodePageRequest,
     Win16LibraryInterruptsRequest, Win16LibraryRequest, Win16LibraryStringsRequest,
-    Win16LibraryToolhelpRequest, Win16LzExpandRequest, Win16MediaIoRequest, Win16MediaTimeRequest,
+    Win16AuxCapabilities16, Win16AuxRequest, AUXCAPS16_SIZE, AUXCAPS_AUXIN,
+    AUXCAPS_CDAUDIO, AUXCAPS_LRVOLUME, AUXCAPS_VOLUME, Win16LibraryToolhelpRequest,
+    Win16LzExpandRequest, Win16MediaIoRequest, Win16MediaTimeRequest, JOYCAPS16_SIZE,
+    JOYERR_NOCANDO, JOYERR_PARMS, JOYERR_UNPLUGGED, JOYINFO16_SIZE,
+    JOYINFOEX16_BUTTONS_OFFSET, JOYINFOEX16_SIZE, JOYINFOEX16_X_OFFSET, JOYINFOEX16_Y_OFFSET,
+    JOYINFOEX16_Z_OFFSET, JOY_RETURN_SUPPORTED, JOY_RETURNBUTTONS, JOY_RETURNX,
+    JOY_RETURNY, JOY_RETURNZ, MMSYSERR_NODRIVER, Win16JoyCaps16,
+    Win16JoyInfo16, Win16JoystickRequest, MAXPNAMELEN, MIXERCAPS16_SIZE,
+    MIXERCONTROL16_SIZE, MIXERCONTROLDETAILS16_SIZE, MIXERLINE16_SIZE, MIXERLINECONTROLS16_SIZE,
+    MIXER_LONG_NAME_CHARS, MIXER_SHORT_NAME_CHARS, Win16MixerCaps16, Win16MixerControl16,
+    Win16MixerControlDetails16, Win16MixerLine16, Win16MixerLineControls16, Win16MixerRequest,
     Win16MidiDirection, Win16MidiRequest, Win16MidiStreamArgument, Win16MidiHeader16,
     Win16MidiInCaps16, Win16MidiOutCaps16, MIDIHDR16_SIZE, MIDIINCAPS16_SIZE,
     MIDIOUTCAPS16_SIZE,
-    Win16MmckInfo16, Win16Mmtime16, Win16Ole2DispArgument, Win16Ole2DispCall,
+    Win16MmckInfo16, Win16MmioInfo16, Win16Mmtime16, Win16Ole2DispArgument, Win16Ole2DispCall,
     Win16Ole2DispConvertCall, Win16Ole2DispConvertInput, Win16Ole2DispConvertOperation,
     Win16Ole2DispLocaleFlags, Win16Ole2NlsRequest, Win16Ole2NlsString, Win16OutputBuffer,
     Win16Parameter, Win16ParameterType, Win16ResourceName, Win16ReturnKind,
@@ -105,7 +121,8 @@ pub use exports::{
     Win16UserDrawingRequest, Win16UserFamilyRequest, Win16UserGeometryRequest,
     Win16UserSessionRequest,
     Win16UserMenuRequest, Win16UserMessagesRequest, Win16UserRequest, Win16UserResourcesRequest,
-    Win16UserRuntimeRequest, Win16UserScrollBarRequest, Win16UserSystemRequest,
+    Win16UserRuntimeRequest, Win16UserScrollBarRequest, Win16UserSystemRequest, Win16UserCommRequest,
+    Win16UserInputRequest,
     Win16UserStringFormatRequest, Win16UserTextRequest, Win16UserUpdateRequest, Win16UserWindowRequest,
     Win16VariableRuntimeState, Win16VerRequest, Win16WaveControl, Win16WaveDirection,
     Win16WaveHeader16, Win16WaveInputCapabilities16, Win16WaveOutputCapabilities16,

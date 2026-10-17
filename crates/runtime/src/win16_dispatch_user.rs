@@ -64,6 +64,7 @@ impl Win16State {
                 | win16_abi::Win16UserMessagesRequest::GetMessageTime
                 | win16_abi::Win16UserMessagesRequest::GetMessageExtraInfo
                 | win16_abi::Win16UserMessagesRequest::InSendMessage
+                | win16_abi::Win16UserMessagesRequest::QuerySendMessage { .. }
                 | win16_abi::Win16UserMessagesRequest::ReplyMessage { .. }
                 | win16_abi::Win16UserMessagesRequest::CallWindowProc { .. }
                 | win16_abi::Win16UserMessagesRequest::GetKeyboardState { .. }
@@ -73,7 +74,9 @@ impl Win16State {
             ))
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::SetTimer { .. }
+                | win16_abi::Win16UserWindowRequest::SetSystemTimer { .. }
                 | win16_abi::Win16UserWindowRequest::KillTimer { .. }
+                | win16_abi::Win16UserWindowRequest::KillSystemTimer { .. }
                 | win16_abi::Win16UserWindowRequest::SetCapture { .. }
                 | win16_abi::Win16UserWindowRequest::ReleaseCapture
                 | win16_abi::Win16UserWindowRequest::SetFocus { .. }
@@ -109,6 +112,8 @@ impl Win16State {
             | Win16ApiRequest::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::CloseWindow { .. }
                 | win16_abi::Win16UserWindowRequest::ArrangeIconicWindows { .. }
+                | win16_abi::Win16UserWindowRequest::CascadeChildWindows { .. }
+                | win16_abi::Win16UserWindowRequest::TileChildWindows { .. }
                 | win16_abi::Win16UserWindowRequest::FlashWindow { .. }
                 | win16_abi::Win16UserWindowRequest::OpenIcon { .. }
                 | win16_abi::Win16UserWindowRequest::IsIconic { .. },
@@ -666,7 +671,7 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::UserSystem(request) => {
-                super::user_services_system::dispatch(request, host)?
+                super::user_services_system::dispatch(self, request, host)?
             }
             Win16ApiRequest::UserFamily(request) => {
                 return self.begin_user_family_request(
@@ -697,6 +702,9 @@ impl Win16State {
                     (return_selector, return_offset, return_sp),
                     descriptor.return_kind,
                 );
+            }
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Comm(request)) => {
+                self.dispatch_comm(request, memory, host)?
             }
             Win16ApiRequest::UserCursorAccelerator(request) => {
                 return self.begin_user_cursor_accelerator(
@@ -760,3 +768,11 @@ mod character_classification_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_keyboard_state_tests.rs"]
 mod keyboard_state_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_window_management_tests.rs"]
+mod window_management_tests;
+
+#[cfg(test)]
+#[path = "win16_dispatch_system_parameters_tests.rs"]
+mod system_parameters_tests;

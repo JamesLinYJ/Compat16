@@ -115,6 +115,12 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<runtime::Win16HostMediaIoResult, RuntimeError> {
         runtime_host_multimedia::media_io(self, operation)
     }
+    fn win16_mixer(
+        &mut self,
+        operation: runtime::Win16HostMixerOperation,
+    ) -> Result<runtime::Win16HostMixerResult, RuntimeError> {
+        Ok(self.win16_session_mixer.execute(operation))
+    }
     fn win16_acm(
         &mut self,
         operation: runtime::Win16HostAcmOperation,
@@ -620,6 +626,12 @@ impl RuntimeHost for WindowsHost {
     fn win16_window_abort(&mut self) -> Result<runtime::Win16WindowAbortReceipt, RuntimeError> {
         runtime_host_windows::win16_window_abort(self)
     }
+    fn win16_ctl3d_frame(
+        &mut self,
+        window: runtime::Win16HostWindow,
+    ) -> Result<Option<runtime::Win16HostCtl3dFrameFacts>, RuntimeError> {
+        self.win16_windows.ctl3d_frame(window)
+    }
     fn win16_destroy_window(&mut self, window: Win16HostWindow) -> Result<bool, RuntimeError> {
         runtime_host_windows::win16_destroy_window(self, window)
     }
@@ -1056,6 +1068,18 @@ impl RuntimeHost for WindowsHost {
             self.win16_windows.get_key_state(key)
         }
     }
+    fn win16_inject_keyboard(
+        &mut self, event: runtime::Win16InjectedKey,
+    ) -> Result<(), RuntimeError> {
+        super::win16_injected_input::inject_keyboard(event);
+        Ok(())
+    }
+    fn win16_inject_mouse(
+        &mut self, event: runtime::Win16InjectedMouse,
+    ) -> Result<(), RuntimeError> {
+        super::win16_injected_input::inject_mouse(event);
+        Ok(())
+    }
     fn win16_get_system_metrics(&mut self, index: i32) -> Result<i32, RuntimeError> {
         Ok(win16_common::get_system_metrics(index))
     }
@@ -1183,6 +1207,31 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<bool, RuntimeError> {
         win16_profile_sections::write_profile_section(self.win16_dcs.text_codec(), section, entries)
     }
+    fn win16_profile_struct_write(
+        &mut self,
+        section: Option<&[u8]>,
+        key: Option<&[u8]>,
+        data: Option<&[u8]>,
+        data_size: u16,
+        filename: &runtime::Win16ProfilePath,
+    ) -> Result<bool, RuntimeError> {
+        win16_profile_struct::write(
+            &mut self.filesystem, self.win16_dcs.text_codec(), filename,
+            section, key, data, data_size,
+        )
+    }
+    fn win16_profile_struct_read(
+        &mut self,
+        section: Option<&[u8]>,
+        key: Option<&[u8]>,
+        capacity: u16,
+        filename: &runtime::Win16ProfilePath,
+    ) -> Result<(bool, Vec<u8>), RuntimeError> {
+        win16_profile_struct::read(
+            &mut self.filesystem, self.win16_dcs.text_codec(), filename,
+            section, key, capacity,
+        )
+    }
     fn report_diagnostic(&mut self, diagnostic: &Diagnostic) {
         eprintln!("runtime: {diagnostic}");
     }
@@ -1194,6 +1243,53 @@ impl RuntimeHost for WindowsHost {
     ) {
         runtime_host_diagnostics::observe_dos_service(self, instruction_count, before, after)
     }
+    fn win16_comm_open(
+        &mut self,
+        device: runtime::Win16HostCommDevice,
+        in_queue: u16,
+        out_queue: u16,
+    ) -> Result<runtime::Win16HostCommPort, RuntimeError> {
+        self.win16_comm.open(device, in_queue, out_queue)
+    }
+    fn win16_comm_read(
+        &mut self,
+        port: runtime::Win16HostCommPort,
+        output: &mut [u8],
+    ) -> Result<usize, RuntimeError> {
+        self.win16_comm.read(port, output)
+    }
+    fn win16_comm_write(
+        &mut self,
+        port: runtime::Win16HostCommPort,
+        input: &[u8],
+    ) -> Result<usize, RuntimeError> {
+        self.win16_comm.write(port, input)
+    }
+    fn win16_comm_close(&mut self, port: runtime::Win16HostCommPort) -> Result<(), RuntimeError> {
+        self.win16_comm.close(port)
+    }
+    fn win16_comm_configure(
+        &mut self,
+        port: runtime::Win16HostCommPort,
+        config: &runtime::Win16HostCommConfig,
+    ) -> Result<(), RuntimeError> {
+        self.win16_comm.configure(port, config)
+    }
+    fn win16_comm_control(
+        &mut self,
+        port: runtime::Win16HostCommPort,
+        control: runtime::Win16HostCommControl,
+    ) -> Result<(), RuntimeError> {
+        self.win16_comm.control(port, control)
+    }
+    fn win16_comm_flush(
+        &mut self,
+        port: runtime::Win16HostCommPort,
+        queue: runtime::Win16HostCommQueue,
+    ) -> Result<(), RuntimeError> {
+        self.win16_comm.flush(port, queue)
+    }
+
     fn epoch_seconds(&self) -> i64 {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -1217,6 +1313,12 @@ impl RuntimeHost for WindowsHost {
     }
     fn set_mouse_position(&mut self, x: u16, y: u16) -> Result<(), RuntimeError> {
         runtime_host_mouse::set_mouse_position(self, x, y)
+    }
+    fn win16_drag_poll(
+        &mut self,
+        wait_for_change: bool,
+    ) -> Result<runtime::Win16DragSample, RuntimeError> {
+        runtime_host_mouse::drag_poll(self, wait_for_change)
     }
     fn render_graphics(&mut self, frame: &devices::vga::VgaFrame) -> Result<(), RuntimeError> {
         runtime_host_windows::render_graphics(self, frame)

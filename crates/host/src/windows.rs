@@ -35,8 +35,10 @@ mod win16;
 mod win16_open_file;
 mod win16_file_paths;
 mod win16_file_devices;
+mod win16_comm;
 mod win16_lz_file_paths;
 mod win16_common;
+mod win16_injected_input;
 mod win16_drawing;
 mod win16_gdi;
 mod win16_get_dc_ex;
@@ -72,6 +74,7 @@ mod multimedia_wake;
 mod win16_printer;
 mod win16_profile_sections;
 mod win16_private_profile;
+mod win16_profile_struct;
 mod win16_registered_names;
 mod win16_wing_brush;
 
@@ -211,6 +214,7 @@ pub struct WindowsHost {
     mouse_mapper: MouseMapper,
     last_mouse_input: Option<MouseInput>,
     last_mouse_buttons: u16,
+    last_drag_sample: Option<runtime::Win16DragSample>,
     mouse_input_enabled: bool,
     dos_extended_byte: Option<u8>,
     stdout_decoder: StreamDecoder,
@@ -219,6 +223,7 @@ pub struct WindowsHost {
     dos_service_trace: Option<service_trace::DosServiceTrace>,
     win16_io_trace: Option<win16_io_trace::Win16IoTrace>,
     win16_files: win16::Win16Files,
+    win16_comm: win16_comm::Win16CommPorts,
     win16_file_system: win16_kernel_file_system::Win16HostFileSystemState,
     // Retire MCI before dropping the USER window that supplies its wake lease.
     win16_mci: win16_mci_owner::Win16MciHost,
@@ -239,6 +244,7 @@ pub struct WindowsHost {
     win16_network_print_queues: win16_network_print_queues::Win16NetworkPrintQueues,
     win16_netbios: win16_netbios::HostState,
     win16_media_services: win16_media_services::Win16MediaServicesHost,
+    win16_session_mixer: runtime::Win16SessionMixer,
     win32_imports: win32_import_system::Win32ImportSystem,
     win16_acm_direct: win16_acm_direct::Win16AcmHost,
     win16_wave: win16_multimedia_buffers::Win16WaveHost,
@@ -381,6 +387,7 @@ impl WindowsHost {
             mouse_mapper: MouseMapper::new(),
             last_mouse_input: None,
             last_mouse_buttons: 0,
+            last_drag_sample: None,
             dos_extended_byte: None,
             stdout_decoder: StreamDecoder::new(page),
             stderr_decoder: StreamDecoder::new(page),
@@ -388,6 +395,7 @@ impl WindowsHost {
             dos_service_trace: None,
             win16_io_trace: None,
             win16_files: win16::Win16Files::new(),
+            win16_comm: win16_comm::Win16CommPorts::new(),
             win16_file_system: win16_kernel_file_system::Win16HostFileSystemState::default(),
             win16_mci,
             win16_midi,
@@ -403,6 +411,7 @@ impl WindowsHost {
                 win16_network_print_queues::Win16NetworkPrintQueues::default(),
             win16_netbios: win16_netbios::HostState::new(multimedia_wake),
             win16_media_services: win16_media_services::Win16MediaServicesHost::new(codec),
+            win16_session_mixer: runtime::Win16SessionMixer::default(),
             win32_imports: win32_import_system::Win32ImportSystem::new(codec),
             win16_acm_direct: win16_acm_direct::Win16AcmHost::default(),
             win16_wave,

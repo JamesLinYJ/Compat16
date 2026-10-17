@@ -27,6 +27,9 @@ const MMIO_GETTEMP: u32 = 0x0002_0000;
 const MMIO_NO_HANDLE_FLAGS: u32 = MMIO_DELETE | MMIO_EXIST | MMIO_PARSE | MMIO_GETTEMP;
 const MMIO_OPEN_PATH_BUFFER_SIZE: usize = 128;
 
+#[path = "win16_media_timer.rs"]
+mod timer;
+
 /// Owns native WinMM handles and successful timer-period calls independently
 /// of any guest task, so a failed guest cleanup remains available to retry
 /// while this owner is alive.
@@ -36,6 +39,9 @@ pub(super) struct Win16MediaServicesHost {
     next_identity: u64,
     mmio_handles: BTreeMap<Win16HostMediaIoHandle, HMMIO>,
     period_references: BTreeMap<u16, u32>,
+    /// Opaque runtime identities to native ids and callback tokens. Native ids
+    /// can be recycled while a previous one-shot still has a queued callback.
+    timers: BTreeMap<u32, timer::OwnedTimer>,
 }
 
 impl Win16MediaServicesHost {
@@ -45,12 +51,14 @@ impl Win16MediaServicesHost {
             next_identity: 0,
             mmio_handles: BTreeMap::new(),
             period_references: BTreeMap::new(),
+            timers: BTreeMap::new(),
         }
     }
 
     pub(super) fn execute_time(
         &mut self,
         operation: TimeOperation,
+        callback_sender: &runtime::Win16GuestCallbackSender,
     ) -> Result<TimeResult, RuntimeError> {
         match operation {
             TimeOperation::GetSystemTime => {
@@ -109,6 +117,28 @@ impl Win16MediaServicesHost {
                     decrement_period(&mut self.period_references, period);
                 }
                 Ok(TimeResult::Period(result))
+            }
+            TimeOperation::SetEvent {
+                delay,
+                resolution,
+                user,
+                periodic,
+                callback,
+                guest_timer,
+            } => Ok(TimeResult::SetEvent {
+                timer: timer::set_event(
+                    &mut self.timers,
+                    callback_sender,
+                    delay,
+                    resolution,
+                    user,
+                    periodic,
+                    callback,
+                    guest_timer,
+                )?,
+            }),
+            TimeOperation::KillEvent { timer } => {
+                Ok(TimeResult::Kill(timer::kill_event(&mut self.timers, timer)))
             }
         }
     }
@@ -324,6 +354,7 @@ impl Win16MediaServicesHost {
 
     pub(super) fn retire_all(&mut self) -> Result<(), RuntimeError> {
         let mut first_error = None;
+        timer::retire_events(&mut self.timers, &mut first_error);
         let mut after = None;
         loop {
             let next = match after {

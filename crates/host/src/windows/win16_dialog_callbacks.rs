@@ -883,7 +883,9 @@ fn copy_typed_message(
             let Some(kind) = Win16ScalarMessage::from_raw(message as u16) else {
                 return Ok(None);
             };
-            if kind == Win16ScalarMessage::Timer && l_param != 0 {
+            if matches!(kind, Win16ScalarMessage::Timer | Win16ScalarMessage::SystemTimer)
+                && l_param != 0
+            {
                 return Ok(None);
             }
             Win16HostMessage::Scalar {

@@ -342,6 +342,38 @@ guest window callback retains its native call stack. This is static routing
 evidence; the opt-in ReplyMessage tests additionally exercise InSendMessage
 outside a send, in a cross-thread send, and in a nested same-thread send.
 
+## USER window management: 184, 188, 189, 198, 199, 281, and 284
+
+`QuerySendMessage` is `BOOL WINAPI QuerySendMessage(HANDLE, HANDLE, HANDLE, LPMSG)`.
+The three handles are reserved and ignored. Its BOOL is the same native
+`InSendMessage` result as USER.192, including a nested same-thread send. When
+that result is nonzero and a guest window callback is active, the runtime
+writes an 18-byte `MSG16` from that callback's guest HWND, message, wParam,
+and lParam, plus `GetMessageTime` and `GetMessagePos`. A null `LPMSG` is not
+written. Posted dispatch and timers are not treated as the sent message.
+Windows 3.1 text describes an intertask send only; this tree follows the
+native predicate already chosen for `InSendMessage`.
+
+`SetSysModalWindow` and `GetSysModalWindow` store one guest HWND. Zero clears
+it and returns the previous value. An unknown nonzero handle does not replace
+the current window and returns zero. Retiring that guest HWND clears the
+flag. No host pointer is stored; the modern host has no equivalent API.
+
+`CascadeChildWindows` and `TileChildWindows` submit only `mdi_children` whose
+recorded parent is the argument. Iconic and hidden children are omitted.
+`MDITILE_SKIPDISABLED` also omits a disabled child. Tile honors
+`MDITILE_HORIZONTAL`; other flag bits are masked off. The count is the number
+of windows passed to native `CascadeWindows` or `TileWindows`. Those calls
+also set `MDITILE_ZORDER` so stacking order is native. This tree does not
+reimplement the Windows 3.1 geometry.
+
+`GetSysColorBrush` returns the existing `COLOR_* + 1` pseudo-brush for indices
+0 through 20 (`COLOR_SCROLLBAR` through `COLOR_BTNHIGHLIGHT`) and zero
+otherwise. No GDI object is allocated. `GetFreeSystemResources` returns 90
+for the SDK selectors 0, 1, and 2, the NT WOW compatibility percentage used
+because this runtime has no 16-bit USER or GDI heap, and zero for any other
+selector.
+
 ## USER.288 GetMessageExtraInfo and USER.14 GetTimerResolution
 
 `WINDOWS.H:2801` declares `LPARAM WINAPI GetMessageExtraInfo(void)`, with LPARAM
@@ -619,6 +651,24 @@ support equivalence. Tests cover ABI, guest memory/identity boundaries, mock
 cap conversions, and nonprinting native DCs. They do not establish real printer
 behavior or successful execution of this import by a desktop application.
 
+STARTDOC (10), NEWFRAME (1), ENDDOC (11), and ABORTDOC (2) use the same
+`Escape` prototype. STARTDOC's `nCount` is the document-name byte count. A NUL
+only in the last counted byte is a terminator and is not part of the name; an
+earlier NUL is rejected. Its output pointer is unused. The other three ignore
+both pointers. Success is a positive signed int. `SP_ERROR` (-1) is the
+failure value. Zero remains reserved for an unimplemented escape.
+
+Win32 supersedes these with `StartDoc`, `StartPage`, `EndPage`, `EndDoc`, and
+`AbortDoc`. The 3.1 header does not describe that page split. This bridge
+pairs STARTDOC with `StartDoc` plus the first `StartPage`, NEWFRAME with
+`EndPage` plus the next `StartPage`, and ENDDOC with `EndPage` plus `EndDoc`.
+A NEWFRAME that already advanced the page, followed by ENDDOC, can therefore
+close one extra page. A non-positive result stops the pair. A failed first
+`StartPage` aborts the job started by STARTDOC. `QUERYESCSUPPORT` for these
+four codes is true only for printer or plotter technology. `SETABORTPROC`,
+`PASSTHROUGH`, `NEXTBAND`, `SETCOPYCOUNT`, and private codes still return zero
+and do not call the host. No guest pointer is passed to native `Escape`.
+
 ## USER.131/132 class default-menu LONG
 
 The Windows 3.1 SDK `WINDOWS.H:2951-2964` declares GetClassLong/SetClassLong
@@ -851,6 +901,34 @@ does not submit or cancel the document twice.
 The DDK identifies OpenJob's third WORD as the application's abort DC. The
 runtime checks nonzero guest DCs before creating a document. `SetAbortProc`
 still reports an explicit compatibility gap, so this bridge does not install
-guest abort procedures. GDI driver data uses the native RAW datatype, keeping
-device-dependent bytes intact rather than selecting a queue's text processor;
-see the native [WritePrinter contract](https://learn.microsoft.com/en-us/windows/win32/printdocs/writeprinter).
+guest abort procedures. `QueryAbort` (GDI ordinal 155) therefore returns TRUE
+for a live guest DC, including while a spool job that names that DC is open
+and when its code word is `SP_OUTOFDISK`. The code word is not a pointer and
+is not sent to the host. An HDC that is not a live guest device context
+returns FALSE, and `QueryAbort` does not cancel the open job. GDI driver data
+uses the native RAW datatype, keeping device-dependent bytes intact rather
+than selecting a queue's text processor; see the native
+[WritePrinter contract](https://learn.microsoft.com/en-us/windows/win32/printdocs/writeprinter).
+
+## GDI printer environment
+
+Windows 3.1 SDK `WINDOWS.H` declares `SetEnvironment` and `GetEnvironment`
+(GDI ordinals 132 and 133) as far Pascal `int` functions of
+`(LPCSTR, const void FAR* / void FAR*, UINT)`. The DDK Adaptation Guide
+describes the block as GDI-owned binary data for the port, not a process
+environment string. `SetEnvironment` returns the number of bytes stored. A
+zero count deletes that port's block and returns 1. `GetEnvironment` with a
+null buffer returns the stored size and writes nothing; a non-null buffer
+receives at most the caller's count and the return is the copied count. Bytes
+beyond that prefix are left unchanged. A null or empty port on
+`SetEnvironment` is stored under the leading device-name bytes (at most 32,
+stopping at NUL). `GetEnvironment` does not read its output buffer to invent
+that key, so a null port on get returns 0.
+
+## GDI CreateScalableFontResource
+
+Windows 3.1 GDI ordinal 310 is the public `CreateScalableFontResource`. It is a far-Pascal `BOOL` with a hidden flag and three `LPCSTR` paths. It creates a TrueType font resource file and does not install the font; the caller still uses `AddFontResource`. The `Engine*` driver ordinals stay unbound.
+
+The public remarks preserved by [CreateScalableFontResourceA](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createscalablefontresourcea) distinguish the two path forms. A bare font filename must be paired with a current path: that filename is what the resource file records, and the current path is only the directory read while the resource is created. A font path that already contains a directory separator or a drive prefix requires the current path to be omitted, and that path is what the resource file records. NULL and an empty string are that omission. A nonempty current path together with a directory-bearing font path returns false. Documented hidden values are 0 and 1; the guest word is forwarded unchanged, and a nonzero native `BOOL` becomes guest 1.
+
+Guest path bytes are copied and resolved through the same DOS filesystem mapping as `AddFontResource`, including native-volume mounts, then passed to `CreateScalableFontResourceW`. The resource file may be absent. The TrueType file must resolve. For a bare filename the native font argument stays the filename, while the native current path is the resolved host directory. For a directory-bearing font path the native current path is null after that path has been resolved. Path failure and a zero native `BOOL` become guest false. The XP WoW module-filename rule used by `AddFontResource` does not apply; these parameters are paths. This does not implement a custom font-resource codec.

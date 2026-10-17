@@ -181,6 +181,8 @@ pub(super) fn decode(
         | Win16ExportId::UserDispatchMessage
         | Win16ExportId::UserSetTimer
         | Win16ExportId::UserKillTimer
+        | Win16ExportId::UserSetSystemTimer
+        | Win16ExportId::UserKillSystemTimer
         | Win16ExportId::UserSetCapture
         | Win16ExportId::UserReleaseCapture
         | Win16ExportId::UserSetFocus
@@ -195,6 +197,7 @@ pub(super) fn decode(
         | Win16ExportId::UserGetMessageTime
         | Win16ExportId::UserGetMessageExtraInfo
         | Win16ExportId::UserInSendMessage
+        | Win16ExportId::UserQuerySendMessage
         | Win16ExportId::UserReplyMessage
         | Win16ExportId::UserCallWindowProc
         | Win16ExportId::UserGetKeyboardState
@@ -337,6 +340,8 @@ pub(super) fn decode(
         }
         Win16ExportId::UserCloseWindow
         | Win16ExportId::UserArrangeIconicWindows
+        | Win16ExportId::UserCascadeChildWindows
+        | Win16ExportId::UserTileChildWindows
         | Win16ExportId::UserFlashWindow
         | Win16ExportId::UserOpenIcon
         | Win16ExportId::UserIsIconic
@@ -444,6 +449,25 @@ pub(super) fn decode(
                 },
             }),
         ),
+        Win16ExportId::UserOpenComm
+        | Win16ExportId::UserSetCommState
+        | Win16ExportId::UserGetCommState
+        | Win16ExportId::UserGetCommError
+        | Win16ExportId::UserReadComm
+        | Win16ExportId::UserWriteComm
+        | Win16ExportId::UserTransmitCommChar
+        | Win16ExportId::UserCloseComm
+        | Win16ExportId::UserSetCommEventMask
+        | Win16ExportId::UserGetCommEventMask
+        | Win16ExportId::UserSetCommBreak
+        | Win16ExportId::UserClearCommBreak
+        | Win16ExportId::UserUngetCommChar
+        | Win16ExportId::UserBuildCommDcb
+        | Win16ExportId::UserEscapeCommFunction
+        | Win16ExportId::UserFlushComm
+        | Win16ExportId::UserEnableCommNotification => {
+            call_user_comm::decode(descriptor.id, &arguments, selectors, memory)?
+        }
         Win16ExportId::UserSetDoubleClickTime
         | Win16ExportId::UserGetDoubleClickTime
         | Win16ExportId::UserSetCaretBlinkTime
@@ -452,7 +476,14 @@ pub(super) fn decode(
         | Win16ExportId::UserSetSysColors
         | Win16ExportId::UserSwapMouseButton
         | Win16ExportId::UserGetDialogBaseUnits
-        | Win16ExportId::UserAnyPopup => {
+        | Win16ExportId::UserAnyPopup
+        | Win16ExportId::UserSetSysModalWindow
+        | Win16ExportId::UserGetSysModalWindow
+        | Win16ExportId::UserGetSysColorBrush
+        | Win16ExportId::UserGetFreeSystemResources
+        | Win16ExportId::UserIconSize
+        | Win16ExportId::UserDragObject
+        | Win16ExportId::UserDragDetect => {
             win16_service_calls::decode(descriptor.id, &arguments, selectors, memory)?
         }
         _ => return Ok(None),

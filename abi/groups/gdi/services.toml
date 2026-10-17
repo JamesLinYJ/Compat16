@@ -59,6 +59,20 @@ params = [
 ]
 
 [[exports]]
+ordinal = 310
+name = "CreateScalableFontResource"
+decl = { args = ["word", "string", "string", "string"] }
+binding = { rust_id = "GdiCreateScalableFontResource", id_value = 1324, constant = "GDI_CREATE_SCALABLE_FONT_RESOURCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "hidden", type = "U16" },
+  { name = "resource_file", type = "NullableFarString" },
+  { name = "font_file", type = "NullableFarString" },
+  { name = "current_path", type = "NullableFarString" },
+]
+
+[[exports]]
 ordinal = 311
 name = "GetFontData"
 decl = { attributes = [] }

@@ -26,26 +26,6 @@ binding = { rust_id = "KernelYield", id_value = 1259, constant = "KERNEL_YIELD" 
 returns = "void"
 
 [[exports]]
-ordinal = 32
-name = "SetPriority"
-decl = { attributes = ["ret16"], args = ["word", "signed_word"] }
-
-[[exports]]
-ordinal = 33
-name = "LockCurrentTask"
-decl = { attributes = ["ret16"], args = ["word"] }
-
-[[exports]]
-ordinal = 34
-name = "SetTaskQueue"
-decl = { attributes = ["ret16"], args = ["word", "word"] }
-
-[[exports]]
-ordinal = 35
-name = "GetTaskQueue"
-decl = { attributes = ["ret16"], args = ["word"] }
-
-[[exports]]
 ordinal = 36
 name = "GetCurrentTask"
 binding = { rust_id = "KernelGetCurrentTask", id_value = 156, constant = "KERNEL_GET_CURRENT_TASK" }
@@ -269,21 +249,6 @@ name = "InitLib"
 kind = "stub"
 
 [[exports]]
-ordinal = 117
-name = "OldYield"
-decl = { attributes = ["ret16"] }
-
-[[exports]]
-ordinal = 118
-name = "GetTaskQueueDS"
-decl = { attributes = ["ret16"] }
-
-[[exports]]
-ordinal = 119
-name = "GetTaskQueueES"
-decl = { attributes = ["ret16"] }
-
-[[exports]]
 ordinal = 120
 name = "UndefDynLink"
 kind = "stub"
@@ -299,11 +264,6 @@ params = [
   { name = "heap", type = "U16" },
   { name = "minimum", type = "U16" },
 ]
-
-[[exports]]
-ordinal = 122
-name = "IsTaskLocked"
-decl = { attributes = ["ret16"] }
 
 [[exports]]
 ordinal = 123
@@ -358,25 +318,6 @@ decl = { attributes = ["ret16"], args = ["segmented_pointer", "pointer", "pointe
 ordinal = 141
 name = "InitTask1"
 kind = "stub"
-
-[[exports]]
-ordinal = 147
-name = "SetLastError"
-decl = { attributes = ["ret16"], args = ["long"] }
-
-[[exports]]
-ordinal = 148
-name = "GetLastError"
-
-[[exports]]
-ordinal = 149
-name = "GetVersionEx"
-decl = { attributes = ["ret16"], args = ["pointer"] }
-
-[[exports]]
-ordinal = 150
-name = "DirectedYield"
-decl = { attributes = ["ret16"], args = ["word"] }
 
 [[exports]]
 ordinal = 151
@@ -692,11 +633,6 @@ name = "K273"
 kind = "stub"
 
 [[exports]]
-ordinal = 274
-name = "GetShortPathName"
-decl = { attributes = ["ret16"], args = ["string", "pointer", "word"] }
-
-[[exports]]
 ordinal = 311
 name = "GetSetKernelDOSProc"
 decl = { args = ["pointer"] }
@@ -836,16 +772,6 @@ decl = { attributes = ["ret16"] }
 ordinal = 362
 name = "ThunkTerminateProcess"
 kind = "stub"
-
-[[exports]]
-ordinal = 406
-name = "WritePrivateProfileStruct"
-decl = { attributes = ["ret16"], args = ["string", "string", "pointer", "word", "string"] }
-
-[[exports]]
-ordinal = 407
-name = "GetPrivateProfileStruct"
-decl = { attributes = ["ret16"], args = ["string", "string", "pointer", "word", "string"] }
 
 [[exports]]
 ordinal = 408

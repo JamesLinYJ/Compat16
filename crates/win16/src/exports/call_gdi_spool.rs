@@ -2,7 +2,9 @@
 
 use super::super::Win16ExportId;
 use super::super::request::Win16GdiSpoolRequest as Request;
-use super::{dword_argument, read_far_bytes, read_far_string, word_argument};
+use super::{
+    dword_argument, read_far_bytes, read_far_string, read_nullable_far_string, word_argument,
+};
 use crate::{SelectorTable, Win16Error};
 use guest_core::GuestMemory;
 
@@ -48,6 +50,36 @@ pub(super) fn decode(
         },
         Win16ExportId::GdiEndSpoolPage => Request::EndSpoolPage {
             job: word_argument(arguments, 0)?,
+        },
+        Win16ExportId::GdiSetEnvironment => {
+            let capacity = word_argument(arguments, 2)?;
+            let environment = dword_argument(arguments, 1)?;
+            // The SDK count is the copy length. A zero count or a null
+            // pointer deletes or fails without treating the pointer as bytes.
+            let environment = if capacity == 0 || environment == 0 {
+                None
+            } else {
+                Some(read_far_bytes(
+                    environment,
+                    usize::from(capacity),
+                    selectors,
+                    memory,
+                )?)
+            };
+            Request::SetEnvironment {
+                port: read_nullable_far_string(dword_argument(arguments, 0)?, selectors, memory)?,
+                environment,
+                capacity,
+            }
+        }
+        Win16ExportId::GdiGetEnvironment => Request::GetEnvironment {
+            port: read_nullable_far_string(dword_argument(arguments, 0)?, selectors, memory)?,
+            environment: dword_argument(arguments, 1)?,
+            capacity: word_argument(arguments, 2)?,
+        },
+        Win16ExportId::GdiQueryAbort => Request::QueryAbort {
+            dc: word_argument(arguments, 0)?,
+            code: word_argument(arguments, 1)? as i16,
         },
         _ => return Ok(None),
     };

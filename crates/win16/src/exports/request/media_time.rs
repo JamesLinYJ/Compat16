@@ -43,6 +43,15 @@ pub enum Win16MediaTimeRequest {
     BeginPeriod { period: u16 },
     EndPeriod { period: u16 },
     GetTime,
+    /// `procedure` is a guest FAR address. It is not a host function pointer.
+    SetEvent {
+        delay: u16,
+        resolution: u16,
+        procedure: u32,
+        user: u32,
+        flags: u16,
+    },
+    KillEvent { timer: u16 },
 }
 
 #[repr(C)]

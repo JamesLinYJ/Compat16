@@ -47,8 +47,14 @@ mod call_kernel_profile_sections;
 mod call_media_io;
 #[path = "exports/call_mci.rs"]
 mod call_mci;
+#[path = "exports/call_win16_aux.rs"]
+mod call_aux;
 #[path = "exports/call_win16_media_time.rs"]
 mod call_media_time;
+#[path = "exports/call_win16_joystick.rs"]
+mod call_joystick;
+#[path = "exports/call_win16_mixer.rs"]
+mod call_mixer;
 #[path = "exports/call_win16_midi.rs"]
 mod call_midi;
 #[path = "exports/call_win16_multimedia.rs"]
@@ -66,6 +72,13 @@ mod call_ole2nls;
 #[path = "exports/call_winnls.rs"]
 mod call_winnls;
 pub use request::Win16WinnlsRequest;
+#[path = "exports/call_winmem32.rs"]
+mod call_winmem32;
+pub use request::{
+    WINMEM32_INSUFFICIENT_MEMORY, WINMEM32_INSUFFICIENT_SELECTORS, WINMEM32_INVALID_ARGUMENT,
+    WINMEM32_INVALID_FLAGS, WINMEM32_INVALID_FUNCTION, WINMEM32_MAX_16BIT_ALIAS_BYTES,
+    WINMEM32_MAX_OBJECT_BYTES, WINMEM32_VERSION_1_00, Win16Winmem32Request,
+};
 #[path = "exports/call_print_queue.rs"]
 mod call_print_queue;
 pub use request::Win16PrintQueueRequest;
@@ -99,14 +112,24 @@ pub use request::{
     Win16KernelStringRequest, Win16KernelStringsRequest, Win16KernelTaskRequest,
     Win16KeyboardConversion, Win16KeyboardRequest, Win16LibraryCodePageRequest,
     Win16LibraryInterruptsRequest, Win16LibraryRequest, Win16LibraryStringsRequest,
-    Win16LibraryToolhelpRequest, Win16LzExpandRequest, Win16MediaIoRequest, Win16MediaTimeRequest,
+    Win16AuxCapabilities16, Win16AuxRequest, AUXCAPS16_SIZE, AUXCAPS_AUXIN,
+    AUXCAPS_CDAUDIO, AUXCAPS_LRVOLUME, AUXCAPS_VOLUME, Win16LibraryToolhelpRequest,
+    Win16LzExpandRequest, Win16MediaIoRequest, Win16MediaTimeRequest, JOYCAPS16_SIZE,
+    JOYERR_NOCANDO, JOYERR_PARMS, JOYERR_UNPLUGGED, JOYINFO16_SIZE,
+    JOYINFOEX16_BUTTONS_OFFSET, JOYINFOEX16_SIZE, JOYINFOEX16_X_OFFSET, JOYINFOEX16_Y_OFFSET,
+    JOYINFOEX16_Z_OFFSET, JOY_RETURN_SUPPORTED, JOY_RETURNBUTTONS, JOY_RETURNX,
+    JOY_RETURNY, JOY_RETURNZ, MMSYSERR_NODRIVER, Win16JoyCaps16,
+    Win16JoyInfo16, Win16JoystickRequest, MAXPNAMELEN, MIXERCAPS16_SIZE,
+    MIXERCONTROL16_SIZE, MIXERCONTROLDETAILS16_SIZE, MIXERLINE16_SIZE, MIXERLINECONTROLS16_SIZE,
+    MIXER_LONG_NAME_CHARS, MIXER_SHORT_NAME_CHARS, Win16MixerCaps16, Win16MixerControl16,
+    Win16MixerControlDetails16, Win16MixerLine16, Win16MixerLineControls16, Win16MixerRequest,
     Win16MidiDirection, Win16MidiRequest, Win16MidiStreamArgument,
     MIDIHDR16_SIZE, MIDIINCAPS16_SIZE, MIDIOUTCAPS16_SIZE, Win16MidiHeader16,
     Win16MidiInCaps16, Win16MidiOutCaps16,
     Win16SoundPlayApi, Win16SoundRequest,
     Win16MciGuestRange, Win16MciOpenExtension, Win16MciOpenValue, Win16MciOutputBuffer, Win16MciParameters,
     Win16MciRequest, Win16MciResourceName, Win16MciSetExtension,
-    Win16MmckInfo16, Win16Mmtime16, Win16ModuleReference, Win16Ole2DispArgument, Win16Ole2DispCall,
+    Win16MmckInfo16, Win16MmioInfo16, Win16Mmtime16, Win16ModuleReference, Win16Ole2DispArgument, Win16Ole2DispCall,
     Win16Ole2DispConvertCall, Win16Ole2DispConvertInput, Win16Ole2DispConvertOperation,
     Win16Ole2DispLocaleFlags, Win16Ole2NlsRequest, Win16Ole2NlsString, Win16OutputBuffer,
     Win16ProcReference, Win16ResourceName, Win16SelectInput, Win16ShellDropRequest,
@@ -114,10 +137,10 @@ pub use request::{
     Win16ShellIconRequest, Win16ShellRegistryRequest, Win16ShellRequest, Win16SocketSetInput,
     Win16StringComparison, Win16SystemRequest, Win16TimeCaps16, Win16ToolhelpRequest,
     Win16ToolhelpStackRequest, Win16CharacterClassification, Win16UserAnsiRequest, Win16UserAtomsRequest,
-    Win16UserDrawingRequest, Win16UserGeometryRequest, Win16UserMenuRequest,
+    Win16UserDrawingRequest, Win16UserGeometryRequest, Win16UserInputRequest, Win16UserMenuRequest,
     Win16UserMessagesRequest, Win16UserRequest, Win16UserResourcesRequest, Win16UserRuntimeRequest,
     Win16UserStringFormatRequest,
-    Win16UserScrollBarRequest, Win16UserSystemRequest, Win16UserTextRequest,
+    Win16UserScrollBarRequest, Win16UserSystemRequest, Win16UserCommRequest, Win16UserTextRequest,
     Win16UserUpdateRequest, Win16UserWindowRequest, Win16VerRequest, Win16WaveControl,
     Win16WaveDirection, Win16WaveHeader16, Win16WaveInputCapabilities16,
     Win16WaveOutputCapabilities16, Win16WaveParameter, Win16WaveRequest, Win16WinsockDecodeFailure,
@@ -360,6 +383,10 @@ mod void_text_region_tests;
 #[cfg(test)]
 #[path = "exports/call_line_dda_global_void_tests.rs"]
 mod line_dda_global_void_tests;
+
+#[cfg(test)]
+#[path = "exports/call_system_timer_tests.rs"]
+mod call_system_timer_tests;
 
 #[cfg(test)]
 #[path = "exports/abi_baseline_tests.rs"]

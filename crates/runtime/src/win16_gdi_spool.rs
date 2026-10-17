@@ -17,7 +17,7 @@ impl Win16State {
     pub(super) fn execute_gdi_spool(
         &mut self,
         request: Request,
-        _memory: &mut Memory,
+        memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
         match request {
@@ -81,6 +81,20 @@ impl Win16State {
             } => self.finish_gdi_spool_job(job, true, legacy_argument, host),
             Request::StartSpoolPage { job } => self.gdi_spool_page(job, true, host),
             Request::EndSpoolPage { job } => self.gdi_spool_page(job, false, host),
+            Request::SetEnvironment {
+                port,
+                environment,
+                capacity,
+            } => self.set_printer_environment(port, environment, capacity),
+            Request::GetEnvironment {
+                port,
+                environment,
+                capacity,
+            } => self.get_printer_environment(port, environment, capacity, memory),
+            // `code` stays in the decoded request for the abort procedure.
+            // Nothing here installs that procedure, so it does not change the
+            // continue/stop answer and it is not passed to the host.
+            Request::QueryAbort { dc, code: _ } => self.query_abort(dc),
         }
     }
 
@@ -94,7 +108,8 @@ impl Win16State {
         // The DDK identifies this WORD as the application's abort DC, despite
         // PRINT.H spelling its type HPJOB. It is never a native HDC. No abort
         // procedure can currently be installed (SetAbortProc reports a gap),
-        // but an invalid non-null guest DC must not create a native document.
+        // so QueryAbort on this DC continues. An invalid non-null guest DC
+        // must not create a native document.
         if legacy_argument != 0 && self.guest_gdi.dc(legacy_argument).is_none() {
             return Ok(GDI_ERROR);
         }

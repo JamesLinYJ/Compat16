@@ -10,6 +10,15 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{PostMessageW, PostThreadMessag
 
 use super::{NativeTimerRecord, Win16GuestTimerPost, WorkerState};
 
+/// Native UINT_PTR bit that keeps an HWND-owned SetSystemTimer from replacing
+/// a SetTimer that uses the same guest id. The bit is not guest-visible.
+pub(in crate::windows::win16_windows) const SYSTEM_TIMER_NATIVE_ID_BIT: usize = 0x1_0000;
+
+fn reserves_system_timer_native_id(candidate: usize) -> bool {
+    (SYSTEM_TIMER_NATIVE_ID_BIT..=SYSTEM_TIMER_NATIVE_ID_BIT | usize::from(u16::MAX))
+        .contains(&candidate)
+}
+
 pub(in crate::windows::win16_windows) fn allocate_host_timer_id(
     state: &Rc<RefCell<WorkerState>>,
 ) -> Option<u64> {
@@ -26,7 +35,8 @@ pub(in crate::windows::win16_windows) fn allocate_native_callback_timer_id(
     let mut state = state.borrow_mut();
     loop {
         let candidate = state.next_native_callback_timer_id;
-        if candidate <= u16::MAX as usize {
+        if candidate <= u16::MAX as usize || reserves_system_timer_native_id(candidate) {
+            state.next_native_callback_timer_id = u16::MAX as usize;
             return None;
         }
         state.next_native_callback_timer_id = candidate - 1;
@@ -57,8 +67,9 @@ pub(in crate::windows::win16_windows) fn register_native_timer(
         let Some(previous) = state.timer_records.get(&previous_id).copied() else {
             return false;
         };
-        let same_guest_timer =
-            previous.window == record.window && previous.guest_timer_id == record.guest_timer_id;
+        let same_guest_timer = previous.window == record.window
+            && previous.guest_timer_id == record.guest_timer_id
+            && previous.system == record.system;
         // USER may recycle an HWND after its previous window has been
         // destroyed. A callback-free timer has no guest FAR provenance to
         // preserve, and the OS has already retired that window's timer; allow
@@ -125,7 +136,8 @@ pub(in crate::windows::win16_windows) fn post_guest_timer_message(
         let owner = hwnd as usize;
         let token = loop {
             let candidate = state.next_guest_timer_post_token;
-            if candidate <= u16::MAX as usize {
+            if candidate <= u16::MAX as usize || reserves_system_timer_native_id(candidate) {
+                state.next_guest_timer_post_token = u16::MAX as usize;
                 return Err(RuntimeError::new(
                     Kind::ResourceExhausted,
                     "Win16 guest timer-post sidecar identities are exhausted",

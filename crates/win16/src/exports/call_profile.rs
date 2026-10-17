@@ -3,7 +3,7 @@
 use super::super::Win16ExportId;
 use super::super::request::Win16ApiRequest;
 use super::call_helpers::{
-    checked_output_buffer, dword_argument, read_nullable_far_string, word_argument,
+    checked_output_buffer, dword_argument, read_far_bytes, read_nullable_far_string, word_argument,
 };
 use crate::{SelectorTable, Win16Error};
 use guest_core::GuestMemory;
@@ -116,6 +116,59 @@ pub(super) fn decode(
                     )?,
                     filename: read_nullable_far_string(
                         dword_argument(arguments, 3)?,
+                        selectors,
+                        memory,
+                    )?,
+                },
+            ))
+        }
+        Win16ExportId::KernelWritePrivateProfileStruct => {
+            let key = read_nullable_far_string(dword_argument(arguments, 1)?, selectors, memory)?;
+            let data_far = dword_argument(arguments, 2)?;
+            let data_size = word_argument(arguments, 3)?;
+            // A null key deletes or is ignored by the profile API. Do not
+            // require a readable payload for that call. A null data pointer
+            // is forwarded as a null structure.
+            let data = if key.is_none() || data_far == 0 {
+                None
+            } else {
+                Some(read_far_bytes(data_far, usize::from(data_size), selectors, memory)?)
+            };
+            Win16ApiRequest::Kernel(super::Win16KernelRequest::Profiles(
+                super::Win16KernelProfilesRequest::WritePrivateProfileStruct {
+                    section: read_nullable_far_string(
+                        dword_argument(arguments, 0)?,
+                        selectors,
+                        memory,
+                    )?,
+                    key,
+                    data,
+                    data_size,
+                    filename: read_nullable_far_string(
+                        dword_argument(arguments, 4)?,
+                        selectors,
+                        memory,
+                    )?,
+                },
+            ))
+        }
+        Win16ExportId::KernelGetPrivateProfileStruct => {
+            Win16ApiRequest::Kernel(super::Win16KernelRequest::Profiles(
+                super::Win16KernelProfilesRequest::GetPrivateProfileStruct {
+                    section: read_nullable_far_string(
+                        dword_argument(arguments, 0)?,
+                        selectors,
+                        memory,
+                    )?,
+                    key: read_nullable_far_string(
+                        dword_argument(arguments, 1)?,
+                        selectors,
+                        memory,
+                    )?,
+                    output: dword_argument(arguments, 2)?,
+                    capacity: word_argument(arguments, 3)?,
+                    filename: read_nullable_far_string(
+                        dword_argument(arguments, 4)?,
                         selectors,
                         memory,
                     )?,

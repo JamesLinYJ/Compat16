@@ -67,6 +67,8 @@ mod profile_calls;
 mod win16_service_calls;
 #[path = "call_user_system.rs"]
 mod user_system_calls;
+#[path = "call_user_comm.rs"]
+mod call_user_comm;
 #[path = "call_user_resources.rs"]
 mod user_resource_calls;
 #[path = "call_user_atoms.rs"]
@@ -114,6 +116,8 @@ pub fn decode_export_call(
     })
 }
 
+#[path = "input_event.rs"]
+mod input_event;
 #[path = "call_register_context.rs"]
 mod register_context;
 pub use register_context::decode_export_call_with_register_context;
@@ -126,3 +130,7 @@ pub const FAR_EXPORT_RETURN_WIDTH: ReturnAddressWidth = ReturnAddressWidth::Far;
 #[cfg(test)]
 #[path = "call_open_file_tests.rs"]
 mod open_file_tests;
+
+#[cfg(test)]
+#[path = "call_input_event_tests.rs"]
+mod input_event_tests;

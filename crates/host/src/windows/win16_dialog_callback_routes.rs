@@ -10,7 +10,7 @@ use runtime::{
 use windows_sys::Win32::Foundation::{HWND, LPARAM};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetParent, IsWindow, MSG, WM_CHANGECBCHAIN, WM_COMMAND, WM_INITDIALOG,
-    WM_NCACTIVATE, WM_TIMER,
+    WM_NCACTIVATE,
 };
 
 use super::super::win16_window_worker::{self as worker, DialogRoute, WorkerState};
@@ -302,7 +302,7 @@ pub(super) fn copy_native_queued_message(
                 Some(worker::token_for_native(state, native.lParam as HWND)?)
             };
             Win16MessageParam::ClipboardChainChange { removed, next }
-        } else if native.message == WM_TIMER {
+        } else if Win16ScalarMessage::is_timer_message(message) {
             if native.lParam != 0 { return Ok(None); }
             Win16MessageParam::Scalar(native.lParam as u32)
         } else if Win16ScalarMessage::from_raw(message).is_some() {

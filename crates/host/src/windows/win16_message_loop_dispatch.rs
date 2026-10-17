@@ -227,11 +227,16 @@ pub(super) fn expose_or_dispatch(
         if let Some(record) = worker::native_timer_record(state, native.hwnd, native.wParam)
             .filter(|record| record.guest_callback)
         {
+            let guest_message = if record.system {
+                Win16ScalarMessage::SystemTimer as u16
+            } else {
+                message_id
+            };
             return Ok(Some(Win16HostQueuedDelivery::message(
                 Win16HostQueuedMessage {
                     source: Win16MessageSource::NativeQueue,
                     window: record.window,
-                    message: message_id,
+                    message: guest_message,
                     w_param: record.guest_timer_id,
                     // This queue record has our exact native thunk in LPARAM and
                     // a live guest TIMERPROC generation. Runtime restores the
@@ -293,17 +298,23 @@ pub(super) fn expose_or_dispatch(
                 .map(|identity| Some(identity.window))
         };
         if let Some(window) = current_window {
-            let guest_timer_id = worker::native_timer_record(state, native.hwnd, native.wParam)
-                .filter(|record| !record.guest_callback && record.window == window)
-                .map(|record| record.guest_timer_id);
+            let matched = worker::native_timer_record(state, native.hwnd, native.wParam)
+                .filter(|record| !record.guest_callback && record.window == window);
+            let guest_timer_id = matched.map(|record| record.guest_timer_id);
+            let system_timer = matched.is_some_and(|record| record.system);
             if let Some(guest_timer_id) =
                 guest_timer_id.or_else(|| u16::try_from(native.wParam).ok())
             {
+                let guest_message = if system_timer {
+                    Win16ScalarMessage::SystemTimer as u16
+                } else {
+                    message_id
+                };
                 return Ok(Some(Win16HostQueuedDelivery::message(
                     Win16HostQueuedMessage {
                         source: Win16MessageSource::NativeQueue,
                         window,
-                        message: message_id,
+                        message: guest_message,
                         w_param: guest_timer_id,
                         l_param: Win16MessageParam::Scalar(0),
                         time: native.time,

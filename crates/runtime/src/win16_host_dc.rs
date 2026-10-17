@@ -57,3 +57,26 @@ pub struct Win16HostOutlineTextMetrics {
     pub fixed: [u8; 106],
     pub names: [Vec<u16>; 4],
 }
+
+/// Public Windows mapping-mode constants. Fixed modes already have a logical
+/// unit, so native outline metrics can be narrowed into the Win16 layout.
+/// `MM_ISOTROPIC` (7) and `MM_ANISOTROPIC` (8) stay rejected until an extent
+/// path is tested. Callers do not prefill the guest buffer with a debug pattern.
+pub fn win16_outline_text_map_mode_supported(mode: i32) -> bool {
+    matches!(mode, 1..=6)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::win16_outline_text_map_mode_supported;
+
+    #[test]
+    fn outline_text_metrics_keeps_fixed_modes_and_rejects_untested_extents() {
+        for mode in 1..=6 {
+            assert!(win16_outline_text_map_mode_supported(mode), "{mode}");
+        }
+        for mode in [0, 7, 8, 9, -1, i32::MIN, i32::MAX] {
+            assert!(!win16_outline_text_map_mode_supported(mode), "{mode}");
+        }
+    }
+}

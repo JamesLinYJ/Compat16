@@ -18,6 +18,10 @@ pub(super) fn decode(
         return super::super::call_winnls::decode(descriptor, arguments, selectors, memory)
             .map(|request| Some(Win16ApiRequest::Winnls(request)));
     }
+    if descriptor.module().eq_ignore_ascii_case("WINMEM32") {
+        return super::super::call_winmem32::decode(descriptor.ordinal(), arguments)
+            .map(|request| request.map(Win16ApiRequest::Winmem32));
+    }
     if descriptor.module().eq_ignore_ascii_case("MSACM") {
         return call_win16_multimedia::decode_multimedia_export(
             descriptor.module().as_bytes(),
@@ -97,12 +101,44 @@ pub(super) fn decode(
         | Win16ExportId::Ole2DispSafeArrayDestroyData => Win16ApiRequest::Ole2Disp(
             super::super::call_ole2disp::decode(descriptor, arguments, selectors, memory)?,
         ),
+        Win16ExportId::AuxGetNumDevs
+        | Win16ExportId::AuxGetDevCaps
+        | Win16ExportId::AuxGetVolume
+        | Win16ExportId::AuxSetVolume
+        | Win16ExportId::AuxOutMessage => Win16ApiRequest::Aux(
+            super::super::call_aux::decode(descriptor, arguments)?,
+        ),
+        Win16ExportId::MmsystemMixerGetNumDevs
+        | Win16ExportId::MmsystemMixerGetDevCaps
+        | Win16ExportId::MmsystemMixerOpen
+        | Win16ExportId::MmsystemMixerClose
+        | Win16ExportId::MmsystemMixerMessage
+        | Win16ExportId::MmsystemMixerGetLineInfo
+        | Win16ExportId::MmsystemMixerGetId
+        | Win16ExportId::MmsystemMixerGetLineControls
+        | Win16ExportId::MmsystemMixerGetControlDetails
+        | Win16ExportId::MmsystemMixerSetControlDetails => Win16ApiRequest::Mixer(
+            super::super::call_mixer::decode(descriptor, arguments)?,
+        ),
         Win16ExportId::MediaTimeGetSystemTime
         | Win16ExportId::MediaTimeGetDevCaps
         | Win16ExportId::MediaTimeBeginPeriod
         | Win16ExportId::MediaTimeEndPeriod
-        | Win16ExportId::MediaTimeGetTime => Win16ApiRequest::MediaTime(
+        | Win16ExportId::MediaTimeGetTime
+        | Win16ExportId::MediaTimeSetEvent
+        | Win16ExportId::MediaTimeKillEvent => Win16ApiRequest::MediaTime(
             super::super::call_media_time::decode(descriptor, arguments)?,
+        ),
+        Win16ExportId::MmsystemJoyGetNumDevs
+        | Win16ExportId::MmsystemJoyGetDevCaps
+        | Win16ExportId::MmsystemJoyGetPos
+        | Win16ExportId::MmsystemJoyGetThreshold
+        | Win16ExportId::MmsystemJoyReleaseCapture
+        | Win16ExportId::MmsystemJoySetCapture
+        | Win16ExportId::MmsystemJoySetThreshold
+        | Win16ExportId::MmsystemJoySetCalibration
+        | Win16ExportId::MmsystemJoyGetPosEx => Win16ApiRequest::Joystick(
+            super::super::call_joystick::decode(descriptor, arguments)?,
         ),
         Win16ExportId::MediaIoOpen
         | Win16ExportId::MediaIoClose
@@ -114,7 +150,13 @@ pub(super) fn decode(
         | Win16ExportId::MediaIoDescend
         | Win16ExportId::MediaIoAscend
         | Win16ExportId::MediaIoCreateChunk
-        | Win16ExportId::MediaIoRename => Win16ApiRequest::MediaIo(
+        | Win16ExportId::MediaIoRename
+        | Win16ExportId::MediaIoGetInfo
+        | Win16ExportId::MediaIoSetInfo
+        | Win16ExportId::MediaIoSetBuffer
+        | Win16ExportId::MediaIoAdvance
+        | Win16ExportId::MediaIoInstallIoProc
+        | Win16ExportId::MediaIoSendMessage => Win16ApiRequest::MediaIo(
             super::super::call_media_io::decode(descriptor, arguments, selectors, memory)?,
         ),
         Win16ExportId::MidiOutGetNumDevs

@@ -63,6 +63,20 @@ pub(super) fn decode(
                 timer_id: word_argument(arguments, 1)?,
             },
         ))),
+        Win16ExportId::UserSetSystemTimer => Ok(Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::SetSystemTimer {
+                window: word_argument(arguments, 0)?,
+                timer_id: word_argument(arguments, 1)?,
+                interval: word_argument(arguments, 2)?,
+                callback: dword_argument(arguments, 3)?,
+            }),
+        )),
+        Win16ExportId::UserKillSystemTimer => Ok(Win16ApiRequest::User(
+            super::Win16UserRequest::Window(super::Win16UserWindowRequest::KillSystemTimer {
+                window: word_argument(arguments, 0)?,
+                timer_id: word_argument(arguments, 1)?,
+            }),
+        )),
         Win16ExportId::UserSetCapture => Ok(Win16ApiRequest::User(
             super::Win16UserRequest::Window(super::Win16UserWindowRequest::SetCapture {
                 window: word_argument(arguments, 0)?,
@@ -96,6 +110,11 @@ pub(super) fn decode(
         )),
         Win16ExportId::UserInSendMessage => Ok(Win16ApiRequest::User(
             super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::InSendMessage),
+        )),
+        Win16ExportId::UserQuerySendMessage => Ok(Win16ApiRequest::User(
+            super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::QuerySendMessage {
+                message: dword_argument(arguments, 3)?,
+            }),
         )),
         Win16ExportId::UserReplyMessage => Ok(Win16ApiRequest::User(
             super::Win16UserRequest::Messages(super::Win16UserMessagesRequest::ReplyMessage {

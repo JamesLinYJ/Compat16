@@ -10,6 +10,12 @@ mod request_modules;
 pub use request_modules::{Win16UserNetworkBuffer, Win16UserNetworkRequest};
 pub use request_modules::Win16UserHooksRequest;
 pub use request_modules::Win16WinnlsRequest;
+pub use request_modules::{
+    WINMEM32_INSUFFICIENT_MEMORY, WINMEM32_INSUFFICIENT_SELECTORS, WINMEM32_INVALID_ARGUMENT,
+    WINMEM32_INVALID_FLAGS, WINMEM32_INVALID_FUNCTION, WINMEM32_MAX_16BIT_ALIAS_BYTES,
+    WINMEM32_MAX_OBJECT_BYTES, WINMEM32_VERSION_1_00, Win16Winmem32Request,
+};
+pub(super) use request_modules::decode_winmem32;
 pub use request_modules::Win16PrintQueueRequest;
 pub use request_modules::Win16KernelFileSystemRequest;
 pub use request_modules::Win16KernelInstanceRequest;
@@ -21,6 +27,8 @@ pub use request_modules::{NF_NORMAL, NF_TASKSWITCH, NF_RIP};
 pub(super) use request_modules::decode_print_queue_export;
 pub use request_modules::{
     DecodedWin16Call, DibColorTableKind, DibRgbQuad16, DocInfo16, GdiDeviceRequest,
+    MAXPNAMELEN, MIXERCAPS16_SIZE, MIXERCONTROL16_SIZE, MIXERCONTROLDETAILS16_SIZE,
+    MIXERLINE16_SIZE, MIXERLINECONTROLS16_SIZE, MIXER_LONG_NAME_CHARS, MIXER_SHORT_NAME_CHARS,
     MMCKINFO16_SIZE, MMIOINFO16_ERROR_OFFSET, MMIOINFO16_SIZE, MMTIME16_SIZE, PaletteEntry16,
     PaletteTransferKind, PrintOperation, TIMECAPS16_SIZE, WAVEHDR16_BYTES_RECORDED_OFFSET,
     WAVEHDR16_FLAGS_OFFSET, WAVEHDR16_SIZE, WAVEINCAPS16_SIZE, WAVEOUTCAPS16_SIZE,
@@ -40,14 +48,22 @@ pub use request_modules::{
     Win16KernelStringRequest, Win16KernelStringsRequest, Win16KernelTaskRequest,
     Win16KeyboardConversion, Win16KeyboardRequest, Win16LibraryCodePageRequest,
     Win16LibraryInterruptsRequest, Win16LibraryRequest, Win16LibraryStringsRequest,
-    Win16LibraryToolhelpRequest, Win16LzExpandRequest, Win16MediaIoRequest, Win16MediaTimeRequest,
+    Win16AuxCapabilities16, Win16AuxRequest, AUXCAPS16_SIZE, AUXCAPS_AUXIN,
+    AUXCAPS_CDAUDIO, AUXCAPS_LRVOLUME, AUXCAPS_VOLUME, Win16LibraryToolhelpRequest,
+    Win16LzExpandRequest, Win16MediaIoRequest, Win16MediaTimeRequest, JOYCAPS16_SIZE,
+    JOYERR_NOCANDO, JOYERR_PARMS, JOYERR_UNPLUGGED, JOYINFO16_SIZE,
+    JOYINFOEX16_BUTTONS_OFFSET, JOYINFOEX16_SIZE, JOYINFOEX16_X_OFFSET, JOYINFOEX16_Y_OFFSET,
+    JOYINFOEX16_Z_OFFSET, JOY_RETURN_SUPPORTED, JOY_RETURNBUTTONS, JOY_RETURNX,
+    JOY_RETURNY, JOY_RETURNZ, MMSYSERR_NODRIVER, Win16JoyCaps16,
+    Win16JoyInfo16, Win16JoystickRequest, Win16MixerCaps16, Win16MixerControl16,
+    Win16MixerControlDetails16, Win16MixerLine16, Win16MixerLineControls16, Win16MixerRequest,
     Win16MidiDirection, Win16MidiRequest, Win16MidiStreamArgument,
     MIDIHDR16_SIZE, MIDIINCAPS16_SIZE, MIDIOUTCAPS16_SIZE, Win16MidiHeader16,
     Win16MidiInCaps16, Win16MidiOutCaps16,
     Win16SoundPlayApi, Win16SoundRequest,
     Win16MciOpenExtension, Win16MciOpenValue, Win16MciOutputBuffer, Win16MciParameters,
     Win16MciGuestRange, Win16MciRequest, Win16MciResourceName, Win16MciSetExtension,
-    Win16MmckInfo16, Win16Mmtime16, Win16ModuleReference, Win16Ole2DispArgument, Win16Ole2DispCall,
+    Win16MmckInfo16, Win16MmioInfo16, Win16Mmtime16, Win16ModuleReference, Win16Ole2DispArgument, Win16Ole2DispCall,
     Win16Ole2DispConvertCall, Win16Ole2DispConvertInput, Win16Ole2DispConvertOperation,
     Win16Ole2DispLocaleFlags, Win16Ole2NlsRequest, Win16Ole2NlsString, Win16OutputBuffer,
     Win16PrinterRequest, Win16ProcReference, Win16ResourceName, Win16SelectInput,
@@ -56,10 +72,10 @@ pub use request_modules::{
     Win16ShellRequest, Win16SocketSetInput, Win16StringComparison, Win16SystemRequest,
     Win16TimeCaps16, Win16ToolhelpRequest, Win16ToolhelpStackRequest, Win16CharacterClassification, Win16UserAnsiRequest,
     Win16UserAtomsRequest, Win16UserCursorAcceleratorRequest, Win16UserDrawingRequest,
-    Win16UserGeometryRequest, Win16UserMenuRequest, Win16UserMessagesRequest, Win16UserRequest,
+    Win16UserGeometryRequest, Win16UserInputRequest, Win16UserMenuRequest, Win16UserMessagesRequest, Win16UserRequest,
     Win16UserResourcesRequest, Win16UserRuntimeRequest, Win16UserScrollBarRequest,
     Win16UserStringFormatRequest,
-    Win16UserSystemRequest, Win16UserTextRequest, Win16UserUpdateRequest, Win16UserWindowRequest,
+    Win16UserSystemRequest, Win16UserCommRequest, Win16UserTextRequest, Win16UserUpdateRequest, Win16UserWindowRequest,
     Win16VerRequest, Win16WaveControl, Win16WaveDirection, Win16WaveHeader16,
     Win16WaveInputCapabilities16, Win16WaveOutputCapabilities16, Win16WaveParameter,
     Win16WaveRequest, Win16WindowDataRequest, Win16WindowPropertyName, Win16WindowPropertyRequest,
@@ -102,12 +118,16 @@ pub enum Win16ApiRequest {
     KernelDiagnostics(Win16KernelDiagnosticRequest),
     Ole2Nls(Win16Ole2NlsRequest),
     Winnls(Win16WinnlsRequest),
+    Winmem32(Win16Winmem32Request),
     PrintQueue(Win16PrintQueueRequest),
     Ole2Disp(Win16Ole2DispCall),
     Ole2DispConvert(Win16Ole2DispConvertCall),
     Winsock(Win16WinsockRequest),
+    Aux(Win16AuxRequest),
     MediaTime(Win16MediaTimeRequest),
+    Mixer(Win16MixerRequest),
     MediaIo(Win16MediaIoRequest),
+    Joystick(Win16JoystickRequest),
     Midi(Win16MidiRequest),
     /// A catalog-decoded Win16 multimedia export whose ABI is known, including
     /// the direct MSACM family. Host behavior is implemented in Rust runtime

@@ -380,6 +380,36 @@ impl Filesystem {
         crate::windows::encode(&absolute, self.code_page).ok()
     }
 
+    /// Absolute 8.3 spelling of an existing canonical path. The final entry
+    /// must exist, and every component must already have an alias. This does
+    /// not invent a short name when the volume has none.
+    pub(crate) fn short_path_text(&mut self, path: &Win16CanonicalPath) -> Option<String> {
+        if path.drive != self.drive {
+            return None;
+        }
+        let relative = self.resolve_win16_canonical_path(path).ok()?;
+        let relative = self.confined_path(&relative, true, false).ok()?;
+        let components: Vec<_> = relative
+            .components()
+            .filter(|component| !matches!(component, std::path::Component::CurDir))
+            .map(|component| component.as_os_str().to_os_string())
+            .collect();
+        let mut parent = PathBuf::new();
+        let mut aliases = Vec::with_capacity(components.len());
+        for component in &components {
+            let alias = self.aliases_for(parent.as_path()).ok()?
+                .by_real_name.get(component).cloned()?;
+            aliases.push(alias);
+            parent.push(component);
+        }
+        let drive = char::from(b'A' + path.drive);
+        Some(if aliases.is_empty() {
+            format!("{drive}:\\")
+        } else {
+            format!("{drive}:\\{}", aliases.join("\\"))
+        })
+    }
+
     pub(super) fn encode_dos_directory_path(
         &mut self,
         path: &Path,

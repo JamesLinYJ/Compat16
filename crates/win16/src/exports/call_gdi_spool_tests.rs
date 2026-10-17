@@ -71,6 +71,9 @@ fn gdi_spool_exports_have_sdk_names_word_results_and_pascal_cleanup() {
         (244, b"DeleteJob", 4),
         (246, b"StartSpoolPage", 2),
         (247, b"EndSpoolPage", 2),
+        (132, b"SetEnvironment", 10),
+        (133, b"GetEnvironment", 10),
+        (155, b"QueryAbort", 4),
     ] {
         let descriptor = lookup_export(b"GDI", ExportLookupTarget::Ordinal(ordinal)).unwrap();
         assert_eq!(
@@ -168,6 +171,65 @@ fn gdi_spool_write_rejects_truncated_freed_and_unrelated_adjacent_selectors() {
     assert!(
         f.call(241, &[Arg::Word(1), Arg::Dword(0xffff_ffff), Arg::Word(1)])
             .is_err()
+    );
+}
+
+#[test]
+fn gdi_environment_copies_counted_bytes_and_a_null_get_keeps_the_guest_address() {
+    let mut f = Fixture::new();
+    let port = f.input(0x2000, b"LPT1:\0");
+    let block = f.input(0x3000, &[0x41, 0, 0xff, 0x82]);
+    assert_eq!(
+        f.call(132, &[Arg::Dword(port), Arg::Dword(block), Arg::Word(4)])
+            .unwrap(),
+        Win16ApiRequest::GdiSpool(Request::SetEnvironment {
+            port: Some(b"LPT1:".to_vec()),
+            environment: Some(vec![0x41, 0, 0xff, 0x82]),
+            capacity: 4,
+        })
+    );
+    assert_eq!(
+        f.call(132, &[Arg::Dword(0), Arg::Dword(0xffff_ffff), Arg::Word(0)])
+            .unwrap(),
+        Win16ApiRequest::GdiSpool(Request::SetEnvironment {
+            port: None,
+            environment: None,
+            capacity: 0,
+        })
+    );
+    assert_eq!(
+        f.call(133, &[Arg::Dword(port), Arg::Dword(0), Arg::Word(0)])
+            .unwrap(),
+        Win16ApiRequest::GdiSpool(Request::GetEnvironment {
+            port: Some(b"LPT1:".to_vec()),
+            environment: 0,
+            capacity: 0,
+        })
+    );
+    assert_eq!(
+        f.call(
+            133,
+            &[Arg::Dword(port), Arg::Dword(0xffff_ffff), Arg::Word(4)]
+        )
+        .unwrap(),
+        Win16ApiRequest::GdiSpool(Request::GetEnvironment {
+            port: Some(b"LPT1:".to_vec()),
+            environment: 0xffff_ffff,
+            capacity: 4,
+        })
+    );
+    assert!(
+        f.call(132, &[Arg::Dword(port), Arg::Dword(block), Arg::Word(5)])
+            .is_err()
+    );
+}
+
+#[test]
+fn gdi_query_abort_keeps_the_signed_code_word() {
+    let mut f = Fixture::new();
+    assert_eq!(
+        f.call(155, &[Arg::Word(0x20), Arg::Word(0xfffc)]).unwrap(),
+        Win16ApiRequest::GdiSpool(Request::QueryAbort { dc: 0x20, code: -4 })
     );
 }
 

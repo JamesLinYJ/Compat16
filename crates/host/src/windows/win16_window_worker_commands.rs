@@ -118,6 +118,10 @@ pub(in crate::windows::win16_windows) enum WorkerCommand {
         key: i32,
         response: Sender<i16>,
     },
+    Ctl3dFrame {
+        window: runtime::Win16HostWindow,
+        response: Sender<Option<runtime::Win16HostCtl3dFrameFacts>>,
+    },
     Keyboard {
         call: runtime::Win16HostKeyboardCall,
         response: Sender<Result<runtime::Win16HostKeyboardResult, RuntimeError>>,

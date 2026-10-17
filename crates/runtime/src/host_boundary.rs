@@ -1,5 +1,9 @@
 //! Owned host identities and services consumed by the runtime.
 
+#[path = "win16_host_injected_input.rs"]
+mod injected_input;
+pub use injected_input::{Win16InjectedKey, Win16InjectedMouse};
+
 #[path = "host_boundary_audio.rs"]
 mod audio;
 use audio::audio_runtime_host_ports;
@@ -38,6 +42,81 @@ pub enum Win16ProfilePath {
 /// Opaque host file identity. It is never a guest HFILE or native HANDLE.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Win16HostFile(pub u64);
+
+/// Opaque host communications port. Guest `OpenComm` ids are separate words.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct Win16HostCommPort(pub u64);
+
+/// A parsed `COMn` or `LPTn` identity. The guest string is not a host path.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostCommDevice {
+    Com(u8),
+    Lpt(u8),
+}
+
+/// `COM` devices accept serial timeouts and line control. `LPT` handles do not.
+pub fn win16_comm_device_is_serial(device: Win16HostCommDevice) -> bool {
+    matches!(device, Win16HostCommDevice::Com(_))
+}
+
+/// Win32 line state that a Win16 `DCB` flag can express.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostCommLine {
+    Disable,
+    Enable,
+    Handshake,
+}
+
+/// Serial parameters applied with the host's device-control call.
+///
+/// Baud is the numeric rate. Win16 `CBR_*` constants are translated before
+/// they reach the host. Fields the host API cannot store are rejected by the
+/// runtime and never appear here.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Win16HostCommConfig {
+    pub baud_rate: u32,
+    pub byte_size: u8,
+    pub parity: u8,
+    pub stop_bits: u8,
+    pub binary: bool,
+    pub parity_check: bool,
+    pub cts_output_flow: bool,
+    pub dsr_output_flow: bool,
+    pub dtr: Win16HostCommLine,
+    pub rts: Win16HostCommLine,
+    pub xon_output: bool,
+    pub xon_input: bool,
+    pub error_char_enabled: bool,
+    pub strip_null: bool,
+    pub xon_char: u8,
+    pub xoff_char: u8,
+    pub error_char: u8,
+    pub eof_char: u8,
+    pub event_char: u8,
+    pub xon_limit: u16,
+    pub xoff_limit: u16,
+}
+
+/// Line control addressed to one open serial device.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostCommControl {
+    SetXoff,
+    SetXon,
+    SetRts,
+    ClearRts,
+    SetDtr,
+    ClearDtr,
+    Reset,
+    SetBreak,
+    ClearBreak,
+}
+
+/// Queue cleared by `FlushComm`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostCommQueue {
+    Transmit,
+    Receive,
+}
 
 /// An initialized stream identity in the host's common file table.
 /// The host owns native LZ token classification, including token zero.
@@ -261,6 +340,19 @@ pub struct Win16SchedulerReadiness {
     pub callback_pending: bool,
 }
 
+/// One screen-coordinate observation for USER.465 DragDetect.
+///
+/// `x` and `y` are host screen pixels narrowed into signed Win16 range.
+/// `left_down` and `escape_down` follow the high bit of the asynchronous
+/// logical key state. The sample is not a guest pointer or a host HWND.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Win16DragSample {
+    pub x: i16,
+    pub y: i16,
+    pub left_down: bool,
+    pub escape_down: bool,
+}
+
 pub trait RuntimeHost:
     DosHost + RuntimeDdeHost + RuntimeMciHost + RuntimeMidiHost + RuntimeNetbiosHost
 {
@@ -382,6 +474,30 @@ pub trait RuntimeHost:
             "host Win16 multimedia timer services are unavailable",
         ))
     }
+    /// Auxiliary audio without a physical device. Zero devices is the public
+    /// result; other calls return `MMSYSERR_BADDEVICEID` and write nothing.
+    fn win16_aux(
+        &mut self,
+        operation: crate::Win16HostAuxOperation,
+    ) -> Result<crate::Win16HostAuxResult, RuntimeError> {
+        match operation {
+            crate::Win16HostAuxOperation::GetNumDevs => Ok(crate::Win16HostAuxResult::Count(0)),
+            crate::Win16HostAuxOperation::GetDevCaps { .. } => {
+                Ok(crate::Win16HostAuxResult::Capabilities {
+                    result: crate::MMSYSERR_BADDEVICEID,
+                    capabilities: None,
+                })
+            }
+            crate::Win16HostAuxOperation::GetVolume { .. } => Ok(crate::Win16HostAuxResult::Volume {
+                result: crate::MMSYSERR_BADDEVICEID,
+                value: None,
+            }),
+            crate::Win16HostAuxOperation::SetVolume { .. }
+            | crate::Win16HostAuxOperation::OutMessage { .. } => {
+                Ok(crate::Win16HostAuxResult::Status(crate::MMSYSERR_BADDEVICEID))
+            }
+        }
+    }
     fn win16_media_io(
         &mut self,
         _operation: crate::Win16HostMediaIoOperation,
@@ -389,6 +505,45 @@ pub trait RuntimeHost:
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
             "host Win16 multimedia I/O services are unavailable",
+        ))
+    }
+    /// No physical joystick. A count of zero and `MMSYSERR_NODRIVER` are the
+    /// Windows 3.1 results when the joystick driver is absent.
+    fn win16_joystick(
+        &mut self,
+        operation: crate::Win16HostJoystickOperation,
+    ) -> Result<crate::Win16HostJoystickResult, RuntimeError> {
+        use crate::{Win16HostJoystickOperation as Operation, Win16HostJoystickResult as Reply};
+        Ok(match operation {
+            Operation::DeviceCount => Reply::Count(0),
+            Operation::DevCaps { .. } => Reply::Caps {
+                result: win16_abi::MMSYSERR_NODRIVER,
+                caps: None,
+            },
+            Operation::Position { .. } => Reply::Position {
+                result: win16_abi::MMSYSERR_NODRIVER,
+                x: 0,
+                y: 0,
+                z: 0,
+                buttons: 0,
+            },
+            Operation::ThresholdGet { .. } => Reply::Threshold {
+                result: win16_abi::MMSYSERR_NODRIVER,
+                value: 0,
+            },
+            Operation::ThresholdSet { .. }
+            | Operation::SetCapture { .. }
+            | Operation::ReleaseCapture { .. } => Reply::Status(win16_abi::MMSYSERR_NODRIVER),
+        })
+    }
+    /// Session mixer. The default does not invent a device or a success code.
+    fn win16_mixer(
+        &mut self,
+        _operation: crate::Win16HostMixerOperation,
+    ) -> Result<crate::Win16HostMixerResult, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 mixer services are unavailable",
         ))
     }
     /// Execute an owned direct MSACM request. Guest memory, callbacks, and
@@ -976,6 +1131,14 @@ pub trait RuntimeHost:
             DiagnosticKind::CompatibilityGap,
             "host Win16 native window destruction is unavailable",
         ))
+    }
+    /// Read style and iconic state for `Ctl3dDlgFramePaint`. `Ok(None)` means
+    /// the token is not a live window. This must not call the window procedure.
+    fn win16_ctl3d_frame(
+        &mut self,
+        _window: Win16HostWindow,
+    ) -> Result<Option<crate::Win16HostCtl3dFrameFacts>, RuntimeError> {
+        Ok(None)
     }
     /// Query only the exact opaque window incarnation. The host must return
     /// `Retired` only for a token it can prove was issued and later retired;
@@ -1684,6 +1847,29 @@ pub trait RuntimeHost:
             "host Win16 key state is unavailable",
         ))
     }
+    /// Read the screen pointer and the two keys DragDetect watches.
+    ///
+    /// `wait_for_change` asks the host to block until the sample differs from
+    /// the previous poll in this process. A host that cannot wait returns the
+    /// current sample; the runtime stops if that sample repeats.
+    fn win16_drag_poll(&mut self, _wait_for_change: bool) -> Result<Win16DragSample, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 drag sample is unavailable",
+        ))
+    }
+    fn win16_inject_keyboard(&mut self, _event: Win16InjectedKey) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host synthesized keyboard input is unavailable",
+        ))
+    }
+    fn win16_inject_mouse(&mut self, _event: Win16InjectedMouse) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host synthesized mouse input is unavailable",
+        ))
+    }
     fn win16_get_system_metrics(&mut self, _index: i32) -> Result<i32, RuntimeError> {
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
@@ -1840,6 +2026,116 @@ pub trait RuntimeHost:
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
             "host Win16 system profile-section write is unavailable",
+        ))
+    }
+
+    /// Open one named communications device. The token is host-owned.
+    fn win16_comm_open(
+        &mut self,
+        _device: Win16HostCommDevice,
+        _in_queue: u16,
+        _out_queue: u16,
+    ) -> Result<Win16HostCommPort, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications port is unavailable",
+        ))
+    }
+
+    /// Read bytes already available from one open port into `output`.
+    fn win16_comm_read(
+        &mut self,
+        _port: Win16HostCommPort,
+        _output: &mut [u8],
+    ) -> Result<usize, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications read is unavailable",
+        ))
+    }
+
+    /// Write bytes to one open port. The returned count is at most `input.len()`.
+    fn win16_comm_write(
+        &mut self,
+        _port: Win16HostCommPort,
+        _input: &[u8],
+    ) -> Result<usize, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications write is unavailable",
+        ))
+    }
+
+    /// Close one open port token. A second close of the same token fails.
+    fn win16_comm_close(&mut self, _port: Win16HostCommPort) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications close is unavailable",
+        ))
+    }
+
+    /// Apply serial parameters to one open device. `LPT` tokens cannot accept this.
+    fn win16_comm_configure(
+        &mut self,
+        _port: Win16HostCommPort,
+        _config: &Win16HostCommConfig,
+    ) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications configuration is unavailable",
+        ))
+    }
+
+    /// Apply break or a modem-control escape to one open serial device.
+    fn win16_comm_control(
+        &mut self,
+        _port: Win16HostCommPort,
+        _control: Win16HostCommControl,
+    ) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications line control is unavailable",
+        ))
+    }
+
+    /// Discard one driver queue. The guest unget byte is separate.
+    fn win16_comm_flush(
+        &mut self,
+        _port: Win16HostCommPort,
+        _queue: Win16HostCommQueue,
+    ) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications flush is unavailable",
+        ))
+    }
+    /// Store opaque profile bytes through the same private-profile file as the
+    /// string APIs. `data` is not text. A null data slice is a null structure.
+    fn win16_profile_struct_write(
+        &mut self,
+        _section: Option<&[u8]>,
+        _key: Option<&[u8]>,
+        _data: Option<&[u8]>,
+        _data_size: u16,
+        _filename: &Win16ProfilePath,
+    ) -> Result<bool, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 profile-struct write is unavailable",
+        ))
+    }
+    /// Read opaque profile bytes. `Ok((false, _))` writes nothing. On success
+    /// the vector length equals `capacity`.
+    fn win16_profile_struct_read(
+        &mut self,
+        _section: Option<&[u8]>,
+        _key: Option<&[u8]>,
+        _capacity: u16,
+        _filename: &Win16ProfilePath,
+    ) -> Result<(bool, Vec<u8>), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 profile-struct read is unavailable",
         ))
     }
 }

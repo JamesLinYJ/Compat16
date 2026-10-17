@@ -732,6 +732,69 @@ impl Win16State {
         Ok(1)
     }
 
+    /// KERNEL.274. The Windows 3.1 SDK does not publish this export. The
+    /// result is the absolute `D:\` 8.3 spelling of an existing path, in the
+    /// task ANSI code page. A missing path or a missing 8.3 alias returns 0.
+    /// A short buffer is left untouched and the return includes the NUL when
+    /// that size fits in a word.
+    pub(super) fn short_path_name(
+        &self,
+        long_path: Option<Vec<u8>>,
+        output: u32,
+        capacity: u16,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        let Some(long_path) = long_path.filter(|bytes| !bytes.is_empty() && !bytes.contains(&0))
+        else {
+            return Ok(0);
+        };
+        let owner = self.current_task_owner()?;
+        let text = match host.decode_win16_ansi(&long_path) {
+            Ok(text) => text,
+            Err(error) if guest_api_failure(&error) => return Ok(0),
+            Err(error) => return Err(error),
+        };
+        let resolved = match self.kernel_file_system.resolve_kernel_path_text(owner, &text, false) {
+            Ok(path) => path,
+            Err(error) if guest_api_failure(&error) => return Ok(0),
+            Err(error) => return Err(error),
+        };
+        let Some(canonical) = normalize_guest_path(owner, host, &resolved, true, false)? else {
+            return Ok(0);
+        };
+        let result = host.win16_file_system(Win16HostFileSystemCall {
+            owner,
+            ansi_code_page: host.win16_ansi_code_page(),
+            operation: Win16HostFileSystemOperation::ShortPath { path: canonical },
+        })?;
+        let Win16HostFileSystemResult::ShortPath(path) = result else {
+            return Err(invariant("host short-path query returned the wrong result"));
+        };
+        let Some(path) = path else { return Ok(0); };
+        if path.is_empty() || path.contains(&0) {
+            return Err(invariant("host short path is not a plain ANSI path"));
+        }
+        let required = path.len().checked_add(1).ok_or_else(|| RuntimeError::new(
+            Kind::ResourceExhausted, "Win16 short-path length overflow"))?;
+        let Ok(required_word) = u16::try_from(required) else { return Ok(0); };
+        if usize::from(capacity) < required {
+            return Ok(u32::from(required_word));
+        }
+        let range = match self.capture_file_system_output(output, required, memory) {
+            Ok(range) => range,
+            Err(error) if guest_api_failure(&error) => return Ok(0),
+            Err(error) => return Err(error),
+        };
+        let mut bytes = path;
+        bytes.push(0);
+        match commit_guest_writes(self, memory, vec![(range, bytes)]) {
+            Ok(()) => Ok((required - 1) as u32),
+            Err(error) if guest_api_failure(&error) => Ok(0),
+            Err(error) => Err(error),
+        }
+    }
+
     fn capture_file_system_output(
         &self,
         output: u32,

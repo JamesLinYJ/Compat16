@@ -69,6 +69,34 @@ params = [
 ]
 
 [[exports]]
+ordinal = 406
+name = "WritePrivateProfileStruct"
+binding = { rust_id = "KernelWritePrivateProfileStruct", id_value = 1346, constant = "KERNEL_WRITE_PRIVATE_PROFILE_STRUCT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "key", type = "NullableFarString" },
+  { name = "data", type = "FarPointer" },
+  { name = "data_size", type = "U16" },
+  { name = "filename", type = "NullableFarString" },
+]
+
+[[exports]]
+ordinal = 407
+name = "GetPrivateProfileStruct"
+binding = { rust_id = "KernelGetPrivateProfileStruct", id_value = 1347, constant = "KERNEL_GET_PRIVATE_PROFILE_STRUCT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "section", type = "NullableFarString" },
+  { name = "key", type = "NullableFarString" },
+  { name = "data", type = "FarPointer" },
+  { name = "data_size", type = "U16" },
+  { name = "filename", type = "NullableFarString" },
+]
+
+[[exports]]
 ordinal = 416
 name = "WritePrivateProfileSection"
 binding = { rust_id = "KernelWritePrivateProfileSection", id_value = 1159, constant = "KERNEL_WRITE_PRIVATE_PROFILE_SECTION" }

@@ -96,3 +96,197 @@ fn dword(arguments: &[Win16Argument], index: usize) -> Result<u32, Win16Error> {
         _ => Err(Win16Error::InvalidRange),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{WINMEM32_VERSION_1_00, Win16Winmem32Request, decode_winmem32};
+    use crate::exports::{
+        ExportArgumentType, ExportImplementationState, ExportReturnModifier,
+        lookup_export_metadata, resolve_export,
+    };
+    use crate::{
+        ArgumentKind, ExportCallingConvention, ExportLookupTarget, Win16Argument, Win16Error,
+        Win16ExportAbiKind, Win16ExportId, Win16ExportStackCleanup, Win16ParameterType,
+        Win16ReturnKind, lookup_export,
+    };
+
+    fn word(value: u16) -> Win16Argument {
+        Win16Argument::Word(value)
+    }
+
+    fn dword(value: u32) -> Win16Argument {
+        Win16Argument::Dword(value)
+    }
+
+    #[test]
+    fn eight_winmem32_exports_bind_as_far_pascal_words() {
+        let expected = [
+            (
+                1_u16,
+                "GetWinMem32Version",
+                Win16ExportId::Winmem32GetVersion,
+                0_u16,
+                &[] as &[ExportArgumentType],
+            ),
+            (
+                2,
+                "Global32Alloc",
+                Win16ExportId::Winmem32Global32Alloc,
+                14,
+                &[
+                    ExportArgumentType::Long,
+                    ExportArgumentType::Pointer,
+                    ExportArgumentType::Long,
+                    ExportArgumentType::Word,
+                ],
+            ),
+            (
+                3,
+                "Global32Realloc",
+                Win16ExportId::Winmem32Global32Realloc,
+                8,
+                &[
+                    ExportArgumentType::Word,
+                    ExportArgumentType::Long,
+                    ExportArgumentType::Word,
+                ],
+            ),
+            (
+                4,
+                "Global32Free",
+                Win16ExportId::Winmem32Global32Free,
+                4,
+                &[ExportArgumentType::Word, ExportArgumentType::Word],
+            ),
+            (
+                5,
+                "Global16PointerAlloc",
+                Win16ExportId::Winmem32Global16PointerAlloc,
+                16,
+                &[
+                    ExportArgumentType::Word,
+                    ExportArgumentType::Long,
+                    ExportArgumentType::Pointer,
+                    ExportArgumentType::Long,
+                    ExportArgumentType::Word,
+                ],
+            ),
+            (
+                6,
+                "Global16PointerFree",
+                Win16ExportId::Winmem32Global16PointerFree,
+                8,
+                &[
+                    ExportArgumentType::Word,
+                    ExportArgumentType::Long,
+                    ExportArgumentType::Word,
+                ],
+            ),
+            (
+                7,
+                "Global32CodeAlias",
+                Win16ExportId::Winmem32Global32CodeAlias,
+                8,
+                &[
+                    ExportArgumentType::Word,
+                    ExportArgumentType::Pointer,
+                    ExportArgumentType::Word,
+                ],
+            ),
+            (
+                8,
+                "Global32CodeAliasFree",
+                Win16ExportId::Winmem32Global32CodeAliasFree,
+                6,
+                &[
+                    ExportArgumentType::Word,
+                    ExportArgumentType::Word,
+                    ExportArgumentType::Word,
+                ],
+            ),
+        ];
+        for (ordinal, name, id, popped, arguments) in expected {
+            let by_ordinal =
+                lookup_export(b"WINMEM32", ExportLookupTarget::Ordinal(ordinal)).unwrap();
+            let by_name =
+                lookup_export(b"winmem32.dll", ExportLookupTarget::Name(name.as_bytes())).unwrap();
+            assert_eq!(by_ordinal, by_name);
+            assert_eq!(by_ordinal.id, id);
+            assert_eq!(by_ordinal.ordinal(), ordinal);
+            assert_eq!(by_ordinal.name(), name);
+            assert_eq!(by_ordinal.module(), "WINMEM32");
+            assert_eq!(by_ordinal.abi_kind, Win16ExportAbiKind::Stack);
+            assert_eq!(
+                by_ordinal.calling_convention,
+                ExportCallingConvention::Pascal
+            );
+            assert_eq!(by_ordinal.return_kind, Win16ReturnKind::Word);
+            assert_eq!(
+                by_ordinal.stack_cleanup,
+                Win16ExportStackCleanup::Fixed(crate::StackCleanup {
+                    callee_pop_bytes: popped,
+                    caller_pop_bytes: 0,
+                }),
+            );
+            assert!(by_ordinal.parameters.iter().all(|parameter| {
+                matches!(parameter.kind, ArgumentKind::Word | ArgumentKind::Dword)
+            }));
+            let metadata =
+                lookup_export_metadata(b"WINMEM32", ExportLookupTarget::Ordinal(ordinal)).unwrap();
+            let abi = metadata.abi.unwrap();
+            assert_eq!(abi.arguments, arguments);
+            assert_eq!(abi.return_modifier, ExportReturnModifier::Ret16);
+            assert_eq!(
+                resolve_export(b"WINMEM32", ExportLookupTarget::Ordinal(ordinal))
+                    .unwrap()
+                    .state,
+                ExportImplementationState::BoundToRequest,
+            );
+        }
+        let alloc = lookup_export(b"WINMEM32", ExportLookupTarget::Ordinal(2)).unwrap();
+        assert_eq!(
+            alloc.parameters[1].parameter_type,
+            Win16ParameterType::FarPointer
+        );
+        assert_eq!(alloc.parameters[0].kind, ArgumentKind::Dword);
+        assert_eq!(alloc.parameters[3].kind, ArgumentKind::Word);
+    }
+
+    #[test]
+    fn decode_winmem32_keeps_guest_far_addresses_unresolved() {
+        assert_eq!(
+            decode_winmem32(1, &[]).unwrap(),
+            Some(Win16Winmem32Request::GetVersion)
+        );
+        assert_eq!(WINMEM32_VERSION_1_00, 0x0100);
+        assert_eq!(
+            decode_winmem32(
+                5,
+                &[
+                    word(0x1f),
+                    dword(0x10008),
+                    dword(0x12340000),
+                    dword(16),
+                    word(0)
+                ]
+            )
+            .unwrap(),
+            Some(Win16Winmem32Request::Global16PointerAlloc {
+                selector: 0x1f,
+                offset: 0x10008,
+                alias_output: 0x12340000,
+                size: 16,
+                flags: 0,
+            }),
+        );
+        assert_eq!(decode_winmem32(9, &[]).unwrap(), None);
+        assert_eq!(
+            decode_winmem32(2, &[dword(1), dword(2), dword(3)]).unwrap_err(),
+            Win16Error::InvalidRange
+        );
+        assert_eq!(
+            decode_winmem32(4, &[dword(1), word(0)]).unwrap_err(),
+            Win16Error::InvalidRange
+        );
+    }
+}

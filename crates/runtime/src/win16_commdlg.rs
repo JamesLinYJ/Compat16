@@ -15,6 +15,9 @@ mod find_replace;
 mod prepare;
 #[path = "win16_commdlg_finish.rs"]
 mod finish;
+#[cfg(test)]
+#[path = "win16_commdlg_hook_tests.rs"]
+mod hook_tests;
 
 pub(in crate::win16_runtime) use find_replace::Win16CommonDialogState;
 use ranges::GuestOutputRange;

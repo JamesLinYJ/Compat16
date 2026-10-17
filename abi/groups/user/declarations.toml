@@ -21,11 +21,6 @@ kind = "stub"
 decl = { attributes = [] }
 
 [[exports]]
-ordinal = 11
-name = "SetSystemTimer"
-decl = { args = ["word", "word", "word", "segmented_pointer"] }
-
-[[exports]]
 ordinal = 13
 name = "GetTickCount"
 decl = { attributes = [] }
@@ -107,11 +102,6 @@ binding = { rust_id = "UserSetCursorPos", id_value = 1239, constant = "USER_SET_
 [exports.call]
 returns = "void"
 params = [{ name = "x", type = "I16" }, { name = "y", type = "I16" }]
-
-[[exports]]
-ordinal = 86
-name = "IconSize"
-decl = { attributes = [] }
 
 [[exports]]
 ordinal = 105
@@ -239,16 +229,6 @@ params = [
 ]
 
 [[exports]]
-ordinal = 182
-name = "KillSystemTimer"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 184
-name = "QuerySendMessage"
-decl = { args = ["word", "word", "word", "pointer"] }
-
-[[exports]]
 ordinal = 185
 name = "GrayString"
 decl = { args = ["word", "word", "segmented_pointer", "segmented_pointer", "signed_word", "signed_word", "signed_word", "signed_word", "signed_word"] }
@@ -284,110 +264,11 @@ binding = { rust_id = "UserEndMenu", id_value = 503, constant = "USER_END_MENU" 
 returns = "word"
 
 [[exports]]
-ordinal = 188
-name = "SetSysModalWindow"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 189
-name = "GetSysModalWindow"
-
-[[exports]]
 ordinal = 192
 name = "InSendMessage"
 binding = { rust_id = "UserInSendMessage", id_value = 1227, constant = "USER_IN_SEND_MESSAGE" }
 [exports.call]
 returns = "word"
-
-[[exports]]
-ordinal = 198
-name = "CascadeChildWindows"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 199
-name = "TileChildWindows"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 200
-name = "OpenComm"
-decl = { args = ["string", "word", "word"] }
-
-[[exports]]
-ordinal = 201
-name = "SetCommState"
-decl = { args = ["pointer"] }
-
-[[exports]]
-ordinal = 202
-name = "GetCommState"
-decl = { args = ["word", "pointer"] }
-
-[[exports]]
-ordinal = 203
-name = "GetCommError"
-decl = { args = ["word", "pointer"] }
-
-[[exports]]
-ordinal = 204
-name = "ReadComm"
-decl = { args = ["word", "pointer", "word"] }
-
-[[exports]]
-ordinal = 205
-name = "WriteComm"
-decl = { args = ["word", "pointer", "word"] }
-
-[[exports]]
-ordinal = 206
-name = "TransmitCommChar"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 207
-name = "CloseComm"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 208
-name = "SetCommEventMask"
-decl = { attributes = [], args = ["word", "word"] }
-
-[[exports]]
-ordinal = 209
-name = "GetCommEventMask"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 210
-name = "SetCommBreak"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 211
-name = "ClearCommBreak"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 212
-name = "UngetCommChar"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 213
-name = "BuildCommDCB"
-decl = { args = ["pointer", "pointer"] }
-
-[[exports]]
-ordinal = 214
-name = "EscapeCommFunction"
-decl = { attributes = [], args = ["word", "word"] }
-
-[[exports]]
-ordinal = 215
-name = "FlushComm"
-decl = { args = ["word", "word"] }
 
 [[exports]]
 ordinal = 216
@@ -433,11 +314,6 @@ decl = { attributes = [] }
 binding = { rust_id = "UserGetDialogBaseUnits", id_value = 580, constant = "USER_GET_DIALOG_BASE_UNITS" }
 [exports.call]
 returns = "dword"
-
-[[exports]]
-ordinal = 245
-name = "EnableCommNotification"
-decl = { args = ["signed_word", "word", "signed_word", "signed_word"] }
 
 [[exports]]
 ordinal = 248
@@ -511,16 +387,6 @@ ordinal = 279
 name = "OldSetDeskPattern"
 
 [[exports]]
-ordinal = 281
-name = "GetSysColorBrush"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 284
-name = "GetFreeSystemResources"
-decl = { args = ["word"] }
-
-[[exports]]
 ordinal = 285
 name = "SetDeskWallPaper"
 decl = { args = ["pointer"] }
@@ -539,16 +405,6 @@ decl = { attributes = [] }
 binding = { rust_id = "UserGetMessageExtraInfo", id_value = 1233, constant = "USER_GET_MESSAGE_EXTRA_INFO" }
 [exports.call]
 returns = "dword"
-
-[[exports]]
-ordinal = 289
-name = "keybd_event"
-decl = { attributes = ["register"] }
-
-[[exports]]
-ordinal = 299
-name = "mouse_event"
-decl = { attributes = ["register"] }
 
 [[exports]]
 ordinal = 300
@@ -951,16 +807,6 @@ decl = { args = ["word", "word"] }
 ordinal = 463
 name = "ScrollChildren"
 decl = { args = ["word", "word", "word", "long"] }
-
-[[exports]]
-ordinal = 464
-name = "DragObject"
-decl = { attributes = [], args = ["word", "word", "word", "word", "word", "word"] }
-
-[[exports]]
-ordinal = 465
-name = "DragDetect"
-decl = { args = ["word", "long"] }
 
 [[exports]]
 ordinal = 470

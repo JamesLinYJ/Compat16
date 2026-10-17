@@ -64,6 +64,8 @@ pub(super) struct Win16Ole1DdeObjectProxyRecord {
     pub(super) document_topic: Vec<u8>,
     pub(super) handler_data: i32,
     pub(super) app_data: i32,
+    /// Guest `RECT` last accepted by `SetBounds`, when one has been stored.
+    pub(super) bounds: Option<[u8; 8]>,
     pub(super) closed: bool,
     pub(super) membership_retired: bool,
     pub(super) allocation_retired: bool,
@@ -308,6 +310,7 @@ impl Win16State {
             document_topic: spec.document_topic,
             handler_data: 0,
             app_data: 0,
+            bounds: None,
             closed: false,
             membership_retired: false,
             allocation_retired: false,

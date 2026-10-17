@@ -224,6 +224,9 @@ pub(in crate::windows::win16_windows) struct NativeTimerRecord {
     pub(in crate::windows::win16_windows) hwnd: usize,
     pub(in crate::windows::win16_windows) native_id: usize,
     pub(in crate::windows::win16_windows) guest_callback: bool,
+    /// SetSystemTimer shares native WM_TIMER scheduling. The guest message is
+    /// rewritten from this flag and the kill namespace stays separate.
+    pub(in crate::windows::win16_windows) system: bool,
     pub(in crate::windows::win16_windows) active: bool,
 }
 

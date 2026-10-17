@@ -120,6 +120,8 @@ mod ole2nls;
 mod winnls;
 #[path = "win16_print_queue.rs"]
 mod print_queue;
+#[path = "win16_winmem32.rs"]
+mod winmem32;
 #[path = "win16_ole1_server_callback.rs"]
 mod win16_ole1_server_callback;
 #[path = "win16_ole1_server_callbacks.rs"]
@@ -166,8 +168,14 @@ mod classic_dde_memory;
 mod classic_dde_executor;
 #[path = "win16_media_time.rs"]
 mod media_time;
+#[path = "win16_aux.rs"]
+mod aux;
 #[path = "win16_media_io.rs"]
 mod media_io;
+#[path = "win16_joystick.rs"]
+mod joystick;
+#[path = "win16_mixer.rs"]
+mod mixer;
 #[path = "win16_runtime_midi.rs"]
 mod midi;
 #[path = "win16_window_post.rs"]
@@ -198,6 +206,8 @@ mod toolhelp_global;
 mod toolhelp_global_owner;
 #[path = "win16_profile.rs"]
 mod profile;
+#[path = "win16_profile_struct.rs"]
+mod profile_struct;
 #[path = "win16_gdi.rs"]
 mod gdi;
 #[path = "win16_drawing.rs"]
@@ -250,6 +260,8 @@ mod network_print_cleanup;
 mod network_print_api;
 #[path = "win16_gdi_spool.rs"]
 mod gdi_spool;
+#[path = "win16_gdi_printer.rs"]
+mod gdi_printer;
 #[path = "win16_network_print_notifications.rs"]
 mod network_print_notifications;
 #[path = "win16_network_print_queue_data.rs"]
@@ -284,6 +296,8 @@ mod code_lifetime;
 mod catch_throw;
 #[path = "win16_keyboard.rs"]
 mod keyboard;
+#[path = "win16_input_events.rs"]
+mod input_events;
 #[path = "win16_text.rs"]
 mod text;
 #[path = "win16_text_memory.rs"]
@@ -368,6 +382,10 @@ mod user_services_paint;
 mod user_services_update_region;
 #[path = "win16_user_services_system.rs"]
 mod user_services_system;
+#[path = "win16_comm.rs"]
+mod comm;
+#[path = "win16_user_drag.rs"]
+mod user_drag;
 #[path = "win16_user_services_dialog.rs"]
 mod user_services_dialog;
 #[path = "win16_user_services_controls.rs"]
@@ -634,6 +652,7 @@ pub(crate) struct Win16State {
     )>,
     com_operations: com_operations::Win16ComOperationTable,
     print_queues: print_queue::Win16PrintQueueState,
+    winmem32: winmem32::Win16Winmem32State,
     pub(crate) selectors: SelectorTable,
     gate_selector: Selector,
     callback_gate_selector: Selector,
@@ -651,6 +670,7 @@ pub(crate) struct Win16State {
     mci: mci::Win16MciState,
     midi: midi::Win16MidiState,
     media_services: crate::win16_media_services::Win16MediaServicesState,
+    mixer: mixer::Win16MixerState,
     wave_audio: multimedia_buffers::Win16WaveState,
     sound: sound_state::Win16SoundState,
     automation: crate::win16_automation::Win16AutomationState,
@@ -710,6 +730,8 @@ pub(crate) struct Win16State {
     instance_handle: u16,
     task_handles: BTreeMap<OwnerId, u16>,
     first_task_handle: u16,
+    /// Guest task priority, queue word, lock, and last-error. No host pointers.
+    task_controls: kernel_task::TaskControls,
     module_path: Vec<u8>,
     modules: module_registry::ModuleRegistry,
     /// Exact identities left after incomplete selector cleanup. Keep their
@@ -763,6 +785,9 @@ pub(crate) struct Win16State {
     /// Owner-scoped WNet identities share the HFILE WORD allocator with
     /// ordinary files; native spooler tokens remain opaque and task-owned.
     network_print_jobs: BTreeMap<OwnerId, network_print_jobs::Win16NetworkPrintJobs>,
+    /// GDI-owned printer environment blocks, keyed by the guest port bytes.
+    /// The map owns the copied bytes. Entries are not host environment strings.
+    printer_environments: gdi_printer::PrinterEnvironments,
     global_handles: BTreeMap<u16, GlobalHandle>,
     global_selectors: BTreeMap<u16, SelectorRef>,
     /// Runtime-owned HGLOBAL projections paired with one exact native queue
@@ -800,6 +825,9 @@ pub(crate) struct Win16State {
     /// Parentage alone is insufficient because ordinary controls can also be
     /// children of an MDI client.
     mdi_children: BTreeSet<u16>,
+    /// USER.188/189. One guest HWND, never a host pointer. `None` is no
+    /// system-modal window.
+    sysmodal_window: Option<u16>,
     /// Exact runtime creation generation for each guest HWND whose native
     /// creation operation exposed an identity to the host. A receipt for an
     /// older HWND incarnation cannot retire a reused guest handle.
@@ -828,6 +856,7 @@ pub(crate) struct Win16State {
     reported_global_flags: BTreeSet<u16>,
     reported_global_realloc_flags: BTreeSet<u16>,
     compat: crate::win16_host_compat::Win16CompatState,
+    comm_ports: comm::Win16CommPorts,
 }
 
 struct QueuedDropFileGlobal {
@@ -874,6 +903,14 @@ impl Win16State {
 #[cfg(test)]
 #[path = "win16_test_support.rs"]
 mod test_support;
+
+#[cfg(test)]
+#[path = "win16_aux_tests.rs"]
+mod aux_tests;
+
+#[cfg(test)]
+#[path = "win16_mixer_tests.rs"]
+mod mixer_tests;
 
 #[cfg(test)]
 #[path = "win16_destroy_receipt_tests.rs"]

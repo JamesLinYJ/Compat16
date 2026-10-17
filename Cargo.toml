@@ -19,6 +19,7 @@ windows-bindgen = "=0.100.0"
 windows-link = "=0.100.0"
 windows-core = "=0.100.0"
 windows-sys = { version = "0.61.2", features = [
+    "Win32_Devices_Communication",
     "Win32_Foundation",
     "Win32_Globalization",
     "Win32_Graphics_Gdi",

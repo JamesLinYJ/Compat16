@@ -1,0 +1,97 @@
+module = "MMSYSTEM"
+
+[[exports]]
+ordinal = 101
+name = "joyGetNumDevs"
+binding = { rust_id = "MmsystemJoyGetNumDevs", id_value = 1401, constant = "MMSYSTEM_JOY_GET_NUM_DEVS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 102
+name = "joyGetDevCaps"
+binding = { rust_id = "MmsystemJoyGetDevCaps", id_value = 1402, constant = "MMSYSTEM_JOY_GET_DEV_CAPS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "capabilities", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 103
+name = "joyGetPos"
+binding = { rust_id = "MmsystemJoyGetPos", id_value = 1403, constant = "MMSYSTEM_JOY_GET_POS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "info", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 104
+name = "joyGetThreshold"
+binding = { rust_id = "MmsystemJoyGetThreshold", id_value = 1404, constant = "MMSYSTEM_JOY_GET_THRESHOLD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "threshold", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 105
+name = "joyReleaseCapture"
+binding = { rust_id = "MmsystemJoyReleaseCapture", id_value = 1405, constant = "MMSYSTEM_JOY_RELEASE_CAPTURE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 106
+name = "joySetCapture"
+binding = { rust_id = "MmsystemJoySetCapture", id_value = 1406, constant = "MMSYSTEM_JOY_SET_CAPTURE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "device", type = "U16" },
+  { name = "period", type = "U16" },
+  { name = "changed", type = "U16" },
+]
+
+[[exports]]
+ordinal = 107
+name = "joySetThreshold"
+binding = { rust_id = "MmsystemJoySetThreshold", id_value = 1407, constant = "MMSYSTEM_JOY_SET_THRESHOLD" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "threshold", type = "U16" },
+]
+
+[[exports]]
+ordinal = 109
+name = "joySetCalibration"
+binding = { rust_id = "MmsystemJoySetCalibration", id_value = 1408, constant = "MMSYSTEM_JOY_SET_CALIBRATION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+]
+
+[[exports]]
+ordinal = 110
+name = "joyGetPosEx"
+binding = { rust_id = "MmsystemJoyGetPosEx", id_value = 1409, constant = "MMSYSTEM_JOY_GET_POS_EX" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "info", type = "FarBuffer" },
+]

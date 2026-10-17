@@ -82,6 +82,14 @@ impl Win16State {
         host: &mut impl RuntimeHost,
     ) -> Result<(), RuntimeError> {
         let mut failures = None;
+        // Selectors and aliases are task-owned. Retire them before later USER
+        // cleanup can return, and again if this function is retried.
+        remember(
+            &mut failures,
+            "multiple Win16 task cleanup failures",
+            self.release_winmem32_on_task_exit()
+                .map_err(|error| error.with_context("WINMEM32 task-exit cleanup")),
+        );
         // SOUND opens devices in the shared WAVE host. Retire its sessions and
         // playback leases while guest memory and producer callbacks remain live.
         let sound_retired = match self.retire_sound(memory, host) {
@@ -181,14 +189,29 @@ impl Win16State {
             "multiple Win16 task cleanup failures",
             acm_cleanup,
         );
-        let multimedia_cleanup = self.media_services
-            .retire_all(host)
+        let buffer_cleanup = self.retire_mmio_guest_buffers(memory, host)
+            .map_err(|error| error.with_context("Win16 MMIO buffer cleanup"));
+        remember(
+            &mut failures,
+            "multiple Win16 task cleanup failures",
+            buffer_cleanup,
+        );
+        let multimedia_cleanup = self
+            .retire_multimedia_services(host)
             .map_err(|error| error.with_context("Win16 multimedia cleanup"));
         let multimedia_retired = multimedia_cleanup.is_ok();
         remember(
             &mut failures,
             "multiple Win16 task cleanup failures",
             multimedia_cleanup,
+        );
+        let mixer_cleanup = self.mixer.retire_all(host)
+            .map_err(|error| error.with_context("Win16 mixer cleanup"));
+        let mixer_retired = mixer_cleanup.is_ok();
+        remember(
+            &mut failures,
+            "multiple Win16 task cleanup failures",
+            mixer_cleanup,
         );
         let automation_cleanup = self.close_automation(memory, host)
             .map_err(|error| error.with_context("Win16 Automation cleanup"));
@@ -211,7 +234,7 @@ impl Win16State {
         // barrier and shared-lane owner above has supplied its real proof.
         let producer_barriers_ready = wave_quiet && midi_quiet && mci_quiet && sound_retired
             && network_quiet && network_print_quiet
-            && netbios_retired && acm_retired && multimedia_retired
+            && netbios_retired && acm_retired && multimedia_retired && mixer_retired
             && automation_retired && files_retired;
         let windows_closed = if self.window_teardown_state == super::WindowTeardownState::Closed {
             // Closed is published only after the exact shared-source loop and

@@ -292,6 +292,40 @@ impl Fixture {
             &mut self.host,
         )
     }
+    fn far_at(&self, offset: u16) -> u32 {
+        let state = self.runtime.win16.as_ref().unwrap();
+        let base = state.selectors.pointer_from_far(self.output).unwrap();
+        SegmentedPointer::new(base.selector(), offset).far_value()
+    }
+    fn write_guest(&mut self, offset: u16, bytes: &[u8]) {
+        let far = self.far_at(offset);
+        let state = self.runtime.win16.as_mut().unwrap();
+        let pointer = state.selectors.pointer_from_far(far).unwrap();
+        state
+            .selectors
+            .write(&mut self.runtime.memory, pointer, bytes)
+            .unwrap();
+    }
+    fn read_guest(&self, offset: u16, len: usize) -> Vec<u8> {
+        let far = self.far_at(offset);
+        let state = self.runtime.win16.as_ref().unwrap();
+        let pointer = state.selectors.pointer_from_far(far).unwrap();
+        let mut bytes = vec![0; len];
+        state
+            .selectors
+            .read(&self.runtime.memory, pointer, &mut bytes)
+            .unwrap();
+        bytes
+    }
+    fn call_local(&mut self, ordinal: u16, args: &[Arg], result: u16) {
+        let calls = self.host.calls.len();
+        let mut expected = self.prepare(ordinal, args);
+        expected.set_ax(result);
+        assert_eq!(self.dispatch().unwrap(), None);
+        assert_eq!(self.runtime.cpu.regs, expected);
+        assert!(self.host.replies.is_empty());
+        assert_eq!(self.host.calls.len(), calls);
+    }
 }
 fn status(succeeded: bool, native_error: Option<u32>) -> Win16HostSpoolResult {
     Win16HostSpoolResult::Status {
@@ -771,6 +805,113 @@ fn gdi_spool_exhausted_positive_aliases_return_outofmemory_and_release_unexposed
     assert_eq!(jobs.host_job_for_id(1), Some(Job::new(1)));
     assert_eq!(jobs.host_job_for_id(0x7fff), Some(Job::new(0x7fff)));
     assert_eq!(jobs.host_gdi_job_for_id(1), None);
+}
+
+#[test]
+fn gdi_environment_get_and_set_report_size_and_leave_the_uncopied_tail() {
+    let mut f = Fixture::new();
+    let port = f.output;
+    let source = f.far_at(96);
+    let dest = f.far_at(160);
+    let block = [0x41, 0, 0xff, 0x82];
+    f.write_guest(96, &block);
+    f.write_guest(160, &[0xcc; 16]);
+    f.call_local(132, &[Arg::Dword(0), Arg::Dword(0), Arg::Word(0)], 0);
+    f.call_local(132, &[Arg::Dword(port), Arg::Dword(0), Arg::Word(0)], 1);
+    f.call_local(133, &[Arg::Dword(port), Arg::Dword(dest), Arg::Word(16)], 0);
+    assert_eq!(f.read_guest(160, 16), vec![0xcc; 16]);
+    f.call_local(
+        132,
+        &[Arg::Dword(port), Arg::Dword(source), Arg::Word(4)],
+        4,
+    );
+    f.call_local(132, &[Arg::Dword(port), Arg::Dword(0), Arg::Word(4)], 0);
+    f.call_local(133, &[Arg::Dword(port), Arg::Dword(0), Arg::Word(1)], 4);
+    assert_eq!(f.read_guest(160, 16), vec![0xcc; 16]);
+    f.call_local(133, &[Arg::Dword(port), Arg::Dword(dest), Arg::Word(4)], 4);
+    let mut copied = vec![0xcc; 16];
+    copied[..4].copy_from_slice(&block);
+    assert_eq!(f.read_guest(160, 16), copied);
+    f.write_guest(160, &[0xcc; 16]);
+    f.call_local(133, &[Arg::Dword(port), Arg::Dword(dest), Arg::Word(2)], 2);
+    let short = f.read_guest(160, 16);
+    assert_eq!(&short[..2], &block[..2]);
+    assert_eq!(&short[2..], &[0xcc; 14]);
+    f.write_guest(160, &[0xcc; 16]);
+    f.call_local(133, &[Arg::Dword(port), Arg::Dword(dest), Arg::Word(16)], 4);
+    let wide = f.read_guest(160, 16);
+    assert_eq!(&wide[..4], &block);
+    assert_eq!(&wide[4..], &[0xcc; 12]);
+    f.write_guest(160, &[0xcc; 16]);
+    f.call_local(133, &[Arg::Dword(port), Arg::Dword(dest), Arg::Word(0)], 0);
+    assert_eq!(f.read_guest(160, 16), vec![0xcc; 16]);
+    f.call_local(
+        132,
+        &[Arg::Dword(port), Arg::Dword(0xffff_ffff), Arg::Word(0)],
+        1,
+    );
+    f.call_local(133, &[Arg::Dword(port), Arg::Dword(0), Arg::Word(0)], 0);
+    const NAMED: [u8; 9] = *b"Laser\0\xff\x00\x82";
+    let named = &NAMED;
+    f.write_guest(96, named);
+    f.write_guest(208, b"Laser\0");
+    f.call_local(
+        132,
+        &[
+            Arg::Dword(0),
+            Arg::Dword(source),
+            Arg::Word(named.len() as u16),
+        ],
+        named.len() as u16,
+    );
+    f.write_guest(160, &[0xcc; 16]);
+    f.call_local(133, &[Arg::Dword(0), Arg::Dword(dest), Arg::Word(16)], 0);
+    assert_eq!(f.read_guest(160, 16), vec![0xcc; 16]);
+    let laser = f.far_at(208);
+    f.call_local(
+        133,
+        &[Arg::Dword(laser), Arg::Dword(dest), Arg::Word(16)],
+        named.len() as u16,
+    );
+    let stored = f.read_guest(160, 16);
+    assert_eq!(&stored[..named.len()], &named[..]);
+    assert_eq!(&stored[named.len()..], &[0xcc; 16 - NAMED.len()]);
+    f.call_local(133, &[Arg::Dword(port), Arg::Dword(0), Arg::Word(0)], 0);
+    assert!(f.host.calls.is_empty());
+}
+
+#[test]
+fn gdi_query_abort_during_an_open_job_continues_and_leaves_the_job_open() {
+    let mut f = Fixture::new();
+    let dc = f
+        .runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .guest_gdi
+        .allocate_dc(Win16HostDc(0x51))
+        .unwrap();
+    let args = [Arg::Dword(f.output), Arg::Dword(f.title), Arg::Word(dc)];
+    f.call(
+        240,
+        &args,
+        Win16HostSpoolResult::OpenJob {
+            job: Some(TOKEN),
+            native_error: None,
+        },
+        1,
+    );
+    assert!(
+        matches!(&f.host.calls[0], Win16HostSpoolOperation::OpenJob { legacy_argument, .. } if *legacy_argument == dc)
+    );
+    f.call_local(155, &[Arg::Word(dc), Arg::Word(0)], 1);
+    f.call_local(155, &[Arg::Word(dc), Arg::Word(0xfffc)], 1);
+    f.call_local(155, &[Arg::Word(0xffff), Arg::Word(0)], 0);
+    assert_eq!(f.host.calls.len(), 1);
+    f.call(246, &[Arg::Word(1)], status(true, None), 1);
+    assert!(
+        matches!(&f.host.calls[1], Win16HostSpoolOperation::StartPage { job } if *job == TOKEN)
+    );
 }
 
 #[test]

@@ -32,6 +32,9 @@ pub(super) fn query_support(
                 std::ptr::null_mut(),
             ) > 0
         }
+    } else if job_escape(query) {
+        // SAFETY: TECHNOLOGY is a fixed index. The leased DC is not retained.
+        printer_technology(unsafe { GetDeviceCaps(lease.native(), TECHNOLOGY as i32) })
     } else {
         // SAFETY: All queried indices are selected below, and the exact DC
         // identity remains leased across the complete synchronous read.
@@ -71,12 +74,27 @@ pub(super) fn query_point(
     )
 }
 
+fn job_escape(query: Query) -> bool {
+    matches!(
+        query,
+        Query::StartDocument | Query::NewFrame | Query::EndDocument | Query::AbortDocument
+    )
+}
+
+fn printer_technology(technology: i32) -> bool {
+    technology == DT_RASPRINTER as i32 || technology == DT_PLOTTER as i32
+}
+
 fn query_caps(query: Query, mut caps: impl FnMut(i32) -> i32) -> Option<(i32, i32)> {
     let indices = match query {
         Query::PhysicalPageSize => (PHYSICALWIDTH, PHYSICALHEIGHT),
         Query::PrintingOffset => (PHYSICALOFFSETX, PHYSICALOFFSETY),
         Query::ScalingFactor => (SCALINGFACTORX, SCALINGFACTORY),
-        Query::QuerySupport => return None,
+        Query::QuerySupport
+        | Query::StartDocument
+        | Query::NewFrame
+        | Query::EndDocument
+        | Query::AbortDocument => return None,
     };
     // Microsoft documents these six GetDeviceCaps indices as replacements
     // for escapes 12/13/14, with device units and unmodified scaling exponents:
@@ -86,7 +104,7 @@ fn query_caps(query: Query, mut caps: impl FnMut(i32) -> i32) -> Option<(i32, i3
     // so neither can be used on its own as a device-support test. This does
     // not claim equivalence to every historical driver's support decisions.
     let technology = caps(TECHNOLOGY as i32);
-    if technology != DT_RASPRINTER as i32 && technology != DT_PLOTTER as i32 {
+    if !printer_technology(technology) {
         return None;
     }
     let width = caps(PHYSICALWIDTH as i32);

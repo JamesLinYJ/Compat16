@@ -386,11 +386,11 @@ binding = { rust_id = "Ole1Create", id_value = 762, constant = "OLE1_CREATE" }
 [exports.call]
 returns = "word"
 params = [
-  { name = "class_name", type = "FarString" },
+  { name = "protocol", type = "FarString" },
   { name = "client", type = "FarBuffer", encoding = "segmented_pointer" },
-  { name = "document_name", type = "FarString" },
+  { name = "class_name", type = "FarString" },
   { name = "client_document", type = "I32" },
-  { name = "item_name", type = "FarString" },
+  { name = "object_name", type = "FarString" },
   { name = "object_output", type = "FarOutputBuffer" },
   { name = "render", type = "U16" },
   { name = "format", type = "U16" },

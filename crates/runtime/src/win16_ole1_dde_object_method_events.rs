@@ -417,6 +417,9 @@ pub(in crate::win16_runtime) fn advance_event_ack(
             if sequence.slot == 20 {
                 record.closed = true;
             }
+            if let Some(bounds) = sequence.pending_bounds {
+                record.bounds = Some(bounds);
+            }
             if let (Some(application), Some(document)) = (
                 sequence.next_application.as_ref(),
                 sequence.next_document.as_ref(),

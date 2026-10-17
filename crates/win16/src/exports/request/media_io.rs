@@ -21,6 +21,35 @@ pub enum Win16MediaIoRequest {
     Ascend { handle: u16, chunk: u32, flags: u16 },
     CreateChunk { handle: u16, chunk: u32, flags: u16 },
     Rename { old_path: Vec<u8>, new_path: Vec<u8>, info: u32, flags: u32 },
+    GetInfo { handle: u16, info: u32, flags: u16 },
+    SetInfo { handle: u16, info: u32, flags: u16 },
+    SetBuffer { handle: u16, buffer: u32, size: i32, flags: u16 },
+    Advance { handle: u16, info: u32, flags: u16 },
+    InstallIoProc { fourcc: u32, procedure: u32, flags: u32 },
+    SendMessage { handle: u16, message: u16, param1: i32, param2: i32 },
+}
+
+/// SDK 3.1 `MMIOINFO` as a 66-byte packed guest record.
+///
+/// Pointer fields are guest `selector:offset` values. They are never host addresses.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct Win16MmioInfo16 {
+    pub flags: u32,
+    pub io_proc_id: u32,
+    pub io_proc: u32,
+    pub error: u16,
+    pub task: u16,
+    pub buffer_size: i32,
+    pub buffer: u32,
+    pub next: u32,
+    pub end_read: u32,
+    pub end_write: u32,
+    pub buffer_offset: i32,
+    pub disk_offset: i32,
+    pub info: [u32; 3],
+    pub reserved_1: u32,
+    pub reserved_2: u32,
+    pub handle: u16,
 }
 
 /// The five DWORDs in the SDK 3.1 `MMCKINFO` record, without native padding.
@@ -64,6 +93,53 @@ struct MmioInfo16Wire {
     handle: U16,
 }
 
+impl Win16MmioInfo16 {
+    /// Convert the fixed Win16 little-endian record to an owned host-neutral value.
+    pub fn decode(bytes: &[u8; MMIOINFO16_SIZE]) -> Self {
+        let wire: MmioInfo16Wire = zerocopy::transmute!(*bytes);
+        Self {
+            flags: wire.flags.get(),
+            io_proc_id: wire.io_proc_id.get(),
+            io_proc: wire.io_proc.get(),
+            error: wire.error.get(),
+            task: wire.task.get(),
+            buffer_size: wire.buffer_size.get() as i32,
+            buffer: wire.buffer.get(),
+            next: wire.next.get(),
+            end_read: wire.end_read.get(),
+            end_write: wire.end_write.get(),
+            buffer_offset: wire.buffer_offset.get() as i32,
+            disk_offset: wire.disk_offset.get() as i32,
+            info: [wire.info[0].get(), wire.info[1].get(), wire.info[2].get()],
+            reserved_1: wire.reserved_1.get(),
+            reserved_2: wire.reserved_2.get(),
+            handle: wire.handle.get(),
+        }
+    }
+
+    /// Encode an exact 66-byte guest `MMIOINFO` record.
+    pub fn encode(self) -> [u8; MMIOINFO16_SIZE] {
+        zerocopy::transmute!(MmioInfo16Wire {
+            flags: U32::new(self.flags),
+            io_proc_id: U32::new(self.io_proc_id),
+            io_proc: U32::new(self.io_proc),
+            error: U16::new(self.error),
+            task: U16::new(self.task),
+            buffer_size: U32::new(self.buffer_size as u32),
+            buffer: U32::new(self.buffer),
+            next: U32::new(self.next),
+            end_read: U32::new(self.end_read),
+            end_write: U32::new(self.end_write),
+            buffer_offset: U32::new(self.buffer_offset as u32),
+            disk_offset: U32::new(self.disk_offset as u32),
+            info: [U32::new(self.info[0]), U32::new(self.info[1]), U32::new(self.info[2])],
+            reserved_1: U32::new(self.reserved_1),
+            reserved_2: U32::new(self.reserved_2),
+            handle: U16::new(self.handle),
+        })
+    }
+}
+
 impl Win16MmckInfo16 {
     /// Convert the fixed Win16 little-endian record to an owned host-neutral value.
     pub fn decode(bytes: &[u8; MMCKINFO16_SIZE]) -> Self {
@@ -102,4 +178,9 @@ const _: () = {
     assert!(core::mem::size_of::<MmioInfo16Wire>() == MMIOINFO16_SIZE);
     assert!(core::mem::align_of::<MmioInfo16Wire>() == 1);
     assert!(core::mem::offset_of!(MmioInfo16Wire, error) == MMIOINFO16_ERROR_OFFSET);
+    assert!(core::mem::offset_of!(MmioInfo16Wire, buffer) == 20);
+    assert!(core::mem::offset_of!(MmioInfo16Wire, next) == 24);
+    assert!(core::mem::offset_of!(MmioInfo16Wire, end_read) == 28);
+    assert!(core::mem::offset_of!(MmioInfo16Wire, end_write) == 32);
+    assert!(core::mem::offset_of!(MmioInfo16Wire, handle) == 64);
 };

@@ -68,6 +68,8 @@ pub use win16_host_midi::{
     Win16HostMidiNotificationDisposition, Win16HostMidiCancellationReason,
     Win16HostMidiResult, Win16HostMidiSubmission,
 };
+mod win16_host_ctl3d;
+pub use win16_host_ctl3d::Win16HostCtl3dFrameFacts;
 mod win16_host_nonclient;
 pub use win16_host_control_messages::{
     Win16HostButtonMessage, Win16HostComboBoxMessage, Win16HostControlCall,
@@ -159,6 +161,15 @@ pub use win16_sound_host::{
 mod win16_host_wave;
 mod win16_host_mci;
 pub use win16_host_mci::*;
+mod win16_host_aux;
+pub use win16_host_aux::{
+    Win16HostAuxCapabilities, Win16HostAuxOperation, Win16HostAuxResult, MMSYSERR_BADDEVICEID,
+    MMSYSERR_INVALPARAM, MMSYSERR_NOERROR,
+};
+mod win16_host_joystick;
+pub use win16_host_joystick::{
+    Win16HostJoystickCaps, Win16HostJoystickOperation, Win16HostJoystickResult,
+};
 mod win16_media_services;
 pub use win16_host_wave::{
     Win16HostWaveBuffer, Win16HostWaveCapabilities, Win16HostWaveCompletion, Win16HostWaveControl,
@@ -213,7 +224,20 @@ pub use win16_host_path_info::{
 pub use win16_media_services::{
     Win16HostMediaIoHandle, Win16HostMediaIoOperation, Win16HostMediaIoResult,
     Win16HostMediaOpenResult, Win16HostMediaTimeOperation, Win16HostMediaTimeResult,
-    Win16HostMediaTimeValue, Win16HostMmckInfo,
+    Win16HostMediaTimeValue, Win16HostMmckInfo, multimedia_timer_callback_arguments,
+};
+mod win16_host_mixer;
+pub use win16_host_mixer::{
+    Win16HostMixerControl, Win16HostMixerControlsQuery, Win16HostMixerHandle,
+    Win16HostMixerLine, Win16HostMixerLineQuery, Win16HostMixerObject, Win16HostMixerOperation,
+    Win16HostMixerResult, Win16SessionMixer, MMSYSERR_INVALFLAG,
+    MMSYSERR_INVALHANDLE, MMSYSERR_NOMEM,
+    MMSYSERR_NOTSUPPORTED, MIXERR_INVALCONTROL, MIXERR_INVALVALUE, MIXERR_INVALLINE,
+    MIXER_DETAILSF_LISTTEXT, MIXER_DETAILSF_VALUE, MIXER_GETLINECONTROLSF_ALL,
+    MIXER_GETLINECONTROLSF_ONEBYID, MIXER_GETLINECONTROLSF_ONEBYTYPE,
+    MIXER_GETLINEINFOF_COMPONENTTYPE, MIXER_GETLINEINFOF_DESTINATION, MIXER_GETLINEINFOF_LINEID,
+    MIXER_GETLINEINFOF_QUERYMASK, MIXER_GETLINEINFOF_SOURCE, MIXER_GETLINEINFOF_TARGETTYPE,
+    MIXER_OBJECTF_HANDLE, MIXER_OBJECTF_MASK, MIXER_SETDETAILSF_CUSTOM,
 };
 mod win16_host_shell_icons;
 pub use win16_host_shell_icons::{Win16HostShellIconCall, Win16HostShellIconResult};
@@ -286,7 +310,10 @@ pub use win16_host_printer::{
     Win16PrinterCapabilities, Win16PrinterCapabilitiesResult, Win16PrinterCapabilityData,
 };
 mod win16_host_dc;
-pub use win16_host_dc::{Win16HostDevMode, Win16HostOutlineTextMetrics, Win16HostTextFace, Win16HostTextMetrics};
+pub use win16_host_dc::{
+    Win16HostDevMode, Win16HostOutlineTextMetrics, Win16HostTextFace, Win16HostTextMetrics,
+    win16_outline_text_map_mode_supported,
+};
 mod win16_host_acm;
 pub use win16_host_acm::{
     Win16HostAcmChooseKind, Win16HostAcmDetailQuery, Win16HostAcmDriverDetails,
@@ -344,7 +371,8 @@ pub use win16_host_menus::{
 pub use win16_host_nonclient::{Win16HostNonClientCalcSize, Win16HostWindowPos};
 pub(crate) use win16_host_window_ops::Win16WindowCallOutput;
 pub use win16_host_window_ops::{
-    Win16CaretShape, Win16DeferredWindowPos,
+    Win16ArrangeChild, Win16CaretShape, Win16ChildArrangeMode, Win16DeferredWindowPos,
+    MDITILE_HORIZONTAL, MDITILE_SKIPDISABLED,
     Win16WindowEnumerationScope, Win16WindowEnumerationQuery, Win16WindowEnumerationReply,
     Win16WindowCall, Win16WindowCallResult, Win16WindowInsertAfter, Win16WindowSearchClass,
     Win16WindowTarget, Win16WindowPlacement,

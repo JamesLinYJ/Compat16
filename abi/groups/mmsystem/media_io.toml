@@ -60,6 +60,43 @@ params = [
 ]
 
 [[exports]]
+ordinal = 1215
+name = "mmioGetInfo"
+binding = { rust_id = "MediaIoGetInfo", id_value = 1348, constant = "MMSYSTEM_MMIO_GET_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "info", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1216
+name = "mmioSetInfo"
+binding = { rust_id = "MediaIoSetInfo", id_value = 1349, constant = "MMSYSTEM_MMIO_SET_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "info", type = "FarBuffer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1217
+name = "mmioSetBuffer"
+binding = { rust_id = "MediaIoSetBuffer", id_value = 1350, constant = "MMSYSTEM_MMIO_SET_BUFFER" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "buffer", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "size", type = "I32" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
 ordinal = 1218
 name = "mmioFlush"
 binding = { rust_id = "MediaIoFlush", id_value = 1023, constant = "MMSYSTEM_MMIO_FLUSH" }
@@ -67,6 +104,18 @@ binding = { rust_id = "MediaIoFlush", id_value = 1023, constant = "MMSYSTEM_MMIO
 returns = "word"
 params = [
   { name = "handle", type = "U16" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1219
+name = "mmioAdvance"
+binding = { rust_id = "MediaIoAdvance", id_value = 1351, constant = "MMSYSTEM_MMIO_ADVANCE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "info", type = "FarBuffer" },
   { name = "flags", type = "U16" },
 ]
 
@@ -79,6 +128,31 @@ returns = "dword"
 params = [
   { name = "text", type = "FarString" },
   { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 1221
+name = "mmioInstallIOProc"
+binding = { rust_id = "MediaIoInstallIoProc", id_value = 1352, constant = "MMSYSTEM_MMIO_INSTALL_IO_PROC" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "fourcc", type = "U32" },
+  { name = "procedure", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 1222
+name = "mmioSendMessage"
+binding = { rust_id = "MediaIoSendMessage", id_value = 1353, constant = "MMSYSTEM_MMIO_SEND_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "param1", type = "I32" },
+  { name = "param2", type = "I32" },
 ]
 
 [[exports]]

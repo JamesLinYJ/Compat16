@@ -19,6 +19,13 @@ pub use ole1::Win16Ole1Request;
 #[path = "winnls.rs"]
 mod winnls;
 pub use winnls::Win16WinnlsRequest;
+#[path = "winmem32.rs"]
+mod winmem32;
+pub use winmem32::{
+    WINMEM32_INSUFFICIENT_MEMORY, WINMEM32_INSUFFICIENT_SELECTORS, WINMEM32_INVALID_ARGUMENT,
+    WINMEM32_INVALID_FLAGS, WINMEM32_INVALID_FUNCTION, WINMEM32_MAX_16BIT_ALIAS_BYTES,
+    WINMEM32_MAX_OBJECT_BYTES, WINMEM32_VERSION_1_00, Win16Winmem32Request, decode_winmem32,
+};
 #[path = "print_queue.rs"]
 mod print_queue;
 pub use print_queue::{Win16PrintQueueRequest, decode_print_queue_export};
@@ -52,6 +59,8 @@ pub use kernel_global_heap::Win16KernelGlobalHeapRequest;
 #[path = "user_system.rs"]
 mod user_system;
 pub use user_system::Win16UserSystemRequest;
+mod user_comm;
+pub use user_comm::Win16UserCommRequest;
 #[path = "ver.rs"]
 mod ver;
 pub use ver::Win16VerRequest;
@@ -135,15 +144,38 @@ pub use network::{
     Win16AsyncLookup, Win16GuestBuffer, Win16GuestInOutBuffer, Win16HostQuery, Win16SelectInput,
     Win16SocketSetInput, Win16WinsockDecodeFailure, Win16WinsockRequest,
 };
+#[path = "auxiliary.rs"]
+mod aux;
+pub use aux::{
+    AUXCAPS16_SIZE, AUXCAPS_AUXIN, AUXCAPS_CDAUDIO, AUXCAPS_LRVOLUME, AUXCAPS_VOLUME,
+    Win16AuxCapabilities16, Win16AuxRequest,
+};
 #[path = "media_time.rs"]
 mod media_time;
 pub use media_time::{
     MMTIME16_SIZE, TIMECAPS16_SIZE, Win16MediaTimeRequest, Win16Mmtime16, Win16TimeCaps16,
 };
+#[path = "joystick.rs"]
+mod joystick;
+pub use joystick::{
+    JOYCAPS16_SIZE, JOYERR_NOCANDO, JOYERR_PARMS, JOYERR_UNPLUGGED, JOYINFO16_SIZE,
+    JOYINFOEX16_BUTTONS_OFFSET, JOYINFOEX16_SIZE, JOYINFOEX16_X_OFFSET, JOYINFOEX16_Y_OFFSET,
+    JOYINFOEX16_Z_OFFSET, JOY_RETURN_SUPPORTED, JOY_RETURNBUTTONS, JOY_RETURNX, JOY_RETURNY,
+    JOY_RETURNZ, MMSYSERR_NODRIVER, Win16JoyCaps16, Win16JoyInfo16, Win16JoystickRequest,
+};
+#[path = "mixer.rs"]
+mod mixer;
+pub use mixer::{
+    MAXPNAMELEN, MIXERCAPS16_SIZE, MIXERCONTROL16_SIZE, MIXERCONTROLDETAILS16_SIZE,
+    MIXERLINE16_SIZE, MIXERLINECONTROLS16_SIZE, MIXER_LONG_NAME_CHARS, MIXER_SHORT_NAME_CHARS,
+    Win16MixerCaps16, Win16MixerControl16, Win16MixerControlDetails16, Win16MixerLine16,
+    Win16MixerLineControls16, Win16MixerRequest,
+};
 #[path = "media_io.rs"]
 mod media_io;
 pub use media_io::{
     MMCKINFO16_SIZE, MMIOINFO16_ERROR_OFFSET, MMIOINFO16_SIZE, Win16MediaIoRequest, Win16MmckInfo16,
+    Win16MmioInfo16,
 };
 #[path = "midi.rs"]
 mod midi;
@@ -203,6 +235,9 @@ mod system;
 pub use system::Win16SystemRequest;
 pub(in crate::exports) use system::decode_system;
 
+#[path = "user_input.rs"]
+mod user_input;
+pub use user_input::Win16UserInputRequest;
 #[path = "family_requests.rs"]
 mod family_requests;
 pub use family_requests::*;

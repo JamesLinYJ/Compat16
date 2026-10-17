@@ -77,6 +77,40 @@ pub(super) fn decode(
         Win16ExportId::UserGetDialogBaseUnits => {
             Win16ApiRequest::UserSystem(Win16UserSystemRequest::GetDialogBaseUnits)
         }
+        Win16ExportId::UserSetSysModalWindow => Win16ApiRequest::UserSystem(
+            Win16UserSystemRequest::SetSysModalWindow {
+                window: word_argument(arguments, 0)?,
+            },
+        ),
+        Win16ExportId::UserGetSysModalWindow => {
+            Win16ApiRequest::UserSystem(Win16UserSystemRequest::GetSysModalWindow)
+        }
+        Win16ExportId::UserGetSysColorBrush => Win16ApiRequest::UserSystem(
+            Win16UserSystemRequest::GetSysColorBrush {
+                index: word_argument(arguments, 0)? as i16,
+            },
+        ),
+        Win16ExportId::UserGetFreeSystemResources => Win16ApiRequest::UserSystem(
+            Win16UserSystemRequest::GetFreeSystemResources {
+                selector: word_argument(arguments, 0)?,
+            },
+        ),
+        Win16ExportId::UserIconSize => Win16ApiRequest::UserSystem(Win16UserSystemRequest::IconSize),
+        Win16ExportId::UserDragObject => Win16ApiRequest::UserSystem(Win16UserSystemRequest::DragObject {
+            parent: word_argument(arguments, 0)?,
+            source: word_argument(arguments, 1)?,
+            format: word_argument(arguments, 2)?,
+            data: dword_argument(arguments, 3)?,
+            cursor: word_argument(arguments, 4)?,
+        }),
+        Win16ExportId::UserDragDetect => {
+            let point = dword_argument(arguments, 1)?;
+            Win16ApiRequest::UserSystem(Win16UserSystemRequest::DragDetect {
+                window: word_argument(arguments, 0)?,
+                x: point as u16 as i16,
+                y: (point >> 16) as u16 as i16,
+            })
+        }
         Win16ExportId::KernelGlobalReAlloc => Win16ApiRequest::KernelGlobalHeap(
             Win16KernelGlobalHeapRequest::GlobalReAlloc {
                 handle: word_argument(arguments, 0)?,
@@ -300,3 +334,6 @@ mod set_sys_colors_tests;
 #[cfg(test)]
 #[path = "call_swap_mouse_button_tests.rs"]
 mod swap_mouse_button_tests;
+#[cfg(test)]
+#[path = "call_drag_tests.rs"]
+mod drag_tests;

@@ -84,6 +84,21 @@ pub enum Win16UserWindowRequest {
         timer_id: u16,
     },
 
+    /// Same far-Pascal frame as SetTimer. `callback` stays a guest FARPROC.
+    /// A firing timer is delivered as WM_SYSTIMER, not WM_TIMER.
+    SetSystemTimer {
+        window: u16,
+        timer_id: u16,
+        interval: u16,
+        callback: u32,
+    },
+
+    /// Destroys only a system timer. A SetTimer entry with the same id remains.
+    KillSystemTimer {
+        window: u16,
+        timer_id: u16,
+    },
+
     SetCapture {
         window: u16,
     },
@@ -160,6 +175,20 @@ pub enum Win16UserWindowRequest {
     /// USER.170 arranges minimized children and returns an unsigned row height.
     ArrangeIconicWindows {
         window: u16,
+    },
+
+    /// USER.198 cascades MDI children of one parent. `flags` keeps the
+    /// Windows 3.1 MDITILE_* word.
+    CascadeChildWindows {
+        parent: u16,
+        flags: u16,
+    },
+
+    /// USER.199 tiles MDI children of one parent. `flags` keeps the
+    /// Windows 3.1 MDITILE_* word.
+    TileChildWindows {
+        parent: u16,
+        flags: u16,
     },
 
     /// Query the native minimized state of a window.

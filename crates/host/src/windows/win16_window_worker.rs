@@ -99,7 +99,7 @@ pub(super) use user_services::{retire_clipboard_viewer, update_clipboard_viewer_
 pub(super) use timer_registry::{
     allocate_host_timer_id, allocate_native_callback_timer_id, guest_timer_post,
     host_timer_proc_pointer, native_timer_record, post_guest_timer_message, register_native_timer,
-    retire_native_timer, timer_record_by_host_id,
+    retire_native_timer, timer_record_by_host_id, SYSTEM_TIMER_NATIVE_ID_BIT,
 };
 pub(super) use timers::remove_window_maps;
 
@@ -784,6 +784,9 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
             let state =
                 unsafe { windows_sys::Win32::UI::Input::KeyboardAndMouse::GetKeyState(key) };
             let _ = response.send(state);
+        }
+        WorkerCommand::Ctl3dFrame { window, response } => {
+            let _ = response.send(super::win16_ctl3d_worker::frame_facts(state, window));
         }
         WorkerCommand::Keyboard { call, response } => {
             // Layout and dead-key state belong to this USER input queue.

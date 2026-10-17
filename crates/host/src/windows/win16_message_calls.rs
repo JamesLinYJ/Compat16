@@ -259,6 +259,7 @@ pub(super) fn execute(
             interval_ms,
             native_timer_id,
             guest_callback,
+            system,
         } => {
             let hwnd = match window {
                 Some(window) => match resolve_window(state, window) {
@@ -273,6 +274,7 @@ pub(super) fn execute(
                         if record.active
                             && record.window == window
                             && record.guest_timer_id == timer_id
+                            && record.system == system
                             && record.hwnd == hwnd as usize =>
                     {
                         Some(record)
@@ -291,6 +293,8 @@ pub(super) fn execute(
                     return Ok(Win16MessageCallResult::Timer(None));
                 };
                 id
+            } else if system {
+                usize::from(timer_id) | worker_window::SYSTEM_TIMER_NATIVE_ID_BIT
             } else {
                 usize::from(timer_id)
             };
@@ -314,6 +318,7 @@ pub(super) fn execute(
                 hwnd: hwnd as usize,
                 native_id,
                 guest_callback,
+                system,
                 active: true,
             };
             let same_id_replacement = !hwnd.is_null() && !guest_callback;
@@ -414,6 +419,25 @@ pub(super) fn execute(
             Ok(Win16MessageCallResult::Boolean(unsafe {
                 InSendMessage() != 0
             }))
+        }
+        Win16MessageCall::QuerySendMessage => {
+            // Same native predicate as InSendMessage. Time and point are read
+            // only while that predicate is true, so a posted message cannot
+            // leak into the MSG16.
+            let in_send = unsafe { InSendMessage() != 0 };
+            if !in_send {
+                return Ok(Win16MessageCallResult::QuerySend {
+                    in_send: false, time: 0, x: 0, y: 0,
+                });
+            }
+            let time = unsafe { GetMessageTime() } as u32;
+            let pos = unsafe { GetMessagePos() };
+            Ok(Win16MessageCallResult::QuerySend {
+                in_send: true,
+                time,
+                x: pos as i16,
+                y: (pos >> 16) as i16,
+            })
         }
         Win16MessageCall::ReplyMessage { result } => {
             // Nested Begin commands execute on the suspended native WndProc

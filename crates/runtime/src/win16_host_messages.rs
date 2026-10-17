@@ -58,6 +58,10 @@ pub enum Win16ScalarMessage {
     /// non-null LPARAM as a guest FARPROC or private native TIMERPROC through
     /// a separate, source-aware callback path.
     Timer = 0x0113,
+    /// WM_SYSTIMER from SetSystemTimer. The Windows 3.1 public header does not
+    /// name this message; 0x0118 is the value delivered for a system timer.
+    /// A non-null LPARAM is a guest FARPROC, same as WM_TIMER.
+    SystemTimer = 0x0118,
     MouseMove = 0x0200,
     LeftButtonDown = 0x0201,
     LeftButtonUp = 0x0202,
@@ -79,9 +83,14 @@ impl Win16ScalarMessage {
     pub const fn broadcast_parameters_are_scalar(self, w_param: u16, l_param: u32) -> bool {
         match self {
             Self::Paint => w_param == 0,
-            Self::Timer => l_param == 0,
+            Self::Timer | Self::SystemTimer => l_param == 0,
             _ => true,
         }
+    }
+
+    /// WM_TIMER and WM_SYSTIMER share the timer-callback LPARAM rule.
+    pub const fn is_timer_message(message: u16) -> bool {
+        message == (Self::Timer as u16) || message == (Self::SystemTimer as u16)
     }
 
     pub fn from_raw(message: u16) -> Option<Self> {
@@ -113,6 +122,7 @@ impl Win16ScalarMessage {
             0x0106 => Self::SysChar,
             0x0107 => Self::SysDeadChar,
             0x0113 => Self::Timer,
+            0x0118 => Self::SystemTimer,
             0x0200 => Self::MouseMove,
             0x0201 => Self::LeftButtonDown,
             0x0202 => Self::LeftButtonUp,

@@ -170,6 +170,7 @@ impl Win16State {
             ole1_com_callback_resume_failures: Vec::new(),
             com_operations: super::com_operations::Win16ComOperationTable::default(),
             print_queues: super::print_queue::Win16PrintQueueState::default(),
+            winmem32: super::winmem32::Win16Winmem32State::default(),
             selectors, gate_selector, callback_gate_selector, bindings, builtin_data_exports,
             runtime_selector_aliases,
             runtime_arena_backing,
@@ -182,6 +183,7 @@ impl Win16State {
             mci: super::mci::Win16MciState::default(),
             midi: super::midi::Win16MidiState::default(),
             media_services: crate::win16_media_services::Win16MediaServicesState::default(),
+            mixer: super::mixer::Win16MixerState::default(),
             wave_audio: super::multimedia_buffers::Win16WaveState::default(),
             sound: sound_state::Win16SoundState::default(),
             automation: crate::win16_automation::Win16AutomationState::default(),
@@ -221,6 +223,7 @@ impl Win16State {
             untranslated_window_messages: BTreeSet::new(),
             psp_selector, process_views, instance_selector, instance_handle, automatic_data,
             task_handles, first_task_handle: task_handle,
+            task_controls: super::kernel_task::TaskControls::default(),
             module_path: program_path.to_vec(), user_queue: None, user_task_queue: None,
             module_startup: module_calls::ModuleStartupState::Pending,
             program_load_reported: false,
@@ -256,6 +259,7 @@ impl Win16State {
             win87em_exception_handler: None,
             files: BTreeMap::new(), next_file: FIRST_GUEST_HFILE,
             network_print_jobs: BTreeMap::new(),
+            printer_environments: BTreeMap::new(),
             global_handles: BTreeMap::new(), global_selectors: BTreeMap::new(),
             queued_drop_files: Vec::new(),
             finished_queued_drop_leases: Vec::new(),
@@ -269,6 +273,7 @@ impl Win16State {
             window_classes: classes::GuestWindowClasses::new(),
             window_system_classes: BTreeMap::new(),
             mdi_children: BTreeSet::new(),
+            sysmodal_window: None,
             window_creations: BTreeMap::new(),
             guest_menus: menu::GuestMenus::new(),
             timers: message_calls::Win16TimerRegistrations::default(),
@@ -286,6 +291,7 @@ impl Win16State {
             reported_global_flags: BTreeSet::new(),
             reported_global_realloc_flags: BTreeSet::new(),
             compat,
+            comm_ports: super::comm::Win16CommPorts::default(),
         };
         // This task has the portable PE32 CPU dispatcher. Reclassify only
         // KERNEL.513–518 gate bindings; this does not assert a native x86

@@ -1,0 +1,192 @@
+module = "USER"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 200
+name = "OpenComm"
+binding = { rust_id = "UserOpenComm", id_value = 1307, constant = "USER_OPEN_COMM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "FarString" },
+  { name = "in_queue", type = "U16" },
+  { name = "out_queue", type = "U16" },
+]
+
+[[exports]]
+ordinal = 201
+name = "SetCommState"
+binding = { rust_id = "UserSetCommState", id_value = 1308, constant = "USER_SET_COMM_STATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dcb", type = "FarBuffer" },
+]
+
+[[exports]]
+ordinal = 202
+name = "GetCommState"
+binding = { rust_id = "UserGetCommState", id_value = 1309, constant = "USER_GET_COMM_STATE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+  { name = "dcb", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 203
+name = "GetCommError"
+binding = { rust_id = "UserGetCommError", id_value = 1310, constant = "USER_GET_COMM_ERROR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+  { name = "status", type = "FarPointer" },
+]
+
+[[exports]]
+ordinal = 204
+name = "ReadComm"
+binding = { rust_id = "UserReadComm", id_value = 1311, constant = "USER_READ_COMM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "count", type = "I16" },
+]
+
+[[exports]]
+ordinal = 205
+name = "WriteComm"
+binding = { rust_id = "UserWriteComm", id_value = 1312, constant = "USER_WRITE_COMM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+  { name = "buffer", type = "FarBuffer" },
+  { name = "count", type = "I16" },
+]
+
+[[exports]]
+ordinal = 206
+name = "TransmitCommChar"
+binding = { rust_id = "UserTransmitCommChar", id_value = 1313, constant = "USER_TRANSMIT_COMM_CHAR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+  { name = "character", type = "Char8" },
+]
+
+[[exports]]
+ordinal = 207
+name = "CloseComm"
+binding = { rust_id = "UserCloseComm", id_value = 1314, constant = "USER_CLOSE_COMM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+]
+
+[[exports]]
+ordinal = 208
+name = "SetCommEventMask"
+decl = { attributes = [] }
+binding = { rust_id = "UserSetCommEventMask", id_value = 1315, constant = "USER_SET_COMM_EVENT_MASK" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "id", type = "I16" },
+  { name = "event_mask", type = "U16" },
+]
+
+[[exports]]
+ordinal = 209
+name = "GetCommEventMask"
+binding = { rust_id = "UserGetCommEventMask", id_value = 1316, constant = "USER_GET_COMM_EVENT_MASK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+  { name = "clear", type = "I16" },
+]
+
+[[exports]]
+ordinal = 210
+name = "SetCommBreak"
+binding = { rust_id = "UserSetCommBreak", id_value = 1317, constant = "USER_SET_COMM_BREAK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+]
+
+[[exports]]
+ordinal = 211
+name = "ClearCommBreak"
+binding = { rust_id = "UserClearCommBreak", id_value = 1318, constant = "USER_CLEAR_COMM_BREAK" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+]
+
+[[exports]]
+ordinal = 212
+name = "UngetCommChar"
+binding = { rust_id = "UserUngetCommChar", id_value = 1319, constant = "USER_UNGET_COMM_CHAR" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+  { name = "character", type = "Char8" },
+]
+
+[[exports]]
+ordinal = 213
+name = "BuildCommDCB"
+binding = { rust_id = "UserBuildCommDcb", id_value = 1320, constant = "USER_BUILD_COMM_DCB" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "definition", type = "FarString" },
+  { name = "dcb", type = "FarOutputBuffer" },
+]
+
+[[exports]]
+ordinal = 214
+name = "EscapeCommFunction"
+decl = { attributes = [] }
+binding = { rust_id = "UserEscapeCommFunction", id_value = 1321, constant = "USER_ESCAPE_COMM_FUNCTION" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "id", type = "I16" },
+  { name = "function", type = "I16" },
+]
+
+[[exports]]
+ordinal = 215
+name = "FlushComm"
+binding = { rust_id = "UserFlushComm", id_value = 1322, constant = "USER_FLUSH_COMM" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+  { name = "queue", type = "I16" },
+]
+
+[[exports]]
+ordinal = 245
+name = "EnableCommNotification"
+binding = { rust_id = "UserEnableCommNotification", id_value = 1323, constant = "USER_ENABLE_COMM_NOTIFICATION" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "id", type = "I16" },
+  { name = "window", type = "U16" },
+  { name = "input_threshold", type = "I16" },
+  { name = "output_threshold", type = "I16" },
+]
