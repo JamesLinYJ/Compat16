@@ -144,6 +144,12 @@ pub use network::{
     Win16AsyncLookup, Win16GuestBuffer, Win16GuestInOutBuffer, Win16HostQuery, Win16SelectInput,
     Win16SocketSetInput, Win16WinsockDecodeFailure, Win16WinsockRequest,
 };
+#[path = "auxiliary.rs"]
+mod aux;
+pub use aux::{
+    AUXCAPS16_SIZE, AUXCAPS_AUXIN, AUXCAPS_CDAUDIO, AUXCAPS_LRVOLUME, AUXCAPS_VOLUME,
+    Win16AuxCapabilities16, Win16AuxRequest,
+};
 #[path = "media_time.rs"]
 mod media_time;
 pub use media_time::{

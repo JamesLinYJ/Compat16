@@ -45,6 +45,7 @@ groups = [
   "groups/keyboard/keyboard_family.toml",
   "groups/lzexpand/compat.toml",
   "groups/lzexpand/declared.toml",
+  "groups/mmsystem/auxiliary.toml",
   "groups/mmsystem/declared.toml",
   "groups/mmsystem/mci.toml",
   "groups/mmsystem/media_io.toml",

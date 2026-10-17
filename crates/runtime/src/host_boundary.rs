@@ -457,6 +457,30 @@ pub trait RuntimeHost:
             "host Win16 multimedia timer services are unavailable",
         ))
     }
+    /// Auxiliary audio without a physical device. Zero devices is the public
+    /// result; other calls return `MMSYSERR_BADDEVICEID` and write nothing.
+    fn win16_aux(
+        &mut self,
+        operation: crate::Win16HostAuxOperation,
+    ) -> Result<crate::Win16HostAuxResult, RuntimeError> {
+        match operation {
+            crate::Win16HostAuxOperation::GetNumDevs => Ok(crate::Win16HostAuxResult::Count(0)),
+            crate::Win16HostAuxOperation::GetDevCaps { .. } => {
+                Ok(crate::Win16HostAuxResult::Capabilities {
+                    result: crate::MMSYSERR_BADDEVICEID,
+                    capabilities: None,
+                })
+            }
+            crate::Win16HostAuxOperation::GetVolume { .. } => Ok(crate::Win16HostAuxResult::Volume {
+                result: crate::MMSYSERR_BADDEVICEID,
+                value: None,
+            }),
+            crate::Win16HostAuxOperation::SetVolume { .. }
+            | crate::Win16HostAuxOperation::OutMessage { .. } => {
+                Ok(crate::Win16HostAuxResult::Status(crate::MMSYSERR_BADDEVICEID))
+            }
+        }
+    }
     fn win16_media_io(
         &mut self,
         _operation: crate::Win16HostMediaIoOperation,

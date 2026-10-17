@@ -145,6 +145,7 @@ impl Win16State {
                 self.ole2disp_convert_api(request, memory, host)?
             }
             Win16ApiRequest::Winsock(request) => self.winsock_api(request, memory, host)?,
+            Win16ApiRequest::Aux(request) => self.aux_api(request, memory, host)?,
             Win16ApiRequest::MediaTime(request) => self.media_time_api(request, memory, host)?,
             Win16ApiRequest::MediaIo(request) => self.media_io_api(request, memory, host)?,
             Win16ApiRequest::Midi(request) => self.midi_api(request, memory, host)?,

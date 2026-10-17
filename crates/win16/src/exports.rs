@@ -47,6 +47,8 @@ mod call_kernel_profile_sections;
 mod call_media_io;
 #[path = "exports/call_mci.rs"]
 mod call_mci;
+#[path = "exports/call_win16_aux.rs"]
+mod call_aux;
 #[path = "exports/call_win16_media_time.rs"]
 mod call_media_time;
 #[path = "exports/call_win16_midi.rs"]
@@ -106,7 +108,9 @@ pub use request::{
     Win16KernelStringRequest, Win16KernelStringsRequest, Win16KernelTaskRequest,
     Win16KeyboardConversion, Win16KeyboardRequest, Win16LibraryCodePageRequest,
     Win16LibraryInterruptsRequest, Win16LibraryRequest, Win16LibraryStringsRequest,
-    Win16LibraryToolhelpRequest, Win16LzExpandRequest, Win16MediaIoRequest, Win16MediaTimeRequest,
+    Win16AuxCapabilities16, Win16AuxRequest, AUXCAPS16_SIZE, AUXCAPS_AUXIN, AUXCAPS_CDAUDIO,
+    AUXCAPS_LRVOLUME, AUXCAPS_VOLUME, Win16LibraryToolhelpRequest, Win16LzExpandRequest,
+    Win16MediaIoRequest, Win16MediaTimeRequest,
     Win16MidiDirection, Win16MidiRequest, Win16MidiStreamArgument,
     MIDIHDR16_SIZE, MIDIINCAPS16_SIZE, MIDIOUTCAPS16_SIZE, Win16MidiHeader16,
     Win16MidiInCaps16, Win16MidiOutCaps16,

@@ -96,30 +96,6 @@ name = "JOYCONFIGCHANGED"
 kind = "stub"
 
 [[exports]]
-ordinal = 350
-name = "auxGetNumDevs"
-
-[[exports]]
-ordinal = 351
-name = "auxGetDevCaps"
-decl = { args = ["word", "pointer", "word"] }
-
-[[exports]]
-ordinal = 352
-name = "auxGetVolume"
-decl = { args = ["word", "pointer"] }
-
-[[exports]]
-ordinal = 353
-name = "auxSetVolume"
-decl = { args = ["word", "long"] }
-
-[[exports]]
-ordinal = 354
-name = "auxOutMessage"
-decl = { args = ["word", "word", "long", "long"] }
-
-[[exports]]
 ordinal = 602
 name = "timeSetEvent"
 decl = { args = ["word", "word", "segmented_pointer", "long", "word"] }
