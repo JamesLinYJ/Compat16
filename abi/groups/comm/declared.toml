@@ -5,102 +5,166 @@ ordinal = 1
 name = "INICOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm1Inicom", id_value = 5000000, constant = "DRIVER_COMM_1" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 2
 name = "SETCOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm2Setcom", id_value = 5000001, constant = "DRIVER_COMM_2" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 3
 name = "SETQUE"
 kind = "stub"
 
+binding = { rust_id = "DriverComm3Setque", id_value = 5000002, constant = "DRIVER_COMM_3" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 4
 name = "RECCOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm4Reccom", id_value = 5000003, constant = "DRIVER_COMM_4" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 5
 name = "SNDCOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm5Sndcom", id_value = 5000004, constant = "DRIVER_COMM_5" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 6
 name = "CTX"
 kind = "stub"
 
+binding = { rust_id = "DriverComm6Ctx", id_value = 5000005, constant = "DRIVER_COMM_6" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 7
 name = "TRMCOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm7Trmcom", id_value = 5000006, constant = "DRIVER_COMM_7" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 8
 name = "STACOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm8Stacom", id_value = 5000007, constant = "DRIVER_COMM_8" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 9
 name = "CEXTFCN"
 kind = "stub"
 
+binding = { rust_id = "DriverComm9Cextfcn", id_value = 5000008, constant = "DRIVER_COMM_9" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 10
 name = "CFLUSH"
 kind = "stub"
 
+binding = { rust_id = "DriverComm10Cflush", id_value = 5000009, constant = "DRIVER_COMM_10" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 11
 name = "CEVT"
 kind = "stub"
 
+binding = { rust_id = "DriverComm11Cevt", id_value = 5000010, constant = "DRIVER_COMM_11" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 12
 name = "CEVTGET"
 kind = "stub"
 
+binding = { rust_id = "DriverComm12Cevtget", id_value = 5000011, constant = "DRIVER_COMM_12" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 13
 name = "CSETBRK"
 kind = "stub"
 
+binding = { rust_id = "DriverComm13Csetbrk", id_value = 5000012, constant = "DRIVER_COMM_13" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 14
 name = "CCLRBRK"
 kind = "stub"
 
+binding = { rust_id = "DriverComm14Cclrbrk", id_value = 5000013, constant = "DRIVER_COMM_14" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 15
 name = "GETDCB"
 kind = "stub"
 
+binding = { rust_id = "DriverComm15Getdcb", id_value = 5000014, constant = "DRIVER_COMM_15" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 17
 name = "SUSPENDOPENCOMMPORTS"
 kind = "stub"
 
+binding = { rust_id = "DriverComm17Suspendopencommports", id_value = 5000015, constant = "DRIVER_COMM_17" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 18
 name = "REACTIVATEOPENCOMMPORTS"
 kind = "stub"
 
+binding = { rust_id = "DriverComm18Reactivateopencommports", id_value = 5000016, constant = "DRIVER_COMM_18" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 19
 name = "COMMWRITESTRING"
 kind = "stub"
 
+binding = { rust_id = "DriverComm19Commwritestring", id_value = 5000017, constant = "DRIVER_COMM_19" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 20
 name = "READCOMMSTRING"
 kind = "stub"
 
+binding = { rust_id = "DriverComm20Readcommstring", id_value = 5000018, constant = "DRIVER_COMM_20" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 100
 name = "ENABLENOTIFICATION"
 kind = "stub"
 
+binding = { rust_id = "DriverComm100Enablenotification", id_value = 5000019, constant = "DRIVER_COMM_100" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 101
 name = "ordinal_only__win31"
 kind = "stub"
+
+binding = { rust_id = "DriverComm101OrdinalOnlyWin31", id_value = 5000020, constant = "DRIVER_COMM_101" }
+[exports.call]
+returns = "dword"

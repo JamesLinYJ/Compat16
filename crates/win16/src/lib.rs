@@ -26,7 +26,7 @@ pub use exports::{Win16UserNetworkBuffer, Win16UserNetworkRequest};
 pub use exports::Win16UserHooksRequest;
 pub use exports::{
     Win16FontResourceInput, Win16GdiInternalArg, Win16GdiInternalRequest, Win16GdiServicesRequest,
-    Win16GdiSpoolRequest,
+    Win16GdiSpoolRequest, Win16DriverArg, Win16DriverCall,
 };
 pub use exports::{NF_NORMAL, NF_TASKSWITCH, NF_RIP};
 pub mod comm_abi;

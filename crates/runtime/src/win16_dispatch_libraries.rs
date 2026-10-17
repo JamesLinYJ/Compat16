@@ -118,6 +118,9 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::Printer(request) => self.printer(request, memory, host)?,
+            Win16ApiRequest::Driver(request) => self.driver_call(
+                request, descriptor.module(), descriptor.ordinal(), host,
+            )?,
             Win16ApiRequest::ShellIcon(request) => self.shell_icon_api(request, memory, host)?,
             Win16ApiRequest::ShellExecution(request) => {
                 return self.begin_shell_execution_request(

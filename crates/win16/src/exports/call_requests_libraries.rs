@@ -23,6 +23,9 @@ pub(super) fn decode(
             },
         )));
     }
+    if let Some(request) = super::call_driver::decode(descriptor, arguments)? {
+        return Ok(Some(Win16ApiRequest::Driver(request)));
+    }
     if matches!(descriptor.module(), "OLECLI" | "OLESVR") {
         return super::super::call_ole1::decode_ole1(
             descriptor.module(), descriptor.ordinal(), arguments, selectors, memory,

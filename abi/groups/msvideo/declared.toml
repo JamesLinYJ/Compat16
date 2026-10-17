@@ -4,331 +4,825 @@ module = "MSVIDEO"
 ordinal = 2
 name = "VideoForWindowsVersion"
 
+binding = { rust_id = "DriverMsvideo2Videoforwindowsversion", id_value = 5000185, constant = "DRIVER_MSVIDEO_2" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 3
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
 
+binding = { rust_id = "DriverMsvideo3Dllentrypoint", id_value = 5000186, constant = "DRIVER_MSVIDEO_3" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U16" },
+]
 [[exports]]
 ordinal = 20
 name = "videoGetNumDevs"
 
+binding = { rust_id = "DriverMsvideo20Videogetnumdevs", id_value = 5000187, constant = "DRIVER_MSVIDEO_20" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 21
 name = "videoGetErrorText"
 decl = { args = ["word", "word", "string", "word"] }
 
+binding = { rust_id = "DriverMsvideo21Videogeterrortext", id_value = 5000188, constant = "DRIVER_MSVIDEO_21" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarString" },
+  { name = "a3", type = "U16" },
+]
 [[exports]]
 ordinal = 22
 name = "VideoCapDriverDescAndVer"
 decl = { args = ["word", "pointer", "word", "pointer", "word"] }
 
+binding = { rust_id = "DriverMsvideo22Videocapdriverdescandver", id_value = 5000189, constant = "DRIVER_MSVIDEO_22" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarBuffer" },
+  { name = "a4", type = "U16" },
+]
 [[exports]]
 ordinal = 28
 name = "videoOpen"
 decl = { args = ["pointer", "long", "long"] }
 
+binding = { rust_id = "DriverMsvideo28Videoopen", id_value = 5000190, constant = "DRIVER_MSVIDEO_28" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarBuffer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 29
 name = "videoClose"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverMsvideo29Videoclose", id_value = 5000191, constant = "DRIVER_MSVIDEO_29" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 30
 name = "videoDialog"
 decl = { args = ["word", "word", "long"] }
 
+binding = { rust_id = "DriverMsvideo30Videodialog", id_value = 5000192, constant = "DRIVER_MSVIDEO_30" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 31
 name = "videoFrame"
 decl = { args = ["word", "pointer"] }
 
+binding = { rust_id = "DriverMsvideo31Videoframe", id_value = 5000193, constant = "DRIVER_MSVIDEO_31" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 32
 name = "videoConfigure"
 decl = { args = ["word", "word", "long", "pointer", "pointer", "long", "pointer", "long"] }
 
+binding = { rust_id = "DriverMsvideo32Videoconfigure", id_value = 5000194, constant = "DRIVER_MSVIDEO_32" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarBuffer" },
+  { name = "a4", type = "FarBuffer" },
+  { name = "a5", type = "U32" },
+  { name = "a6", type = "FarBuffer" },
+  { name = "a7", type = "U32" },
+]
 [[exports]]
 ordinal = 33
 name = "videoConfigureStorage"
 decl = { args = ["word", "string", "long"] }
 
+binding = { rust_id = "DriverMsvideo33Videoconfigurestorage", id_value = 5000195, constant = "DRIVER_MSVIDEO_33" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 34
 name = "videoGetChannelCaps"
 decl = { args = ["word", "pointer", "long"] }
 
+binding = { rust_id = "DriverMsvideo34Videogetchannelcaps", id_value = 5000196, constant = "DRIVER_MSVIDEO_34" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 35
 name = "videoUpdate"
 decl = { args = ["word", "word", "word"] }
 
+binding = { rust_id = "DriverMsvideo35Videoupdate", id_value = 5000197, constant = "DRIVER_MSVIDEO_35" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 [[exports]]
 ordinal = 40
 name = "videoStreamAddBuffer"
 decl = { args = ["word", "pointer", "long"] }
 
+binding = { rust_id = "DriverMsvideo40Videostreamaddbuffer", id_value = 5000198, constant = "DRIVER_MSVIDEO_40" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 41
 name = "videoStreamFini"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverMsvideo41Videostreamfini", id_value = 5000199, constant = "DRIVER_MSVIDEO_41" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 42
 name = "videoStreamGetError"
 decl = { args = ["word", "pointer", "pointer"] }
 
+binding = { rust_id = "DriverMsvideo42Videostreamgeterror", id_value = 5000200, constant = "DRIVER_MSVIDEO_42" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 43
 name = "videoStreamGetPosition"
 decl = { args = ["word", "pointer", "long"] }
 
+binding = { rust_id = "DriverMsvideo43Videostreamgetposition", id_value = 5000201, constant = "DRIVER_MSVIDEO_43" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 44
 name = "videoStreamInit"
 decl = { args = ["word", "long", "long", "long", "long"] }
 
+binding = { rust_id = "DriverMsvideo44Videostreaminit", id_value = 5000202, constant = "DRIVER_MSVIDEO_44" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+]
 [[exports]]
 ordinal = 46
 name = "videoStreamPrepareHeader"
 decl = { args = ["word", "pointer", "long"] }
 
+binding = { rust_id = "DriverMsvideo46Videostreamprepareheader", id_value = 5000203, constant = "DRIVER_MSVIDEO_46" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 47
 name = "videoStreamReset"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverMsvideo47Videostreamreset", id_value = 5000204, constant = "DRIVER_MSVIDEO_47" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 49
 name = "videoStreamStart"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverMsvideo49Videostreamstart", id_value = 5000205, constant = "DRIVER_MSVIDEO_49" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 50
 name = "videoStreamStop"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverMsvideo50Videostreamstop", id_value = 5000206, constant = "DRIVER_MSVIDEO_50" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 51
 name = "videoStreamUnprepareHeader"
 decl = { args = ["word", "pointer", "long"] }
 
+binding = { rust_id = "DriverMsvideo51Videostreamunprepareheader", id_value = 5000207, constant = "DRIVER_MSVIDEO_51" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 52
 name = "videoStreamAllocHdrAndBuffer"
 decl = { args = ["word", "pointer", "long"] }
 
+binding = { rust_id = "DriverMsvideo52Videostreamallochdrandbuffer", id_value = 5000208, constant = "DRIVER_MSVIDEO_52" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 53
 name = "videoStreamFreeHdrAndBuffer"
 decl = { args = ["word", "pointer"] }
 
+binding = { rust_id = "DriverMsvideo53Videostreamfreehdrandbuffer", id_value = 5000209, constant = "DRIVER_MSVIDEO_53" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 60
 name = "videoMessage"
 decl = { args = ["word", "word", "long", "long"] }
 
+binding = { rust_id = "DriverMsvideo60Videomessage", id_value = 5000210, constant = "DRIVER_MSVIDEO_60" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+]
 [[exports]]
 ordinal = 102
 name = "DrawDibOpen"
 decl = { attributes = ["ret16"] }
 
+binding = { rust_id = "DriverMsvideo102Drawdibopen", id_value = 5000211, constant = "DRIVER_MSVIDEO_102" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 103
 name = "DrawDibClose"
 decl = { attributes = ["ret16"], args = ["word"] }
 
+binding = { rust_id = "DriverMsvideo103Drawdibclose", id_value = 5000212, constant = "DRIVER_MSVIDEO_103" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 104
 name = "DrawDibBegin"
 decl = { attributes = ["ret16"], args = ["word", "word", "signed_word", "signed_word", "pointer", "signed_word", "signed_word", "word"] }
 
+binding = { rust_id = "DriverMsvideo104Drawdibbegin", id_value = 5000213, constant = "DRIVER_MSVIDEO_104" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "I16" },
+  { name = "a4", type = "FarBuffer" },
+  { name = "a5", type = "I16" },
+  { name = "a6", type = "I16" },
+  { name = "a7", type = "U16" },
+]
 [[exports]]
 ordinal = 105
 name = "DrawDibEnd"
 decl = { attributes = ["ret16"], args = ["word"] }
 
+binding = { rust_id = "DriverMsvideo105Drawdibend", id_value = 5000214, constant = "DRIVER_MSVIDEO_105" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 106
 name = "DrawDibDraw"
 decl = { attributes = ["ret16"], args = ["word", "word", "signed_word", "signed_word", "signed_word", "signed_word", "pointer", "pointer", "signed_word", "signed_word", "signed_word", "signed_word", "word"] }
 
+binding = { rust_id = "DriverMsvideo106Drawdibdraw", id_value = 5000215, constant = "DRIVER_MSVIDEO_106" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "I16" },
+  { name = "a3", type = "I16" },
+  { name = "a4", type = "I16" },
+  { name = "a5", type = "I16" },
+  { name = "a6", type = "FarBuffer" },
+  { name = "a7", type = "FarBuffer" },
+  { name = "a8", type = "I16" },
+  { name = "a9", type = "I16" },
+  { name = "a10", type = "I16" },
+  { name = "a11", type = "I16" },
+  { name = "a12", type = "U16" },
+]
 [[exports]]
 ordinal = 108
 name = "DrawDibGetPalette"
 decl = { attributes = ["ret16"], args = ["word"] }
 
+binding = { rust_id = "DriverMsvideo108Drawdibgetpalette", id_value = 5000216, constant = "DRIVER_MSVIDEO_108" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 110
 name = "DrawDibSetPalette"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
 
+binding = { rust_id = "DriverMsvideo110Drawdibsetpalette", id_value = 5000217, constant = "DRIVER_MSVIDEO_110" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 [[exports]]
 ordinal = 111
 name = "DRAWDIBCHANGEPALETTE"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo111Drawdibchangepalette", id_value = 5000218, constant = "DRIVER_MSVIDEO_111" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 112
 name = "DrawDibRealize"
 decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
 
+binding = { rust_id = "DriverMsvideo112Drawdibrealize", id_value = 5000219, constant = "DRIVER_MSVIDEO_112" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 [[exports]]
 ordinal = 113
 name = "DRAWDIBTIME"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo113Drawdibtime", id_value = 5000220, constant = "DRIVER_MSVIDEO_113" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 114
 name = "DrawDibProfileDisplay"
 decl = { attributes = ["ret16"], args = ["pointer"] }
 
+binding = { rust_id = "DriverMsvideo114Drawdibprofiledisplay", id_value = 5000221, constant = "DRIVER_MSVIDEO_114" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 115
 name = "STRETCHDIB"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo115Stretchdib", id_value = 5000222, constant = "DRIVER_MSVIDEO_115" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 118
 name = "DrawDibStart"
 decl = { attributes = ["ret16"], args = ["word", "long"] }
 
+binding = { rust_id = "DriverMsvideo118Drawdibstart", id_value = 5000223, constant = "DRIVER_MSVIDEO_118" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+]
 [[exports]]
 ordinal = 119
 name = "DrawDibStop"
 decl = { attributes = ["ret16"], args = ["word"] }
 
+binding = { rust_id = "DriverMsvideo119Drawdibstop", id_value = 5000224, constant = "DRIVER_MSVIDEO_119" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 120
 name = "DRAWDIBGETBUFFER"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo120Drawdibgetbuffer", id_value = 5000225, constant = "DRIVER_MSVIDEO_120" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 200
 name = "ICInfo"
 decl = { attributes = ["ret16"], args = ["long", "long", "segmented_pointer"] }
 
+binding = { rust_id = "DriverMsvideo200Icinfo", id_value = 5000226, constant = "DRIVER_MSVIDEO_200" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 201
 name = "ICInstall"
 decl = { attributes = ["ret16"], args = ["long", "long", "long", "pointer", "word"] }
 
+binding = { rust_id = "DriverMsvideo201Icinstall", id_value = 5000227, constant = "DRIVER_MSVIDEO_201" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarBuffer" },
+  { name = "a4", type = "U16" },
+]
 [[exports]]
 ordinal = 202
 name = "ICRemove"
 decl = { attributes = ["ret16"], args = ["long", "long", "word"] }
 
+binding = { rust_id = "DriverMsvideo202Icremove", id_value = 5000228, constant = "DRIVER_MSVIDEO_202" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U16" },
+]
 [[exports]]
 ordinal = 203
 name = "ICOpen"
 decl = { attributes = ["ret16"], args = ["long", "long", "word"] }
 
+binding = { rust_id = "DriverMsvideo203Icopen", id_value = 5000229, constant = "DRIVER_MSVIDEO_203" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U16" },
+]
 [[exports]]
 ordinal = 204
 name = "ICClose"
 decl = { args = ["word"] }
 
+binding = { rust_id = "DriverMsvideo204Icclose", id_value = 5000230, constant = "DRIVER_MSVIDEO_204" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 [[exports]]
 ordinal = 205
 name = "ICSendMessage"
 decl = { args = ["word", "word", "long", "long"] }
 
+binding = { rust_id = "DriverMsvideo205Icsendmessage", id_value = 5000231, constant = "DRIVER_MSVIDEO_205" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+]
 [[exports]]
 ordinal = 206
 name = "ICOpenFunction"
 decl = { attributes = ["ret16"], args = ["long", "long", "word", "segmented_pointer"] }
 
+binding = { rust_id = "DriverMsvideo206Icopenfunction", id_value = 5000232, constant = "DRIVER_MSVIDEO_206" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 207
 name = "_ICMessage"
 decl = { type = "varargs", args = ["word", "word", "word"] }
 
+binding = { rust_id = "DriverMsvideo207Icmessage", id_value = 5000233, constant = "DRIVER_MSVIDEO_207" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 [[exports]]
 ordinal = 212
 name = "ICGetInfo"
 decl = { args = ["word", "segmented_pointer", "long"] }
 
+binding = { rust_id = "DriverMsvideo212Icgetinfo", id_value = 5000234, constant = "DRIVER_MSVIDEO_212" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 213
 name = "ICLocate"
 decl = { attributes = ["ret16"], args = ["long", "long", "pointer", "pointer", "word"] }
 
+binding = { rust_id = "DriverMsvideo213Iclocate", id_value = 5000235, constant = "DRIVER_MSVIDEO_213" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarBuffer" },
+  { name = "a3", type = "FarBuffer" },
+  { name = "a4", type = "U16" },
+]
 [[exports]]
 ordinal = 224
 name = "_ICCompress"
 decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer", "long", "long", "long", "segmented_pointer", "segmented_pointer"] }
 
+binding = { rust_id = "DriverMsvideo224Iccompress", id_value = 5000236, constant = "DRIVER_MSVIDEO_224" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a4", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a5", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a6", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a7", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a8", type = "U32" },
+  { name = "a9", type = "U32" },
+  { name = "a10", type = "U32" },
+  { name = "a11", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a12", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 230
 name = "_ICDecompress"
 decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "segmented_pointer", "segmented_pointer"] }
 
+binding = { rust_id = "DriverMsvideo230Icdecompress", id_value = 5000237, constant = "DRIVER_MSVIDEO_230" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a4", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a5", type = "FarPointer", encoding = "segmented_pointer" },
+]
 [[exports]]
 ordinal = 232
 name = "_ICDrawBegin"
 decl = { type = "cdecl", args = ["word", "long", "word", "word", "word", "signed_word", "signed_word", "signed_word", "signed_word", "segmented_pointer", "signed_word", "signed_word", "signed_word", "signed_word", "long", "long"] }
 
+binding = { rust_id = "DriverMsvideo232Icdrawbegin", id_value = 5000238, constant = "DRIVER_MSVIDEO_232" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U16" },
+  { name = "a5", type = "I16" },
+  { name = "a6", type = "I16" },
+  { name = "a7", type = "I16" },
+  { name = "a8", type = "I16" },
+  { name = "a9", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a10", type = "I16" },
+  { name = "a11", type = "I16" },
+  { name = "a12", type = "I16" },
+  { name = "a13", type = "I16" },
+  { name = "a14", type = "U32" },
+  { name = "a15", type = "U32" },
+]
 [[exports]]
 ordinal = 234
 name = "_ICDraw"
 decl = { type = "cdecl", args = ["word", "long", "segmented_pointer", "segmented_pointer", "long", "long"] }
 
+binding = { rust_id = "DriverMsvideo234Icdraw", id_value = 5000239, constant = "DRIVER_MSVIDEO_234" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a3", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U32" },
+]
 [[exports]]
 ordinal = 239
 name = "ICGetDisplayFormat"
 decl = { attributes = ["ret16"], args = ["word", "pointer", "pointer", "signed_word", "signed_word", "signed_word"] }
 
+binding = { rust_id = "DriverMsvideo239Icgetdisplayformat", id_value = 5000240, constant = "DRIVER_MSVIDEO_239" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "FarBuffer" },
+  { name = "a3", type = "I16" },
+  { name = "a4", type = "I16" },
+  { name = "a5", type = "I16" },
+]
 [[exports]]
 ordinal = 240
 name = "ICIMAGECOMPRESS"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo240Icimagecompress", id_value = 5000241, constant = "DRIVER_MSVIDEO_240" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 241
 name = "ICIMAGEDECOMPRESS"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo241Icimagedecompress", id_value = 5000242, constant = "DRIVER_MSVIDEO_241" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 242
 name = "ICCOMPRESSORCHOOSE"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo242Iccompressorchoose", id_value = 5000243, constant = "DRIVER_MSVIDEO_242" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 243
 name = "ICCOMPRESSORFREE"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo243Iccompressorfree", id_value = 5000244, constant = "DRIVER_MSVIDEO_243" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 244
 name = "ICSEQCOMPRESSFRAMESTART"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo244Icseqcompressframestart", id_value = 5000245, constant = "DRIVER_MSVIDEO_244" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 245
 name = "ICSEQCOMPRESSFRAMEEND"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo245Icseqcompressframeend", id_value = 5000246, constant = "DRIVER_MSVIDEO_245" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 246
 name = "ICSEQCOMPRESSFRAME"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo246Icseqcompressframe", id_value = 5000247, constant = "DRIVER_MSVIDEO_246" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 250
 name = "_MCIWndCreate"
 decl = { type = "cdecl", args = ["word", "word", "long", "string"] }
 
+binding = { rust_id = "DriverMsvideo250Mciwndcreate", id_value = 5000248, constant = "DRIVER_MSVIDEO_250" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarString" },
+]
 [[exports]]
 ordinal = 251
 name = "_MCIWndRegisterClass"
 decl = { type = "cdecl" }
 
+binding = { rust_id = "DriverMsvideo251Mciwndregisterclass", id_value = 5000249, constant = "DRIVER_MSVIDEO_251" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 252
 name = "GETOPENFILENAMEPREVIEW"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo252Getopenfilenamepreview", id_value = 5000250, constant = "DRIVER_MSVIDEO_252" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 253
 name = "GETSAVEFILENAMEPREVIEW"
 kind = "stub"
+
+binding = { rust_id = "DriverMsvideo253Getsavefilenamepreview", id_value = 5000251, constant = "DRIVER_MSVIDEO_253" }
+[exports.call]
+returns = "dword"

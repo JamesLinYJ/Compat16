@@ -15,7 +15,7 @@ mod call_user_network;
 pub use request::{Win16UserNetworkBuffer, Win16UserNetworkRequest};
 pub use request::{
     Win16FontResourceInput, Win16GdiInternalArg, Win16GdiInternalRequest, Win16GdiServicesRequest,
-    Win16GdiSpoolRequest,
+    Win16GdiSpoolRequest, Win16DriverArg, Win16DriverCall,
 };
 #[path = "exports/call_ole1.rs"]
 mod call_ole1;

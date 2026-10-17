@@ -16,6 +16,9 @@ pub use gdi_spool::Win16GdiSpoolRequest;
 #[path = "gdi_internal.rs"]
 mod gdi_internal;
 pub use gdi_internal::{Win16GdiInternalArg, Win16GdiInternalRequest};
+#[path = "driver.rs"]
+mod driver;
+pub use driver::{Win16DriverArg, Win16DriverCall};
 #[path = "ole1.rs"]
 mod ole1;
 pub use ole1::Win16Ole1Request;
