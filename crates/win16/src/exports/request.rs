@@ -27,6 +27,8 @@ pub use request_modules::{NF_NORMAL, NF_TASKSWITCH, NF_RIP};
 pub(super) use request_modules::decode_print_queue_export;
 pub use request_modules::{
     DecodedWin16Call, DibColorTableKind, DibRgbQuad16, DocInfo16, GdiDeviceRequest,
+    MAXPNAMELEN, MIXERCAPS16_SIZE, MIXERCONTROL16_SIZE, MIXERCONTROLDETAILS16_SIZE,
+    MIXERLINE16_SIZE, MIXERLINECONTROLS16_SIZE, MIXER_LONG_NAME_CHARS, MIXER_SHORT_NAME_CHARS,
     MMCKINFO16_SIZE, MMIOINFO16_ERROR_OFFSET, MMIOINFO16_SIZE, MMTIME16_SIZE, PaletteEntry16,
     PaletteTransferKind, PrintOperation, TIMECAPS16_SIZE, WAVEHDR16_BYTES_RECORDED_OFFSET,
     WAVEHDR16_FLAGS_OFFSET, WAVEHDR16_SIZE, WAVEINCAPS16_SIZE, WAVEOUTCAPS16_SIZE,
@@ -53,7 +55,8 @@ pub use request_modules::{
     JOYINFOEX16_BUTTONS_OFFSET, JOYINFOEX16_SIZE, JOYINFOEX16_X_OFFSET, JOYINFOEX16_Y_OFFSET,
     JOYINFOEX16_Z_OFFSET, JOY_RETURN_SUPPORTED, JOY_RETURNBUTTONS, JOY_RETURNX,
     JOY_RETURNY, JOY_RETURNZ, MMSYSERR_NODRIVER, Win16JoyCaps16,
-    Win16JoyInfo16, Win16JoystickRequest,
+    Win16JoyInfo16, Win16JoystickRequest, Win16MixerCaps16, Win16MixerControl16,
+    Win16MixerControlDetails16, Win16MixerLine16, Win16MixerLineControls16, Win16MixerRequest,
     Win16MidiDirection, Win16MidiRequest, Win16MidiStreamArgument,
     MIDIHDR16_SIZE, MIDIINCAPS16_SIZE, MIDIOUTCAPS16_SIZE, Win16MidiHeader16,
     Win16MidiInCaps16, Win16MidiOutCaps16,
@@ -122,6 +125,7 @@ pub enum Win16ApiRequest {
     Winsock(Win16WinsockRequest),
     Aux(Win16AuxRequest),
     MediaTime(Win16MediaTimeRequest),
+    Mixer(Win16MixerRequest),
     MediaIo(Win16MediaIoRequest),
     Joystick(Win16JoystickRequest),
     Midi(Win16MidiRequest),

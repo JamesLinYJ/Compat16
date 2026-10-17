@@ -53,6 +53,7 @@ groups = [
   "groups/mmsystem/media_services.toml",
   "groups/mmsystem/media_time.toml",
   "groups/mmsystem/midi.toml",
+  "groups/mmsystem/mixer.toml",
   "groups/mmsystem/sound.toml",
   "groups/mmsystem/wave.toml",
   "groups/mouse/declared.toml",

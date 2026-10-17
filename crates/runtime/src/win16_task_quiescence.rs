@@ -13,6 +13,7 @@ impl Win16State {
             && self.mci.native_sources_quiescent()
             && self.acm.native_sources_quiescent()
             && self.media_services.native_sources_quiescent()
+            && self.mixer.native_sources_quiescent()
             && self.wave_audio.native_sources_quiescent()
             && self.sound.native_sources_quiescent()
             && self.network.native_sources_quiescent()

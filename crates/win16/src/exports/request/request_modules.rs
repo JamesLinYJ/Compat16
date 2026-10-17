@@ -163,6 +163,14 @@ pub use joystick::{
     JOYINFOEX16_Z_OFFSET, JOY_RETURN_SUPPORTED, JOY_RETURNBUTTONS, JOY_RETURNX, JOY_RETURNY,
     JOY_RETURNZ, MMSYSERR_NODRIVER, Win16JoyCaps16, Win16JoyInfo16, Win16JoystickRequest,
 };
+#[path = "mixer.rs"]
+mod mixer;
+pub use mixer::{
+    MAXPNAMELEN, MIXERCAPS16_SIZE, MIXERCONTROL16_SIZE, MIXERCONTROLDETAILS16_SIZE,
+    MIXERLINE16_SIZE, MIXERLINECONTROLS16_SIZE, MIXER_LONG_NAME_CHARS, MIXER_SHORT_NAME_CHARS,
+    Win16MixerCaps16, Win16MixerControl16, Win16MixerControlDetails16, Win16MixerLine16,
+    Win16MixerLineControls16, Win16MixerRequest,
+};
 #[path = "media_io.rs"]
 mod media_io;
 pub use media_io::{

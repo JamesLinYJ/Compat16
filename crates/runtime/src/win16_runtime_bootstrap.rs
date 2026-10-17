@@ -183,6 +183,7 @@ impl Win16State {
             mci: super::mci::Win16MciState::default(),
             midi: super::midi::Win16MidiState::default(),
             media_services: crate::win16_media_services::Win16MediaServicesState::default(),
+            mixer: super::mixer::Win16MixerState::default(),
             wave_audio: super::multimedia_buffers::Win16WaveState::default(),
             sound: sound_state::Win16SoundState::default(),
             automation: crate::win16_automation::Win16AutomationState::default(),

@@ -1,0 +1,117 @@
+module = "MMSYSTEM"
+
+[[exports]]
+ordinal = 800
+name = "mixerGetNumDevs"
+binding = { rust_id = "MmsystemMixerGetNumDevs", id_value = 1600, constant = "MMSYSTEM_MIXER_GET_NUM_DEVS" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 801
+name = "mixerGetDevCaps"
+binding = { rust_id = "MmsystemMixerGetDevCaps", id_value = 1601, constant = "MMSYSTEM_MIXER_GET_DEV_CAPS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "U16" },
+  { name = "capabilities", type = "FarOutputBuffer" },
+  { name = "size", type = "U16" },
+]
+
+[[exports]]
+ordinal = 802
+name = "mixerOpen"
+binding = { rust_id = "MmsystemMixerOpen", id_value = 1602, constant = "MMSYSTEM_MIXER_OPEN" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle_out", type = "FarOutputBuffer" },
+  { name = "device", type = "U16" },
+  { name = "callback", type = "U32" },
+  { name = "instance", type = "U32" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 803
+name = "mixerClose"
+binding = { rust_id = "MmsystemMixerClose", id_value = 1603, constant = "MMSYSTEM_MIXER_CLOSE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "handle", type = "U16" },
+]
+
+[[exports]]
+ordinal = 804
+name = "mixerMessage"
+binding = { rust_id = "MmsystemMixerMessage", id_value = 1604, constant = "MMSYSTEM_MIXER_MESSAGE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "handle", type = "U16" },
+  { name = "message", type = "U16" },
+  { name = "param1", type = "U32" },
+  { name = "param2", type = "U32" },
+]
+
+[[exports]]
+ordinal = 805
+name = "mixerGetLineInfo"
+binding = { rust_id = "MmsystemMixerGetLineInfo", id_value = 1605, constant = "MMSYSTEM_MIXER_GET_LINE_INFO" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "U16" },
+  { name = "line", type = "FarBuffer" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 806
+name = "mixerGetID"
+binding = { rust_id = "MmsystemMixerGetId", id_value = 1606, constant = "MMSYSTEM_MIXER_GET_ID" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "U16" },
+  { name = "device_id", type = "FarOutputBuffer" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 807
+name = "mixerGetLineControls"
+binding = { rust_id = "MmsystemMixerGetLineControls", id_value = 1607, constant = "MMSYSTEM_MIXER_GET_LINE_CONTROLS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "U16" },
+  { name = "controls", type = "FarBuffer" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 808
+name = "mixerGetControlDetails"
+binding = { rust_id = "MmsystemMixerGetControlDetails", id_value = 1608, constant = "MMSYSTEM_MIXER_GET_CONTROL_DETAILS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "U16" },
+  { name = "details", type = "FarBuffer" },
+  { name = "flags", type = "U32" },
+]
+
+[[exports]]
+ordinal = 809
+name = "mixerSetControlDetails"
+binding = { rust_id = "MmsystemMixerSetControlDetails", id_value = 1609, constant = "MMSYSTEM_MIXER_SET_CONTROL_DETAILS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "object", type = "U16" },
+  { name = "details", type = "FarBuffer" },
+  { name = "flags", type = "U32" },
+]
