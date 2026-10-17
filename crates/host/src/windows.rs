@@ -37,6 +37,7 @@ mod win16_file_paths;
 mod win16_file_devices;
 mod win16_lz_file_paths;
 mod win16_common;
+mod win16_injected_input;
 mod win16_drawing;
 mod win16_gdi;
 mod win16_get_dc_ex;

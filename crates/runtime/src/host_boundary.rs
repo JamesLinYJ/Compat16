@@ -1,5 +1,9 @@
 //! Owned host identities and services consumed by the runtime.
 
+#[path = "win16_host_injected_input.rs"]
+mod injected_input;
+pub use injected_input::{Win16InjectedKey, Win16InjectedMouse};
+
 #[path = "host_boundary_audio.rs"]
 mod audio;
 use audio::audio_runtime_host_ports;
@@ -1682,6 +1686,18 @@ pub trait RuntimeHost:
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
             "host Win16 key state is unavailable",
+        ))
+    }
+    fn win16_inject_keyboard(&mut self, _event: Win16InjectedKey) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host synthesized keyboard input is unavailable",
+        ))
+    }
+    fn win16_inject_mouse(&mut self, _event: Win16InjectedMouse) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host synthesized mouse input is unavailable",
         ))
     }
     fn win16_get_system_metrics(&mut self, _index: i32) -> Result<i32, RuntimeError> {

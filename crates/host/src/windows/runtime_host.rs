@@ -1056,6 +1056,18 @@ impl RuntimeHost for WindowsHost {
             self.win16_windows.get_key_state(key)
         }
     }
+    fn win16_inject_keyboard(
+        &mut self, event: runtime::Win16InjectedKey,
+    ) -> Result<(), RuntimeError> {
+        super::win16_injected_input::inject_keyboard(event);
+        Ok(())
+    }
+    fn win16_inject_mouse(
+        &mut self, event: runtime::Win16InjectedMouse,
+    ) -> Result<(), RuntimeError> {
+        super::win16_injected_input::inject_mouse(event);
+        Ok(())
+    }
     fn win16_get_system_metrics(&mut self, index: i32) -> Result<i32, RuntimeError> {
         Ok(win16_common::get_system_metrics(index))
     }

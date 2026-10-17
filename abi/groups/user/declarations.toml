@@ -541,16 +541,6 @@ binding = { rust_id = "UserGetMessageExtraInfo", id_value = 1233, constant = "US
 returns = "dword"
 
 [[exports]]
-ordinal = 289
-name = "keybd_event"
-decl = { attributes = ["register"] }
-
-[[exports]]
-ordinal = 299
-name = "mouse_event"
-decl = { attributes = ["register"] }
-
-[[exports]]
 ordinal = 300
 name = "UnloadInstalledDrivers"
 kind = "stub"
