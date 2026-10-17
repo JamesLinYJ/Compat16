@@ -3,6 +3,7 @@
 use super::*;
 
 pub(super) const HOST_NAMES_ITEM: &[u8] = b"StdHostNames";
+pub(super) const DOC_DIMENSIONS_ITEM: &[u8] = b"StdDocDimensions";
 
 pub(super) fn poke_message(
     format: u16,
@@ -53,6 +54,53 @@ pub(super) fn poke_message(
             bytes,
         },
     })
+}
+
+/// `StdDocDimensions` poke. The value is the guest `RECT` from `SetBounds`,
+/// placed after the four-byte DDEPOKE header. The 3.1 method argument is that
+/// RECT, so this item does not convert units.
+pub(super) fn rect_poke(
+    format: u16,
+    rect: &[u8; 8],
+) -> Result<crate::Win16ClassicDdeMessage, Win16Ole1Status> {
+    if format == 0 {
+        return Err(OLE1_ERROR_MEMORY);
+    }
+    let mut bytes = Vec::new();
+    bytes.try_reserve_exact(12).map_err(|_| OLE1_ERROR_MEMORY)?;
+    bytes.extend_from_slice(&0u16.to_le_bytes());
+    bytes.extend_from_slice(&format.to_le_bytes());
+    bytes.extend_from_slice(rect);
+    Ok(crate::Win16ClassicDdeMessage::Poke {
+        item: None,
+        format,
+        flags: crate::Win16ClassicDdePokeFlags {
+            raw_flags: 0,
+            unused_bits: 0,
+            release_after_receive: false,
+            reserved_bits: 0,
+        },
+        global: crate::Win16ClassicDdeGlobalBlock {
+            transfer: None,
+            guest_global: None,
+            bytes,
+        },
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rect_poke;
+
+    #[test]
+    fn rect_poke_places_guest_rect_after_dde_header() {
+        let message = rect_poke(7, &[1, 2, 3, 4, 5, 6, 7, 8]).unwrap();
+        let crate::Win16ClassicDdeMessage::Poke { format, global, .. } = message else {
+            panic!("StdDocDimensions poke was not a DDE poke");
+        };
+        assert_eq!(format, 7);
+        assert_eq!(global.bytes, [0, 0, 7, 0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    }
 }
 
 pub(super) fn retire_item_atom(

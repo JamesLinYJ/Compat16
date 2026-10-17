@@ -20,6 +20,13 @@ pub(in crate::win16_runtime) enum Win16Ole1StdExecuteCommand<'a> {
         document_name: &'a [u8],
     },
     CloseDocument,
+    /// Document-topic `StdShowItem`. The third token is the server activate
+    /// flag, sent from `OleShow`'s focus BOOL.
+    ShowItem {
+        document: &'a [u8],
+        item: &'a [u8],
+        take_focus: bool,
+    },
 }
 
 pub(in crate::win16_runtime) fn encode_win16_ole1_std_execute(
@@ -31,14 +38,18 @@ pub(in crate::win16_runtime) fn encode_win16_ole1_std_execute(
             class_name,
             document_name,
         } => {
-            encode_call(
-                &mut output,
-                b"StdNewDocument",
-                &[class_name, document_name],
-            )?;
+            encode_call(&mut output, b"StdNewDocument", &[class_name, document_name])?;
         }
         Win16Ole1StdExecuteCommand::CloseDocument => {
             encode_atom_command(&mut output, b"StdCloseDocument")?;
+        }
+        Win16Ole1StdExecuteCommand::ShowItem {
+            document,
+            item,
+            take_focus,
+        } => {
+            let focus: &[u8] = if take_focus { b"true" } else { b"false" };
+            encode_call(&mut output, b"StdShowItem", &[document, item, focus])?;
         }
     }
     Ok(output)

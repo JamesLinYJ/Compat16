@@ -15,9 +15,8 @@ use x86_cpu::Cpu;
 
 use super::client_dde::{Win16Ole1ClientDdeCommittedResponse, Win16Ole1ExpectedReply};
 use super::{
-    OLE1_BUSY, OLE1_ERROR_ADDRESS, OLE1_ERROR_COMMAND, OLE1_ERROR_MEMORY, OLE1_ERROR_NOT_LINK,
-    OLE1_ERROR_TERMINATE, OLE1_ERROR_UPDATE, OLE1_OK, Win16Ole1ClientDdeDisposition,
-    Win16Ole1OperationId, Win16Ole1Status, Win16State,
+    OLE1_BUSY, OLE1_ERROR_ADDRESS, OLE1_ERROR_COMMAND, OLE1_ERROR_MEMORY, OLE1_ERROR_TERMINATE,
+    OLE1_OK, Win16Ole1ClientDdeDisposition, Win16Ole1OperationId, Win16Ole1Status, Win16State,
     dde_object_proxy::Win16Ole1DdeObjectProxyRecord,
     stdexecute::{self, Win16Ole1StdExecuteCommand},
 };
@@ -55,6 +54,7 @@ pub(super) struct Win16Ole1DdeObjectMethodSequence {
     return_kind: Win16ReturnKind,
     next_application: Option<Vec<u8>>,
     next_document: Option<Vec<u8>>,
+    pending_bounds: Option<[u8; 8]>,
     endpoint: Option<crate::Win16HostClassicDdeEndpoint>,
     endpoint_operation: Option<Win16Ole1OperationId>,
     document_responder: Option<super::Win16Ole1InitiateResponder>,
@@ -76,12 +76,12 @@ impl Win16State {
         arguments: &[Win16Argument],
         return_to: (u16, u16, u32),
     ) -> Result<Option<u8>, RuntimeError> {
-        if self
+        let method_pending = self
             .ole1_client_documents
             .pending_dde_methods
             .iter()
-            .any(|sequence| sequence.object_id == record.id)
-        {
+            .any(|sequence| sequence.object_id == record.id);
+        if method_pending && slot != 35 {
             return self.complete_dde_method_return(cpu, return_to, OLE1_BUSY);
         }
         if record.owner
@@ -97,22 +97,35 @@ impl Win16State {
                 "DDE-backed OLE1 method ran under a different task owner",
             ));
         }
+        if slot == 35 {
+            let pending_slot = method_pending
+                .then(|| {
+                    self.ole1_client_documents
+                        .pending_dde_methods
+                        .iter()
+                        .find(|sequence| sequence.object_id == record.id)
+                        .map(|sequence| sequence.slot)
+                })
+                .flatten();
+            return self.complete_dde_method_return(
+                cpu,
+                return_to,
+                local::release_method_code(pending_slot),
+            );
+        }
         if slot == 1 {
             return self.begin_dde_object_release(cpu, host, memory, record, return_to);
         }
-        if matches!(slot, 24 | 25) {
-            return self.complete_dde_method_return(cpu, return_to, OLE1_ERROR_NOT_LINK);
+        if let Some(status) = self.local_dde_method_status(&record, slot, arguments, memory)? {
+            return self.complete_dde_method_return(cpu, return_to, status);
         }
-        if slot == 21 {
-            return self.return_dde_method_gap(
-                cpu, host, return_to, OLE1_ERROR_UPDATE,
-                "OLE1 Update requires a checked linked-item request/ACK or object-local update contract",
-            );
-        }
-        if !matches!(slot, 11 | 20) {
+        if !matches!(slot, 2 | 7 | 11 | 19 | 20) {
             return self.complete_dde_method_gap_slot(
                 cpu, host, return_to, slot, &record, arguments, memory,
             );
+        }
+        if matches!(slot, 2 | 19) && record.closed {
+            return self.complete_dde_method_return(cpu, return_to, local::OLE1_ERROR_NOT_OPEN);
         }
         if slot == 20 && record.closed {
             return self.complete_dde_method_return(cpu, return_to, OLE1_OK);
@@ -120,7 +133,9 @@ impl Win16State {
 
         let mut next_application = None;
         let mut next_document = None;
-        if slot != 20 {
+        let mut pending_bounds = None;
+        let mut poke_item: &'static [u8] = host_names::HOST_NAMES_ITEM;
+        if slot == 11 {
             let (
                 Some(Win16Argument::Dword(application_far)),
                 Some(Win16Argument::Dword(document_far)),
@@ -155,44 +170,90 @@ impl Win16State {
             current.document_name = next_document.unwrap_or_default();
             return self.complete_dde_method_return(cpu, return_to, OLE1_OK);
         }
-        let mut message = if let (Some(application), Some(document)) =
-            (next_application.as_deref(), next_document.as_deref())
-        {
+        if slot == 7 {
+            let Some(Win16Argument::Dword(rect_far)) = arguments.get(1) else {
+                return self.complete_dde_method_return(cpu, return_to, OLE1_ERROR_ADDRESS);
+            };
+            let rect = match self.read_dde_rect(*rect_far, memory) {
+                Ok(rect) => rect,
+                Err(status) => return self.complete_dde_method_return(cpu, return_to, status),
+            };
+            if record.closed {
+                let current = self
+                    .ole1_client_documents
+                    .dde_object_proxies
+                    .iter_mut()
+                    .find(|current| current.id == record.id)
+                    .ok_or_else(|| {
+                        dde_error(
+                            Kind::InternalInvariant,
+                            "closed OLE1 object lost its bounds storage",
+                        )
+                    })?;
+                current.bounds = Some(rect);
+                return self.complete_dde_method_return(cpu, return_to, OLE1_OK);
+            }
+            pending_bounds = Some(rect);
+            poke_item = host_names::DOC_DIMENSIONS_ITEM;
+        }
+        let mut message = if slot == 11 {
             let format = host.win16_register_clipboard_format(Some(b"Binary"))?;
             if format == 0 {
                 return self.complete_dde_method_return(cpu, return_to, OLE1_ERROR_MEMORY);
             }
+            let (Some(application), Some(document)) =
+                (next_application.as_deref(), next_document.as_deref())
+            else {
+                return Err(dde_error(
+                    Kind::InternalInvariant,
+                    "OLE1 SetHostNames lost its decoded names",
+                ));
+            };
             match host_names::poke_message(format, application, document) {
                 Ok(message) => message,
+                Err(status) => return self.complete_dde_method_return(cpu, return_to, status),
+            }
+        } else if slot == 7 {
+            let format = host.win16_register_clipboard_format(Some(b"Binary"))?;
+            if format == 0 {
+                return self.complete_dde_method_return(cpu, return_to, OLE1_ERROR_MEMORY);
+            }
+            let Some(rect) = pending_bounds.as_ref() else {
+                return Err(dde_error(
+                    Kind::InternalInvariant,
+                    "OLE1 SetBounds lost its guest RECT",
+                ));
+            };
+            match host_names::rect_poke(format, rect) {
+                Ok(message) => message,
+                Err(status) => return self.complete_dde_method_return(cpu, return_to, status),
+            }
+        } else if slot == 2 {
+            let Some(Win16Argument::Word(focus)) = arguments.get(1) else {
+                return self.complete_dde_method_return(cpu, return_to, OLE1_ERROR_ADDRESS);
+            };
+            match stdexecute::encode_win16_ole1_std_execute(Win16Ole1StdExecuteCommand::ShowItem {
+                document: &record.document_topic,
+                item: &record.object_name,
+                take_focus: *focus != 0,
+            }) {
+                Ok(bytes) => execute_message(bytes),
+                Err(error) => return self.return_execute_encode_gap(cpu, host, return_to, error),
+            }
+        } else if slot == 19 {
+            let Some(Win16Argument::Word(command)) = arguments.get(1) else {
+                return self.complete_dde_method_return(cpu, return_to, OLE1_ERROR_ADDRESS);
+            };
+            match self.read_dde_execute_command(*command, memory)? {
+                Ok(bytes) => execute_message(bytes),
                 Err(status) => return self.complete_dde_method_return(cpu, return_to, status),
             }
         } else {
             match stdexecute::encode_win16_ole1_std_execute(
                 Win16Ole1StdExecuteCommand::CloseDocument,
             ) {
-                Ok(bytes) => crate::Win16ClassicDdeMessage::Execute {
-                    global: crate::Win16ClassicDdeGlobalBlock {
-                        transfer: None,
-                        guest_global: None,
-                        bytes,
-                    },
-                },
-                Err(error) => {
-                    let (status, detail) = match error {
-                        stdexecute::Win16Ole1StdExecuteError::Syntax => (
-                            OLE1_ERROR_ADDRESS,
-                            "host/document names cannot be encoded as a valid StdExecute command",
-                        ),
-                        stdexecute::Win16Ole1StdExecuteError::SizeLimit => (
-                            OLE1_ERROR_MEMORY,
-                            "StdExecute command exceeds DDE block capacity",
-                        ),
-                        stdexecute::Win16Ole1StdExecuteError::ResourceExhausted => {
-                            (OLE1_ERROR_MEMORY, "StdExecute command allocation failed")
-                        }
-                    };
-                    return self.return_dde_method_gap(cpu, host, return_to, status, detail);
-                }
+                Ok(bytes) => execute_message(bytes),
+                Err(error) => return self.return_execute_encode_gap(cpu, host, return_to, error),
             }
         };
         let operation = self
@@ -228,6 +289,7 @@ impl Win16State {
                 return_kind: Win16ReturnKind::Word,
                 next_application,
                 next_document,
+                pending_bounds,
                 endpoint: Some(record.endpoint),
                 endpoint_operation: Some(record.operation_id),
                 document_responder: (!record.document_conversation_retired).then_some(
@@ -248,7 +310,7 @@ impl Win16State {
         let (sent_message, expected) = if let crate::Win16ClassicDdeMessage::Poke { item, .. } =
             &mut message
         {
-            let name = host_names::HOST_NAMES_ITEM.to_vec();
+            let name = poke_item.to_vec();
             let atom =
                 match self.global_add_atom(win16_abi::Win16AtomName::String(name.clone()), host) {
                     Ok(0) => {
@@ -380,6 +442,7 @@ impl Win16State {
                 return_kind: Win16ReturnKind::Word,
                 next_application: None,
                 next_document: None,
+                pending_bounds: None,
                 endpoint: Some(record.endpoint),
                 endpoint_operation: Some(record.operation_id),
                 document_responder: (!record.document_conversation_retired).then_some(
@@ -468,6 +531,29 @@ impl Win16State {
         .map(|_| ())
     }
 
+    fn return_execute_encode_gap(
+        &mut self,
+        cpu: &mut Cpu,
+        host: &mut impl RuntimeHost,
+        return_to: (u16, u16, u32),
+        error: stdexecute::Win16Ole1StdExecuteError,
+    ) -> Result<Option<u8>, RuntimeError> {
+        let (status, detail) = match error {
+            stdexecute::Win16Ole1StdExecuteError::Syntax => (
+                OLE1_ERROR_COMMAND,
+                "OLE1 StdExecute command could not be encoded",
+            ),
+            stdexecute::Win16Ole1StdExecuteError::SizeLimit => (
+                OLE1_ERROR_MEMORY,
+                "StdExecute command exceeds DDE block capacity",
+            ),
+            stdexecute::Win16Ole1StdExecuteError::ResourceExhausted => {
+                (OLE1_ERROR_MEMORY, "StdExecute command allocation failed")
+            }
+        };
+        self.return_dde_method_gap(cpu, host, return_to, status, detail)
+    }
+
     pub(super) fn complete_dde_method_return(
         &mut self,
         cpu: &mut Cpu,
@@ -482,6 +568,16 @@ impl Win16State {
             u32::from(status),
             Win16ReturnKind::Word,
         )
+    }
+}
+
+fn execute_message(bytes: Vec<u8>) -> crate::Win16ClassicDdeMessage {
+    crate::Win16ClassicDdeMessage::Execute {
+        global: crate::Win16ClassicDdeGlobalBlock {
+            transfer: None,
+            guest_global: None,
+            bytes,
+        },
     }
 }
 
