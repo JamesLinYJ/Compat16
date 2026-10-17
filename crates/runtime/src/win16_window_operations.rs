@@ -32,6 +32,22 @@ mod mdi;
 const POINT16_SIZE: usize = 4;
 
 impl Win16State {
+    pub(super) fn begin_system_color_update(
+        &mut self, registers: &mut Registers, memory: &mut Memory,
+        host: &mut impl RuntimeHost, indices: Vec<i32>, colors: Vec<u32>,
+        return_to: (u16, u16, u32), return_kind: Win16ReturnKind,
+    ) -> Result<Option<u8>, RuntimeError> {
+        if indices.len() != colors.len() || indices.len() > i16::MAX as usize {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "SetSysColors request arrays differ from the Win16 count contract"));
+        }
+        // Native BOOL is an internal result contract; the guest's VOID return
+        // preserves its caller while notifications use the normal continuation.
+        self.submit_call(registers, memory, host,
+            Win16WindowCall::SetSysColors { indices, colors },
+            Win16WindowCallOutput::Boolean, return_to, return_kind, None)
+    }
+
     /// Handle the batched Win16 USER window-operation exports from their
     /// project-owned decoded request and return contract.
     /// Dispatch geometry helpers and native USER window calls to their focused request modules.

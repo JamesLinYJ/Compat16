@@ -106,6 +106,7 @@ jobs:
             '-p devices',
             '-p host-services --lib diagnostics_tests::',
             '-p host-services --lib image_ownership_tests::',
+            '-p host-services --lib system_colors_adapter_tests',
             '-p host-services --lib dialog_icon_',
             '-p runtime --lib dialog_icon_title_',
             '-p runtime --lib arrange_iconic_windows',
@@ -129,6 +130,7 @@ jobs:
             '-p runtime --lib local_realloc_zero',
             '-p host-services --lib local_atom_',
             '-p runtime --lib class_data_',
+            '-p runtime --lib system_colors_tests',
             '-p runtime --lib open_icon_tests',
             '-p runtime --lib close_window_tests',
             '-p runtime --lib set_parent_tests',
@@ -334,7 +336,7 @@ jobs:
         if: ${{ !cancelled() && steps.abi_baseline.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: abi-baseline-${{ matrix.architecture }}-${{ github.sha }}
+          name: abi-baseline-${{ matrix.architecture }}-${{ github.sha }}-${{ github.run_attempt }}
           path: target/abi-baseline/*.json
           if-no-files-found: error
           retention-days: 30
@@ -822,6 +824,58 @@ jobs:
           }
           if ($failedSuites.Count -gt 0) {
             throw ('UNSUPPORTED/FAILED: activation-capable OpenIcon capability validation: ' + ($failedSuites -join '; '))
+          }
+
+      - name: Validate system-color and mouse-mapping native contracts
+        # Capability validation on disposable GitHub-hosted windows-2022 x64
+        # and windows-11-arm ARM64 only, never shared/self-hosted desktops.
+        # Changes to a system color and mouse mapping are restored by guards.
+        # No keyboard/mouse input or focus/security/session configuration.
+        # Fixtures remain ignored by default; native failures stay visible.
+        if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          NATIVE_RUNNER_ENVIRONMENT: ${{ runner.environment }}
+          NATIVE_RUNNER_LABEL: ${{ matrix.runner }}
+        run: |
+          if ($env:NATIVE_RUNNER_ENVIRONMENT -cne 'github-hosted') {
+            throw 'BLOCKED: system-color and mouse-mapping fixtures require a disposable GitHub-hosted runner; shared/self-hosted desktops are excluded.'
+          }
+          $supportedRunner = ($env:NATIVE_RUNNER_LABEL -ceq 'windows-2022' -and $env:BUILD_ARCHITECTURE -ceq 'x64') -or
+            ($env:NATIVE_RUNNER_LABEL -ceq 'windows-11-arm' -and $env:BUILD_ARCHITECTURE -ceq 'arm64')
+          if (-not $supportedRunner) {
+            throw 'BLOCKED: system-color and mouse-mapping capability validation is limited to windows-2022 x64 and windows-11-arm ARM64.'
+          }
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) {
+            throw 'BLOCKED: Visual Studio C++ tools unavailable for system-color and mouse-mapping fixtures.'
+          }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) {
+            throw 'BLOCKED: Visual Studio developer command script unavailable for system-color and mouse-mapping fixtures.'
+          }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          Write-Host 'Native global USER validation on the disposable runner; each fixture restores its original setting.'
+          $filters = @(
+            'windows::win16_windows::win16_window_data::tests::system_colors_native_tests::system_colors_native_worker_allows_synchronous_notification_reentry',
+            'windows::win16_windows::win16_window_data::tests::system_colors_native_tests::system_colors_native_mouse_adapter_returns_previous_mapping'
+          )
+          $failedSuites = @()
+          foreach ($filter in $filters) {
+            Write-Host "::group::cargo test $filter"
+            $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --lib {4} -- --ignored --exact --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET, $filter
+            & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+            $probeExitCode = $LASTEXITCODE
+            Write-Host '::endgroup::'
+            if ($probeExitCode -ne 0) {
+              $failedSuites += "$filter (UNSUPPORTED/FAILED: exit $probeExitCode)"
+            } elseif (($probeOutput -join "`n") -notmatch 'test result: ok\. 1 passed; 0 failed; 0 ignored;') {
+              $failedSuites += "$filter (UNSUPPORTED/FAILED: expected exactly one passing fixture)"
+            }
+          }
+          if ($failedSuites.Count -gt 0) {
+            throw ('UNSUPPORTED/FAILED: system-color and mouse-mapping capability validation: ' + ($failedSuites -join '; '))
           }
 
       - name: Validate activation-capable CloseWindow/FlashWindow fixtures

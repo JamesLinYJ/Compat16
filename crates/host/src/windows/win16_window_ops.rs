@@ -52,6 +52,9 @@ pub(super) fn execute(
     use Win16WindowCallResult as ResultValue;
 
     let result = match call {
+        Call::SetSysColors { indices, colors } => ResultValue::Boolean(
+            crate::windows::win16_user_services_system::set_sys_colors(&indices, &colors)?,
+        ),
         Call::EndDeferWindowPos { positions } => ResultValue::Boolean(
             defer::execute(state, positions),
         ),

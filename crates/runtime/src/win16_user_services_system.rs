@@ -25,6 +25,13 @@ pub(crate) fn dispatch(
         }
         Win16UserSystemRequest::GetCaretBlinkTime => get_caret_blink_time(host),
         Win16UserSystemRequest::GetSysColor { index } => get_sys_color(host, index),
+        Win16UserSystemRequest::SetSysColors { .. } => Err(RuntimeError::new(
+            crate::DiagnosticKind::InternalInvariant,
+            "callback-capable SetSysColors requires a USER worker operation",
+        )),
+        Win16UserSystemRequest::SwapMouseButton { swap } => {
+            Ok(u32::from(host.win16_swap_mouse_button(swap)?))
+        }
         Win16UserSystemRequest::GetDialogBaseUnits => get_dialog_base_units(host),
         Win16UserSystemRequest::AnyPopup => Ok(u32::from(host.win16_any_popup()?)),
     }

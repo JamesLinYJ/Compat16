@@ -71,6 +71,8 @@ pub enum Win16CaretShape {
 /// call on the window-owning thread and can suspend it for guest callbacks.
 #[derive(Clone, Debug)]
 pub enum Win16WindowCall {
+    /// The copied arrays stay owned while WM_SYSCOLORCHANGE reenters Win16.
+    SetSysColors { indices: Vec<i32>, colors: Vec<u32> },
     /// The complete Begin/Defer/End sequence is one resumable worker call.
     /// No native HDWP exists while the guest is collecting positions.
     EndDeferWindowPos { positions: Vec<Win16DeferredWindowPos> },

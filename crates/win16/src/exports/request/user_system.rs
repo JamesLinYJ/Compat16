@@ -15,6 +15,13 @@ pub enum Win16UserSystemRequest {
     GetSysColor {
         index: u16,
     },
+    SetSysColors {
+        indices: Vec<i32>,
+        colors: Vec<u32>,
+    },
+    SwapMouseButton {
+        swap: bool,
+    },
     GetDialogBaseUnits,
     /// Desktop-wide query for an owned, visible top-level window.
     AnyPopup,

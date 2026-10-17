@@ -1720,6 +1720,12 @@ pub trait RuntimeHost:
             "host system color query is unavailable",
         ))
     }
+    fn win16_swap_mouse_button(&mut self, _swap: bool) -> Result<bool, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host mouse-button swap is unavailable",
+        ))
+    }
     /// Read the native desktop-wide owned, visible top-level window predicate.
     /// An unavailable host query must not be represented as a negative answer.
     fn win16_any_popup(&mut self) -> Result<bool, RuntimeError> {

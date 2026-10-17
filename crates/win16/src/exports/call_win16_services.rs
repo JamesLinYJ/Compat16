@@ -1,6 +1,9 @@
 //! Decoding for the USER system queries, KERNEL global heap, and compatibility DLL batch.
 
-use super::{dword_argument, read_far_string, word_argument, Win16ApiRequest, Win16ExportId};
+use super::{
+    Win16ApiRequest, Win16ExportId, dword_argument, read_far_bytes, read_far_string,
+    word_argument,
+};
 use crate::exports::request::{
     Win16KernelGlobalHeapRequest, Win16LzExpandRequest, Win16ShellRequest,
     Win16UserSystemRequest, Win16VerRequest,
@@ -30,6 +33,44 @@ pub(super) fn decode(
         Win16ExportId::UserGetSysColor => Win16ApiRequest::UserSystem(
             Win16UserSystemRequest::GetSysColor { index: word_argument(arguments, 0)? },
         ),
+        Win16ExportId::UserSetSysColors => {
+            let signed_count = word_argument(arguments, 0)? as i16;
+            if signed_count < 0 {
+                return Err(Win16Error::InvalidRange);
+            }
+            let count = usize::try_from(signed_count).map_err(|_| Win16Error::InvalidRange)?;
+            let index_data = read_far_bytes(
+                dword_argument(arguments, 1)?,
+                count.checked_mul(2).ok_or(Win16Error::InvalidRange)?,
+                selectors,
+                memory,
+            )?;
+            let color_data = read_far_bytes(
+                dword_argument(arguments, 2)?,
+                count.checked_mul(4).ok_or(Win16Error::InvalidRange)?,
+                selectors,
+                memory,
+            )?;
+            let mut indices = Vec::new();
+            indices.try_reserve_exact(count).map_err(|_| Win16Error::OutOfMemory)?;
+            indices.extend(index_data.chunks_exact(2).map(|pair| {
+                i32::from(i16::from_le_bytes([pair[0], pair[1]]))
+            }));
+            let mut colors = Vec::new();
+            colors.try_reserve_exact(count).map_err(|_| Win16Error::OutOfMemory)?;
+            colors.extend(color_data.chunks_exact(4).map(|quad| {
+                u32::from_le_bytes([quad[0], quad[1], quad[2], quad[3]])
+            }));
+            Win16ApiRequest::UserSystem(Win16UserSystemRequest::SetSysColors {
+                indices,
+                colors,
+            })
+        }
+        Win16ExportId::UserSwapMouseButton => {
+            Win16ApiRequest::UserSystem(Win16UserSystemRequest::SwapMouseButton {
+                swap: word_argument(arguments, 0)? != 0,
+            })
+        }
         Win16ExportId::UserAnyPopup => {
             Win16ApiRequest::UserSystem(Win16UserSystemRequest::AnyPopup)
         }
@@ -253,3 +294,9 @@ fn resource_name(
 #[cfg(test)]
 #[path = "call_any_popup_tests.rs"]
 mod any_popup_tests;
+#[cfg(test)]
+#[path = "call_set_sys_colors_tests.rs"]
+mod set_sys_colors_tests;
+#[cfg(test)]
+#[path = "call_swap_mouse_button_tests.rs"]
+mod swap_mouse_button_tests;

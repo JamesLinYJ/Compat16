@@ -658,6 +658,13 @@ impl Win16State {
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Runtime(
                 win16_abi::Win16UserRuntimeRequest::GetSystemMetrics { index },
             )) => host.win16_get_system_metrics(i32::from(index))? as u16 as u32,
+            Win16ApiRequest::UserSystem(win16_abi::Win16UserSystemRequest::SetSysColors {
+                indices, colors,
+            }) => {
+                return self.begin_system_color_update(
+                    registers, memory, host, indices, colors, return_to, descriptor.return_kind,
+                );
+            }
             Win16ApiRequest::UserSystem(request) => {
                 super::user_services_system::dispatch(request, host)?
             }
