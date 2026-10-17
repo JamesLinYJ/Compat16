@@ -10,6 +10,12 @@ mod request_modules;
 pub use request_modules::{Win16UserNetworkBuffer, Win16UserNetworkRequest};
 pub use request_modules::Win16UserHooksRequest;
 pub use request_modules::Win16WinnlsRequest;
+pub use request_modules::{
+    WINMEM32_INSUFFICIENT_MEMORY, WINMEM32_INSUFFICIENT_SELECTORS, WINMEM32_INVALID_ARGUMENT,
+    WINMEM32_INVALID_FLAGS, WINMEM32_INVALID_FUNCTION, WINMEM32_MAX_16BIT_ALIAS_BYTES,
+    WINMEM32_MAX_OBJECT_BYTES, WINMEM32_VERSION_1_00, Win16Winmem32Request,
+};
+pub(super) use request_modules::decode_winmem32;
 pub use request_modules::Win16PrintQueueRequest;
 pub use request_modules::Win16KernelFileSystemRequest;
 pub use request_modules::Win16KernelInstanceRequest;
@@ -102,6 +108,7 @@ pub enum Win16ApiRequest {
     KernelDiagnostics(Win16KernelDiagnosticRequest),
     Ole2Nls(Win16Ole2NlsRequest),
     Winnls(Win16WinnlsRequest),
+    Winmem32(Win16Winmem32Request),
     PrintQueue(Win16PrintQueueRequest),
     Ole2Disp(Win16Ole2DispCall),
     Ole2DispConvert(Win16Ole2DispConvertCall),

@@ -12,6 +12,11 @@ pub mod call_frame;
 pub mod winnls_abi;
 pub use winnls_abi::ImeProfile16;
 pub use exports::Win16WinnlsRequest;
+pub use exports::{
+    WINMEM32_INSUFFICIENT_MEMORY, WINMEM32_INSUFFICIENT_SELECTORS, WINMEM32_INVALID_ARGUMENT,
+    WINMEM32_INVALID_FLAGS, WINMEM32_INVALID_FUNCTION, WINMEM32_MAX_16BIT_ALIAS_BYTES,
+    WINMEM32_MAX_OBJECT_BYTES, WINMEM32_VERSION_1_00, Win16Winmem32Request,
+};
 pub use exports::Win16PrintQueueRequest;
 pub use exports::Win16KernelInstanceRequest;
 pub use exports::Win16Ole1Request;

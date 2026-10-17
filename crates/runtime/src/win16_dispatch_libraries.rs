@@ -139,6 +139,7 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::Winnls(request) => self.winnls_api(request, memory, host)?,
+            Win16ApiRequest::Winmem32(request) => self.winmem32_api(request, memory)?,
             Win16ApiRequest::Ole2Disp(request) => self.ole2disp_api(request, memory, host)?,
             Win16ApiRequest::Ole2DispConvert(request) => {
                 self.ole2disp_convert_api(request, memory, host)?

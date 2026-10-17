@@ -66,6 +66,13 @@ mod call_ole2nls;
 #[path = "exports/call_winnls.rs"]
 mod call_winnls;
 pub use request::Win16WinnlsRequest;
+#[path = "exports/call_winmem32.rs"]
+mod call_winmem32;
+pub use request::{
+    WINMEM32_INSUFFICIENT_MEMORY, WINMEM32_INSUFFICIENT_SELECTORS, WINMEM32_INVALID_ARGUMENT,
+    WINMEM32_INVALID_FLAGS, WINMEM32_INVALID_FUNCTION, WINMEM32_MAX_16BIT_ALIAS_BYTES,
+    WINMEM32_MAX_OBJECT_BYTES, WINMEM32_VERSION_1_00, Win16Winmem32Request,
+};
 #[path = "exports/call_print_queue.rs"]
 mod call_print_queue;
 pub use request::Win16PrintQueueRequest;

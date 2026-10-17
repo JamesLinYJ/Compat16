@@ -1,0 +1,95 @@
+module = "WINMEM32"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 1
+name = "GetWinMem32Version"
+binding = { rust_id = "Winmem32GetVersion", id_value = 1325, constant = "WINMEM32_GET_VERSION" }
+[exports.call]
+returns = "word"
+
+[[exports]]
+ordinal = 2
+name = "Global32Alloc"
+binding = { rust_id = "Winmem32Global32Alloc", id_value = 1326, constant = "WINMEM32_GLOBAL32_ALLOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "size", type = "U32" },
+  { name = "selector", type = "FarPointer" },
+  { name = "maximum", type = "U32" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 3
+name = "Global32Realloc"
+binding = { rust_id = "Winmem32Global32Realloc", id_value = 1327, constant = "WINMEM32_GLOBAL32_REALLOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "size", type = "U32" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 4
+name = "Global32Free"
+binding = { rust_id = "Winmem32Global32Free", id_value = 1328, constant = "WINMEM32_GLOBAL32_FREE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 5
+name = "Global16PointerAlloc"
+binding = { rust_id = "Winmem32Global16PointerAlloc", id_value = 1329, constant = "WINMEM32_GLOBAL16_POINTER_ALLOC" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "offset", type = "U32" },
+  { name = "alias", type = "FarPointer" },
+  { name = "size", type = "U32" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 6
+name = "Global16PointerFree"
+binding = { rust_id = "Winmem32Global16PointerFree", id_value = 1330, constant = "WINMEM32_GLOBAL16_POINTER_FREE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "alias", type = "U32" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 7
+name = "Global32CodeAlias"
+binding = { rust_id = "Winmem32Global32CodeAlias", id_value = 1331, constant = "WINMEM32_GLOBAL32_CODE_ALIAS" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "alias", type = "FarPointer" },
+  { name = "flags", type = "U16" },
+]
+
+[[exports]]
+ordinal = 8
+name = "Global32CodeAliasFree"
+binding = { rust_id = "Winmem32Global32CodeAliasFree", id_value = 1332, constant = "WINMEM32_GLOBAL32_CODE_ALIAS_FREE" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "selector", type = "U16" },
+  { name = "alias", type = "U16" },
+  { name = "flags", type = "U16" },
+]

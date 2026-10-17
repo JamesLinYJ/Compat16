@@ -82,6 +82,14 @@ impl Win16State {
         host: &mut impl RuntimeHost,
     ) -> Result<(), RuntimeError> {
         let mut failures = None;
+        // Selectors and aliases are task-owned. Retire them before later USER
+        // cleanup can return, and again if this function is retried.
+        remember(
+            &mut failures,
+            "multiple Win16 task cleanup failures",
+            self.release_winmem32_on_task_exit()
+                .map_err(|error| error.with_context("WINMEM32 task-exit cleanup")),
+        );
         // SOUND opens devices in the shared WAVE host. Retire its sessions and
         // playback leases while guest memory and producer callbacks remain live.
         let sound_retired = match self.retire_sound(memory, host) {
