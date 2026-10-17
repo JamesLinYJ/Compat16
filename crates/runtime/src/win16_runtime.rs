@@ -368,6 +368,8 @@ mod user_services_paint;
 mod user_services_update_region;
 #[path = "win16_user_services_system.rs"]
 mod user_services_system;
+#[path = "win16_comm.rs"]
+mod comm;
 #[path = "win16_user_services_dialog.rs"]
 mod user_services_dialog;
 #[path = "win16_user_services_controls.rs"]
@@ -828,6 +830,7 @@ pub(crate) struct Win16State {
     reported_global_flags: BTreeSet<u16>,
     reported_global_realloc_flags: BTreeSet<u16>,
     compat: crate::win16_host_compat::Win16CompatState,
+    comm_ports: comm::Win16CommPorts,
 }
 
 struct QueuedDropFileGlobal {

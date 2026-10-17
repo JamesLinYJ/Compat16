@@ -97,6 +97,7 @@ groups = [
   "groups/typelib/declared.toml",
   "groups/user/atoms.toml",
   "groups/user/clipboard.toml",
+  "groups/user/comm.toml",
   "groups/user/controls.toml",
   "groups/user/declarations.toml",
   "groups/user/drawing.toml",

@@ -21,6 +21,7 @@ pub use exports::{Win16UserNetworkBuffer, Win16UserNetworkRequest};
 pub use exports::Win16UserHooksRequest;
 pub use exports::{Win16FontResourceInput, Win16GdiServicesRequest, Win16GdiSpoolRequest};
 pub use exports::{NF_NORMAL, NF_TASKSWITCH, NF_RIP};
+pub mod comm_abi;
 pub mod commdlg_abi;
 pub mod exports;
 pub mod gdi_abi;
@@ -105,7 +106,7 @@ pub use exports::{
     Win16UserDrawingRequest, Win16UserFamilyRequest, Win16UserGeometryRequest,
     Win16UserSessionRequest,
     Win16UserMenuRequest, Win16UserMessagesRequest, Win16UserRequest, Win16UserResourcesRequest,
-    Win16UserRuntimeRequest, Win16UserScrollBarRequest, Win16UserSystemRequest,
+    Win16UserRuntimeRequest, Win16UserScrollBarRequest, Win16UserSystemRequest, Win16UserCommRequest,
     Win16UserStringFormatRequest, Win16UserTextRequest, Win16UserUpdateRequest, Win16UserWindowRequest,
     Win16VariableRuntimeState, Win16VerRequest, Win16WaveControl, Win16WaveDirection,
     Win16WaveHeader16, Win16WaveInputCapabilities16, Win16WaveOutputCapabilities16,

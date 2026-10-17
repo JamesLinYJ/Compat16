@@ -310,86 +310,6 @@ name = "TileChildWindows"
 decl = { args = ["word", "word"] }
 
 [[exports]]
-ordinal = 200
-name = "OpenComm"
-decl = { args = ["string", "word", "word"] }
-
-[[exports]]
-ordinal = 201
-name = "SetCommState"
-decl = { args = ["pointer"] }
-
-[[exports]]
-ordinal = 202
-name = "GetCommState"
-decl = { args = ["word", "pointer"] }
-
-[[exports]]
-ordinal = 203
-name = "GetCommError"
-decl = { args = ["word", "pointer"] }
-
-[[exports]]
-ordinal = 204
-name = "ReadComm"
-decl = { args = ["word", "pointer", "word"] }
-
-[[exports]]
-ordinal = 205
-name = "WriteComm"
-decl = { args = ["word", "pointer", "word"] }
-
-[[exports]]
-ordinal = 206
-name = "TransmitCommChar"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 207
-name = "CloseComm"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 208
-name = "SetCommEventMask"
-decl = { attributes = [], args = ["word", "word"] }
-
-[[exports]]
-ordinal = 209
-name = "GetCommEventMask"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 210
-name = "SetCommBreak"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 211
-name = "ClearCommBreak"
-decl = { args = ["word"] }
-
-[[exports]]
-ordinal = 212
-name = "UngetCommChar"
-decl = { args = ["word", "word"] }
-
-[[exports]]
-ordinal = 213
-name = "BuildCommDCB"
-decl = { args = ["pointer", "pointer"] }
-
-[[exports]]
-ordinal = 214
-name = "EscapeCommFunction"
-decl = { attributes = [], args = ["word", "word"] }
-
-[[exports]]
-ordinal = 215
-name = "FlushComm"
-decl = { args = ["word", "word"] }
-
-[[exports]]
 ordinal = 216
 name = "UserSeeUserDo"
 decl = { attributes = [], args = ["word", "word", "word", "word"] }
@@ -433,11 +353,6 @@ decl = { attributes = [] }
 binding = { rust_id = "UserGetDialogBaseUnits", id_value = 580, constant = "USER_GET_DIALOG_BASE_UNITS" }
 [exports.call]
 returns = "dword"
-
-[[exports]]
-ordinal = 245
-name = "EnableCommNotification"
-decl = { args = ["signed_word", "word", "signed_word", "signed_word"] }
 
 [[exports]]
 ordinal = 248

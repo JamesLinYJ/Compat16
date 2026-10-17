@@ -39,6 +39,17 @@ pub enum Win16ProfilePath {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Win16HostFile(pub u64);
 
+/// Opaque host communications port. Guest `OpenComm` ids are separate words.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct Win16HostCommPort(pub u64);
+
+/// A parsed `COMn` or `LPTn` identity. The guest string is not a host path.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostCommDevice {
+    Com(u8),
+    Lpt(u8),
+}
+
 /// An initialized stream identity in the host's common file table.
 /// The host owns native LZ token classification, including token zero.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1840,6 +1851,51 @@ pub trait RuntimeHost:
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
             "host Win16 system profile-section write is unavailable",
+        ))
+    }
+
+    /// Open one named communications device. The token is host-owned.
+    fn win16_comm_open(
+        &mut self,
+        _device: Win16HostCommDevice,
+        _in_queue: u16,
+        _out_queue: u16,
+    ) -> Result<Win16HostCommPort, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications port is unavailable",
+        ))
+    }
+
+    /// Read bytes already available from one open port into `output`.
+    fn win16_comm_read(
+        &mut self,
+        _port: Win16HostCommPort,
+        _output: &mut [u8],
+    ) -> Result<usize, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications read is unavailable",
+        ))
+    }
+
+    /// Write bytes to one open port. The returned count is at most `input.len()`.
+    fn win16_comm_write(
+        &mut self,
+        _port: Win16HostCommPort,
+        _input: &[u8],
+    ) -> Result<usize, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications write is unavailable",
+        ))
+    }
+
+    /// Close one open port token. A second close of the same token fails.
+    fn win16_comm_close(&mut self, _port: Win16HostCommPort) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications close is unavailable",
         ))
     }
 }

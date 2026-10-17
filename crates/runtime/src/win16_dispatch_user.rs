@@ -698,6 +698,9 @@ impl Win16State {
                     descriptor.return_kind,
                 );
             }
+            Win16ApiRequest::User(win16_abi::Win16UserRequest::Comm(request)) => {
+                self.dispatch_comm(request, memory, host)?
+            }
             Win16ApiRequest::UserCursorAccelerator(request) => {
                 return self.begin_user_cursor_accelerator(
                     request,

@@ -444,6 +444,25 @@ pub(super) fn decode(
                 },
             }),
         ),
+        Win16ExportId::UserOpenComm
+        | Win16ExportId::UserSetCommState
+        | Win16ExportId::UserGetCommState
+        | Win16ExportId::UserGetCommError
+        | Win16ExportId::UserReadComm
+        | Win16ExportId::UserWriteComm
+        | Win16ExportId::UserTransmitCommChar
+        | Win16ExportId::UserCloseComm
+        | Win16ExportId::UserSetCommEventMask
+        | Win16ExportId::UserGetCommEventMask
+        | Win16ExportId::UserSetCommBreak
+        | Win16ExportId::UserClearCommBreak
+        | Win16ExportId::UserUngetCommChar
+        | Win16ExportId::UserBuildCommDcb
+        | Win16ExportId::UserEscapeCommFunction
+        | Win16ExportId::UserFlushComm
+        | Win16ExportId::UserEnableCommNotification => {
+            call_user_comm::decode(descriptor.id, &arguments, selectors, memory)?
+        }
         Win16ExportId::UserSetDoubleClickTime
         | Win16ExportId::UserGetDoubleClickTime
         | Win16ExportId::UserSetCaretBlinkTime
