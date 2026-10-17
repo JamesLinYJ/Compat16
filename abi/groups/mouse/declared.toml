@@ -36,24 +36,14 @@ name = "MOUSEGETINTVECT"
 kind = "stub"
 decl = { attributes = [] }
 
-binding = { rust_id = "DriverMouse4Mousegetintvect", id_value = 5000084, constant = "DRIVER_MOUSE_4" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 5
 name = "GETSETMOUSEDATA"
 kind = "stub"
 decl = { attributes = [] }
 
-binding = { rust_id = "DriverMouse5Getsetmousedata", id_value = 5000085, constant = "DRIVER_MOUSE_5" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 7
 name = "POWEREVENTPROC"
 kind = "stub"
 decl = { attributes = [] }
-
-binding = { rust_id = "DriverMouse7Powereventproc", id_value = 5000086, constant = "DRIVER_MOUSE_7" }
-[exports.call]
-returns = "dword"

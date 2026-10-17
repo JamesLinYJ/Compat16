@@ -925,6 +925,27 @@ beyond that prefix are left unchanged. A null or empty port on
 stopping at NUL). `GetEnvironment` does not read its output buffer to invent
 that key, so a null port on get returns 0.
 
+## Unimplemented OLE and driver call contracts
+
+An unknown historical stub signature is not a zero-argument Pascal call.
+Driver stubs without verified parameter frames stay declaration-only, including
+register-based display and COMM driver entries. Existing binding IDs are not
+renumbered when an unsafe provisional binding is removed.
+
+The Win16 Video for Windows `AVIFILE.H` declarations give
+`AVIMakeCompressedStream` four far pointers (16 argument bytes),
+`AVIMakeFileFromStreams` a far pointer, signed 16-bit count, and far pointer
+(10 bytes), and `AVIMakeStreamFromClipboard` two 16-bit values followed by a far
+pointer (8 bytes). These HRESULT constructors return `AVIERR_UNSUPPORTED`
+(`MAKE_AVIERR(101)`, `0x80044065`) without publishing an output object.
+`DllGetClassObject` has three far pointers and 12 bytes of Pascal cleanup.
+
+OLE 2.01 Win16 `DISPATCH.H` declares both Variant/DOS date conversion results
+as `int`, a 16-bit value. Unimplemented conversions therefore return zero,
+not an HRESULT that a caller would interpret as true. Allocation and other
+pointer results likewise return null; only HRESULT contracts use `E_NOTIMPL`.
+These failure paths establish neither AVI compression nor OLE functionality.
+
 ## GDI CreateScalableFontResource
 
 Windows 3.1 GDI ordinal 310 is the public `CreateScalableFontResource`. It is a far-Pascal `BOOL` with a hidden flag and three `LPCSTR` paths. It creates a TrueType font resource file and does not install the font; the caller still uses `AddFontResource`. The `Engine*` driver ordinals stay unbound.

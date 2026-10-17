@@ -128,8 +128,8 @@ fn msvideo_value(ordinal: u16) -> u32 {
 fn avifile_value(ordinal: u16) -> u32 {
     match ordinal {
         2 => CLASS_E_CLASSNOTAVAILABLE,
-        102 | 103 | 104 | 123 | 142 | 143 | 144 | 146 | 147 | 148 | 162 | 164 | 165 | 166 | 167
-        | 168 | 169 => AVIERR_UNSUPPORTED,
+        102 | 103 | 104 | 105 | 106 | 107 | 123 | 142 | 143 | 144 | 146 | 147 | 148 | 162 | 164
+        | 165 | 166 | 167 | 168 | 169 => AVIERR_UNSUPPORTED,
         // Unknown stream positions are not sample 0.
         130 | 131 | 132 | 133 | 163 => ICERR_UNSUPPORTED,
         _ => 0,
@@ -203,4 +203,19 @@ fn gap_key(module: &str, ordinal: u16) -> u32 {
         _ => 0,
     };
     (index << 16) | u32::from(ordinal)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn driver_contract_avi_constructors_fail_without_publishing_an_object() {
+        for ordinal in [102, 103, 104, 105, 106, 107] {
+            let result = answer("AVIFILE", ordinal).unwrap();
+            assert_eq!(result.value, 0x8004_4065);
+            assert_ne!(result.value & 0x8000_0000, 0, "HRESULT must fail");
+            assert!(result.detail.is_some());
+        }
+    }
 }

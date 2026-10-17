@@ -427,9 +427,6 @@ ordinal = 111
 name = "DRAWDIBCHANGEPALETTE"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo111Drawdibchangepalette", id_value = 5000218, constant = "DRIVER_MSVIDEO_111" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 112
 name = "DrawDibRealize"
@@ -448,9 +445,6 @@ ordinal = 113
 name = "DRAWDIBTIME"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo113Drawdibtime", id_value = 5000220, constant = "DRIVER_MSVIDEO_113" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 114
 name = "DrawDibProfileDisplay"
@@ -467,9 +461,6 @@ ordinal = 115
 name = "STRETCHDIB"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo115Stretchdib", id_value = 5000222, constant = "DRIVER_MSVIDEO_115" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 118
 name = "DrawDibStart"
@@ -498,9 +489,6 @@ ordinal = 120
 name = "DRAWDIBGETBUFFER"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo120Drawdibgetbuffer", id_value = 5000225, constant = "DRIVER_MSVIDEO_120" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 200
 name = "ICInfo"
@@ -737,57 +725,36 @@ ordinal = 240
 name = "ICIMAGECOMPRESS"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo240Icimagecompress", id_value = 5000241, constant = "DRIVER_MSVIDEO_240" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 241
 name = "ICIMAGEDECOMPRESS"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo241Icimagedecompress", id_value = 5000242, constant = "DRIVER_MSVIDEO_241" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 242
 name = "ICCOMPRESSORCHOOSE"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo242Iccompressorchoose", id_value = 5000243, constant = "DRIVER_MSVIDEO_242" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 243
 name = "ICCOMPRESSORFREE"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo243Iccompressorfree", id_value = 5000244, constant = "DRIVER_MSVIDEO_243" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 244
 name = "ICSEQCOMPRESSFRAMESTART"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo244Icseqcompressframestart", id_value = 5000245, constant = "DRIVER_MSVIDEO_244" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 245
 name = "ICSEQCOMPRESSFRAMEEND"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo245Icseqcompressframeend", id_value = 5000246, constant = "DRIVER_MSVIDEO_245" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 246
 name = "ICSEQCOMPRESSFRAME"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo246Icseqcompressframe", id_value = 5000247, constant = "DRIVER_MSVIDEO_246" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 250
 name = "_MCIWndCreate"
@@ -815,14 +782,7 @@ ordinal = 252
 name = "GETOPENFILENAMEPREVIEW"
 kind = "stub"
 
-binding = { rust_id = "DriverMsvideo252Getopenfilenamepreview", id_value = 5000250, constant = "DRIVER_MSVIDEO_252" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 253
 name = "GETSAVEFILENAMEPREVIEW"
 kind = "stub"
-
-binding = { rust_id = "DriverMsvideo253Getsavefilenamepreview", id_value = 5000251, constant = "DRIVER_MSVIDEO_253" }
-[exports.call]
-returns = "dword"

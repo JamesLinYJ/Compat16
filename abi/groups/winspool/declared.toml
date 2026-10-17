@@ -5,97 +5,61 @@ ordinal = 1
 name = "DEVBITBLT"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool1Devbitblt", id_value = 5000100, constant = "DRIVER_WINSPOOL_1" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 2
 name = "COLORINFO"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool2Colorinfo", id_value = 5000101, constant = "DRIVER_WINSPOOL_2" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 3
 name = "CONTROL"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool3Control", id_value = 5000102, constant = "DRIVER_WINSPOOL_3" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 4
 name = "DISABLE"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool4Disable", id_value = 5000103, constant = "DRIVER_WINSPOOL_4" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 5
 name = "ENABLE"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool5Enable", id_value = 5000104, constant = "DRIVER_WINSPOOL_5" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 6
 name = "ENUMDFONTS"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool6Enumdfonts", id_value = 5000105, constant = "DRIVER_WINSPOOL_6" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 7
 name = "ENUMOBJ"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool7Enumobj", id_value = 5000106, constant = "DRIVER_WINSPOOL_7" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 8
 name = "OUTPUT"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool8Output", id_value = 5000107, constant = "DRIVER_WINSPOOL_8" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 9
 name = "PIXEL"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool9Pixel", id_value = 5000108, constant = "DRIVER_WINSPOOL_9" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 10
 name = "REALIZEOBJECT"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool10Realizeobject", id_value = 5000109, constant = "DRIVER_WINSPOOL_10" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 11
 name = "STRBLT"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool11Strblt", id_value = 5000110, constant = "DRIVER_WINSPOOL_11" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 12
 name = "SCANLR"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool12Scanlr", id_value = 5000111, constant = "DRIVER_WINSPOOL_12" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 13
 name = "DeviceMode"
@@ -115,49 +79,31 @@ ordinal = 14
 name = "DEVEXTTEXTOUT"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool14Devexttextout", id_value = 5000113, constant = "DRIVER_WINSPOOL_14" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 15
 name = "DEVGETCHARWIDTH"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool15Devgetcharwidth", id_value = 5000114, constant = "DRIVER_WINSPOOL_15" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 19
 name = "DEVICEBITMAPBITS"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool19Devicebitmapbits", id_value = 5000115, constant = "DRIVER_WINSPOOL_19" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 20
 name = "CREATEDIBITMAP"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool20Createdibitmap", id_value = 5000116, constant = "DRIVER_WINSPOOL_20" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 21
 name = "SETDIBITSTODEVICE"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool21Setdibitstodevice", id_value = 5000117, constant = "DRIVER_WINSPOOL_21" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 28
 name = "STRETCHDIB"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool28Stretchdib", id_value = 5000118, constant = "DRIVER_WINSPOOL_28" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 90
 name = "ExtDeviceMode"
@@ -181,22 +127,12 @@ ordinal = 92
 name = "QUERYDEVICENAMES"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool92Querydevicenames", id_value = 5000120, constant = "DRIVER_WINSPOOL_92" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 94
 name = "DEVINSTALL"
 kind = "stub"
 
-binding = { rust_id = "DriverWinspool94Devinstall", id_value = 5000121, constant = "DRIVER_WINSPOOL_94" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 1000
 name = "ADVANCEDSETUPDIALOG"
 kind = "stub"
-
-binding = { rust_id = "DriverWinspool1000Advancedsetupdialog", id_value = 5000122, constant = "DRIVER_WINSPOOL_1000" }
-[exports.call]
-returns = "dword"

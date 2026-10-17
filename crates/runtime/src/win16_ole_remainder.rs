@@ -56,23 +56,26 @@ impl Win16State {
         if matches!((module, ordinal), (Win16OleRemainderModule::Compobj, 34)) {
             return Ok(u32::from(self.current_task_handle()?));
         }
-        Ok(match return_kind {
-            Win16ReturnKind::Word | Win16ReturnKind::Void => 0,
-            Win16ReturnKind::Dword
-            | Win16ReturnKind::FarPointer
-            | Win16ReturnKind::RegisterContext => {
-                if returns_scalar_zero(name) {
-                    0
-                } else if matches!(
-                    module,
-                    Win16OleRemainderModule::OleCli | Win16OleRemainderModule::OleSvr
-                ) {
-                    OLE_ERROR_GENERIC
-                } else {
-                    E_NOTIMPL
-                }
+        Ok(failure_value(module, return_kind, name))
+    }
+}
+
+fn failure_value(module: Win16OleRemainderModule, return_kind: Win16ReturnKind, name: &str) -> u32 {
+    match return_kind {
+        Win16ReturnKind::Word | Win16ReturnKind::Void => 0,
+        Win16ReturnKind::FarPointer => 0,
+        Win16ReturnKind::Dword | Win16ReturnKind::RegisterContext => {
+            if returns_scalar_zero(name) {
+                0
+            } else if matches!(
+                module,
+                Win16OleRemainderModule::OleCli | Win16OleRemainderModule::OleSvr
+            ) {
+                OLE_ERROR_GENERIC
+            } else {
+                E_NOTIMPL
             }
-        })
+        }
     }
 }
 
@@ -143,8 +146,8 @@ fn failure_name(
 ) -> &'static str {
     match return_kind {
         Win16ReturnKind::Void => "is void",
-        Win16ReturnKind::Word => "returns zero",
-        Win16ReturnKind::Dword | Win16ReturnKind::FarPointer | Win16ReturnKind::RegisterContext => {
+        Win16ReturnKind::Word | Win16ReturnKind::FarPointer => "returns zero",
+        Win16ReturnKind::Dword | Win16ReturnKind::RegisterContext => {
             if returns_scalar_zero(name) {
                 "returns zero"
             } else {
@@ -156,5 +159,34 @@ fn failure_name(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ole_remainder_contract_distinguishes_pointer_bool_and_hresult_failure() {
+        let module = Win16OleRemainderModule::Compobj;
+        for name in ["IMalloc16_Alloc", "IMalloc16_Realloc"] {
+            assert_eq!(failure_value(module, Win16ReturnKind::Dword, name), 0);
+        }
+        assert_eq!(
+            failure_value(module, Win16ReturnKind::FarPointer, "pointer"),
+            0
+        );
+        assert_eq!(
+            failure_value(module, Win16ReturnKind::Dword, "CoGetMalloc"),
+            0x8000_4001
+        );
+        assert_eq!(
+            failure_value(
+                Win16OleRemainderModule::Ole2Disp,
+                Win16ReturnKind::Word,
+                "VariantTimeToDosDateTime"
+            ),
+            0
+        );
     }
 }

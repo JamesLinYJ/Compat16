@@ -8,6 +8,11 @@ kind = "stub"
 binding = { rust_id = "DriverAvifile2Dllgetclassobject", id_value = 5000253, constant = "DRIVER_AVIFILE_2" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "clsid", type = "FarPointer" },
+  { name = "iid", type = "FarPointer" },
+  { name = "object", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 3
 name = "DLLCANUNLOADNOW"
@@ -21,9 +26,6 @@ ordinal = 4
 name = "___EXPORTEDSTUB"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile4Exportedstub", id_value = 5000255, constant = "DRIVER_AVIFILE_4" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 10
 name = "_IID_IAVIStream"
@@ -120,6 +122,12 @@ kind = "stub"
 binding = { rust_id = "DriverAvifile105Avimakecompressedstream", id_value = 5000261, constant = "DRIVER_AVIFILE_105" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "compressed", type = "FarPointer" },
+  { name = "source", type = "FarPointer" },
+  { name = "options", type = "FarPointer" },
+  { name = "handler", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 106
 name = "AVIMAKEFILEFROMSTREAMS"
@@ -128,6 +136,11 @@ kind = "stub"
 binding = { rust_id = "DriverAvifile106Avimakefilefromstreams", id_value = 5000262, constant = "DRIVER_AVIFILE_106" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "file", type = "FarPointer" },
+  { name = "stream_count", type = "I16" },
+  { name = "streams", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 107
 name = "AVIMAKESTREAMFROMCLIPBOARD"
@@ -136,6 +149,11 @@ kind = "stub"
 binding = { rust_id = "DriverAvifile107Avimakestreamfromclipboard", id_value = 5000263, constant = "DRIVER_AVIFILE_107" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "format", type = "U16" },
+  { name = "global", type = "U16" },
+  { name = "stream", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 110
 name = "AVIStreamGetFrame"
@@ -176,25 +194,16 @@ ordinal = 120
 name = "_AVISAVE"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile120Avisave", id_value = 5000267, constant = "DRIVER_AVIFILE_120" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 121
 name = "AVISAVEV"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile121Avisavev", id_value = 5000268, constant = "DRIVER_AVIFILE_121" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 122
 name = "AVISAVEOPTIONS"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile122Avisaveoptions", id_value = 5000269, constant = "DRIVER_AVIFILE_122" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 123
 name = "AVIBuildFilter"
@@ -511,94 +520,57 @@ ordinal = 180
 name = "EDITSTREAMCOPY"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile180Editstreamcopy", id_value = 5000294, constant = "DRIVER_AVIFILE_180" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 181
 name = "EDITSTREAMCUT"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile181Editstreamcut", id_value = 5000295, constant = "DRIVER_AVIFILE_181" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 182
 name = "EDITSTREAMPASTE"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile182Editstreampaste", id_value = 5000296, constant = "DRIVER_AVIFILE_182" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 184
 name = "CREATEEDITABLESTREAM"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile184Createeditablestream", id_value = 5000297, constant = "DRIVER_AVIFILE_184" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 185
 name = "AVIPUTFILEONCLIPBOARD"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile185Aviputfileonclipboard", id_value = 5000298, constant = "DRIVER_AVIFILE_185" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 187
 name = "AVIGETFROMCLIPBOARD"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile187Avigetfromclipboard", id_value = 5000299, constant = "DRIVER_AVIFILE_187" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 188
 name = "AVICLEARCLIPBOARD"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile188Aviclearclipboard", id_value = 5000300, constant = "DRIVER_AVIFILE_188" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 190
 name = "EDITSTREAMCLONE"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile190Editstreamclone", id_value = 5000301, constant = "DRIVER_AVIFILE_190" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 191
 name = "EDITSTREAMSETNAME"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile191Editstreamsetname", id_value = 5000302, constant = "DRIVER_AVIFILE_191" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 192
 name = "EDITSTREAMSETINFO"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile192Editstreamsetinfo", id_value = 5000303, constant = "DRIVER_AVIFILE_192" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 200
 name = "AVISTREAMBEGINSTREAMING"
 kind = "stub"
 
-binding = { rust_id = "DriverAvifile200Avistreambeginstreaming", id_value = 5000304, constant = "DRIVER_AVIFILE_200" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 201
 name = "AVISTREAMENDSTREAMING"
 kind = "stub"
-
-binding = { rust_id = "DriverAvifile201Avistreamendstreaming", id_value = 5000305, constant = "DRIVER_AVIFILE_201" }
-[exports.call]
-returns = "dword"

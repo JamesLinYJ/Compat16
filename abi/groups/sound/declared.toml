@@ -5,14 +5,7 @@ ordinal = 17
 name = "DoBeep"
 kind = "stub"
 
-binding = { rust_id = "DriverSound17Dobeep", id_value = 5000087, constant = "DRIVER_SOUND_17" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 18
 name = "MYOPENSOUND"
 kind = "stub"
-
-binding = { rust_id = "DriverSound18Myopensound", id_value = 5000088, constant = "DRIVER_SOUND_18" }
-[exports.call]
-returns = "dword"

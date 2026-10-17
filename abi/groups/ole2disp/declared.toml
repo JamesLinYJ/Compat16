@@ -19,7 +19,7 @@ name = "VARIANTTIMETODOSDATETIME"
 kind = "stub"
 binding = { rust_id = "Ole2DispVARIANTTIMETODOSDATETIME", id_value = 4000136, constant = "OLE2DISP_VARIANTTIMETODOSDATETIME" }
 [exports.call]
-returns = "dword"
+returns = "word"
 params = [
   { name = "variant_time_high", type = "U32" },
   { name = "variant_time_low", type = "U32" },
@@ -33,7 +33,7 @@ name = "DOSDATETIMETOVARIANTTIME"
 kind = "stub"
 binding = { rust_id = "Ole2DispDOSDATETIMETOVARIANTTIME", id_value = 4000137, constant = "OLE2DISP_DOSDATETIMETOVARIANTTIME" }
 [exports.call]
-returns = "dword"
+returns = "word"
 params = [
   { name = "dos_date", type = "U16" },
   { name = "dos_time", type = "U16" },

@@ -93,9 +93,6 @@ name = "INQUIRELONGINTS"
 kind = "stub"
 decl = { attributes = [] }
 
-binding = { rust_id = "DriverSystem13Inquirelongints", id_value = 5000097, constant = "DRIVER_SYSTEM_13" }
-[exports.call]
-returns = "dword"
 [[exports]]
 ordinal = 20
 name = "A20_Proc"

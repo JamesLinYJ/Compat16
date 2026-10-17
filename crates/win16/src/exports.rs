@@ -30,6 +30,8 @@ pub use request::Win16KernelInstanceRequest;
 pub use request::{NF_NORMAL, NF_TASKSWITCH, NF_RIP};
 
 mod call;
+#[cfg(test)]
+mod call_ole_remainder_tests;
 #[path = "exports/call_commctrl.rs"]
 mod call_commctrl;
 #[path = "exports/call_commdlg.rs"]
