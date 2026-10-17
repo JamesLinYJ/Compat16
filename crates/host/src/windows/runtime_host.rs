@@ -1219,6 +1219,27 @@ impl RuntimeHost for WindowsHost {
     fn win16_comm_close(&mut self, port: runtime::Win16HostCommPort) -> Result<(), RuntimeError> {
         self.win16_comm.close(port)
     }
+    fn win16_comm_configure(
+        &mut self,
+        port: runtime::Win16HostCommPort,
+        config: &runtime::Win16HostCommConfig,
+    ) -> Result<(), RuntimeError> {
+        self.win16_comm.configure(port, config)
+    }
+    fn win16_comm_control(
+        &mut self,
+        port: runtime::Win16HostCommPort,
+        control: runtime::Win16HostCommControl,
+    ) -> Result<(), RuntimeError> {
+        self.win16_comm.control(port, control)
+    }
+    fn win16_comm_flush(
+        &mut self,
+        port: runtime::Win16HostCommPort,
+        queue: runtime::Win16HostCommQueue,
+    ) -> Result<(), RuntimeError> {
+        self.win16_comm.flush(port, queue)
+    }
 
     fn epoch_seconds(&self) -> i64 {
         SystemTime::now()

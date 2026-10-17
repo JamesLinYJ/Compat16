@@ -1,9 +1,11 @@
 //! USER communications ports.
 //!
 //! Guest ids are words. The host token stays in this table and is never
-//! written into guest memory. Line state, break, event bits, and notification
-//! thresholds live here. The host only opens, reads, writes, and closes the
-//! named device; this code does not program a UART or post `WM_COMMNOTIFY`.
+//! written into guest memory. `SetCommState`, break, modem escapes, and
+//! `FlushComm` are sent to that token. A device that cannot accept the
+//! operation returns `IE_HARDWARE` or `IE_DEFAULT`, and the guest-visible
+//! record is left unchanged. This code does not post `WM_COMMNOTIFY` or
+//! read UART registers.
 
 use std::collections::BTreeMap;
 
@@ -11,13 +13,15 @@ use guest_core::memory::Memory;
 use win16_abi::Win16UserCommRequest;
 use win16_abi::comm_abi::{
     self, CE_IOE, CE_MODE, CLRDTR, CLRRTS, CommDeviceName, DCB16_LEN, EV_RXCHAR, EV_TXEMPTY,
-    GETMAXCOM, GETMAXLPT, IE_BADID, IE_DEFAULT, IE_HARDWARE, IE_MEMORY, IE_NOPEN, IE_OPEN,
+    GETMAXCOM, GETMAXLPT, IE_BADID, IE_BAUDRATE, IE_DEFAULT, IE_HARDWARE, IE_MEMORY, IE_NOPEN,
+    IE_OPEN,
     MAX_COM_ID, MAX_LPT_ID, RESETDEV, SETDTR, SETRTS, SETXOFF, SETXON,
 };
 use win16_abi::global::GMEM_ZEROINIT;
 
 use crate::{
-    DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostCommDevice, Win16HostCommPort,
+    DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostCommConfig, Win16HostCommControl,
+    Win16HostCommDevice, Win16HostCommLine, Win16HostCommPort, Win16HostCommQueue,
 };
 
 use super::Win16State;
@@ -57,7 +61,7 @@ impl Win16State {
                 in_queue,
                 out_queue,
             } => self.open_comm(&device, in_queue, out_queue, host)?,
-            Win16UserCommRequest::SetState { dcb } => self.set_comm_state(&dcb)?,
+            Win16UserCommRequest::SetState { dcb } => self.set_comm_state(&dcb, host)?,
             Win16UserCommRequest::GetState { id, dcb } => self.get_comm_state(id, dcb, memory)?,
             Win16UserCommRequest::GetError { id, status } => {
                 self.get_comm_error(id, status, memory)?
@@ -78,14 +82,16 @@ impl Win16State {
             Win16UserCommRequest::GetEventMask { id, clear } => {
                 self.get_comm_event_mask(id, clear, memory)?
             }
-            Win16UserCommRequest::SetBreak { id } => self.set_comm_break(id, true),
-            Win16UserCommRequest::ClearBreak { id } => self.set_comm_break(id, false),
+            Win16UserCommRequest::SetBreak { id } => self.set_comm_break(id, true, host)?,
+            Win16UserCommRequest::ClearBreak { id } => self.set_comm_break(id, false, host)?,
             Win16UserCommRequest::Unget { id, byte } => self.unget_comm(id, byte),
             Win16UserCommRequest::BuildDcb { definition, dcb } => {
                 self.build_comm_dcb(&definition, dcb, memory)?
             }
-            Win16UserCommRequest::Escape { id, function } => self.escape_comm(id, function),
-            Win16UserCommRequest::Flush { id, queue } => self.flush_comm(id, queue),
+            Win16UserCommRequest::Escape { id, function } => {
+                self.escape_comm(id, function, host)?
+            }
+            Win16UserCommRequest::Flush { id, queue } => self.flush_comm(id, queue, host)?,
             Win16UserCommRequest::EnableNotification {
                 id,
                 window,
@@ -141,7 +147,11 @@ impl Win16State {
         Ok(u32::from(id))
     }
 
-    fn set_comm_state(&mut self, bytes: &[u8]) -> Result<u32, RuntimeError> {
+    fn set_comm_state(
+        &mut self,
+        bytes: &[u8],
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
         let Ok(dcb) = <[u8; DCB16_LEN]>::try_from(bytes) else {
             return Err(RuntimeError::new(
                 Kind::InternalInvariant,
@@ -149,11 +159,18 @@ impl Win16State {
             ));
         };
         let id = u16::from(comm_abi::dcb_id(&dcb));
-        if !self.comm_ports.ports.contains_key(&id) {
+        let Some(token) = self.comm_ports.ports.get(&id).map(|port| port.host) else {
             return Ok(word(IE_BADID));
-        }
+        };
         if let Err(error) = comm_abi::validate_dcb(&dcb) {
             return Ok(word(error));
+        }
+        let config = match host_config(&dcb) {
+            Ok(config) => config,
+            Err(error) => return Ok(word(error)),
+        };
+        if let Err(error) = host.win16_comm_configure(token, &config) {
+            return map_device_error(error, false);
         }
         self.comm_ports
             .ports
@@ -415,12 +432,29 @@ impl Win16State {
         Ok(u32::from(current))
     }
 
-    fn set_comm_break(&mut self, id: u16, enabled: bool) -> u32 {
-        let Some(port) = self.comm_ports.ports.get_mut(&id) else {
-            return word(IE_NOPEN);
+    fn set_comm_break(
+        &mut self,
+        id: u16,
+        enabled: bool,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        let Some(token) = self.comm_ports.ports.get(&id).map(|port| port.host) else {
+            return Ok(word(IE_NOPEN));
         };
-        port.break_set = enabled;
-        0
+        let control = if enabled {
+            Win16HostCommControl::SetBreak
+        } else {
+            Win16HostCommControl::ClearBreak
+        };
+        if let Err(error) = host.win16_comm_control(token, control) {
+            return map_device_error(error, false);
+        }
+        self.comm_ports
+            .ports
+            .get_mut(&id)
+            .expect("port checked")
+            .break_set = enabled;
+        Ok(0)
     }
 
     fn unget_comm(&mut self, id: u16, byte: u8) -> u32 {
@@ -452,45 +486,71 @@ impl Win16State {
         }
     }
 
-    fn escape_comm(&mut self, id: u16, function: i16) -> u32 {
+    fn escape_comm(
+        &mut self,
+        id: u16,
+        function: i16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
         if function == GETMAXCOM {
-            return u32::from(MAX_COM_ID);
+            return Ok(u32::from(MAX_COM_ID));
         }
         if function == GETMAXLPT {
-            return u32::from(MAX_LPT_ID);
+            return Ok(u32::from(MAX_LPT_ID));
         }
-        let Some(port) = self.comm_ports.ports.get_mut(&id) else {
-            return long(IE_BADID);
+        let Some(control) = host_control(function) else {
+            return Ok(long(IE_HARDWARE));
         };
-        match function {
-            SETXOFF => port.xoff = true,
-            SETXON => port.xoff = false,
-            SETRTS => port.rts = true,
-            CLRRTS => port.rts = false,
-            SETDTR => port.dtr = true,
-            CLRDTR => port.dtr = false,
-            RESETDEV => {
+        let Some(token) = self.comm_ports.ports.get(&id).map(|port| port.host) else {
+            return Ok(long(IE_BADID));
+        };
+        if let Err(error) = host.win16_comm_control(token, control) {
+            return map_device_error(error, true);
+        }
+        let port = self.comm_ports.ports.get_mut(&id).expect("port checked");
+        match control {
+            Win16HostCommControl::SetXoff => port.xoff = true,
+            Win16HostCommControl::SetXon => port.xoff = false,
+            Win16HostCommControl::SetRts => port.rts = true,
+            Win16HostCommControl::ClearRts => port.rts = false,
+            Win16HostCommControl::SetDtr => port.dtr = true,
+            Win16HostCommControl::ClearDtr => port.dtr = false,
+            Win16HostCommControl::Reset => {
                 port.break_set = false;
                 port.xoff = false;
                 port.error = 0;
                 port.rts = true;
                 port.dtr = true;
             }
-            _ => return long(IE_HARDWARE),
+            Win16HostCommControl::SetBreak => port.break_set = true,
+            Win16HostCommControl::ClearBreak => port.break_set = false,
         }
-        0
+        Ok(0)
     }
 
-    fn flush_comm(&mut self, id: u16, queue: i16) -> u32 {
-        let Some(port) = self.comm_ports.ports.get_mut(&id) else {
-            return word(IE_BADID);
+    fn flush_comm(
+        &mut self,
+        id: u16,
+        queue: i16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        let Some(token) = self.comm_ports.ports.get(&id).map(|port| port.host) else {
+            return Ok(word(IE_BADID));
         };
-        match queue {
-            0 => {}
-            1 => port.unget = None,
-            _ => return word(IE_DEFAULT),
+        let queue = match queue {
+            0 => Win16HostCommQueue::Transmit,
+            1 => Win16HostCommQueue::Receive,
+            _ => return Ok(word(IE_DEFAULT)),
+        };
+        if let Err(error) = host.win16_comm_flush(token, queue) {
+            return map_device_error(error, false);
         }
-        0
+        if queue == Win16HostCommQueue::Receive
+            && let Some(port) = self.comm_ports.ports.get_mut(&id)
+        {
+            port.unget = None;
+        }
+        Ok(0)
     }
 
     fn enable_comm_notification(
@@ -574,6 +634,86 @@ fn map_open_error(error: RuntimeError) -> Result<u32, RuntimeError> {
         Kind::ResourceExhausted => Ok(word(IE_MEMORY)),
         _ => Err(error),
     }
+}
+
+fn map_device_error(error: RuntimeError, wide: bool) -> Result<u32, RuntimeError> {
+    match error.kind() {
+        Kind::CompatibilityGap | Kind::HostFailure | Kind::InvalidInput => Ok(if wide {
+            long(IE_HARDWARE)
+        } else {
+            word(IE_HARDWARE)
+        }),
+        _ => Err(error),
+    }
+}
+
+fn host_control(function: i16) -> Option<Win16HostCommControl> {
+    Some(match function {
+        SETXOFF => Win16HostCommControl::SetXoff,
+        SETXON => Win16HostCommControl::SetXon,
+        SETRTS => Win16HostCommControl::SetRts,
+        CLRRTS => Win16HostCommControl::ClearRts,
+        SETDTR => Win16HostCommControl::SetDtr,
+        CLRDTR => Win16HostCommControl::ClearDtr,
+        RESETDEV => Win16HostCommControl::Reset,
+        _ => return None,
+    })
+}
+
+/// Win16 flag bits that have no Win32 `DCB` field this host applies.
+/// `fChEvt` needs `SetCommMask(EV_RXFLAG)`, which this runtime does not deliver.
+const UNAPPLIED_DCB_FLAGS: u16 = (1 << 5) | (1 << 6) | (1 << 12) | (1 << 15);
+
+fn host_config(dcb: &[u8; DCB16_LEN]) -> Result<Win16HostCommConfig, i16> {
+    let baud_rate = comm_abi::numeric_baud(comm_abi::dcb_baud(dcb)).ok_or(IE_BAUDRATE)?;
+    let rls = u16::from_le_bytes([dcb[6], dcb[7]]);
+    let cts = u16::from_le_bytes([dcb[8], dcb[9]]);
+    let dsr = u16::from_le_bytes([dcb[10], dcb[11]]);
+    let flags = u16::from_le_bytes([dcb[12], dcb[13]]);
+    let tx_delay = u16::from_le_bytes([dcb[23], dcb[24]]);
+    if rls != 0 || cts != 0 || dsr != 0 || tx_delay != 0 || flags & UNAPPLIED_DCB_FLAGS != 0 {
+        return Err(IE_DEFAULT);
+    }
+    if dcb[14] == dcb[15] {
+        return Err(IE_DEFAULT);
+    }
+    let rts = if flags & (1 << 14) != 0 {
+        Win16HostCommLine::Handshake
+    } else if flags & (1 << 1) != 0 {
+        Win16HostCommLine::Disable
+    } else {
+        Win16HostCommLine::Enable
+    };
+    let dtr = if flags & (1 << 13) != 0 {
+        Win16HostCommLine::Handshake
+    } else if flags & (1 << 7) != 0 {
+        Win16HostCommLine::Disable
+    } else {
+        Win16HostCommLine::Enable
+    };
+    Ok(Win16HostCommConfig {
+        baud_rate,
+        byte_size: dcb[3],
+        parity: dcb[4],
+        stop_bits: dcb[5],
+        binary: flags & 1 != 0,
+        parity_check: flags & (1 << 2) != 0,
+        cts_output_flow: flags & (1 << 3) != 0,
+        dsr_output_flow: flags & (1 << 4) != 0,
+        dtr,
+        rts,
+        xon_output: flags & (1 << 8) != 0,
+        xon_input: flags & (1 << 9) != 0,
+        error_char_enabled: flags & (1 << 10) != 0,
+        strip_null: flags & (1 << 11) != 0,
+        xon_char: dcb[14],
+        xoff_char: dcb[15],
+        error_char: dcb[20],
+        eof_char: dcb[21],
+        event_char: dcb[22],
+        xon_limit: u16::from_le_bytes([dcb[16], dcb[17]]),
+        xoff_limit: u16::from_le_bytes([dcb[18], dcb[19]]),
+    })
 }
 
 #[cfg(test)]

@@ -183,6 +183,11 @@ pub fn known_baud(code: u16) -> bool {
     baud_rate(code).is_some()
 }
 
+/// Numeric rate for a Win16 `CBR_*` constant. Win32 device control takes this rate.
+pub fn numeric_baud(code: u16) -> Option<u32> {
+    baud_rate(code)
+}
+
 fn baud_rate(code: u16) -> Option<u32> {
     Some(match code {
         CBR_110 => 110,

@@ -50,6 +50,70 @@ pub enum Win16HostCommDevice {
     Lpt(u8),
 }
 
+/// `COM` devices accept serial timeouts and line control. `LPT` handles do not.
+pub fn win16_comm_device_is_serial(device: Win16HostCommDevice) -> bool {
+    matches!(device, Win16HostCommDevice::Com(_))
+}
+
+/// Win32 line state that a Win16 `DCB` flag can express.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostCommLine {
+    Disable,
+    Enable,
+    Handshake,
+}
+
+/// Serial parameters applied with the host's device-control call.
+///
+/// Baud is the numeric rate. Win16 `CBR_*` constants are translated before
+/// they reach the host. Fields the host API cannot store are rejected by the
+/// runtime and never appear here.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Win16HostCommConfig {
+    pub baud_rate: u32,
+    pub byte_size: u8,
+    pub parity: u8,
+    pub stop_bits: u8,
+    pub binary: bool,
+    pub parity_check: bool,
+    pub cts_output_flow: bool,
+    pub dsr_output_flow: bool,
+    pub dtr: Win16HostCommLine,
+    pub rts: Win16HostCommLine,
+    pub xon_output: bool,
+    pub xon_input: bool,
+    pub error_char_enabled: bool,
+    pub strip_null: bool,
+    pub xon_char: u8,
+    pub xoff_char: u8,
+    pub error_char: u8,
+    pub eof_char: u8,
+    pub event_char: u8,
+    pub xon_limit: u16,
+    pub xoff_limit: u16,
+}
+
+/// Line control addressed to one open serial device.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostCommControl {
+    SetXoff,
+    SetXon,
+    SetRts,
+    ClearRts,
+    SetDtr,
+    ClearDtr,
+    Reset,
+    SetBreak,
+    ClearBreak,
+}
+
+/// Queue cleared by `FlushComm`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16HostCommQueue {
+    Transmit,
+    Receive,
+}
+
 /// An initialized stream identity in the host's common file table.
 /// The host owns native LZ token classification, including token zero.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1896,6 +1960,42 @@ pub trait RuntimeHost:
         Err(RuntimeError::new(
             DiagnosticKind::CompatibilityGap,
             "host Win16 communications close is unavailable",
+        ))
+    }
+
+    /// Apply serial parameters to one open device. `LPT` tokens cannot accept this.
+    fn win16_comm_configure(
+        &mut self,
+        _port: Win16HostCommPort,
+        _config: &Win16HostCommConfig,
+    ) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications configuration is unavailable",
+        ))
+    }
+
+    /// Apply break or a modem-control escape to one open serial device.
+    fn win16_comm_control(
+        &mut self,
+        _port: Win16HostCommPort,
+        _control: Win16HostCommControl,
+    ) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications line control is unavailable",
+        ))
+    }
+
+    /// Discard one driver queue. The guest unget byte is separate.
+    fn win16_comm_flush(
+        &mut self,
+        _port: Win16HostCommPort,
+        _queue: Win16HostCommQueue,
+    ) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications flush is unavailable",
         ))
     }
 }
