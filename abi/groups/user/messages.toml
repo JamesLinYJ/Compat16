@@ -51,7 +51,7 @@ params = [
 [[exports]]
 ordinal = 11
 name = "SetSystemTimer"
-binding = { rust_id = "UserSetSystemTimer", id_value = 1285, constant = "USER_SET_SYSTEM_TIMER" }
+binding = { rust_id = "UserSetSystemTimer", id_value = 1354, constant = "USER_SET_SYSTEM_TIMER" }
 [exports.call]
 returns = "word"
 params = [
@@ -64,7 +64,7 @@ params = [
 [[exports]]
 ordinal = 182
 name = "KillSystemTimer"
-binding = { rust_id = "UserKillSystemTimer", id_value = 1286, constant = "USER_KILL_SYSTEM_TIMER" }
+binding = { rust_id = "UserKillSystemTimer", id_value = 1355, constant = "USER_KILL_SYSTEM_TIMER" }
 [exports.call]
 returns = "word"
 params = [
