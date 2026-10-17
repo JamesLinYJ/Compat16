@@ -1,0 +1,40 @@
+module = "GDI"
+defaults = { attributes = ["ret16"] }
+
+[[exports]]
+ordinal = 132
+name = "SetEnvironment"
+decl = { args = ["string", "string", "word"] }
+binding = { rust_id = "GdiSetEnvironment", id_value = 1285, constant = "GDI_SET_ENVIRONMENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "port", type = "NullableFarString" },
+  { name = "environment", type = "FarBuffer", encoding = "string" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 133
+name = "GetEnvironment"
+decl = { args = ["string", "string", "word"] }
+binding = { rust_id = "GdiGetEnvironment", id_value = 1286, constant = "GDI_GET_ENVIRONMENT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "port", type = "NullableFarString" },
+  { name = "environment", type = "FarBuffer", encoding = "string" },
+  { name = "capacity", type = "U16" },
+]
+
+[[exports]]
+ordinal = 155
+name = "QueryAbort"
+decl = { args = ["word", "word"] }
+binding = { rust_id = "GdiQueryAbort", id_value = 1287, constant = "GDI_QUERY_ABORT" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dc", type = "U16" },
+  { name = "code", type = "I16", encoding = "word" },
+]

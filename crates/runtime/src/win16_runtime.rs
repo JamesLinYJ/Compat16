@@ -250,6 +250,8 @@ mod network_print_cleanup;
 mod network_print_api;
 #[path = "win16_gdi_spool.rs"]
 mod gdi_spool;
+#[path = "win16_gdi_printer.rs"]
+mod gdi_printer;
 #[path = "win16_network_print_notifications.rs"]
 mod network_print_notifications;
 #[path = "win16_network_print_queue_data.rs"]
@@ -763,6 +765,9 @@ pub(crate) struct Win16State {
     /// Owner-scoped WNet identities share the HFILE WORD allocator with
     /// ordinary files; native spooler tokens remain opaque and task-owned.
     network_print_jobs: BTreeMap<OwnerId, network_print_jobs::Win16NetworkPrintJobs>,
+    /// GDI-owned printer environment blocks, keyed by the guest port bytes.
+    /// The map owns the copied bytes. Entries are not host environment strings.
+    printer_environments: gdi_printer::PrinterEnvironments,
     global_handles: BTreeMap<u16, GlobalHandle>,
     global_selectors: BTreeMap<u16, SelectorRef>,
     /// Runtime-owned HGLOBAL projections paired with one exact native queue

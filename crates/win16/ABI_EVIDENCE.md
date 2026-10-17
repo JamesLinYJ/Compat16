@@ -851,6 +851,26 @@ does not submit or cancel the document twice.
 The DDK identifies OpenJob's third WORD as the application's abort DC. The
 runtime checks nonzero guest DCs before creating a document. `SetAbortProc`
 still reports an explicit compatibility gap, so this bridge does not install
-guest abort procedures. GDI driver data uses the native RAW datatype, keeping
-device-dependent bytes intact rather than selecting a queue's text processor;
-see the native [WritePrinter contract](https://learn.microsoft.com/en-us/windows/win32/printdocs/writeprinter).
+guest abort procedures. `QueryAbort` (GDI ordinal 155) therefore returns TRUE
+for a live guest DC, including while a spool job that names that DC is open
+and when its code word is `SP_OUTOFDISK`. The code word is not a pointer and
+is not sent to the host. An HDC that is not a live guest device context
+returns FALSE, and `QueryAbort` does not cancel the open job. GDI driver data
+uses the native RAW datatype, keeping device-dependent bytes intact rather
+than selecting a queue's text processor; see the native
+[WritePrinter contract](https://learn.microsoft.com/en-us/windows/win32/printdocs/writeprinter).
+
+## GDI printer environment
+
+Windows 3.1 SDK `WINDOWS.H` declares `SetEnvironment` and `GetEnvironment`
+(GDI ordinals 132 and 133) as far Pascal `int` functions of
+`(LPCSTR, const void FAR* / void FAR*, UINT)`. The DDK Adaptation Guide
+describes the block as GDI-owned binary data for the port, not a process
+environment string. `SetEnvironment` returns the number of bytes stored. A
+zero count deletes that port's block and returns 1. `GetEnvironment` with a
+null buffer returns the stored size and writes nothing; a non-null buffer
+receives at most the caller's count and the return is the copied count. Bytes
+beyond that prefix are left unchanged. A null or empty port on
+`SetEnvironment` is stored under the leading device-name bytes (at most 32,
+stopping at NUL). `GetEnvironment` does not read its output buffer to invent
+that key, so a null port on get returns 0.
