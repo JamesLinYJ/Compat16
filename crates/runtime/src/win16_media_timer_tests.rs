@@ -382,11 +382,11 @@ fn time_set_event_one_shot_retires_when_its_callback_is_delivered() {
         .win16
         .as_mut()
         .unwrap()
-        .note_multimedia_timer_callback_entered(callback);
+        .note_multimedia_timer_callback_entered(callback, &mut host).unwrap();
     arm(&mut runtime, 603, &kill_arguments(guest));
     dispatch(&mut runtime, &mut host).unwrap();
     assert_eq!(runtime.cpu.regs.ax(), 97);
-    assert!(host.kills.is_empty());
+    assert_eq!(host.kills, vec![NATIVE_TIMER]);
 }
 
 #[test]
@@ -442,4 +442,23 @@ fn time_set_event_drops_the_reservation_when_the_host_fails() {
     dispatch(&mut runtime, &mut host).unwrap();
     assert_eq!(runtime.cpu.regs.ax(), 97);
     assert!(host.kills.is_empty());
+}
+
+#[test]
+fn multimedia_timer_cleanup_preserves_failed_owner_until_retry() {
+    let mut runtime = Runtime::load(&tiny_ne_executable(), &[], br"C:\TIMER.NE").unwrap();
+    let procedure = executable_callback(&mut runtime);
+    arm(&mut runtime, 602, &set_arguments(procedure, 10, 1, 3, 1));
+    let mut host = TimerHost { kill_code: 97, ..TimerHost::default() };
+    dispatch(&mut runtime, &mut host).unwrap();
+    let guest = runtime.cpu.regs.ax();
+    let state = runtime.win16.as_mut().unwrap();
+    assert_eq!(state.retire_multimedia_services(&mut host).unwrap_err().kind(), Kind::HostFailure);
+    assert!(state.media_services.timer(guest).is_some());
+    assert!(!state.media_services.native_sources_quiescent());
+    host.kill_code = 0;
+    state.retire_multimedia_services(&mut host).unwrap();
+    assert!(state.media_services.timer(guest).is_none());
+    assert!(state.media_services.native_sources_quiescent());
+    assert_eq!(host.kills, vec![NATIVE_TIMER, NATIVE_TIMER]);
 }

@@ -4,13 +4,11 @@ use std::collections::BTreeSet;
 
 use compat_services::win16_multimedia::CALLBACK_TYPEMASK;
 
-pub const MMSYSERR_NOERROR: u32 = 0;
-pub const MMSYSERR_BADDEVICEID: u32 = 2;
+use crate::{MMSYSERR_NOERROR, MMSYSERR_BADDEVICEID, MMSYSERR_INVALPARAM};
 pub const MMSYSERR_INVALHANDLE: u32 = 5;
 pub const MMSYSERR_NOMEM: u32 = 7;
 pub const MMSYSERR_NOTSUPPORTED: u32 = 8;
 pub const MMSYSERR_INVALFLAG: u32 = 10;
-pub const MMSYSERR_INVALPARAM: u32 = 11;
 pub const MIXERR_INVALLINE: u32 = 1024;
 pub const MIXERR_INVALCONTROL: u32 = 1025;
 pub const MIXERR_INVALVALUE: u32 = 1026;

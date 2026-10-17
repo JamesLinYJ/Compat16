@@ -210,6 +210,26 @@ jobs:
             '-p runtime --lib win16_dde_callback::retirement::tests::'
             '-p host-services --lib dde_normal_tombstone_shutdown_'
             '-p host-services --lib dde_shutdown_'
+            '-p runtime --lib win16_runtime::aux_tests::'
+            '-p runtime --lib win16_runtime::comm::tests::'
+            '-p runtime --lib win16_runtime::commdlg::hook_tests::'
+            '-p runtime --lib win16_runtime::ctl3d::tests::'
+            '-p runtime --lib win16_runtime::dispatch_user::system_parameters_tests::'
+            '-p runtime --lib win16_runtime::dispatch_user::window_management_tests::'
+            '-p runtime --lib win16_runtime::gdi_services::scalable_font_tests::'
+            '-p runtime --lib win16_runtime::joystick::tests::'
+            '-p runtime --lib win16_runtime::kernel_path_info::short_path_profile_struct_tests::'
+            '-p runtime --lib win16_runtime::kernel_task::tests::'
+            '-p runtime --lib win16_runtime::media_time::timer_tests::'
+            '-p runtime --lib win16_runtime::mixer_tests::'
+            '-p runtime --lib win16_host_mixer::session_tests::'
+            '-p runtime --lib win16_runtime::user_drag::drag_tests::'
+            '-p runtime --lib win16_runtime::winmem32::tests::'
+            '-p runtime --lib win16_runtime::media_io::buffer_tests::'
+            '-p runtime --lib win16_runtime::message_calls::timers::tests::'
+            '-p runtime --lib win16_runtime::dispatch::input_event_tests::'
+            '-p runtime --lib win16_runtime::ole1::tests::'
+            '-p host-services --lib windows::win16_media_services::timer::tests::'
           )
           # Keep focused additions visible: a renamed filter must not silently
           # succeed after selecting zero tests.
@@ -235,6 +255,26 @@ jobs:
             '-p runtime --lib win16_dde_callback::retirement::tests::' = 1
             '-p host-services --lib dde_normal_tombstone_shutdown_' = 2
             '-p host-services --lib dde_shutdown_' = 4
+            '-p runtime --lib win16_runtime::aux_tests::' = 6
+            '-p runtime --lib win16_runtime::comm::tests::' = 6
+            '-p runtime --lib win16_runtime::commdlg::hook_tests::' = 5
+            '-p runtime --lib win16_runtime::ctl3d::tests::' = 5
+            '-p runtime --lib win16_runtime::dispatch_user::system_parameters_tests::' = 4
+            '-p runtime --lib win16_runtime::dispatch_user::window_management_tests::' = 5
+            '-p runtime --lib win16_runtime::gdi_services::scalable_font_tests::' = 5
+            '-p runtime --lib win16_runtime::joystick::tests::' = 10
+            '-p runtime --lib win16_runtime::kernel_path_info::short_path_profile_struct_tests::' = 9
+            '-p runtime --lib win16_runtime::kernel_task::tests::' = 5
+            '-p runtime --lib win16_runtime::media_time::timer_tests::' = 7
+            '-p runtime --lib win16_runtime::mixer_tests::' = 4
+            '-p runtime --lib win16_host_mixer::session_tests::' = 1
+            '-p runtime --lib win16_runtime::user_drag::drag_tests::' = 8
+            '-p runtime --lib win16_runtime::winmem32::tests::' = 4
+            '-p runtime --lib win16_runtime::media_io::buffer_tests::' = 9
+            '-p runtime --lib win16_runtime::message_calls::timers::tests::' = 2
+            '-p runtime --lib win16_runtime::dispatch::input_event_tests::' = 2
+            '-p runtime --lib win16_runtime::ole1::tests::' = 8
+            '-p host-services --lib windows::win16_media_services::timer::tests::' = 3
           }
           $failedSuites = @()
           $hostCompileChecked = $false

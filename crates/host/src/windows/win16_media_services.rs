@@ -39,9 +39,9 @@ pub(super) struct Win16MediaServicesHost {
     next_identity: u64,
     mmio_handles: BTreeMap<Win16HostMediaIoHandle, HMMIO>,
     period_references: BTreeMap<u16, u32>,
-    /// Native `timeSetEvent` id to the opaque callback token. Guest FAR
-    /// procedures are not stored here.
-    timers: BTreeMap<u32, u64>,
+    /// Opaque runtime identities to native ids and callback tokens. Native ids
+    /// can be recycled while a previous one-shot still has a queued callback.
+    timers: BTreeMap<u32, timer::OwnedTimer>,
 }
 
 impl Win16MediaServicesHost {

@@ -1176,3 +1176,32 @@ fn task_cleanup_flushes_a_dirty_internal_buffer() {
         .unwrap();
     assert!(host.closed);
 }
+
+#[test]
+fn task_cleanup_preserves_dirty_buffer_and_file_after_write_failure() {
+    let mut runtime = load_guest();
+    let mut host = MemHost::new(b"");
+    let guest = open_alias(&mut runtime, MMIO_READWRITE);
+    let source = map(&mut runtime, COPY_BASE, 2);
+    write_guest(&mut runtime, source, b"OK");
+    assert_eq!(api(&mut runtime, &mut host, Win16MediaIoRequest::SetBuffer {
+        handle: guest, buffer: 0, size: 8, flags: 0,
+    }), 0);
+    assert_eq!(api(&mut runtime, &mut host, Win16MediaIoRequest::Write {
+        handle: guest, buffer: source, count: 2,
+    }), 2);
+    host.fail_write = true;
+    let state = runtime.win16.as_mut().unwrap();
+    assert!(state.retire_mmio_guest_buffers(&mut runtime.memory, &mut host).is_err());
+    assert!(state.media_services.mmio_buffer(guest).unwrap().dirty);
+    assert!(state.media_services.retire_all(&mut host).is_err());
+    assert!(!host.closed);
+    assert!(!state.media_services.native_sources_quiescent());
+    host.fail_write = false;
+    state.retire_mmio_guest_buffers(&mut runtime.memory, &mut host).unwrap();
+    assert_eq!(host.data, b"OK");
+    assert!(state.media_services.mmio_buffer(guest).is_none());
+    state.media_services.retire_all(&mut host).unwrap();
+    assert!(host.closed);
+    assert!(state.media_services.native_sources_quiescent());
+}

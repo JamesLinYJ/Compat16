@@ -204,12 +204,17 @@ impl Win16State {
     pub(in crate::win16_runtime) fn note_multimedia_timer_callback_entered(
         &mut self,
         callback: crate::Win16GuestCallbackToken,
-    ) {
+        host: &mut impl RuntimeHost,
+    ) -> Result<(), RuntimeError> {
         let Some(guest) = self.media_services.one_shot_guest_for_callback(callback) else {
-            return;
+            return Ok(());
         };
-        let _ = self.media_services.remove_timer(guest);
-        let _ = self.unregister_guest_callback(callback);
+        let result = self.media_time_kill_event(guest, host)?;
+        if result != 0 {
+            return Err(RuntimeError::new(Kind::HostFailure,
+                format!("completed multimedia timer retirement failed (0x{result:08X})")));
+        }
+        Ok(())
     }
 
     pub(in crate::win16_runtime) fn retire_multimedia_services(
@@ -217,18 +222,23 @@ impl Win16State {
         host: &mut impl RuntimeHost,
     ) -> Result<(), RuntimeError> {
         let mut first_error = None;
-        for (native, callback) in self.media_services.take_timers() {
+        for guest in self.media_services.timer_guests() {
+            let Some((native, callback)) = self.media_services.timer(guest) else { continue; };
             if let Some(native) = native {
-                match host.win16_media_time(Operation::KillEvent { timer: native }) {
-                    Ok(ResultValue::Kill(_)) => {}
-                    Ok(_) => keep_cleanup(
-                        &mut first_error,
-                        invariant("multimedia timer teardown returned the wrong host result"),
-                    ),
-                    Err(error) => keep_cleanup(&mut first_error, error),
+                let error = match host.win16_media_time(Operation::KillEvent { timer: native }) {
+                    Ok(ResultValue::Kill(0)) => None,
+                    Ok(ResultValue::Kill(code)) => Some(RuntimeError::new(Kind::HostFailure,
+                        format!("multimedia timer teardown failed (0x{code:08X})"))),
+                    Ok(_) => Some(invariant("multimedia timer teardown returned the wrong host result")),
+                    Err(error) => Some(error),
+                };
+                if let Some(error) = error {
+                    keep_cleanup(&mut first_error, error);
+                    continue;
                 }
             }
             let _ = self.unregister_guest_callback(callback);
+            let _ = self.media_services.remove_timer(guest);
         }
         if let Err(error) = self.media_services.retire_all(host) {
             keep_cleanup(&mut first_error, error);

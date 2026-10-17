@@ -292,32 +292,28 @@ impl Win16State {
         let mut first = None;
         let guests: Vec<u16> = self.media_services.mmio_buffer_guests();
         for guest in guests {
-            let dirty = self
-                .media_services
-                .mmio_buffer(guest)
-                .is_some_and(|buffer| buffer.dirty);
-            if !dirty {
-                continue;
-            }
             match self.flush_mmio_buffer(guest, memory, host) {
                 Ok(0) => {}
-                Ok(code) => keep(
-                    &mut first,
-                    RuntimeError::new(
+                Ok(code) => {
+                    keep(&mut first, RuntimeError::new(
                         Kind::HostFailure,
                         format!(
                             "Win16 MMIO buffer flush failed during task cleanup (0x{code:04X})"
                         ),
-                    ),
-                ),
-                Err(error) => keep(&mut first, error),
+                    ));
+                    continue;
+                }
+                Err(error) => {
+                    keep(&mut first, error);
+                    continue;
+                }
             }
-        }
-        let owned = self.media_services.take_mmio_buffers();
-        for buffer in owned {
-            if let Err(error) = self.release_mmio_allocation(buffer.owned) {
+            let owned = self.media_services.mmio_buffer(guest).map_or(0, |buffer| buffer.owned);
+            if let Err(error) = self.release_mmio_allocation(owned) {
                 keep(&mut first, error);
+                continue;
             }
+            self.media_services.clear_mmio_buffer(guest);
         }
         match first {
             Some(error) => Err(error),

@@ -845,8 +845,8 @@ impl Runtime {
                                 &mut self.memory,
                                 event,
                             );
-                            state.note_multimedia_timer_callback_entered(callback);
                             began?;
+                            state.note_multimedia_timer_callback_entered(callback, host)?;
                         }
                     }
                     // An unsolicited DDE callback runs only when the ordinary

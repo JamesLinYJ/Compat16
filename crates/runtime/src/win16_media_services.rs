@@ -47,6 +47,7 @@ pub enum Win16HostMediaTimeResult {
     DevCaps { result: u32, minimum_period: u32, maximum_period: u32 },
     Time(u32),
     Period(u32),
+    /// Opaque host-owned identity, not a reusable native WinMM timer id.
     /// `None` is the documented NULL timer id: the event was not created.
     SetEvent { timer: Option<u32> },
     /// `0` cancels the event. Any other value, including `TIMERR_NOCANDO`,
@@ -173,7 +174,8 @@ impl Default for Win16MediaServicesState {
 
 impl Win16MediaServicesState {
     pub(crate) fn native_sources_quiescent(&self) -> bool {
-        self.mmio_handles.is_empty() && self.period_references.is_empty() && self.timers.is_empty()
+        self.mmio_handles.is_empty() && self.mmio_buffers.is_empty()
+            && self.period_references.is_empty() && self.timers.is_empty()
     }
 
     pub(crate) fn mmio_handle(&self, guest: u16) -> Option<Win16HostMediaIoHandle> {
@@ -198,10 +200,6 @@ impl Win16MediaServicesState {
 
     pub(crate) fn clear_mmio_buffer(&mut self, guest: u16) -> u16 {
         self.mmio_buffers.remove(&guest).map(|buffer| buffer.owned).unwrap_or(0)
-    }
-
-    pub(crate) fn take_mmio_buffers(&mut self) -> Vec<Win16MmioBufferState> {
-        std::mem::take(&mut self.mmio_buffers).into_values().collect()
     }
 
     pub(crate) fn mmio_buffer_guests(&self) -> Vec<u16> {
@@ -324,10 +322,8 @@ impl Win16MediaServicesState {
         })
     }
 
-    pub(crate) fn take_timers(&mut self) -> Vec<(Option<u32>, Win16GuestCallbackToken)> {
-        std::mem::take(&mut self.timers)
-            .into_values()
-            .map(|record| (record.native, record.callback))
+    pub(crate) fn timer_guests(&self) -> Vec<u16> {
+        self.timers.keys().copied()
             .collect()
     }
 
@@ -344,6 +340,13 @@ impl Win16MediaServicesState {
                 .range((std::ops::Bound::Excluded(after), std::ops::Bound::Unbounded))
                 .next().map(|(guest, file)| (*guest, file.native)) else { break; };
             after = guest;
+            // A failed flush or allocation release still owns its guest buffer.
+            // Keep the native file open so task cleanup can retry without data loss.
+            if self.mmio_buffers.contains_key(&guest) {
+                keep_first(&mut first_error, RuntimeError::new(Kind::HostFailure,
+                    "MMIO guest buffer must retire before its native file"));
+                continue;
+            }
             match host.win16_media_io(Win16HostMediaIoOperation::Close { handle, flags: 0 }) {
                 Ok(Win16HostMediaIoResult::Scalar(0)) => {
                     self.mmio_handles.remove(&guest);
