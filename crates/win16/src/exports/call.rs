@@ -17,6 +17,8 @@ mod gdi_calls;
 mod gdi_services_calls;
 #[path = "call_gdi_internal.rs"]
 mod gdi_internal_calls;
+#[path = "call_driver.rs"]
+mod call_driver;
 #[path = "call_gdi_spool.rs"]
 mod gdi_spool_calls;
 #[path = "call_gdi_device.rs"]

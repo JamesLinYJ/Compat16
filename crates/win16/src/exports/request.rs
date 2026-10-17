@@ -24,7 +24,7 @@ pub use request_modules::Win16UserMdiRequest;
 pub use request_modules::Win16UserChildLookupRequest;
 pub use request_modules::{
     Win16FontResourceInput, Win16GdiInternalArg, Win16GdiInternalRequest, Win16GdiServicesRequest,
-    Win16GdiSpoolRequest,
+    Win16GdiSpoolRequest, Win16DriverArg, Win16DriverCall,
 };
 pub use request_modules::{NF_NORMAL, NF_TASKSWITCH, NF_RIP};
 pub(super) use request_modules::decode_print_queue_export;
@@ -53,6 +53,7 @@ pub use request_modules::{
     Win16KernelStringRequest, Win16KernelStringsRequest, Win16KernelTaskRequest,
     Win16KeyboardConversion, Win16KeyboardRequest, Win16LibraryCodePageRequest,
     Win16LibraryInterruptsRequest, Win16LibraryRequest, Win16LibraryStringsRequest,
+    Win16OleRemainderModule,
     Win16AuxCapabilities16, Win16AuxRequest, AUXCAPS16_SIZE, AUXCAPS_AUXIN,
     AUXCAPS_CDAUDIO, AUXCAPS_LRVOLUME, AUXCAPS_VOLUME, Win16LibraryToolhelpRequest,
     Win16LzExpandRequest, Win16MediaIoRequest, Win16MediaTimeRequest, JOYCAPS16_SIZE,
@@ -145,6 +146,9 @@ pub enum Win16ApiRequest {
     Dde(Win16DdeRequest),
     GdiDevice(GdiDeviceRequest),
     Printer(Win16PrinterRequest),
+    /// Driver and deferred-device exports bound in the 5000000–5999999 block.
+    /// Guest far addresses stay in the decoded slots and are not host pointers.
+    Driver(Win16DriverCall),
     ClassData(Win16ClassDataRequest),
     WindowData(Win16WindowDataRequest),
     WindowProperties(Win16WindowPropertyRequest),

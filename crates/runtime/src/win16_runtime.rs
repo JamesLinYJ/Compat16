@@ -98,6 +98,8 @@ mod metafile;
 mod kernel_task;
 #[path = "win16_kernel_remainder.rs"]
 mod kernel_remainder;
+#[path = "win16_ole_remainder.rs"]
+mod ole_remainder;
 #[path = "win16_window_task.rs"]
 mod window_task;
 #[path = "win16_kernel_module.rs"]
@@ -450,6 +452,8 @@ mod dispatch_kernel;
 mod dispatch_user;
 #[path = "win16_user_declared.rs"]
 mod user_declared;
+#[path = "win16_driver.rs"]
+mod driver;
 #[path = "win16_dispatch_gdi.rs"]
 mod dispatch_gdi;
 #[path = "win16_dispatch_libraries.rs"]
@@ -708,6 +712,8 @@ pub(crate) struct Win16State {
     deferred_window_batches: window_operations::DeferredWindowBatches,
     user_hooks: user_hooks::Win16UserHooks,
     user_declared: user_declared::UserDeclaredSession,
+    ole_remainder_reported: BTreeSet<(u8, u16)>,
+    driver_gaps: driver::DriverGaps,
     window_callbacks: Vec<windows::WindowCallbackFrame>,
     retired_window_payloads: Vec<windows::RetiredWindowPayloadOwner>,
     native_function_callbacks: Vec<native_function_callback::NativeFunctionCallbackFrame>,

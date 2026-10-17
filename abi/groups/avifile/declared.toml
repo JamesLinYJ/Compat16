@@ -5,11 +5,22 @@ ordinal = 2
 name = "DLLGETCLASSOBJECT"
 kind = "stub"
 
+binding = { rust_id = "DriverAvifile2Dllgetclassobject", id_value = 5000253, constant = "DRIVER_AVIFILE_2" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "clsid", type = "FarPointer" },
+  { name = "iid", type = "FarPointer" },
+  { name = "object", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 3
 name = "DLLCANUNLOADNOW"
 kind = "stub"
 
+binding = { rust_id = "DriverAvifile3Dllcanunloadnow", id_value = 5000254, constant = "DRIVER_AVIFILE_3" }
+[exports.call]
+returns = "dword"
 [[exports]]
 ordinal = 4
 name = "___EXPORTEDSTUB"
@@ -49,55 +60,135 @@ values = [131081, 0, 192, 1174405120]
 ordinal = 100
 name = "AVIFileInit"
 
+binding = { rust_id = "DriverAvifile100Avifileinit", id_value = 5000256, constant = "DRIVER_AVIFILE_100" }
+[exports.call]
+returns = "void"
 [[exports]]
 ordinal = 101
 name = "AVIFileExit"
 
+binding = { rust_id = "DriverAvifile101Avifileexit", id_value = 5000257, constant = "DRIVER_AVIFILE_101" }
+[exports.call]
+returns = "void"
 [[exports]]
 ordinal = 102
 name = "AVIFileOpen"
 decl = { args = ["pointer", "string", "word", "pointer"] }
 
+binding = { rust_id = "DriverAvifile102Avifileopen", id_value = 5000258, constant = "DRIVER_AVIFILE_102" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarBuffer" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 103
 name = "AVIStreamOpenFromFile"
 decl = { args = ["pointer", "string", "long", "long", "word", "pointer"] }
 
+binding = { rust_id = "DriverAvifile103Avistreamopenfromfile", id_value = 5000259, constant = "DRIVER_AVIFILE_103" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarBuffer" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U16" },
+  { name = "a5", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 104
 name = "AVIStreamCreate"
 decl = { args = ["pointer", "long", "long", "pointer"] }
 
+binding = { rust_id = "DriverAvifile104Avistreamcreate", id_value = 5000260, constant = "DRIVER_AVIFILE_104" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarBuffer" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 105
 name = "AVIMAKECOMPRESSEDSTREAM"
 kind = "stub"
 
+binding = { rust_id = "DriverAvifile105Avimakecompressedstream", id_value = 5000261, constant = "DRIVER_AVIFILE_105" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "compressed", type = "FarPointer" },
+  { name = "source", type = "FarPointer" },
+  { name = "options", type = "FarPointer" },
+  { name = "handler", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 106
 name = "AVIMAKEFILEFROMSTREAMS"
 kind = "stub"
 
+binding = { rust_id = "DriverAvifile106Avimakefilefromstreams", id_value = 5000262, constant = "DRIVER_AVIFILE_106" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "file", type = "FarPointer" },
+  { name = "stream_count", type = "I16" },
+  { name = "streams", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 107
 name = "AVIMAKESTREAMFROMCLIPBOARD"
 kind = "stub"
 
+binding = { rust_id = "DriverAvifile107Avimakestreamfromclipboard", id_value = 5000263, constant = "DRIVER_AVIFILE_107" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "format", type = "U16" },
+  { name = "global", type = "U16" },
+  { name = "stream", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 110
 name = "AVIStreamGetFrame"
 decl = { args = ["long", "long"] }
 
+binding = { rust_id = "DriverAvifile110Avistreamgetframe", id_value = 5000264, constant = "DRIVER_AVIFILE_110" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+]
 [[exports]]
 ordinal = 111
 name = "AVIStreamGetFrameClose"
 decl = { args = ["long"] }
 
+binding = { rust_id = "DriverAvifile111Avistreamgetframeclose", id_value = 5000265, constant = "DRIVER_AVIFILE_111" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U32" },
+]
 [[exports]]
 ordinal = 112
 name = "AVIStreamGetFrameOpen"
 decl = { args = ["long", "pointer"] }
 
+binding = { rust_id = "DriverAvifile112Avistreamgetframeopen", id_value = 5000266, constant = "DRIVER_AVIFILE_112" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 120
 name = "_AVISAVE"
@@ -118,121 +209,312 @@ ordinal = 123
 name = "AVIBuildFilter"
 decl = { args = ["string", "long", "word"] }
 
+binding = { rust_id = "DriverAvifile123Avibuildfilter", id_value = 5000270, constant = "DRIVER_AVIFILE_123" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U16" },
+]
 [[exports]]
 ordinal = 124
 name = "AVISaveOptionsFree"
 decl = { args = ["word", "pointer"] }
 
+binding = { rust_id = "DriverAvifile124Avisaveoptionsfree", id_value = 5000271, constant = "DRIVER_AVIFILE_124" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 130
 name = "AVIStreamStart"
 decl = { args = ["long"] }
 
+binding = { rust_id = "DriverAvifile130Avistreamstart", id_value = 5000272, constant = "DRIVER_AVIFILE_130" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+]
 [[exports]]
 ordinal = 131
 name = "AVIStreamLength"
 decl = { args = ["long"] }
 
+binding = { rust_id = "DriverAvifile131Avistreamlength", id_value = 5000273, constant = "DRIVER_AVIFILE_131" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+]
 [[exports]]
 ordinal = 132
 name = "AVIStreamTimeToSample"
 decl = { args = ["long", "long"] }
 
+binding = { rust_id = "DriverAvifile132Avistreamtimetosample", id_value = 5000274, constant = "DRIVER_AVIFILE_132" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+]
 [[exports]]
 ordinal = 133
 name = "AVIStreamSampleToTime"
 decl = { args = ["long", "long"] }
 
+binding = { rust_id = "DriverAvifile133Avistreamsampletotime", id_value = 5000275, constant = "DRIVER_AVIFILE_133" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+]
 [[exports]]
 ordinal = 140
 name = "AVIFileAddRef"
 decl = { args = ["long"] }
 
+binding = { rust_id = "DriverAvifile140Avifileaddref", id_value = 5000276, constant = "DRIVER_AVIFILE_140" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+]
 [[exports]]
 ordinal = 141
 name = "AVIFileRelease"
 decl = { args = ["long"] }
 
+binding = { rust_id = "DriverAvifile141Avifilerelease", id_value = 5000277, constant = "DRIVER_AVIFILE_141" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+]
 [[exports]]
 ordinal = 142
 name = "AVIFileInfo"
 decl = { args = ["long", "pointer", "long"] }
 
+binding = { rust_id = "DriverAvifile142Avifileinfo", id_value = 5000278, constant = "DRIVER_AVIFILE_142" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 143
 name = "AVIFileGetStream"
 decl = { args = ["long", "pointer", "long", "long"] }
 
+binding = { rust_id = "DriverAvifile143Avifilegetstream", id_value = 5000279, constant = "DRIVER_AVIFILE_143" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+]
 [[exports]]
 ordinal = 144
 name = "AVIFileCreateStream"
 decl = { args = ["long", "pointer", "pointer"] }
 
+binding = { rust_id = "DriverAvifile144Avifilecreatestream", id_value = 5000280, constant = "DRIVER_AVIFILE_144" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 146
 name = "AVIFileWriteData"
 decl = { args = ["long", "long", "pointer", "long"] }
 
+binding = { rust_id = "DriverAvifile146Avifilewritedata", id_value = 5000281, constant = "DRIVER_AVIFILE_146" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarBuffer" },
+  { name = "a3", type = "U32" },
+]
 [[exports]]
 ordinal = 147
 name = "AVIFileReadData"
 decl = { args = ["long", "long", "pointer", "pointer"] }
 
+binding = { rust_id = "DriverAvifile147Avifilereaddata", id_value = 5000282, constant = "DRIVER_AVIFILE_147" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarBuffer" },
+  { name = "a3", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 148
 name = "AVIFileEndRecord"
 decl = { args = ["long"] }
 
+binding = { rust_id = "DriverAvifile148Avifileendrecord", id_value = 5000283, constant = "DRIVER_AVIFILE_148" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+]
 [[exports]]
 ordinal = 160
 name = "AVIStreamAddRef"
 decl = { args = ["long"] }
 
+binding = { rust_id = "DriverAvifile160Avistreamaddref", id_value = 5000284, constant = "DRIVER_AVIFILE_160" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+]
 [[exports]]
 ordinal = 161
 name = "AVIStreamRelease"
 decl = { args = ["long"] }
 
+binding = { rust_id = "DriverAvifile161Avistreamrelease", id_value = 5000285, constant = "DRIVER_AVIFILE_161" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+]
 [[exports]]
 ordinal = 162
 name = "AVIStreamInfo"
 decl = { args = ["long", "pointer", "long"] }
 
+binding = { rust_id = "DriverAvifile162Avistreaminfo", id_value = 5000286, constant = "DRIVER_AVIFILE_162" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarBuffer" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 163
 name = "AVIStreamFindSample"
 decl = { args = ["long", "long", "long"] }
 
+binding = { rust_id = "DriverAvifile163Avistreamfindsample", id_value = 5000287, constant = "DRIVER_AVIFILE_163" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+]
 [[exports]]
 ordinal = 164
 name = "AVIStreamReadFormat"
 decl = { args = ["long", "long", "pointer", "pointer"] }
 
+binding = { rust_id = "DriverAvifile164Avistreamreadformat", id_value = 5000288, constant = "DRIVER_AVIFILE_164" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarBuffer" },
+  { name = "a3", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 165
 name = "AVIStreamReadData"
 decl = { args = ["long", "long", "pointer", "pointer"] }
 
+binding = { rust_id = "DriverAvifile165Avistreamreaddata", id_value = 5000289, constant = "DRIVER_AVIFILE_165" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarBuffer" },
+  { name = "a3", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 166
 name = "AVIStreamWriteData"
 decl = { args = ["long", "long", "pointer", "long"] }
 
+binding = { rust_id = "DriverAvifile166Avistreamwritedata", id_value = 5000290, constant = "DRIVER_AVIFILE_166" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarBuffer" },
+  { name = "a3", type = "U32" },
+]
 [[exports]]
 ordinal = 167
 name = "AVIStreamRead"
 decl = { args = ["long", "long", "long", "pointer", "long", "pointer", "pointer"] }
 
+binding = { rust_id = "DriverAvifile167Avistreamread", id_value = 5000291, constant = "DRIVER_AVIFILE_167" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarBuffer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "FarBuffer" },
+  { name = "a6", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 168
 name = "AVIStreamWrite"
 decl = { args = ["long", "long", "long", "pointer", "long", "long", "pointer", "pointer"] }
 
+binding = { rust_id = "DriverAvifile168Avistreamwrite", id_value = 5000292, constant = "DRIVER_AVIFILE_168" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarBuffer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U32" },
+  { name = "a6", type = "FarBuffer" },
+  { name = "a7", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 169
 name = "AVIStreamSetFormat"
 decl = { args = ["long", "long", "pointer", "long"] }
 
+binding = { rust_id = "DriverAvifile169Avistreamsetformat", id_value = 5000293, constant = "DRIVER_AVIFILE_169" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "FarBuffer" },
+  { name = "a3", type = "U32" },
+]
 [[exports]]
 ordinal = 180
 name = "EDITSTREAMCOPY"

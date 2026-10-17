@@ -9,6 +9,23 @@ pub(super) fn decode(
     selectors: &SelectorTable,
     memory: &impl GuestMemory,
 ) -> Result<Option<Win16ApiRequest>, Win16Error> {
+    // Binding ids 4000000–4999999 are the OLE stack rows that had no call.
+    // Already-bound OLE2DISP, OLE2NLS, OLE1, and IsEqualGUID stay on their
+    // existing decoders; those ids are outside this range.
+    let id = descriptor.id as u32;
+    if (4_000_000..5_000_000).contains(&id) {
+        let module = super::Win16OleRemainderModule::from_catalog_name(descriptor.module())
+            .ok_or(Win16Error::InvalidRange)?;
+        return Ok(Some(Win16ApiRequest::Libraries(
+            super::Win16LibraryRequest::OleRemainder {
+                module,
+                ordinal: descriptor.ordinal(),
+            },
+        )));
+    }
+    if let Some(request) = super::call_driver::decode(descriptor, arguments)? {
+        return Ok(Some(Win16ApiRequest::Driver(request)));
+    }
     if matches!(descriptor.module(), "OLECLI" | "OLESVR") {
         return super::super::call_ole1::decode_ole1(
             descriptor.module(), descriptor.ordinal(), arguments, selectors, memory,

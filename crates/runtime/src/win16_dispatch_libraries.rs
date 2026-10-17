@@ -19,6 +19,16 @@ impl Win16State {
     ) -> Result<Option<u8>, RuntimeError> {
         let (return_selector, return_offset, return_sp) = return_to;
         let value = match request {
+            Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::OleRemainder {
+                module,
+                ordinal,
+            }) => self.ole_remainder(
+                module,
+                ordinal,
+                descriptor.return_kind,
+                descriptor.name(),
+                host,
+            )?,
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::IsEqualGuid {
                 left, right,
             }) => u32::from(left == right),
@@ -108,6 +118,9 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::Printer(request) => self.printer(request, memory, host)?,
+            Win16ApiRequest::Driver(request) => self.driver_call(
+                request, descriptor.module(), descriptor.ordinal(), host,
+            )?,
             Win16ApiRequest::ShellIcon(request) => self.shell_icon_api(request, memory, host)?,
             Win16ApiRequest::ShellExecution(request) => {
                 return self.begin_shell_execution_request(

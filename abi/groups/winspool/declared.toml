@@ -65,6 +65,15 @@ ordinal = 13
 name = "DeviceMode"
 decl = { args = ["word", "word", "string", "string"] }
 
+binding = { rust_id = "DriverWinspool13Devicemode", id_value = 5000112, constant = "DRIVER_WINSPOOL_13" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarString" },
+  { name = "a3", type = "FarString" },
+]
 [[exports]]
 ordinal = 14
 name = "DEVEXTTEXTOUT"
@@ -100,6 +109,19 @@ ordinal = 90
 name = "ExtDeviceMode"
 decl = { args = ["word", "word", "pointer", "string", "string", "pointer", "string", "word"] }
 
+binding = { rust_id = "DriverWinspool90Extdevicemode", id_value = 5000119, constant = "DRIVER_WINSPOOL_90" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarBuffer" },
+  { name = "a3", type = "FarString" },
+  { name = "a4", type = "FarString" },
+  { name = "a5", type = "FarBuffer" },
+  { name = "a6", type = "FarString" },
+  { name = "a7", type = "U16" },
+]
 [[exports]]
 ordinal = 92
 name = "QUERYDEVICENAMES"

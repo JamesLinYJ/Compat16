@@ -4,3 +4,14 @@ module = "TIMER"
 ordinal = 2
 name = "DriverProc"
 decl = { args = ["long", "word", "word", "long", "long"] }
+
+binding = { rust_id = "DriverTimer2Driverproc", id_value = 5000099, constant = "DRIVER_TIMER_2" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+]

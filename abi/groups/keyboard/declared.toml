@@ -5,16 +5,32 @@ ordinal = 1
 name = "Inquire"
 decl = { attributes = ["ret16"], args = ["pointer"] }
 
+binding = { rust_id = "DriverKeyboard1Inquire", id_value = 5000072, constant = "DRIVER_KEYBOARD_1" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 2
 name = "Enable"
 decl = { attributes = ["ret16"], args = ["segmented_pointer", "pointer"] }
 
+binding = { rust_id = "DriverKeyboard2Enable", id_value = 5000073, constant = "DRIVER_KEYBOARD_2" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 3
 name = "Disable"
 decl = { attributes = ["ret16"] }
 
+binding = { rust_id = "DriverKeyboard3Disable", id_value = 5000074, constant = "DRIVER_KEYBOARD_3" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 9
 name = "INQUIREEX"
