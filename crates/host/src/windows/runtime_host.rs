@@ -620,6 +620,12 @@ impl RuntimeHost for WindowsHost {
     fn win16_window_abort(&mut self) -> Result<runtime::Win16WindowAbortReceipt, RuntimeError> {
         runtime_host_windows::win16_window_abort(self)
     }
+    fn win16_ctl3d_frame(
+        &mut self,
+        window: runtime::Win16HostWindow,
+    ) -> Result<Option<runtime::Win16HostCtl3dFrameFacts>, RuntimeError> {
+        self.win16_windows.ctl3d_frame(window)
+    }
     fn win16_destroy_window(&mut self, window: Win16HostWindow) -> Result<bool, RuntimeError> {
         runtime_host_windows::win16_destroy_window(self, window)
     }

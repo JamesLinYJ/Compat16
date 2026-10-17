@@ -59,6 +59,8 @@ mod win16_window_dialog_creation;
 mod win16_window_identity;
 #[path = "win16_window_input.rs"]
 mod win16_window_input;
+#[path = "win16_ctl3d_worker.rs"]
+mod win16_ctl3d_worker;
 #[path = "win16_window_worker.rs"]
 mod win16_window_worker;
 pub(super) use win16_window_worker::{

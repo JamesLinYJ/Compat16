@@ -977,6 +977,14 @@ pub trait RuntimeHost:
             "host Win16 native window destruction is unavailable",
         ))
     }
+    /// Read style and iconic state for `Ctl3dDlgFramePaint`. `Ok(None)` means
+    /// the token is not a live window. This must not call the window procedure.
+    fn win16_ctl3d_frame(
+        &mut self,
+        _window: Win16HostWindow,
+    ) -> Result<Option<crate::Win16HostCtl3dFrameFacts>, RuntimeError> {
+        Ok(None)
+    }
     /// Query only the exact opaque window incarnation. The host must return
     /// `Retired` only for a token it can prove was issued and later retired;
     /// unknown or mismatched identities remain errors.

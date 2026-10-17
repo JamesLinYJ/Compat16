@@ -184,6 +184,26 @@ impl Win16Windows {
         )
     }
 
+    pub(in crate::windows) fn ctl3d_frame(
+        &self,
+        window: runtime::Win16HostWindow,
+    ) -> Result<Option<runtime::Win16HostCtl3dFrameFacts>, RuntimeError> {
+        if self.aborted {
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "Win16 native window worker has been aborted",
+            ));
+        }
+        let (reply, response) = std::sync::mpsc::channel();
+        self.send(WorkerCommand::Ctl3dFrame {
+            window,
+            response: reply,
+        })?;
+        response
+            .recv()
+            .map_err(|_| worker_stopped("read a Win16 CTL3D dialog frame"))
+    }
+
     pub(in crate::windows) fn get_key_state(&self, key: i32) -> Result<i16, RuntimeError> {
         if self.aborted {
             return Err(RuntimeError::new(
