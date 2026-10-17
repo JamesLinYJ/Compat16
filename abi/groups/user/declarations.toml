@@ -1525,6 +1525,9 @@ name = "IsCharBiDi"
 binding = { rust_id = "UserIsCharBiDi", id_value = 2000100, constant = "USER_IS_CHAR_BI_DI" }
 [exports.call]
 returns = "word"
+params = [
+  { name = "character", type = "U16" },
+]
 
 [[exports]]
 ordinal = 494
@@ -1532,6 +1535,9 @@ name = "IsCharEnglish"
 binding = { rust_id = "UserIsCharEnglish", id_value = 2000101, constant = "USER_IS_CHAR_ENGLISH" }
 [exports.call]
 returns = "word"
+params = [
+  { name = "character", type = "U16" },
+]
 
 [[exports]]
 ordinal = 495

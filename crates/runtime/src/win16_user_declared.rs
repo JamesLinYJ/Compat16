@@ -59,8 +59,8 @@ impl Win16State {
         u32::from(previous)
     }
 
-    fn app_code_page(&self, task: u16, host: &impl RuntimeHost) -> u32 {
-        if task != 0 && task != self.instance_handle {
+    fn app_code_page(&self, window: u16, host: &impl RuntimeHost) -> u32 {
+        if !self.window_handles.contains_key(&window) {
             return 0;
         }
         u32::from(ansi_page(host))
