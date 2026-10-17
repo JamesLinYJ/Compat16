@@ -739,7 +739,7 @@ impl Win16State {
                 );
             }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Remainder(request)) => {
-                match self.execute_kernel_remainder(request, memory, host)? {
+                match self.execute_kernel_remainder(request, registers.ds, memory, host)? {
                     super::kernel_remainder::KernelRemainderOutcome::Value(result) => result,
                     super::kernel_remainder::KernelRemainderOutcome::Terminate(status) => {
                         if let Some(exit_status) = self.finish_task(memory, host, status)? {

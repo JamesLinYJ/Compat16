@@ -1374,9 +1374,9 @@ binding = { rust_id = "KernelUnicodeToAnsi", id_value = 1000104, constant = "KER
 [exports.call]
 returns = "word"
 params = [
-  { name = "arg0", type = "FarPointer" },
-  { name = "arg1", type = "FarPointer" },
-  { name = "arg2", type = "U16" },
+  { name = "source", type = "FarPointer" },
+  { name = "destination", type = "FarPointer" },
+  { name = "code_page", type = "U16" },
 ]
 
 [[exports]]

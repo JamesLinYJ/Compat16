@@ -299,6 +299,38 @@ impl<'a> LocalHeap<'a> {
         })
     }
 
+    /// Replaces the guest far procedure stored for `LocalNotify` and returns
+    /// the previous one. Zero clears the slot. The value is not a host pointer.
+    pub fn replace_notify(&mut self, procedure: u32) -> Result<u32, LocalHeapError> {
+        let offset = usize::from(self.info) + HEAP_NOTIFY_OFFSET;
+        let low = read_word(self.dgroup, offset)
+            .ok_or(LocalHeapError::CorruptHeapInfo { offset })?;
+        let high = read_word(self.dgroup, offset + 2)
+            .ok_or(LocalHeapError::CorruptHeapInfo { offset: offset + 2 })?;
+        let previous = u32::from(low) | (u32::from(high) << 16);
+        write_word(
+            self.dgroup,
+            &mut self.write_spans,
+            offset,
+            (procedure & 0xffff) as u16,
+        )
+        .map_err(|error| LocalHeapError::preserve_write_error(
+            error,
+            LocalHeapError::CorruptHeapInfo { offset },
+        ))?;
+        write_word(
+            self.dgroup,
+            &mut self.write_spans,
+            offset + 2,
+            (procedure >> 16) as u16,
+        )
+        .map_err(|error| LocalHeapError::preserve_write_error(
+            error,
+            LocalHeapError::CorruptHeapInfo { offset: offset + 2 },
+        ))?;
+        Ok(previous)
+    }
+
     /// Returns a validated snapshot of the guest-resident arena chain.
     /// Sentinel arenas are omitted. Handle-table and heap-metadata arenas stay
     /// visible as fixed allocations because they occupy real local-heap space.

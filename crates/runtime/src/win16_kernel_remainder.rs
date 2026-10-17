@@ -4,7 +4,7 @@
 //! perform returns the documented failure value and does not report success.
 
 use guest_core::memory::Memory;
-use win16_abi::local_heap::LocalHeap;
+use win16_abi::local_heap::{LocalHeap, LocalHeapError};
 use win16_abi::task_database::TASK_DATABASE_ERROR_MODE_OFFSET;
 use win16_abi::{
     Access, Win16Argument, Win16KernelRemainderRequest, Win16ReturnKind, Win16ShellRegistryRequest,
@@ -31,6 +31,7 @@ impl Win16State {
     pub(super) fn execute_kernel_remainder(
         &mut self,
         request: Win16KernelRemainderRequest,
+        caller_ds: u16,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<KernelRemainderOutcome, RuntimeError> {
@@ -44,7 +45,7 @@ impl Win16State {
             return Ok(KernelRemainderOutcome::Terminate(0));
         }
         Ok(KernelRemainderOutcome::Value(self.kernel_remainder_value(
-            ordinal, &arguments, memory, host,
+            ordinal, &arguments, caller_ds, memory, host,
         )?))
     }
 
@@ -69,10 +70,18 @@ impl Win16State {
         &mut self,
         ordinal: u16,
         arguments: &[Win16Argument],
+        caller_ds: u16,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
         match ordinal {
+            14 => self.kernel_local_notify(arg_dword(arguments, 0)?, caller_ds, memory),
+            // Previous-callback or previous-size zero would look like a successful
+            // first registration. These calls are not installed.
+            38 | 39 | 40 | 106 | 140 | 154 | 202 | 341 | 343 | 619 => Err(RuntimeError::new(
+                Kind::CompatibilityGap,
+                "Win16 KERNEL registration is not installed",
+            )),
             75 | 360 => Ok(HFILE_ERROR),
             99 => self.kernel_error_mode_pointer(),
             138 => self.kernel_heap_spaces(arg_word(arguments, 0)?, memory),
@@ -85,6 +94,8 @@ impl Win16State {
             460 | 461 | 495 => Ok(WAIT_FAILED),
             462 => Ok(u32::from(self.current_task_handle()?)),
             471 => Ok(self.kernel_get_current_pdb()),
+            // RegisterServiceProcess is BOOL. Zero is the documented failure.
+            491 => Ok(0),
             627 => self.kernel_is_bad_flat(arguments, memory),
             652 => {
                 let id = arg_dword(arguments, 0)?;
@@ -106,27 +117,90 @@ impl Win16State {
         Ok((u32::from(task) << 16) | u32::from(offset))
     }
 
-    /// High word: global free bytes, saturated. Low word: local `count_free`
-    /// for the module selector, or for the current instance when the module is 0.
+    /// High word: that module's local-heap size. Low word: `count_free`.
+    /// Module 0 is the current instance. Any other word is an `HMODULE`.
     fn kernel_heap_spaces(&self, module: u16, memory: &Memory) -> Result<u32, RuntimeError> {
-        let global = self.kernel_get_free_space(0)?.min(u32::from(u16::MAX)) as u16;
-        let selector = if module == 0 {
-            self.instance_selector.raw().0
-        } else {
-            module
+        let Some(selector) = self.module_local_heap_selector(module) else {
+            return Ok(0);
         };
-        let local = self.local_heap_free_bytes(selector, memory);
-        Ok((u32::from(global) << 16) | u32::from(local))
-    }
-
-    fn local_heap_free_bytes(&self, selector: u16, memory: &Memory) -> u16 {
         let Ok((_, mut bytes)) = self.local_segment(selector, false, memory) else {
-            return 0;
+            return Ok(0);
         };
         let Ok(heap) = LocalHeap::open(&mut bytes) else {
-            return 0;
+            return Ok(0);
         };
-        heap.count_free().unwrap_or(0)
+        let free = heap.count_free().map_err(|error| {
+            RuntimeError::with_source(
+                Kind::GuestFault,
+                "read Win16 local heap free space",
+                error,
+            )
+        })?;
+        let size = heap.heap_size().map_err(|error| {
+            RuntimeError::with_source(Kind::GuestFault, "read Win16 local heap size", error)
+        })?;
+        Ok((u32::from(size) << 16) | u32::from(free))
+    }
+
+    fn module_local_heap_selector(&self, module: u16) -> Option<u16> {
+        if module == 0 {
+            return Some(self.instance_selector.raw().0);
+        }
+        let handle = self.modules.by_handle(module)?;
+        let record = self.modules.records.get(&handle)?;
+        if let Some(definition) = record.definition.as_ref() {
+            let number = definition.header.automatic_data_segment;
+            if number != 0 {
+                if let Some(selector) = record
+                    .loaded
+                    .as_ref()
+                    .and_then(|loaded| loaded.segment_selector(number))
+                {
+                    return Some(selector.0);
+                }
+            }
+        }
+        record
+            .builtin_data_selector
+            .map(|selector| selector.raw().0)
+    }
+
+    /// Stores `procedure` in the caller's local-heap notify slot and returns
+    /// the previous guest far procedure. An uninitialized heap is not success.
+    fn kernel_local_notify(
+        &mut self,
+        procedure: u32,
+        caller_ds: u16,
+        memory: &mut Memory,
+    ) -> Result<u32, RuntimeError> {
+        let (address, mut bytes) = self.local_segment(caller_ds, true, memory)?;
+        let mut heap = match LocalHeap::open(&mut bytes) {
+            Ok(heap) => heap,
+            Err(LocalHeapError::Uninitialized) => {
+                return Err(RuntimeError::new(
+                    Kind::CompatibilityGap,
+                    "Win16 LocalNotify has no initialized local heap",
+                ));
+            }
+            Err(error) => {
+                return Err(RuntimeError::with_source(
+                    Kind::GuestFault,
+                    "open Win16 local heap for LocalNotify",
+                    error,
+                ));
+            }
+        };
+        let previous = heap.replace_notify(procedure).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::GuestFault,
+                "store Win16 LocalNotify procedure",
+                error,
+            )
+        })?;
+        let spans = heap.take_write_spans();
+        drop(heap);
+        super::local_heap::commit_local_spans(memory, address, &bytes, &spans)?;
+        Ok(previous)
     }
 
     fn kernel_is_bad_flat(
@@ -142,33 +216,43 @@ impl Win16State {
         Ok(u32::from(u16::from(read != 0 || write != 0)))
     }
 
-    /// `UnicodeToAnsi(destination, source, capacity)`. Unrepresentable text and
-    /// a short buffer return 0 and leave the destination unchanged.
+    /// `UnicodeToAnsi(source, destination, code_page)`. A null pointer, an
+    /// unsupported page, or a destination that cannot hold the ANSI bytes
+    /// returns 0 and writes nothing. The word result counts the bytes written,
+    /// including the terminating NUL.
     fn kernel_unicode_to_ansi(
         &self,
         arguments: &[Win16Argument],
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        let destination = arg_dword(arguments, 0)?;
-        let source = arg_dword(arguments, 1)?;
-        let capacity = arg_word(arguments, 2)?;
-        if destination == 0 || source == 0 || capacity == 0 {
+        let source = arg_dword(arguments, 0)?;
+        let destination = arg_dword(arguments, 1)?;
+        let code_page = arg_word(arguments, 2)?;
+        if source == 0 || destination == 0 {
             return Ok(0);
         }
+        let page_id = if code_page == 0 {
+            u16::try_from(host.win16_ansi_code_page()).unwrap_or(0)
+        } else {
+            code_page
+        };
+        let Ok(page) = text_codec::CodePage::try_from(page_id) else {
+            return Ok(0);
+        };
         let Some(units) = self.read_utf16_z(source, memory) else {
             return Ok(0);
         };
         let Ok(text) = String::from_utf16(&units) else {
             return Ok(0);
         };
-        let Ok(encoded) = host.encode_win16_ansi(&text) else {
+        let Ok(encoded) = page.encode(&text) else {
             return Ok(0);
         };
         let width = encoded.len().saturating_add(1);
-        if width > usize::from(capacity) {
+        let Ok(count) = u16::try_from(width) else {
             return Ok(0);
-        }
+        };
         let Ok(pointer) = self.selectors.pointer_from_far(destination) else {
             return Ok(0);
         };
@@ -184,12 +268,7 @@ impl Win16State {
         self.selectors
             .write(memory, pointer, &bytes)
             .map_err(crate::runtime_error)?;
-        u32::try_from(bytes.len() - 1).map_err(|_| {
-            RuntimeError::new(
-                Kind::InternalInvariant,
-                "Win16 UnicodeToAnsi length exceeds a dword",
-            )
-        })
+        Ok(u32::from(count))
     }
 
     fn read_utf16_z(&self, far: u32, memory: &Memory) -> Option<Vec<u16>> {
