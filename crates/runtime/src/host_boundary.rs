@@ -391,6 +391,16 @@ pub trait RuntimeHost:
             "host Win16 multimedia I/O services are unavailable",
         ))
     }
+    /// Session mixer. The default does not invent a device or a success code.
+    fn win16_mixer(
+        &mut self,
+        _operation: crate::Win16HostMixerOperation,
+    ) -> Result<crate::Win16HostMixerResult, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 mixer services are unavailable",
+        ))
+    }
     /// Execute an owned direct MSACM request. Guest memory, callbacks, and
     /// 16-bit handles must already have been translated by the runtime.
     fn win16_acm(

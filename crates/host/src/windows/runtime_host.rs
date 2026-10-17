@@ -115,6 +115,12 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<runtime::Win16HostMediaIoResult, RuntimeError> {
         runtime_host_multimedia::media_io(self, operation)
     }
+    fn win16_mixer(
+        &mut self,
+        operation: runtime::Win16HostMixerOperation,
+    ) -> Result<runtime::Win16HostMixerResult, RuntimeError> {
+        Ok(self.win16_session_mixer.execute(operation))
+    }
     fn win16_acm(
         &mut self,
         operation: runtime::Win16HostAcmOperation,

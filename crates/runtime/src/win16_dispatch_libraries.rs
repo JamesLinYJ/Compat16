@@ -145,6 +145,7 @@ impl Win16State {
             }
             Win16ApiRequest::Winsock(request) => self.winsock_api(request, memory, host)?,
             Win16ApiRequest::MediaTime(request) => self.media_time_api(request, memory, host)?,
+            Win16ApiRequest::Mixer(request) => self.mixer_api(request, memory, host)?,
             Win16ApiRequest::MediaIo(request) => self.media_io_api(request, memory, host)?,
             Win16ApiRequest::Midi(request) => self.midi_api(request, memory, host)?,
             Win16ApiRequest::Multimedia(_) => return Err(RuntimeError::new(

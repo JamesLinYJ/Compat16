@@ -190,6 +190,14 @@ impl Win16State {
             "multiple Win16 task cleanup failures",
             multimedia_cleanup,
         );
+        let mixer_cleanup = self.mixer.retire_all(host)
+            .map_err(|error| error.with_context("Win16 mixer cleanup"));
+        let mixer_retired = mixer_cleanup.is_ok();
+        remember(
+            &mut failures,
+            "multiple Win16 task cleanup failures",
+            mixer_cleanup,
+        );
         let automation_cleanup = self.close_automation(memory, host)
             .map_err(|error| error.with_context("Win16 Automation cleanup"));
         let automation_retired = automation_cleanup.is_ok();
@@ -211,7 +219,7 @@ impl Win16State {
         // barrier and shared-lane owner above has supplied its real proof.
         let producer_barriers_ready = wave_quiet && midi_quiet && mci_quiet && sound_retired
             && network_quiet && network_print_quiet
-            && netbios_retired && acm_retired && multimedia_retired
+            && netbios_retired && acm_retired && multimedia_retired && mixer_retired
             && automation_retired && files_retired;
         let windows_closed = if self.window_teardown_state == super::WindowTeardownState::Closed {
             // Closed is published only after the exact shared-source loop and

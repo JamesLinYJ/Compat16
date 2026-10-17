@@ -168,6 +168,8 @@ mod classic_dde_executor;
 mod media_time;
 #[path = "win16_media_io.rs"]
 mod media_io;
+#[path = "win16_mixer.rs"]
+mod mixer;
 #[path = "win16_runtime_midi.rs"]
 mod midi;
 #[path = "win16_window_post.rs"]
@@ -651,6 +653,7 @@ pub(crate) struct Win16State {
     mci: mci::Win16MciState,
     midi: midi::Win16MidiState,
     media_services: crate::win16_media_services::Win16MediaServicesState,
+    mixer: mixer::Win16MixerState,
     wave_audio: multimedia_buffers::Win16WaveState,
     sound: sound_state::Win16SoundState,
     automation: crate::win16_automation::Win16AutomationState,
@@ -874,6 +877,10 @@ impl Win16State {
 #[cfg(test)]
 #[path = "win16_test_support.rs"]
 mod test_support;
+
+#[cfg(test)]
+#[path = "win16_mixer_tests.rs"]
+mod mixer_tests;
 
 #[cfg(test)]
 #[path = "win16_destroy_receipt_tests.rs"]

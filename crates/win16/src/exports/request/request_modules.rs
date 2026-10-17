@@ -140,6 +140,14 @@ mod media_time;
 pub use media_time::{
     MMTIME16_SIZE, TIMECAPS16_SIZE, Win16MediaTimeRequest, Win16Mmtime16, Win16TimeCaps16,
 };
+#[path = "mixer.rs"]
+mod mixer;
+pub use mixer::{
+    MAXPNAMELEN, MIXERCAPS16_SIZE, MIXERCONTROL16_SIZE, MIXERCONTROLDETAILS16_SIZE,
+    MIXERLINE16_SIZE, MIXERLINECONTROLS16_SIZE, MIXER_LONG_NAME_CHARS, MIXER_SHORT_NAME_CHARS,
+    Win16MixerCaps16, Win16MixerControl16, Win16MixerControlDetails16, Win16MixerLine16,
+    Win16MixerLineControls16, Win16MixerRequest,
+};
 #[path = "media_io.rs"]
 mod media_io;
 pub use media_io::{

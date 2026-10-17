@@ -97,6 +97,18 @@ pub(super) fn decode(
         | Win16ExportId::Ole2DispSafeArrayDestroyData => Win16ApiRequest::Ole2Disp(
             super::super::call_ole2disp::decode(descriptor, arguments, selectors, memory)?,
         ),
+        Win16ExportId::MmsystemMixerGetNumDevs
+        | Win16ExportId::MmsystemMixerGetDevCaps
+        | Win16ExportId::MmsystemMixerOpen
+        | Win16ExportId::MmsystemMixerClose
+        | Win16ExportId::MmsystemMixerMessage
+        | Win16ExportId::MmsystemMixerGetLineInfo
+        | Win16ExportId::MmsystemMixerGetId
+        | Win16ExportId::MmsystemMixerGetLineControls
+        | Win16ExportId::MmsystemMixerGetControlDetails
+        | Win16ExportId::MmsystemMixerSetControlDetails => Win16ApiRequest::Mixer(
+            super::super::call_mixer::decode(descriptor, arguments)?,
+        ),
         Win16ExportId::MediaTimeGetSystemTime
         | Win16ExportId::MediaTimeGetDevCaps
         | Win16ExportId::MediaTimeBeginPeriod

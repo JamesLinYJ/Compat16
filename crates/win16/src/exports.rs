@@ -49,6 +49,8 @@ mod call_media_io;
 mod call_mci;
 #[path = "exports/call_win16_media_time.rs"]
 mod call_media_time;
+#[path = "exports/call_win16_mixer.rs"]
+mod call_mixer;
 #[path = "exports/call_win16_midi.rs"]
 mod call_midi;
 #[path = "exports/call_win16_multimedia.rs"]
@@ -99,7 +101,11 @@ pub use request::{
     Win16KernelStringRequest, Win16KernelStringsRequest, Win16KernelTaskRequest,
     Win16KeyboardConversion, Win16KeyboardRequest, Win16LibraryCodePageRequest,
     Win16LibraryInterruptsRequest, Win16LibraryRequest, Win16LibraryStringsRequest,
+    MAXPNAMELEN, MIXERCAPS16_SIZE, MIXERCONTROL16_SIZE, MIXERCONTROLDETAILS16_SIZE,
+    MIXERLINE16_SIZE, MIXERLINECONTROLS16_SIZE, MIXER_LONG_NAME_CHARS, MIXER_SHORT_NAME_CHARS,
     Win16LibraryToolhelpRequest, Win16LzExpandRequest, Win16MediaIoRequest, Win16MediaTimeRequest,
+    Win16MixerCaps16, Win16MixerControl16, Win16MixerControlDetails16, Win16MixerLine16,
+    Win16MixerLineControls16, Win16MixerRequest,
     Win16MidiDirection, Win16MidiRequest, Win16MidiStreamArgument,
     MIDIHDR16_SIZE, MIDIINCAPS16_SIZE, MIDIOUTCAPS16_SIZE, Win16MidiHeader16,
     Win16MidiInCaps16, Win16MidiOutCaps16,
