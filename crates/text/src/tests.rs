@@ -132,5 +132,28 @@ fn filename_case_mapping_matches_every_byte_of_the_guest_nls_table() {
     assert_eq!(&table.uppercase_record()[..2], &[128, 0]);
     assert_eq!(&output[0x80..], &table.uppercase_record()[2..]);
     for byte in 0..128u8 { assert_eq!(output[usize::from(byte)], byte.to_ascii_uppercase()); }
-    assert!(dos_code_page_tables(CodePage::Cp936).is_none());
+    let prc = dos_code_page_tables(CodePage::Cp936).unwrap();
+    assert_eq!(&prc.uppercase_record()[..2], &[128, 0]);
+    assert_eq!(&prc.uppercase_record()[2..], &(128..=255).collect::<Vec<u8>>());
+}
+
+#[test]
+fn prc936_tables_preserve_high_bytes_and_filename_conversion_respects_character_boundaries() {
+    let table = dos_code_page_tables(CodePage::Cp936).unwrap();
+    assert_eq!(&table.collation_record()[..2], &[0, 1]);
+    for byte in 0..=255u8 {
+        assert_eq!(table.collation_record()[usize::from(byte) + 2], byte.to_ascii_uppercase());
+    }
+    for lead in 0x81..=0xfeu8 {
+        for trail in 0x40..=0xfeu8 {
+            let pair = [lead, trail];
+            if CodePage::Cp936.decode(&pair).is_ok() {
+                let source = [b'a', lead, trail, b'z'];
+                assert_eq!(uppercase_oem_name(&source, CodePage::Cp936).unwrap(), [b'A', lead, trail, b'Z']);
+            }
+        }
+    }
+    assert!(uppercase_oem_name(&[0x81, 0x7f], CodePage::Cp936).is_err());
+    let fullwidth = CodePage::Cp936.encode("ａ").unwrap();
+    assert_eq!(uppercase_oem_name(&fullwidth, CodePage::Cp936).unwrap(), fullwidth);
 }

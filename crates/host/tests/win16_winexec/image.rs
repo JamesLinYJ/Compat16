@@ -2,6 +2,10 @@
 
 pub const ENVIRONMENT: &[u8; 20] = b"C16=guest\0PATH=BIN\0\0";
 
+#[path = "image/country.rs"]
+mod country;
+pub use country::{country_com, country_filename, country_program};
+
 #[path = "image/dbcs.rs"]
 mod dbcs;
 pub use dbcs::{dbcs_com, dbcs_program};

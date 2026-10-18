@@ -47,6 +47,8 @@ mod nls_tests;
 
 #[cfg(test)]
 mod nls_country_tests;
+#[cfg(test)]
+mod nls_prc_tests;
 
 #[cfg(test)]
 mod device_tests;

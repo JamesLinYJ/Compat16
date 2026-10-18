@@ -20,6 +20,10 @@ mod stdin;
 mod dbcs;
 
 #[cfg(windows)]
+#[path = "win16_winexec/country.rs"]
+mod country;
+
+#[cfg(windows)]
 #[path = "win16_winexec/registry_aliases.rs"]
 mod registry_aliases;
 

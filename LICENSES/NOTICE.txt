@@ -3,7 +3,7 @@ Source and data notices
 
 The workspace manifest declares LGPL-2.1-or-later; the full text is in the root LICENSE. Third-party data and derivative source retain their own notices:
 
-- MS-DOS 4 US/CP437 NLS data: Microsoft Corporation copyright and MIT license; the source table points to LICENSES/Microsoft-MS-DOS-MIT.txt.
+- MS-DOS 4 US/CP437 and PRC/CP936 NLS data: Microsoft Corporation copyright and MIT license; the source tables point to LICENSES/Microsoft-MS-DOS-MIT.txt.
 - MS-DOS 4 extended-error classification values: Microsoft Corporation copyright and MIT license; see LICENSES/Microsoft-MS-DOS-MIT.txt.
 
 Registry crate licenses and notices are collected in LICENSES/DEPENDENCIES.txt. These notices do not claim Microsoft authored the project.

@@ -5,6 +5,8 @@ use guest_core::{GuestMemory, Registers, real_address};
 use text_codec::CodePage;
 
 use super::DosKernel;
+mod country;
+use country::CountryProfile;
 
 const COLLATING_TABLE_LEN: usize = 258;
 const UPPERCASE_TABLE_LEN: usize = 130;
@@ -56,7 +58,7 @@ impl DosKernel {
     }
 
     /// Register a guest far pointer to the DOS uppercase table installed in
-    /// guest ROM. Both INT 21h/6502h and /6504h use this US/437 table.
+    /// guest ROM. Both INT 21h/6502h and /6504h use the selected profile.
     pub fn set_uppercase_table_address(
         &mut self,
         code_page: CodePage,
@@ -126,9 +128,10 @@ impl DosKernel {
             self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
             return Ok(DosAction::Continue);
         }
-        let Some(code_page) = Self::requested_code_page(regs, host) else {
+        let Some(profile) = Self::requested_profile(regs, host) else {
             return self.country_not_found(regs);
         };
+        let code_page = profile.page;
         let returned = requested.min(COUNTRY_INFO_LEN);
         let destination = memory.resolve_caller_pointer(regs.es, regs.di())?;
         memory.validate_caller_range(
@@ -149,7 +152,7 @@ impl DosKernel {
         } else {
             (case_segment, case_offset)
         };
-        let cinfo = Self::us_cp437_cinfo(case_segment, case_offset);
+        let cinfo = profile.cinfo(case_segment, case_offset);
 
         let size = (returned - 3).min(COUNTRY_CINFO_LEN);
         let mut record = [0; COUNTRY_INFO_LEN];
@@ -175,9 +178,10 @@ impl DosKernel {
             self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
             return Ok(DosAction::Continue);
         }
-        let Some(code_page) = Self::requested_code_page(regs, host) else {
+        let Some(profile) = Self::requested_profile(regs, host) else {
             return self.country_not_found(regs);
         };
+        let code_page = profile.page;
         let destination = memory.resolve_caller_pointer(regs.es, regs.di())?;
         memory.validate_caller_range(
             destination,
@@ -241,15 +245,16 @@ impl DosKernel {
             return self.country_not_found(regs);
         }
 
+        let current = CountryProfile::current(host.guest_code_page());
         let country = match regs.al() {
-            0x00 => 1,
+            0x00 => current.country,
             0x01..=0xfe => u16::from(regs.al()),
             0xff => regs.bx(),
         };
-        if country != 1 || !matches!(host.guest_code_page(), CodePage::Cp437) {
+        let Some(profile) = CountryProfile::requested(country, current.page) else {
             return self.country_not_found(regs);
-        }
-        let (case_segment, case_offset) = self.case_map_address(CodePage::Cp437)?;
+        };
+        let (case_segment, case_offset) = self.case_map_address(profile.page)?;
         self.validate_registered_case_map(memory, case_segment, case_offset)?;
         let destination = memory.resolve_caller_pointer(regs.ds, regs.dx())?;
         memory.validate_caller_range(
@@ -264,7 +269,7 @@ impl DosKernel {
         let case_map =
             memory.expose_dos_pointer(case_segment, case_offset, 1, DosPointerAccess::Execute)?;
         let (case_segment, case_offset) = case_map.words();
-        let cinfo = Self::us_cp437_cinfo(case_segment, case_offset);
+        let cinfo = profile.cinfo(case_segment, case_offset);
         // DOS 4's actual GETSET.ASM copies OLD_COUNTRY_SIZE = 24 bytes from
         // ccDFormat. The documented 32-byte caller buffer's final eight bytes
         // are therefore deliberately left unchanged.
@@ -274,42 +279,18 @@ impl DosKernel {
             regs.dx(),
             &cinfo[4..4 + LEGACY_COUNTRY_INFO_LEN],
         )?;
-        regs.set_ax(1);
-        regs.set_bx(1);
+        regs.set_ax(profile.country);
+        regs.set_bx(profile.country);
         Self::success(regs);
         Ok(DosAction::Continue)
     }
 
-    fn requested_code_page(regs: &Registers, host: &impl DosHost) -> Option<CodePage> {
-        let country = regs.dx();
-        if country != u16::MAX && country != 1 {
-            return None;
-        }
-        let code_page = if regs.bx() == u16::MAX {
-            host.guest_code_page()
-        } else {
-            CodePage::try_from(regs.bx()).ok()?
-        };
-        upper_case_table(code_page).map(|_| code_page)
-    }
-
-    fn us_cp437_cinfo(case_segment: u16, case_offset: u16) -> [u8; COUNTRY_CINFO_LEN] {
-        let mut cinfo = [0; COUNTRY_CINFO_LEN];
-        cinfo[0..2].copy_from_slice(&1u16.to_le_bytes());
-        cinfo[2..4].copy_from_slice(&437u16.to_le_bytes());
-        // Microsoft MKCNTRY.ASM's US cinfo row (line 647): MDY, '$', ',',
-        // '.', '-', ':', 2 currency digits, 12-hour time, and ',' list sep.
-        cinfo[6] = b'$';
-        cinfo[11] = b',';
-        cinfo[13] = b'.';
-        cinfo[15] = b'-';
-        cinfo[17] = b':';
-        cinfo[20] = 2;
-        cinfo[21] = 0; // HR12
-        cinfo[22..24].copy_from_slice(&case_offset.to_le_bytes());
-        cinfo[24..26].copy_from_slice(&case_segment.to_le_bytes());
-        cinfo[26] = b',';
-        cinfo
+    fn requested_profile(regs: &Registers, host: &impl DosHost) -> Option<CountryProfile> {
+        let current = CountryProfile::current(host.guest_code_page());
+        let country = if regs.dx() == u16::MAX { current.country } else { regs.dx() };
+        let page = if regs.bx() == u16::MAX { current.page }
+            else { CodePage::try_from(regs.bx()).ok()? };
+        CountryProfile::requested(country, page)
     }
 
     fn collating_table_address(&self, code_page: CodePage) -> Result<(u16, u16), DosError> {

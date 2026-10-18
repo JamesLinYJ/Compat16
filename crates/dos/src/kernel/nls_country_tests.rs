@@ -68,7 +68,7 @@ fn microsoft_us437_uppercase_table_has_the_documented_length_and_source_values()
     for byte in 0xb0_u8..=0xff {
         assert_eq!(table[usize::from(byte - 0x80) + 2], byte);
     }
-    assert!(upper_case_table(CodePage::Cp936).is_none());
+    assert_eq!(upper_case_table(CodePage::Cp936).unwrap()[2..], (128..=255).collect::<Vec<u8>>());
 }
 
 #[test]

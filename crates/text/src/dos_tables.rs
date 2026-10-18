@@ -2,8 +2,9 @@
 
 use crate::CodePage;
 mod cp437;
+mod cp936;
 
-/// Immutable records for the built-in US DOS profile. Their length words are
+/// Immutable records for the built-in DOS profiles. Their length words are
 /// part of the DOS representation; consumers use accessors instead of keeping
 /// separate character mappings in each subsystem.
 pub struct DosCodePageTables {
@@ -28,11 +29,16 @@ static CP437: DosCodePageTables = DosCodePageTables {
     uppercase: &cp437::UPPERCASE,
 };
 
+static CP936: DosCodePageTables = DosCodePageTables {
+    collation: &cp936::COLLATION,
+    uppercase: &cp936::UPPERCASE,
+};
+
 /// Only profiles backed by verified DOS data are returned here. Encoding
 /// support by itself does not imply that a matching DOS NLS profile exists.
 pub const fn dos_code_page_tables(code_page: CodePage) -> Option<&'static DosCodePageTables> {
     match code_page {
         CodePage::Cp437 => Some(&CP437),
-        CodePage::Cp936 => None,
+        CodePage::Cp936 => Some(&CP936),
     }
 }

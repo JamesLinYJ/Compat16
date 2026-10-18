@@ -53,6 +53,8 @@ The output is placed in `dist/arm64` or `dist/x64`. Keep the four runtime files 
 
 Supply the legacy application and its companion files yourself. Use the console launcher's `--help` option for available settings.
 
+`--code-page 437` selects the built-in US/437 DOS country profile; `--code-page 936` selects PRC/936. Their country records, collation and uppercase tables do not depend on the host locale. CP936 filenames preserve double-byte character boundaries. Other country/code-page pairs and runtime country changes remain unsupported.
+
 ### Optional profile guided optimization
 
 PGO uses the pinned Rust 1.99.0 profiler runtime, its bundled COFF linker, and the `llvm-tools-preview` component. Install that optional component into the same Rust installation used by the build script. For the project-local toolchain:
@@ -158,6 +160,8 @@ Compat16 在进程内执行旧程序的 x86 指令，并把 DOS / Win16 接口�
 ```
 
 旧程序及其配套文件由使用者自行提供。控制台入口支持 `--help`。
+
+`--code-page 437` 使用内置的美国/437 DOS 国家配置，`--code-page 936` 使用中国/936 配置。国家信息、排序表和大小写表不依赖宿主区域设置，CP936 文件名转换保留双字节字符边界。其他国家与代码页组合及运行时国家切换仍未实现。
 
 ### 可选的 PGO 优化
 
