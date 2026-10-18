@@ -1402,3 +1402,6 @@ mod file_read_access_tests;
 
 #[path = "file_write_access_tests.rs"]
 mod file_write_access_tests;
+
+#[path = "current_directory_tests.rs"]
+mod current_directory_tests;

@@ -4,6 +4,10 @@
 mod image;
 
 #[cfg(windows)]
+#[path = "win16_winexec/current_directory.rs"]
+mod current_directory;
+
+#[cfg(windows)]
 #[path = "win16_winexec/load_module.rs"]
 mod load_module;
 
@@ -43,6 +47,7 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::named_class_dialog_icon_program(),
         image::default_printer_round_trip_program(),
         image::ext_device_mode_round_trip_program(),
+        image::current_directory_program(),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");
         assert_eq!(module.header.target_os, 2);

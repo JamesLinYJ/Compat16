@@ -2,6 +2,10 @@
 
 pub const ENVIRONMENT: &[u8; 20] = b"C16=guest\0PATH=BIN\0\0";
 
+#[path = "image/current_directory.rs"]
+mod current_directory;
+pub use current_directory::{current_directory_com, current_directory_program};
+
 #[path = "image/global_notify.rs"]
 mod global_notify;
 pub use global_notify::global_notify_program;

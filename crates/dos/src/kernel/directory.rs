@@ -137,6 +137,10 @@ impl DosKernel {
         result.extend_from_slice(&path[..count]);
         result.push(0);
         memory.write_caller_range(pointer, 0, &result, DosSpanPolicy::Linear)?;
+        // DOS returns AX=0100h on success, beyond the documented CF result.
+        // Legacy Windows pathname routines use AL as their NUL search byte.
+        // RBIL, INT 21h/AH=47h: https://fd.lod.bz/rbil/interrup/dos_kernel/2147.html
+        regs.set_ax(0x0100);
         Self::success(regs);
         Ok(DosAction::Continue)
     }

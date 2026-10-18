@@ -496,6 +496,9 @@ impl Win16State {
         address_space
             .write_caller_range(pointer, 0, &terminated, DosSpanPolicy::Linear)
             .map_err(crate::runtime_error)?;
+        // Match the DOS kernel's AH=47h success result. Win16 pathname
+        // routines also rely on AL=0 when scanning the returned ASCIIZ path.
+        regs.set_ax(0x0100);
         regs.set_carry(false);
         Ok(DosAction::Continue)
     }
