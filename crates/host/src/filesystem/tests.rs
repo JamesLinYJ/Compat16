@@ -11,6 +11,7 @@ mod commit;
 mod extended_open;
 mod directory_errors;
 mod oem_short_names;
+mod canonical_name;
 mod input_status;
 mod seek;
 mod write_time;

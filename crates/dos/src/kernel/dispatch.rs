@@ -85,6 +85,7 @@ impl DosKernel {
             0x56 => self.rename_file(regs, memory, host),
             0x57 => self.file_date_time(regs, host),
             0x59 => Ok(self.get_extended_error(regs)),
+            0x60 => self.canonical_name(regs, memory, host),
             0x68 => self.commit_file(regs, host),
             0x4d => {
                 regs.set_ax(u16::from(self.last_exit_code));

@@ -18,6 +18,9 @@ mod fcb_parse;
 #[cfg(windows)]
 #[path = "win16_winexec/fcb_search.rs"]
 mod fcb_search;
+#[cfg(windows)]
+#[path = "win16_winexec/canonical_name.rs"]
+mod canonical_name;
 
 #[cfg(windows)]
 #[path = "win16_winexec/extended_error.rs"]

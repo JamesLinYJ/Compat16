@@ -5,6 +5,8 @@ use super::state::Handle;
 use super::directory::{dos_field_matches, short_name_fields};
 #[path = "fcb_search_tests.rs"]
 mod fcb_search_tests;
+#[path = "canonical_name_tests.rs"]
+mod canonical_name_tests;
 use std::collections::{BTreeMap, VecDeque};
 use guest_core::{GuestMemory, MemoryError, PhysAddr, Registers};
 
@@ -67,6 +69,8 @@ pub(super) struct TestHost {
     search_next_error: Option<DosErrorCode>,
     search_close_error: Option<DosErrorCode>,
     search_entries_override: Option<Vec<DosDirectoryEntry>>,
+    short_names: BTreeMap<(Vec<u8>, Vec<u8>), Vec<u8>>,
+    short_name_queries: Vec<(Vec<u8>, Vec<u8>)>,
     next_id: u64,
     next_search_id: u64,
     drive: u8,
@@ -436,6 +440,11 @@ impl DosHost for TestHost {
         Ok(relative.len())
     }
 
+    fn file_short_name(&mut self, parent: &[u8], name: &[u8]) -> Result<Option<Vec<u8>>, DosHostError> {
+        let key = (parent.to_vec(), name.to_vec());
+        self.short_name_queries.push(key.clone());
+        Ok(self.short_names.get(&key).cloned())
+    }
     fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError> {
         if self.paths.contains_key(new_path) || self.directories.contains_key(new_path) {
             return Err(DosHostError::new(DosErrorCode::AccessDenied));
@@ -874,7 +883,7 @@ fn psp_dta_drive_exit_and_unsupported_calls_are_explicit() {
     assert_eq!(host.current_drive(), 4);
     assert_eq!(regs.al(), 3);
 
-    set_ah(&mut regs, 0x60);
+    set_ah(&mut regs, 0x61); // AH=60h now has the canonical-name buffer contract.
     assert_eq!(dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap(), DosAction::Continue);
     assert_eq!(regs.ax(), DosErrorCode::InvalidFunction as u16);
     assert!(regs.carry());

@@ -1,6 +1,7 @@
 mod block_lease;
 mod block_view;
 mod caller_address_space;
+mod canonical_name;
 mod console;
 mod time;
 mod temporary_file;

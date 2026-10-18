@@ -4,6 +4,7 @@
 //! virtual 8.3 names before they reach the capability-rooted `Dir`.
 
 mod aliases;
+mod canonical_name;
 mod directory;
 mod environment;
 mod extended_open;

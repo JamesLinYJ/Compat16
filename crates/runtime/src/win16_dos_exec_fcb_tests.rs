@@ -10,6 +10,8 @@ use dos_kernel::{
 };
 use guest_core::{GuestMemory, PhysAddr, Registers, real_address};
 use win16_abi::{AccessRights, SelectorTable};
+#[path = "win16_dos_canonical_name_tests.rs"]
+mod canonical_name_tests;
 
 const PATH: &[u8] = b"CHILD.COM\0";
 const FCB_INPUTS: [[u8; 16]; 2] = [
@@ -69,7 +71,9 @@ impl DosHost for ExecHost {
     fn directory_create(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn directory_remove(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn directory_set_current(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
-    fn directory_get_current(&mut self, _drive: u8, _output: &mut [u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
+    fn directory_get_current(&mut self, drive: u8, output: &mut [u8]) -> Result<usize, DosHostError> {
+        assert_eq!(drive,2); output[..4].copy_from_slice(b"WORK"); Ok(4)
+    }
     fn file_rename(&mut self, _old_path: &[u8], _new_path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn file_get_attributes(&mut self, _path: &[u8]) -> Result<u8, DosHostError> { panic!("unexpected host call") }
     fn file_set_attributes(&mut self, _path: &[u8], _attributes: u8) -> Result<(), DosHostError> { panic!("unexpected host call") }

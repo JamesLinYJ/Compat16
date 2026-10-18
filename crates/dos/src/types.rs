@@ -257,6 +257,13 @@ pub trait DosHost {
     /// `drive` is zero-based (0 is A:). Returns an unterminated path, excluding
     /// the drive and leading root separator; the caller owns the NUL byte.
     fn directory_get_current(&mut self, drive: u8, output: &mut [u8]) -> Result<usize, DosHostError>;
+    /// Return the existing entry's spelling in the DOS short-name namespace.
+    /// `parent` is an absolute DOS directory, `name` one literal component.
+    /// Missing entries/parents return None: AH=60h also accepts nonexistent
+    /// paths. Hosts without long-name aliases use the DOS lexical fallback.
+    fn file_short_name(&mut self, _parent: &[u8], _name: &[u8]) -> Result<Option<Vec<u8>>, DosHostError> {
+        Ok(None)
+    }
     fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError>;
     fn file_get_attributes(&mut self, path: &[u8]) -> Result<u8, DosHostError>;
     fn file_set_attributes(&mut self, path: &[u8], attributes: u8) -> Result<(), DosHostError>;

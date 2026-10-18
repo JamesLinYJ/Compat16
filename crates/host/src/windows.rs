@@ -904,6 +904,9 @@ impl DosHost for WindowsHost {
     ) -> Result<usize, DosHostError> {
         self.filesystem.directory_get_current(drive, output)
     }
+    fn file_short_name(&mut self, parent: &[u8], name: &[u8]) -> Result<Option<Vec<u8>>, DosHostError> {
+        self.filesystem.project_short_component(parent, name)
+    }
     fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError> {
         self.filesystem.file_rename(old_path, new_path)
     }
