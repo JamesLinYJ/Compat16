@@ -435,6 +435,7 @@ impl DosKernel {
     ) -> SearchKey {
         let (_, dta_segment, dta_offset, dta_lease) = search_address_key(caller, pointer);
         SearchKey {
+            kind: super::state::SearchKind::Dta,
             psp_segment: self.psp_segment,
             caller,
             dta_segment,
@@ -460,12 +461,12 @@ impl DosKernel {
     }
 }
 
-enum NextSearchError {
+pub(super) enum NextSearchError {
     Host(DosHostError),
     InvalidEntry,
 }
 
-fn next_matching_entry(
+pub(super) fn next_matching_entry(
     host: &mut impl DosHost,
     state: SearchState,
 ) -> Result<Option<DosDirectoryEntry>, NextSearchError> {
@@ -598,7 +599,7 @@ pub(super) fn parse_search_spec(
     Ok((directory.to_vec(), pattern))
 }
 
-fn expand_pattern_field(
+pub(super) fn expand_pattern_field(
     input: &[u8],
     output: &mut [u8],
     page: text_codec::CodePage,

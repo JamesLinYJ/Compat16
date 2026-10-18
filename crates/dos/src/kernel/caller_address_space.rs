@@ -176,7 +176,7 @@ impl DosKernel {
                 let pointer = pointers[index];
                 let (segment_or_selector, offset) = pointer.pointer().words();
                 let has_search = searches.keys().any(|key| {
-                    key.caller == caller
+                    key.kind == super::state::SearchKind::Dta && key.caller == caller
                         && key.dta_segment == segment_or_selector
                         && key.dta_offset == offset
                         && key.dta_lease == pointer.lease()
@@ -250,6 +250,7 @@ impl DosKernel {
             self.searches.remove(&key);
         }
 
+        self.fcb_searches.release_caller(caller);
         self.dta_by_caller.remove(&caller);
         if let Some(pointers) = self.retained_dta_by_caller.get_mut(&caller) {
             while let Some(pointer) = pointers.last().copied() {

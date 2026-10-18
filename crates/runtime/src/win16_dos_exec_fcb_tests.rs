@@ -23,6 +23,10 @@ struct ExecHost {
     opens: usize,
     closes: usize,
     cursor: usize,
+    search_entries: Vec<DosDirectoryEntry>,
+    search_position: usize,
+    search_opens: usize,
+    search_closes: usize,
 }
 
 impl DosHost for ExecHost {
@@ -69,11 +73,18 @@ impl DosHost for ExecHost {
     fn file_rename(&mut self, _old_path: &[u8], _new_path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn file_get_attributes(&mut self, _path: &[u8]) -> Result<u8, DosHostError> { panic!("unexpected host call") }
     fn file_set_attributes(&mut self, _path: &[u8], _attributes: u8) -> Result<(), DosHostError> { panic!("unexpected host call") }
-    fn directory_search_open(&mut self, _directory: &[u8]) -> Result<DosHostSearch, DosHostError> { panic!("unexpected host call") }
-    fn directory_search_next(&mut self, _search: DosHostSearch) -> Result<Option<DosDirectoryEntry>, DosHostError> { panic!("unexpected host call") }
-    fn directory_search_close(&mut self, _search: DosHostSearch) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn directory_search_open(&mut self, directory: &[u8]) -> Result<DosHostSearch, DosHostError> {
+        assert!(directory.is_empty()); self.search_position = 0; self.search_opens += 1; Ok(DosHostSearch(1))
+    }
+    fn directory_search_next(&mut self, search: DosHostSearch) -> Result<Option<DosDirectoryEntry>, DosHostError> {
+        assert_eq!(search, DosHostSearch(1)); let result = self.search_entries.get(self.search_position).cloned();
+        if result.is_some() { self.search_position += 1; } Ok(result)
+    }
+    fn directory_search_close(&mut self, search: DosHostSearch) -> Result<(), DosHostError> {
+        assert_eq!(search, DosHostSearch(1)); self.search_closes += 1; Ok(())
+    }
     fn guest_code_page(&self) -> text_codec::CodePage { text_codec::CodePage::Cp437 }
-    fn current_drive(&self) -> u8 { panic!("unexpected host call") }
+    fn current_drive(&self) -> u8 { 2 }
     fn select_drive(&mut self, _drive: u8) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn logical_drive_count(&self) -> u8 { 3 }
 }
@@ -94,6 +105,9 @@ impl crate::RuntimeNetbiosHost for ExecHost {}
 
 #[path = "win16_dos_fcb_parse_tests.rs"]
 mod parse_tests;
+
+#[path = "win16_dos_fcb_search_tests.rs"]
+mod search_tests;
 
 
 fn fixture() -> (Runtime, ExecHost) {

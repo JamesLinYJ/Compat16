@@ -28,6 +28,12 @@ impl DosKernel {
     /// The raw DOS code is retained even when its classification is unknown.
     /// Call this at the failure site; successful calls can leave CF unchanged.
     pub fn complete_service_failure(&mut self, regs: &mut Registers, code: u16) {
+        self.remember_extended_error(code);
+        regs.set_ax(code);
+        regs.set_carry(true);
+    }
+
+    pub(super) fn remember_extended_error(&mut self, code: u16) {
         let (class, action, locus) = match code {
             1 => (7, 4, 1),
             2 | 3 | 15 | 18 => (8, 3, 2),
@@ -56,8 +62,6 @@ impl DosKernel {
             action,
             locus,
         });
-        regs.set_ax(code);
-        regs.set_carry(true);
     }
 
     pub(super) fn get_extended_error(&self, regs: &mut Registers) -> DosAction {

@@ -319,7 +319,8 @@ impl Filesystem {
         parent: &Path,
         component: &str,
     ) -> Result<OsString, DosHostError> {
-        let alias = component.to_ascii_uppercase();
+        let alias = aliases::canonical_83(OsStr::new(component), self.guest_code_page)
+            .unwrap_or_else(|| component.to_ascii_uppercase());
         let requested = OsStr::new(component);
         let lookup = {
             let table = self.aliases_for(parent)?;

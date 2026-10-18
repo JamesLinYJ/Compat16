@@ -24,7 +24,14 @@ pub(super) struct Mcb {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(super) enum SearchKind {
+    Dta,
+    FcbScan,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(super) struct SearchKey {
+    pub(super) kind: SearchKind,
     pub(super) psp_segment: u16,
     pub(super) caller: DosCallerId,
     pub(super) dta_segment: u16,
@@ -105,6 +112,7 @@ pub struct DosKernel {
     /// rollback. They remain owned until a later checked process cleanup.
     pub(super) orphan_file_handles: Vec<DosHostFile>,
     pub(super) searches: BTreeMap<SearchKey, SearchState>,
+    pub(super) fcb_searches: super::fcb_search::Continuations,
     /// Guest far pointers to ROM-backed collation tables, keyed by code page.
     pub(super) collating_table_addresses: BTreeMap<u16, (u16, u16)>,
     /// Guest far pointers to ROM-backed extended uppercase tables, keyed by code page.
@@ -173,6 +181,7 @@ impl DosKernel {
             handles,
             orphan_file_handles: Vec::new(),
             searches: BTreeMap::new(),
+            fcb_searches: super::fcb_search::Continuations::default(),
             collating_table_addresses: BTreeMap::new(),
             uppercase_table_addresses: BTreeMap::new(),
             case_map_addresses: BTreeMap::new(),
@@ -531,6 +540,7 @@ impl DosKernel {
                 }
             }
         }
+        self.fcb_searches.release_psp(psp_segment);
     }
 
     /// Close owned searches without dropping a failed host identity. This is
@@ -549,7 +559,10 @@ impl DosKernel {
                 .keys()
                 .find(|key| key.psp_segment == psp_segment)
                 .copied();
-            let Some(key) = key else { return Ok(()) };
+            let Some(key) = key else {
+                self.fcb_searches.release_psp(psp_segment);
+                return Ok(());
+            };
             let Some(state) = self.searches.get(&key).copied() else {
                 return Err(DosHostError::new(DosErrorCode::InvalidHandle));
             };
@@ -574,6 +587,7 @@ impl DosKernel {
                 .first_key_value()
                 .map(|(key, state)| (*key, *state))
             else {
+                self.fcb_searches.clear();
                 return Ok(());
             };
             host.directory_search_close(state.host_search)?;

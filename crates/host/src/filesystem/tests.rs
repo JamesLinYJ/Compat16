@@ -10,6 +10,7 @@ use super::files::dos_dword;
 mod commit;
 mod extended_open;
 mod directory_errors;
+mod oem_short_names;
 mod input_status;
 mod seek;
 mod write_time;

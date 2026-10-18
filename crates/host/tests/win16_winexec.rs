@@ -16,6 +16,10 @@ mod dos_version;
 mod fcb_parse;
 
 #[cfg(windows)]
+#[path = "win16_winexec/fcb_search.rs"]
+mod fcb_search;
+
+#[cfg(windows)]
 #[path = "win16_winexec/extended_error.rs"]
 mod extended_error;
 

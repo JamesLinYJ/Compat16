@@ -34,6 +34,10 @@ pub use dos_version::{dos_version_com, dos_version_program};
 mod fcb_parse;
 pub use fcb_parse::fcb_parse_program;
 
+#[path = "image/fcb_search.rs"]
+mod fcb_search;
+pub use fcb_search::{fcb_search_filename, fcb_search_program};
+
 #[path = "image/child_dialog.rs"]
 mod child_dialog;
 pub use child_dialog::child_dialog_program;

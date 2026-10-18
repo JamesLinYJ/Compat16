@@ -3,6 +3,8 @@ use crate::{DosFileDisposition, DosFileOpenOutcome, DosFileOpenRequest, DosFileO
 use super::directory::{dos_path_drive, parse_search_spec, search_attribute_matches};
 use super::state::Handle;
 use super::directory::{dos_field_matches, short_name_fields};
+#[path = "fcb_search_tests.rs"]
+mod fcb_search_tests;
 use std::collections::{BTreeMap, VecDeque};
 use guest_core::{GuestMemory, MemoryError, PhysAddr, Registers};
 
@@ -64,6 +66,7 @@ pub(super) struct TestHost {
     search_open_error: Option<DosErrorCode>,
     search_next_error: Option<DosErrorCode>,
     search_close_error: Option<DosErrorCode>,
+    search_entries_override: Option<Vec<DosDirectoryEntry>>,
     next_id: u64,
     next_search_id: u64,
     drive: u8,
@@ -486,6 +489,7 @@ impl DosHost for TestHost {
                 size: 0,
             });
         }
+        if let Some(override_entries) = &self.search_entries_override { entries = override_entries.clone(); }
         self.next_search_id += 1;
         let token = DosHostSearch(self.next_search_id);
         self.searches.insert(token, TestDirectorySearch { entries, next: 0 });

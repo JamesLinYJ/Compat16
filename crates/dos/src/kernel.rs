@@ -13,6 +13,7 @@ mod extended_open;
 mod extended_error;
 mod files;
 mod fcb_parse;
+mod fcb_search;
 #[cfg(test)]
 mod fcb_parse_tests;
 mod file_commit;
