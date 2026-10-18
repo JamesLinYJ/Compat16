@@ -26,6 +26,9 @@ use super::win16_window_worker::{NativeCallbackContext, NativeWindowIdentity, Wo
 #[path = "win16_message_mdi.rs"]
 pub(super) mod mdi;
 
+#[path = "win16_window_dialog_default_init.rs"]
+mod dialog_init;
+
 /// Apply DefWindowProcW using either a validated live native callback frame or
 /// entirely host-owned buffers reconstructed from the typed operation.
 pub(super) fn default_message(
@@ -1051,6 +1054,16 @@ fn message_with_invocation(
             let Some(frame) = live else {
                 return Ok(None);
             };
+            // DefDlgProc is a nested USER operation. Authorize only this
+            // exact live initialization callback to reenter its creation's
+            // DLGPROC; merely finding an ancestor operation is insufficient.
+            let _dialog_init = if matches!(invocation, MessageInvocation::DialogDefault)
+                && frame.message == WM_INITDIALOG
+            {
+                dialog_init::DefaultInitScope::begin(
+                    state, hwnd, window, frame.creation, frame.operation,
+                )?
+            } else { None };
             invoke_message(
                 invocation,
                 hwnd,

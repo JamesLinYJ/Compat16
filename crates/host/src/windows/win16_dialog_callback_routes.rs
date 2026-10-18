@@ -37,9 +37,19 @@ pub(super) fn dialog_route(
     let cookie = l_param as usize;
     let active_operation = state.borrow().active_operations.last()
         .map(|operation| operation.id);
+    let existing_route = state.borrow().dialog_routes_by_native.get(&native).copied();
+    let nested_default = existing_route.filter(|route| route.class_init_in_progress
+        && route.class_init_default_operation.is_some()
+        && route.class_init_default_operation == active_operation);
     let pending = state.borrow().pending_dialog_routes.iter().rev()
         .find(|route| route.cookie == cookie
-            && active_operation == Some(route.operation))
+            && (active_operation == Some(route.operation)
+                || nested_default.is_some_and(|existing|
+                    existing.operation == route.operation
+                        && existing.creation == route.creation
+                        && existing.cookie == route.cookie
+                        && existing.window == route.root_token
+                        && existing.init_parameter == route.init_parameter)))
         .map(|route| (
             route.operation,
             route.creation,
@@ -51,14 +61,21 @@ pub(super) fn dialog_route(
     let Some((operation, creation, cookie, init_parameter, menu, needs_custom_root)) = pending else {
         return Ok(None);
     };
+    if let Some(existing) = nested_default {
+        // The outer initialization already published and validated these
+        // resources. Default reentry must not repeat creation-time menu,
+        // instance or icon publication after the class has run guest code.
+        if super::super::win16_window_identity::resolve(state, existing.window) == Some(hwnd) {
+            return Ok(Some(existing));
+        }
+        return Err(RuntimeError::new(Kind::InternalInvariant,
+            "private dialog default initialization lost its exact HWND route"));
+    }
     super::super::win16_dialog_icon_controls::before_init(state, operation, creation, hwnd)?;
     let instance = state.borrow().pending_dialog_routes.iter()
         .find(|pending| pending.operation == operation && pending.creation == creation)
         .map(|pending| pending.guest_instance).ok_or_else(|| RuntimeError::new(
             Kind::InternalInvariant, "dialog initialization lost its creation instance"))?;
-    let existing_route = {
-        state.borrow().dialog_routes_by_native.get(&native).copied()
-    };
     if let Some(existing) = existing_route {
         if existing.operation == operation
             && existing.creation == creation
@@ -94,6 +111,7 @@ pub(super) fn dialog_route(
         menu,
         class_init_in_progress: false,
         class_init_default_called: false,
+        class_init_default_operation: None,
     };
     let route_index = {
         let mut state = state.borrow_mut();

@@ -40,6 +40,10 @@ mod registry_aliases;
 mod child_dialog;
 
 #[cfg(windows)]
+#[path = "win16_winexec/dialog_init.rs"]
+mod dialog_init;
+
+#[cfg(windows)]
 #[path = "win16_winexec/registry.rs"]
 mod registry;
 

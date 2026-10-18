@@ -268,6 +268,7 @@ pub(super) fn identify(
                     menu,
                     class_init_in_progress: false,
                     class_init_default_called: false,
+                    class_init_default_operation: None,
                 });
             }
         }

@@ -44,6 +44,7 @@ impl Drop for DialogClassInitGuard {
         {
             current.class_init_in_progress = false;
             current.class_init_default_called = false;
+            current.class_init_default_operation = None;
         }
     }
 }

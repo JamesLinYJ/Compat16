@@ -346,6 +346,8 @@ pub(in crate::windows::win16_windows) struct DialogRoute {
     /// Exact nested USER phase used while routing private-class initialization.
     pub(in crate::windows::win16_windows) class_init_in_progress: bool,
     pub(in crate::windows::win16_windows) class_init_default_called: bool,
+    /// Scoped to the exact live DefDlgProc invocation inside class initialization.
+    pub(in crate::windows::win16_windows) class_init_default_operation: Option<u64>,
 }
 
 #[derive(Clone, Copy)]

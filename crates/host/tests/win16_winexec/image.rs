@@ -26,6 +26,10 @@ pub use dos_message::dos_message_com;
 mod child_dialog;
 pub use child_dialog::child_dialog_program;
 
+#[path = "image/dialog_init.rs"]
+mod dialog_init;
+pub use dialog_init::private_dialog_init_program;
+
 #[path = "image/registry.rs"]
 mod registry;
 pub use registry::{
