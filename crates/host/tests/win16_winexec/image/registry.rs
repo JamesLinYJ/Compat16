@@ -10,6 +10,9 @@ pub use buffer::registry_buffer_program;
 #[path = "registry/optional_length.rs"]
 mod optional_length;
 pub use optional_length::registry_optional_length_program;
+#[path = "registry/roots.rs"]
+mod roots;
+pub use roots::registry_roots_program;
 
 const KEY: u16 = 0;
 const SIZE: u16 = 4;

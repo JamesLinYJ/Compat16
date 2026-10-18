@@ -32,7 +32,7 @@ impl Win16State {
         if win31 && size_output == 0 {
             return Ok(87);
         }
-        let Ok(key) = self.compat.registry_key(key) else {
+        let Ok(key) = self.registry_key_for_api(key, win31, true) else {
             return Ok(6);
         };
         let size_pointer = if size_output == 0 {

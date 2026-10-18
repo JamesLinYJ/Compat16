@@ -162,3 +162,120 @@ fn registry_query_null_data_does_not_bypass_nonnull_length_pointer_checks() {
             .is_err()
     );
 }
+
+fn decoded_subkey(request: Win16ShellRegistryRequest) -> Vec<u8> {
+    match request {
+        Win16ShellRegistryRequest::OpenKey { subkey, .. }
+        | Win16ShellRegistryRequest::CreateKey { subkey, .. }
+        | Win16ShellRegistryRequest::DeleteKey { subkey, .. }
+        | Win16ShellRegistryRequest::SetValue { subkey, .. }
+        | Win16ShellRegistryRequest::QueryValue { subkey, .. } => subkey,
+        _ => panic!("path-based registry request"),
+    }
+}
+
+#[test]
+fn registry_default_root_classes_node_open_create_delete_are_shell_only() {
+    let (memory, selectors, far) = source(b".ClAsSeS\0");
+    for root in [0, 1, 0x8000_0000] {
+        for (shell, kernel) in [(1, 217), (2, 218), (4, 219)] {
+            let args = if shell == 4 {
+                vec![root, far]
+            } else {
+                vec![root, far, 0]
+            };
+            let args: Vec<_> = args.into_iter().map(Win16Argument::Dword).collect();
+            let expected = if root == 0 {
+                b"".as_slice()
+            } else {
+                b".ClAsSeS".as_slice()
+            };
+            assert_eq!(
+                decoded_subkey(
+                    Win16ShellRegistryRequest::decode_export(shell, &args, &selectors, &memory)
+                        .unwrap()
+                ),
+                expected
+            );
+            assert_eq!(
+                decoded_subkey(
+                    Win16ShellRegistryRequest::decode_kernel_export(
+                        kernel, &args, &selectors, &memory
+                    )
+                    .unwrap()
+                ),
+                b".ClAsSeS"
+            );
+        }
+    }
+}
+
+#[test]
+fn registry_default_root_classes_node_set_and_query_are_shell_only() {
+    let (memory, selectors, far) = source(b".classes\0");
+    for root in [0, 1, 0x8000_0000] {
+        for (shell, kernel, raw) in [
+            (5, 221, vec![root, far, 1, far, 0]),
+            (6, 224, vec![root, far, 0, far]),
+        ] {
+            let args: Vec<_> = raw.into_iter().map(Win16Argument::Dword).collect();
+            let expected = if root == 0 {
+                b"".as_slice()
+            } else {
+                b".classes".as_slice()
+            };
+            assert_eq!(
+                decoded_subkey(
+                    Win16ShellRegistryRequest::decode_export(shell, &args, &selectors, &memory)
+                        .unwrap()
+                ),
+                expected
+            );
+            assert_eq!(
+                decoded_subkey(
+                    Win16ShellRegistryRequest::decode_kernel_export(
+                        kernel, &args, &selectors, &memory
+                    )
+                    .unwrap()
+                ),
+                b".classes"
+            );
+        }
+    }
+}
+
+#[test]
+fn registry_default_root_does_not_rewrite_similarly_named_keys() {
+    for text in [b".classes2\0".as_slice(), b"x.classes\0", b".classes \0"] {
+        let (memory, selectors, far) = source(text);
+        let args = [0, far, 0].map(Win16Argument::Dword);
+        assert_eq!(
+            decoded_subkey(
+                Win16ShellRegistryRequest::decode_export(1, &args, &selectors, &memory).unwrap()
+            ),
+            &text[..text.len() - 1]
+        );
+    }
+}
+
+#[test]
+fn registry_close_and_enum_preserve_raw_root_for_api_specific_validation() {
+    let (memory, selectors, _) = source(b"\0");
+    for root in [0, 1, 0x8000_0000] {
+        let close = [root].map(Win16Argument::Dword);
+        assert_eq!(
+            Win16ShellRegistryRequest::decode_export(3, &close, &selectors, &memory).unwrap(),
+            Win16ShellRegistryRequest::CloseKey { key: root }
+        );
+        let enumerate = [root, 0, 0, 0].map(Win16Argument::Dword);
+        assert_eq!(
+            Win16ShellRegistryRequest::decode_export(7, &enumerate, &selectors, &memory).unwrap(),
+            Win16ShellRegistryRequest::EnumKey {
+                key: root,
+                index: 0,
+                output: 0,
+                capacity: 0
+            }
+        );
+    }
+}

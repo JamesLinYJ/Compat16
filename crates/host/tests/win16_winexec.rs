@@ -12,6 +12,10 @@ mod child_dialog;
 mod registry;
 
 #[cfg(windows)]
+#[path = "win16_winexec/registry_roots.rs"]
+mod registry_roots;
+
+#[cfg(windows)]
 #[path = "win16_winexec/oem_bitmap.rs"]
 mod oem_bitmap;
 
@@ -65,6 +69,7 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::registry_query_program("Compat16Test.fixture"),
         image::registry_buffer_program("Compat16Test.fixture"),
         image::registry_optional_length_program("Compat16Test.fixture"),
+        image::registry_roots_program("Compat16Test.fixture"),
         image::child_dialog_program(),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");

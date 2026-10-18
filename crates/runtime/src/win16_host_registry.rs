@@ -19,16 +19,12 @@ pub enum Win16RegistryRoot {
     DynamicData,
 }
 
-// Win16 SHELL root-key encodings, retained separately from native HKEY bits.
-const WIN16_DEFAULT_ROOT: u32 = 0;
-const WIN16_CLASSES_ROOT: u32 = 1;
-
 impl Win16RegistryRoot {
-    /// Map known predefined roots and Win16 compatibility encodings. Other DWORD values
-    /// must be runtime-issued guest aliases for opened keys.
+    /// Map documented native predefined roots. SHELL's legacy 0/1 encodings
+    /// are interpreted by its API translator, not by Win32 KERNEL thunks.
     pub const fn from_guest_handle(handle: u32) -> Option<Self> {
         match handle {
-            WIN16_DEFAULT_ROOT | WIN16_CLASSES_ROOT | 0x8000_0000 => Some(Self::ClassesRoot),
+            0x8000_0000 => Some(Self::ClassesRoot),
             0x8000_0001 => Some(Self::CurrentUser),
             0x8000_0002 => Some(Self::LocalMachine),
             0x8000_0003 => Some(Self::Users),

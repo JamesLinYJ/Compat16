@@ -21,12 +21,7 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        let result = match request {
-            request @ Win16ShellRegistryRequest::QueryValue { .. } =>
-                self.shell_registry_query_value(request, true, memory, host),
-            request => self.shell_registry_native_status(request, memory, host),
-        };
-        result.map(win31_status)
+        self.registry_status(request, true, memory, host).map(win31_status)
     }
 
     pub(super) fn shell_registry_native_status(
@@ -35,13 +30,23 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
+        self.registry_status(request, false, memory, host)
+    }
+
+    fn registry_status(
+        &mut self,
+        request: Win16ShellRegistryRequest,
+        win31: bool,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
         match request {
             Win16ShellRegistryRequest::OpenKey { root, subkey, output } => self
-                .shell_registry_open(root, subkey, output, false, memory, host),
+                .shell_registry_open(root, subkey, output, false, win31, memory, host),
             Win16ShellRegistryRequest::CreateKey { root, subkey, output } => self
-                .shell_registry_open(root, subkey, output, true, memory, host),
+                .shell_registry_open(root, subkey, output, true, win31, memory, host),
             Win16ShellRegistryRequest::CloseKey { key } => {
-                let Ok(key_ref) = self.compat.registry_key(key) else {
+                let Ok(key_ref) = self.registry_key_for_api(key, win31, false) else {
                     return Ok(ERROR_INVALID_HANDLE);
                 };
                 let result = host.win16_registry(Win16HostRegistryOperation::CloseKey { key: key_ref })?;
@@ -54,7 +59,7 @@ impl Win16State {
                 Ok(status)
             }
             Win16ShellRegistryRequest::DeleteKey { root, subkey } => {
-                let Ok(root) = self.compat.registry_key(root) else {
+                let Ok(root) = self.registry_key_for_api(root, win31, true) else {
                     return Ok(ERROR_INVALID_HANDLE);
                 };
                 let result = host.win16_registry(
@@ -69,7 +74,7 @@ impl Win16State {
             } => {
                 if value_type != 1 { return Ok(87); } // REG_SZ only.
                 let Some(value) = value else { return Ok(87); }; // Win32 NULL lpData.
-                let Ok(key) = self.compat.registry_key(key) else {
+                let Ok(key) = self.registry_key_for_api(key, win31, true) else {
                     return Ok(ERROR_INVALID_HANDLE);
                 };
                 let result = host.win16_registry(Win16HostRegistryOperation::SetValue {
@@ -84,9 +89,9 @@ impl Win16State {
                 Ok(status)
             }
             request @ Win16ShellRegistryRequest::QueryValue { .. } =>
-                self.shell_registry_query_value(request, false, memory, host),
+                self.shell_registry_query_value(request, win31, memory, host),
             Win16ShellRegistryRequest::EnumKey { key, index, output, capacity } => {
-                let Ok(key) = self.compat.registry_key(key) else {
+                let Ok(key) = self.registry_key_for_api(key, win31, false) else {
                     return Ok(ERROR_INVALID_HANDLE);
                 };
                 let capacity = usize::try_from(capacity).map_err(|error|
@@ -126,11 +131,12 @@ impl Win16State {
         subkey: Vec<u8>,
         output: u32,
         create: bool,
+        win31: bool,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
         self.preflight_registry_output(memory, output, 4)?;
-        let Ok(root) = self.compat.registry_key(guest_root) else {
+        let Ok(root) = self.registry_key_for_api(guest_root, win31, true) else {
             return Ok(ERROR_INVALID_HANDLE);
         };
         let operation = if create {
@@ -165,6 +171,21 @@ impl Win16State {
             return Err(error);
         }
         Ok(status)
+    }
+
+    fn registry_key_for_api(
+        &self,
+        raw: u32,
+        win31: bool,
+        default_root: bool,
+    ) -> Result<Win16RegistryKeyRef, u32> {
+        // SHELL's default root is special only for the path-based APIs.
+        // Close/Enum require the real Win3.1 ClassesRoot constant (1) or an
+        // opened alias. KERNEL accepts native predefined roots and owned aliases.
+        let raw = if win31 && (raw == 1 || (raw == 0 && default_root)) {
+            0x8000_0000
+        } else { raw };
+        self.compat.registry_key(raw)
     }
 
     fn close_unclaimed_registry_key(

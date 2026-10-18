@@ -88,7 +88,7 @@ impl Win16ShellRegistryRequest {
         memory: &impl GuestMemory,
         win31: bool,
     ) -> Result<Win16ShellRegistryRequest, Win16Error> {
-        let request = match ordinal {
+        let mut request = match ordinal {
             1 => Win16ShellRegistryRequest::OpenKey {
                 root: dword(arguments, 0)?,
                 subkey: optional_string(dword(arguments, 1)?, selectors, memory)?,
@@ -160,7 +160,26 @@ impl Win16ShellRegistryRequest {
             },
             _ => return Err(Win16Error::InvalidRange),
         };
+        if win31 {
+            request.normalize_default_root();
+        }
         Ok(request)
+    }
+
+    fn normalize_default_root(&mut self) {
+        let (root, subkey) = match self {
+            Self::OpenKey { root, subkey, .. }
+            | Self::CreateKey { root, subkey, .. }
+            | Self::DeleteKey { root, subkey }
+            | Self::SetValue { key: root, subkey, .. }
+            | Self::QueryValue { key: root, subkey, .. } => (*root, subkey),
+            _ => return,
+        };
+        // The logical Win3.1 default-root node denotes ClassesRoot itself.
+        // Other roots and names keep their literal native meaning (WOW WSHELL).
+        if root == 0 && subkey.eq_ignore_ascii_case(b".classes") {
+            subkey.clear();
+        }
     }
 }
 
