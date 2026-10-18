@@ -591,3 +591,7 @@ fn canceled_message_operation() -> RuntimeError {
         "Win16 native message operation was canceled by worker shutdown",
     )
 }
+
+#[cfg(test)]
+#[path = "win16_message_loop_system_timer_tests.rs"]
+mod system_timer_tests;

@@ -128,9 +128,14 @@ pub(in crate::windows::win16_windows) fn host_timer_proc_pointer() -> isize {
 pub(in crate::windows::win16_windows) fn post_guest_timer_message(
     state: &Rc<RefCell<WorkerState>>,
     hwnd: HWND,
+    guest_message: u16,
     guest_w_param: u16,
     guest_l_param: u32,
 ) -> Result<bool, RuntimeError> {
+    if !runtime::Win16ScalarMessage::is_timer_message(guest_message) {
+        return Err(RuntimeError::new(Kind::InternalInvariant,
+            "a non-timer message requested a guest timer-post sidecar"));
+    }
     let key = {
         let mut state = state.borrow_mut();
         let owner = hwnd as usize;
@@ -156,6 +161,7 @@ pub(in crate::windows::win16_windows) fn post_guest_timer_message(
         state.guest_timer_posts.insert(
             key,
             Win16GuestTimerPost {
+                guest_message,
                 guest_w_param,
                 guest_l_param,
             },

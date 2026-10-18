@@ -991,6 +991,26 @@ guest fields are never interpreted as host or guest pointers. See Microsoft's
 and [`EM_GETTHUMB`](https://learn.microsoft.com/en-us/windows/win32/controls/em-getthumb)
 contracts. EDIT HLOCAL and word-break callback messages remain unsupported.
 
+### Native system-timer queue messages
+
+XP's [`DispatchMessageWorker`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/windows/core/ntuser/client/clmsg.c#L2358)
+distinguishes `WM_SYSTIMER` with nonzero LPARAM from a guest TIMERPROC:
+Windows dispatches it in its server context. On a 64-bit host, truncating that
+native value to MSG16 and treating it as a guest FARPROC loses its provenance.
+Only callback-free, WORD-sized native timer parameters take the scalar queue
+route. Other native system-timer messages retain their complete native MSG and
+use the existing private native dispatch path, including checked removal when
+encountered by a non-removing peek. No selector validation is relaxed.
+
+Guest `SetSystemTimer` retains its existing registration/generation route.
+Guest `WM_TIMER` and `WM_SYSTIMER` posts with a callback value both use owned
+sidecars and the worker's native thunk; retrieval restores the guest message
+identifier, WORD WPARAM and DWORD LPARAM. Non-removing guest peeks retain that
+sidecar until removal. These guest addresses never become native TIMERPROC
+values. Native queue filters still need a separate projection for a filter
+containing only `WM_SYSTIMER`, because registered/carrier timers use native
+`WM_TIMER`; this change does not claim complete timer-filter equivalence.
+
 ## Unimplemented call contracts
 
 ### Unknown parameter frames

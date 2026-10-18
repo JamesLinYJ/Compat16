@@ -154,6 +154,25 @@ impl Win16TimerRegistrations {
 mod tests {
     use super::*;
 
+    #[test]
+    fn timer_provenance_posts_keep_both_timer_namespaces_as_guest_bits() {
+        use crate::win16_runtime::test_support::{NoHost, tiny_ne_executable};
+        let mut runtime = crate::Runtime::load(&tiny_ne_executable(), &[], br"C:\TIMERS.NE").unwrap();
+        let state = runtime.win16.as_mut().unwrap();
+        let native = Win16HostWindow(1);
+        state.window_handles.insert(7, native);
+        for kind in [Win16ScalarMessage::Timer, Win16ScalarMessage::SystemTimer] {
+            for l_param in [0, 0x1234_5678, u32::MAX] {
+                let (window, parameter, class) = state.prepare_message_call(
+                    7, kind as u16, u16::MAX, l_param, &mut NoHost, false,
+                ).unwrap().unwrap();
+                assert_eq!(window, native);
+                assert_eq!(parameter, Win16MessageParam::GuestBits(l_param));
+                assert_eq!(class, None);
+            }
+        }
+    }
+
     fn registration(host_id: u64, system: bool) -> Win16TimerRegistration {
         Win16TimerRegistration {
             host_id,

@@ -121,6 +121,7 @@ jobs:
             '-p runtime --lib session_exit_',
             '-p runtime --lib callback_instance_',
             '-p host-services --lib session_exit_',
+            '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1',
             '-p runtime --lib rectangle_exports',
             '-p runtime --lib safe_array_ptr_of_index',
             '-p runtime --lib is_equal_guid',
@@ -246,6 +247,7 @@ jobs:
             '-p runtime --lib task_ds_' = 1
             '-p runtime --lib callback_instance_' = 1
             '-p host-services --lib session_exit_' = 2
+            '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1' = 2
             '-p host-services --lib diagnostics_tests::' = 5
             '-p runtime --lib temp_drive::tests::' = 6
             '-p runtime --lib get_temp_drive_tests::' = 6
@@ -283,7 +285,7 @@ jobs:
             '-p runtime --lib win16_runtime::user_drag::drag_tests::' = 8
             '-p runtime --lib win16_runtime::winmem32::tests::' = 4
             '-p runtime --lib win16_runtime::media_io::buffer_tests::' = 10
-            '-p runtime --lib win16_runtime::message_calls::timers::tests::' = 2
+            '-p runtime --lib win16_runtime::message_calls::timers::tests::' = 3
             '-p runtime --lib win16_runtime::dispatch::input_event_tests::' = 2
             '-p runtime --lib win16_runtime::ole1::tests::' = 8
             '-p host-services --lib windows::win16_media_services::timer::tests::' = 3

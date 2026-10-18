@@ -201,7 +201,7 @@ pub(super) fn expose_or_dispatch(
                     Win16HostQueuedMessage {
                         source: Win16MessageSource::NativeQueue,
                         window,
-                        message: message_id,
+                        message: posted.guest_message,
                         w_param: posted.guest_w_param,
                         l_param: Win16MessageParam::GuestBits(posted.guest_l_param),
                         time: native.time,
@@ -627,7 +627,14 @@ pub(super) fn expose_or_dispatch(
     // dispatch, where the typed callback borrows it; never truncate it to WORD.
     let paint_has_dc = native.message == windows_sys::Win32::UI::WindowsAndMessaging::WM_PAINT
         && native.wParam != 0;
-    let pointer_free = (Win16ScalarMessage::from_raw(message_id).is_some() && !paint_has_dc)
+    // Native WM_SYSTIMER may carry a Windows-owned, pointer-width callback.
+    // Only callback-free timer values fit MSG16's scalar contract. Registered
+    // guest timers/posts were resolved through their exact sidecars above;
+    // other native callbacks stay in the original MSG for Windows dispatch.
+    let timer_parameters_are_scalar = !Win16ScalarMessage::is_timer_message(message_id)
+        || (native.lParam == 0 && native.wParam <= usize::from(u16::MAX));
+    let pointer_free = (Win16ScalarMessage::from_raw(message_id).is_some()
+        && !paint_has_dc && timer_parameters_are_scalar)
         || timer_without_native_callback;
     let token = if native.hwnd.is_null() {
         Some(None)

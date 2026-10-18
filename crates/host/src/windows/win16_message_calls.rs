@@ -32,7 +32,6 @@ mod kernel_yield;
 mod reply_message_tests;
 
 const WM_COMMAND: u16 = 0x0111;
-const WM_TIMER: u16 = 0x0113;
 const WM_ACTIVATEAPP: u16 = 0x001c;
 const WM_PARENTNOTIFY: u16 = 0x0210;
 const WM_USER: u16 = 0x0400;
@@ -128,12 +127,12 @@ pub(super) fn execute(
             let Some(hwnd) = resolve_window(state, window) else {
                 return Ok(Win16MessageCallResult::Boolean(false));
             };
-            if message == WM_TIMER {
+            if Win16ScalarMessage::is_timer_message(message) {
                 let Win16MessageParam::GuestBits(guest_l_param) = l_param else {
                     return Ok(Win16MessageCallResult::Boolean(false));
                 };
                 if guest_l_param == 0 {
-                    // A zero LPARAM is an ordinary WM_TIMER message. Keep it
+                    // A zero LPARAM is a callback-free timer message. Keep it
                     // in the native queue so modeless and modal windows route
                     // it through their normal WndProc/DLGPROC default rules.
                     let succeeded =
@@ -142,7 +141,7 @@ pub(super) fn execute(
                     return Ok(Win16MessageCallResult::Boolean(succeeded));
                 }
                 let succeeded =
-                    worker_window::post_guest_timer_message(state, hwnd, w_param, guest_l_param)?;
+                    worker_window::post_guest_timer_message(state, hwnd, message, w_param, guest_l_param)?;
                 return Ok(Win16MessageCallResult::Boolean(succeeded));
             }
             let Some((native_message, native_w, native_l)) =
@@ -159,7 +158,7 @@ pub(super) fn execute(
             l_param,
             ..
         } => {
-            if message == WM_TIMER {
+            if Win16ScalarMessage::is_timer_message(message) {
                 let Win16MessageParam::GuestBits(guest_l_param) = l_param else {
                     return Ok(Win16MessageCallResult::Boolean(false));
                 };
@@ -173,6 +172,7 @@ pub(super) fn execute(
                 let succeeded = worker_window::post_guest_timer_message(
                     state,
                     std::ptr::null_mut(),
+                    message,
                     w_param,
                     guest_l_param,
                 )?;

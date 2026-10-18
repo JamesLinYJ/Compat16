@@ -677,7 +677,11 @@ impl Win16State {
                     return_to.2, 0, Win16ReturnKind::Dword);
             }
         };
-        self.check_window_callback(registers, procedure, memory)?;
+        self.check_window_callback(registers, procedure, memory).map_err(|error|
+            error.with_context(format!(
+                "DispatchMessage HWND 0x{:04X}, message 0x{:04X}, {} 0x{procedure:08X}",
+                message.hwnd, message.message, if timer { "TIMERPROC" } else { "WNDPROC" },
+            )))?;
         let callback_payload = GuestWindowPayload {
             message: message.message,
             w_param: message.w_param,

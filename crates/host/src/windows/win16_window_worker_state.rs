@@ -209,6 +209,7 @@ impl ActiveOperation {
 
 #[derive(Clone, Copy)]
 pub(in crate::windows::win16_windows) struct Win16GuestTimerPost {
+    pub(in crate::windows::win16_windows) guest_message: u16,
     pub(in crate::windows::win16_windows) guest_w_param: u16,
     pub(in crate::windows::win16_windows) guest_l_param: u32,
 }
@@ -493,7 +494,7 @@ pub(in crate::windows) struct WorkerState {
     pub(in crate::windows::win16_windows) timer_by_native: BTreeMap<(usize, usize), u64>,
     pub(in crate::windows::win16_windows) next_host_timer_id: u64,
     pub(in crate::windows::win16_windows) next_native_callback_timer_id: usize,
-    /// Sidecars for guest PostMessage(WM_TIMER). Native LPARAM is our trusted
+    /// Sidecars for guest WM_TIMER/WM_SYSTIMER posts. Native LPARAM is our trusted
     /// TIMERPROC thunk, never the guest FARPROC value.
     pub(in crate::windows::win16_windows) guest_timer_posts:
         BTreeMap<(usize, usize), Win16GuestTimerPost>,
