@@ -8,6 +8,8 @@ const MAX_ROWS: usize = 4096;
 const RECENT_ROWS: usize = 256;
 const RECENT_BYTES: usize = 128 * 1024;
 
+mod startup;
+
 pub(super) struct Win16IoTrace {
     file: BufWriter<File>,
     complete: bool,
@@ -18,6 +20,7 @@ pub(super) struct Win16IoTrace {
     recent: VecDeque<(u64, String)>,
     recent_bytes: usize,
     observed: u64,
+    startup: startup::StartupProgress,
 }
 
 impl Win16IoTrace {
@@ -32,6 +35,7 @@ impl Win16IoTrace {
             recent: VecDeque::new(),
             recent_bytes: 0,
             observed: 0,
+            startup: startup::StartupProgress::default(),
         })
     }
 
@@ -45,6 +49,7 @@ impl Win16IoTrace {
             self.observed = self.observed.saturating_add(1);
             return Ok(());
         }
+        let persist_startup = self.startup.observe(event);
         let mut text = event.to_string();
         if text.len() > RECENT_BYTES {
             let mut end = RECENT_BYTES;
@@ -59,7 +64,15 @@ impl Win16IoTrace {
         self.recent_bytes += text.len();
         self.recent.push_back((self.observed, text));
         self.observed = self.observed.saturating_add(1);
-        if self.is_full() { return Ok(()); }
+        if self.is_full() {
+            // Long initialization can exhaust the prefix before GetMessage.
+            // Publish real late startup/probe events while the process is
+            // still alive; a forced stop cannot run Drop to save this tail.
+            // At most one message-loop entry and eight validated WM_NULL
+            // returns trigger a live flush, each bounded by RECENT_BYTES.
+            if persist_startup { self.flush_recent()?; }
+            return Ok(());
+        }
         let service_enter = matches!(
             event,
             runtime::Win16IoEvent::ServiceBoundary {
