@@ -23,6 +23,8 @@ use super::{win16_window_identity, win16_window_worker::WorkerState};
 
 #[path = "win16_common_dialog_print.rs"]
 mod print;
+#[path = "win16_common_dialog_printer_mode.rs"]
+mod printer_mode;
 #[path = "win16_common_dialog_find_replace.rs"]
 mod find_replace;
 #[path = "win16_common_dialog_text.rs"]
@@ -59,6 +61,7 @@ pub(super) fn execute(
         Operation::FindReplace(request) => find_replace::create(state, request),
         Operation::ChooseFont(request) => choose_font(state, request),
         Operation::Print(request) => self::print::print_dialog(state, request),
+        Operation::PrinterMode(request) => printer_mode::execute(state, request),
         Operation::GetFileTitle { file_name, capacity, title_is_null } => {
             get_file_title(state, &file_name, capacity, title_is_null)
         }

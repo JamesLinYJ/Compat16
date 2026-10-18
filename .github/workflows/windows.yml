@@ -110,6 +110,8 @@ jobs:
             '-p host-services --lib spool_document_tests',
             '-p host-services --lib spool_close_tests',
             '-p host-services --lib devmode',
+            '-p host-services --lib ext_device_mode',
+            '-p runtime --lib ext_device_mode',
             '-p runtime --lib wow_devmode',
             '-p host-services --lib dialog_icon_',
             '-p runtime --lib dialog_icon_title_',

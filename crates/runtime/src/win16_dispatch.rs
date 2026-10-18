@@ -227,6 +227,7 @@ impl Win16State {
                 win16_abi::Win16GdiObjectsRequest::EnumMetaFile { .. }))
             || matches!(&request, Win16ApiRequest::Dde(_)
                 | Win16ApiRequest::Commdlg(_)
+                | Win16ApiRequest::Printer(win16_abi::Win16PrinterRequest::ExtDeviceMode { .. })
                 | Win16ApiRequest::Commctrl(_)
                 | Win16ApiRequest::ShellExecution(_)
                 | Win16ApiRequest::ShellDrop(_)

@@ -23,6 +23,11 @@ pub(super) fn decode(
             },
         )));
     }
+    if descriptor.id == Win16ExportId::DriverWinspool90Extdevicemode {
+        return Ok(Some(Win16ApiRequest::Printer(
+            decode_ext_device_mode(arguments, selectors, memory)?,
+        )));
+    }
     if let Some(request) = super::call_driver::decode(descriptor, arguments)? {
         return Ok(Some(Win16ApiRequest::Driver(request)));
     }

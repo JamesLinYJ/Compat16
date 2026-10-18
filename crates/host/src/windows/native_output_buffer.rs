@@ -14,11 +14,11 @@ use windows_sys::Win32::System::Memory::{
 use windows_sys::Win32::System::SystemInformation::{GetSystemInfo, SYSTEM_INFO};
 use zerocopy::FromBytes;
 
-/// DeviceCapabilities output has no capacity argument. The worker maps the
-/// exact expected byte count at the end of committed pages, followed by a
-/// reserved no-access page. The guard catches sequential overruns; the worker
-/// process contains native faults. `FromBytes` validates typed readback; this
-/// host-native output buffer is distinct from Win16 wire codecs.
+/// Maps the expected native output at the end of committed pages, followed
+/// by a reserved no-access page. The guard catches sequential overruns.
+/// DeviceCapabilities runs in a disposable process for fault containment;
+/// printer property sheets run on their HWND-owning UI worker. `FromBytes`
+/// validates typed readback, independently of the Win16 wire codecs.
 pub(super) struct NativeOutputBuffer<T: FromBytes + Copy + Default> {
     _reservation: Reservation,
     output: NonNull<T>,

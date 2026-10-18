@@ -42,6 +42,7 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::named_dialog_icon_program(),
         image::named_class_dialog_icon_program(),
         image::default_printer_round_trip_program(),
+        image::ext_device_mode_round_trip_program(),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");
         assert_eq!(module.header.target_os, 2);

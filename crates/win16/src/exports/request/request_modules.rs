@@ -57,7 +57,7 @@ pub use gdi_device::{
 #[path = "printer.rs"]
 mod printer;
 pub use printer::Win16PrinterRequest;
-pub(in crate::exports) use printer::decode_device_capabilities;
+pub(in crate::exports) use printer::{decode_device_capabilities, decode_ext_device_mode};
 
 #[path = "kernel_global_heap.rs"]
 mod kernel_global_heap;

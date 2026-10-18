@@ -42,6 +42,7 @@ mod win16_injected_input;
 mod win16_drawing;
 mod win16_gdi;
 mod win16_devmode;
+mod win16_printer_mode;
 mod win16_get_dc_ex;
 mod win16_metafile;
 mod win16_gdi_bitmap_transfer;

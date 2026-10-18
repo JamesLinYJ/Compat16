@@ -14,6 +14,17 @@ use crate::exports::call::call_helpers::{dword_argument, read_nullable_far_strin
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16PrinterRequest {
+    ExtDeviceMode {
+        owner: u16,
+        driver_instance: u16,
+        output: u32,
+        device: Option<Vec<u8>>,
+        port: Option<Vec<u8>>,
+        /// Copied through runtime's checked DEVMODE reader before any yield.
+        input: u32,
+        profile: Option<Vec<u8>>,
+        mode: u16,
+    },
     DeviceCapabilities {
         device: Option<Vec<u8>>,
         port: Option<Vec<u8>>,
@@ -21,6 +32,27 @@ pub enum Win16PrinterRequest {
         output: u32,
         devmode: Option<DevMode16>,
     },
+}
+
+/// Win3.1 PRINT.H LPFNDEVMODE: eight Pascal arguments, 26 bytes, UINT result.
+pub fn decode_ext_device_mode(
+    arguments: &[Win16Argument],
+    selectors: &SelectorTable,
+    memory: &impl GuestMemory,
+) -> Result<Win16PrinterRequest, Win16Error> {
+    if arguments.len() != 8 { return Err(Win16Error::InvalidRange); }
+    let mode = word_argument(arguments, 7)?;
+    let input_far = dword_argument(arguments, 5)?;
+    Ok(Win16PrinterRequest::ExtDeviceMode {
+        owner: word_argument(arguments, 0)?,
+        driver_instance: word_argument(arguments, 1)?,
+        output: dword_argument(arguments, 2)?,
+        device: read_nullable_far_string(dword_argument(arguments, 3)?, selectors, memory)?,
+        port: read_nullable_far_string(dword_argument(arguments, 4)?, selectors, memory)?,
+        input: input_far,
+        profile: read_nullable_far_string(dword_argument(arguments, 6)?, selectors, memory)?,
+        mode,
+    })
 }
 
 /// Decodes the already-sized Pascal argument frame for DeviceCapabilities:
@@ -125,3 +157,7 @@ fn read_guest_range(
     }
     Ok(bytes)
 }
+
+#[cfg(test)]
+#[path = "printer_tests.rs"]
+mod tests;

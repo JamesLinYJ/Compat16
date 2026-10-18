@@ -20,7 +20,10 @@ impl Win16State {
     ) -> Result<u32, RuntimeError> {
         let Win16PrinterRequest::DeviceCapabilities {
             device, port, index, output, devmode,
-        } = request;
+        } = request else {
+            return Err(RuntimeError::new(Kind::InternalInvariant,
+                "ExtDeviceMode must use the resumable printer configuration path"));
+        };
 
         let array = capability_array(index);
         if output != 0 && array.is_none() && !known_scalar(index) {

@@ -12,7 +12,7 @@ pub use dialog_icon::{named_class_dialog_icon_program, named_dialog_icon_program
 
 #[path = "image/printer.rs"]
 mod printer;
-pub use printer::default_printer_round_trip_program;
+pub use printer::{default_printer_round_trip_program, ext_device_mode_round_trip_program};
 
 #[path = "image/load_module.rs"]
 mod load_module;
@@ -202,7 +202,10 @@ fn ne_with_exports(
 ) -> Vec<u8> {
     // Microsoft NE layout: two segment records, counted resident/module
     // strings, and eight-byte additive imported-ordinal relocation records.
-    let mut bytes = vec![0_u8; 0x600 + data.len()];
+    let code_end = 0x200 + code.bytes.len()
+        + if code.imports.is_empty() { 0 } else { 2 + code.imports.len() * 8 };
+    let data_offset = code_end.next_multiple_of(16).max(0x600);
+    let mut bytes = vec![0_u8; data_offset + data.len()];
     bytes[..2].copy_from_slice(b"MZ");
     put(&mut bytes, 8, 4);
     bytes[0x3c..0x40].copy_from_slice(&0x40_u32.to_le_bytes());
@@ -278,7 +281,7 @@ fn ne_with_exports(
         if code.imports.is_empty() { 0 } else { 0x100 },
     );
     put(&mut bytes, 0x86, 0x1000);
-    put(&mut bytes, 0x88, 0x60);
+    put(&mut bytes, 0x88, u16::try_from(data_offset / 16).unwrap());
     put(&mut bytes, 0x8a, data.len() as u16);
     put(&mut bytes, 0x8c, 1);
     put(&mut bytes, 0x8e, 0x1000);
@@ -296,7 +299,7 @@ fn ne_with_exports(
             fixup += 8;
         }
     }
-    assert!(fixup <= 0x600);
-    bytes[0x600..].copy_from_slice(data);
+    assert!(fixup <= data_offset);
+    bytes[data_offset..].copy_from_slice(data);
     bytes
 }

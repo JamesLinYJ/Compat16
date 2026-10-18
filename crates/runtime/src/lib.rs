@@ -307,6 +307,7 @@ pub use win16_host_user_services::{
 mod win16_host_printer;
 pub use win16_host_compat::Win16HostResourceName;
 pub use win16_host_printer::{
+    Win16HostPrinterMode, Win16HostPrinterModeResult,
     Win16PrinterCapabilities, Win16PrinterCapabilitiesResult, Win16PrinterCapabilityData,
 };
 mod win16_host_dc;
