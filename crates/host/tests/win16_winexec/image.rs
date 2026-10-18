@@ -26,6 +26,10 @@ pub use dos_message::dos_message_com;
 mod dos_version;
 pub use dos_version::{dos_version_com, dos_version_program};
 
+#[path = "image/fcb_parse.rs"]
+mod fcb_parse;
+pub use fcb_parse::fcb_parse_program;
+
 #[path = "image/child_dialog.rs"]
 mod child_dialog;
 pub use child_dialog::child_dialog_program;

@@ -72,7 +72,7 @@ impl DosHost for ExecHost {
     fn directory_search_open(&mut self, _directory: &[u8]) -> Result<DosHostSearch, DosHostError> { panic!("unexpected host call") }
     fn directory_search_next(&mut self, _search: DosHostSearch) -> Result<Option<DosDirectoryEntry>, DosHostError> { panic!("unexpected host call") }
     fn directory_search_close(&mut self, _search: DosHostSearch) -> Result<(), DosHostError> { panic!("unexpected host call") }
-    fn guest_code_page(&self) -> text_codec::CodePage { panic!("unexpected host call") }
+    fn guest_code_page(&self) -> text_codec::CodePage { text_codec::CodePage::Cp437 }
     fn current_drive(&self) -> u8 { panic!("unexpected host call") }
     fn select_drive(&mut self, _drive: u8) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn logical_drive_count(&self) -> u8 { 3 }
@@ -91,6 +91,9 @@ impl crate::RuntimeDdeHost for ExecHost {
 impl crate::RuntimeMciHost for ExecHost {}
 impl crate::RuntimeMidiHost for ExecHost {}
 impl crate::RuntimeNetbiosHost for ExecHost {}
+
+#[path = "win16_dos_fcb_parse_tests.rs"]
+mod parse_tests;
 
 
 fn fixture() -> (Runtime, ExecHost) {

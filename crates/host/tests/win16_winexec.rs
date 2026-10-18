@@ -12,6 +12,10 @@ mod dos_message;
 mod dos_version;
 
 #[cfg(windows)]
+#[path = "win16_winexec/fcb_parse.rs"]
+mod fcb_parse;
+
+#[cfg(windows)]
 #[path = "win16_winexec/extended_error.rs"]
 mod extended_error;
 

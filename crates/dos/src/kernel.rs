@@ -12,6 +12,9 @@ mod exec;
 mod extended_open;
 mod extended_error;
 mod files;
+mod fcb_parse;
+#[cfg(test)]
+mod fcb_parse_tests;
 mod file_commit;
 mod file_time;
 mod ioctl;
