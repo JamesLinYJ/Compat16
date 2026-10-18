@@ -37,6 +37,12 @@ impl Win16State {
             collect_output: output != 0,
             devmode: devmode.map(Into::into),
         };
+        if host_request.devmode.as_ref().is_some_and(|mode| !mode.has_mapped_fields()) {
+            report_gap(host,
+                "Win16 DeviceCapabilities DEVMODE has an invalid or unsupported public layout",
+                "Win16 WINSPOOL DeviceCapabilities");
+            return Ok(DWORD_FAILURE);
+        }
         let result = match host.win16_printer_capabilities(host_request) {
             Ok(result) => result,
             // This is a read-only host query using copied input. A helper

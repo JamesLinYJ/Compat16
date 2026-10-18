@@ -109,6 +109,8 @@ jobs:
             '-p host-services --lib system_colors_adapter_tests',
             '-p host-services --lib spool_document_tests',
             '-p host-services --lib spool_close_tests',
+            '-p host-services --lib devmode',
+            '-p runtime --lib wow_devmode',
             '-p host-services --lib dialog_icon_',
             '-p runtime --lib dialog_icon_title_',
             '-p runtime --lib arrange_iconic_windows',

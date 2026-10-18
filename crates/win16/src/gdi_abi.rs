@@ -8,6 +8,13 @@
 #[path = "gdi_abi_wire.rs"]
 mod wire;
 
+#[path = "gdi_devmode_wow.rs"]
+mod devmode_wow;
+pub use devmode_wow::{
+    WOW_DEVMODE_PUBLIC_SIZE, WowDevModeExtra, decode_wow_devmode_extra,
+    encode_wow_devmode_extra,
+};
+
 /// Win16 `TEXTMETRIC`: eight signed words, nine bytes, then three signed words.
 pub const TEXTMETRIC16_SIZE: usize = 31;
 
@@ -235,6 +242,8 @@ impl TextMetric16 {
 /// Owned, pointer-free Win16 `DEVMODE` values after guest-range validation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DevMode16 {
+    /// Original dmSize, including partial Windows 3.x public structures.
+    pub public_size: u16,
     pub device_name: [u8; DEVMODE16_DEVICE_NAME_SIZE],
     pub spec_version: u16,
     pub driver_version: u16,
@@ -340,6 +349,7 @@ pub fn decode_devmode16(bytes: &[u8]) -> Result<DevMode16, DevMode16Error> {
     driver_extra.extend_from_slice(&bytes[public_size..total_size]);
 
     Ok(DevMode16 {
+        public_size: public_size as u16,
         device_name, spec_version, driver_version, fields, settings,
         public_extension, driver_extra,
     })

@@ -3,7 +3,7 @@
 use guest_core::memory::Memory;
 use win16_abi::gdi_abi::{
     decode_devmode16, DevMode16Error, TextMetric16, DEVMODE16_DRIVER_EXTRA_OFFSET,
-    DEVMODE16_HEADER_SIZE, DEVMODE16_SIZE_OFFSET, DEVMODE16_SUPPORTED_FIELDS,
+    DEVMODE16_HEADER_SIZE, DEVMODE16_SIZE_OFFSET,
     TEXTMETRIC16_SIZE,
 };
 
@@ -56,8 +56,7 @@ impl Win16State {
             Some(mode)
         };
         if let Some(mode) = devmode.as_ref() {
-            let unsupported_fields = mode.fields & !DEVMODE16_SUPPORTED_FIELDS;
-            if unsupported_fields != 0 {
+            if !mode.has_mapped_fields() {
                 host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
                     "Win16 DEVMODE selects fields without a verified native value conversion")
                     .with_context("Win16 GDI CreateDC/CreateIC"));

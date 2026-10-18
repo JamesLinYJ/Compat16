@@ -15,6 +15,10 @@ mod global_notify;
 #[path = "win16_winexec/dialog_icon.rs"]
 mod dialog_icon;
 
+#[cfg(windows)]
+#[path = "win16_winexec/printer.rs"]
+mod printer;
+
 #[test]
 fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
     for bytes in [
@@ -37,6 +41,7 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::global_notify_program(),
         image::named_dialog_icon_program(),
         image::named_class_dialog_icon_program(),
+        image::default_printer_round_trip_program(),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");
         assert_eq!(module.header.target_os, 2);

@@ -10,12 +10,8 @@ use runtime::{
     Win16HostDevMode, Win16HostPrintDialog,
 };
 use windows_sys::Win32::Foundation::{GlobalFree, HGLOBAL};
-use windows_sys::Win32::Graphics::Gdi::{
-    DeleteDC, DEVMODEW, DEVMODEW_0, DEVMODEW_0_0,
-    DM_ORIENTATION, DM_PAPERSIZE, DM_PAPERLENGTH, DM_PAPERWIDTH, DM_SCALE,
-    DM_COPIES, DM_DEFAULTSOURCE, DM_PRINTQUALITY, DM_COLOR, DM_DUPLEX,
-    DM_YRESOLUTION, DM_TTOPTION,
-};
+use windows_sys::Win32::Graphics::Gdi::DeleteDC;
+
 use windows_sys::Win32::System::Memory::{
     GlobalAlloc, GlobalLock, GlobalSize, GlobalUnlock, GMEM_MOVEABLE, GMEM_ZEROINIT,
 };
@@ -23,10 +19,6 @@ use windows_sys::Win32::UI::Controls::Dialogs::{CommDlgExtendedError, PrintDlgW,
 
 use super::LAST_EXTENDED_ERROR;
 use super::super::{win16_window_identity, win16_window_worker::WorkerState};
-
-// Windows 3.1's PRINT.H defines the guest DEVMODE version as 0x030A. The
-// current SDK binding constant describes the host OS and must not cross ABI.
-const WIN31_DM_SPECVERSION: u16 = 0x030A;
 
 pub(super) fn print_dialog(
     state: &Rc<RefCell<WorkerState>>,
@@ -112,7 +104,7 @@ pub(super) fn print_dialog(
         });
     }
 
-    let output_data = read_native_devmode(state, native.hDevMode, request.dev_mode.as_ref())
+    let output_data = read_native_devmode(state, native.hDevMode)
         .and_then(|dev_mode| read_global_bytes(native.hDevNames).and_then(|dev_names| {
             let dev_names = dev_names.map(|bytes| super::native_wide_devnames_to_guest(
                 state, &bytes,
@@ -249,71 +241,12 @@ fn allocate_native_devmode(
     state: &Rc<RefCell<WorkerState>>,
     value: &Win16HostDevMode,
 ) -> Result<HGLOBAL, RuntimeError> {
-    const CONVERTED_FIELDS: u32 = DM_ORIENTATION | DM_PAPERSIZE | DM_PAPERLENGTH
-        | DM_PAPERWIDTH | DM_SCALE | DM_COPIES | DM_DEFAULTSOURCE | DM_PRINTQUALITY
-        | DM_COLOR | DM_DUPLEX | DM_YRESOLUTION | DM_TTOPTION;
-    if !value.public_extension.is_empty() {
-        return Err(RuntimeError::new(Kind::CompatibilityGap,
-            "PRINTDLG cannot translate an extended Win16 DEVMODE layout"));
-    }
-    if value.fields & !CONVERTED_FIELDS != 0 {
-        return Err(RuntimeError::new(Kind::CompatibilityGap,
-            "PRINTDLG DEVMODE selects fields without a verified Win16-to-Windows mapping"));
-    }
-    if !value.driver_extra.is_empty() {
-        return Err(RuntimeError::new(Kind::CompatibilityGap,
-            "Win16 DEVMODE driver-private bytes have no verified mapping to native driver data"));
-    }
-    let device_name = super::text::fixed_guest_text_to_wide(state,
-        &value.device_name,
-        "Win16 DEVMODE device name cannot fit the native UTF-16 field")?;
-    let native_size = std::mem::size_of::<DEVMODEW>();
-    let native_size_u16 = u16::try_from(native_size).map_err(|_| RuntimeError::new(
-        Kind::InternalInvariant, "native DEVMODEW size does not fit its WORD field"))?;
-    let total = native_size;
-    if total > 64 * 1024 {
-        return Err(RuntimeError::new(Kind::ResourceExhausted,
-            "native PRINTDLG DEVMODE exceeds the 64 KiB bound"));
-    }
-    // SAFETY: `total` is bounded and computed from checked native/public sizes.
-    let block = unsafe { GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, total) };
-    if block.is_null() {
-        return Err(RuntimeError::new(Kind::ResourceExhausted,
-            "allocate native PRINTDLG DEVMODE"));
-    }
-    // SAFETY: `block` is a live HGLOBAL returned by GlobalAlloc above.
-    let destination = unsafe { GlobalLock(block) };
-    if destination.is_null() {
-        // SAFETY: This adapter still owns the just-allocated HGLOBAL.
-        unsafe { GlobalFree(block); }
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "lock native PRINTDLG DEVMODE"));
-    }
-    let mut native = DEVMODEW::default();
-    native.dmDeviceName = device_name;
-    native.dmSpecVersion = WIN31_DM_SPECVERSION;
-    native.dmDriverVersion = value.driver_version;
-    native.dmSize = native_size_u16;
-    native.dmDriverExtra = 0;
-    native.dmFields = value.fields;
-    native.Anonymous1 = DEVMODEW_0 {
-        Anonymous1: DEVMODEW_0_0 {
-            dmOrientation: value.settings[0], dmPaperSize: value.settings[1],
-            dmPaperLength: value.settings[2], dmPaperWidth: value.settings[3],
-            dmScale: value.settings[4], dmCopies: value.settings[5],
-            dmDefaultSource: value.settings[6], dmPrintQuality: value.settings[7],
-        },
-    };
-    native.dmColor = value.settings[8];
-    native.dmDuplex = value.settings[9];
-    native.dmYResolution = value.settings[10];
-    native.dmTTOption = value.settings[11];
-    // SAFETY: The locked allocation is exactly the native public structure;
-    // Win16 private bytes are rejected instead of becoming a native driver tail.
-    unsafe { destination.cast::<DEVMODEW>().write(native); }
-    // SAFETY: The HGLOBAL was locked exactly once above.
-    unsafe { GlobalUnlock(block); }
-    Ok(block)
+    // The same checked WOW restoration feeds GDI, the printer worker and
+    // PRINTDLG. Legacy driver-private data has no known modern layout.
+    let native = crate::windows::win16_devmode::printer_input(
+        value, state.borrow().text_codec,
+    )?;
+    allocate_global_bytes(native.as_bytes())
 }
 
 fn read_global_bytes(block: HGLOBAL) -> Result<Option<Vec<u8>>, RuntimeError> {
@@ -352,78 +285,18 @@ fn read_global_bytes(block: HGLOBAL) -> Result<Option<Vec<u8>>, RuntimeError> {
 fn read_native_devmode(
     state: &Rc<RefCell<WorkerState>>,
     block: HGLOBAL,
-    previous: Option<&Win16HostDevMode>,
 ) -> Result<Option<Win16HostDevMode>, RuntimeError> {
-    const CONVERTED_FIELDS: u32 = DM_ORIENTATION | DM_PAPERSIZE | DM_PAPERLENGTH
-        | DM_PAPERWIDTH | DM_SCALE | DM_COPIES | DM_DEFAULTSOURCE | DM_PRINTQUALITY
-        | DM_COLOR | DM_DUPLEX | DM_YRESOLUTION | DM_TTOPTION;
     let Some(bytes) = read_global_bytes(block)? else { return Ok(None); };
-    if bytes.len() < std::mem::size_of::<DEVMODEW>() {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "native PRINTDLG DEVMODE is shorter than DEVMODEW"));
-    }
-    // SAFETY: The byte slice is at least `size_of::<DEVMODEW>()` bytes and the
-    // unaligned read is confined to that checked prefix.
-    let native = unsafe { bytes.as_ptr().cast::<DEVMODEW>().read_unaligned() };
-    let public_size = usize::from(native.dmSize);
-    let extra_size = usize::from(native.dmDriverExtra);
-    if public_size != std::mem::size_of::<DEVMODEW>()
-        || public_size.checked_add(extra_size).is_none_or(|total| total > bytes.len())
-    {
-        return Err(RuntimeError::new(Kind::CompatibilityGap,
-            "native PRINTDLG DEVMODE public extension has no verified Win16 mapping"));
-    }
-    if native.dmFields & !CONVERTED_FIELDS != 0 {
-        return Err(RuntimeError::new(Kind::CompatibilityGap,
-            "native PRINTDLG DEVMODE returns fields without a verified Win16 mapping"));
-    }
-    let mut value = previous.cloned().unwrap_or_else(|| Win16HostDevMode {
-        device_name: [0; 32], spec_version: 0, driver_version: 0,
-        fields: 0, settings: [0; 12], public_extension: Vec::new(),
-        driver_extra: Vec::new(),
-    });
-    let device_end = native.dmDeviceName.iter().position(|unit| *unit == 0)
-        .unwrap_or(native.dmDeviceName.len());
-    let encoded_name = state.borrow().text_codec.from_wide_bounded(
-        &native.dmDeviceName[..device_end], 31,
-    )?;
-    value.device_name = [0; 32];
-    value.device_name[..encoded_name.bytes.len()].copy_from_slice(&encoded_name.bytes);
-    if encoded_name.truncated {
+    let projected = crate::windows::win16_devmode::project(&bytes, state.borrow().text_codec)?;
+    if projected.truncated {
         super::super::win16_window_position::report_diagnostic(state, Kind::CompatibilityGap,
-            "native DEVMODEW device name was truncated to the Win16 fixed-width field");
+            "native DEVMODEW fixed names were truncated to Win16 byte fields");
     }
-    if encoded_name.used_default_char == Some(true) {
+    if projected.used_default_char {
         super::super::win16_window_position::report_diagnostic(state, Kind::CompatibilityGap,
-            "native DEVMODEW device name used guest-code-page replacement characters");
+            "native DEVMODEW fixed names used guest-code-page replacement characters");
     }
-    value.spec_version = WIN31_DM_SPECVERSION;
-    value.driver_version = native.dmDriverVersion;
-    value.fields = native.dmFields;
-    // SAFETY: The complete DEVMODEW prefix was copied above. Its dmFields has
-    // been restricted to printer members. This view contains only integers
-    // accepting every bit pattern; only dmFields-marked members are meaningful.
-    let printer = unsafe { native.Anonymous1.Anonymous1 };
-    value.settings = [
-        printer.dmOrientation,
-        printer.dmPaperSize,
-        printer.dmPaperLength,
-        printer.dmPaperWidth,
-        printer.dmScale,
-        printer.dmCopies,
-        printer.dmDefaultSource,
-        printer.dmPrintQuality,
-        native.dmColor, native.dmDuplex, native.dmYResolution, native.dmTTOption,
-    ];
-    if extra_size != 0 {
-        super::super::win16_window_position::report_diagnostic(state,
-            Kind::CompatibilityGap,
-            "native DEVMODEW driver-private data has no Win16 guest-layout mapping");
-    }
-    // The trailing bytes are native driver-private data, not a Win16 private
-    // tail. They stay inside the owned host HGLOBAL and are never guest output.
-    value.driver_extra.clear();
-    Ok(Some(value))
+    Ok(Some(projected.value))
 }
 
 fn validate_dev_names(bytes: &[u8]) -> Result<(), RuntimeError> {

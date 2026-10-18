@@ -3,7 +3,7 @@
 use guest_core::memory::Memory;
 use win16_abi::{
     DibColorTableKind, DibRgbQuad16, DocInfo16, GdiDeviceRequest, PaletteEntry16,
-    PaletteTransferKind, PrintOperation, Win16ApiRequest, gdi_abi::DEVMODE16_SUPPORTED_FIELDS,
+    PaletteTransferKind, PrintOperation, Win16ApiRequest,
 };
 
 use super::Win16State;

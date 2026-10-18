@@ -597,6 +597,7 @@ dependencies = [
  "sha2",
  "tempfile",
  "text-codec",
+ "win16-abi",
  "windows-bindgen",
  "windows-core",
  "windows-link 0.100.0",

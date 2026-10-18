@@ -10,6 +10,10 @@ pub use global_notify::global_notify_program;
 mod dialog_icon;
 pub use dialog_icon::{named_class_dialog_icon_program, named_dialog_icon_program};
 
+#[path = "image/printer.rs"]
+mod printer;
+pub use printer::default_printer_round_trip_program;
+
 #[path = "image/load_module.rs"]
 mod load_module;
 pub use load_module::{
