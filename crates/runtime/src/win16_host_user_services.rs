@@ -281,8 +281,9 @@ pub struct Win16HostSystemParametersResult {
 /// Generic session operations issued by Win16 USER through the native worker.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16HostSessionOperation {
-    RequestLogoff,
-    RequestReboot,
+    /// Ask the Shell to show its session-action chooser. Guest code does not
+    /// select or authorize a host logoff, shutdown, or reboot.
+    ShowShutdownDialog,
     LegacyOldExitWindows,
     RestartWin16Session,
     RunAfterWin16Restart { program: Vec<u8>, parameters: Option<Vec<u8>> },
@@ -301,6 +302,9 @@ pub enum Win16HostSessionApiPhase {
     ExitWindowsEx,
     RestoreShutdownPrivilege,
     CloseToken,
+    InitializeShellApartment,
+    CreateShell,
+    ShowShutdownDialog,
 }
 
 impl Win16HostSessionApiPhase {
@@ -313,6 +317,9 @@ impl Win16HostSessionApiPhase {
             Self::ExitWindowsEx => "request the Windows session change",
             Self::RestoreShutdownPrivilege => "restore the prior shutdown privilege state",
             Self::CloseToken => "close the process token",
+            Self::InitializeShellApartment => "initialize the Shell COM apartment",
+            Self::CreateShell => "create the Shell session chooser",
+            Self::ShowShutdownDialog => "display the Windows shutdown chooser",
         }
     }
 }

@@ -13,25 +13,29 @@ pub(super) fn prepare(
 
     let operation = match request {
         Win16UserSessionRequest::OldExitWindows => SessionOperation::LegacyOldExitWindows,
-        Win16UserSessionRequest::ExitWindows { return_code, reserved } => {
+        Win16UserSessionRequest::ExitWindows {
+            return_code,
+            reserved,
+        } => {
             if reserved != 0 || return_code >> 16 != 0 {
                 return Ok(Prepared::immediate(0, return_kind));
             }
-            // The modern ExitWindows compatibility macro maps (0, 0) to
-            // ExitWindowsEx(EWX_LOGOFF, 0); legacy nonzero codes are handled
-            // only where the Win16 contract supplies a verified mapping.
+            // A legacy session request must not authorize a host session
+            // change. Let the person using Windows choose an action instead.
             match return_code as u16 {
-                0 => SessionOperation::RequestLogoff,
-                // Windows 3.1 SDK Programmer's Reference, Volume 2 documents
-                // 42h as restart Windows and 43h as reboot the system.
+                0 | 0x0043 => SessionOperation::ShowShutdownDialog,
+                // Restarting the Win16 environment itself still requires a
+                // separate runtime protocol rather than a host session action.
                 0x0042 => SessionOperation::RestartWin16Session,
-                0x0043 => SessionOperation::RequestReboot,
                 code => SessionOperation::UnsupportedLegacyExitCode {
                     code: u32::from(code),
                 },
             }
         }
-        Win16UserSessionRequest::ExitWindowsExec { program, parameters } => {
+        Win16UserSessionRequest::ExitWindowsExec {
+            program,
+            parameters,
+        } => {
             let Some(program) = program else {
                 return Ok(Prepared::immediate(0, return_kind));
             };
@@ -43,7 +47,10 @@ pub(super) fn prepare(
             {
                 return Ok(Prepared::immediate(0, return_kind));
             }
-            SessionOperation::RunAfterWin16Restart { program, parameters }
+            SessionOperation::RunAfterWin16Restart {
+                program,
+                parameters,
+            }
         }
     };
 
@@ -52,4 +59,50 @@ pub(super) fn prepare(
         return_kind,
         FamilyCompletion::Session,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn session_exit_normal_and_reboot_requests_require_the_shell_chooser() {
+        for return_code in [0, 0x0043] {
+            let prepared = prepare(
+                Win16UserSessionRequest::ExitWindows {
+                    return_code,
+                    reserved: 0,
+                },
+                Win16ReturnKind::Word,
+            )
+            .unwrap();
+            assert!(matches!(
+                prepared,
+                Win16UserFamilyPreparation::WindowService {
+                    operation: Win16HostUserServiceOperation::Session(
+                        SessionOperation::ShowShutdownDialog
+                    ),
+                    ..
+                }
+            ));
+        }
+    }
+
+    #[test]
+    fn session_exit_invalid_frames_return_false_without_a_host_request() {
+        for (return_code, reserved) in [(0, 1), (0x10000, 0), (0x10043, 0)] {
+            let prepared = prepare(
+                Win16UserSessionRequest::ExitWindows {
+                    return_code,
+                    reserved,
+                },
+                Win16ReturnKind::Word,
+            )
+            .unwrap();
+            assert!(matches!(
+                prepared,
+                Win16UserFamilyPreparation::Immediate { value: 0, .. }
+            ));
+        }
+    }
 }

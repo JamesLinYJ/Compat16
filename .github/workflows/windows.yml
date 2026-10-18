@@ -118,6 +118,9 @@ jobs:
             '-p win16-abi --lib',
             '-p runtime --lib driver_contract_',
             '-p runtime --lib ole_remainder_contract_',
+            '-p runtime --lib session_exit_',
+            '-p runtime --lib callback_instance_',
+            '-p host-services --lib session_exit_',
             '-p runtime --lib rectangle_exports',
             '-p runtime --lib safe_array_ptr_of_index',
             '-p runtime --lib is_equal_guid',
@@ -236,6 +239,9 @@ jobs:
           # Keep focused additions visible: a renamed filter must not silently
           # succeed after selecting zero tests.
           $expectedPassCounts = @{
+            '-p runtime --lib session_exit_' = 2
+            '-p runtime --lib callback_instance_' = 1
+            '-p host-services --lib session_exit_' = 2
             '-p host-services --lib diagnostics_tests::' = 5
             '-p runtime --lib temp_drive::tests::' = 6
             '-p runtime --lib get_temp_drive_tests::' = 6

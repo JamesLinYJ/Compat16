@@ -12,6 +12,62 @@ use win16_abi::{Access, AccessRights};
 const GCL_WNDPROC: i16 = -24;
 const GWL_WNDPROC: i16 = -4;
 
+#[test]
+fn callback_instance_movable_data_handle_enters_wndproc_as_a_selector() {
+    for movable in [false, true] {
+        let mut image = tiny_ne_executable();
+        let ne = u32::from_le_bytes(image[0x3c..0x40].try_into().unwrap()) as usize;
+        let data = u16::from_le_bytes(image[ne + 0x0e..ne + 0x10].try_into().unwrap());
+        let table = u16::from_le_bytes(image[ne + 0x22..ne + 0x24].try_into().unwrap()) as usize;
+        let flags_at = ne + table + usize::from(data - 1) * 8 + 4;
+        let mut flags = u16::from_le_bytes(image[flags_at..flags_at + 2].try_into().unwrap());
+        if movable {
+            flags |= 0x0010;
+        } else {
+            flags &= !0x0010;
+        }
+        image[flags_at..flags_at + 2].copy_from_slice(&flags.to_le_bytes());
+        let mut runtime = Runtime::load(&image, &[], br"C:\CALLBACK.NE").unwrap();
+        let mut host = ClassDataHost::default();
+        let class = named_class(&mut runtime, &mut host, b"InstanceSelector", 0);
+        let hwnd = window(&mut runtime, class, 1);
+        let state = runtime.win16.as_mut().unwrap();
+        let selector = state.instance_selector.raw().0;
+        assert_eq!(
+            class.info.h_instance,
+            if movable { selector - 1 } else { selector }
+        );
+        let native = state.window_handles[&hwnd];
+        let procedure = state.window_procedures[&hwnd];
+        state
+            .begin_host_window_callback(
+                &mut runtime.cpu.regs,
+                &mut runtime.memory,
+                &mut host,
+                crate::Win16HostWindowOperationId(1),
+                crate::Win16HostCallback(2),
+                native,
+                hwnd,
+                procedure,
+                crate::Win16HostMessage::Scalar {
+                    kind: crate::Win16ScalarMessage::KeyDown,
+                    w_param: 7,
+                    l_param: 9,
+                },
+                None,
+                crate::Win16NativeCallbackSource::WindowMessage {
+                    window: native,
+                    class: Some(class.class),
+                    message: 0x100,
+                },
+                false,
+            )
+            .unwrap();
+        assert_eq!(runtime.cpu.regs.ax(), selector);
+        assert_eq!(state.window_procedures[&hwnd].instance, class.info.h_instance);
+    }
+}
+
 fn enter_native_subclass_send(runtime: &mut Runtime, host: &mut ClassDataHost, hwnd: u16, message: u16)
     -> Result<Option<u8>, RuntimeError>
 {

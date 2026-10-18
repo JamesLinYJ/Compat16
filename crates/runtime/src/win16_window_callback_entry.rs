@@ -190,6 +190,7 @@ impl Win16State {
                 return Err(self.fail_preparing_window_callback(callback_id, error));
             }
         };
+        let data_selector = self.callback_instance_selector(instance);
         let frame = self.window_callbacks.last_mut().ok_or_else(|| RuntimeError::new(
             Kind::InternalInvariant,
             "pre-entry WndProc frame disappeared before guest entry",
@@ -202,7 +203,7 @@ impl Win16State {
         registers.set_sp(registers.sp() - WNDPROC_STACK_BYTES);
         registers.cs = (address >> 16) as u16;
         registers.set_ip(address as u16);
-        registers.set_ax(instance);
+        registers.set_ax(data_selector);
         registers.ds = registers.ss;
         registers.es = registers.ss;
         frame.setup.last_completed = WindowCallbackSetupPhase::GuestEntryCommitted;

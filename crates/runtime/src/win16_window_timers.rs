@@ -169,6 +169,7 @@ impl Win16State {
             return Err(self.fail_preparing_window_callback(callback_id, error));
         }
 
+        let instance = instance.map(|instance| self.callback_instance_selector(instance));
         let frame = self.window_callbacks.last_mut().ok_or_else(|| RuntimeError::new(
             crate::DiagnosticKind::InternalInvariant,
             "pre-entry TIMERPROC frame disappeared before guest entry",

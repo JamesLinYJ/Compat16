@@ -925,7 +925,35 @@ beyond that prefix are left unchanged. A null or empty port on
 stopping at NUL). `GetEnvironment` does not read its output buffer to invent
 that key, so a null port on get returns 0.
 
+## Callback and session contracts
+
+### Instance registers at USER callbacks
+
+The Windows prolog adaptation in `formats::ne_prologs` preserves the instance
+data selector supplied in AX for multi-instance entries. An NE movable data
+segment's HINSTANCE is selector minus one; that handle is not the selector
+consumed by `MOV DS,AX`. USER window, dialog, timer and guest-dispatch callback
+entries resolve owned NE segment handles before loading AX, while leaving
+guest-visible instance handles unchanged. MakeProcInstance already resolves
+the instance data selector in its generated guest thunk. Selector permissions,
+limits and callback-owner validation remain enforced.
+
+### Win16 session requests on a modern desktop
+
+USER.7 `ExitWindows` retains its DWORD/WORD Pascal frame. A normal exit or
+legacy reboot request opens the native Shell session-action chooser through
+[IShellDispatch::ShutdownWindows](https://learn.microsoft.com/en-us/windows/win32/shell/shell-shutdownwindows).
+The user chooses any session action there. The bridge does not invoke
+`ExitWindowsEx` or acquire a shutdown privilege. Successful dialog invocation
+does not prove that the user accepted a session change, so the guest BOOL stays
+FALSE when the call returns, including cancellation. COM or Shell failures also
+return FALSE with a phase-specific diagnostic. This is an explicit host UI
+adaptation, not equivalence between a Win16 exit code and a modern logoff flag.
+Restarting the Win16 environment and `ExitWindowsExec` remain separate gaps.
+
 ## Unimplemented call contracts
+
+### Unknown parameter frames
 
 An unknown historical stub signature is not a zero-argument Pascal call.
 Driver stubs without verified parameter frames stay declaration-only, including

@@ -711,7 +711,9 @@ impl Win16State {
         registers.set_sp(registers.sp() - WNDPROC_STACK_BYTES);
         registers.cs = (procedure >> 16) as u16;
         registers.set_ip(procedure as u16);
-        if let Some(instance) = instance { registers.set_ax(instance); }
+        if let Some(instance) = instance {
+            registers.set_ax(self.callback_instance_selector(instance));
+        }
         registers.ds = registers.ss;
         registers.es = registers.ss;
         Ok(None)

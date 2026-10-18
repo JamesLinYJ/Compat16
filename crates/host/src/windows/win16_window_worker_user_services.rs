@@ -17,8 +17,8 @@ use windows_sys::Win32::UI::WindowsAndMessaging::IsWindow;
 
 use super::{ClipboardViewerRegistration, WorkerState};
 
-#[path = "win16_shutdown_privilege.rs"]
-mod shutdown_privilege;
+#[path = "win16_shutdown_dialog.rs"]
+mod shutdown_dialog;
 
 pub(super) fn execute(
     state: &Rc<RefCell<WorkerState>>,
@@ -132,8 +132,7 @@ fn execute_regular(
 
 fn execute_session(operation: SessionOperation) -> Result<Win16HostSessionResult, RuntimeError> {
     match operation {
-        SessionOperation::RequestLogoff => Ok(shutdown_privilege::request_logoff()),
-        SessionOperation::RequestReboot => Ok(shutdown_privilege::request_reboot()),
+        SessionOperation::ShowShutdownDialog => Ok(shutdown_dialog::show()),
         SessionOperation::LegacyOldExitWindows => Err(RuntimeError::new(
             Kind::CompatibilityGap,
             "USER ordinal 2 OldExitWindows is a local API without a documented host session mapping",

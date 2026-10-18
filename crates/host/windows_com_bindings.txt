@@ -21,3 +21,7 @@ Windows.Win32.GlobalLock
 Windows.Win32.GlobalSize
 Windows.Win32.GlobalUnlock
 Windows.Win32.DEVMODEW
+Windows.Win32.IShellDispatch
+Windows.Win32.Shell
+Windows.Win32.CoCreateInstance
+Windows.Win32.CLSCTX_INPROC_SERVER
