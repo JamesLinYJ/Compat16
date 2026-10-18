@@ -275,7 +275,7 @@ mod win16_host_registry;
 pub use win16_host_keyboard::{Win16HostKeyboardCall, Win16HostKeyboardResult};
 pub use win16_host_registry::{
     Win16HostRegistryKey, Win16HostRegistryOperation, Win16HostRegistryResult, Win16RegistryKeyRef,
-    Win16RegistryRoot, Win16RegistryQueryOutput,
+    Win16RegistryRoot, Win16RegistryQueryOutput, Win16RegistryQueryView,
 };
 mod win16_host_drawing;
 mod win16_host_images;

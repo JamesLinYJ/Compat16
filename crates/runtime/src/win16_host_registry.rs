@@ -56,6 +56,16 @@ pub enum Win16RegistryQueryOutput {
     },
 }
 
+/// Value semantics are independent of buffer and truncation policy.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16RegistryQueryView {
+    /// Preserve RegQueryValue's native supported types and error results.
+    Native,
+    /// Present REG_EXPAND_SZ as its original text to Win3.1 string-only APIs.
+    /// Environment references and the stored native value remain unchanged.
+    Win31Strings,
+}
+
 /// One operation on the process registry namespace.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16HostRegistryOperation {
@@ -86,6 +96,7 @@ pub enum Win16HostRegistryOperation {
         key: Win16RegistryKeyRef,
         subkey: Vec<u8>,
         output: Win16RegistryQueryOutput,
+        view: Win16RegistryQueryView,
     },
     EnumKey {
         key: Win16RegistryKeyRef,

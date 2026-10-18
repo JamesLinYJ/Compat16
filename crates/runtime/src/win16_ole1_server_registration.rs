@@ -31,6 +31,7 @@ pub(super) fn validate_server_registration(
         key: Win16RegistryKeyRef::Predefined(Win16RegistryRoot::ClassesRoot),
         subkey,
         output: crate::Win16RegistryQueryOutput::Bounded(124),
+        view: crate::Win16RegistryQueryView::Native,
     })?;
     let Win16HostRegistryResult::QueryValue {
         status,

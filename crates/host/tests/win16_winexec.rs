@@ -24,6 +24,10 @@ mod dbcs;
 mod country;
 
 #[cfg(windows)]
+#[path = "win16_winexec/registry_expand.rs"]
+mod registry_expand;
+
+#[cfg(windows)]
 #[path = "win16_winexec/registry_aliases.rs"]
 mod registry_aliases;
 

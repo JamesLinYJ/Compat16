@@ -1,6 +1,10 @@
 //! String ownership and Win3.1 errors through SHELL and KERNEL registry APIs.
 use super::{Code, ne};
 
+#[path = "registry/expand.rs"]
+mod expand;
+pub use expand::registry_expand_program;
+
 #[path = "registry/query.rs"]
 mod query;
 pub use query::registry_query_program;

@@ -55,6 +55,8 @@ impl Win16State {
             key,
             subkey,
             output: policy,
+            view: if win31 { crate::Win16RegistryQueryView::Win31Strings }
+                else { crate::Win16RegistryQueryView::Native },
         })?;
         let Win16HostRegistryResult::QueryValue {
             status,

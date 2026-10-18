@@ -111,6 +111,7 @@ fn query_default_string(
             key: Win16RegistryKeyRef::Predefined(Win16RegistryRoot::ClassesRoot),
             subkey: request_subkey,
             output: crate::Win16RegistryQueryOutput::Bounded(capacity),
+            view: crate::Win16RegistryQueryView::Native,
         })?;
         let Win16HostRegistryResult::QueryValue {
             status,

@@ -55,6 +55,8 @@ Supply the legacy application and its companion files yourself. Use the console 
 
 `--code-page 437` selects the built-in US/437 DOS country profile; `--code-page 936` selects PRC/936. Their country records, collation and uppercase tables do not depend on the host locale. CP936 filenames preserve double-byte character boundaries. Other country/code-page pairs and runtime country changes remain unsupported.
 
+Win3.1 SHELL registry queries present `REG_EXPAND_SZ` default values as their original text, preserving environment references such as `%SystemRoot%`. This string view reads the Windows key without changing its stored type or value. KERNEL's Win32 registry thunks retain native query behavior.
+
 ### Optional profile guided optimization
 
 PGO uses the pinned Rust 1.99.0 profiler runtime, its bundled COFF linker, and the `llvm-tools-preview` component. Install that optional component into the same Rust installation used by the build script. For the project-local toolchain:
@@ -162,6 +164,8 @@ Compat16 在进程内执行旧程序的 x86 指令，并把 DOS / Win16 接口�
 旧程序及其配套文件由使用者自行提供。控制台入口支持 `--help`。
 
 `--code-page 437` 使用内置的美国/437 DOS 国家配置，`--code-page 936` 使用中国/936 配置。国家信息、排序表和大小写表不依赖宿主区域设置，CP936 文件名转换保留双字节字符边界。其他国家与代码页组合及运行时国家切换仍未实现。
+
+Win3.1 SHELL 注册表查询将 `REG_EXPAND_SZ` 默认值按原文字符串呈现，保留 `%SystemRoot%` 等环境引用。此视图读取 Windows 原键，不改变存储的类型和值。KERNEL 的 Win32 注册表接口保留原生查询行为。
 
 ### 可选的 PGO 优化
 

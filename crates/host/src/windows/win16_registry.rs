@@ -5,13 +5,13 @@ use std::ptr::{null, null_mut};
 
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostRegistryKey,
     Win16HostRegistryOperation, Win16HostRegistryResult, Win16RegistryKeyRef,
-    Win16RegistryRoot, Win16RegistryQueryOutput};
+    Win16RegistryRoot};
 use windows_sys::Win32::Foundation::{ERROR_INVALID_HANDLE, ERROR_NOT_ENOUGH_MEMORY,
-    ERROR_INVALID_DATA, ERROR_INVALID_PARAMETER, ERROR_MORE_DATA,
+    ERROR_INVALID_PARAMETER, ERROR_MORE_DATA,
     ERROR_NO_UNICODE_TRANSLATION, ERROR_SUCCESS};
 use windows_sys::Win32::System::Registry::{
     RegCloseKey, RegCreateKeyW, RegDeleteKeyW, RegEnumKeyExW, RegOpenKeyW,
-    RegQueryValueW, RegSetValueW, HKEY, HKEY_CLASSES_ROOT, HKEY_CURRENT_CONFIG,
+    RegSetValueW, HKEY, HKEY_CLASSES_ROOT, HKEY_CURRENT_CONFIG,
     HKEY_CURRENT_USER, HKEY_DYN_DATA, HKEY_LOCAL_MACHINE, HKEY_PERFORMANCE_DATA,
     HKEY_USERS, REG_SZ,
 };
@@ -19,6 +19,8 @@ use windows_sys::Win32::System::Registry::{
 use super::guest_text::GuestTextCodec;
 
 mod names;
+mod query;
+use query::query_value;
 
 const MAX_REGISTRY_KEY_NAME_WCHARS: usize = 256;
 
@@ -154,7 +156,7 @@ impl RegistryHandles {
                 };
                 Ok(Win16HostRegistryResult::SetValue { status })
             }
-            Win16HostRegistryOperation::QueryValue { key, subkey, output } => {
+            Win16HostRegistryOperation::QueryValue { key, subkey, output, view } => {
                 let Ok((native, _)) = self.resolve(key) else {
                     return Ok(Win16HostRegistryResult::QueryValue {
                         status: ERROR_INVALID_HANDLE, value_type: 0, required_bytes: 0,
@@ -168,7 +170,7 @@ impl RegistryHandles {
                         required_bytes: 0, bytes: Vec::new(),
                     }),
                 };
-                query_value(codec, native, &subkey, output)
+                query_value(codec, native, &subkey, output, view)
             }
             Win16HostRegistryOperation::EnumKey { key, index, capacity } => {
                 let Ok((native, _)) = self.resolve(key) else {
@@ -310,114 +312,6 @@ fn conversion_status(error: TextConversionError) -> Result<u32, RuntimeError> {
     match error {
         TextConversionError::GuestStatus(status) => Ok(status),
         TextConversionError::Runtime(error) => Err(error),
-    }
-}
-
-fn query_value(
-    codec: GuestTextCodec,
-    key: HKEY,
-    subkey: &[u16],
-    output: Win16RegistryQueryOutput,
-) -> Result<Win16HostRegistryResult, RuntimeError> {
-    if let Win16RegistryQueryOutput::WithoutLength { data_present } = output {
-        // Preserve native ordering: a missing subkey is reported before a
-        // non-NULL data buffer with no length is rejected. Native data never
-        // points into guest memory. The one-unit buffer also accommodates the
-        // legacy empty-default case; a nonempty transfer requires lpcbData.
-        let mut unused = 0_u16;
-        let data = if data_present { &mut unused as *mut u16 } else { null_mut() };
-        // SAFETY: key/subkey remain live. With NULL lpcbData the native API
-        // rejects nonempty data transfer; the owned unit covers an empty NUL.
-        let status = unsafe { RegQueryValueW(key, subkey.as_ptr(), data, null_mut()) };
-        return Ok(query_result(status, 0, Vec::new()));
-    }
-    let mut native_size = 0_i32;
-    // RegQueryValueW's null-output query reports the native UTF-16 data size in
-    // bytes. A complete value is needed to compute the guest code-page byte
-    // count; the legacy Win16 capacity remains in guest bytes below.
-    // SAFETY: the key and UTF-16 subkey are live, and `native_size` is writable.
-    let sizing_status = unsafe {
-        RegQueryValueW(key, subkey.as_ptr(), null_mut(), &mut native_size)
-    };
-    if sizing_status != ERROR_SUCCESS {
-        return Ok(query_result(sizing_status, 0, Vec::new()));
-    }
-    if native_size < 0 || native_size % 2 != 0 {
-        return Ok(query_result(ERROR_INVALID_DATA, 0, Vec::new()));
-    }
-
-    let mut required_native = usize::try_from(native_size).map_err(|error| {
-        RuntimeError::with_source(Kind::InternalInvariant,
-            "RegQueryValue returned an invalid UTF-16 byte count", error)
-    })?;
-    for attempt in 0..3 {
-        if required_native % 2 != 0 {
-            return Ok(query_result(ERROR_INVALID_DATA, 0, Vec::new()));
-        }
-        let wide_units = required_native / 2;
-        let mut wide = Vec::new();
-        wide.try_reserve_exact(wide_units).map_err(|error| {
-            RuntimeError::with_source(Kind::ResourceExhausted,
-                "allocate Win16 registry query buffer", error)
-        })?;
-        wide.resize(wide_units, 0);
-        let mut returned_native = i32::try_from(required_native).map_err(|error| {
-            RuntimeError::with_source(Kind::InvalidInput,
-                "registry value exceeds the native byte-count range", error)
-        })?;
-        let native_output = if wide.is_empty() { null_mut() } else { wide.as_mut_ptr() };
-        // SAFETY: the optional output is writable for exactly the byte count
-        // passed through `returned_native`, and all pointers remain live.
-        let status = unsafe {
-            RegQueryValueW(key, subkey.as_ptr(), native_output, &mut returned_native)
-        };
-        if status == ERROR_MORE_DATA && attempt < 2
-            && returned_native >= 0
-            && usize::try_from(returned_native).is_ok_and(|length| length > required_native)
-        {
-            required_native = returned_native as usize;
-            continue;
-        }
-        if status != ERROR_SUCCESS {
-            return Ok(query_result(status, 0, Vec::new()));
-        }
-        if returned_native < 0
-            || returned_native % 2 != 0
-            || usize::try_from(returned_native).ok().is_none_or(|length| length > required_native)
-        {
-            return Ok(query_result(ERROR_INVALID_DATA, 0, Vec::new()));
-        }
-        wide.truncate(returned_native as usize / 2);
-        let mut bytes = match codec.from_wide(&wide) {
-            Ok(encoded) => encoded.bytes,
-            Err(error) if guest_output_conversion_failure(&error) => {
-                return Ok(query_result(ERROR_NO_UNICODE_TRANSLATION, 0, Vec::new()));
-            }
-            Err(error) => return Err(error),
-        };
-        let required_bytes = u32::try_from(bytes.len()).map_err(|error| {
-            RuntimeError::with_source(Kind::InvalidInput,
-                "Win16 registry value exceeds DWORD byte count", error)
-        })?;
-        if matches!(output, Win16RegistryQueryOutput::Bounded(capacity) if bytes.len() > capacity as usize) {
-            return Ok(query_result(ERROR_MORE_DATA, required_bytes, Vec::new()));
-        }
-        // The size-only query still converts the complete native value so a
-        // DBCS byte count cannot be mistaken for its UTF-16 storage size.
-        if output == Win16RegistryQueryOutput::SizeOnly {
-            bytes.clear();
-        }
-        return Ok(query_result(ERROR_SUCCESS, required_bytes, bytes));
-    }
-    Ok(query_result(ERROR_MORE_DATA, 0, Vec::new()))
-}
-
-fn query_result(status: u32, required_bytes: u32, bytes: Vec<u8>) -> Win16HostRegistryResult {
-    Win16HostRegistryResult::QueryValue {
-        status,
-        value_type: REG_SZ,
-        required_bytes,
-        bytes,
     }
 }
 
