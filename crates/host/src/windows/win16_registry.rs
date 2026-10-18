@@ -123,9 +123,10 @@ impl RegistryHandles {
                 let status = unsafe { RegDeleteKeyW(root, subkey.as_ptr()) };
                 Ok(Win16HostRegistryResult::DeleteKey { status })
             }
-            Win16HostRegistryOperation::SetValue {
-                key, subkey, value_type, value, declared_byte_count,
-            } => {
+            Win16HostRegistryOperation::SetValue { key, subkey, value_type, value } => {
+                if value_type != REG_SZ {
+                    return Ok(Win16HostRegistryResult::SetValue { status: ERROR_INVALID_PARAMETER });
+                }
                 let Ok((native, _)) = self.resolve(key) else {
                     return Ok(Win16HostRegistryResult::SetValue { status: ERROR_INVALID_HANDLE });
                 };
@@ -135,36 +136,20 @@ impl RegistryHandles {
                         status: conversion_status(error)?,
                     }),
                 };
-                if usize::try_from(declared_byte_count).ok() != Some(value.len()) {
-                    return Ok(Win16HostRegistryResult::SetValue {
-                        status: ERROR_INVALID_PARAMETER,
-                    });
-                }
-                let wide_value = if value_type == REG_SZ && !value.is_empty() {
-                    let string_end = value.iter().position(|byte| *byte == 0).unwrap_or(value.len());
-                    match wide_z_data(codec, &value[..string_end]) {
-                        Ok(value) => Some(value),
-                        Err(error) => return Ok(Win16HostRegistryResult::SetValue {
-                            status: conversion_status(error)?,
-                        }),
-                    }
-                } else {
-                    None
+                let value = match wide_z(codec, &value) {
+                    Ok(value) => value,
+                    Err(error) => return Ok(Win16HostRegistryResult::SetValue {
+                        status: conversion_status(error)?,
+                    }),
                 };
-                let value_ptr = if value.is_empty() {
-                    null()
-                } else if let Some(wide_value) = &wide_value {
-                    wide_value.as_ptr().cast()
-                } else {
-                    value.as_ptr().cast()
+                // RegSetValueW ignores cbData. Always supply an owned,
+                // terminated UTF-16 string, even for an empty guest string.
+                // https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvaluew
+                // SAFETY: `native` is live and both strings remain owned for
+                // the call. Guest FAR values never cross this boundary.
+                let status = unsafe {
+                    RegSetValueW(native, subkey.as_ptr(), REG_SZ, value.as_ptr(), 0)
                 };
-                // RegSetValueW defines REG_SZ data as UTF-16 and ignores
-                // `cbData`; preserve the guest's declared byte count at this
-                // boundary, and leave non-string type data byte-for-byte intact.
-                // SAFETY: `native` is live, strings and data stay owned through
-                // the call, and the declared guest length was checked above.
-                let status = unsafe { RegSetValueW(native, subkey.as_ptr(), value_type,
-                    value_ptr, declared_byte_count) };
                 Ok(Win16HostRegistryResult::SetValue { status })
             }
             Win16HostRegistryOperation::QueryValue { key, subkey, capacity } => {

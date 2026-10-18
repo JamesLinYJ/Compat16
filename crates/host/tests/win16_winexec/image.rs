@@ -2,6 +2,10 @@
 
 pub const ENVIRONMENT: &[u8; 20] = b"C16=guest\0PATH=BIN\0\0";
 
+#[path = "image/registry.rs"]
+mod registry;
+pub use registry::registry_program;
+
 #[path = "image/oem_bitmap.rs"]
 mod oem_bitmap;
 pub use oem_bitmap::oem_bitmap_program;

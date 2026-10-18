@@ -14,12 +14,9 @@ use x86_cpu::Cpu;
 use super::Win16State;
 use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost};
 
-const ERROR_INVALID_PARAMETER: u32 = 87;
 const ERROR_CALL_NOT_IMPLEMENTED: u32 = 120;
 const HFILE_ERROR: u32 = 0xFFFF;
 const WAIT_FAILED: u32 = 0xFFFF_FFFF;
-const MAX_REGISTRY_BYTES: u32 = 64 * 1024;
-const MAX_ANSI_BYTES: usize = 64 * 1024;
 
 pub(super) enum KernelRemainderOutcome {
     Value(u32),
@@ -305,122 +302,12 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        let request = match ordinal {
-            216 => Win16ShellRegistryRequest::EnumKey {
-                key: arg_dword(arguments, 0)?,
-                index: arg_dword(arguments, 1)?,
-                output: arg_dword(arguments, 2)?,
-                capacity: arg_dword(arguments, 3)?,
-            },
-            217 => Win16ShellRegistryRequest::OpenKey {
-                root: arg_dword(arguments, 0)?,
-                subkey: self.read_registry_string(arg_dword(arguments, 1)?, memory)?,
-                output: arg_dword(arguments, 2)?,
-            },
-            218 => Win16ShellRegistryRequest::CreateKey {
-                root: arg_dword(arguments, 0)?,
-                subkey: self.read_registry_string(arg_dword(arguments, 1)?, memory)?,
-                output: arg_dword(arguments, 2)?,
-            },
-            219 => Win16ShellRegistryRequest::DeleteKey {
-                root: arg_dword(arguments, 0)?,
-                subkey: self.read_registry_string(arg_dword(arguments, 1)?, memory)?,
-            },
-            220 => Win16ShellRegistryRequest::CloseKey {
-                key: arg_dword(arguments, 0)?,
-            },
-            221 => {
-                let length = arg_dword(arguments, 4)?;
-                if length > MAX_REGISTRY_BYTES {
-                    return Ok(ERROR_INVALID_PARAMETER);
-                }
-                Win16ShellRegistryRequest::SetValue {
-                    key: arg_dword(arguments, 0)?,
-                    subkey: self.read_registry_string(arg_dword(arguments, 1)?, memory)?,
-                    value_type: arg_dword(arguments, 2)?,
-                    value: self.read_registry_bytes(arg_dword(arguments, 3)?, length, memory)?,
-                    declared_byte_count: length,
-                }
-            }
-            224 => {
-                let byte_count_output = arg_dword(arguments, 3)?;
-                let byte_count = self.read_guest_u32(byte_count_output, memory)?;
-                Win16ShellRegistryRequest::QueryValue {
-                    key: arg_dword(arguments, 0)?,
-                    subkey: self.read_registry_string(arg_dword(arguments, 1)?, memory)?,
-                    output: arg_dword(arguments, 2)?,
-                    byte_count,
-                    byte_count_output,
-                }
-            }
-            _ => return Ok(ERROR_CALL_NOT_IMPLEMENTED),
-        };
-        self.shell_registry_api(request, memory, host)
-    }
-
-    fn read_registry_string(&self, far: u32, memory: &Memory) -> Result<Vec<u8>, RuntimeError> {
-        if far == 0 {
-            return Ok(Vec::new());
-        }
-        win16_abi::strings::read_ansi_z(&self.selectors, memory, far, MAX_ANSI_BYTES).map_err(
-            |error| crate::runtime_error(error).with_context("reading KERNEL registry string"),
-        )
-    }
-
-    fn read_registry_bytes(
-        &self,
-        far: u32,
-        length: u32,
-        memory: &Memory,
-    ) -> Result<Vec<u8>, RuntimeError> {
-        let length = usize::try_from(length).map_err(|_| {
-            RuntimeError::new(
-                Kind::InvalidInput,
-                "KERNEL registry value length does not fit the host",
-            )
-        })?;
-        if length == 0 {
-            return Ok(Vec::new());
-        }
-        if far == 0 {
-            return Err(RuntimeError::new(
-                Kind::InvalidInput,
-                "KERNEL registry value pointer is null",
-            ));
-        }
-        let pointer = self
-            .selectors
-            .pointer_from_far(far)
-            .map_err(crate::runtime_error)?;
-        self.selectors
-            .translate(pointer, Access::Read, length, memory)
-            .map_err(crate::runtime_error)?;
-        let mut bytes = vec![0_u8; length];
-        self.selectors
-            .read(memory, pointer, &mut bytes)
-            .map_err(crate::runtime_error)?;
-        Ok(bytes)
-    }
-
-    fn read_guest_u32(&self, far: u32, memory: &Memory) -> Result<u32, RuntimeError> {
-        if far == 0 {
-            return Err(RuntimeError::new(
-                Kind::InvalidInput,
-                "KERNEL registry size pointer is null",
-            ));
-        }
-        let pointer = self
-            .selectors
-            .pointer_from_far(far)
-            .map_err(crate::runtime_error)?;
-        self.selectors
-            .translate(pointer, Access::Read, 4, memory)
-            .map_err(crate::runtime_error)?;
-        let mut bytes = [0_u8; 4];
-        self.selectors
-            .read(memory, pointer, &mut bytes)
-            .map_err(crate::runtime_error)?;
-        Ok(u32::from_le_bytes(bytes))
+        // The Win32 thunks share checked decoding, not SHELL's NULL data or
+        // Win3.1 status conversion. See kernel31/kernel.def and WKTBL2.H.
+        let request = Win16ShellRegistryRequest::decode_kernel_export(
+            ordinal, arguments, &self.selectors, memory,
+        ).map_err(crate::runtime_error)?;
+        self.shell_registry_native_status(request, memory, host)
     }
 }
 

@@ -69,8 +69,9 @@ pub enum Win16HostRegistryOperation {
         key: Win16RegistryKeyRef,
         subkey: Vec<u8>,
         value_type: u32,
+        /// Checked ANSI string bytes, excluding the terminator. The Win16
+        /// API's cbData parameter is ignored before this host boundary.
         value: Vec<u8>,
-        declared_byte_count: u32,
     },
     QueryValue {
         key: Win16RegistryKeyRef,

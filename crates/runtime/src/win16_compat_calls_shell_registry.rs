@@ -18,6 +18,15 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
+        self.shell_registry_native_status(request, memory, host).map(win31_status)
+    }
+
+    pub(super) fn shell_registry_native_status(
+        &mut self,
+        request: Win16ShellRegistryRequest,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
         match request {
             Win16ShellRegistryRequest::OpenKey { root, subkey, output } => self
                 .shell_registry_open(root, subkey, output, false, memory, host),
@@ -48,21 +57,18 @@ impl Win16State {
                 Ok(status)
             }
             Win16ShellRegistryRequest::SetValue {
-                key, subkey, value_type, value, declared_byte_count,
+                key, subkey, value_type, value,
             } => {
+                if value_type != 1 { return Ok(87); } // REG_SZ only.
+                let Some(value) = value else { return Ok(87); }; // Win32 NULL lpData.
                 let Ok(key) = self.compat.registry_key(key) else {
                     return Ok(ERROR_INVALID_HANDLE);
                 };
-                if usize::try_from(declared_byte_count).ok() != Some(value.len()) {
-                    return Err(RuntimeError::new(Kind::InternalInvariant,
-                        "Win16 RegSetValue buffer length differs from its declared byte count"));
-                }
                 let result = host.win16_registry(Win16HostRegistryOperation::SetValue {
                     key,
                     subkey,
                     value_type,
                     value,
-                    declared_byte_count,
                 })?;
                 let Win16HostRegistryResult::SetValue { status } = result else {
                     return Err(wrong_registry_result("RegSetValue"));
@@ -230,6 +236,22 @@ impl Win16State {
     ) -> Result<(), RuntimeError> {
         let pointer = self.preflight_registry_output(memory, address, bytes.len())?;
         self.selectors.write(memory, pointer, bytes).map_err(crate::runtime_error)
+    }
+}
+
+// The native registry is shared with OLE1 and retains Win32 statuses. Translate
+// only the Win16 API's result, following WOW ConvertToWin31Error (WSHELL.C).
+fn win31_status(native: u32) -> u32 {
+    match native {
+        0 => 0,
+        1009 => 1, // ERROR_BADDB.
+        1010 | 2 | 259 => 2, // BADKEY, FILE_NOT_FOUND, NO_MORE_ITEMS.
+        1011 => 3, // CANTOPEN.
+        1012 => 4, // CANTREAD.
+        1013 => 5, // CANTWRITE.
+        14 => 6, // OUTOFMEMORY.
+        87 | 234 => 7, // INVALID_PARAMETER, MORE_DATA.
+        _ => 8, // ACCESS_DENIED, including unknown native errors.
     }
 }
 

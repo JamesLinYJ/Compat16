@@ -4,6 +4,10 @@
 mod image;
 
 #[cfg(windows)]
+#[path = "win16_winexec/registry.rs"]
+mod registry;
+
+#[cfg(windows)]
 #[path = "win16_winexec/oem_bitmap.rs"]
 mod oem_bitmap;
 
@@ -53,6 +57,7 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::ext_device_mode_round_trip_program(),
         image::current_directory_program(),
         image::oem_bitmap_program(),
+        image::registry_program("Compat16Test.fixture"),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");
         assert_eq!(module.header.target_os, 2);
