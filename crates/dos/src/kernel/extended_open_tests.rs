@@ -2,6 +2,9 @@
 
 use super::*;
 
+#[path = "extended_open_code_page_tests.rs"]
+mod code_page_tests;
+
 fn registers(mode: u16, action: u16, attributes: u16) -> Registers {
     let mut regs = Registers {
         eax: 0xaaaa_6c00, ebx: 0xbbbb_0000, ecx: 0xcccc_0000,
@@ -118,7 +121,7 @@ fn extended_open_rejects_invalid_words_and_unsupported_actions_before_host_call(
         assert!(result.carry());
         assert!(host.extended_open_calls.is_empty());
     }
-    for action in [0, 3, 4, 0xf, 0x13, 0x20, 0x21, 0x100, 0x101, 0x8001, 0xffff] {
+    for action in [0, 3, 4, 0xf, 0x13, 0x20, 0x21, 0x100, 0x103, 0x1111, 0x201, 0x8001, 0xffff] {
         let (mut dos, mut host, mut memory) = fixture();
         let result = call(&mut dos, &mut host, &mut memory, 2, action, 0);
         assert_eq!(result.ax(), DosErrorCode::InvalidFunction as u16, "DX={action:04x}");

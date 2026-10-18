@@ -4,6 +4,7 @@ use super::{image, native::run_with_engine};
 
 fn verify(engine: &str, protected: bool) {
     let root = tempfile::tempdir().unwrap();
+    std::fs::write(root.path().join("PLAIN.DAT"), b"preserve").unwrap();
     let program = root.path().join(if protected {
         "CURDIR.EXE"
     } else {
@@ -16,6 +17,10 @@ fn verify(engine: &str, protected: bool) {
     };
     std::fs::write(&program, bytes).unwrap();
     run_with_engine(&program, 1252, engine);
+    assert_eq!(
+        std::fs::read(root.path().join("PLAIN.DAT")).unwrap(),
+        b"preserve"
+    );
 }
 
 #[test]

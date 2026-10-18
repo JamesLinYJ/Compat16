@@ -20,6 +20,10 @@ mod fcb_parse;
 mod extended_error;
 
 #[cfg(windows)]
+#[path = "win16_winexec/extended_open.rs"]
+mod extended_open;
+
+#[cfg(windows)]
 #[path = "win16_winexec/stdin.rs"]
 mod stdin;
 

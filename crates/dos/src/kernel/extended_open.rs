@@ -129,7 +129,15 @@ fn extended_open_request(regs: &Registers) -> Result<DosFileOpenRequest, DosErro
     }
     // Bit 13 requests returned critical errors. Both settings currently use
     // the runtime's existing returned-error policy; INT 24h is not emulated.
-    let disposition = match regs.dx() {
+    let action = regs.dx();
+    // DOS 4 FILEMODE.INC permits bit 8 (no_code_page_check); FILE.ASM
+    // validates FE00h, then selects the disposition from DL. The Unicode
+    // host has no disk code-page check in either mode. This flag does not
+    // bypass guest-byte decoding, pathname checks, or native access rights.
+    if action & 0xfe00 != 0 {
+        return Err(DosErrorCode::InvalidFunction);
+    }
+    let disposition = match action & 0xff {
         0x0001 => DosFileDisposition::OpenExisting,
         0x0010 => DosFileDisposition::CreateNew,
         0x0011 => DosFileDisposition::OpenOrCreate,

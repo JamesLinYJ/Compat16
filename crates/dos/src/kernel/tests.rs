@@ -226,7 +226,11 @@ impl DosHost for TestHost {
         }
         let outcome = match (request.disposition, exists) {
             (DosFileDisposition::CreateNew, true) => return Err(DosHostError::new(DosErrorCode::FileExists)),
-            (DosFileDisposition::OpenExisting, false) => return Err(DosHostError::new(DosErrorCode::FileNotFound)),
+            (DosFileDisposition::OpenExisting | DosFileDisposition::ReplaceExisting, false) => return Err(DosHostError::new(DosErrorCode::FileNotFound)),
+            (DosFileDisposition::ReplaceExisting | DosFileDisposition::ReplaceOrCreate, true) => {
+                self.attributes.insert(path.to_vec(), request.attributes);
+                DosFileOpenOutcome::Replaced
+            }
             (_, true) => DosFileOpenOutcome::Opened,
             (_, false) => {
                 if request.access == DosFileAccess::ReadOnly {
@@ -237,7 +241,7 @@ impl DosHost for TestHost {
             }
         };
         self.last_open_access = Some(request.access);
-        Ok(DosFileOpenResult { file: self.open_new(path, false), outcome })
+        Ok(DosFileOpenResult { file: self.open_new(path, outcome == DosFileOpenOutcome::Replaced), outcome })
     }
     fn file_open_with_sharing(&mut self, path: &[u8], access: DosFileAccess, _sharing: DosFileSharing) -> Result<DosHostFile, DosHostError> {
         self.file_open(path, access)

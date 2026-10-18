@@ -18,6 +18,10 @@ pub use stdin::stdin_com;
 mod extended_error;
 pub use extended_error::{extended_error_com, extended_error_program};
 
+#[path = "image/extended_open.rs"]
+mod extended_open;
+pub use extended_open::{extended_open_filename, extended_open_program};
+
 #[path = "image/dos_message.rs"]
 mod dos_message;
 pub use dos_message::dos_message_com;
