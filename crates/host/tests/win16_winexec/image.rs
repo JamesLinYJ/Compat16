@@ -22,6 +22,10 @@ pub use extended_error::{extended_error_com, extended_error_program};
 mod dos_message;
 pub use dos_message::dos_message_com;
 
+#[path = "image/dos_version.rs"]
+mod dos_version;
+pub use dos_version::{dos_version_com, dos_version_program};
+
 #[path = "image/child_dialog.rs"]
 mod child_dialog;
 pub use child_dialog::child_dialog_program;

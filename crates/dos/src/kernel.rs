@@ -28,6 +28,10 @@ mod state;
 mod system;
 mod vectors;
 mod version;
+pub use version::DEFAULT_DOS_REPORTED_VERSION;
+
+#[cfg(test)]
+mod version_tests;
 
 pub use block_lease::DosBlockLease;
 pub use block_view::DosBlockExtent;

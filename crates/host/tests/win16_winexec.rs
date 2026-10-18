@@ -8,6 +8,10 @@ mod image;
 mod dos_message;
 
 #[cfg(windows)]
+#[path = "win16_winexec/dos_version.rs"]
+mod dos_version;
+
+#[cfg(windows)]
 #[path = "win16_winexec/extended_error.rs"]
 mod extended_error;
 
@@ -151,6 +155,14 @@ mod native {
     }
 
     fn run_with_pages(program: &Path, page: u32, dos_page: u32, engine: &str, input: Stdio) {
+        run_configured(program, page, dos_page, engine, input, None);
+    }
+
+    pub(super) fn run_with_dos_version(program: &Path, page: u32, engine: &str, version: &str) {
+        run_configured(program, page, 437, engine, Stdio::null(), Some(version));
+    }
+
+    fn run_configured(program: &Path, page: u32, dos_page: u32, engine: &str, input: Stdio, version: Option<&str>) {
         let package = PathBuf::from(
             std::env::var_os("COMPAT16_TEST_PACKAGE_DIR")
                 .expect("set COMPAT16_TEST_PACKAGE_DIR to the matching scripts/build.ps1 package"),
@@ -180,6 +192,7 @@ mod native {
                     "--win16-code-page",
                     &page.to_string(),
                 ])
+                .args(version.into_iter().flat_map(|version| ["--dos-version", version]))
                 .arg("--trace-win16-io-complete")
                 .arg(&trace)
                 .arg(program)

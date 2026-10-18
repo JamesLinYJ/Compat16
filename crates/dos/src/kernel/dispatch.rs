@@ -48,7 +48,7 @@ impl DosKernel {
                 Ok(DosAction::Continue)
             }
             0x2a | 0x2c => self.get_date_time(regs, host),
-            0x30 => Ok(Self::dos_version(regs)),
+            0x30 => self.dos_version(regs, memory),
             0x33 => Ok(self.extended_version(regs)),
             0x25 => self.set_interrupt_vector(regs, memory),
             0x35 => self.get_interrupt_vector(regs, memory),

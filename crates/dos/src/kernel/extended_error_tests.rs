@@ -89,6 +89,7 @@ fn extended_error_real_open_records_missing_file_with_dos_classification() {
 fn extended_error_failure_families_record_only_the_returned_failure() {
     let mut dos = DosKernel::new(0x1000);
     let mut memory = TestMemory::new();
+    memory.put(0x10040, &super::DEFAULT_DOS_REPORTED_VERSION.to_le_bytes());
     let mut host = TestHost::default();
     for (ax, bx, cx, dx, code, class, action, locus) in [
         (0xff00, 0, 0, 0, 1, 7, 4, 1),

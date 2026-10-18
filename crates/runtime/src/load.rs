@@ -160,6 +160,7 @@ impl Runtime {
         psp[0x32..0x34].copy_from_slice(&20u16.to_le_bytes());
         psp[0x34..0x36].copy_from_slice(&0x18u16.to_le_bytes());
         psp[0x36..0x38].copy_from_slice(&psp_segment.to_le_bytes());
+        psp[0x40..0x42].copy_from_slice(&dos_kernel::DEFAULT_DOS_REPORTED_VERSION.to_le_bytes());
         psp[0x50..0x53].copy_from_slice(&[0xcd, 0x21, 0xcb]);
         psp[0x80] = command_tail.len() as u8;
         psp[0x81..0x81 + command_tail.len()].copy_from_slice(command_tail);

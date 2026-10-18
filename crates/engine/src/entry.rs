@@ -8,6 +8,10 @@ use runtime::{DiagnosticKind as Kind, RuntimeError};
 #[path = "diagnostics.rs"]
 mod diagnostics;
 
+#[cfg(windows)]
+#[path = "dos_version.rs"]
+mod dos_version;
+
 pub fn entry() -> i32 {
     match run() {
         Ok(code) => i32::from(code),
@@ -47,6 +51,7 @@ fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Resu
     // budget is a diagnostic option, not the default process lifetime.
     let mut limit = u64::MAX;
     let mut code_page = child.map_or(437, |child| child.dos_code_page);
+    let mut dos_reported_version = None;
     let mut ansi_code_page = child.map(|child| child.ansi_code_page);
     let mut program = child.map(|child| child.program.clone())
         .or_else(|| system_launch.as_ref().map(|launch| launch.program.clone()));
@@ -123,6 +128,11 @@ fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Resu
                     .parse().map_err(|e| RuntimeError::with_source(Kind::InvalidInput, "invalid instruction limit", e))?;
                 if limit == 0 { return Err(RuntimeError::new(Kind::InvalidInput, "instruction limit must be positive")); }
             }
+            Some("--dos-version") => {
+                let text = arguments.next().and_then(|value| value.into_string().ok())
+                    .ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "missing DOS version"))?;
+                dos_reported_version = Some(dos_version::parse(&text)?);
+            }
             Some("--code-page") => {
                 code_page = arguments.next().and_then(|v| v.into_string().ok())
                     .ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "missing code page"))?
@@ -136,7 +146,7 @@ fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Resu
                     .map_err(|error| RuntimeError::with_source(Kind::InvalidInput, "invalid Win16 ANSI code page", error))?) };
             }
             Some("--help") | Some("-h") => {
-                println!("{command_name} [--max-instructions N] [--cpu-engine jit|interpreter] [--jit-stats] [--no-jit-cache] [--code-page 437|936] [--win16-code-page auto|N] [--trace-on-failure] [--trace-file PATH] [--watch-memory ADDRESS:LENGTH | --watch-win16-memory SELECTOR:OFFSET:LENGTH] [--dump-guest-memory PATH] [--trace-dos-services PATH] [--trace-win16-io PATH | --trace-win16-io-complete PATH] PROGRAM [DOS arguments]\nExample: --watch-memory 0x10000:16\nDOS/Win16 development runtime: COM/MZ and early NE execution; compatibility coverage is incomplete.");
+                println!("{command_name} [--max-instructions N] [--cpu-engine jit|interpreter] [--jit-stats] [--no-jit-cache] [--code-page 437|936] [--dos-version MAJOR.MINOR] [--win16-code-page auto|N] [--trace-on-failure] [--trace-file PATH] [--watch-memory ADDRESS:LENGTH | --watch-win16-memory SELECTOR:OFFSET:LENGTH] [--dump-guest-memory PATH] [--trace-dos-services PATH] [--trace-win16-io PATH | --trace-win16-io-complete PATH] PROGRAM [DOS arguments]\nExample: --watch-memory 0x10000:16\nDOS/Win16 development runtime: COM/MZ and early NE execution; compatibility coverage is incomplete.");
                 return Ok(0);
             }
             Some(value) if value.starts_with('-') => return Err(RuntimeError::new(Kind::InvalidInput, format!("unknown option {value}"))),
@@ -229,6 +239,7 @@ fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Resu
     }
     runtime.set_work_executor(std::sync::Arc::clone(&work))?;
     runtime.set_execution_engine(execution_engine);
+    if let Some(version) = dos_reported_version { runtime.set_dos_reported_version(version)?; }
     if jit_cache && execution_engine == runtime::ExecutionEngine::Jit {
         runtime.set_jit_artifact_store(host.jit_artifact_store());
     }

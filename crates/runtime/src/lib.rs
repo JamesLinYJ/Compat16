@@ -5,6 +5,7 @@ mod clock;
 mod cpu_execution;
 mod diagnostics;
 mod environment;
+mod dos_version;
 mod hardware_interrupts;
 mod input;
 mod interrupts;

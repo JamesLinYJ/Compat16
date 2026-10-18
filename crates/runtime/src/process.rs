@@ -756,6 +756,7 @@ fn install_child_psp(
     psp[usize::from(PSP_JFT_POINTER_OFFSET)..usize::from(PSP_JFT_POINTER_OFFSET) + 2]
         .copy_from_slice(&PSP_INLINE_JFT_OFFSET.to_le_bytes());
     psp[0x36..0x38].copy_from_slice(&child.to_le_bytes());
+    psp[0x40..0x42].copy_from_slice(&dos_kernel::DEFAULT_DOS_REPORTED_VERSION.to_le_bytes());
     psp[PSP_PREVIOUS_PSP_OFFSET..PSP_PREVIOUS_PSP_OFFSET + 2].copy_from_slice(&0_u16.to_le_bytes());
     psp[PSP_PREVIOUS_PSP_OFFSET + 2..PSP_PREVIOUS_PSP_OFFSET + 4]
         .copy_from_slice(&parent.to_le_bytes());
@@ -767,6 +768,10 @@ fn install_child_psp(
         .write(real_address(child, 0), &psp)
         .map_err(runtime_error)
 }
+
+#[cfg(test)]
+#[path = "process_version_tests.rs"]
+mod version_tests;
 
 fn restore_child_interrupt_vectors(
     memory: &mut impl GuestMemory,
