@@ -925,12 +925,29 @@ beyond that prefix are left unchanged. A null or empty port on
 stopping at NUL). `GetEnvironment` does not read its output buffer to invent
 that key, so a null port on get returns 0.
 
-## Unimplemented OLE and driver call contracts
+## Unimplemented call contracts
 
 An unknown historical stub signature is not a zero-argument Pascal call.
 Driver stubs without verified parameter frames stay declaration-only, including
 register-based display and COMM driver entries. Existing binding IDs are not
 renumbered when an unsafe provisional binding is removed.
+
+The same rule applies to KERNEL, USER and GDI. Their declaration groups retain
+72, 63 and 100 additional stub rows respectively without runtime call bindings.
+These rows supply neither a parameter list nor independent zero-argument ABI
+evidence. Treating an omitted signature as an empty Pascal frame would return
+with an unverified stack cleanup and return shape. Import names and ordinals
+remain available to diagnostics; execution reports a compatibility gap through
+the existing declaration-only path. Known frames and surviving binding IDs are
+unchanged. This does not implement those deferred interfaces.
+
+KERNEL.99 `GetLPErrMode` is retained separately. The
+[Wine implementation proposal](https://www.winehq.org/pipermail/wine-devel/2021-December/202312.html)
+describes a Windows 3.1 experiment and a no-argument pointer-to-16-bit-value
+prototype. This supplies limited independent frame and return-width evidence,
+not evidence for this runtime's task-error-mode storage semantics. Its original
+stub declaration metadata is preserved; the existing call contract and behavior
+are unchanged by the removal of unknown frames.
 
 The Win16 Video for Windows `AVIFILE.H` declarations give
 `AVIMakeCompressedStream` four far pointers (16 argument bytes),
