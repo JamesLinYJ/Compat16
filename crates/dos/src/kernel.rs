@@ -15,6 +15,7 @@ mod file_commit;
 mod file_time;
 mod ioctl;
 mod memory;
+mod message_addresses;
 mod nls;
 mod protected_scalar;
 mod sft;
@@ -51,3 +52,6 @@ mod system_tests;
 
 #[cfg(test)]
 mod handle_capacity_tests;
+
+#[cfg(test)]
+mod message_addresses_tests;

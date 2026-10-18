@@ -4,6 +4,10 @@
 mod image;
 
 #[cfg(windows)]
+#[path = "win16_winexec/dos_message.rs"]
+mod dos_message;
+
+#[cfg(windows)]
 #[path = "win16_winexec/child_dialog.rs"]
 mod child_dialog;
 

@@ -26,7 +26,10 @@ impl Runtime {
                 action => action,
             }
         } else if number == 0x2f {
-            match multiplex::dispatch(&mut self.cpu.regs) {
+            let outcome = if self.dos.message_address_service(&mut self.cpu.regs) {
+                MultiplexOutcome::Handled
+            } else { multiplex::dispatch(&mut self.cpu.regs) };
+            match outcome {
                 MultiplexOutcome::Handled => DosAction::Continue,
                 // No installed provider claimed this multiplex request. Leave
                 // its registers and saved FLAGS intact; the guest's IRET is
