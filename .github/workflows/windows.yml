@@ -129,6 +129,8 @@ jobs:
             '-p host-services --lib session_exit_',
             '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1',
             '-p host-services --lib host_timer_native_ -- --ignored --test-threads=1',
+            '-p host-services --lib oem_bitmap_',
+            '-p host-services --lib oem_bitmap_native_ -- --ignored --test-threads=1',
             '-p runtime --lib rectangle_exports',
             '-p runtime --lib safe_array_ptr_of_index',
             '-p runtime --lib is_equal_guid',
@@ -259,6 +261,8 @@ jobs:
             '-p host-services --lib session_exit_' = 2
             '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1' = 2
             '-p host-services --lib host_timer_native_ -- --ignored --test-threads=1' = 8
+            '-p host-services --lib oem_bitmap_' = 2
+            '-p host-services --lib oem_bitmap_native_ -- --ignored --test-threads=1' = 2
             '-p host-services --lib diagnostics_tests::' = 5
             '-p runtime --lib temp_drive::tests::' = 6
             '-p runtime --lib get_temp_drive_tests::' = 6
@@ -1017,9 +1021,9 @@ jobs:
           $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
           if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) { throw 'Visual Studio developer command script unavailable.' }
           $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
-          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --test win16_winexec -- same_stem_executable dll_references_initialize global_notify_native_ named_dialog_icon_native_ dialog_class_names_native_ current_directory_native_ --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --test win16_winexec -- same_stem_executable dll_references_initialize global_notify_native_ named_dialog_icon_native_ dialog_class_names_native_ current_directory_native_ oem_bitmap_native_ --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET
           & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
           if ($LASTEXITCODE -ne 0) { throw 'COM/NE directory, DLL, heap, or dialog integration failed.' }
-          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 12 passed; 0 failed; 0 ignored;') {
-            throw 'Expected COM/NE directory results, NE DLL lifetime, heap callbacks, and numeric/named dialog class icon fixtures in both engines.'
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 14 passed; 0 failed; 0 ignored;') {
+            throw 'Expected COM/NE directory results, OEM bitmaps, NE DLL lifetime, heap callbacks, and dialog class icon fixtures in both engines.'
           }

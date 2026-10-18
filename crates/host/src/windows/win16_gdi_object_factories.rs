@@ -56,6 +56,7 @@ pub(super) fn create(
 ) -> Result<Option<Win16HostGdiObject>, RuntimeError> {
     match operation {
         Operation::LoadSystemBitmap { resource_id } => {
+            let resource_id = super::win16_gdi_oem_bitmaps::native_resource_id(resource_id);
             // MAKEINTRESOURCE encodes a numeric resource, not a guest pointer.
             // LoadBitmap returns an owned object requiring DeleteObject:
             // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-loadbitmapw

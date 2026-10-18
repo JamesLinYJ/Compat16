@@ -52,6 +52,7 @@ mod win16_network_redirector;
 mod win16_spool_jobs;
 mod win16_network_print_queues;
 mod win16_gdi_object_factories;
+mod win16_gdi_oem_bitmaps;
 mod win16_gdi_objects;
 mod win16_io_trace;
 mod win16_mci_owner;
