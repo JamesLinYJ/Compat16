@@ -29,6 +29,8 @@ struct ExecHost {
     search_position: usize,
     search_opens: usize,
     search_closes: usize,
+    deleted: Vec<Vec<u8>>,
+    renamed: Vec<(Vec<u8>, Vec<u8>)>,
 }
 
 impl DosHost for ExecHost {
@@ -67,14 +69,14 @@ impl DosHost for ExecHost {
     fn file_write(&mut self, _file: DosHostFile, _input: &[u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
     fn file_seek(&mut self, _file: DosHostFile, _offset: i32, _origin: DosSeekOrigin) -> Result<u32, DosHostError> { panic!("unexpected host call") }
     fn file_set_len(&mut self, _file: DosHostFile, _length: u32) -> Result<(), DosHostError> { panic!("unexpected host call") }
-    fn file_delete(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn file_delete(&mut self, path: &[u8]) -> Result<(), DosHostError> { self.deleted.push(path.to_vec()); Ok(()) }
     fn directory_create(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn directory_remove(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn directory_set_current(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn directory_get_current(&mut self, drive: u8, output: &mut [u8]) -> Result<usize, DosHostError> {
         assert_eq!(drive,2); output[..4].copy_from_slice(b"WORK"); Ok(4)
     }
-    fn file_rename(&mut self, _old_path: &[u8], _new_path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError> { self.renamed.push((old_path.to_vec(), new_path.to_vec())); Ok(()) }
     fn file_get_attributes(&mut self, _path: &[u8]) -> Result<u8, DosHostError> { panic!("unexpected host call") }
     fn file_set_attributes(&mut self, _path: &[u8], _attributes: u8) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn directory_search_open(&mut self, directory: &[u8]) -> Result<DosHostSearch, DosHostError> {
@@ -112,6 +114,9 @@ mod parse_tests;
 
 #[path = "win16_dos_fcb_search_tests.rs"]
 mod search_tests;
+
+#[path = "win16_dos_fcb_mutation_tests.rs"]
+mod mutation_tests;
 
 
 fn fixture() -> (Runtime, ExecHost) {

@@ -15,6 +15,8 @@ mod extended_error;
 mod files;
 mod fcb_parse;
 mod fcb_search;
+mod fcb;
+mod fcb_mutation;
 #[cfg(test)]
 mod fcb_parse_tests;
 mod file_commit;

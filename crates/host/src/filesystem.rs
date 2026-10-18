@@ -6,6 +6,7 @@
 mod aliases;
 mod canonical_name;
 mod directory;
+mod delete;
 mod environment;
 mod extended_open;
 mod files;

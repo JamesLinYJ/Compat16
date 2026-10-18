@@ -44,20 +44,7 @@ impl Request {
     }
 
     pub fn pattern(&self, page: text_codec::CodePage) -> Result<DosSearchPattern, DosErrorCode> {
-        let mut pattern = DosSearchPattern {
-            name: [b' '; 8],
-            extension: [b' '; 3],
-        };
-        let base = &self.bytes[1..9];
-        if base == b".       " || base == b"..      " {
-            pattern.name.copy_from_slice(base);
-        } else {
-            directory::expand_pattern_field(base, &mut pattern.name, page)?
-                .ok_or(DosErrorCode::InvalidData)?;
-        }
-        directory::expand_pattern_field(&self.bytes[9..12], &mut pattern.extension, page)?
-            .ok_or(DosErrorCode::InvalidData)?;
-        Ok(pattern)
+        super::super::fcb::pattern(&self.bytes[1..12], page)
     }
 
     pub fn cookie(&self) -> Option<(u32, u32)> {

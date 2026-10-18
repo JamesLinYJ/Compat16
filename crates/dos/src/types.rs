@@ -250,6 +250,12 @@ pub trait DosHost {
         Err(DosHostError::new(DosErrorCode::InvalidFunction))
     }
     fn file_delete(&mut self, path: &[u8]) -> Result<(), DosHostError>;
+    /// FCB deletion can explicitly include a readonly file. `ignore_read_only`
+    /// requests that native capability without temporarily clearing attributes.
+    fn file_delete_fcb(&mut self, path: &[u8], ignore_read_only: bool)->Result<(),DosHostError> {
+        if ignore_read_only {return Err(DosHostError::new(DosErrorCode::InvalidFunction));}
+        self.file_delete(path)
+    }
 
     fn directory_create(&mut self, path: &[u8]) -> Result<(), DosHostError>;
     fn directory_remove(&mut self, path: &[u8]) -> Result<(), DosHostError>;

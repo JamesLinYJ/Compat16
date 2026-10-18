@@ -27,6 +27,7 @@ pub(super) struct Mcb {
 pub(super) enum SearchKind {
     Dta,
     FcbScan,
+    FcbMutation,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]

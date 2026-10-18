@@ -37,6 +37,9 @@ pub use fcb_parse::fcb_parse_program;
 #[path = "image/fcb_search.rs"]
 mod fcb_search;
 pub use fcb_search::{fcb_search_filename, fcb_search_program};
+#[path = "image/fcb_mutation.rs"]
+mod fcb_mutation;
+pub use fcb_mutation::fcb_mutation_program;
 #[path = "image/canonical_name.rs"]
 mod canonical_name;
 pub use canonical_name::canonical_name_program;

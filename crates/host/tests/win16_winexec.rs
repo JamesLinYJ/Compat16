@@ -19,6 +19,9 @@ mod fcb_parse;
 #[path = "win16_winexec/fcb_search.rs"]
 mod fcb_search;
 #[cfg(windows)]
+#[path = "win16_winexec/fcb_mutation.rs"]
+mod fcb_mutation;
+#[cfg(windows)]
 #[path = "win16_winexec/canonical_name.rs"]
 mod canonical_name;
 

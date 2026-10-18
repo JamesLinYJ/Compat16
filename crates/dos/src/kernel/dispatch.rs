@@ -28,6 +28,7 @@ impl DosKernel {
             0x0c => self.flush_and_input(regs, memory, host),
             0x0e => self.select_drive(regs, host),
             0x11 | 0x12 => self.fcb_search(regs, memory, host),
+            0x13 | 0x17 => self.fcb_mutation(regs, memory, host),
             0x19 => {
                 let drive = host.current_drive();
                 if drive > 25 {

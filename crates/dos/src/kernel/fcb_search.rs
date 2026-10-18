@@ -7,11 +7,11 @@ mod continuations;
 mod layout;
 use super::{
     DosKernel, directory,
-    state::{SearchKey, SearchKind, SearchState},
+    state::{SearchKey, SearchKind},
 };
 use crate::{
-    DosAction, DosCallAddressSpace, DosError, DosErrorCode, DosHost, DosHostError,
-    DosPersistentFarPointer, DosPointerAccess, DosSpanPolicy,
+    DosAction, DosCallAddressSpace, DosError, DosErrorCode, DosHost, DosPersistentFarPointer,
+    DosPointerAccess, DosSpanPolicy,
 };
 pub(super) use continuations::Continuations;
 use continuations::Snapshot;
@@ -55,35 +55,15 @@ impl DosKernel {
                 dta_offset: regs.dx(),
                 dta_lease: 0,
             };
-            // A previous failed native close remains owned and retryable.
-            if let Some(old) = self.searches.get(&key).copied() {
-                if let Err(error) = host.directory_search_close(old.host_search) {
-                    return Ok(self.fcb_failure(regs, error.code));
-                }
-                self.searches.remove(&key);
-            }
-            let search =
-                match host.directory_search_open(if drive == current { b"" } else { &path }) {
-                    Ok(search) => search,
-                    Err(error) => return Ok(self.fcb_failure(regs, error.code)),
-                };
-            if self.searches.values().any(|s| s.host_search == search) {
-                return Err(DosError::HostContractViolation(
-                    "FCB enumeration returned an owned search token",
-                ));
-            }
-            let state = SearchState {
-                host_search: search,
-                identity: self.allocate_search_identity(),
+            let page = host.guest_code_page();
+            let records = self.collect_fcb_matches(
+                key,
+                if drive == current { b"" } else { &path },
                 pattern,
-                attributes: 0x1f,
-            };
-            self.searches.insert(key, state);
-            let records = collect(host, state);
-            let close = host.directory_search_close(search);
-            if close.is_ok() {
-                self.searches.remove(&key);
-            }
+                0x1f,
+                host,
+                |entry| layout::record(&entry, page),
+            );
             let records = match records {
                 Ok(records) => records,
                 Err(DosError::HostOperation(error)) => {
@@ -91,9 +71,6 @@ impl DosKernel {
                 }
                 Err(error) => return Err(error),
             };
-            if let Err(error) = close {
-                return Ok(self.fcb_failure(regs, error.code));
-            }
             if !records
                 .iter()
                 .any(|record| directory::search_attribute_matches(request.attributes, record[11]))
@@ -152,12 +129,6 @@ impl DosKernel {
         regs.set_al(0);
         Ok(DosAction::Continue)
     }
-
-    fn fcb_failure(&mut self, regs: &mut Registers, code: DosErrorCode) -> DosAction {
-        self.remember_extended_error(code as u16);
-        regs.set_al(0xff);
-        DosAction::Continue
-    }
 }
 
 fn validate_dta(
@@ -175,34 +146,4 @@ fn validate_dta(
         DosPointerAccess::Write,
         DosSpanPolicy::OffsetWrap,
     )
-}
-
-fn collect(host: &mut impl DosHost, state: SearchState) -> Result<Vec<[u8; 32]>, DosError> {
-    let mut records = Vec::new();
-    loop {
-        let entry = match directory::next_matching_entry(host, state) {
-            Ok(Some(entry)) => entry,
-            Ok(None) => return Ok(records),
-            Err(directory::NextSearchError::Host(error)) => {
-                return Err(DosError::HostOperation(error));
-            }
-            Err(directory::NextSearchError::InvalidEntry) => {
-                return Err(DosError::HostContractViolation(
-                    "invalid FCB search directory entry",
-                ));
-            }
-        };
-        if records.len() >= u32::MAX as usize {
-            return Err(DosError::HostOperation(DosHostError::new(
-                DosErrorCode::InsufficientMemory,
-            )));
-        }
-        records.try_reserve(1).map_err(|error| {
-            DosError::HostOperation(DosHostError::with_source(
-                DosErrorCode::InsufficientMemory,
-                error,
-            ))
-        })?;
-        records.push(layout::record(&entry, host.guest_code_page())?);
-    }
 }

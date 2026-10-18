@@ -7,6 +7,8 @@ use super::directory::{dos_field_matches, short_name_fields};
 mod fcb_search_tests;
 #[path = "canonical_name_tests.rs"]
 mod canonical_name_tests;
+#[path = "fcb_mutation_tests.rs"]
+mod fcb_mutation_tests;
 use std::collections::{BTreeMap, VecDeque};
 use guest_core::{GuestMemory, MemoryError, PhysAddr, Registers};
 
@@ -71,6 +73,10 @@ pub(super) struct TestHost {
     search_entries_override: Option<Vec<DosDirectoryEntry>>,
     short_names: BTreeMap<(Vec<u8>, Vec<u8>), Vec<u8>>,
     short_name_queries: Vec<(Vec<u8>, Vec<u8>)>,
+    fcb_delete_calls: Vec<(Vec<u8>,bool)>,
+    fcb_delete_errors: BTreeMap<Vec<u8>,DosErrorCode>,
+    rename_calls: Vec<(Vec<u8>,Vec<u8>)>,
+    rename_errors: BTreeMap<Vec<u8>,DosErrorCode>,
     next_id: u64,
     next_search_id: u64,
     drive: u8,
@@ -394,6 +400,14 @@ impl DosHost for TestHost {
         self.handles.retain(|_, file_id| *file_id != id);
         Ok(())
     }
+    fn file_delete_fcb(&mut self,path:&[u8],ignore_read_only:bool)->Result<(),DosHostError> {
+        self.fcb_delete_calls.push((path.to_vec(),ignore_read_only));
+        if let Some(&code)=self.fcb_delete_errors.get(path){return Err(DosHostError::new(code));}
+        let id=self.paths.get(path).copied().ok_or(DosHostError::new(DosErrorCode::FileNotFound))?;
+        if self.handles.values().any(|&open|open==id){return Err(DosHostError::new(DosErrorCode::SharingViolation));}
+        if !ignore_read_only && self.attributes.get(path).is_some_and(|attrs|attrs&1!=0){return Err(DosHostError::new(DosErrorCode::AccessDenied));}
+        self.file_delete(path)
+    }
 
     fn directory_create(&mut self, path: &[u8]) -> Result<(), DosHostError> {
         if path.is_empty() || self.paths.contains_key(path) || self.directories.contains_key(path) {
@@ -446,6 +460,8 @@ impl DosHost for TestHost {
         Ok(self.short_names.get(&key).cloned())
     }
     fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError> {
+        self.rename_calls.push((old_path.to_vec(),new_path.to_vec()));
+        if let Some(&code)=self.rename_errors.get(old_path){return Err(DosHostError::new(code));}
         if self.paths.contains_key(new_path) || self.directories.contains_key(new_path) {
             return Err(DosHostError::new(DosErrorCode::AccessDenied));
         }
