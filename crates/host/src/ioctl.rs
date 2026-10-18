@@ -2,13 +2,15 @@
 
 use windows_sys::Win32::Foundation::{GetLastError, HANDLE, SetLastError};
 use windows_sys::Win32::Storage::FileSystem::{
-    FILE_TYPE_DISK, FILE_TYPE_PIPE, FILE_TYPE_UNKNOWN, GetFileType,
+    FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE, FILE_TYPE_UNKNOWN, GetFileType,
 };
 use windows_sys::Win32::System::Console::{GetConsoleMode, GetStdHandle};
 use dos_kernel::{DosErrorCode, DosHostError, DosIoctlObjectInfo, DosIoctlStream};
 
-/// Require an actual redirected byte stream, rather than assuming every
-/// handle without a console mode is readable standard input.
+/// Validate types supported by the byte-read fallback. Non-console character
+/// devices (including NUL) can support ReadFile too. The read itself still
+/// decides access and completion; a device type is not proof of readability.
+/// https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile
 pub(crate) fn validate_redirected_input(input: HANDLE) -> Result<(), DosHostError> {
     if input.is_null() || input as isize == -1 {
         return Err(DosHostError::new(DosErrorCode::InvalidHandle));
@@ -21,7 +23,7 @@ pub(crate) fn validate_redirected_input(input: HANDLE) -> Result<(), DosHostErro
         (file_type, GetLastError())
     };
     match file_type {
-        FILE_TYPE_DISK | FILE_TYPE_PIPE => Ok(()),
+        FILE_TYPE_DISK | FILE_TYPE_PIPE | FILE_TYPE_CHAR => Ok(()),
         FILE_TYPE_UNKNOWN if error != 0 => Err(crate::windows::os_error(
             std::io::Error::from_raw_os_error(error as i32),
         )),

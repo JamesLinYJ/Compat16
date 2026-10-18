@@ -2,6 +2,10 @@
 
 pub const ENVIRONMENT: &[u8; 20] = b"C16=guest\0PATH=BIN\0\0";
 
+#[path = "image/stdin.rs"]
+mod stdin;
+pub use stdin::stdin_com;
+
 #[path = "image/extended_error.rs"]
 mod extended_error;
 pub use extended_error::{extended_error_com, extended_error_program};

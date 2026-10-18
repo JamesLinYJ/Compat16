@@ -12,6 +12,10 @@ mod dos_message;
 mod extended_error;
 
 #[cfg(windows)]
+#[path = "win16_winexec/stdin.rs"]
+mod stdin;
+
+#[cfg(windows)]
 #[path = "win16_winexec/child_dialog.rs"]
 mod child_dialog;
 
@@ -111,6 +115,10 @@ mod native {
     }
 
     pub(super) fn run_with_engine(program: &Path, page: u32, engine: &str) {
+        run_with_input(program, page, engine, Stdio::null());
+    }
+
+    pub(super) fn run_with_input(program: &Path, page: u32, engine: &str, input: Stdio) {
         let package = PathBuf::from(
             std::env::var_os("COMPAT16_TEST_PACKAGE_DIR")
                 .expect("set COMPAT16_TEST_PACKAGE_DIR to the matching scripts/build.ps1 package"),
@@ -141,7 +149,7 @@ mod native {
                 .arg("--trace-win16-io-complete")
                 .arg(&trace)
                 .arg(program)
-                .stdin(Stdio::null())
+                .stdin(input)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
