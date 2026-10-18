@@ -71,6 +71,10 @@ fn group_bytes() -> Vec<u8> {
 }
 
 fn dialog_bytes(icon: bool) -> Vec<u8> {
+    dialog_bytes_with_title(icon, None)
+}
+
+fn dialog_bytes_with_title(icon: bool, name: Option<&[u8]>) -> Vec<u8> {
     let mut bytes = 0_u32.to_le_bytes().to_vec();
     bytes.push(2);
     bytes.extend_from_slice(&[0; 8]); // dialog rectangle
@@ -80,7 +84,13 @@ fn dialog_bytes(icon: bool) -> Vec<u8> {
         bytes.extend_from_slice(&(10 + index).to_le_bytes());
         bytes.extend_from_slice(&(if icon && index == 0 { 3_u32 } else { 0 }).to_le_bytes());
         bytes.push(0x82);
-        bytes.extend_from_slice(&[0xff, 7, 0, 0]); // title ordinal 7, no creation bytes
+        if let Some(name) = name.filter(|_| index == 0) {
+            bytes.extend_from_slice(name);
+            bytes.push(0);
+        } else {
+            bytes.extend_from_slice(&[0xff, 7, 0]); // title ordinal 7
+        }
+        bytes.push(0); // no creation bytes
     }
     bytes
 }
@@ -114,6 +124,52 @@ fn fixture() -> (Runtime, u16) {
     (runtime, instance)
 }
 
+fn name_group(runtime: &mut Runtime, name: &[u8]) {
+    let state = runtime.win16.as_mut().unwrap();
+    state.modules.records.get_mut(&state.modules.main).unwrap()
+        .definition.as_mut().unwrap().resource_types[0].resources[0].id =
+        formats::NeResourceId::Name(name.to_vec());
+}
+
+#[test]
+fn dialog_icon_title_named_groups_keep_ansi_bytes_and_share_load_icon_cache() {
+    for name in [b"NamedIcon".as_slice(), b"\x82\xa0Icon".as_slice()] {
+        let (mut runtime, instance) = fixture();
+        name_group(&mut runtime, name);
+        let mut host = IconHost::default();
+        let state = runtime.win16.as_mut().unwrap();
+        for lookup in [name.to_vec(), name.to_ascii_uppercase()] {
+            let mut template = parse_win16_dialog_template(
+                &dialog_bytes_with_title(true, Some(&lookup))).unwrap();
+            assert_eq!(template.items[0].title, Atom::String(lookup.clone()));
+            assert!(state.resolve_dialog_template_titles(&mut template, instance, &mut host).unwrap());
+            assert_eq!(template.items[0].initial_icon, Some(Win16HostIcon(0x1234)));
+            assert_eq!(template.items[0].title, Atom::None);
+            let handle = state.load_icon(instance, win16_abi::Win16ResourceName::Name(lookup),
+                &mut host).unwrap();
+            assert_eq!(state.guest_images.icon(handle), Some(Win16HostIcon(0x1234)));
+            assert_eq!(template.items[1].title, Atom::String(vec![0x82, 0xa0, b'!']));
+        }
+        assert_eq!((host.selected, host.created), (1, 1));
+    }
+}
+
+#[test]
+fn dialog_icon_title_missing_named_groups_never_use_numeric_or_host_resources() {
+    for instance_source in 0..3 {
+        let (mut runtime, instance) = fixture();
+        let mut host = IconHost::default();
+        let mut template = parse_win16_dialog_template(
+            &dialog_bytes_with_title(true, Some(b"MissingIcon"))).unwrap();
+        let original = template.clone();
+        let instance = match instance_source { 0 => instance, 1 => 0, _ => 0xffff };
+        assert!(!runtime.win16.as_mut().unwrap().resolve_dialog_template_titles(
+            &mut template, instance, &mut host).unwrap());
+        assert_eq!(template, original);
+        assert_eq!((host.selected, host.created), (0, 0));
+    }
+}
+
 #[test]
 fn dialog_icon_title_ordinal_wins_over_same_id_string_and_preserves_text_bytes() {
     let (mut runtime, instance) = fixture();
@@ -133,7 +189,7 @@ fn dialog_icon_title_ordinal_wins_over_same_id_string_and_preserves_text_bytes()
 
 #[test]
 fn dialog_icon_title_unsupported_routes_reject_before_icon_host_calls() {
-    for case in 0..7 {
+    for case in 0..6 {
         let (mut runtime, instance) = fixture();
         let mut host = IconHost::default();
         let mut template = parse_win16_dialog_template(&dialog_bytes(true)).unwrap();
@@ -142,8 +198,7 @@ fn dialog_icon_title_unsupported_routes_reject_before_icon_host_calls() {
             1 => template.items[1].class = Atom::String(b"CustomChild".to_vec()),
             2 => template.items[0].class = Atom::String(b"STATIC".to_vec()),
             3 => template.items[0].creation_data.push(1),
-            4 => template.items[0].title = Atom::String(b"named icon".to_vec()),
-            5 => template.style |= 0x10, // DS_NOFAILCREATE
+            4 => template.style |= 0x10, // DS_NOFAILCREATE
             _ => template.items[0].guest_class_name = Some(crate::Win16HostClassName::Atom(0x82)),
         }
         assert!(!runtime.win16.as_mut().unwrap().resolve_dialog_template_titles(
@@ -207,9 +262,15 @@ fn source(runtime: &mut Runtime, instance: u16, source: u8, host: &mut IconHost)
     -> Win16DialogTemplateRef
 {
     let bytes = dialog_bytes(true);
+    source_bytes(runtime, instance, source, host, &bytes)
+}
+
+fn source_bytes(runtime: &mut Runtime, instance: u16, source: u8, host: &mut IconHost,
+    bytes: &[u8]) -> Win16DialogTemplateRef
+{
     match source {
         0 => {
-            add_resource(runtime, 5, 11, &bytes);
+            add_resource(runtime, 5, 11, bytes);
             Win16DialogTemplateRef::Resource { instance, name: win16_abi::Win16ResourceName::Id(11) }
         }
         1 => {
@@ -218,7 +279,7 @@ fn source(runtime: &mut Runtime, instance: u16, source: u8, host: &mut IconHost)
             assert_ne!(handle, 0);
             let far = state.global_lock(handle, &runtime.memory).unwrap();
             let pointer = state.selectors.pointer_from_far(far).unwrap();
-            state.selectors.write(&mut runtime.memory, pointer, &bytes).unwrap();
+            state.selectors.write(&mut runtime.memory, pointer, bytes).unwrap();
             state.global_unlock(handle).unwrap();
             Win16DialogTemplateRef::GlobalHandle { instance, template: handle }
         }
@@ -226,8 +287,39 @@ fn source(runtime: &mut Runtime, instance: u16, source: u8, host: &mut IconHost)
             let far = u32::from(runtime.cpu.regs.ds) << 16;
             let state = runtime.win16.as_mut().unwrap();
             let pointer = state.selectors.pointer_from_far(far).unwrap();
-            state.selectors.write(&mut runtime.memory, pointer, &bytes).unwrap();
+            state.selectors.write(&mut runtime.memory, pointer, bytes).unwrap();
             Win16DialogTemplateRef::FarAddress { instance, template: far }
+        }
+    }
+}
+
+#[test]
+fn dialog_icon_title_named_resources_prepare_every_modal_and_modeless_source() {
+    for modal in [false, true] {
+        for source_id in 0..3 {
+            let (mut runtime, instance) = fixture();
+            let name = b"\x82\xa0Icon";
+            name_group(&mut runtime, name);
+            let mut host = IconHost::default();
+            let reference = source_bytes(&mut runtime, instance, source_id, &mut host,
+                &dialog_bytes_with_title(true, Some(name)));
+            let prepared = runtime.win16.as_mut().unwrap().prepare_dialog_family(
+                DialogRequest::Create { template: reference.clone(), owner: 0, procedure: 0,
+                    modal, init_parameter: 0x5678 },
+                &mut runtime.memory, &mut host, Win16ReturnKind::Word).unwrap();
+            let Win16UserFamilyPreparation::WindowService { operation, continuation } = prepared
+                else { panic!("named icon must reach native dialog creation"); };
+            let Win16HostUserServiceOperation::Dialog(DialogOperation::Create {
+                template, modal: actual_modal, init_parameter, ..
+            }) = operation else { panic!("expected native dialog request"); };
+            assert_eq!(actual_modal, modal);
+            assert_eq!(init_parameter, 0x5678);
+            assert_eq!(template.items[0].initial_icon, Some(Win16HostIcon(0x1234)));
+            assert_eq!(template.items[0].title, Atom::None);
+            let FamilyCompletion::DialogCreate { template_reference, .. } = continuation.completion
+                else { panic!("lost dialog continuation"); };
+            assert_eq!(template_reference, reference);
+            assert_eq!((host.selected, host.created), (1, 1));
         }
     }
 }

@@ -88,26 +88,34 @@ impl Win16State {
             if static_class && item.style & 0x1f == 0x03
                 && !matches!(&item.title, crate::Win16HostDialogAtom::None)
                 && (!icon_route || !item.creation_data.is_empty()
-                    || !matches!(&item.title, crate::Win16HostDialogAtom::Ordinal(_)))
+                    || !matches!(&item.title, crate::Win16HostDialogAtom::Ordinal(_)
+                        | crate::Win16HostDialogAtom::String(_)))
             {
                 return Ok(false);
             }
         }
         for item in &mut template.items {
-            let crate::Win16HostDialogAtom::Ordinal(id) = &item.title else { continue; };
             if matches!(&item.class, crate::Win16HostDialogAtom::Ordinal(0x82))
                 && item.style & 0x1f == 0x03
             {
+                let name = match &item.title {
+                    crate::Win16HostDialogAtom::None => continue,
+                    crate::Win16HostDialogAtom::Ordinal(id) => win16_abi::Win16ResourceName::Id(*id),
+                    crate::Win16HostDialogAtom::String(name) => win16_abi::Win16ResourceName::Name(name.clone()),
+                    crate::Win16HostDialogAtom::GuestClass(_) => return Ok(false),
+                };
                 if !icon_route || !item.creation_data.is_empty() { return Ok(false); }
-                // SS_ICON ordinals name RT_GROUP_ICON, never RT_STRING and
-                // never a resource in the host executable. Reuse LoadIcon's
+                // SS_ICON names and ordinals identify RT_GROUP_ICON, never
+                // RT_STRING or a resource in the host executable. Keep ANSI
+                // names in the guest resource namespace and reuse LoadIcon's
                 // validated guest group/image selection and cache ownership.
-                let handle = self.load_icon(instance, win16_abi::Win16ResourceName::Id(*id), host)?;
+                let handle = self.load_icon(instance, name, host)?;
                 let Some(icon) = self.guest_images.icon(handle) else { return Ok(false); };
                 item.initial_icon = Some(icon);
                 item.title = crate::Win16HostDialogAtom::None;
                 continue;
             }
+            let crate::Win16HostDialogAtom::Ordinal(id) = &item.title else { continue; };
             let Some(bytes) = strings.get(*id).map_err(crate::runtime_error)? else {
                 return Ok(false);
             };

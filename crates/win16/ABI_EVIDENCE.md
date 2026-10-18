@@ -1066,6 +1066,36 @@ reallocation can still fail when an adjacent stable HGLOBAL prevents expanding
 the original contiguous selector run; it must preserve the original data and
 report failure even if a notification has released another block.
 
+## USER named dialog icon resources
+
+For a dialog STATIC with `SS_ICON`, its title identifies an icon resource,
+including a resource name encoded in the original guest ANSI bytes. The
+[static-control contract](https://learn.microsoft.com/en-us/windows/win32/controls/static-control-styles)
+and XP
+[`xxxStaticLoadImage`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/windows/core/ntuser/client/statctl.c#L243)
+resolve that name through the control's owning module. The title is neither
+an RT_STRING ID nor a host executable resource name. The 3.x path loads an
+icon; XP's cursor fallback is explicitly limited to 4.0-compatible windows.
+
+Dialog preparation now passes both named and numeric titles through the
+existing guest LoadIcon resource/group decoder and module cache. Named titles
+keep their ANSI/DBCS bytes through resource selection. After obtaining the
+typed icon token, preparation clears the native template title and uses the
+same retained icon sidecar, installation ordering, and teardown as numeric
+icons. Resource, HGLOBAL, and FAR-address templates share this preparation for
+modal and modeless dialogs. Missing resources still return the existing
+preflight failure without substituting a string, ordinal, system image, or
+host resource. This does not add custom-class/creation-data icon routes or
+change their existing preflight restrictions. The installation route still
+requires stock control class atoms throughout the template; string-named or
+guest-registered classes remain outside that route.
+
+The NE integration fixture creates a hidden modeless stock dialog using a
+DBCS-named RT_GROUP_ICON, reads a nonzero guest HICON through Win16
+SendDlgItemMessage/STM_GETICON, and destroys the dialog. It requires real
+native USER creation and executes in both guest engines; it supplies no
+keyboard, mouse, menu, or visible-window interaction.
+
 ## Unimplemented call contracts
 
 ### Unknown parameter frames

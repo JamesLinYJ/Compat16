@@ -411,7 +411,7 @@ impl Win16State {
                 }
                 if !self.resolve_dialog_template_titles(&mut template, instance, host)? {
                     host.report_diagnostic(&crate::Diagnostic::warning(Kind::CompatibilityGap,
-                        "Win16 dialog control title ordinal is not a string resource or needs a typed image resource route"));
+                        "Win16 dialog control title resource is missing or its typed image route is unsupported"));
                     return Ok(dialog_create_not_invoked(modal, return_kind,
                         crate::Win16WindowCreationRejection::UnsupportedControlTitleResource,
                         template_reference));
