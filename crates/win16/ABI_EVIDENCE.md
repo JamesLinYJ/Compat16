@@ -1011,6 +1011,23 @@ values. Native queue filters still need a separate projection for a filter
 containing only `WM_SYSTIMER`, because registered/carrier timers use native
 `WM_TIMER`; this change does not claim complete timer-filter equivalence.
 
+### KERNEL module names and complete filenames
+
+KERNEL31 [`IGetModuleHandle`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/kernel31/ldaux.asm#L413)
+searches the resident module namespace before its filename fallback.
+[`FindExeInfo` and `ResidentFindExeFile`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/kernel31/ldutil.asm#L850)
+compare resident names and complete basenames respectively; a filename's EXE,
+DLL or DRV extension remains part of its identity. An executable whose resident
+name differs from its file stem must not satisfy a bare import of a separate
+DLL merely because both files share that stem.
+
+The loader's [`ALFindModule`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/kernel31/ld.asm#L1296)
+first checks the complete filename, then the resident name without a supplied
+extension. The runtime keeps this loader fallback separate from the public
+module-handle lookup, retains builtin source-module/suffix aliases, and continues
+to exclude retired and external-application identities. Resolving a missing
+import still fails the load and now identifies the exact symbol in diagnostics.
+
 ## Unimplemented call contracts
 
 ### Unknown parameter frames

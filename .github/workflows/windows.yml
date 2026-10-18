@@ -120,6 +120,7 @@ jobs:
             '-p runtime --lib ole_remainder_contract_',
             '-p runtime --lib session_exit_',
             '-p runtime --lib callback_instance_',
+            '-p runtime --lib module_lookup_',
             '-p host-services --lib session_exit_',
             '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1',
             '-p runtime --lib rectangle_exports',
@@ -246,6 +247,7 @@ jobs:
             '-p runtime --lib edit_scroll_' = 1
             '-p runtime --lib task_ds_' = 1
             '-p runtime --lib callback_instance_' = 1
+            '-p runtime --lib module_lookup_' = 6
             '-p host-services --lib session_exit_' = 2
             '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1' = 2
             '-p host-services --lib diagnostics_tests::' = 5
@@ -994,3 +996,21 @@ jobs:
         if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
         timeout-minutes: 25
         run: .\scripts\build.ps1 -Architecture $env:BUILD_ARCHITECTURE -NonInteractive
+
+      - name: Exercise NE DLL identity and lifetime against the native package
+        if: ${{ !cancelled() && steps.native_release.outcome == 'success' }}
+        timeout-minutes: 15
+        run: |
+          $env:COMPAT16_TEST_PACKAGE_DIR = Join-Path $env:GITHUB_WORKSPACE "dist/$env:BUILD_ARCHITECTURE"
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) { throw 'Visual Studio C++ tools unavailable.' }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) { throw 'Visual Studio developer command script unavailable.' }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --test win16_winexec -- same_stem_executable dll_references_initialize --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET
+          & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+          if ($LASTEXITCODE -ne 0) { throw 'NE DLL identity/lifetime integration failed.' }
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 2 passed; 0 failed; 0 ignored;') {
+            throw 'Expected both NE DLL identity/lifetime fixtures to execute.'
+          }
