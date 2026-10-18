@@ -117,8 +117,7 @@ impl Runtime {
             // whole CPU context: unrelated unreal-mode caches must survive.
             let ds_returned = number == 0x21 && request.0 == 0x6300 && !regs.carry();
             let es_returned = number == 0x21 && (matches!(request.0 >> 8, 0x2f | 0x35)
-                || (request.0 >> 8 == 0x59 && !regs.carry()))
-                || (number == 0x10 && request.0 == 0x1130);
+                || (request.0 >> 8 == 0x59 && !regs.carry()));
             let outputs = x86_cpu::RealModeDataSegmentOutputs {
                 ds: (ds_returned || regs.ds != data_segments_before.0).then_some(regs.ds),
                 es: (es_returned || regs.es != data_segments_before.1).then_some(regs.es),
