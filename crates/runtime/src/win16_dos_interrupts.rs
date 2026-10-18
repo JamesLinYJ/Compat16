@@ -58,7 +58,7 @@ pub(super) fn dispatch_int21(
     if matches!(service, 0x0e | 0x19 | 0x3b | 0x47) {
         dos.prepare_external_int21(memory).map_err(runtime_error)?;
         let action = state
-            .dispatch_dos_directory_service(regs, memory, host)?
+            .dispatch_dos_directory_service(dos, regs, memory, host)?
             .ok_or_else(|| {
                 RuntimeError::new(
                     Kind::InternalInvariant,
@@ -94,18 +94,17 @@ pub(super) fn dispatch_int21(
                 if failed {
                     // WritePrinter failures without a more specific DOS
                     // mapping are reported as access denied.
-                    regs.set_ax(if service == 0x3e {
+                    dos.complete_service_failure(regs, if service == 0x3e {
                         DosErrorCode::InvalidHandle as u16
                     } else {
                         DosErrorCode::AccessDenied as u16
                     });
                 } else {
                     regs.set_ax(result as u16);
+                    regs.set_carry(false);
                 }
-                regs.set_carry(failed);
             } else {
-                regs.set_ax(DosErrorCode::InvalidHandle as u16);
-                regs.set_carry(true);
+                dos.complete_service_failure(regs, DosErrorCode::InvalidHandle as u16);
             }
             // Publish completed I/O and retire a successfully closed alias
             // before refresh. A metadata failure must not undo that identity
@@ -116,7 +115,7 @@ pub(super) fn dispatch_int21(
         }
     }
 
-    if service == 0x3a && state.block_dos_remove_of_virtual_current_directory(regs, memory, host)? {
+    if service == 0x3a && state.block_dos_remove_of_virtual_current_directory(dos, regs, memory, host)? {
         state.finish_file_cdr_dos_operation(file_cdr_notice, regs, &DosAction::Continue)?;
         return Ok(DosAction::Continue);
     }

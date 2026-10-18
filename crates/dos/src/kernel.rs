@@ -10,6 +10,7 @@ mod disk;
 mod dispatch;
 mod exec;
 mod extended_open;
+mod extended_error;
 mod files;
 mod file_commit;
 mod file_time;
@@ -55,3 +56,6 @@ mod handle_capacity_tests;
 
 #[cfg(test)]
 mod message_addresses_tests;
+
+#[cfg(test)]
+mod extended_error_tests;

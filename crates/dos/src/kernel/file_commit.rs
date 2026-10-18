@@ -46,7 +46,7 @@ impl DosKernel {
             // Compat16's direct typed DOS error code instead of replacing it
             // with 6. This is a bounded deviation from DOS4 error reduction.
             // https://github.com/microsoft/MS-DOS/blob/main/v4.0/src/DOS/HANDLE.ASM#L157-L194
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }

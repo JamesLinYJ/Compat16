@@ -6,13 +6,14 @@ use super::DosKernel;
 
 impl DosKernel {
     pub(super) fn get_date_time(
+        &mut self,
         regs: &mut Registers,
         host: &mut impl DosHost,
     ) -> Result<DosAction, DosError> {
         let value = match host.local_date_time() {
             Ok(value) => value,
             Err(error) => {
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
         };

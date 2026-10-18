@@ -54,8 +54,7 @@ pub(super) fn dispatch(
             regs.set_carry(false);
         }
         Err(error) => {
-            regs.set_ax(error.code as u16);
-            regs.set_carry(true);
+            dos.complete_service_failure(regs, error.code as u16);
         }
     }
     dos.finish_external_int21(memory, host)

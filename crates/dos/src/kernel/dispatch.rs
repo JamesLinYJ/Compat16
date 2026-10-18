@@ -47,7 +47,7 @@ impl DosKernel {
                 regs.set_bx(offset);
                 Ok(DosAction::Continue)
             }
-            0x2a | 0x2c => Self::get_date_time(regs, host),
+            0x2a | 0x2c => self.get_date_time(regs, host),
             0x30 => Ok(Self::dos_version(regs)),
             0x33 => Ok(self.extended_version(regs)),
             0x25 => self.set_interrupt_vector(regs, memory),
@@ -81,6 +81,7 @@ impl DosKernel {
             0x4c => Ok(DosAction::Exit(regs.al())),
             0x56 => self.rename_file(regs, memory, host),
             0x57 => self.file_date_time(regs, host),
+            0x59 => Ok(self.get_extended_error(regs)),
             0x68 => self.commit_file(regs, host),
             0x4d => {
                 regs.set_ax(u16::from(self.last_exit_code));
@@ -97,7 +98,7 @@ impl DosKernel {
             }
             0x52 => self.list_of_lists(regs, memory, host),
             _ => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
                 Ok(DosAction::Continue)
             }
         }

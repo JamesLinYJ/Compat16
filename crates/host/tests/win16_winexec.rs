@@ -8,6 +8,10 @@ mod image;
 mod dos_message;
 
 #[cfg(windows)]
+#[path = "win16_winexec/extended_error.rs"]
+mod extended_error;
+
+#[cfg(windows)]
 #[path = "win16_winexec/child_dialog.rs"]
 mod child_dialog;
 
@@ -75,6 +79,7 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::registry_optional_length_program("Compat16Test.fixture"),
         image::registry_roots_program("Compat16Test.fixture"),
         image::child_dialog_program(),
+        image::extended_error_program(),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");
         assert_eq!(module.header.target_os, 2);

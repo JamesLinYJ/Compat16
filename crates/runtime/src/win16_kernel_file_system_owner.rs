@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 
 use dos_kernel::DosError;
-use guest_core::{OwnerId, Registers};
+use guest_core::OwnerId;
 use text_codec::{CodePage, decode};
 use win16_abi::MAX_WIN16_STRING_BYTES;
 
@@ -594,11 +594,6 @@ fn replace_directory_prefix(
 
 pub(super) fn guest_api_failure(error: &RuntimeError) -> bool {
     matches!(error.kind(), Kind::GuestFault | Kind::InvalidInput)
-}
-
-pub(super) fn dos_failure(regs: &mut Registers, error_code: u16) {
-    regs.set_ax(error_code);
-    regs.set_carry(true);
 }
 
 pub(super) fn invalid_path() -> RuntimeError {

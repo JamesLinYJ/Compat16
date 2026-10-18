@@ -21,18 +21,18 @@ impl DosKernel {
         let path = match read_dos_c_string(memory, regs.ds, regs.dx()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
         };
         if !valid_non_search_path(&path, host.guest_code_page()) {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
             return Ok(DosAction::Continue);
         }
         match host.directory_create(&path) {
             Ok(()) => Self::success(regs),
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }
@@ -46,18 +46,18 @@ impl DosKernel {
         let path = match read_dos_c_string(memory, regs.ds, regs.dx()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
         };
         if !valid_non_search_path(&path, host.guest_code_page()) {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
             return Ok(DosAction::Continue);
         }
         match host.directory_remove(&path) {
             Ok(()) => Self::success(regs),
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }
@@ -71,18 +71,26 @@ impl DosKernel {
         let path = match read_dos_c_string(memory, regs.ds, regs.dx()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::PathNotFound));
+                self.failure(regs, DosHostError::new(DosErrorCode::PathNotFound));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
         };
         if path.len() > 64 || !valid_non_search_path(&path, host.guest_code_page()) {
-            Self::failure(regs, DosHostError::new(DosErrorCode::PathNotFound));
+            self.failure(regs, DosHostError::new(DosErrorCode::PathNotFound));
             return Ok(DosAction::Continue);
         }
         match host.directory_set_current(&path) {
             Ok(()) => Self::success(regs),
-            Err(error) => Self::failure(regs, error),
+            Err(mut error) => {
+                // DOS_CHDIR (MS-DOS 4 DIRCALL.ASM) reports a missing path as
+                // error 3 even if the host names its missing final entry a
+                // file (2). Retain the typed host cause and other errors.
+                if error.code == DosErrorCode::FileNotFound {
+                    error.code = DosErrorCode::PathNotFound;
+                }
+                self.failure(regs, error);
+            }
         }
         Ok(DosAction::Continue)
     }
@@ -105,7 +113,7 @@ impl DosKernel {
             }
             1..=26 => regs.dl() - 1,
             _ => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::UnknownUnit));
+                self.failure(regs, DosHostError::new(DosErrorCode::UnknownUnit));
                 return Ok(DosAction::Continue);
             }
         };
@@ -129,7 +137,7 @@ impl DosKernel {
                 ));
             }
             Err(error) => {
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
         };
@@ -153,19 +161,19 @@ impl DosKernel {
     ) -> Result<DosAction, DosError> {
         let subfunction = regs.al();
         if subfunction > 1 {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
             return Ok(DosAction::Continue);
         }
         let path = match read_dos_c_string(memory, regs.ds, regs.dx()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
         };
         if !valid_non_search_path(&path, host.guest_code_page()) {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
             return Ok(DosAction::Continue);
         }
         match subfunction {
@@ -179,21 +187,21 @@ impl DosKernel {
                         "host returned unknown DOS file attribute bits",
                     ));
                 }
-                Err(error) => Self::failure(regs, error),
+                Err(error) => self.failure(regs, error),
             },
             1 => {
                 let raw_attributes = regs.cx();
                 if raw_attributes & 0x0018 != 0 {
-                    Self::failure(regs, DosHostError::new(DosErrorCode::AccessDenied));
+                    self.failure(regs, DosHostError::new(DosErrorCode::AccessDenied));
                     return Ok(DosAction::Continue);
                 }
                 if raw_attributes & !0x0027 != 0 {
-                    Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                    self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                     return Ok(DosAction::Continue);
                 }
                 match host.file_set_attributes(&path, raw_attributes as u8) {
                     Ok(()) => Self::success(regs),
-                    Err(error) => Self::failure(regs, error),
+                    Err(error) => self.failure(regs, error),
                 }
             }
             _ => unreachable!("validated file attribute subfunction"),
@@ -210,7 +218,7 @@ impl DosKernel {
         let old_path = match read_dos_c_string(memory, regs.ds, regs.dx()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
@@ -218,7 +226,7 @@ impl DosKernel {
         let new_path = match read_dos_c_string(memory, regs.es, regs.di()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
@@ -230,7 +238,7 @@ impl DosKernel {
         ) {
             (Ok(old), Ok(new)) => old || new,
             _ => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
         };
@@ -238,7 +246,7 @@ impl DosKernel {
             || !valid_non_search_path(&new_path, code_page)
             || has_wildcards
         {
-            Self::failure(regs, DosHostError::new(DosErrorCode::FileNotFound));
+            self.failure(regs, DosHostError::new(DosErrorCode::FileNotFound));
             return Ok(DosAction::Continue);
         }
         let default_drive = host.current_drive();
@@ -251,7 +259,7 @@ impl DosKernel {
             Ok(Some(drive)) => drive,
             Ok(None) => default_drive,
             Err(error) => {
-                Self::failure(regs, DosHostError::new(error));
+                self.failure(regs, DosHostError::new(error));
                 return Ok(DosAction::Continue);
             }
         };
@@ -259,17 +267,17 @@ impl DosKernel {
             Ok(Some(drive)) => drive,
             Ok(None) => default_drive,
             Err(error) => {
-                Self::failure(regs, DosHostError::new(error));
+                self.failure(regs, DosHostError::new(error));
                 return Ok(DosAction::Continue);
             }
         };
         if old_drive != new_drive {
-            Self::failure(regs, DosHostError::new(DosErrorCode::NotSameDevice));
+            self.failure(regs, DosHostError::new(DosErrorCode::NotSameDevice));
             return Ok(DosAction::Continue);
         }
         match host.file_rename(&old_path, &new_path) {
             Ok(()) => Self::success(regs),
-            Err(error) => Self::failure(regs, error),
+            Err(error) => self.failure(regs, error),
         }
         Ok(DosAction::Continue)
     }
@@ -285,7 +293,7 @@ impl DosKernel {
         let path = match read_dos_c_string(memory, regs.ds, regs.dx()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
@@ -293,14 +301,14 @@ impl DosKernel {
         let (directory, pattern) = match parse_search_spec(&path, host) {
             Ok(parsed) => parsed,
             Err(error) => {
-                Self::failure(regs, DosHostError::new(error));
+                self.failure(regs, DosHostError::new(error));
                 return Ok(DosAction::Continue);
             }
         };
         let key = self.search_key(memory.caller_id(), dta_pointer);
         if let Some(old) = self.searches.get(&key).copied() {
             if let Err(error) = host.directory_search_close(old.host_search) {
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
             self.searches.remove(&key);
@@ -308,7 +316,7 @@ impl DosKernel {
         let host_search = match host.directory_search_open(&directory) {
             Ok(search) => search,
             Err(error) => {
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
         };
@@ -334,17 +342,17 @@ impl DosKernel {
                 Self::success(regs);
             }
             Ok(None) => match host.directory_search_close(host_search) {
-                Ok(()) => Self::failure(regs, DosHostError::new(DosErrorCode::NoMoreFiles)),
+                Ok(()) => self.failure(regs, DosHostError::new(DosErrorCode::NoMoreFiles)),
                 Err(error) => {
                     self.searches.insert(key, state);
-                    Self::failure(regs, error);
+                    self.failure(regs, error);
                 }
             },
             Err(NextSearchError::Host(error)) => match host.directory_search_close(host_search) {
-                Ok(()) => Self::failure(regs, error),
+                Ok(()) => self.failure(regs, error),
                 Err(_) => {
                     self.searches.insert(key, state);
-                    Self::failure(regs, error);
+                    self.failure(regs, error);
                 }
             },
             Err(NextSearchError::InvalidEntry) => {
@@ -369,7 +377,7 @@ impl DosKernel {
         let key = self.search_key(memory.caller_id(), dta_pointer);
         let state = self.searches.get(&key).copied();
         let Some(state) = state else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::NoMoreFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::NoMoreFiles));
             return Ok(DosAction::Continue);
         };
 
@@ -384,7 +392,7 @@ impl DosKernel {
             if host.directory_search_close(state.host_search).is_ok() {
                 self.searches.remove(&key);
             }
-            Self::failure(regs, DosHostError::new(DosErrorCode::NoMoreFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::NoMoreFiles));
             return Ok(DosAction::Continue);
         }
         validate_dta_write(memory, dta_pointer)?;
@@ -403,11 +411,11 @@ impl DosKernel {
             Ok(None) => match host.directory_search_close(state.host_search) {
                 Ok(()) => {
                     self.searches.remove(&key);
-                    Self::failure(regs, DosHostError::new(DosErrorCode::NoMoreFiles));
+                    self.failure(regs, DosHostError::new(DosErrorCode::NoMoreFiles));
                 }
-                Err(error) => Self::failure(regs, error),
+                Err(error) => self.failure(regs, error),
             },
-            Err(NextSearchError::Host(error)) => Self::failure(regs, error),
+            Err(NextSearchError::Host(error)) => self.failure(regs, error),
             Err(NextSearchError::InvalidEntry) => {
                 if host.directory_search_close(state.host_search).is_ok() {
                     self.searches.remove(&key);

@@ -23,16 +23,16 @@ impl DosKernel {
         let request = match extended_open_request(regs) {
             Ok(request) => request,
             Err(code) => {
-                Self::failure(regs, DosHostError::new(code));
+                self.failure(regs, DosHostError::new(code));
                 return Ok(DosAction::Continue);
             }
         };
         let Some(handle) = self.first_free_handle() else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         };
         if !self.file_table.has_free_slot() {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         // Unlike AH=3Dh/5Bh, the filename is DS:SI. Resolve it through the
@@ -40,26 +40,26 @@ impl DosKernel {
         let path = match read_dos_c_string(memory, regs.ds, regs.si()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
         };
         if let Err(error) = self.reserve_file_cleanup_slot() {
-            Self::failure(regs, error);
+            self.failure(regs, error);
             return Ok(DosAction::Continue);
         }
         // Retain the full mode, including the SFT's no-inherit bit. Both
         // identities must be reserved before a host operation can create.
         if self.file_table.register_open(handle, regs.bx()).is_none() {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         let opened = match host.file_extended_open(&path, request) {
             Ok(opened) => opened,
             Err(error) => {
                 self.file_table.remove_handle(handle);
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
         };

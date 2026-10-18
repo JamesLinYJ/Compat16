@@ -89,6 +89,7 @@ pub struct DosKernel {
     pub(super) block_leases: super::block_lease::DosBlockLeases,
     pub(super) system_tables: Option<super::system::SystemTables>,
     pub(super) message_addresses: super::message_addresses::DosMessageAddresses,
+    pub(super) extended_error: super::extended_error::ExtendedErrorState,
     pub(super) file_table: super::sft::FileTable,
     /// Handle ownership does not follow AH=50's selected PSP. Switching a
     /// complete DOS file context is separate from selecting a scalar PSP word.
@@ -160,6 +161,7 @@ impl DosKernel {
             block_leases: super::block_lease::DosBlockLeases::new(),
             system_tables: None,
             message_addresses: super::message_addresses::DosMessageAddresses::default(),
+            extended_error: super::extended_error::ExtendedErrorState::default(),
             file_table: super::sft::FileTable::new(),
             jft_owner_psp: psp_segment,
             jft_capacity: super::sft::DEFAULT_JFT_LEN,
@@ -209,6 +211,7 @@ impl DosKernel {
         child.block_leases = parent.block_leases.clone();
         child.system_tables = parent.system_tables;
         child.message_addresses = parent.message_addresses.clone();
+        child.extended_error = parent.extended_error.clone();
         child.device_requests = parent.device_requests;
         child.collating_table_addresses = parent.collating_table_addresses.clone();
         child.uppercase_table_addresses = parent.uppercase_table_addresses.clone();
@@ -456,8 +459,8 @@ impl DosKernel {
 
     /// Complete the DOS return state for an EXEC request rejected by runtime
     /// image or memory handling after DOS decoded the request.
-    pub fn complete_exec_failure(regs: &mut Registers, code: DosErrorCode) {
-        Self::failure(regs, DosHostError::new(code));
+    pub fn complete_exec_failure(&mut self, regs: &mut Registers, code: DosErrorCode) {
+        self.failure(regs, DosHostError::new(code));
     }
 
     /// Complete the successful return state for INT 21h/AH=4Bh.

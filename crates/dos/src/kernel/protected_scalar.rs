@@ -34,7 +34,7 @@ impl DosKernel {
             // termination or handle cleanup. This is an explicit policy,
             // not a claim about an observed original Windows return value.
             self.prepare_external_int21(memory)?;
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
             self.finish_external_int21(memory, host)?;
             return Ok(Some(DosAction::Continue));
         }
@@ -44,7 +44,7 @@ impl DosKernel {
         // services stay on the caller's address-space or ownership route.
         let scalar = match regs.ah() {
             0x01 | 0x02 | 0x06 | 0x07 | 0x08 | 0x0b | 0x0e | 0x19
-            | 0x2a | 0x2c | 0x30 | 0x33 | 0x36 | 0x4c | 0x4d => true,
+            | 0x2a | 0x2c | 0x30 | 0x33 | 0x36 | 0x4c | 0x4d | 0x59 => true,
             // AH=0Ch's AL=0Ah subfunction consumes DS:DX; the other listed
             // subfunctions are console operations entirely in registers.
             0x0c => matches!(regs.al(), 0x01 | 0x06 | 0x07 | 0x08),

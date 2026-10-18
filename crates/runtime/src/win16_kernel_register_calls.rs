@@ -1,6 +1,6 @@
 //! Runtime-owned KERNEL register exports whose contract is not a stack call.
 
-use dos_kernel::{DosAction, DosKernel};
+use dos_kernel::DosAction;
 use formats::NeImportTarget;
 use guest_core::{OwnerId, Registers};
 
@@ -220,7 +220,7 @@ fn dispatch_dos3call(
                 return_to,
             )? {
                 Some(code) => {
-                    DosKernel::complete_exec_failure(&mut runtime.cpu.regs, code);
+                    runtime.dos.complete_exec_failure(&mut runtime.cpu.regs, code);
                     complete_register_return(runtime, return_to)?;
                     Ok(None)
                 }
