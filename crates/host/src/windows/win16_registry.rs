@@ -166,13 +166,13 @@ impl RegistryHandles {
                         required_bytes: 0, bytes: Vec::new(),
                     }),
                 };
-                if i32::try_from(capacity).is_err() {
+                if capacity.is_some_and(|capacity| i32::try_from(capacity).is_err()) {
                     return Ok(Win16HostRegistryResult::QueryValue {
                         status: ERROR_INVALID_PARAMETER,
                         value_type: 0, required_bytes: 0, bytes: Vec::new(),
                     });
                 }
-                query_value(codec, native, &subkey, capacity as usize)
+                query_value(codec, native, &subkey, capacity.map(|count| count as usize))
             }
             Win16HostRegistryOperation::EnumKey { key, index, capacity } => {
                 let Ok((native, _)) = self.resolve(key) else {
@@ -326,7 +326,7 @@ fn query_value(
     codec: GuestTextCodec,
     key: HKEY,
     subkey: &[u16],
-    guest_capacity: usize,
+    guest_capacity: Option<usize>,
 ) -> Result<Win16HostRegistryResult, RuntimeError> {
     let mut native_size = 0_i32;
     // RegQueryValueW's null-output query reports the native UTF-16 data size in
@@ -385,7 +385,7 @@ fn query_value(
             return Ok(query_result(ERROR_INVALID_DATA, 0, Vec::new()));
         }
         wide.truncate(returned_native as usize / 2);
-        let bytes = match codec.from_wide(&wide) {
+        let mut bytes = match codec.from_wide(&wide) {
             Ok(encoded) => encoded.bytes,
             Err(error) if guest_output_conversion_failure(&error) => {
                 return Ok(query_result(ERROR_NO_UNICODE_TRANSLATION, 0, Vec::new()));
@@ -396,8 +396,13 @@ fn query_value(
             RuntimeError::with_source(Kind::InvalidInput,
                 "Win16 registry value exceeds DWORD byte count", error)
         })?;
-        if bytes.len() > guest_capacity {
+        if guest_capacity.is_some_and(|capacity| bytes.len() > capacity) {
             return Ok(query_result(ERROR_MORE_DATA, required_bytes, Vec::new()));
+        }
+        // The size-only query still converts the complete native value so a
+        // DBCS byte count cannot be mistaken for its UTF-16 storage size.
+        if guest_capacity.is_none() {
+            bytes.clear();
         }
         return Ok(query_result(ERROR_SUCCESS, required_bytes, bytes));
     }

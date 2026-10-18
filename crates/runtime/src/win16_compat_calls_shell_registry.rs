@@ -175,15 +175,18 @@ impl Win16State {
             return Ok(ERROR_INVALID_HANDLE);
         };
         let capacity_output_pointer = self.preflight_registry_output(memory, capacity_output, 4)?;
-        let capacity = usize::try_from(capacity).map_err(|error| RuntimeError::with_source(
-            Kind::GuestFault, "Win16 RegQueryValue capacity exceeds the host range", error))?;
-        if capacity != 0 { self.preflight_registry_output(memory, output, capacity)?; }
-        let capacity_dword = u32::try_from(capacity).map_err(|error| RuntimeError::with_source(
-            Kind::InternalInvariant, "Win16 RegQueryValue capacity lost its DWORD width", error))?;
+        // NULL lpData asks only for the required encoded size. Its initial
+        // lpcbData value is ignored, including nonzero and oversized values.
+        let capacity = (output != 0).then_some(capacity);
+        if let Some(capacity) = capacity {
+            let count = usize::try_from(capacity).map_err(|error| RuntimeError::with_source(
+                Kind::GuestFault, "Win16 RegQueryValue capacity exceeds the host range", error))?;
+            if count != 0 { self.preflight_registry_output(memory, output, count)?; }
+        }
         let result = host.win16_registry(Win16HostRegistryOperation::QueryValue {
             key,
             subkey,
-            capacity: capacity_dword,
+            capacity,
         })?;
         let Win16HostRegistryResult::QueryValue {
             status, value_type: _, required_bytes, bytes,
@@ -191,7 +194,10 @@ impl Win16State {
             return Err(wrong_registry_result("RegQueryValue"));
         };
         if status == ERROR_SUCCESS {
-            if bytes.len() > capacity || required_bytes as usize > capacity {
+            if capacity.is_some_and(|capacity|
+                bytes.len() > capacity as usize || required_bytes > capacity)
+                || (capacity.is_none() && !bytes.is_empty())
+            {
                 return Err(RuntimeError::new(Kind::InternalInvariant,
                     "host RegQueryValue result exceeds its caller buffer"));
             }

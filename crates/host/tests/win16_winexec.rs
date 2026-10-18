@@ -62,6 +62,7 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::current_directory_program(),
         image::oem_bitmap_program(),
         image::registry_program("Compat16Test.fixture"),
+        image::registry_query_program("Compat16Test.fixture"),
         image::child_dialog_program(),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");

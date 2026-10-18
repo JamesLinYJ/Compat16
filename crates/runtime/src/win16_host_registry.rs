@@ -76,7 +76,10 @@ pub enum Win16HostRegistryOperation {
     QueryValue {
         key: Win16RegistryKeyRef,
         subkey: Vec<u8>,
-        capacity: u32,
+        /// None is a NULL data pointer: report the encoded size without
+        /// copying data or interpreting the caller's initial byte count.
+        /// Some(0) remains a non-NULL buffer with no available space.
+        capacity: Option<u32>,
     },
     EnumKey {
         key: Win16RegistryKeyRef,
@@ -87,8 +90,8 @@ pub enum Win16HostRegistryOperation {
 
 /// The result variant identifies the operation that produced it. Registry
 /// status values are native Win32 error codes and remain ordinary guest return
-/// values; `required_bytes` is the native required size while `bytes` contains
-/// only the copied result bytes actually returned to runtime.
+/// values; lengths and copied strings use the guest code page after conversion
+/// from the Unicode native registry.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16HostRegistryResult {
     OpenKey {
@@ -111,9 +114,9 @@ pub enum Win16HostRegistryResult {
     QueryValue {
         status: u32,
         value_type: u32,
-        /// Native required size in bytes, with any REG_SZ NUL included.
+        /// Required guest-encoded size in bytes, with any REG_SZ NUL included.
         required_bytes: u32,
-        /// Actual native value bytes copied; preserves the native terminator.
+        /// Guest-encoded value bytes copied; preserves the native terminator.
         bytes: Vec<u8>,
     },
     EnumKey {

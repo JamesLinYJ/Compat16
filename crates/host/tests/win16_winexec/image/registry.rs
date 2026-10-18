@@ -1,6 +1,10 @@
 //! String ownership and Win3.1 errors through SHELL and KERNEL registry APIs.
 use super::{Code, ne};
 
+#[path = "registry/query.rs"]
+mod query;
+pub use query::registry_query_program;
+
 const KEY: u16 = 0;
 const SIZE: u16 = 4;
 const TEXT: u16 = 32;

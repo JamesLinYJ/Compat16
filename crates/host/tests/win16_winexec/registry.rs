@@ -25,7 +25,7 @@ impl Drop for TestKey {
         unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.0.as_ptr()) };
     }
 }
-fn verify(engine: &str) {
+fn verify(engine: &str, make_image: fn(&str) -> Vec<u8>) {
     let root = tempfile::tempdir().unwrap();
     let path = format!(
         "Compat16Test.{}",
@@ -42,15 +42,24 @@ fn verify(engine: &str) {
     assert_eq!(status, 2, "fixture key already exists or cannot be checked");
     let cleanup = TestKey(wide);
     let program = root.path().join("REGTEXT.EXE");
-    std::fs::write(&program, image::registry_program(&path)).unwrap();
+    std::fs::write(&program, make_image(&path)).unwrap();
     run_with_engine(&program, 936, engine);
     cleanup.cleanup();
 }
 #[test]
 fn registry_native_jit_preserves_strings_and_win31_statuses() {
-    verify("jit");
+    verify("jit", image::registry_program);
 }
 #[test]
 fn registry_native_interpreter_preserves_strings_and_win31_statuses() {
-    verify("interpreter");
+    verify("interpreter", image::registry_program);
+}
+
+#[test]
+fn registry_native_jit_sizes_null_output_in_guest_bytes() {
+    verify("jit", image::registry_query_program);
+}
+#[test]
+fn registry_native_interpreter_sizes_null_output_in_guest_bytes() {
+    verify("interpreter", image::registry_query_program);
 }

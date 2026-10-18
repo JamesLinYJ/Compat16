@@ -8,7 +8,7 @@ pub use child_dialog::child_dialog_program;
 
 #[path = "image/registry.rs"]
 mod registry;
-pub use registry::registry_program;
+pub use registry::{registry_program, registry_query_program};
 
 #[path = "image/oem_bitmap.rs"]
 mod oem_bitmap;
