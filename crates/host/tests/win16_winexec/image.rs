@@ -21,6 +21,7 @@ pub use child_dialog::child_dialog_program;
 #[path = "image/registry.rs"]
 mod registry;
 pub use registry::{
+    registry_aliases_program,
     registry_buffer_program, registry_optional_length_program, registry_program,
     registry_query_program, registry_roots_program,
 };

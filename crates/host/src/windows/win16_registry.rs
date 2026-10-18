@@ -8,7 +8,7 @@ use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostRegistryKey,
     Win16RegistryRoot, Win16RegistryQueryOutput};
 use windows_sys::Win32::Foundation::{ERROR_INVALID_HANDLE, ERROR_NOT_ENOUGH_MEMORY,
     ERROR_INVALID_DATA, ERROR_INVALID_PARAMETER, ERROR_MORE_DATA,
-    ERROR_NO_UNICODE_TRANSLATION, ERROR_SUCCESS, FILETIME};
+    ERROR_NO_UNICODE_TRANSLATION, ERROR_SUCCESS};
 use windows_sys::Win32::System::Registry::{
     RegCloseKey, RegCreateKeyW, RegDeleteKeyW, RegEnumKeyExW, RegOpenKeyW,
     RegQueryValueW, RegSetValueW, HKEY, HKEY_CLASSES_ROOT, HKEY_CURRENT_CONFIG,
@@ -17,6 +17,8 @@ use windows_sys::Win32::System::Registry::{
 };
 
 use super::guest_text::GuestTextCodec;
+
+mod names;
 
 const MAX_REGISTRY_KEY_NAME_WCHARS: usize = 256;
 
@@ -44,7 +46,7 @@ impl RegistryHandles {
                         status: ERROR_INVALID_HANDLE, key: None,
                     });
                 };
-                let subkey = match wide_z(codec, &subkey) {
+                let subkey = match names::native_path(codec, root, &subkey) {
                     Ok(subkey) => subkey,
                     Err(error) => return Ok(Win16HostRegistryResult::OpenKey {
                         status: conversion_status(error)?, key: None,
@@ -74,7 +76,7 @@ impl RegistryHandles {
                         status: ERROR_INVALID_HANDLE, key: None,
                     });
                 };
-                let subkey = match wide_z(codec, &subkey) {
+                let subkey = match names::native_path(codec, root, &subkey) {
                     Ok(subkey) => subkey,
                     Err(error) => return Ok(Win16HostRegistryResult::CreateKey {
                         status: conversion_status(error)?, key: None,
@@ -112,7 +114,7 @@ impl RegistryHandles {
                 let Ok(root) = self.native_key(root) else {
                     return Ok(Win16HostRegistryResult::DeleteKey { status: ERROR_INVALID_HANDLE });
                 };
-                let subkey = match wide_z(codec, &subkey) {
+                let subkey = match names::native_path(codec, root, &subkey) {
                     Ok(subkey) => subkey,
                     Err(error) => return Ok(Win16HostRegistryResult::DeleteKey {
                         status: conversion_status(error)?,
@@ -130,7 +132,7 @@ impl RegistryHandles {
                 let Ok((native, _)) = self.resolve(key) else {
                     return Ok(Win16HostRegistryResult::SetValue { status: ERROR_INVALID_HANDLE });
                 };
-                let subkey = match wide_z(codec, &subkey) {
+                let subkey = match names::native_path(codec, native, &subkey) {
                     Ok(subkey) => subkey,
                     Err(error) => return Ok(Win16HostRegistryResult::SetValue {
                         status: conversion_status(error)?,
@@ -159,7 +161,7 @@ impl RegistryHandles {
                         bytes: Vec::new(),
                     });
                 };
-                let subkey = match wide_z(codec, &subkey) {
+                let subkey = match names::native_path(codec, native, &subkey) {
                     Ok(subkey) => subkey,
                     Err(error) => return Ok(Win16HostRegistryResult::QueryValue {
                         status: conversion_status(error)?, value_type: 0,
@@ -181,64 +183,36 @@ impl RegistryHandles {
                         required_bytes: 0, name: Vec::new(),
                     }),
                 };
-                let mut wide_name = Vec::new();
-                wide_name.try_reserve_exact(MAX_REGISTRY_KEY_NAME_WCHARS).map_err(|error|
-                    RuntimeError::with_source(Kind::ResourceExhausted,
-                        "allocate Win16 registry enumeration buffer", error))?;
-                wide_name.resize(MAX_REGISTRY_KEY_NAME_WCHARS, 0);
-                let mut name_length = u32::try_from(wide_name.len()).map_err(|error|
-                    RuntimeError::with_source(Kind::InternalInvariant,
-                        "registry enumeration capacity exceeds DWORD", error))?;
-                let mut last_write = FILETIME::default();
-                // SAFETY: `native` is live; the UTF-16 name buffer and its
-                // length pointer are owned. Optional class and reserved outputs are null.
-                let status = unsafe { RegEnumKeyExW(native, index, wide_name.as_mut_ptr(), &mut name_length,
-                    null(), null_mut(), null_mut(), &mut last_write) };
-                if status == ERROR_SUCCESS {
-                    let actual = usize::try_from(name_length).map_err(|error|
-                        RuntimeError::with_source(Kind::InternalInvariant,
-                            "RegEnumKey returned an invalid name length", error))?;
-                    if actual >= wide_name.len() {
-                        return Err(RuntimeError::new(Kind::InternalInvariant,
-                            "RegEnumKey returned a name without room for its terminator"));
-                    }
-                    let encoded = match codec.from_wide(&wide_name[..actual]) {
-                        Ok(encoded) => encoded.bytes,
-                        Err(error) if guest_output_conversion_failure(&error) => {
-                            return Ok(Win16HostRegistryResult::EnumKey {
-                                status: ERROR_NO_UNICODE_TRANSLATION,
-                                required_bytes: 0,
-                                name: Vec::new(),
-                            });
-                        }
-                        Err(error) => return Err(error),
-                    };
-                    let required_bytes = u32::try_from(encoded.len().checked_add(1).ok_or_else(||
-                        RuntimeError::new(Kind::ResourceExhausted,
-                            "size Win16 registry key name"))?).map_err(|error|
-                        RuntimeError::with_source(Kind::InvalidInput,
-                            "Win16 registry key name exceeds DWORD", error))?;
-                    if usize::try_from(required_bytes).ok().is_some_and(|required| required > capacity) {
-                        return Ok(Win16HostRegistryResult::EnumKey {
-                            status: ERROR_MORE_DATA,
-                            required_bytes,
-                            name: Vec::new(),
-                        });
-                    }
+                let wide_name = match enum_native_name(native, index) {
+                    Ok(name) => name,
+                    Err(error) => return Ok(Win16HostRegistryResult::EnumKey {
+                        status: conversion_status(error)?, required_bytes: 0, name: Vec::new(),
+                    }),
+                };
+                let encoded = match names::guest_name(codec, native, &wide_name) {
+                    Ok(encoded) => encoded,
+                    Err(error) => return Ok(Win16HostRegistryResult::EnumKey {
+                        status: conversion_status(error)?, required_bytes: 0, name: Vec::new(),
+                    }),
+                };
+                let required_bytes = u32::try_from(encoded.len().checked_add(1).ok_or_else(||
+                    RuntimeError::new(Kind::ResourceExhausted,
+                        "size Win16 registry key name"))?).map_err(|error|
+                    RuntimeError::with_source(Kind::InvalidInput,
+                        "Win16 registry key name exceeds DWORD", error))?;
+                if usize::try_from(required_bytes).ok().is_some_and(|required| required > capacity) {
                     return Ok(Win16HostRegistryResult::EnumKey {
-                        status: ERROR_SUCCESS,
+                        status: ERROR_MORE_DATA,
                         required_bytes,
-                        name: encoded,
-                    });
-                } else {
-                    // The guest caller receives the native registry status;
-                    // required size is meaningful only for a converted name.
-                    return Ok(Win16HostRegistryResult::EnumKey {
-                        status,
-                        required_bytes: 0,
                         name: Vec::new(),
                     });
                 }
+                Ok(Win16HostRegistryResult::EnumKey {
+                    status: ERROR_SUCCESS,
+                    required_bytes,
+                    name: encoded,
+                })
+
             }
         }
     }
@@ -273,6 +247,29 @@ impl Drop for RegistryHandles {
             let _ = unsafe { RegCloseKey(native) };
         }
     }
+}
+
+fn enum_native_name(key: HKEY, index: u32) -> Result<Vec<u16>, TextConversionError> {
+    let mut name = vec![0_u16; MAX_REGISTRY_KEY_NAME_WCHARS];
+    let mut length = name.len() as u32;
+    // SAFETY: the validated native key, owned UTF-16 output and writable count
+    // remain live. All unused outputs are NULL. Key components are at most 255
+    // UTF-16 units, with separate room for the native terminator.
+    // https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexw
+    let status = unsafe {
+        RegEnumKeyExW(key, index, name.as_mut_ptr(), &mut length,
+            null(), null_mut(), null_mut(), null_mut())
+    };
+    if status != ERROR_SUCCESS {
+        return Err(TextConversionError::GuestStatus(status));
+    }
+    let length = length as usize;
+    if length >= name.len() {
+        return Err(TextConversionError::Runtime(RuntimeError::new(Kind::InternalInvariant,
+            "RegEnumKey returned a name without room for its terminator")));
+    }
+    name.truncate(length);
+    Ok(name)
 }
 
 fn predefined_root(root: Win16RegistryRoot) -> HKEY {

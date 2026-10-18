@@ -16,6 +16,10 @@ mod extended_error;
 mod stdin;
 
 #[cfg(windows)]
+#[path = "win16_winexec/registry_aliases.rs"]
+mod registry_aliases;
+
+#[cfg(windows)]
 #[path = "win16_winexec/child_dialog.rs"]
 mod child_dialog;
 
