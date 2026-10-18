@@ -288,7 +288,7 @@ jobs:
             '-p runtime --lib win16_runtime_dde::transfer::tests::' = 16
             '-p runtime --lib win16_dde_callback::retirement::tests::' = 1
             '-p host-services --lib dde_normal_tombstone_shutdown_' = 2
-            '-p host-services --lib dde_shutdown_' = 4
+            '-p host-services --lib dde_shutdown_' = 6
             '-p runtime --lib win16_runtime::aux_tests::' = 6
             '-p runtime --lib win16_runtime::comm::tests::' = 7
             '-p runtime --lib win16_runtime::commdlg::hook_tests::' = 5
