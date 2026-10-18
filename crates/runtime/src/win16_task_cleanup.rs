@@ -465,6 +465,8 @@ impl Win16State {
                 let file_system_cleanup = self.kernel_file_system.retire_task(owner, host)
                     .map_err(|error| error.with_context("Win16 KERNEL file-system cleanup"));
                 remember(&mut failures, "multiple Win16 task cleanup failures", file_system_cleanup);
+                let global_notify_cleanup = self.global_notify.retire_task(owner);
+                remember(&mut failures, "multiple Win16 task cleanup failures", global_notify_cleanup);
             }
         }
         if windows_closed && final_media_retired && dde_retired

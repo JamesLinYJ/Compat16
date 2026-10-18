@@ -236,6 +236,8 @@ mod font_callback;
 mod object_callback;
 #[path = "win16_far_callback.rs"]
 mod far_callback;
+#[path = "win16_global_notify.rs"]
+mod global_notify;
 #[path = "win16_callback_entry.rs"]
 mod callback_entry;
 #[path = "win16_callback_scheduler.rs"]
@@ -529,6 +531,7 @@ enum ImportBinding {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum CallbackKind {
+    GlobalNotify,
     Font,
     GdiObject,
     AcmEnumeration,
@@ -699,6 +702,7 @@ pub(crate) struct Win16State {
     next_callback_frame_id: u64,
     callback_owners_quiesced: bool,
     callback_scheduler: callback_scheduler::Win16CallbackScheduler,
+    global_notify: global_notify::GlobalNotifyState,
     legacy_cpu_frames: Vec<legacy_cpu_frame::Win16LegacyCpuFrame>,
     next_legacy_cpu_frame: u64,
     task_event_waits: Vec<task_event_wait::PendingTaskEventWait>,

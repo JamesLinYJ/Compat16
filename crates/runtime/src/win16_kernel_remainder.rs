@@ -76,9 +76,11 @@ impl Win16State {
     ) -> Result<u32, RuntimeError> {
         match ordinal {
             14 => self.kernel_local_notify(arg_dword(arguments, 0)?, caller_ds, memory),
+            126 => Ok(self.kernel_memory_freed(arg_word(arguments, 0)?)),
+            154 => self.kernel_global_notify(arg_dword(arguments, 0)?, memory),
             // Previous-callback or previous-size zero would look like a successful
             // first registration. These calls are not installed.
-            38 | 39 | 40 | 106 | 140 | 154 | 202 | 341 | 343 | 619 => Err(RuntimeError::new(
+            38 | 39 | 40 | 106 | 140 | 202 | 341 | 343 | 619 => Err(RuntimeError::new(
                 Kind::CompatibilityGap,
                 "Win16 KERNEL registration is not installed",
             )),

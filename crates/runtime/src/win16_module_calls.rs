@@ -354,6 +354,7 @@ impl Win16State {
         references.extend(self.toolhelp_notify_active_code_references());
         references.extend(self.acm.code_references());
         references.extend(self.kernel_file_system.code_references());
+        references.extend(self.global_notify.code_references());
         references.extend(self.protected_dos_vectors.values().flatten()
             .map(|pointer| pointer.far_value()));
         references.extend(self.win87em_exception_handler.iter()

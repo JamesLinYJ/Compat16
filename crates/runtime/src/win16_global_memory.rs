@@ -7,7 +7,7 @@
 use guest_core::{memory::Memory, Selector};
 use win16_abi::global::{
     GMEM_DDESHARE, GMEM_DISCARDABLE, GMEM_INVALID_HANDLE, GMEM_LOCKCOUNT_MASK, GMEM_MODIFY,
-    GMEM_MOVEABLE, GMEM_NOCOMPACT, GMEM_NODISCARD, GMEM_ZEROINIT,
+    GMEM_MOVEABLE, GMEM_NOCOMPACT, GMEM_NODISCARD, GMEM_NOTIFY, GMEM_ZEROINIT,
 };
 use win16_abi::{
     AccessRights, AllocationFlags, GlobalHandle, GuestMemoryOwner, SelectorRef, Win16Error,
@@ -81,7 +81,7 @@ impl Win16State {
         host: &mut impl RuntimeHost,
     ) -> Result<u16, RuntimeError> {
         const MODELED_REALLOC_FLAGS: u16 = GMEM_MOVEABLE | GMEM_NOCOMPACT | GMEM_NODISCARD
-            | GMEM_ZEROINIT | GMEM_MODIFY | GMEM_DISCARDABLE | GMEM_DDESHARE;
+            | GMEM_ZEROINIT | GMEM_MODIFY | GMEM_DISCARDABLE | GMEM_DDESHARE | GMEM_NOTIFY;
         let unmodeled = flags & !MODELED_REALLOC_FLAGS;
         if unmodeled != 0 && self.reported_global_realloc_flags.insert(unmodeled) {
             host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
@@ -518,6 +518,7 @@ impl Win16State {
                     *pointer = win16_abi::SegmentedPointer::new(replacement, pointer.offset());
                 }
             }
+            self.global_notify.update_selector(old, replacement);
             for pointer in self.interrupt_callbacks.values_mut() {
                 if pointer.selector() == old {
                     *pointer = win16_abi::SegmentedPointer::new(replacement, pointer.offset());
@@ -558,7 +559,7 @@ impl Win16State {
         }
     }
 
-    fn sync_discarded_global_handles(&mut self) {
+    pub(super) fn sync_discarded_global_handles(&mut self) {
         self.discarded_handles.clear();
         for (&guest_handle, &identity) in &self.global_handles {
             if self.heap.info(identity).is_ok_and(|info| info.discarded) {
@@ -720,7 +721,7 @@ impl Win16State {
         self.global_selectors.insert(guest_handle, selector);
         if discarded { self.discarded_handles.insert(guest_handle); }
         let modeled_flags = GMEM_MOVEABLE | GMEM_NOCOMPACT | GMEM_NODISCARD
-            | GMEM_ZEROINIT | GMEM_DISCARDABLE | GMEM_DDESHARE;
+            | GMEM_ZEROINIT | GMEM_DISCARDABLE | GMEM_DDESHARE | GMEM_NOTIFY;
         if raw_flags & !modeled_flags != 0
             && self.reported_global_flags.insert(raw_flags)
         {

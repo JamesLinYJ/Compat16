@@ -111,6 +111,7 @@ impl Win16State {
         }
 
         let finished = match kind {
+            CallbackKind::GlobalNotify => self.finish_global_notify_callback(cpu, dos, memory, host),
             CallbackKind::Font => self.finish_font_callback(cpu, dos, memory),
             CallbackKind::GdiObject => self.finish_object_callback(cpu, dos, memory),
             CallbackKind::AcmEnumeration => self.finish_acm_enumeration(cpu, dos, memory, host),

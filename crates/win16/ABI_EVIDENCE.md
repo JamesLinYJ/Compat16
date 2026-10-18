@@ -1028,6 +1028,44 @@ module-handle lookup, retains builtin source-module/suffix aliases, and continue
 to exclude retired and external-application identities. Resolving a missing
 import still fails the load and now identifies the exact symbol in diagnostics.
 
+### KERNEL global-discard notifications
+
+XP's Win16 [`WINDOWS.H`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/inc/windows.h#L717)
+declares `GlobalNotify` as void and its callback as a Pascal BOOL taking one
+HGLOBAL word. [`IGlobalNotify` and `gnotify`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/kernel31/3gmoreme.asm#L480)
+retain the task's registration and ask its callback before discarding a
+task-owned allocation marked GMEM_NOTIFY. A zero callback result vetoes that
+discard. Module-owned objects and unmarked allocations do not use this task
+callback. The runtime keeps the input NOTIFY policy separate from the output
+DISCARDED state: both use bit 0x4000 in their different Win16 API contexts.
+
+The callback enters the checked FAR-call path with AX, DS and ES set to SS,
+as in gnotify; MakeProcInstance retains its own subsequent instance projection.
+Guest execution may free, resize or pin the candidate. A discard after its
+return rechecks the complete allocation generation and current pin state,
+so a reused WORD handle cannot authorize discarding a replacement object.
+Compaction retains vetoed identities, continues in LRU order, and returns the
+allocator's actual largest free range. Public GlobalAlloc/GlobalReAlloc can
+retry after memory-pressure compaction; an ordinary successful resize remains
+on the immediate path without adding CPU-root pins to the caller's data block.
+Active decisions use the shared callback LIFO, retain their caller/parked CPU
+owners, and cancel without committing an unreturned vote after task execution
+ends. Registered code participates in module roots until task retirement.
+
+KERNEL.126 `MemoryFreed` regains its original binding ID 1000024 with a verified
+two-byte argument frame. [`MemoryFreed`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/kernel31/2gmoreme.asm#L753)
+takes a WORD count of freed paragraphs, supports a zero-count budget query,
+and returns zero outside an active notification. Its low-word subtraction
+wraps, its high return word is zero, and reaching the reported budget stops
+the current discard pass. This is not a host-memory counter or an assertion
+that the reported free space physically exists; GlobalCompact still measures
+its actual result. Heap-backed internal service helpers retain their existing
+synchronous allocation contracts; this does not claim general cross-task
+execution or complete parity of every historical allocator policy. Huge
+reallocation can still fail when an adjacent stable HGLOBAL prevents expanding
+the original contiguous selector run; it must preserve the original data and
+report failure even if a notification has released another block.
+
 ## Unimplemented call contracts
 
 ### Unknown parameter frames
@@ -1038,7 +1076,7 @@ register-based display and COMM driver entries. Existing binding IDs are not
 renumbered when an unsafe provisional binding is removed.
 
 The same rule applies to KERNEL, USER and GDI. Their declaration groups retain
-72, 63 and 100 additional stub rows respectively without runtime call bindings.
+71, 63 and 100 additional stub rows respectively without runtime call bindings.
 These rows supply neither a parameter list nor independent zero-argument ABI
 evidence. Treating an omitted signature as an empty Pascal frame would return
 with an unverified stack cleanup and return shape. Import names and ordinals

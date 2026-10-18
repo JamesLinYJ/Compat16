@@ -366,7 +366,13 @@ returns = "word"
 [[exports]]
 ordinal = 126
 name = "MemoryFreed"
-kind = "stub"
+decl = { args = ["word"] }
+binding = { rust_id = "KernelMemoryFreed", id_value = 1000024, constant = "KERNEL_MEMORYFREED" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "paragraphs_freed", type = "U16" },
+]
 
 [[exports]]
 ordinal = 131

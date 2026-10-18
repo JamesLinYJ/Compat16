@@ -7,6 +7,10 @@ mod image;
 #[path = "win16_winexec/load_module.rs"]
 mod load_module;
 
+#[cfg(windows)]
+#[path = "win16_winexec/global_notify.rs"]
+mod global_notify;
+
 #[test]
 fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
     for bytes in [
@@ -26,6 +30,7 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::module_library_parent(),
         image::library(),
         image::child_after_release(),
+        image::global_notify_program(),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");
         assert_eq!(module.header.target_os, 2);
@@ -53,6 +58,10 @@ mod native {
     }
 
     pub(super) fn run(program: &Path, page: u32) {
+        run_with_engine(program, page, "jit");
+    }
+
+    pub(super) fn run_with_engine(program: &Path, page: u32, engine: &str) {
         let package = PathBuf::from(
             std::env::var_os("COMPAT16_TEST_PACKAGE_DIR")
                 .expect("set COMPAT16_TEST_PACKAGE_DIR to the matching scripts/build.ps1 package"),
@@ -72,6 +81,9 @@ mod native {
         let mut running = Running(
             Command::new(package.join("compat16.exe"))
                 .args([
+                    "--cpu-engine",
+                    engine,
+                    "--no-jit-cache",
                     "--max-instructions",
                     "100000",
                     "--win16-code-page",

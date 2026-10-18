@@ -96,6 +96,7 @@ impl Win16State {
 
         let _callback_id = self.require_callback_top(kind)?;
         match kind {
+            CallbackKind::GlobalNotify => self.cancel_global_notify_for_teardown(ended, cpu, dos, memory)?,
             CallbackKind::ClassicDde => {
                 self.cancel_classic_dde_callback_for_teardown(ended, cpu, dos, memory, host)?
             }
@@ -260,6 +261,7 @@ impl Win16State {
             }
         }
         if !self.callback_kinds.is_empty()
+            || self.global_notify.has_active_frames()
             || !self.callback_frame_ids.is_empty()
             || !self.font_callbacks.is_empty()
             || !self.object_callbacks.is_empty()

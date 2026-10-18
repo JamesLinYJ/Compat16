@@ -173,6 +173,7 @@ impl Win16State {
             winmem32: super::winmem32::Win16Winmem32State::default(),
             selectors, gate_selector, callback_gate_selector, bindings, builtin_data_exports,
             runtime_selector_aliases,
+            global_notify: super::global_notify::GlobalNotifyState::default(),
             runtime_arena_backing,
             native_thunks_available: false,
             pe32_dispatch,
