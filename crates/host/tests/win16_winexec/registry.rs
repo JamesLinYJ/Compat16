@@ -63,3 +63,20 @@ fn registry_native_jit_sizes_null_output_in_guest_bytes() {
 fn registry_native_interpreter_sizes_null_output_in_guest_bytes() {
     verify("interpreter", image::registry_query_program);
 }
+
+#[test]
+fn registry_native_jit_distinguishes_short_buffer_contracts() {
+    verify("jit", image::registry_buffer_program);
+}
+#[test]
+fn registry_native_interpreter_distinguishes_short_buffer_contracts() {
+    verify("interpreter", image::registry_buffer_program);
+}
+#[test]
+fn registry_native_jit_preserves_optional_length_semantics() {
+    verify("jit", image::registry_optional_length_program);
+}
+#[test]
+fn registry_native_interpreter_preserves_optional_length_semantics() {
+    verify("interpreter", image::registry_optional_length_program);
+}

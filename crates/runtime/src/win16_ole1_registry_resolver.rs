@@ -110,7 +110,7 @@ fn query_default_string(
         let result = host.win16_registry(Win16HostRegistryOperation::QueryValue {
             key: Win16RegistryKeyRef::Predefined(Win16RegistryRoot::ClassesRoot),
             subkey: request_subkey,
-            capacity: Some(capacity),
+            output: crate::Win16RegistryQueryOutput::Bounded(capacity),
         })?;
         let Win16HostRegistryResult::QueryValue {
             status,

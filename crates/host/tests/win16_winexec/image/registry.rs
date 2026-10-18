@@ -4,6 +4,12 @@ use super::{Code, ne};
 #[path = "registry/query.rs"]
 mod query;
 pub use query::registry_query_program;
+#[path = "registry/buffer.rs"]
+mod buffer;
+pub use buffer::registry_buffer_program;
+#[path = "registry/optional_length.rs"]
+mod optional_length;
+pub use optional_length::registry_optional_length_program;
 
 const KEY: u16 = 0;
 const SIZE: u16 = 4;
@@ -158,16 +164,16 @@ pub fn registry_program(path: &str) -> Vec<u8> {
         long(&mut code, u32::MAX);
         call(&mut code, module, set, if win31 { 7 } else { 87 });
         query(&mut code, module, get, b"0\0");
-        // MORE_DATA preserves output, reports ANSI size, and maps only in SHELL.
+        // Win3.1 truncates; KERNEL's Win32 thunk reports MORE_DATA.
         store(&mut code, SIZE, 1);
         store(&mut code, OUTPUT, 0xcccc);
         key(&mut code);
         long(&mut code, 0);
         far(&mut code, OUTPUT);
         far(&mut code, SIZE);
-        call(&mut code, module, get, if win31 { 7 } else { 234 });
-        compare(&mut code, SIZE, 2);
-        compare(&mut code, OUTPUT, 0xcccc);
+        call(&mut code, module, get, if win31 { 0 } else { 234 });
+        compare(&mut code, SIZE, if win31 { 1 } else { 2 });
+        compare(&mut code, OUTPUT, if win31 { 0xcc30 } else { 0xcccc });
         key(&mut code);
         long(&mut code, 0);
         far(&mut code, OUTPUT);

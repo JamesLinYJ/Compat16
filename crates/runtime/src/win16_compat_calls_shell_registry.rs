@@ -11,6 +11,9 @@ use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost,
 const ERROR_SUCCESS: u32 = 0;
 const ERROR_INVALID_HANDLE: u32 = 6;
 
+#[path = "win16_compat_calls_shell_registry/query.rs"]
+mod query;
+
 impl Win16State {
     pub(crate) fn shell_registry_api(
         &mut self,
@@ -18,7 +21,12 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        self.shell_registry_native_status(request, memory, host).map(win31_status)
+        let result = match request {
+            request @ Win16ShellRegistryRequest::QueryValue { .. } =>
+                self.shell_registry_query_value(request, true, memory, host),
+            request => self.shell_registry_native_status(request, memory, host),
+        };
+        result.map(win31_status)
     }
 
     pub(super) fn shell_registry_native_status(
@@ -75,10 +83,8 @@ impl Win16State {
                 };
                 Ok(status)
             }
-            Win16ShellRegistryRequest::QueryValue {
-                key, subkey, output, byte_count, byte_count_output,
-            } => self.shell_registry_query_value(
-                key, subkey, output, byte_count, byte_count_output, memory, host),
+            request @ Win16ShellRegistryRequest::QueryValue { .. } =>
+                self.shell_registry_query_value(request, false, memory, host),
             Win16ShellRegistryRequest::EnumKey { key, index, output, capacity } => {
                 let Ok(key) = self.compat.registry_key(key) else {
                     return Ok(ERROR_INVALID_HANDLE);
@@ -158,53 +164,6 @@ impl Win16State {
             self.close_unclaimed_registry_key(host, key)?;
             return Err(error);
         }
-        Ok(status)
-    }
-
-    fn shell_registry_query_value(
-        &mut self,
-        guest_key: u32,
-        subkey: Vec<u8>,
-        output: u32,
-        capacity: u32,
-        capacity_output: u32,
-        memory: &mut Memory,
-        host: &mut impl RuntimeHost,
-    ) -> Result<u32, RuntimeError> {
-        let Ok(key) = self.compat.registry_key(guest_key) else {
-            return Ok(ERROR_INVALID_HANDLE);
-        };
-        let capacity_output_pointer = self.preflight_registry_output(memory, capacity_output, 4)?;
-        // NULL lpData asks only for the required encoded size. Its initial
-        // lpcbData value is ignored, including nonzero and oversized values.
-        let capacity = (output != 0).then_some(capacity);
-        if let Some(capacity) = capacity {
-            let count = usize::try_from(capacity).map_err(|error| RuntimeError::with_source(
-                Kind::GuestFault, "Win16 RegQueryValue capacity exceeds the host range", error))?;
-            if count != 0 { self.preflight_registry_output(memory, output, count)?; }
-        }
-        let result = host.win16_registry(Win16HostRegistryOperation::QueryValue {
-            key,
-            subkey,
-            capacity,
-        })?;
-        let Win16HostRegistryResult::QueryValue {
-            status, value_type: _, required_bytes, bytes,
-        } = result else {
-            return Err(wrong_registry_result("RegQueryValue"));
-        };
-        if status == ERROR_SUCCESS {
-            if capacity.is_some_and(|capacity|
-                bytes.len() > capacity as usize || required_bytes > capacity)
-                || (capacity.is_none() && !bytes.is_empty())
-            {
-                return Err(RuntimeError::new(Kind::InternalInvariant,
-                    "host RegQueryValue result exceeds its caller buffer"));
-            }
-            if !bytes.is_empty() { self.write_registry_output(memory, output, &bytes)?; }
-        }
-        self.selectors.write(memory, capacity_output_pointer, &required_bytes.to_le_bytes())
-            .map_err(crate::runtime_error)?;
         Ok(status)
     }
 

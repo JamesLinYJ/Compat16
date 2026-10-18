@@ -30,7 +30,7 @@ pub(super) fn validate_server_registration(
     let result = host.win16_registry(Win16HostRegistryOperation::QueryValue {
         key: Win16RegistryKeyRef::Predefined(Win16RegistryRoot::ClassesRoot),
         subkey,
-        capacity: Some(124),
+        output: crate::Win16RegistryQueryOutput::Bounded(124),
     })?;
     let Win16HostRegistryResult::QueryValue {
         status,

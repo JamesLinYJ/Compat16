@@ -133,13 +133,23 @@ impl Win16ShellRegistryRequest {
                 }
             }
             6 => {
-                let byte_count = read_u32_far(dword(arguments, 3)?, selectors, memory)?;
+                let byte_count_output = dword(arguments, 3)?;
+                // SHELL rejects NULL lpcbData before inspecting either string
+                // or output. KERNEL preserves the native optional-pointer API.
+                let subkey = if win31 && byte_count_output == 0 {
+                    Vec::new()
+                } else {
+                    optional_string(dword(arguments, 1)?, selectors, memory)?
+                };
+                let byte_count = if byte_count_output == 0 { 0 } else {
+                    read_u32_far(byte_count_output, selectors, memory)?
+                };
                 Win16ShellRegistryRequest::QueryValue {
                     key: dword(arguments, 0)?,
-                    subkey: optional_string(dword(arguments, 1)?, selectors, memory)?,
+                    subkey,
                     output: dword(arguments, 2)?,
                     byte_count,
-                    byte_count_output: dword(arguments, 3)?,
+                    byte_count_output,
                 }
             }
             7 => Win16ShellRegistryRequest::EnumKey {

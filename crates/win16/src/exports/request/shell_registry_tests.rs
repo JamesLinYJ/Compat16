@@ -114,3 +114,51 @@ fn registry_set_value_kernel32_preserves_null_and_ignores_string_count() {
         assert_eq!(value, (pointer != 0).then(|| b"A\xd6\xd0".to_vec()));
     }
 }
+
+#[test]
+fn registry_query_shell_null_length_rejects_before_pointer_access() {
+    let (memory, selectors, _) = source(b"\0");
+    let arguments = [1, 0xffff_0001, 0xffff_0001, 0].map(Win16Argument::Dword);
+    assert_eq!(
+        Win16ShellRegistryRequest::decode_export(6, &arguments, &selectors, &memory).unwrap(),
+        Win16ShellRegistryRequest::QueryValue {
+            key: 1,
+            subkey: Vec::new(),
+            output: 0xffff_0001,
+            byte_count: 0,
+            byte_count_output: 0
+        }
+    );
+}
+
+#[test]
+fn registry_query_kernel_null_length_keeps_checked_subkey_and_raw_output() {
+    let (memory, selectors, far) = source(b"entry\0");
+    let arguments = [1, far, 0xffff_0001, 0].map(Win16Argument::Dword);
+    assert_eq!(
+        Win16ShellRegistryRequest::decode_kernel_export(224, &arguments, &selectors, &memory)
+            .unwrap(),
+        Win16ShellRegistryRequest::QueryValue {
+            key: 1,
+            subkey: b"entry".to_vec(),
+            output: 0xffff_0001,
+            byte_count: 0,
+            byte_count_output: 0
+        }
+    );
+    let bad = [1, 0xffff_0001, 0, 0].map(Win16Argument::Dword);
+    assert!(
+        Win16ShellRegistryRequest::decode_kernel_export(224, &bad, &selectors, &memory).is_err()
+    );
+}
+
+#[test]
+fn registry_query_null_data_does_not_bypass_nonnull_length_pointer_checks() {
+    let (memory, selectors, _) = source(b"\0");
+    let arguments = [1, 0, 0, 1].map(Win16Argument::Dword);
+    assert!(Win16ShellRegistryRequest::decode_export(6, &arguments, &selectors, &memory).is_err());
+    assert!(
+        Win16ShellRegistryRequest::decode_kernel_export(224, &arguments, &selectors, &memory)
+            .is_err()
+    );
+}

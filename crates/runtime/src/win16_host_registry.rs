@@ -47,6 +47,19 @@ pub enum Win16RegistryKeyRef {
     Opened(Win16HostRegistryKey),
 }
 
+/// Owned-data policy for a native registry read; no guest pointers cross here.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16RegistryQueryOutput {
+    SizeOnly,
+    Bounded(u32),
+    /// Return the complete converted value for runtime-side Win3.1 truncation.
+    Complete,
+    /// Preserve the native API's optional-length validation and key lookup.
+    WithoutLength {
+        data_present: bool,
+    },
+}
+
 /// One operation on the process registry namespace.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16HostRegistryOperation {
@@ -76,10 +89,7 @@ pub enum Win16HostRegistryOperation {
     QueryValue {
         key: Win16RegistryKeyRef,
         subkey: Vec<u8>,
-        /// None is a NULL data pointer: report the encoded size without
-        /// copying data or interpreting the caller's initial byte count.
-        /// Some(0) remains a non-NULL buffer with no available space.
-        capacity: Option<u32>,
+        output: Win16RegistryQueryOutput,
     },
     EnumKey {
         key: Win16RegistryKeyRef,
