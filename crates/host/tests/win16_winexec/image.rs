@@ -2,6 +2,10 @@
 
 pub const ENVIRONMENT: &[u8; 20] = b"C16=guest\0PATH=BIN\0\0";
 
+#[path = "image/child_dialog.rs"]
+mod child_dialog;
+pub use child_dialog::child_dialog_program;
+
 #[path = "image/registry.rs"]
 mod registry;
 pub use registry::registry_program;

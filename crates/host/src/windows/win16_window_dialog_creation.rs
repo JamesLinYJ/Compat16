@@ -132,6 +132,17 @@ pub(super) fn identify(
         RouteCandidate::Root(data) => (data, true, menu),
         RouteCandidate::Control(data) => (data, false, None),
     };
+    if data.guest_instance != guest_instance || data.dialog_root != is_root {
+        return Err(RuntimeError::new(Kind::InternalInvariant,
+            "custom dialog route changed its instance or root/control role"));
+    }
+    let root_token = if !is_root && root_class.is_none() {
+        let root = root_window.ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
+            "custom dialog control route omitted its standard root HWND"))?;
+        super::win16_dialog_root_identity::bind_standard_root(
+            state, operation, creation, root as HWND,
+        )?
+    } else { root_token };
     if !is_root {
         if root_window.is_none() {
             return Err(RuntimeError::new(Kind::InternalInvariant,
@@ -147,13 +158,6 @@ pub(super) fn identify(
                 .map(|identity| identity.window)
         };
     }
-    if data.guest_instance != guest_instance || data.dialog_root != is_root {
-        return Err(RuntimeError::new(
-            Kind::InternalInvariant,
-            "custom dialog route changed its instance or root/control role",
-        ));
-    }
-
     let (process_id, thread_id) =
         super::win16_window_identity::native_owner_identity(hwnd).ok_or_else(|| {
             RuntimeError::new(Kind::HostFailure,

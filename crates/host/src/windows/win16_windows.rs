@@ -57,6 +57,8 @@ mod win16_window_default;
 mod win16_window_dialog_creation;
 #[path = "win16_window_identity.rs"]
 mod win16_window_identity;
+#[path = "win16_dialog_root_identity.rs"]
+mod win16_dialog_root_identity;
 #[path = "win16_window_input.rs"]
 mod win16_window_input;
 #[path = "win16_ctl3d_worker.rs"]

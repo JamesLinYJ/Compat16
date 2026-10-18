@@ -45,11 +45,10 @@ pub(super) fn dialog_route(
             route.creation,
             route.cookie,
             route.init_parameter,
-            route.root_token,
             route.menu,
             route.root.is_some(),
         ));
-    let Some((operation, creation, cookie, init_parameter, root_token, menu, needs_custom_root)) = pending else {
+    let Some((operation, creation, cookie, init_parameter, menu, needs_custom_root)) = pending else {
         return Ok(None);
     };
     super::super::win16_dialog_icon_controls::before_init(state, operation, creation, hwnd)?;
@@ -83,6 +82,9 @@ pub(super) fn dialog_route(
             "custom dialog root reached WM_INITDIALOG without its WndProc route"));
     }
 
+    let root_token = super::super::win16_dialog_root_identity::bind_standard_root(
+        state, operation, creation, hwnd,
+    )?;
     let route = DialogRoute {
         operation,
         creation,

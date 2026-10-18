@@ -313,8 +313,8 @@ pub(in crate::windows::win16_windows) struct PendingDialogRoute {
     pub(in crate::windows::win16_windows) cookie: usize,
     pub(in crate::windows::win16_windows) guest_instance: u16,
     pub(in crate::windows::win16_windows) init_parameter: u32,
-    /// Identity reserved before entering USER so synchronous child/root
-    /// callbacks cannot allocate or adopt a different dialog generation.
+    /// Reserved before USER entry. An exact root proof can retain an earlier
+    /// borrowed alias exposed by parent notify, preserving its generation.
     pub(in crate::windows::win16_windows) root_token: Win16HostWindow,
     pub(in crate::windows::win16_windows) owner: HWND,
     pub(in crate::windows::win16_windows) root: Option<DialogRootCreationRoute>,
