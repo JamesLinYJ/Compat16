@@ -128,6 +128,7 @@ jobs:
             '-p runtime --lib global_notify_',
             '-p host-services --lib session_exit_',
             '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1',
+            '-p host-services --lib host_timer_native_ -- --ignored --test-threads=1',
             '-p runtime --lib rectangle_exports',
             '-p runtime --lib safe_array_ptr_of_index',
             '-p runtime --lib is_equal_guid',
@@ -257,6 +258,7 @@ jobs:
             '-p runtime --lib dialog_icon_title_' = 14
             '-p host-services --lib session_exit_' = 2
             '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1' = 2
+            '-p host-services --lib host_timer_native_ -- --ignored --test-threads=1' = 8
             '-p host-services --lib diagnostics_tests::' = 5
             '-p runtime --lib temp_drive::tests::' = 6
             '-p runtime --lib get_temp_drive_tests::' = 6

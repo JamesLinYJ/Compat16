@@ -9,6 +9,9 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DestroyWindow, PostMessageW, WS_POPUP,
 };
 
+#[path = "win16_message_loop_host_timer_tests.rs"]
+mod host_timer_tests;
+
 fn on_worker(run: fn(&Rc<RefCell<WorkerState>>)) {
     let codec = GuestTextCodec::new(1252).unwrap();
     let mut worker = worker::WindowWorker::spawn(

@@ -251,35 +251,18 @@ pub(super) fn expose_or_dispatch(
             )));
         }
 
-        if !removed {
-            return Err(RuntimeError::new(
-                Kind::CompatibilityGap,
-                "unregistered native WM_TIMER callback cannot be exposed without its procedure",
-            ));
-        }
-        // A stale thunk message can occur after KillTimer. It contains only
-        // our host function pointer; dispatching it runs the checked lookup,
-        // which safely ignores a missing generation.
-        if filter_is_alive(state, filter) {
-            unsafe { DispatchMessageW(&native) };
-        }
-        return Ok(None);
+        // Known generations, including pending callbacks after KillTimer,
+        // were returned above. An unregistered thunk contains only our host
+        // procedure; Windows dispatch runs its checked, empty lookup.
+        return dispatch_native(state, native, filter, peek_flags, from_deferred);
     }
 
     if native.message == WM_TIMER && native.lParam != 0 {
-        // Foreign/native TIMERPROC pointers remain entirely host-owned. A
-        // no-remove peek must preserve the queue record; a removing Get/Peek
-        // lets Windows invoke the original native callback.
-        if !removed {
-            return Err(RuntimeError::new(
-                Kind::CompatibilityGap,
-                "native WM_TIMER callback remains queued because its LPARAM is host-owned",
-            ));
-        }
-        if filter_is_alive(state, filter) {
-            unsafe { DispatchMessageW(&native) };
-        }
-        return Ok(None);
+        // Guest timer registrations and posts use our exact thunk above.
+        // Other native TIMERPROCs are internal USER work, even during a
+        // guest PM_NOREMOVE check. Pump their original MSG on this worker;
+        // their pointer-width callback never becomes a guest FAR or scalar.
+        return dispatch_native(state, native, filter, peek_flags, from_deferred);
     }
 
     if native.message == WM_TIMER && native.lParam == 0 {
@@ -671,7 +654,17 @@ pub(super) fn expose_or_dispatch(
     // A message whose LPARAM has not been explicitly classified never crosses
     // to the guest. Its private WndProc applies typed marshalling or reports
     // the unsupported message; OS-owned windows remain entirely in Windows.
-    if !removed {
+    dispatch_native(state, native, filter, peek_flags, from_deferred)
+}
+
+fn dispatch_native(
+    state: &Rc<RefCell<WorkerState>>,
+    mut native: MSG,
+    filter: NativeFilter,
+    peek_flags: u32,
+    from_deferred: bool,
+) -> Result<Option<Win16HostQueuedDelivery>, RuntimeError> {
+    if peek_flags & PM_REMOVE == 0 {
         let Some((actual, actual_deferred)) =
             remove_after_peek(state, &native, filter, peek_flags, from_deferred)?
         else {
@@ -691,6 +684,9 @@ pub(super) fn expose_or_dispatch(
     if !filter_is_alive(state, filter) {
         return Ok(None);
     }
+    // SAFETY: Only an owned native queue MSG reaches this function. Removal
+    // was rechecked after sent-message reentrancy; all worker borrows ended
+    // before Windows invokes its original procedure on the owning thread.
     unsafe { DispatchMessageW(&native) };
     Ok(None)
 }
