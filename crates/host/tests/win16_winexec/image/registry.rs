@@ -5,6 +5,10 @@ use super::{Code, ne};
 mod expand;
 pub use expand::registry_expand_program;
 
+#[path = "registry/cursor.rs"]
+mod cursor;
+pub use cursor::registry_cursor_program;
+
 #[path = "registry/query.rs"]
 mod query;
 pub use query::registry_query_program;

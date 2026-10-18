@@ -20,6 +20,7 @@ use super::guest_text::GuestTextCodec;
 
 mod names;
 mod query;
+mod scan;
 use query::query_value;
 
 const MAX_REGISTRY_KEY_NAME_WCHARS: usize = 256;

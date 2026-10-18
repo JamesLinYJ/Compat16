@@ -90,6 +90,14 @@ fn resolve_alias(
     parent: HKEY,
     token: &[u16],
 ) -> Result<Vec<u16>, TextConversionError> {
+    super::scan::run(parent, move |parent| resolve_alias_on_scan_thread(codec, parent, token))
+}
+
+fn resolve_alias_on_scan_thread(
+    codec: GuestTextCodec,
+    parent: HKEY,
+    token: &[u16],
+) -> Result<Vec<u16>, TextConversionError> {
     let mut found = None;
     let mut index = 0_u32;
     loop {

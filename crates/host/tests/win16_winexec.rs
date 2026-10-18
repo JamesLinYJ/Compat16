@@ -28,6 +28,10 @@ mod country;
 mod registry_expand;
 
 #[cfg(windows)]
+#[path = "win16_winexec/registry_cursor.rs"]
+mod registry_cursor;
+
+#[cfg(windows)]
 #[path = "win16_winexec/registry_aliases.rs"]
 mod registry_aliases;
 
