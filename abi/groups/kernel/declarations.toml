@@ -448,7 +448,7 @@ name = "GetTaskDS"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "KernelGetTaskDs", id_value = 95, constant = "KERNEL_GET_TASK_DS" }
 [exports.call]
-returns = "word"
+returns = "dword"
 
 [[exports]]
 ordinal = 156

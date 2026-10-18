@@ -299,7 +299,7 @@ pub use win16_host_user_services::{
     Win16HostDialogAtom, Win16HostDialogControlOperation, Win16HostDialogControlResult,
     Win16HostDialogFont, Win16HostDialogItem, Win16HostDialogOperation, Win16HostDialogResult,
     Win16HostDialogTemplate, Win16HostFatalExitChoice, Win16HostSystemParametersResult,
-    Win16HostSessionApiFailure, Win16HostSessionApiPhase, Win16HostSessionCleanupReceipt,
+    Win16HostSessionApiFailure, Win16HostSessionApiPhase,
     Win16HostSessionOperation, Win16HostSessionResult, Win16HostUserServiceOperation,
     Win16HostUserServiceResult, Win16SystemParameterScalar, Win16SystemParametersRequest,
     Win16SystemParametersValue,

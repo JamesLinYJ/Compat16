@@ -61,7 +61,10 @@ impl Win16State {
                     self.compat.environment_pointer(&self.selectors, memory)?.far_value()
                 }
                 Win16KernelTaskRequest::GetNumTasks => u32::from(self.kernel_get_num_tasks()?),
-                Win16KernelTaskRequest::GetTaskDS => u32::from(self.kernel_get_task_ds()),
+                Win16KernelTaskRequest::GetTaskDS => {
+                    let selector = u32::from(self.kernel_get_task_ds());
+                    selector | (selector << 16)
+                }
                 Win16KernelTaskRequest::IsTask { task } => u32::from(self.kernel_is_task(task)),
                 Win16KernelTaskRequest::SetPriority { task, delta } => {
                     self.kernel_set_priority(task, delta)?;

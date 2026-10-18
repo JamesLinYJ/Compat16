@@ -251,3 +251,40 @@ fn terminal_int21_still_respects_outer_instruction_budget() {
     assert!(host.exits.is_empty());
     assert!(!runtime.win16.as_ref().unwrap().classic_dde_task_exit_needs_pump());
 }
+
+#[test]
+fn session_exit_old_exit_windows_terminates_guest_after_native_sources_drain() {
+    use guest_core::Selector;
+    use win16_abi::{ExportLookupTarget, lookup_export};
+    use super::super::ImportBinding;
+
+    // If USER.2 returns without requesting termination, the guest would run
+    // INT 21h/4C07h and exit with 7 instead. The service must end it with 0.
+    let (mut runtime, owner) = fixture(0x4c07);
+    let mut host = ExitHost::default();
+    let descriptor = lookup_export(b"USER", ExportLookupTarget::Ordinal(2)).unwrap();
+    let state = runtime.win16.as_mut().unwrap();
+    let return_cs = runtime.cpu.regs.cs;
+    let mut frame = 0_u16.to_le_bytes().to_vec();
+    frame.extend_from_slice(&return_cs.to_le_bytes());
+    let stack = state.selectors.pointer_from_raw(
+        Selector(runtime.cpu.regs.ss), runtime.cpu.regs.sp(),
+    ).unwrap();
+    state.selectors.write(&mut runtime.memory, stack, &frame).unwrap();
+    let slot = state.bindings.len();
+    state.bindings.push(ImportBinding::Supported(descriptor));
+    runtime.cpu.regs.cs = state.gate_selector.0;
+    runtime.cpu.regs.set_ip((slot * 2) as u16);
+
+    assert_eq!(state.dispatch(&mut runtime.cpu, &mut runtime.memory,
+        &mut runtime.dos, &mut host, 0).unwrap(), None);
+    assert!(state.classic_dde_task_exit_needs_pump());
+    assert!(host.exits.is_empty());
+    assert_eq!(runtime.run_win16_inner(&mut host, 20).unwrap(), 0);
+    assert_eq!(runtime.instructions, 0, "no caller instruction may run after USER.2");
+    assert_eq!(host.terminal_dos_calls, 0);
+    assert_eq!(host.exits, [0]);
+    assert!(host.quiesces > 0);
+    assert!(host.resumes >= 2);
+    assert!(runtime.win16.as_ref().unwrap().classic_dde_task_exit_quiesced(owner));
+}

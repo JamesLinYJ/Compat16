@@ -152,34 +152,8 @@ impl Win16State {
             }
             (Completion::Session, ResultValue::Session(result)) => {
                 // Preserve the guest BOOL result; host API failures are warnings with typed causes.
-                if result.cleanup.owner_retained {
-                    let message = if result.request_attempted {
-                        format!(
-                            "shutdown-token cleanup remains pending after the Win16 USER session request (restore pending: {}, token close pending: {}, previous privilege state saved: {}, unreported failure receipt: {})",
-                            result.cleanup.restore_pending,
-                            result.cleanup.token_close_pending,
-                            result.cleanup.previous_privilege_state_saved,
-                            result.cleanup.failure_receipt_unreported,
-                        )
-                    } else {
-                        format!(
-                            "Win16 USER session request was not issued because shutdown-token cleanup remains pending (restore pending: {}, token close pending: {}, previous privilege state saved: {}, unreported failure receipt: {})",
-                            result.cleanup.restore_pending,
-                            result.cleanup.token_close_pending,
-                            result.cleanup.previous_privilege_state_saved,
-                            result.cleanup.failure_receipt_unreported,
-                        )
-                    };
-                    host.report_diagnostic(&crate::Diagnostic::warning(Kind::HostFailure, message));
-                }
                 if let Some(failure) = result.operation_failure {
                     report_session_api_failure(host, "session operation", failure);
-                }
-                if let Some(failure) = result.privilege_restore_failure {
-                    report_session_api_failure(host, "restore the host shutdown privilege", failure);
-                }
-                if let Some(failure) = result.token_close_failure {
-                    report_session_api_failure(host, "close the host process token", failure);
                 }
                 u32::from(result.accepted)
             }

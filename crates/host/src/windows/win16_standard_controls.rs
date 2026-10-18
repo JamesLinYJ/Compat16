@@ -9,7 +9,7 @@ use runtime::{RuntimeError, DiagnosticKind as Kind, Win16HostControlQuery,
     Win16HostComboBoxMessage as Combo, Win16HostSystemClass as Class,
     Win16HostMessageResult};
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
-use windows_sys::Win32::UI::Controls::{EM_GETSEL, EM_SETSEL, EM_LINESCROLL,
+use windows_sys::Win32::UI::Controls::{EM_GETSEL, EM_SETSEL, EM_SCROLL, EM_GETTHUMB, EM_LINESCROLL,
     EM_GETMODIFY, EM_SETMODIFY, EM_GETLINECOUNT, EM_LINEINDEX, EM_LINELENGTH,
     EM_REPLACESEL, EM_LIMITTEXT, EM_CANUNDO, EM_UNDO, EM_FMTLINES, EM_LINEFROMCHAR,
     EM_SETPASSWORDCHAR, EM_EMPTYUNDOBUFFER, EM_GETFIRSTVISIBLELINE, EM_SETREADONLY,
@@ -274,7 +274,9 @@ pub(super) fn invoke(state: &Rc<RefCell<WorkerState>>, call: Win16HostControlCal
                 let end=map_guest_offset(edit_set_map.as_ref(),end)?;
                 (EM_SETSEL,start as usize,end)
             },
+            Edit::Scroll{command} => (EM_SCROLL,usize::from(command),0),
             Edit::LineScroll{vertical,horizontal} => (EM_LINESCROLL,horizontal as isize as usize,isize::from(vertical)),
+            Edit::GetThumb => (EM_GETTHUMB,0,0),
             Edit::GetModify => (EM_GETMODIFY,0,0), Edit::SetModify{modified} => (EM_SETMODIFY,usize::from(modified),0),
             Edit::GetLineCount => (EM_GETLINECOUNT,0,0), Edit::LineIndex{line} => (EM_LINEINDEX,line as isize as usize,0),
             Edit::LineLength{character} => (EM_LINELENGTH,character as isize as usize,0),

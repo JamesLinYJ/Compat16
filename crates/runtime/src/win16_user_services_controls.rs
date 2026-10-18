@@ -203,6 +203,7 @@ impl Win16UserFamilyContinuation {
 }
 
 pub(super) enum Win16UserFamilyPreparation {
+    TerminateTask { status: u16 },
     Immediate {
         value: u32,
         return_kind: Win16ReturnKind,

@@ -17,8 +17,8 @@ use windows_sys::Win32::UI::WindowsAndMessaging::IsWindow;
 
 use super::{ClipboardViewerRegistration, WorkerState};
 
-#[path = "win16_shutdown_dialog.rs"]
-mod shutdown_dialog;
+#[path = "win16_exit_windows.rs"]
+mod exit_windows;
 
 pub(super) fn execute(
     state: &Rc<RefCell<WorkerState>>,
@@ -132,22 +132,12 @@ fn execute_regular(
 
 fn execute_session(operation: SessionOperation) -> Result<Win16HostSessionResult, RuntimeError> {
     match operation {
-        SessionOperation::ShowShutdownDialog => Ok(shutdown_dialog::show()),
-        SessionOperation::LegacyOldExitWindows => Err(RuntimeError::new(
-            Kind::CompatibilityGap,
-            "USER ordinal 2 OldExitWindows is a local API without a documented host session mapping",
-        )),
-        SessionOperation::RestartWin16Session => Err(RuntimeError::new(
-            Kind::CompatibilityGap,
-            "legacy ExitWindows EW_RESTARTWINDOWS requests restarting Win16 Windows, which has no single modern host session operation",
-        )),
+        SessionOperation::ExitWindows { return_code, reserved } => {
+            Ok(exit_windows::exit_windows(return_code, reserved))
+        }
         SessionOperation::RunAfterWin16Restart { .. } => Err(RuntimeError::new(
             Kind::CompatibilityGap,
             "legacy ExitWindowsExec requires the Windows-to-DOS-to-Windows launcher protocol, which has no connected host implementation",
-        )),
-        SessionOperation::UnsupportedLegacyExitCode { code } => Err(RuntimeError::new(
-            Kind::CompatibilityGap,
-            format!("legacy ExitWindows return/restart code 0x{code:08X} has no documented host mapping"),
         )),
     }
 }

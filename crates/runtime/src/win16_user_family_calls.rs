@@ -18,6 +18,15 @@ impl Win16State {
         return_kind: Win16ReturnKind,
     ) -> Result<Option<u8>, RuntimeError> {
         match self.prepare_user_family(request, memory, host, return_kind)? {
+            Win16UserFamilyPreparation::TerminateTask { status } => {
+                // USER.2 follows INT 21h/4C00h: use the shared guest task-exit
+                // continuation, including ToolHelp callbacks and source drain.
+                if let Some(status) = self.finish_task(memory, host, status)? {
+                    return Ok(Some(status));
+                }
+                self.complete_return(registers, return_to.0, return_to.1,
+                    return_to.2, u32::from(status), return_kind)
+            }
             Win16UserFamilyPreparation::Immediate {
                 value,
                 return_kind,

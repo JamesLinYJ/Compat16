@@ -12,26 +12,16 @@ pub(super) fn prepare(
     use Win16UserFamilyPreparation as Prepared;
 
     let operation = match request {
-        Win16UserSessionRequest::OldExitWindows => SessionOperation::LegacyOldExitWindows,
+        Win16UserSessionRequest::OldExitWindows => {
+            return Ok(Prepared::TerminateTask { status: 0 });
+        }
         Win16UserSessionRequest::ExitWindows {
             return_code,
             reserved,
-        } => {
-            if reserved != 0 || return_code >> 16 != 0 {
-                return Ok(Prepared::immediate(0, return_kind));
-            }
-            // A legacy session request must not authorize a host session
-            // change. Let the person using Windows choose an action instead.
-            match return_code as u16 {
-                0 | 0x0043 => SessionOperation::ShowShutdownDialog,
-                // Restarting the Win16 environment itself still requires a
-                // separate runtime protocol rather than a host session action.
-                0x0042 => SessionOperation::RestartWin16Session,
-                code => SessionOperation::UnsupportedLegacyExitCode {
-                    code: u32::from(code),
-                },
-            }
-        }
+        } => SessionOperation::ExitWindows {
+            return_code,
+            reserved,
+        },
         Win16UserSessionRequest::ExitWindowsExec {
             program,
             parameters,
@@ -66,31 +56,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn session_exit_normal_and_reboot_requests_require_the_shell_chooser() {
-        for return_code in [0, 0x0043] {
-            let prepared = prepare(
-                Win16UserSessionRequest::ExitWindows {
-                    return_code,
-                    reserved: 0,
-                },
-                Win16ReturnKind::Word,
-            )
-            .unwrap();
-            assert!(matches!(
-                prepared,
-                Win16UserFamilyPreparation::WindowService {
-                    operation: Win16HostUserServiceOperation::Session(
-                        SessionOperation::ShowShutdownDialog
-                    ),
-                    ..
-                }
-            ));
-        }
-    }
-
-    #[test]
-    fn session_exit_invalid_frames_return_false_without_a_host_request() {
-        for (return_code, reserved) in [(0, 1), (0x10000, 0), (0x10043, 0)] {
+    fn session_exit_wow_bridge_preserves_both_original_arguments() {
+        for (return_code, reserved) in [
+            (0, 0),
+            (0x0042, 0),
+            (0x0043, 0),
+            (0x1234_5678, 0x9abc),
+            (u32::MAX, u16::MAX),
+        ] {
             let prepared = prepare(
                 Win16UserSessionRequest::ExitWindows {
                     return_code,
@@ -101,7 +74,15 @@ mod tests {
             .unwrap();
             assert!(matches!(
                 prepared,
-                Win16UserFamilyPreparation::Immediate { value: 0, .. }
+                Win16UserFamilyPreparation::WindowService {
+                    operation: Win16HostUserServiceOperation::Session(
+                        SessionOperation::ExitWindows {
+                            return_code: forwarded_dword,
+                            reserved: forwarded_word,
+                        }
+                    ),
+                    ..
+                } if forwarded_dword == return_code && forwarded_word == reserved
             ));
         }
     }

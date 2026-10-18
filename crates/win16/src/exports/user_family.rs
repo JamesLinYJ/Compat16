@@ -108,7 +108,7 @@ pub enum Win16UserFamilyRequest {
 /// service frame rather than being widened into a different guest contract.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16UserSessionRequest {
-    /// USER ordinal 2; it has no stack arguments in the export catalog.
+    /// USER ordinal 2: no arguments; ends the current guest task with status 0.
     OldExitWindows,
     /// USER ordinal 7: DWORD return/restart code followed by a WORD reserved value.
     ExitWindows { return_code: u32, reserved: u16 },

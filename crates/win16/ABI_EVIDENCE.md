@@ -938,18 +938,58 @@ guest-visible instance handles unchanged. MakeProcInstance already resolves
 the instance data selector in its generated guest thunk. Selector permissions,
 limits and callback-owner validation remain enforced.
 
-### Win16 session requests on a modern desktop
+KERNEL.155 `GetTaskDS` also returns a selector. The NT 3.5
+[`KERNEL31/3GINTERF.ASM`](https://github.com/Hengle/windows_nt_3_5_source_code/blob/d2894c9125ff1c14028435ed1b21164f6b2b871a/windows_nt_3_5_source_code/NT-782/PRIVATE/MVDM/WOW16/KERNEL31/3GINTERF.ASM#L1460)
+documents and implements the same task data selector in both AX and DX.
+The runtime call result is now DWORD-width and repeats the selector in both
+words, preserving the caller's DS. The historical `ret16` declaration hint
+is retained independently of this corrected physical return contract.
 
-USER.7 `ExitWindows` retains its DWORD/WORD Pascal frame. A normal exit or
-legacy reboot request opens the native Shell session-action chooser through
-[IShellDispatch::ShutdownWindows](https://learn.microsoft.com/en-us/windows/win32/shell/shell-shutdownwindows).
-The user chooses any session action there. The bridge does not invoke
-`ExitWindowsEx` or acquire a shutdown privilege. Successful dialog invocation
-does not prove that the user accepted a session change, so the guest BOOL stays
-FALSE when the call returns, including cancellation. COM or Shell failures also
-return FALSE with a phase-specific diagnostic. This is an explicit host UI
-adaptation, not equivalence between a Win16 exit code and a modern logoff flag.
-Restarting the Win16 environment and `ExitWindowsExec` remain separate gaps.
+### ExitWindows follows the NT WOW thunk
+
+USER.7 retains its DWORD/WORD Pascal frame. NT 3.5
+[`WU32ExitWindows`](https://github.com/Hengle/windows_nt_3_5_source_code/blob/d2894c9125ff1c14028435ed1b21164f6b2b871a/windows_nt_3_5_source_code/NT-782/PRIVATE/MVDM/WOW32/WUMAN.C#L34)
+and the XP
+[`WU32ExitWindows`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow32/wuman.c#L30)
+both forward the original arguments positionally to Win32 `ExitWindows` and
+return its BOOL. The NT 3.5 `MVDM/INC/WOWUSR.H` packed `EXITWINDOWS16` structure
+contains the stack-top WORD followed by the DWORD, matching this Pascal frame.
+The DWORD and WORD remain intact through the runtime-to-host request; there
+is no truncation, code-specific restart dispatch, or replacement Shell dialog.
+
+The NT 3.5 SDK
+[`WINUSER.H`](https://github.com/Hengle/windows_nt_3_5_source_code/blob/d2894c9125ff1c14028435ed1b21164f6b2b871a/windows_nt_3_5_source_code/NT-782/PUBLIC/SDK/INC/WINUSER.H#L1506)
+and the current SDK define `ExitWindows` as a macro invoking
+`ExitWindowsEx(EWX_LOGOFF, 0xFFFFFFFF)`. This macro ignores both old arguments;
+they are not `ExitWindowsEx` flags and a reason. The native adapter follows
+that macro and reports the actual native BOOL and last-error result. Thus
+this WOW route requests host logoff, including for the normal `(0, 0)` call.
+No shutdown privilege is needed or acquired; the unused token-cleanup state
+and diagnostics are removed. Tests inject the native callee
+and do not perform a real session change.
+
+USER.2 `OldExitWindows` has a separate, local contract. The NT 3.5
+[`USER.ASM`](https://github.com/Hengle/windows_nt_3_5_source_code/blob/d2894c9125ff1c14028435ed1b21164f6b2b871a/windows_nt_3_5_source_code/NT-782/PRIVATE/MVDM/WOW16/USER/USER.ASM#L425)
+identifies the entry as the Windows 3.1 final implementation and terminates
+the application through DOS INT 21h/AX=4C00h. Runtime routes it to the existing
+guest task-exit continuation, preserving ToolHelp notification and native
+source-drain ordering; it never submits a native session operation.
+The `ExitWindowsExec` launcher protocol remains an implementation gap.
+
+### Windows 3.1 EDIT scrolling
+
+The Windows 3.1 `WINDOWS.H` EDIT family uses `WM_USER+5` for `EM_SCROLL`
+and `WM_USER+14` for `EM_GETTHUMB`. NT WOW's `WCTLM32.C` treats both as
+scalar control messages. They now have typed runtime requests and use the
+native EDIT message IDs, with unused LPARAM set to zero. `EM_SCROLL` keeps
+the original command WORD and packed result (success in the high WORD,
+scrolled line count in the low WORD); invalid commands remain native failures.
+`EM_GETTHUMB` returns the native scroll position. These operations reuse the
+existing checked control-family and procedure identity routing. Their ignored
+guest fields are never interpreted as host or guest pointers. See Microsoft's
+[`EM_SCROLL`](https://learn.microsoft.com/en-us/windows/win32/controls/em-scroll)
+and [`EM_GETTHUMB`](https://learn.microsoft.com/en-us/windows/win32/controls/em-getthumb)
+contracts. EDIT HLOCAL and word-break callback messages remain unsupported.
 
 ## Unimplemented call contracts
 

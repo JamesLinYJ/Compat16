@@ -70,6 +70,25 @@ fn current_handle(runtime: &Runtime) -> u16 {
 }
 
 #[test]
+fn task_ds_returns_data_selector_in_both_words_and_preserves_calling_ds() {
+    // KERNEL31/3GINTERF.ASM returns the task data selector in both AX and DX.
+    // Neither a movable HINSTANCE nor the caller's possibly changed DS is it.
+    for movable in [false, true] {
+        let mut image = tiny_ne_executable();
+        image[0x8c..0x8e].copy_from_slice(&(if movable { 0x0011_u16 } else { 1 }).to_le_bytes());
+        let mut runtime = Runtime::load(&image, &[], br"C:\TASKDS.NE").unwrap();
+        let stack = runtime.cpu.regs.sp();
+        let selector = runtime.win16.as_ref().unwrap().instance_selector.raw().0;
+        let calling_ds = runtime.cpu.regs.cs;
+        runtime.cpu.regs.ds = calling_ds;
+        let (ax, dx) = invoke(&mut runtime, stack, 155, &[]).unwrap();
+        assert_eq!((ax, dx), (selector, selector));
+        assert_eq!(runtime.cpu.regs.ds, calling_ds);
+        assert_eq!(runtime.cpu.regs.sp(), stack + 4);
+    }
+}
+
+#[test]
 fn task_handles_follow_get_current_task() {
     let (mut runtime, stack) = fixture();
     let state = runtime.win16.as_ref().unwrap();
