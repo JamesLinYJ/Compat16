@@ -143,7 +143,8 @@ pub(crate) fn decode_one_gbk_character(
 }
 
 pub(crate) const fn is_gbk_lead(byte: u8) -> bool {
-    byte >= 0x81 && byte <= 0xfe
+    let (first, last) = CodePage::Cp936.dbcs_lead_byte_ranges()[0];
+    byte >= first && byte <= last
 }
 
 pub(crate) const fn is_gbk_trail(byte: u8) -> bool {

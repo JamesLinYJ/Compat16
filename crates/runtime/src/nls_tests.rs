@@ -2,6 +2,23 @@ use super::*;
 use guest_core::{GuestMemory, MemoryError};
 
 #[test]
+fn dbcs_tables_are_installed_read_only_for_both_supported_code_pages() {
+    let mut memory = Memory::new().unwrap();
+    let mut dos = DosKernel::new(crate::MINIMUM_PSP_SEGMENT);
+    install(&mut memory, &mut dos).unwrap();
+    for (code_page, offset) in DBCS_OFFSETS {
+        let expected = dbcs_lead_byte_table(code_page);
+        let address = real_address(NLS_SEGMENT, offset);
+        let mut actual = vec![0; expected.len()];
+        memory.bus().read(address, &mut actual).unwrap();
+        assert_eq!(actual, expected);
+        assert!(matches!(memory.bus().write(address, &[0xff]), Err(MemoryError::ReadOnly { .. })));
+        memory.bus().read(address, &mut actual).unwrap();
+        assert_eq!(actual, expected);
+    }
+}
+
+#[test]
 fn installed_nls_table_is_in_guest_rom_and_cannot_be_modified_by_guest() {
     let mut memory = Memory::new().unwrap();
     let mut dos = DosKernel::new(crate::MINIMUM_PSP_SEGMENT);

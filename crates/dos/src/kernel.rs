@@ -18,6 +18,9 @@ mod ioctl;
 mod memory;
 mod message_addresses;
 mod nls;
+mod dbcs;
+#[cfg(test)]
+mod dbcs_tests;
 mod protected_scalar;
 mod sft;
 mod handle_capacity;
@@ -29,6 +32,7 @@ mod version;
 pub use block_lease::DosBlockLease;
 pub use block_view::DosBlockExtent;
 pub use nls::{collating_table, upper_case_table};
+pub use dbcs::dbcs_lead_byte_table;
 pub use state::{DosChildProcessFailure, DosKernel};
 pub use system::{SYSTEM_BYTES, SYSTEM_SEGMENT};
 

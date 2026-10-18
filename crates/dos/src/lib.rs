@@ -15,6 +15,7 @@ pub use diagnostics::{DosCallerAddressSpaceFailureKind, DosError, DosErrorCode, 
 pub use kernel::{DosBlockExtent, DosBlockLease, DosChildProcessFailure, DosKernel};
 pub use kernel::{SYSTEM_BYTES, SYSTEM_SEGMENT};
 pub use kernel::{collating_table, upper_case_table};
+pub use kernel::dbcs_lead_byte_table;
 pub use types::{
     DosAction, DosDirectoryEntry, DosDiskSpace, DosExecRequest, DosFileAccess, DosFileSharing,
     DosFileDisposition, DosFileOpenOutcome, DosFileOpenRequest, DosFileOpenResult,

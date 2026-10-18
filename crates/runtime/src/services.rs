@@ -12,6 +12,7 @@ use xms::{MoveRequest, PreparedXmsCall, XmsError};
 impl Runtime {
     pub(crate) fn call_interrupt_service(&mut self, number: u8, host: &mut impl RuntimeHost) -> Result<DosAction, RuntimeError> {
         validate_service_frame(&self.memory.bus(), &self.cpu.regs)?;
+        let data_segments_before = (self.cpu.regs.ds, self.cpu.regs.es, self.cpu.regs.fs, self.cpu.regs.gs);
         let dos_service_before = (number == 0x21).then(|| (self.instructions, self.cpu.regs.clone()));
         // An installed INT 33h vector may point at an IRET even when no mouse
         // driver is connected. Preserve that empty-chain behavior for all
@@ -107,6 +108,27 @@ impl Runtime {
                     }
                 }
                 if !retry { break; }
+            }
+        }
+        if self.cpu.has_architectural_context() {
+            let regs = &self.cpu.regs;
+            // Host services publish visible registers without executing MOV
+            // to a segment register. Reload only actual data outputs, not the
+            // whole CPU context: unrelated unreal-mode caches must survive.
+            let ds_returned = number == 0x21 && request.0 == 0x6300 && !regs.carry();
+            let es_returned = number == 0x21 && (matches!(request.0 >> 8, 0x2f | 0x35)
+                || (request.0 >> 8 == 0x59 && !regs.carry()))
+                || (number == 0x10 && request.0 == 0x1130);
+            let outputs = x86_cpu::RealModeDataSegmentOutputs {
+                ds: (ds_returned || regs.ds != data_segments_before.0).then_some(regs.ds),
+                es: (es_returned || regs.es != data_segments_before.1).then_some(regs.es),
+                fs: (regs.fs != data_segments_before.2).then_some(regs.fs),
+                gs: (regs.gs != data_segments_before.3).then_some(regs.gs),
+            };
+            if outputs != x86_cpu::RealModeDataSegmentOutputs::default() {
+                self.cpu.set_real_mode_data_segment_outputs(outputs).map_err(|error|
+                    RuntimeError::with_source(Kind::InternalInvariant,
+                        "publish firmware data-segment outputs", error))?;
             }
         }
         // The registered ROM instruction is IRET. Copy status results to its

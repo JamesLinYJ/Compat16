@@ -16,6 +16,10 @@ mod extended_error;
 mod stdin;
 
 #[cfg(windows)]
+#[path = "win16_winexec/dbcs.rs"]
+mod dbcs;
+
+#[cfg(windows)]
 #[path = "win16_winexec/registry_aliases.rs"]
 mod registry_aliases;
 
@@ -123,6 +127,14 @@ mod native {
     }
 
     pub(super) fn run_with_input(program: &Path, page: u32, engine: &str, input: Stdio) {
+        run_with_pages(program, page, 437, engine, input);
+    }
+
+    pub(super) fn run_with_dos_code_page(program: &Path, page: u32, engine: &str) {
+        run_with_pages(program, page, page, engine, Stdio::null());
+    }
+
+    fn run_with_pages(program: &Path, page: u32, dos_page: u32, engine: &str, input: Stdio) {
         let package = PathBuf::from(
             std::env::var_os("COMPAT16_TEST_PACKAGE_DIR")
                 .expect("set COMPAT16_TEST_PACKAGE_DIR to the matching scripts/build.ps1 package"),
@@ -147,6 +159,8 @@ mod native {
                     "--no-jit-cache",
                     "--max-instructions",
                     "100000",
+                    "--code-page",
+                    &dos_page.to_string(),
                     "--win16-code-page",
                     &page.to_string(),
                 ])

@@ -149,7 +149,7 @@ pub use event_observer::{
 };
 
 mod context;
-pub use context::{CpuContext, CpuContextRestoreError};
+pub use context::{CpuContext, CpuContextRestoreError, RealModeDataSegmentOutputs};
 mod call_continuation;
 pub use call_continuation::{
     CallEffectPolicy, CallResumeBoundary, CpuCallContinuation, CpuCallResumeError,

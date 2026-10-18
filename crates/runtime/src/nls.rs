@@ -1,7 +1,7 @@
 //! Install DOS data in the machine's checked, process-owned guest ROM.
 
 use crate::{DiagnosticKind as Kind, RuntimeError, runtime_error};
-use dos_kernel::{DosKernel, collating_table, upper_case_table};
+use dos_kernel::{DosKernel, collating_table, upper_case_table, dbcs_lead_byte_table};
 use guest_core::{memory::Memory, real_address};
 use text_codec::CodePage;
 
@@ -10,6 +10,10 @@ use text_codec::CodePage;
 const NLS_SEGMENT: u16 = 0xf000;
 const COLLATING_OFFSET: u16 = 0x2000;
 const UPPERCASE_OFFSET: u16 = 0x2200;
+const DBCS_OFFSETS: [(CodePage, u16); 2] = [
+    (CodePage::Cp437, 0x2300),
+    (CodePage::Cp936, 0x2310),
+];
 const CASE_MAP_OFFSET: u16 = 0x0300;
 
 // DOS country-information callbacks receive AL and return AL by FAR return.
@@ -33,6 +37,12 @@ const fn case_map_code() -> [u8; 14] {
 }
 
 pub(crate) fn install(memory: &mut Memory, dos: &mut DosKernel) -> Result<(), RuntimeError> {
+    for (code_page, offset) in DBCS_OFFSETS {
+        memory.initialize_rom(real_address(NLS_SEGMENT, offset), &dbcs_lead_byte_table(code_page))
+            .map_err(|error| RuntimeError::with_source(Kind::InternalInvariant,
+                "install DOS DBCS ROM", error))?;
+        dos.set_dbcs_table_address(code_page, NLS_SEGMENT, offset).map_err(runtime_error)?;
+    }
     let table = collating_table(CodePage::Cp437)
         .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant, "required US CP437 collation table is missing"))?;
     memory.initialize_rom(real_address(NLS_SEGMENT, COLLATING_OFFSET), table)

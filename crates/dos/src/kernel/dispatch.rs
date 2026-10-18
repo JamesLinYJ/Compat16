@@ -69,6 +69,7 @@ impl DosKernel {
             0x43 => self.file_attributes(regs, memory, host),
             0x44 => self.ioctl(regs, host),
             0x65 => self.extended_country_information(regs, memory, host),
+            0x63 => self.extended_code_system(regs, memory, host),
             0x47 => self.get_current_directory(regs, memory, host),
             0x4e => self.find_first(regs, memory, host),
             0x4f => self.find_next(regs, memory, host),

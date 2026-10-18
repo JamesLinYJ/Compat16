@@ -88,7 +88,7 @@ pub(super) struct TestHost {
     file_write_calls: Vec<(DosHostFile, Vec<u8>)>,
     file_seek_calls: Vec<(DosHostFile, i32, DosSeekOrigin)>,
     file_set_len_calls: Vec<(DosHostFile, u32)>,
-    code_page: Option<text_codec::CodePage>,
+    pub(super) code_page: Option<text_codec::CodePage>,
     redirected_standard_streams: bool,
     standard_info_override: Option<DosIoctlObjectInfo>,
     input_eof: bool,

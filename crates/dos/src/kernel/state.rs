@@ -111,6 +111,8 @@ pub struct DosKernel {
     pub(super) uppercase_table_addresses: BTreeMap<u16, (u16, u16)>,
     /// Guest far pointers to ROM-backed country case-map callbacks, keyed by code page.
     pub(super) case_map_addresses: BTreeMap<u16, (u16, u16)>,
+    /// Guest far pointers to ROM-backed DBCS lead-byte tables, keyed by code page.
+    pub(super) dbcs_table_addresses: BTreeMap<u16, (u16, u16)>,
     pub(super) next_search_identity: u32,
     pub(super) next_temporary_name: u32,
     /// DOS INT 21h/AH=33 Ctrl-Break checking state (default: disabled).
@@ -174,6 +176,7 @@ impl DosKernel {
             collating_table_addresses: BTreeMap::new(),
             uppercase_table_addresses: BTreeMap::new(),
             case_map_addresses: BTreeMap::new(),
+            dbcs_table_addresses: BTreeMap::new(),
             next_search_identity: 0,
             next_temporary_name: 0,
             break_check_enabled: false,
@@ -216,6 +219,7 @@ impl DosKernel {
         child.collating_table_addresses = parent.collating_table_addresses.clone();
         child.uppercase_table_addresses = parent.uppercase_table_addresses.clone();
         child.case_map_addresses = parent.case_map_addresses.clone();
+        child.dbcs_table_addresses = parent.dbcs_table_addresses.clone();
         child.next_search_identity = parent.next_search_identity;
         child.break_check_enabled = parent.break_check_enabled;
         child
@@ -643,6 +647,7 @@ impl DosKernel {
         parent
             .case_map_addresses
             .clone_from(&self.case_map_addresses);
+        parent.dbcs_table_addresses.clone_from(&self.dbcs_table_addresses);
         parent.next_search_identity = self.next_search_identity;
         parent.break_check_enabled = self.break_check_enabled;
         if parent.pending_input.is_none() {
