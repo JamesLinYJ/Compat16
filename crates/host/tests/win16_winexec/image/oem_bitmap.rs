@@ -7,6 +7,75 @@ fn call(code: &mut Code, module: u16, ordinal: u16) {
     code.imports.last_mut().unwrap().1 = module;
 }
 
+fn color(code: &mut Code, value: u32) {
+    code.immediate(0x3d, value as u16);
+    code.fail_if(0x85);
+    code.emit(&[0x81, 0xfa]);
+    code.word((value >> 16) as u16);
+    code.fail_if(0x85);
+}
+
+fn resource_pixels(code: &mut Code) {
+    code.immediate(0x68, 0);
+    call(code, 3, 52); // CreateCompatibleDC(NULL).
+    code.emit(&[0x0b, 0xc0]);
+    code.fail_if(0x84);
+    code.immediate(0xa3, 2);
+    code.emit(&[0x50, 0xff, 0x36, 0, 0]);
+    call(code, 3, 45);
+    code.immediate(0xa3, 4); // Save the native DC's original bitmap token.
+    for (x, y, expected) in [(0, 0, 0x00ffffff), (1, 0, 0), (0, 1, 0), (1, 1, 0x00ffffff)] {
+        code.emit(&[0xff, 0x36, 2, 0]);
+        code.immediate(0x68, x);
+        code.immediate(0x68, y);
+        call(code, 3, 83);
+        color(code, expected);
+    }
+    code.emit(&[0xff, 0x36, 2, 0]);
+    for value in [1, 0, 0, 0xff] {
+        code.immediate(0x68, value);
+    }
+    call(code, 3, 31);
+    color(code, 0xff);
+    code.emit(&[0xff, 0x36, 2, 0]);
+    code.immediate(0x68, 1);
+    code.immediate(0x68, 0);
+    call(code, 3, 83);
+    color(code, 0xff);
+    code.emit(&[0xff, 0x36, 2, 0, 0xff, 0x36, 4, 0]);
+    call(code, 3, 45);
+    code.emit(&[0xff, 0x36, 2, 0]);
+    call(code, 3, 68);
+    code.emit(&[0x0b, 0xc0]);
+    code.fail_if(0x84);
+    // BITMAP16 reports the actual device stride. Request its exact extent;
+    // the native bits pointer remains hidden from the guest.
+    for offset in [42, 44] {
+        code.emit(&[0x81, 0x3e]);
+        code.word(offset);
+        code.word(0);
+        code.fail_if(0x85);
+    }
+    code.immediate(0xa1, 38);
+    code.emit(&[0xf7, 0x26, 36, 0]);
+    code.immediate(0xa3, 6);
+    code.emit(&[0xff, 0x36, 0, 0]);
+    code.immediate(0x68, 0);
+    code.emit(&[0xff, 0x36, 6, 0, 0x1e]);
+    code.immediate(0x68, 256);
+    call(code, 3, 74);
+    code.emit(&[0x3b, 0x06, 6, 0]);
+    code.fail_if(0x85);
+    code.emit(&[0x81, 0xfa, 0, 0]);
+    code.fail_if(0x85);
+    for offset in [340, 341] {
+        code.emit(&[0x80, 0x3e]);
+        code.word(offset);
+        code.emit(&[0xa5]);
+        code.fail_if(0x85);
+    }
+}
+
 fn query_and_delete(code: &mut Code, dimensions: Option<(u16, u16)>) {
     code.emit(&[0x0b, 0xc0]);
     code.fail_if(0x84); // A real bitmap must have been created.
@@ -23,6 +92,9 @@ fn query_and_delete(code: &mut Code, dimensions: Option<(u16, u16)>) {
         code.word(offset);
         code.word(expected.unwrap_or(0));
         code.fail_if(if expected.is_some() { 0x85 } else { 0x8e });
+    }
+    if dimensions.is_some() {
+        resource_pixels(code);
     }
     code.emit(&[0xff, 0x36, 0, 0]);
     call(code, 3, 69); // GDI.DeleteObject.
@@ -59,10 +131,12 @@ pub fn oem_bitmap_program() -> Vec<u8> {
         code.emit(&[0x0b, 0xc0]);
         code.fail_if(0x85);
     }
+    let mut data = [0; 512];
+    data[256..342].fill(0xa5);
     let mut bytes = ne(
         "OEMBMP",
         &code.finish(),
-        &[0; 512],
+        &data,
         &["KERNEL", "USER", "GDI"],
         false,
     );

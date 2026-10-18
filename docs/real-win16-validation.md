@@ -105,6 +105,15 @@ can affect execution timing and can reach the output ceiling; an output-limit
 stop remains a failure. It is not a fixed-size rolling trace or a performance
 benchmark.
 
+Complete trace rows end with `elapsed-us`, a monotonic microsecond count from
+trace creation. Matching service entry and return rows measures dispatch latency,
+including trace writes and nested work; it does not isolate native API time.
+Complete tracing also records `native-pixel` context before `GetPixel`: an opaque
+DC token, coordinates, native DC kind and, when available, the selected bitmap's
+width, height, byte stride, planes, bits per pixel and whether it has directly
+addressable bits. Native handles and pixel-memory addresses are omitted. Bounded
+tracing does not collect this metadata.
+
 Neither the Job Object, environment sanitization nor temporary working directory
 provides a filesystem, registry or network sandbox. Windows profile APIs can
 still resolve the real runner profile independently of environment variables.

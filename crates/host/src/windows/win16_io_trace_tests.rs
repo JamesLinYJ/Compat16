@@ -101,6 +101,38 @@ fn get_message(module: &'static [u8]) -> runtime::Win16IoEvent<'static> {
     }
 }
 
+#[test]
+fn complete_trace_publishes_monotonic_timing_without_changing_event_identity() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("timing.log");
+    let mut trace = super::Win16IoTrace::create(&path, true).unwrap();
+    trace.record(&get_message(b"USER")).unwrap();
+    let first = std::fs::read_to_string(&path).unwrap();
+    assert!(first.starts_with("@0 service-boundary stage=dispatch-enter module=USER name=GetMessage ordinal=108 instruction=10000 guest=0008:0010"));
+    trace.record(&get_message(b"USER")).unwrap();
+    let rows = std::fs::read_to_string(&path).unwrap();
+    let times: Vec<u128> = rows.lines().map(|line| line.rsplit_once(" elapsed-us=").unwrap().1.parse().unwrap()).collect();
+    assert_eq!(times.len(), 2);
+    assert!(times[1] >= times[0]);
+    assert!(rows.starts_with(&first));
+}
+
+#[test]
+fn native_pixel_context_is_complete_only_and_preserves_sequence_identity() {
+    let directory = tempfile::tempdir().unwrap();
+    for complete in [false, true] {
+        let path = directory.path().join(format!("pixel-{complete}.log"));
+        let mut trace = super::Win16IoTrace::create(&path, complete).unwrap();
+        trace.native_pixel(7, 2, 3, 10, Some((8, 6, 32, 1, 32, true))).unwrap();
+        let contents = std::fs::read_to_string(&path).unwrap();
+        if complete {
+            assert!(contents.starts_with("@0 native-pixel dc=7 x=2 y=3 dc-kind=10 bitmap=Some((8, 6, 32, 1, 32, true)) elapsed-us="));
+            trace.record(&get_message(b"USER")).unwrap();
+            assert!(std::fs::read_to_string(&path).unwrap().contains("@1 service-boundary"));
+        } else { assert!(contents.is_empty()); }
+    }
+}
+
 fn null_callback(id: u64, returned: bool) -> runtime::Win16IoEvent<'static> {
     runtime::Win16IoEvent::WindowCallback {
         callback: id, window: 2,
