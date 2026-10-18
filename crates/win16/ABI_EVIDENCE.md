@@ -1087,14 +1087,34 @@ modal and modeless dialogs. Missing resources still return the existing
 preflight failure without substituting a string, ordinal, system image, or
 host resource. This does not add custom-class/creation-data icon routes or
 change their existing preflight restrictions. The installation route still
-requires stock control class atoms throughout the template; string-named or
-guest-registered classes remain outside that route.
+requires resolved stock control class atoms throughout the template;
+guest-registered classes remain outside that image-installation route.
+
+Class lookup precedes control-title interpretation. The
+[class search order](https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-classes)
+uses application-local registrations, application-global registrations, then
+predefined controls, including controls created by the dialog manager. XP
+[dialog child creation](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/windows/core/ntuser/client/dlgbegin.c#L1244)
+passes a control's class and title into native window creation. It does not
+interpret a custom class's style bits as predefined STATIC behavior.
+
+The runtime resolves string-encoded standard control names through its
+existing class namespace before preparing typed images. An unshadowed
+STATIC becomes a stock class atom and can use numeric or named icon titles.
+A registered class named STATIC keeps its exact guest class token, callback
+route and ordinary title; no icon is loaded merely because its style has the
+same low bits as SS_ICON. A missing class reports GuestClassUnavailable before
+image preparation or native creation. This also preserves the six standard
+control names encoded as strings alongside an icon control, without treating
+unregistered names or custom-class callbacks as stock controls.
 
 The NE integration fixture creates a hidden modeless stock dialog using a
 DBCS-named RT_GROUP_ICON, reads a nonzero guest HICON through Win16
 SendDlgItemMessage/STM_GETICON, and destroys the dialog. It requires real
 native USER creation and executes in both guest engines; it supplies no
 keyboard, mouse, menu, or visible-window interaction.
+An additional fixture uses mixed-case STATIC and BUTTON class strings for
+the same hidden icon readback and destruction protocol.
 
 ## Unimplemented call contracts
 

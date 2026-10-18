@@ -250,7 +250,7 @@ jobs:
             '-p runtime --lib callback_instance_' = 1
             '-p runtime --lib module_lookup_' = 6
             '-p runtime --lib global_notify_' = 12
-            '-p runtime --lib dialog_icon_title_' = 11
+            '-p runtime --lib dialog_icon_title_' = 14
             '-p host-services --lib session_exit_' = 2
             '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1' = 2
             '-p host-services --lib diagnostics_tests::' = 5
@@ -1011,9 +1011,9 @@ jobs:
           $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
           if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) { throw 'Visual Studio developer command script unavailable.' }
           $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
-          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --test win16_winexec -- same_stem_executable dll_references_initialize global_notify_native_ named_dialog_icon_native_ --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --test win16_winexec -- same_stem_executable dll_references_initialize global_notify_native_ named_dialog_icon_native_ dialog_class_names_native_ --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET
           & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
           if ($LASTEXITCODE -ne 0) { throw 'NE DLL identity/lifetime integration failed.' }
-          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 6 passed; 0 failed; 0 ignored;') {
-            throw 'Expected NE DLL lifetime, heap callbacks, and named dialog icons in both engines to execute.'
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 8 passed; 0 failed; 0 ignored;') {
+            throw 'Expected NE DLL lifetime, heap callbacks, and numeric/named dialog class icon fixtures in both engines.'
           }

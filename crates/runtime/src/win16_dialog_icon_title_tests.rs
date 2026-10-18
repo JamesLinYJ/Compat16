@@ -6,8 +6,14 @@ use devices::{keyboard::KeyStroke, video::ConsoleSnapshot};
 use dos_kernel::{DosDirectoryEntry, DosFileAccess, DosFileSharing, DosHost, DosHostError,
     DosHostFile, DosHostSearch, DosSeekOrigin};
 
+#[path = "win16_dialog_class_name_tests.rs"]
+mod class_names;
+
 #[derive(Default)]
-struct IconHost { selected: usize, created: usize, reject: bool }
+struct IconHost {
+    selected: usize, created: usize, reject: bool,
+    classes: Vec<crate::Win16RegisteredClass>,
+}
 impl DosHost for IconHost {
     fn read_stdin(&mut self, _output: &mut [u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
     fn try_read_stdin(&mut self) -> Result<Option<u8>, DosHostError> { panic!("unexpected host call") }
@@ -44,6 +50,20 @@ impl RuntimeHost for IconHost {
     fn epoch_seconds(&self) -> i64 { panic!("unexpected host call") }
     fn read_bios_key(&mut self) -> Result<KeyStroke, RuntimeError> { panic!("unexpected host call") }
     fn render_text(&mut self, _: &ConsoleSnapshot) -> Result<(), RuntimeError> { panic!("unexpected host call") }
+    fn win16_ansi_lower_string(&mut self, bytes: &[u8]) -> Result<Vec<u8>, RuntimeError> {
+        Ok(bytes.to_ascii_lowercase()) // Test class names are ASCII.
+    }
+    fn win16_register_window_class(&mut self, _: crate::Win16HostClassSpec)
+        -> Result<Option<crate::Win16RegisteredClass>, RuntimeError>
+    {
+        let index = self.classes.len() as u16 + 1;
+        let class = crate::Win16RegisteredClass {
+            class: crate::Win16HostClass(0x1_0000 + u64::from(index)),
+            atom: 0xa000 + index,
+        };
+        self.classes.push(class);
+        Ok(Some(class))
+    }
     fn win16_select_icon_image(&mut self, group: &[u8]) -> Result<Option<u16>, RuntimeError> {
         assert_eq!(group, group_bytes());
         self.selected += 1;
@@ -75,6 +95,12 @@ fn dialog_bytes(icon: bool) -> Vec<u8> {
 }
 
 fn dialog_bytes_with_title(icon: bool, name: Option<&[u8]>) -> Vec<u8> {
+    dialog_bytes_with_classes(icon, name, None)
+}
+
+fn dialog_bytes_with_classes(icon: bool, name: Option<&[u8]>,
+    classes: Option<[&[u8]; 2]>) -> Vec<u8>
+{
     let mut bytes = 0_u32.to_le_bytes().to_vec();
     bytes.push(2);
     bytes.extend_from_slice(&[0; 8]); // dialog rectangle
@@ -83,7 +109,12 @@ fn dialog_bytes_with_title(icon: bool, name: Option<&[u8]>) -> Vec<u8> {
         bytes.extend_from_slice(&[0; 8]);
         bytes.extend_from_slice(&(10 + index).to_le_bytes());
         bytes.extend_from_slice(&(if icon && index == 0 { 3_u32 } else { 0 }).to_le_bytes());
-        bytes.push(0x82);
+        if let Some(classes) = classes {
+            bytes.extend_from_slice(classes[usize::from(index)]);
+            bytes.push(0);
+        } else {
+            bytes.push(0x82);
+        }
         if let Some(name) = name.filter(|_| index == 0) {
             bytes.extend_from_slice(name);
             bytes.push(0);
@@ -188,7 +219,7 @@ fn dialog_icon_title_ordinal_wins_over_same_id_string_and_preserves_text_bytes()
 }
 
 #[test]
-fn dialog_icon_title_unsupported_routes_reject_before_icon_host_calls() {
+fn dialog_icon_title_unresolved_or_unsupported_routes_reject_before_icon_host_calls() {
     for case in 0..6 {
         let (mut runtime, instance) = fixture();
         let mut host = IconHost::default();

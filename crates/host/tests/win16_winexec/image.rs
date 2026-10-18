@@ -8,7 +8,7 @@ pub use global_notify::global_notify_program;
 
 #[path = "image/dialog_icon.rs"]
 mod dialog_icon;
-pub use dialog_icon::named_dialog_icon_program;
+pub use dialog_icon::{named_class_dialog_icon_program, named_dialog_icon_program};
 
 #[path = "image/load_module.rs"]
 mod load_module;

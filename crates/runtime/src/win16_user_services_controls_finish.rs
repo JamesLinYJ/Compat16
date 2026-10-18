@@ -65,7 +65,8 @@ impl Win16State {
         let Some(definition) = record.definition.as_ref() else { return Ok(false); };
         let strings = formats::NeStringTable::from_module(&record.image, definition)
             .map_err(crate::runtime_error)?;
-        // This first image route deliberately excludes guest class callbacks:
+        // The caller resolves class identities before interpreting titles.
+        // This image route deliberately excludes guest class callbacks:
         // their child creation can invalidate the bounded native install plan.
         let icon_route = matches!(&template.class,
             crate::Win16HostDialogAtom::None | crate::Win16HostDialogAtom::Ordinal(0x8002))

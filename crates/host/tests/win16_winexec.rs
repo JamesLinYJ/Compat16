@@ -36,6 +36,7 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::child_after_release(),
         image::global_notify_program(),
         image::named_dialog_icon_program(),
+        image::named_class_dialog_icon_program(),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");
         assert_eq!(module.header.target_os, 2);

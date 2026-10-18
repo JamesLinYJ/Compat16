@@ -409,13 +409,9 @@ impl Win16State {
                     };
                     template.menu_template = Some(menu_template);
                 }
-                if !self.resolve_dialog_template_titles(&mut template, instance, host)? {
-                    host.report_diagnostic(&crate::Diagnostic::warning(Kind::CompatibilityGap,
-                        "Win16 dialog control title resource is missing or its typed image route is unsupported"));
-                    return Ok(dialog_create_not_invoked(modal, return_kind,
-                        crate::Win16WindowCreationRejection::UnsupportedControlTitleResource,
-                        template_reference));
-                }
+                // Resolve local/global registrations before interpreting control
+                // styles. Only the predefined STATIC class owns SS_ICON; a
+                // guest class with that name keeps its own title contract.
                 if !self.resolve_dialog_template_classes(&mut template, instance, host)? {
                     host.report_diagnostic(&crate::Diagnostic::warning(
                         Kind::CompatibilityGap,
@@ -427,6 +423,13 @@ impl Win16State {
                         crate::Win16WindowCreationRejection::GuestClassUnavailable,
                         template_reference,
                     ));
+                }
+                if !self.resolve_dialog_template_titles(&mut template, instance, host)? {
+                    host.report_diagnostic(&crate::Diagnostic::warning(Kind::CompatibilityGap,
+                        "Win16 dialog control title resource is missing or its typed image route is unsupported"));
+                    return Ok(dialog_create_not_invoked(modal, return_kind,
+                        crate::Win16WindowCreationRejection::UnsupportedControlTitleResource,
+                        template_reference));
                 }
                 if let crate::Win16HostDialogAtom::GuestClass(class) = &template.class {
                     let Some(resolved) = self.window_classes.resolve_registered_host_class(*class) else {

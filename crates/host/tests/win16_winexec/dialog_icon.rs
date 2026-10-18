@@ -1,10 +1,14 @@
 //! Actual USER creates the hidden control; guest code reads its icon back.
 use super::{image, native::run_with_engine};
 
-fn verify(engine: &str) {
+fn verify(engine: &str, named_classes: bool) {
     let root = tempfile::tempdir().unwrap();
     let program = root.path().join("NAMEDICO.EXE");
-    let bytes = image::named_dialog_icon_program();
+    let bytes = if named_classes {
+        image::named_class_dialog_icon_program()
+    } else {
+        image::named_dialog_icon_program()
+    };
     let module = formats::parse_ne(&bytes).unwrap();
     assert_eq!(module.resource_types.len(), 3);
     assert!(matches!(&module.resource_types[0].resources[0].id,
@@ -24,10 +28,20 @@ fn verify(engine: &str) {
 
 #[test]
 fn named_dialog_icon_native_jit_reads_guest_icon_from_hidden_static() {
-    verify("jit");
+    verify("jit", false);
 }
 
 #[test]
 fn named_dialog_icon_native_interpreter_reads_guest_icon_from_hidden_static() {
-    verify("interpreter");
+    verify("interpreter", false);
+}
+
+#[test]
+fn dialog_class_names_native_jit_reads_icon_from_hidden_named_static() {
+    verify("jit", true);
+}
+
+#[test]
+fn dialog_class_names_native_interpreter_reads_icon_from_hidden_named_static() {
+    verify("interpreter", true);
 }

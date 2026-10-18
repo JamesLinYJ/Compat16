@@ -13,6 +13,14 @@ fn push_dialog(code: &mut Code) {
 }
 
 pub fn named_dialog_icon_program() -> Vec<u8> {
+    dialog_icon_program(false)
+}
+
+pub fn named_class_dialog_icon_program() -> Vec<u8> {
+    dialog_icon_program(true)
+}
+
+fn dialog_icon_program(named_classes: bool) -> Vec<u8> {
     let mut code = Code::default();
     code.immediate(0x68, 0);
     code.immediate(0x68, 0);
@@ -58,15 +66,25 @@ pub fn named_dialog_icon_program() -> Vec<u8> {
     );
     let name = b"\x82\xa0Icon";
     let mut dialog = 0_u32.to_le_bytes().to_vec();
-    dialog.push(1);
+    dialog.push(if named_classes { 2 } else { 1 });
     dialog.extend_from_slice(&[0; 8]);
     dialog.extend_from_slice(&[0; 3]);
     dialog.extend_from_slice(&[0; 8]);
     dialog.extend_from_slice(&10_u16.to_le_bytes());
     dialog.extend_from_slice(&0x4000_0003_u32.to_le_bytes());
-    dialog.push(0x82); // Stock STATIC, SS_ICON.
+    if named_classes {
+        dialog.extend_from_slice(b"sTaTiC\0");
+    } else {
+        dialog.push(0x82); // Stock STATIC, SS_ICON.
+    }
     dialog.extend_from_slice(name);
     dialog.extend_from_slice(&[0, 0]); // Title terminator and no creation data.
+    if named_classes {
+        dialog.extend_from_slice(&[0; 8]);
+        dialog.extend_from_slice(&11_u16.to_le_bytes());
+        dialog.extend_from_slice(&0x4000_0000_u32.to_le_bytes());
+        dialog.extend_from_slice(b"bUtToN\0OK\0\0");
+    }
 
     // A Win3 monochrome DIB: two palette entries and DWORD-padded XOR/AND
     // rows. Its doubled height includes the transparency mask.
