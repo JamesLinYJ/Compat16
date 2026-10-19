@@ -370,6 +370,8 @@ pub(in crate::windows) struct WorkerState {
     pub(in crate::windows) oem_text_codec: crate::windows::guest_text::GuestTextCodec,
     pub(in crate::windows::win16_windows) window_text_contexts:
         super::super::win16_window_text_context::WindowTextContextStack,
+    pub(in crate::windows::win16_windows) window_sizing_contexts:
+        super::super::win16_window_sizing::SizingContexts,
     pub(in crate::windows::win16_windows) shutdown_storage: Arc<Mutex<Vec<ShutdownStorageGuard>>>,
     pub(in crate::windows::win16_windows) worker_retirement_id: u64,
     pub(in crate::windows::win16_windows) toolbar_bitmap_retention:

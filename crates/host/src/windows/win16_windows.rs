@@ -116,6 +116,8 @@ mod win16_window_data;
 mod win16_window_enumeration;
 #[path = "win16_window_geometry.rs"]
 mod win16_window_geometry;
+#[path = "win16_window_sizing.rs"]
+mod win16_window_sizing;
 #[path = "win16_window_ops.rs"]
 mod win16_window_ops;
 #[path = "win16_window_caret.rs"]

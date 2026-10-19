@@ -93,6 +93,7 @@ pub(super) fn worker_main(
         oem_text_codec,
         window_text_contexts:
             super::super::win16_window_text_context::WindowTextContextStack::default(),
+        window_sizing_contexts: super::super::win16_window_sizing::SizingContexts::default(),
         shutdown_storage,
         worker_retirement_id,
         toolbar_bitmap_retention,

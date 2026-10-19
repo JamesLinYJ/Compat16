@@ -53,6 +53,7 @@ pub(in crate::windows::win16_windows) fn write_native_output(
         }
         (WM_WINDOWPOSCHANGED, Output::WindowPosition(_) | Output::None) => true,
         (WM_GETMINMAXINFO, Output::MinMaxInfo(data)) if l_param != 0 => {
+            super::super::win16_window_sizing::record_minmax(state, receiver, *data);
             // The native MINMAXINFO remains writable for this suspended
             // WndProc. All fields come from an owned, typed reply.
             unsafe {

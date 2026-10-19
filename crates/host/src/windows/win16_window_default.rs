@@ -12,7 +12,7 @@ use runtime::{
 use windows_sys::Win32::Foundation::{HWND, POINT};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CREATESTRUCTW, DefDlgProcW, DefFrameProcW, DefMDIChildProcW, DefWindowProcW, DispatchMessageW,
-    GetDlgCtrlID, GetParent, MINMAXINFO, SendMessageW, WM_CHANGECBCHAIN, WM_CLOSE, WM_COMMAND,
+    GetDlgCtrlID, GetParent, MINMAXINFO, SWP_NOSIZE, SendMessageW, WM_CHANGECBCHAIN, WM_CLOSE, WM_COMMAND,
     WM_CREATE, WM_DESTROY, WM_DROPFILES, WM_ERASEBKGND, WM_GETDLGCODE, WM_GETMINMAXINFO,
     WM_GETTEXT, WM_GETTEXTLENGTH, WM_INITDIALOG, WM_NCACTIVATE, WM_NCCALCSIZE, WM_NCCREATE,
     WM_NCPAINT, WM_PAINT, WM_SETFONT, WM_SETTEXT, WM_SYSCOMMAND, WM_WINDOWPOSCHANGED,
@@ -998,6 +998,14 @@ fn message_with_invocation(
             w_param,
             data,
         } => {
+            let sizing = if changing && u32::from(data.flags) & SWP_NOSIZE == 0
+                && matches!(invocation, MessageInvocation::Default
+                    | MessageInvocation::FrameDefault { .. }
+                    | MessageInvocation::MdiChildDefault | MessageInvocation::DialogDefault)
+                && unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsIconic(hwnd) } != 0
+            {
+                super::win16_window_sizing::MinimizedDefault::enter(state, window, hwnd)?
+            } else { None };
             let Some(mut native) = NativeWindowPosition::from_owned(state, data)? else {
                 return Ok(None);
             };
@@ -1026,7 +1034,10 @@ fn message_with_invocation(
             }
             let output = if changing {
                 match native.owned_output(state)? {
-                    Some(output) => Output::WindowPosition(output),
+                    Some(mut output) => {
+                        if let Some(sizing) = sizing.as_ref() { sizing.adjust(data, &mut output)?; }
+                        Output::WindowPosition(output)
+                    }
                     None => {
                         super::win16_window_position::report_diagnostic(
                             state,

@@ -47,8 +47,16 @@ impl<'a> HiddenWindows<'a> {
     }
 
     fn create(&mut self, class: *const u16) -> (Win16HostWindow, HWND) {
+        self.create_styled(class, WS_POPUP)
+    }
+
+    fn create_styled(&mut self, class: *const u16, style: u32) -> (Win16HostWindow, HWND) {
+        self.create_geometry(class, style, 80, 30)
+    }
+
+    fn create_geometry(&mut self, class: *const u16, style: u32, width: i32, height: i32) -> (Win16HostWindow, HWND) {
         let hwnd = unsafe { CreateWindowExW(0, class, windows_sys::core::w!("native text"),
-            WS_POPUP, 0, 0, 80, 30, ptr::null_mut(), ptr::null_mut(),
+            style, 0, 0, width, height, ptr::null_mut(), ptr::null_mut(),
             GetModuleHandleW(ptr::null()), ptr::null()) };
         assert!(!hwnd.is_null(), "create hidden native window");
         let token = match win16_window_identity::adopt_created_owned(self.state, hwnd) {
@@ -69,6 +77,9 @@ impl<'a> HiddenWindows<'a> {
         remove_window_maps(self.state, token, hwnd);
     }
 }
+
+#[path = "win16_window_sizing_native_tests.rs"]
+mod sizing;
 
 impl Drop for HiddenWindows<'_> {
     fn drop(&mut self) {

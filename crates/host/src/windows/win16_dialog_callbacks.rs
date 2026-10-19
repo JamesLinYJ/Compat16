@@ -19,7 +19,6 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 use super::win16_window_callbacks;
-use super::win16_window_geometry::copy_minmax;
 use super::win16_window_worker::{
     self as worker, ActiveOperation, DialogRoute, LiveCallback, NativeDropCallbackClaim,
     NativeDropCallbackResolution, NativeDropOwner as NativeDropQueueOwner, WorkerState,
@@ -871,7 +870,7 @@ fn copy_typed_message(
         WM_GETTEXTLENGTH => Win16HostMessage::GetTextLength,
         WM_GETMINMAXINFO if l_param != 0 => {
             let native = unsafe { &*(l_param as *const MINMAXINFO) };
-            Win16HostMessage::MinMaxInfo(copy_minmax(native))
+            Win16HostMessage::MinMaxInfo(super::win16_window_sizing::minmax_for_guest(native))
         }
         WM_NCPAINT => Win16HostMessage::NonClientPaint,
         _ if message <= u32::from(u16::MAX) && message >= 0x0400 => Win16HostMessage::GuestOpaque {
