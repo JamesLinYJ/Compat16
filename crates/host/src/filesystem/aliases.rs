@@ -25,6 +25,9 @@ use super::Filesystem;
 mod short_name;
 pub(super) use short_name::canonical_83;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Clone, Default)]
 pub(super) struct AliasTable {
     /// Uppercase DOS alias to its actual on-disk component.
@@ -485,22 +488,9 @@ fn make_alias_table(
         }
     }
 
-    // Prefer the filesystem's own short name when it is legal and unclaimed.
-    // The alias table still verifies uniqueness before exposing it to DOS.
-    for name in &names {
-        if table.by_real_name.contains_key(name) {
-            continue;
-        }
-        if let Some(alias) = native_short_names.get(name) {
-            if !table.by_alias.contains_key(alias) {
-                table.by_alias.insert(alias.clone(), name.clone());
-                table.by_real_name.insert(name.clone(), alias.clone());
-            }
-        }
-    }
-
-    // Assign a real 8.3 spelling where it remains unclaimed. Case-sensitive
-    // host collisions receive generated aliases rather than overwriting one.
+    // A name that already fits the guest OEM 8.3 namespace needs no alias.
+    // Native short names may use another OEM page (or ASCII substitutions),
+    // so preferring them here would hide legal names from FCB patterns.
     for name in &names {
         if table.by_real_name.contains_key(name) {
             continue;
@@ -509,6 +499,20 @@ fn make_alias_table(
             if !table.by_alias.contains_key(&alias) {
                 table.by_alias.insert(alias.clone(), name.clone());
                 table.by_real_name.insert(name.clone(), alias);
+            }
+        }
+    }
+
+    // Prefer the filesystem's own alias for remaining long names when legal
+    // and unclaimed. Existing assignments above still retain their identity.
+    for name in &names {
+        if table.by_real_name.contains_key(name) {
+            continue;
+        }
+        if let Some(alias) = native_short_names.get(name) {
+            if !table.by_alias.contains_key(alias) {
+                table.by_alias.insert(alias.clone(), name.clone());
+                table.by_real_name.insert(name.clone(), alias.clone());
             }
         }
     }
