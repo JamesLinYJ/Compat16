@@ -1,7 +1,17 @@
 //! Process entry for the console and GUI launchers.
 #![forbid(unsafe_code)]
 
+#[cfg(windows)]
+mod shell_open;
+
 pub fn entry() -> std::process::ExitCode {
+    #[cfg(windows)]
+    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("--shell-open")) {
+        return match shell_open::run() {
+            Ok(code) => code,
+            Err(error) => { launcher_ui::show_error(&error); std::process::ExitCode::from(125) }
+        };
+    }
     if launcher_ui::is_home_invocation() {
         return match launcher_ui::run() {
             Ok(()) => std::process::ExitCode::SUCCESS,

@@ -55,7 +55,7 @@ function Get-RegistryValue([Microsoft.Win32.RegistryKey]$Key, [string]$Name) {
         return [pscustomobject]@{ exists = $false; kind = ''; value = $null }
     }
     $kind = $Key.GetValueKind($Name).ToString()
-    $value = if ($kind -eq 'String') {
+    $value = if ($kind -in @('String', 'ExpandString')) {
         [string]$Key.GetValue($Name, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
     } else { $null }
     [pscustomobject]@{ exists = $true; kind = $kind; value = $value }
@@ -107,4 +107,66 @@ function Write-DurableState([string]$Path, [object]$State) {
     $done = $false
     try { $stream.Write($bytes, 0, $bytes.Length); $stream.Flush($true); $done = $true }
     finally { $stream.Dispose(); if (-not $done) { Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue } }
+}
+
+function Get-ComShellCommand([string]$InstallRoot) {
+    $path = 'SOFTWARE\Classes\comfile\shell\open\command'
+    $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($path, $false)
+    try {
+        $previous = if ($key -and $key.GetValueNames() -contains '') {
+            $kind = $key.GetValueKind('').ToString()
+            if ($kind -notin @('String','ExpandString')) { throw 'The COM open command is not a string; it was left untouched.' }
+            [pscustomobject]@{ exists = $true; kind = $kind; value = [string]$key.GetValue('', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) }
+        } else { [pscustomobject]@{ exists = $false; kind = ''; value = '' } }
+        [pscustomobject]@{ path = $path; previous = $previous;
+            installed = ('"' + (Join-Path $InstallRoot 'compat16w.exe') + '" --shell-open "%1" %*') }
+    } finally { if ($key) { $key.Close() } }
+}
+
+function Set-ComShellCommand([object]$State, [string]$InstallRoot) {
+    $current = Get-ComShellCommand $InstallRoot
+    if ($current.path -cne $State.path -or $current.previous.exists -ne $State.previous.exists -or
+        $current.previous.kind -cne $State.previous.kind -or $current.previous.value -cne $State.previous.value) {
+        throw 'The COM open command changed during installation; it was left untouched.'
+    }
+    $key = [Microsoft.Win32.Registry]::LocalMachine.CreateSubKey($State.path, $true)
+    try { $key.SetValue('', [string]$State.installed, [Microsoft.Win32.RegistryValueKind]::String); $key.Flush() }
+    finally { $key.Close() }
+    Send-Compat16AssociationChange
+}
+
+function Restore-ComShellCommand([object]$State, [string]$InstallRoot) {
+    $expected = Get-ComShellCommand $InstallRoot
+    if ($State.path -cne $expected.path -or $State.installed -cne $expected.installed) { throw 'Invalid COM open command receipt.' }
+    $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($State.path, $true)
+    if (-not $key) { return $true }
+    try {
+        $current = Get-RegistryValue $key ''
+        if (-not $current.exists) { return $true }
+        # An installation that failed before writing the command is also safe
+        # to undo. Do not claim or replace another application's later change.
+        if ($current.kind -cne 'String' -or $current.value -cne $State.installed) {
+            return $current.kind -ceq $State.previous.kind -and $current.value -ceq $State.previous.value
+        }
+        if ($State.previous.exists) {
+            if ($State.previous.kind -notin @('String','ExpandString')) { throw 'Invalid previous COM command type.' }
+            $key.SetValue('', [string]$State.previous.value, [Microsoft.Win32.RegistryValueKind]([string]$State.previous.kind))
+        } else { $key.DeleteValue('', $false) }
+        $key.Flush()
+    } finally { $key.Close() }
+    Send-Compat16AssociationChange
+    return $true
+}
+
+function Send-Compat16AssociationChange {
+    if (-not ('Compat16.InstallShell' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+namespace Compat16 { public static class InstallShell {
+    [DllImport("shell32.dll")] public static extern void SHChangeNotify(uint kind, uint flags, IntPtr first, IntPtr second);
+} }
+'@
+    }
+    [Compat16.InstallShell]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
 }

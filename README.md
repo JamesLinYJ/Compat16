@@ -105,6 +105,8 @@ After building, run from an **administrator PowerShell**:
 
 Installation copies the native runtime and adds its own Windows legacy application launch entry. Uninstallation removes unchanged files and settings recorded by this installation, retaining other software's settings and additional files.
 
+The COM shell open command dispatches files by their image format: DOS COM/MZ and Win16 programs enter Compat16, while native PE files named `.com` run through Windows. The previous COM command is recorded and restored during uninstall if it still belongs to this installation. Global `.exe` associations stay unchanged.
+
 The ARM64 package includes `system/ntvdm64.dll`, a system launch component built with the runtime. The installer adds it only when the system module is absent and records its hash for removal. Its filename and export follow the Windows launch interface; it is part of Compat16.
 
 Double-click launching requires a Windows legacy-image callback. Microsoft documents the `NtVdm64` mechanism's absence on Windows 10 ARM; availability and behavior on later ARM64 versions require native validation. Explicit launcher invocation does not require system integration. [Microsoft documentation](https://learn.microsoft.com/en-us/windows/win32/winprog64/application-installation)
@@ -200,6 +202,8 @@ ARM64 与 AMD64 的数据分别收集。脚本检查源码、编译设置、工�
 ```
 
 安装脚本复制当前架构的运行时，并添加自己的 Windows 旧程序启动入口。卸载时只撤销安装记录中未被修改的文件和设置，保留其他软件的设置及额外文件：
+
+COM 的 Shell 打开命令按文件格式分派：DOS COM/MZ 和 Win16 程序交给 Compat16，使用 `.com` 扩展名的原生 PE 程序仍交给 Windows 执行。旧的 COM 打开命令会记录在安装凭据中；卸载时若仍属于该安装，则恢复原值。全局 `.exe` 关联保持原样。
 
 ```powershell
 .\scripts\uninstall.ps1

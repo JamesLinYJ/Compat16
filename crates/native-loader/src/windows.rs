@@ -10,6 +10,18 @@ use windows_sys::Win32::System::LibraryLoader::{
 };
 use super::EngineLoadError;
 
+pub(super) fn command_line() -> io::Result<Vec<u16>> {
+    let pointer = unsafe { windows_sys::Win32::System::Environment::GetCommandLineW() };
+    if !pointer.is_null() {
+        for length in 0..32_767 {
+            if unsafe { *pointer.add(length) } == 0 {
+                return Ok(unsafe { std::slice::from_raw_parts(pointer, length) }.to_vec());
+            }
+        }
+    }
+    Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid native command line"))
+}
+
 struct LoadedModule(HMODULE);
 
 impl Drop for LoadedModule {
