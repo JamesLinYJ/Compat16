@@ -205,6 +205,9 @@ fn detail(module: &str, ordinal: u16) -> Option<&'static str> {
     if module.eq_ignore_ascii_case("MSVIDEO") && matches!(ordinal, 2 | 20) {
         return Some("returns zero; no Video for Windows capture device is published");
     }
+    if module.eq_ignore_ascii_case("MSVIDEO") && ordinal == 115 {
+        return Some("does not stretch the bitmap and writes no destination");
+    }
     Some(if module.eq_ignore_ascii_case("COMM") {
         "returns the communications failure and writes no DCB, queue, or status"
     } else if module.eq_ignore_ascii_case("DISPLAY") {

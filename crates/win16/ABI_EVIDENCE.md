@@ -1121,14 +1121,21 @@ the same hidden icon readback and destruction protocol.
 ### Unknown parameter frames
 
 An unknown historical stub signature is not a zero-argument Pascal call.
-Driver frames verified from the Windows 3.1 DDK, or from the NT 3.5 Video for
-Windows header when the DDK is silent, are bound in ids `7000000`–`7000102`.
-A documented zero-argument entry, such as `CreateDIBitmap` or
-`MouseGetIntVect`, keeps that empty frame. Rows whose parameter list is still
-unpublished stay declaration-only, including `ReadCommString`, `StretchDIB`,
-`InquireEx`, `NewTableEx`, `DoBeep`, `MyOpenSound`, `InquireLongInts`,
-`QueryDeviceNames`, and the unnamed display ordinals. Existing binding IDs are
-not renumbered.
+Driver frames verified from the Windows 3.1 DDK are bound in ids
+`7000000`–`7000102`. A documented zero-argument entry, such as
+`CreateDIBitmap` or `MouseGetIntVect`, keeps that empty frame.
+`StretchDIB` (MSVIDEO.115) is bound as id `9000000`. Its parameter list and
+void return are the Windows SDK `vfw.h` contract published by
+[StretchDIB](https://learn.microsoft.com/en-us/windows/win32/api/vfw/nf-vfw-stretchdib).
+Each `int` is a signed word and each pointer is a far pointer, matching the
+16-bit widths Wine's `dlls/msvideo.dll16/msvideo.dll16.spec` uses for those
+types on `DrawDibDraw`. The destination buffer is not written. The other
+rows whose parameter list is still unpublished stay declaration-only,
+including `ReadCommString`, `InquireEx`, `NewTableEx`, `DoBeep`,
+`MyOpenSound`, `InquireLongInts`, `QueryDeviceNames`, and the unnamed
+display ordinals. `DoBeep` is an empty `pascal -ret16` frame in
+`dlls/sound.drv16/sound.drv16.spec` and is not bound. Existing binding IDs
+are not renumbered.
 
 The same rule applies to KERNEL, USER and GDI. Their declaration groups retain
 71, 63 and 100 additional stub rows respectively without runtime call bindings.

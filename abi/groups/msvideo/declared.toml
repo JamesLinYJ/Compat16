@@ -477,6 +477,23 @@ ordinal = 115
 name = "STRETCHDIB"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo115STRETCHDIB", id_value = 9000000, constant = "DRIVER_MSVIDEO_115" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "bi_dst", type = "FarPointer" },
+  { name = "bits_dst", type = "FarOutputBuffer" },
+  { name = "dst_x", type = "I16" },
+  { name = "dst_y", type = "I16" },
+  { name = "dst_xe", type = "I16" },
+  { name = "dst_ye", type = "I16" },
+  { name = "bi_src", type = "FarPointer" },
+  { name = "bits_src", type = "FarPointer" },
+  { name = "src_x", type = "I16" },
+  { name = "src_y", type = "I16" },
+  { name = "src_xe", type = "I16" },
+  { name = "src_ye", type = "I16" },
+]
 [[exports]]
 ordinal = 118
 name = "DrawDibStart"
