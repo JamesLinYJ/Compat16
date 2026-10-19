@@ -6,6 +6,10 @@ use super::{
 use crate::{DosAction, DosDirectoryEntry, DosError, DosErrorCode, DosHost, DosHostError};
 use guest_core::Registers;
 
+// A packed FCB scan may retain at most 1 MiB of directory records. Mutations
+// share the same entry bound and finish collecting before changing any file.
+pub(super) const MAX_FCB_MATCHES: usize = 32_768;
+
 pub(super) fn pattern(
     fields: &[u8],
     page: text_codec::CodePage,
@@ -73,7 +77,7 @@ impl DosKernel {
             loop {
                 match directory::next_matching_entry(host, state) {
                     Ok(Some(entry)) => {
-                        if records.len() >= u32::MAX as usize {
+                        if records.len() >= MAX_FCB_MATCHES {
                             return Err(DosError::HostOperation(DosHostError::new(
                                 DosErrorCode::InsufficientMemory,
                             )));

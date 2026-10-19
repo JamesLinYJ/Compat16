@@ -4,6 +4,30 @@ use super::*;
 const FCB: u16 = 0x100;
 const DTA: u16 = 0x400;
 
+#[test]
+fn fcb_search_oversized_snapshot_fails_without_publishing_and_closes_native_search() {
+    let (mut dos, mut host, mut memory) = fixture(b"A       TXT", None);
+    host.search_entries_override = Some(vec![DosDirectoryEntry {
+        short_name: b"A.TXT".to_vec(), attributes: 0, write_time: 0, write_date: 0, size: 0,
+    }; 32_769]);
+    let mut input = [0; 22];
+    memory.read(PhysAddr(0x10100), &mut input).unwrap();
+    call(&mut dos, &mut host, &mut memory, 0x11, 0xff);
+    let mut actual = [0; 22];
+    memory.read(PhysAddr(0x10100), &mut actual).unwrap();
+    assert_eq!(actual, input);
+    let mut dta = [0; 48];
+    memory.read(PhysAddr(0x10400), &mut dta).unwrap();
+    assert_eq!(dta, [0xa5; 48]);
+    assert!(host.searches.is_empty());
+    assert_eq!(host.search_close_calls.len(), 1);
+    let mut regs = registers(0x59);
+    dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap();
+    assert_eq!(regs.ax(), 8);
+    host.search_entries_override = None;
+    call(&mut dos, &mut host, &mut memory, 0x11, 0);
+}
+
 fn fcb(pattern: &[u8; 11], attributes: Option<u8>) -> Vec<u8> {
     let skip = usize::from(attributes.is_some()) * 7;
     let mut bytes = vec![0xcc; skip + 37];

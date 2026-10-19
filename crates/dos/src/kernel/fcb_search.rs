@@ -14,7 +14,6 @@ use crate::{
     DosPointerAccess, DosSpanPolicy,
 };
 pub(super) use continuations::Continuations;
-use continuations::Snapshot;
 use guest_core::Registers;
 use layout::Request;
 
@@ -41,10 +40,6 @@ impl DosKernel {
                 0 => current,
                 1..=26 => request.bytes[0] - 1,
                 _ => return Ok(self.fcb_failure(regs, DosErrorCode::UnknownUnit)),
-            };
-            let identity = match self.fcb_searches.reserve() {
-                Ok(identity) => identity,
-                Err(error) => return Ok(self.fcb_failure(regs, error.code)),
             };
             let path = [b'A' + drive, b':'];
             let key = SearchKey {
@@ -77,14 +72,12 @@ impl DosKernel {
             {
                 return Ok(self.fcb_failure(regs, DosErrorCode::NoMoreFiles));
             }
-            let identity = self.fcb_searches.insert(Snapshot {
-                psp: self.psp_segment,
-                caller: memory.caller_id(),
-                identity,
-                drive: drive + 1,
-                pattern,
-                records,
-            });
+            let identity = match self.fcb_searches.insert(
+                self.psp_segment, memory.caller_id(), drive + 1, pattern, records,
+            ) {
+                Ok(identity) => identity,
+                Err(error) => return Ok(self.fcb_failure(regs, error.code)),
+            };
             (identity, 0)
         } else {
             match request.cookie() {
