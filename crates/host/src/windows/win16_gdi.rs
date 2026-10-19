@@ -12,6 +12,8 @@ mod dc_lease;
 pub(super) mod fonts;
 #[path = "win16_gdi_outline_metrics.rs"]
 mod outline_metrics;
+#[path = "win16_gdi_device_caps.rs"]
+mod device_caps;
 
 use std::alloc::{alloc_zeroed, dealloc, Layout};
 use std::collections::BTreeMap;
@@ -244,7 +246,8 @@ impl Win16Dcs {
     ) -> Result<Option<i16>, RuntimeError> {
         let Some(dc_use) = self.lease_dc(token)? else { return Ok(None); };
         // SAFETY: The HDC lease pins its table identity through this call.
-        Ok(Some(unsafe { GetDeviceCaps(dc_use.native(), i32::from(index)) } as i16))
+        let native = unsafe { GetDeviceCaps(dc_use.native(), i32::from(index)) };
+        Ok(Some(device_caps::project_count(index, native)))
     }
 
     pub(super) fn reset(
