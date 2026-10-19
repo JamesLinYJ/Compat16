@@ -922,6 +922,10 @@ impl Win16State {
 mod test_support;
 
 #[cfg(test)]
+#[path = "win16_service_segment_tests.rs"]
+mod service_segment_tests;
+
+#[cfg(test)]
 #[path = "win16_aux_tests.rs"]
 mod aux_tests;
 

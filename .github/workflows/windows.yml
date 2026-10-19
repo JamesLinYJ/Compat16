@@ -101,6 +101,7 @@ jobs:
             '-p text-codec',
             '-p dos-kernel',
             '-p runtime --lib multiplex::tests::',
+            '-p runtime --lib service_segment_tests::',
             '-p host-services --lib filesystem::tests::seek::',
             '-p host-services --lib filesystem::aliases::tests::',
             '-p host-services --lib filesystem::tests::oem_short_names::',
@@ -259,6 +260,7 @@ jobs:
           # Keep focused additions visible: a renamed filter must not silently
           # succeed after selecting zero tests.
           $expectedPassCounts = @{
+            '-p runtime --lib service_segment_tests::' = 1
             '-p runtime --lib dos_interrupts::file_ioctl_tests' = 6
             '-p host-services --lib file_ioctl_native_' = 4
             '-p runtime --lib session_exit_' = 2
