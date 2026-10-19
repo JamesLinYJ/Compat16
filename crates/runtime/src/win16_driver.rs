@@ -128,17 +128,19 @@ fn value(module: &str, ordinal: u16) -> u32 {
 }
 
 fn comm_value(ordinal: u16) -> u32 {
+    // Windows 3.1 `WINDOWS.H` defines `IE_HARDWARE` as -10.
+    const IE_HARDWARE: i16 = -10;
     match ordinal {
-        // Success for these entries is zero. `IE_HARDWARE` (-6) is the
-        // communications error already used when the host has no UART.
-        1 | 2 | 3 | 5 | 6 | 7 => 0xFFFA,
+        // Success for these entries is zero. A missing UART returns
+        // `IE_HARDWARE` in AX.
+        1 | 2 | 3 | 5 | 6 | 7 => u32::from(IE_HARDWARE as u16),
         // `reccom`, `csetbrk`, and `cclrbrk` document -1 as the error.
         4 | 13 | 14 => 0xFFFF,
         // `stacom` and `cflush` return the most recent error. `CE_MODE` means
         // the requested mode is not supported.
         8 | 10 => 0x8000,
-        // `cextfcn` returns a negative long when the function is not valid.
-        9 => 0xFFFF_FFFA,
+        // `cextfcn` returns a negative long. The same error is sign-extended.
+        9 => i32::from(IE_HARDWARE) as u32,
         // `WEP` returns 1 so the already-loaded builtin may be released.
         101 => 1,
         _ => 0,
@@ -266,9 +268,9 @@ mod tests {
             assert_ne!(result.value & 0x8000_0000, 0, "HRESULT must fail");
             assert!(result.detail.is_some());
         }
-        assert_eq!(value("COMM", 1), 0xFFFA);
+        assert_eq!(value("COMM", 1), 0xFFF6);
         assert_eq!(value("COMM", 4), 0xFFFF);
-        assert_eq!(value("COMM", 9), 0xFFFF_FFFA);
+        assert_eq!(value("COMM", 9), 0xFFFF_FFF6);
         assert_eq!(value("COMM", 101), 1);
         assert!(answer("COMM", 101).unwrap().detail.is_none());
         assert_eq!(value("DISPLAY", 6), 1);
