@@ -434,6 +434,7 @@ fn joystick_ordinals_keep_names_and_word_returns() {
         (107, "joySetThreshold"),
         (109, "joySetCalibration"),
         (110, "joyGetPosEx"),
+        (111, "JOYCONFIGCHANGED"),
     ] {
         let by_ordinal = lookup_export(b"MMSYSTEM", ExportLookupTarget::Ordinal(ordinal)).unwrap();
         let by_name =
@@ -690,6 +691,20 @@ fn joy_capture_passes_the_guest_window_and_rejects_a_null_window() {
 fn joy_set_calibration_returns_nocando_without_a_host_call() {
     let (mut runtime, _) = fixture();
     let back = gate(&mut runtime, 109, StackArgs::new().word(0));
+    let mut host = JoyHost::default();
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_word(&runtime, back, 166);
+    assert!(host.seen.is_empty());
+
+    let (mut runtime, _) = fixture();
+    let back = gate(&mut runtime, 111, StackArgs::new().dword(1));
+    let mut host = JoyHost::default();
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_word(&runtime, back, 165);
+    assert!(host.seen.is_empty());
+
+    let (mut runtime, _) = fixture();
+    let back = gate(&mut runtime, 111, StackArgs::new().dword(0));
     let mut host = JoyHost::default();
     dispatch(&mut runtime, &mut host).unwrap();
     assert_word(&runtime, back, 166);

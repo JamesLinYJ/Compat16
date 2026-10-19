@@ -123,6 +123,10 @@ pub enum Win16JoystickRequest {
         device: u16,
         info: u32,
     },
+    /// `joyConfigChanged`. `flags` is the reserved guest DWORD, not a pointer.
+    ConfigChanged {
+        flags: u32,
+    },
 }
 
 #[repr(C)]

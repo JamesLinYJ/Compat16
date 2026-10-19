@@ -22,6 +22,20 @@ pub(super) fn decode(
             },
         )));
     }
+    // Binding ids 9200000–9299999 are library signatures recovered from
+    // public Microsoft documentation. Guest far pointers stay on the stack.
+    if (9_200_000..9_300_000).contains(&id) {
+        if descriptor.ordinal() == 111 && descriptor.module().eq_ignore_ascii_case("MMSYSTEM") {
+            return Ok(Some(Win16ApiRequest::Joystick(
+                super::super::call_joystick::decode(descriptor, arguments)?,
+            )));
+        }
+        return Ok(Some(Win16ApiRequest::Libraries(
+            super::Win16LibraryRequest::LibraryRemainder {
+                ordinal: descriptor.ordinal(),
+            },
+        )));
+    }
     if (4_000_000..5_000_000).contains(&id) {
         let module = super::Win16OleRemainderModule::from_catalog_name(descriptor.module())
             .ok_or(Win16Error::InvalidRange)?;

@@ -1,4 +1,4 @@
-//! Library remainder ids 6000000–6999999 decode to one request.
+//! Library remainder ids 6000000–6999999 and 9200000–9299999 decode to one request.
 
 use super::*;
 use crate::{
@@ -52,4 +52,51 @@ fn library_remainder_contract_every_new_id_decodes() {
         }
     }
     assert_eq!(seen, 135);
+    let mut recovered = 0u16;
+    for descriptor in export_descriptors() {
+        let id = descriptor.id as u32;
+        if !(9_200_000..9_300_000).contains(&id) {
+            continue;
+        }
+        recovered += 1;
+        let decoded = decode_export_call_with_register_context(
+            descriptor,
+            frame,
+            Win16RegisterContext::default(),
+            &selectors,
+            &memory,
+        )
+        .unwrap_or_else(|error| {
+            panic!(
+                "{}:{} decode failed: {error}",
+                descriptor.module(),
+                descriptor.ordinal()
+            )
+        });
+        let crate::exports::Win16ExportStackCleanup::Fixed(cleanup) = descriptor.stack_cleanup
+        else {
+            panic!("{}:{} is not a fixed frame", descriptor.module(), descriptor.ordinal());
+        };
+        assert_eq!(cleanup.caller_pop_bytes, 0);
+        if descriptor.module() == "MMSYSTEM" && descriptor.ordinal() == 111 {
+            assert_eq!(cleanup.callee_pop_bytes, 4);
+            assert!(matches!(
+                decoded.request,
+                Win16ApiRequest::Joystick(Win16JoystickRequest::ConfigChanged { flags: 0 })
+            ));
+        } else {
+            assert_eq!(cleanup.callee_pop_bytes, 2, "{}", descriptor.name());
+            assert!(
+                matches!(
+                    decoded.request,
+                    Win16ApiRequest::Libraries(Win16LibraryRequest::LibraryRemainder { ordinal })
+                        if ordinal == descriptor.ordinal()
+                ),
+                "{}:{}",
+                descriptor.module(),
+                descriptor.name()
+            );
+        }
+    }
+    assert_eq!(recovered, 2);
 }

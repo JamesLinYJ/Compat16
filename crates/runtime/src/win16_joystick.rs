@@ -73,6 +73,16 @@ impl Win16State {
                 "joySetThreshold returned the wrong result shape",
             ),
             Win16JoystickRequest::SetCalibration { .. } => Ok(u32::from(JOYERR_NOCANDO)),
+            Win16JoystickRequest::ConfigChanged { flags } => {
+                // joystickapi.h: a nonzero reserved flag is JOYERR_PARMS.
+                // Zero would be JOYERR_NOERROR only after the driver reloads
+                // and broadcasts JOY_CONFIGCHANGED. This host has no joystick
+                // configuration to reload, so the request is not completed.
+                if flags != 0 {
+                    return Ok(u32::from(JOYERR_PARMS));
+                }
+                Ok(u32::from(JOYERR_NOCANDO))
+            }
             Win16JoystickRequest::GetPosEx { device, info } => {
                 self.joy_position_ex(device, info, memory, host)
             }
