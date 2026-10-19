@@ -346,7 +346,9 @@ jobs:
       - name: Capture compiled ABI migration baseline
         id: abi_baseline
         if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
-        timeout-minutes: 5
+        # Two debug captures plus the job-log copy of the JSON exceed five
+        # minutes on arm64. The capture, determinism check, and artifact stay.
+        timeout-minutes: 15
         run: |
           $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
           $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
