@@ -13,6 +13,15 @@ pub(super) fn decode(
     // Already-bound OLE2DISP, OLE2NLS, OLE1, and IsEqualGUID stay on their
     // existing decoders; those ids are outside this range.
     let id = descriptor.id as u32;
+    // Binding ids 6000000–6999999 are the library rows and leftover OLE rows
+    // that had no call. Already-bound rows stay on their existing decoders.
+    if (6_000_000..7_000_000).contains(&id) {
+        return Ok(Some(Win16ApiRequest::Libraries(
+            super::Win16LibraryRequest::LibraryRemainder {
+                ordinal: descriptor.ordinal(),
+            },
+        )));
+    }
     if (4_000_000..5_000_000).contains(&id) {
         let module = super::Win16OleRemainderModule::from_catalog_name(descriptor.module())
             .ok_or(Win16Error::InvalidRange)?;

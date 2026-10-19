@@ -4,33 +4,96 @@ module = "CTL3DV2"
 ordinal = 7
 name = "BtnWndProc3d"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCtl3dv27", id_value = 6000047, constant = "LIB_CTL3DV2_7" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 8
 name = "EditWndProc3d"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCtl3dv28", id_value = 6000048, constant = "LIB_CTL3DV2_8" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 9
 name = "ListWndProc3d"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCtl3dv29", id_value = 6000049, constant = "LIB_CTL3DV2_9" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 10
 name = "ComboWndProc3d"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCtl3dv210", id_value = 6000050, constant = "LIB_CTL3DV2_10" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 11
 name = "StaticWndProc3d"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCtl3dv211", id_value = 6000051, constant = "LIB_CTL3DV2_11" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 17
 name = "Ctl3dDlgProc"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCtl3dv217", id_value = 6000052, constant = "LIB_CTL3DV2_17" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 19
 name = "Ctl3dSetStyle"
 decl = { attributes = ["ret16"], args = ["word", "long", "word"] }
+binding = { rust_id = "LibCtl3dv219", id_value = 6000053, constant = "LIB_CTL3DV2_19" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U16" },
+]
+

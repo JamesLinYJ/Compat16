@@ -4,42 +4,102 @@ module = "MMSYSTEM"
 ordinal = 1
 name = "WEP"
 decl = { args = ["word", "word", "word", "pointer"] }
+binding = { rust_id = "LibMmsystem1", id_value = 6000054, constant = "LIB_MMSYSTEM_1" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 4
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
+binding = { rust_id = "LibMmsystem4", id_value = 6000055, constant = "LIB_MMSYSTEM_4" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U16" },
+]
 
 [[exports]]
 ordinal = 5
 name = "mmsystemGetVersion"
+binding = { rust_id = "LibMmsystem5", id_value = 6000056, constant = "LIB_MMSYSTEM_5" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 6
 name = "DriverProc"
 decl = { args = ["long", "word", "word", "long", "long"] }
+binding = { rust_id = "LibMmsystem6", id_value = 6000057, constant = "LIB_MMSYSTEM_6" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 8
 name = "WMMMidiRunOnce"
+binding = { rust_id = "LibMmsystem8", id_value = 6000058, constant = "LIB_MMSYSTEM_8" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 30
 name = "OutputDebugStr"
 decl = { attributes = ["ret16"], args = ["string"] }
+binding = { rust_id = "LibMmsystem30", id_value = 6000059, constant = "LIB_MMSYSTEM_30" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+]
 
 [[exports]]
 ordinal = 31
 name = "DriverCallback"
 decl = { args = ["long", "word", "word", "word", "long", "long", "long"] }
+binding = { rust_id = "LibMmsystem31", id_value = 6000060, constant = "LIB_MMSYSTEM_31" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U32" },
+  { name = "a6", type = "U32" },
+]
 
 [[exports]]
 ordinal = 32
 name = "StackEnter"
+binding = { rust_id = "LibMmsystem32", id_value = 6000061, constant = "LIB_MMSYSTEM_32" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 33
 name = "StackLeave"
+binding = { rust_id = "LibMmsystem33", id_value = 6000062, constant = "LIB_MMSYSTEM_33" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 34
@@ -55,82 +115,198 @@ kind = "stub"
 ordinal = 900
 name = "mmTaskCreate"
 decl = { args = ["long", "pointer", "long"] }
+binding = { rust_id = "LibMmsystem900", id_value = 6000063, constant = "LIB_MMSYSTEM_900" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 902
 name = "mmTaskBlock"
 decl = { args = ["word"] }
+binding = { rust_id = "LibMmsystem902", id_value = 6000064, constant = "LIB_MMSYSTEM_902" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 903
 name = "mmTaskSignal"
 decl = { args = ["word"] }
+binding = { rust_id = "LibMmsystem903", id_value = 6000065, constant = "LIB_MMSYSTEM_903" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 904
 name = "mmGetCurrentTask"
 decl = { attributes = ["ret16"] }
+binding = { rust_id = "LibMmsystem904", id_value = 6000066, constant = "LIB_MMSYSTEM_904" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 905
 name = "mmTaskYield"
+binding = { rust_id = "LibMmsystem905", id_value = 6000067, constant = "LIB_MMSYSTEM_905" }
+[exports.call]
+returns = "dword"
 
 [[exports]]
 ordinal = 1100
 name = "DrvOpen"
 decl = { args = ["string", "string", "long"] }
+binding = { rust_id = "LibMmsystem1100", id_value = 6000068, constant = "LIB_MMSYSTEM_1100" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 1101
 name = "DrvClose"
 decl = { args = ["word", "long", "long"] }
+binding = { rust_id = "LibMmsystem1101", id_value = 6000069, constant = "LIB_MMSYSTEM_1101" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 1102
 name = "DrvSendMessage"
 decl = { args = ["word", "word", "long", "long"] }
+binding = { rust_id = "LibMmsystem1102", id_value = 6000070, constant = "LIB_MMSYSTEM_1102" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 1103
 name = "DrvGetModuleHandle"
 decl = { args = ["word"] }
+binding = { rust_id = "LibMmsystem1103", id_value = 6000071, constant = "LIB_MMSYSTEM_1103" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 1104
 name = "DrvDefDriverProc"
 decl = { args = ["long", "word", "word", "long", "long"] }
+binding = { rust_id = "LibMmsystem1104", id_value = 6000072, constant = "LIB_MMSYSTEM_1104" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 1120
 name = "mmThreadCreate"
 decl = { args = ["segmented_pointer", "pointer", "long", "long"] }
+binding = { rust_id = "LibMmsystem1120", id_value = 6000073, constant = "LIB_MMSYSTEM_1120" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 1121
 name = "mmThreadSignal"
 decl = { args = ["word"] }
+binding = { rust_id = "LibMmsystem1121", id_value = 6000074, constant = "LIB_MMSYSTEM_1121" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 1122
 name = "mmThreadBlock"
 decl = { args = ["word"] }
+binding = { rust_id = "LibMmsystem1122", id_value = 6000075, constant = "LIB_MMSYSTEM_1122" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 1123
 name = "mmThreadIsCurrent"
 decl = { args = ["word"] }
+binding = { rust_id = "LibMmsystem1123", id_value = 6000076, constant = "LIB_MMSYSTEM_1123" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 1124
 name = "mmThreadIsValid"
 decl = { args = ["word"] }
+binding = { rust_id = "LibMmsystem1124", id_value = 6000077, constant = "LIB_MMSYSTEM_1124" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 1125
 name = "mmThreadGetTask"
 decl = { args = ["word"] }
+binding = { rust_id = "LibMmsystem1125", id_value = 6000078, constant = "LIB_MMSYSTEM_1125" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 1150
 name = "mmShowMMCPLPropertySheet"
 decl = { args = ["word", "string", "string", "string"] }
+binding = { rust_id = "LibMmsystem1150", id_value = 6000079, constant = "LIB_MMSYSTEM_1150" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "FarString" },
+  { name = "a3", type = "FarString" },
+]
+

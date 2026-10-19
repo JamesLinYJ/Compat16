@@ -5,75 +5,204 @@ defaults = { attributes = ["ret16"] }
 ordinal = 100
 name = "NDdeShareAdd"
 decl = { args = ["string", "word", "pointer", "long"] }
+binding = { rust_id = "LibNddeapi100", id_value = 6000081, constant = "LIB_NDDEAPI_100" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 101
 name = "NDdeShareDel"
 decl = { args = ["string", "string", "word"] }
+binding = { rust_id = "LibNddeapi101", id_value = 6000082, constant = "LIB_NDDEAPI_101" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 102
 name = "NDdeShareEnum"
 decl = { args = ["string", "word", "pointer", "long", "pointer", "pointer"] }
+binding = { rust_id = "LibNddeapi102", id_value = 6000083, constant = "LIB_NDDEAPI_102" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 103
 name = "NDdeShareGetInfo"
 decl = { args = ["string", "string", "word", "pointer", "long", "pointer", "pointer"] }
+binding = { rust_id = "LibNddeapi103", id_value = 6000084, constant = "LIB_NDDEAPI_103" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "FarPointer" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 104
 name = "NDdeShareSetInfo"
 decl = { args = ["string", "string", "word", "pointer", "long", "word"] }
+binding = { rust_id = "LibNddeapi104", id_value = 6000085, constant = "LIB_NDDEAPI_104" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U16" },
+]
 
 [[exports]]
 ordinal = 105
 name = "NDdeGetClientInfo"
 decl = { args = ["word", "string", "long", "string", "long"] }
+binding = { rust_id = "LibNddeapi105", id_value = 6000086, constant = "LIB_NDDEAPI_105" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarString" },
+  { name = "a4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 106
 name = "NDdeGetNodeName"
 decl = { args = ["string", "long"] }
+binding = { rust_id = "LibNddeapi106", id_value = 6000087, constant = "LIB_NDDEAPI_106" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 107
 name = "NDdeGetErrorString"
 decl = { args = ["word", "string", "long"] }
+binding = { rust_id = "LibNddeapi107", id_value = 6000088, constant = "LIB_NDDEAPI_107" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 108
 name = "NDdeConnectionEnum"
 decl = { args = ["string", "string", "long", "word", "pointer", "long", "pointer", "pointer"] }
+binding = { rust_id = "LibNddeapi108", id_value = 6000089, constant = "LIB_NDDEAPI_108" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "U32" },
+  { name = "a6", type = "FarPointer" },
+  { name = "a7", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 109
 name = "NDdeIsValidShareName"
 decl = { args = ["string"] }
+binding = { rust_id = "LibNddeapi109", id_value = 6000090, constant = "LIB_NDDEAPI_109" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+]
 
 [[exports]]
 ordinal = 110
 name = "NDdeIsValidPassword"
 decl = { args = ["string"] }
+binding = { rust_id = "LibNddeapi110", id_value = 6000091, constant = "LIB_NDDEAPI_110" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+]
 
 [[exports]]
 ordinal = 111
 name = "NDdeIsValidTopic"
 decl = { args = ["string"] }
+binding = { rust_id = "LibNddeapi111", id_value = 6000092, constant = "LIB_NDDEAPI_111" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+]
 
 [[exports]]
 ordinal = 112
 name = "NDdeSessionEnum"
 decl = { args = ["string", "word", "pointer", "long", "pointer", "pointer"] }
+binding = { rust_id = "LibNddeapi112", id_value = 6000093, constant = "LIB_NDDEAPI_112" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "FarPointer" },
+  { name = "a5", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 113
 name = "NDdeSessionClose"
 decl = { args = ["string", "string", "long"] }
+binding = { rust_id = "LibNddeapi113", id_value = 6000094, constant = "LIB_NDDEAPI_113" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarString" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 114
 name = "NDdeGetWindow"
+binding = { rust_id = "LibNddeapi114", id_value = 6000095, constant = "LIB_NDDEAPI_114" }
+[exports.call]
+returns = "word"
 
 [[exports]]
 ordinal = 115

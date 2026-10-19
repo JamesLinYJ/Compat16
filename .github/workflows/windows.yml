@@ -126,6 +126,7 @@ jobs:
             '-p win16-abi --lib',
             '-p runtime --lib driver_contract_',
             '-p runtime --lib ole_remainder_contract_',
+            '-p runtime --lib library_remainder_contract_',
             '-p runtime --lib session_exit_',
             '-p runtime --lib callback_instance_',
             '-p runtime --lib module_lookup_',
