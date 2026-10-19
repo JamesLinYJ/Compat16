@@ -36,7 +36,10 @@ pub(super) fn decode(
             },
         )));
     }
-    if (4_000_000..5_000_000).contains(&id) {
+    // Binding ids 9100000–9199999 are OLE rows whose frames come from the
+    // public Learn reference. They use the same failure returns as the
+    // earlier OLE remainder.
+    if (9_100_000..9_200_000).contains(&id) || (4_000_000..5_000_000).contains(&id) {
         let module = super::Win16OleRemainderModule::from_catalog_name(descriptor.module())
             .ok_or(Win16Error::InvalidRange)?;
         return Ok(Some(Win16ApiRequest::Libraries(
