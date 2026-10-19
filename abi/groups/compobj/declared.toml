@@ -81,27 +81,61 @@ params = [
 [[exports]]
 ordinal = 8
 name = "COMARSHALINTERFACE"
-kind = "stub"
+decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer", "long", "segmented_pointer", "long"] }
+binding = { rust_id = "CompobjCoMarshalInterface", id_value = 9100000, constant = "COMPOBJ_COMARSHALINTERFACE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "pStm", type = "FarPointer" },
+  { name = "riid", type = "FarPointer" },
+  { name = "pUnk", type = "FarPointer" },
+  { name = "dwDestContext", type = "U32" },
+  { name = "pvDestContext", type = "FarPointer" },
+  { name = "mshlflags", type = "U32" },
+]
 
 [[exports]]
 ordinal = 9
 name = "COUNMARSHALINTERFACE"
-kind = "stub"
+decl = { args = ["segmented_pointer", "segmented_pointer", "segmented_pointer"] }
+binding = { rust_id = "CompobjCoUnmarshalInterface", id_value = 9100001, constant = "COMPOBJ_COUNMARSHALINTERFACE" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "pStm", type = "FarPointer" },
+  { name = "riid", type = "FarPointer" },
+  { name = "ppv", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 10
 name = "COLOADLIBRARY"
-kind = "stub"
+decl = { attributes = ["ret16"], args = ["string", "word"] }
+binding = { rust_id = "CompobjCoLoadLibrary", id_value = 9100002, constant = "COMPOBJ_COLOADLIBRARY" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "lpszLibName", type = "FarString" },
+  { name = "bAutoFree", type = "U16" },
+]
 
 [[exports]]
 ordinal = 11
 name = "COFREELIBRARY"
-kind = "stub"
+decl = { args = ["word"] }
+binding = { rust_id = "CompobjCoFreeLibrary", id_value = 9100003, constant = "COMPOBJ_COFREELIBRARY" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "hInst", type = "U16" },
+]
 
 [[exports]]
 ordinal = 12
 name = "COFREEALLLIBRARIES"
-kind = "stub"
+binding = { rust_id = "CompobjCoFreeAllLibraries", id_value = 9100004, constant = "COMPOBJ_COFREEALLLIBRARIES" }
+[exports.call]
+returns = "void"
 
 [[exports]]
 ordinal = 13
@@ -145,7 +179,13 @@ params = [
 [[exports]]
 ordinal = 16
 name = "CORELEASEMARSHALDATA"
-kind = "stub"
+decl = { args = ["segmented_pointer"] }
+binding = { rust_id = "CompobjCoReleaseMarshalData", id_value = 9100005, constant = "COMPOBJ_CORELEASEMARSHALDATA" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "pStm", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 17
@@ -230,7 +270,13 @@ params = [
 [[exports]]
 ordinal = 28
 name = "COISHANDLERCONNECTED"
-kind = "stub"
+decl = { attributes = ["ret16"], args = ["segmented_pointer"] }
+binding = { rust_id = "CompobjCoIsHandlerConnected", id_value = 9100006, constant = "COMPOBJ_COISHANDLERCONNECTED" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "pUnk", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 29
@@ -266,12 +312,26 @@ params = [
 [[exports]]
 ordinal = 32
 name = "COMARSHALHRESULT"
-kind = "stub"
+decl = { args = ["segmented_pointer", "long"] }
+binding = { rust_id = "CompobjCoMarshalHresult", id_value = 9100007, constant = "COMPOBJ_COMARSHALHRESULT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "pstm", type = "FarPointer" },
+  { name = "hresult", type = "U32" },
+]
 
 [[exports]]
 ordinal = 33
 name = "COUNMARSHALHRESULT"
-kind = "stub"
+decl = { args = ["segmented_pointer", "segmented_pointer"] }
+binding = { rust_id = "CompobjCoUnmarshalHresult", id_value = 9100008, constant = "COMPOBJ_COUNMARSHALHRESULT" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "pstm", type = "FarPointer" },
+  { name = "phresult", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 34
@@ -510,7 +570,18 @@ params = [
 [[exports]]
 ordinal = 67
 name = "COGETSTANDARDMARSHAL"
-kind = "stub"
+decl = { args = ["segmented_pointer", "segmented_pointer", "long", "segmented_pointer", "long", "segmented_pointer"] }
+binding = { rust_id = "CompobjCoGetStandardMarshal", id_value = 9100009, constant = "COMPOBJ_COGETSTANDARDMARSHAL" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "riid", type = "FarPointer" },
+  { name = "pUnk", type = "FarPointer" },
+  { name = "dwDestContext", type = "U32" },
+  { name = "pvDestContext", type = "FarPointer" },
+  { name = "mshlflags", type = "U32" },
+  { name = "ppMarshal", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 68
