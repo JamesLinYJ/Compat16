@@ -7,15 +7,14 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use runtime::{
-    DiagnosticKind as Kind, RuntimeError, Win16CaretShape, Win16HostPoint,
-    Win16WindowCall, Win16WindowCallResult, Win16WindowTarget,
+    DiagnosticKind as Kind, RuntimeError, Win16CaretShape, Win16HostPoint, Win16WindowCall,
+    Win16WindowCallResult, Win16WindowTarget,
 };
 use windows_sys::Win32::Foundation::{HWND, POINT};
 use windows_sys::Win32::Graphics::Gdi::HBITMAP;
-use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateCaret, DestroyCaret, GetCaretPos, GetGUIThreadInfo, GetWindowThreadProcessId, GUITHREADINFO,
-    HideCaret, SetCaretPos, ShowCaret,
+    CreateCaret, DestroyCaret, GUITHREADINFO, GetCaretPos, GetGUIThreadInfo,
+    GetWindowThreadProcessId, HideCaret, SetCaretPos, ShowCaret,
 };
 
 use super::win16_window_worker::WorkerState;
@@ -28,32 +27,54 @@ pub(super) fn execute(
     use Win16WindowCallResult as ResultValue;
 
     Ok(match call {
-        Call::CreateCaret { window, shape, width, height } => {
+        Call::CreateCaret {
+            window,
+            shape,
+            width,
+            height,
+        } => {
             // These are native API shape selectors, never guest HBITMAP bits.
             // USER chooses default dimensions for zero and starts hidden.
             let bitmap: HBITMAP = match shape {
                 Win16CaretShape::Solid => std::ptr::null_mut(),
                 Win16CaretShape::Gray => 1_usize as HBITMAP,
             };
+            // SAFETY: `CreateCaret` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             ResultValue::Boolean(hwnd(state, window).is_some_and(|native| unsafe {
                 CreateCaret(native, bitmap, i32::from(width), i32::from(height)) != 0
             }))
         }
+        // SAFETY: `DestroyCaret` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         Call::DestroyCaret => ResultValue::Boolean(unsafe { DestroyCaret() != 0 }),
-        Call::SetCaretPos { x, y } => ResultValue::Boolean(unsafe {
-            SetCaretPos(i32::from(x), i32::from(y)) != 0
-        }),
-        Call::HideCaret { window } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { HideCaret(native) != 0 })),
-        Call::ShowCaret { window } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { ShowCaret(native) != 0 })),
+        // SAFETY: `SetCaretPos` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+        Call::SetCaretPos { x, y } => {
+            ResultValue::Boolean(unsafe { SetCaretPos(i32::from(x), i32::from(y)) != 0 })
+        }
+        Call::HideCaret { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                // SAFETY: `HideCaret` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+                .is_some_and(|native| unsafe { HideCaret(native) != 0 }),
+        ),
+        Call::ShowCaret { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                // SAFETY: `ShowCaret` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+                .is_some_and(|native| unsafe { ShowCaret(native) != 0 }),
+        ),
         Call::GetCaretPos => {
             let mut point = POINT::default();
+            // SAFETY: `GetCaretPos` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let success = unsafe { GetCaretPos(&mut point) != 0 };
-            ResultValue::Point(success.then_some(Win16HostPoint { x: point.x, y: point.y }))
+            ResultValue::Point(success.then_some(Win16HostPoint {
+                x: point.x,
+                y: point.y,
+            }))
         }
-        _ => return Err(RuntimeError::new(Kind::InternalInvariant,
-            "non-caret operation reached the native Win16 caret bridge")),
+        _ => {
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "non-caret operation reached the native Win16 caret bridge",
+            ));
+        }
     })
 }
 
@@ -78,20 +99,27 @@ pub(super) fn shutdown() -> Result<(), RuntimeError> {
     };
     // GetGUIThreadInfo(0) addresses the foreground thread, not this worker.
     // Use its actual ID even when the application is inactive or unfocused.
-    let thread = unsafe { GetCurrentThreadId() };
+    let thread = crate::windows::win32_safe::current_thread_id();
+    // SAFETY: GetGUIThreadInfo writes into a caller-owned GUITHREADINFO.
     if unsafe { GetGUIThreadInfo(thread, &mut info) } == 0 {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "query the USER worker's queue caret before shutdown"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "query the USER worker's queue caret before shutdown",
+        ));
     }
     // The queue snapshot can expose a caret belonging to another GUI thread.
     // DestroyCaret cannot destroy that owner's resource. A stale HWND after
     // window destruction likewise proves no live caret window on this worker.
     // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-destroycaret
     let owned = !info.hwndCaret.is_null()
+        // SAFETY: GetWindowThreadProcessId optionally writes a caller-owned process id.
         && unsafe { GetWindowThreadProcessId(info.hwndCaret, std::ptr::null_mut()) } == thread;
+    // SAFETY: `DestroyCaret` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     if owned && unsafe { DestroyCaret() } == 0 {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "worker shutdown could not destroy its queue caret; cleanup remains incomplete"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "worker shutdown could not destroy its queue caret; cleanup remains incomplete",
+        ));
     }
     Ok(())
 }

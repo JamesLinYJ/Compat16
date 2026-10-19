@@ -5,6 +5,7 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::IsWindowEnabled;
 struct HiddenWindow(HWND);
 impl Drop for HiddenWindow {
     fn drop(&mut self) {
+        // SAFETY: `DestroyWindow` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             DestroyWindow(self.0);
         }
@@ -12,7 +13,9 @@ impl Drop for HiddenWindow {
 }
 
 fn state(fixture: &Fixture) -> (HiddenWindow, State) {
-    let window = unsafe {
+    let window =
+        // SAFETY: `CreateWindowExW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe {
         CreateWindowExW(
             0,
             wide("STATIC").as_ptr(),
@@ -80,8 +83,14 @@ fn native_controls_validate_then_report_spawn_failure_without_closing() {
     assert!(state.error);
     assert!(text(state.controls.status).contains("无法启动程序"));
     assert!(state.log.as_ref().unwrap().is_file());
-    assert!(unsafe { IsWindowEnabled(state.controls.log) } != 0);
-    assert!(unsafe { IsWindow(window.0) } != 0);
+    assert!(
+        // SAFETY: `IsWindowEnabled` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { IsWindowEnabled(state.controls.log) } != 0
+    );
+    assert!(
+        // SAFETY: `IsWindow` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { IsWindow(window.0) } != 0
+    );
     // Controls must be destroyed before their font handles are released.
     drop(window);
     drop(state);
@@ -93,6 +102,7 @@ fn advanced_native_controls_round_trip_settings_and_dpi_layout() {
     let (window, mut state) = state(&fixture);
     state.command(controls::ADVANCED, BN_CLICKED as u16);
     assert!(state.advanced);
+    // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe {
         SendMessageW(state.controls.engine, CB_SETCURSEL, 2, 0);
         SendMessageW(state.controls.dos, CB_SETCURSEL, 1, 0);
@@ -113,7 +123,11 @@ fn advanced_native_controls_round_trip_settings_and_dpi_layout() {
         state.dpi = dpi;
         state.layout(true);
         let mut client = RECT::default();
-        assert_ne!(unsafe { GetClientRect(window.0, &mut client) }, 0);
+        assert_ne!(
+            // SAFETY: `GetClientRect` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { GetClientRect(window.0, &mut client) },
+            0
+        );
         assert!(client.right > 0);
         assert!(client.bottom > 0);
         state.scroll(SB_BOTTOM, 0);
@@ -135,6 +149,7 @@ fn embedded_log_keeps_recent_output_and_is_read_only() {
     assert!(contents.ends_with("LAST-LOG-LINE\r\n"));
     assert!(contents.encode_utf16().count() <= 64 * 1024);
     assert_ne!(
+        // SAFETY: `GetWindowLongW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe { GetWindowLongW(state.controls.log_view, GWL_STYLE) } & ES_READONLY,
         0
     );

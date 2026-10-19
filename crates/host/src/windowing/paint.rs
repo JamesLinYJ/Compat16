@@ -1,13 +1,13 @@
-use super::context::WindowContext;
 use super::WindowingError;
+use super::context::WindowContext;
+use graphics::{HostEvent, Rect, Surface};
 use std::mem::size_of;
-use windows_sys::Win32::Foundation::{SetLastError, HWND, RECT};
+use windows_sys::Win32::Foundation::{HWND, RECT};
 use windows_sys::Win32::Graphics::Gdi::{
-    BeginPaint, EndPaint, FillRect, GetSysColorBrush, StretchDIBits, BITMAPINFO, BI_RGB,
-    COLOR_WINDOW, DIB_RGB_COLORS, PAINTSTRUCT, SRCCOPY,
+    BI_RGB, BITMAPINFO, BeginPaint, COLOR_WINDOW, DIB_RGB_COLORS, EndPaint, FillRect,
+    GetSysColorBrush, PAINTSTRUCT, SRCCOPY, StretchDIBits,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::GetClientRect;
-use graphics::{HostEvent, Rect, Surface};
 
 pub(super) struct OwnedDib {
     pub(super) width: i32,
@@ -82,9 +82,8 @@ pub(super) fn paint_window(hwnd: HWND, context: &WindowContext) {
     }
 
     let mut client = RECT::default();
-    unsafe {
-        SetLastError(0);
-    }
+    crate::windows::win32_safe::set_last_error(0);
+    // SAFETY: GetClientRect writes into a caller-owned RECT that outlives the call.
     if unsafe { GetClientRect(hwnd, &mut client) } == 0 {
         context.report_native_failure("GetClientRect");
         session.finish();
@@ -127,7 +126,7 @@ pub(super) fn paint_window(hwnd: HWND, context: &WindowContext) {
             // positive dimensions in its BITMAPINFO, and both pointers remain
             // valid for the duration of this synchronous GDI call.
             unsafe {
-                SetLastError(0);
+                crate::windows::win32_safe::set_last_error(0);
                 let copied = StretchDIBits(
                     session.hdc,
                     0,
@@ -148,8 +147,9 @@ pub(super) fn paint_window(hwnd: HWND, context: &WindowContext) {
         }
     } else {
         // The system brush is OS-owned; FillRect borrows it for this call.
+        // SAFETY: FillRect borrows a caller-owned RECT and a brush that stay live for the call. GetSysColorBrush returns a system brush for an integer color index.
         unsafe {
-            SetLastError(0);
+            crate::windows::win32_safe::set_last_error(0);
             FillRect(
                 session.hdc,
                 &session.paint.rcPaint,
@@ -165,9 +165,10 @@ pub(super) fn paint_window(hwnd: HWND, context: &WindowContext) {
     }
 }
 
-pub(super) unsafe fn invalidate(hwnd: HWND, rect: Option<&RECT>) -> i32 {
+pub(super) fn invalidate(hwnd: HWND, rect: Option<&RECT>) -> i32 {
+    // SAFETY: InvalidateRect borrows an optional caller-owned RECT for this call.
     unsafe {
-        SetLastError(0);
+        crate::windows::win32_safe::set_last_error(0);
         windows_sys::Win32::Graphics::Gdi::InvalidateRect(
             hwnd,
             rect.map_or(std::ptr::null(), |rect| rect),
@@ -186,9 +187,8 @@ struct PaintSession {
 impl PaintSession {
     fn begin(hwnd: HWND) -> Self {
         let mut paint = PAINTSTRUCT::default();
-        unsafe {
-            SetLastError(0);
-        }
+        crate::windows::win32_safe::set_last_error(0);
+        // SAFETY: BeginPaint writes into a caller-owned PAINTSTRUCT that outlives the call.
         let hdc = unsafe { BeginPaint(hwnd, &mut paint) };
         Self {
             hwnd,
@@ -203,9 +203,8 @@ impl PaintSession {
             return true;
         }
         self.ended = true;
-        unsafe {
-            SetLastError(0);
-        }
+        crate::windows::win32_safe::set_last_error(0);
+        // SAFETY: EndPaint reads the PAINTSTRUCT returned by the matching BeginPaint.
         unsafe { EndPaint(self.hwnd, &self.paint) != 0 }
     }
 }
@@ -214,6 +213,7 @@ impl Drop for PaintSession {
     fn drop(&mut self) {
         if !self.ended {
             self.ended = true;
+            // SAFETY: EndPaint reads the PAINTSTRUCT returned by the matching BeginPaint.
             unsafe {
                 EndPaint(self.hwnd, &self.paint);
             }

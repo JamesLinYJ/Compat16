@@ -5,7 +5,6 @@ use std::rc::Rc;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::Foundation::HWND;
-use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{PostMessageW, PostThreadMessageW, WM_TIMER};
 
 use super::{NativeTimerRecord, Win16GuestTimerPost, WorkerState};
@@ -133,8 +132,10 @@ pub(in crate::windows::win16_windows) fn post_guest_timer_message(
     guest_l_param: u32,
 ) -> Result<bool, RuntimeError> {
     if !runtime::Win16ScalarMessage::is_timer_message(guest_message) {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "a non-timer message requested a guest timer-post sidecar"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "a non-timer message requested a guest timer-post sidecar",
+        ));
     }
     let key = {
         let mut state = state.borrow_mut();
@@ -169,9 +170,11 @@ pub(in crate::windows::win16_windows) fn post_guest_timer_message(
         key
     };
     let posted = if hwnd.is_null() {
-        let thread = unsafe { GetCurrentThreadId() };
+        let thread = crate::windows::win32_safe::current_thread_id();
+        // SAFETY: PostThreadMessageW queues scalar parameters to a thread id.
         unsafe { PostThreadMessageW(thread, WM_TIMER, key.1, host_timer_proc_pointer()) }
     } else {
+        // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
         unsafe { PostMessageW(hwnd, WM_TIMER, key.1, host_timer_proc_pointer()) }
     };
     if posted == 0 {

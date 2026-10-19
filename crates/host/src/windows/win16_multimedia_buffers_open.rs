@@ -93,6 +93,7 @@ impl Win16WaveHost {
             } else {
                 CALLBACK_NULL
             };
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let (result, native_handle) = unsafe {
             native::open_native(
                 direction,
@@ -136,6 +137,7 @@ impl Win16WaveHost {
         }
         if query {
             if !native_handle_is_null(&native_handle) {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 let close_result = unsafe { native::close_native(&native_handle) };
                 if close_result != MMSYSERR_NOERROR {
                     let device = WaveDevice {

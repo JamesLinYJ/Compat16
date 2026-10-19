@@ -14,7 +14,7 @@ use windows_sys::Win32::Foundation::{
 };
 use windows_sys::Win32::Storage::FileSystem::{
     FILE_CASE_SENSITIVE_INFO, FILE_ID_BOTH_DIR_INFO, FileCaseSensitiveInfo,
-    FileIdBothDirectoryInfo, FileIdBothDirectoryRestartInfo, FindClose, FindFirstFileW,
+    FileIdBothDirectoryInfo, FileIdBothDirectoryRestartInfo, FindFirstFileW,
     GetFileInformationByHandleEx, WIN32_FIND_DATAW,
 };
 
@@ -162,7 +162,7 @@ impl Filesystem {
             Ok(Some(OsString::from_wide(&data.cFileName[..file_name_end])))
         })();
         // SAFETY: this is the fresh FindFirst handle returned above.
-        if unsafe { FindClose(handle) } == 0 {
+        if (crate::windows::win32_safe::find_close(handle)) == 0 {
             return Err(os_error(io::Error::last_os_error()));
         }
         result
@@ -208,7 +208,7 @@ impl Filesystem {
 
         let Some(end) = data.cFileName.iter().position(|unit| *unit == 0) else {
             // SAFETY: this is the fresh search handle returned above.
-            let closed = unsafe { FindClose(handle) } != 0;
+            let closed = (crate::windows::win32_safe::find_close(handle)) != 0;
             if !closed {
                 return Err(os_error(io::Error::last_os_error()));
             }
@@ -216,7 +216,7 @@ impl Filesystem {
         };
         let actual = OsString::from_wide(&data.cFileName[..end]);
         // SAFETY: this is the fresh search handle returned above.
-        if unsafe { FindClose(handle) } == 0 {
+        if (crate::windows::win32_safe::find_close(handle)) == 0 {
             return Err(os_error(io::Error::last_os_error()));
         }
         if !super::environment::windows_component_eq(&actual, requested) {
@@ -343,7 +343,13 @@ impl Filesystem {
     ) -> Result<(), DosHostError> {
         let native_short_names = self.native_short_names(directory);
         let previous = self.aliases.remove(directory).unwrap_or_default();
-        let table = make_alias_table(names, previous, native_short_names, case_sensitivity, self.guest_code_page)?;
+        let table = make_alias_table(
+            names,
+            previous,
+            native_short_names,
+            case_sensitivity,
+            self.guest_code_page,
+        )?;
         self.aliases.insert(directory.to_path_buf(), table);
         Ok(())
     }
@@ -423,6 +429,7 @@ impl Filesystem {
                     let short_units = &entry.ShortName[..short_len / size_of::<u16>()];
                     let short_name = OsString::from_wide(short_units);
                     if let Some(alias) = canonical_83(&short_name, self.guest_code_page) {
+                        // SAFETY: The pointer and length were checked against the owning allocation, and the bytes stay live for this copy.
                         let file_units = unsafe {
                             std::slice::from_raw_parts(
                                 std::ptr::addr_of!(entry.FileName).cast::<u16>(),

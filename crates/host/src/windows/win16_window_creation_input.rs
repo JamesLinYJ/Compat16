@@ -15,11 +15,9 @@ pub(super) fn copy_native_wide(
 ) -> Result<Option<Vec<u8>>, RuntimeError> {
     // WM_SETTEXT's contract supplies a readable UTF-16 string for this WndProc.
     // The copied guest bytes, never this host pointer, reach runtime.
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     unsafe {
-        super::super::win16_window_text_context::copy_native_wide_z(
-            state,
-            l_param as *const u16,
-        )
+        super::super::win16_window_text_context::copy_native_wide_z(state, l_param as *const u16)
     }
 }
 
@@ -46,11 +44,9 @@ pub(super) fn creation_from_native(
         if native_name == 0 {
             data.title = None;
         } else if native_name > usize::from(u16::MAX) {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             data.title = unsafe {
-                super::super::win16_window_text_context::copy_native_wide_z(
-                    state,
-                    native.lpszName,
-                )?
+                super::super::win16_window_text_context::copy_native_wide_z(state, native.lpszName)?
             };
             if data.title.is_none() {
                 data.title = Some(Vec::new());
@@ -60,11 +56,17 @@ pub(super) fn creation_from_native(
     data.parent = if native.hwndParent.is_null() {
         None
     } else {
-        state.borrow().windows_by_native.get(&(native.hwndParent as usize))
-            .map(|parent| parent.window).or(data.parent)
+        state
+            .borrow()
+            .windows_by_native
+            .get(&(native.hwndParent as usize))
+            .map(|parent| parent.window)
+            .or(data.parent)
     };
     data.child_id = if data.style & WS_CHILD != 0 {
         Some(native.hMenu as usize as u16)
-    } else { None };
+    } else {
+        None
+    };
     Ok(data)
 }

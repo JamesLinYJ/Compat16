@@ -107,6 +107,7 @@ mod native_tests {
     struct Streams([*mut core::ffi::c_void; 2]);
     impl Drop for Streams {
         fn drop(&mut self) {
+            // SAFETY: `SetStdHandle` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
             unsafe {
                 SetStdHandle((-10_i32) as u32, self.0[0]);
                 SetStdHandle((-11_i32) as u32, self.0[1]);
@@ -137,7 +138,9 @@ mod native_tests {
         prepared
             .arguments
             .splice(0..0, ["--max-instructions".into(), "50000".into()]);
-        let streams = unsafe {
+        let streams =
+            // SAFETY: `Streams` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe {
             let streams = Streams([
                 GetStdHandle((-10_i32) as u32),
                 GetStdHandle((-11_i32) as u32),

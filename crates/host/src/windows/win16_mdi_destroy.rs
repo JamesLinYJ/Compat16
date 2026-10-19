@@ -8,17 +8,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use runtime::{
-    DiagnosticKind as Kind, RuntimeError,
-    Win16HostMdiMessage, Win16HostMdiMessageQueuedKind as QueuedKind,
-    Win16HostMdiMessageResult, Win16HostMdiOutput, Win16HostMdiQueuedMessage,
-    Win16HostSystemClass, Win16HostWindow,
+    DiagnosticKind as Kind, RuntimeError, Win16HostMdiMessage,
+    Win16HostMdiMessageQueuedKind as QueuedKind, Win16HostMdiMessageResult, Win16HostMdiOutput,
+    Win16HostMdiQueuedMessage, Win16HostSystemClass, Win16HostWindow,
     Win16HostWindowRetirementBatch, Win16MdiEndpoint,
 };
 use windows_sys::Win32::Foundation::{HWND, WPARAM};
-use windows_sys::Win32::System::Threading::{GetCurrentProcessId, GetCurrentThreadId};
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GWL_EXSTYLE, GetParent, GetWindowLongPtrW, IsWindow, WS_EX_MDICHILD,
-};
+use windows_sys::Win32::UI::WindowsAndMessaging::{GWL_EXSTYLE, GetWindowLongPtrW, WS_EX_MDICHILD};
 
 use super::super::super::win16_window_worker::{
     self as worker, NativeWindowRetirementCandidate, WorkerState,
@@ -60,8 +56,10 @@ pub(super) fn invoke_destroy(
     };
     let current = preparation.candidate_for(child, target);
     let exact_current = preparation.ready
-        && current.is_some_and(|candidate| worker::same_candidate(initial, candidate)
-            && is_exact_mdi_child(state, candidate, Some(client)));
+        && current.is_some_and(|candidate| {
+            worker::same_candidate(initial, candidate)
+                && is_exact_mdi_child(state, candidate, Some(client))
+        });
     let value = if exact_current {
         invoke_native_message(invocation, hwnd, super::WM_MDIDESTROY, target as WPARAM, 0)
     } else {
@@ -69,21 +67,23 @@ pub(super) fn invoke_destroy(
     };
     let finished = worker::finish_window_retirement(state, preparation.scope, true);
     let mut retirements = finished.receipts;
-    let root_index = retirements.iter().position(|receipt| receipt.window == child);
+    let root_index = retirements
+        .iter()
+        .position(|receipt| receipt.window == child);
     let receipt = root_index.map(|index| retirements.remove(index));
     let additional_retirements = retirements;
     let invalidated_menus = finished.invalidated_menus;
-    let output = if receipt.is_some() || !additional_retirements.is_empty()
-        || !invalidated_menus.is_empty()
-    {
-        Win16HostMdiOutput::Destroyed {
-            receipt,
-            additional_retirements,
-            invalidated_menus,
-        }
-    } else {
-        Win16HostMdiOutput::None
-    };
+    let output =
+        if receipt.is_some() || !additional_retirements.is_empty() || !invalidated_menus.is_empty()
+        {
+            Win16HostMdiOutput::Destroyed {
+                receipt,
+                additional_retirements,
+                invalidated_menus,
+            }
+        } else {
+            Win16HostMdiOutput::None
+        };
     if !exact_current && matches!(&output, Win16HostMdiOutput::None) {
         return Ok(None);
     }
@@ -134,19 +134,26 @@ pub(in crate::windows) fn dispatch_queued_message(
     point: runtime::Win16HostPoint,
 ) -> Result<Option<(Win16HostMdiMessageResult, Win16HostWindowRetirementBatch)>, RuntimeError> {
     let Some(_) = crate::windows::win16_windows::win16_message_loop::encode_mdi_message_call(
-        state, window, hwnd, guest_message, queued,
-    )? else {
+        state,
+        window,
+        hwnd,
+        guest_message,
+        queued,
+    )?
+    else {
         return Ok(None);
     };
     let Some(message) = queued_to_message(queued)? else {
         return Ok(None);
     };
-    if !crate::windows::win16_windows::win16_message_loop::validate_mdi_owned_target(state, hwnd, &message) {
+    if !crate::windows::win16_windows::win16_message_loop::validate_mdi_owned_target(
+        state, hwnd, &message,
+    ) {
         return Ok(None);
     }
     let client = match queued.endpoint {
         Win16MdiEndpoint::Client => hwnd,
-        Win16MdiEndpoint::Child(_) => unsafe { GetParent(hwnd) },
+        Win16MdiEndpoint::Child(_) => crate::windows::win32_safe::get_parent(hwnd),
     };
     if client.is_null() {
         return Ok(None);
@@ -155,7 +162,7 @@ pub(in crate::windows) fn dispatch_queued_message(
         return Ok(None);
     };
     let snapshot = snapshot_window_retirements(state, client_window, client)?;
-    let frame = unsafe { GetParent(client) };
+    let frame = crate::windows::win32_safe::get_parent(client);
     let (requested_frame, requested_window) = match queued.message {
         QueuedKind::SetMenu {
             refresh: false,
@@ -164,20 +171,14 @@ pub(in crate::windows) fn dispatch_queued_message(
         } => (frame_menu, window_menu),
         _ => (None, None),
     };
-    let result = with_menu_call_owners(
-        state,
-        frame,
-        requested_frame,
-        requested_window,
-        || {
-            super::invoke(
-                state,
-                MessageInvocation::Dispatch { time, point },
-                hwnd,
-                message,
-            )
-        },
-    );
+    let result = with_menu_call_owners(state, frame, requested_frame, requested_window, || {
+        super::invoke(
+            state,
+            MessageInvocation::Dispatch { time, point },
+            hwnd,
+            message,
+        )
+    });
     let result = match result {
         Ok(result) => result,
         Err(error) => {
@@ -190,23 +191,28 @@ pub(in crate::windows) fn dispatch_queued_message(
     };
     let mut receipts = finish_window_retirements(state, snapshot);
     if let Some(Win16HostMdiMessageResult {
-        output: Win16HostMdiOutput::Destroyed {
-            receipt,
-            additional_retirements,
-            invalidated_menus: nested_invalidated_menus,
-        },
+        output:
+            Win16HostMdiOutput::Destroyed {
+                receipt,
+                additional_retirements,
+                invalidated_menus: nested_invalidated_menus,
+            },
         ..
-    }) = &result {
+    }) = &result
+    {
         // The nested MDI call owns its destruction receipts. The outer client
         // snapshot reports only other retired host window tokens.
         receipts.receipts.retain(|candidate| {
-            !receipt.as_ref().is_some_and(|nested| nested.window == candidate.window)
-                && !additional_retirements.iter()
+            !receipt
+                .as_ref()
+                .is_some_and(|nested| nested.window == candidate.window)
+                && !additional_retirements
+                    .iter()
                     .any(|nested| nested.window == candidate.window)
         });
-        receipts.invalidated_menus.retain(|menu| {
-            !nested_invalidated_menus.contains(menu)
-        });
+        receipts
+            .invalidated_menus
+            .retain(|menu| !nested_invalidated_menus.contains(menu));
     }
     match result {
         Some(result) => Ok(Some((result, receipts))),
@@ -243,9 +249,7 @@ fn queued_to_message(
         }
         QueuedKind::Destroy { child } => Win16HostMdiMessage::Destroy { child },
         QueuedKind::Restore { child } => Win16HostMdiMessage::Restore { child },
-        QueuedKind::Next { child, previous } => {
-            Win16HostMdiMessage::Next { child, previous }
-        }
+        QueuedKind::Next { child, previous } => Win16HostMdiMessage::Next { child, previous },
         QueuedKind::Maximize { child } => Win16HostMdiMessage::Maximize { child },
         QueuedKind::Tile { flags } => Win16HostMdiMessage::Tile { flags },
         QueuedKind::Cascade { flags } => Win16HostMdiMessage::Cascade { flags },
@@ -264,7 +268,6 @@ fn queued_to_message(
     Ok(Some(message))
 }
 
-
 fn is_exact_mdi_child(
     state: &Rc<RefCell<WorkerState>>,
     candidate: NativeWindowRetirementCandidate,
@@ -276,13 +279,14 @@ fn is_exact_mdi_child(
         || !identity.owned
         || identity.creation.is_none()
         || identity.class.is_none()
-        || unsafe { IsWindow(hwnd) } == 0
+        || { crate::windows::win32_safe::is_window(hwnd) } == 0
         || super::super::super::win16_window_identity::resolve(state, candidate.window)
             != Some(hwnd)
         || super::super::super::win16_window_identity::belongs_to_worker(hwnd) != Some(true)
     {
         return false;
     }
+    // SAFETY: GetWindowThreadProcessId optionally writes a caller-owned process id.
     let (process_id, thread_id) = unsafe {
         let mut process = 0;
         let thread = windows_sys::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId(
@@ -291,8 +295,8 @@ fn is_exact_mdi_child(
         );
         (process, thread)
     };
-    if process_id != unsafe { GetCurrentProcessId() }
-        || thread_id != unsafe { GetCurrentThreadId() }
+    if process_id != (crate::windows::win32_safe::current_process_id())
+        || thread_id != (crate::windows::win32_safe::current_thread_id())
         || process_id != identity.process_id
         || thread_id != identity.thread_id
     {
@@ -304,11 +308,12 @@ fn is_exact_mdi_child(
     if !worker::native_class_name_matches(state, class, hwnd) {
         return false;
     }
+    // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
     let extended_style = unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) } as u32;
     if extended_style & WS_EX_MDICHILD == 0 {
         return false;
     }
-    let parent = unsafe { GetParent(hwnd) };
+    let parent = crate::windows::win32_safe::get_parent(hwnd);
     if parent.is_null()
         || expected_client.is_some_and(|expected| expected != parent)
         || !is_exact_mdi_client(state, parent)
@@ -320,7 +325,7 @@ fn is_exact_mdi_child(
 
 fn is_exact_mdi_client(state: &Rc<RefCell<WorkerState>>, hwnd: HWND) -> bool {
     if hwnd.is_null()
-        || unsafe { IsWindow(hwnd) } == 0
+        || { crate::windows::win32_safe::is_window(hwnd) } == 0
         || super::super::super::win16_window_identity::belongs_to_worker(hwnd) != Some(true)
     {
         return false;
@@ -345,8 +350,8 @@ fn is_exact_mdi_client(state: &Rc<RefCell<WorkerState>>, hwnd: HWND) -> bool {
         .map(|class| class.system_class_kind);
     identity.owned
         && identity.creation.is_some()
-        && identity.thread_id == unsafe { GetCurrentThreadId() }
-        && identity.process_id == unsafe { GetCurrentProcessId() }
+        && identity.thread_id == (crate::windows::win32_safe::current_thread_id())
+        && identity.process_id == (crate::windows::win32_safe::current_process_id())
         && system_kind == Some(Some(Win16HostSystemClass::MdiClient))
         && super::super::super::win16_window_identity::resolve(state, identity.window) == Some(hwnd)
         && worker::native_class_name_matches(state, class, hwnd)

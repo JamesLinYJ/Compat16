@@ -154,6 +154,7 @@ fn native_environment(
     // Windows environment blocks use ordinal, case-insensitive name order.
     // A stable sort preserves the source order of duplicate guest names.
     entries.sort_by(|(left_end, left), (right_end, right)| {
+        // SAFETY: CompareStringOrdinal reads two caller-owned UTF-16 spans of the lengths passed with them.
         let result = unsafe {
             CompareStringOrdinal(
                 left.as_ptr(),

@@ -13,10 +13,10 @@ use std::ops::Range;
 use std::ptr;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError};
-use windows_sys::Win32::Foundation::{GetLastError, ERROR_NO_UNICODE_TRANSLATION};
+use windows_sys::Win32::Foundation::ERROR_NO_UNICODE_TRANSLATION;
 use windows_sys::Win32::Globalization::{
-    CP_ACP, CP_MACCP, CP_OEMCP, CP_SYMBOL, CP_THREAD_ACP, CP_UTF7, CP_UTF8, CPINFO,
-    GetCPInfo, IsDBCSLeadByteEx, IsValidCodePage, MB_ERR_INVALID_CHARS, MultiByteToWideChar,
+    CP_ACP, CP_MACCP, CP_OEMCP, CP_SYMBOL, CP_THREAD_ACP, CP_UTF7, CP_UTF8, CPINFO, GetCPInfo,
+    IsDBCSLeadByteEx, IsValidCodePage, MB_ERR_INVALID_CHARS, MultiByteToWideChar,
     WC_ERR_INVALID_CHARS, WC_NO_BEST_FIT_CHARS, WideCharToMultiByte,
 };
 
@@ -111,20 +111,29 @@ impl GuestTextCodec {
     /// Replace an owned scratch buffer with the exact conversion. A failed
     /// conversion leaves it empty, and its capacity remains reusable.
     pub(in crate::windows) fn to_wide_into(
-        &self, source: &[u8], wide: &mut Vec<u16>,
+        &self,
+        source: &[u8],
+        wide: &mut Vec<u16>,
     ) -> Result<(), RuntimeError> {
         self.to_wide_buffer(source, wide, false)
     }
 
     fn to_wide_buffer(
-        &self, source: &[u8], wide: &mut Vec<u16>, terminated: bool,
+        &self,
+        source: &[u8],
+        wide: &mut Vec<u16>,
+        terminated: bool,
     ) -> Result<(), RuntimeError> {
         wide.clear();
         if source.is_empty() {
             if terminated {
-                wide.try_reserve_exact(1).map_err(|error| RuntimeError::with_source(
-                    Kind::ResourceExhausted, "terminate guest text", error,
-                ))?;
+                wide.try_reserve_exact(1).map_err(|error| {
+                    RuntimeError::with_source(
+                        Kind::ResourceExhausted,
+                        "terminate guest text",
+                        error,
+                    )
+                })?;
                 wide.push(0);
             }
             return Ok(());
@@ -148,16 +157,20 @@ impl GuestTextCodec {
             return Err(windows_failure(
                 "size guest text conversion",
                 self.code_page,
-                unsafe { GetLastError() },
+                crate::windows::win32_safe::last_error(),
             ));
         }
 
         let length = checked_usize(required, "size guest UTF-16 output")?
             .checked_add(usize::from(terminated))
             .ok_or_else(|| resource_limit("size terminated guest UTF-16 output"))?;
-        wide.try_reserve_exact(length).map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted, "allocate guest UTF-16 output", error,
-        ))?;
+        wide.try_reserve_exact(length).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "allocate guest UTF-16 output",
+                error,
+            )
+        })?;
         wide.resize(length, 0);
         // SAFETY: both slices remain alive for the synchronous call. The
         // destination covers the sizing result plus any separate terminator.
@@ -172,7 +185,7 @@ impl GuestTextCodec {
             )
         };
         if written <= 0 {
-            let last_error = unsafe { GetLastError() };
+            let last_error = crate::windows::win32_safe::last_error();
             wide.clear();
             return Err(windows_failure(
                 "convert guest text to UTF-16",
@@ -202,7 +215,9 @@ impl GuestTextCodec {
     }
 
     pub(in crate::windows) fn to_wide_with_ranges_into(
-        &self, source: &[u8], wide: &mut Vec<u16>,
+        &self,
+        source: &[u8],
+        wide: &mut Vec<u16>,
     ) -> Result<Vec<GuestTextSpan>, RuntimeError> {
         self.to_wide_into(source, wide)?;
         if source.is_empty() {
@@ -230,11 +245,17 @@ impl GuestTextCodec {
         // SAFETY: `info` is an initialized, writable CPINFO owned by this
         // call; Windows writes only the documented structure synchronously.
         if unsafe { GetCPInfo(self.code_page, &mut info) } == 0 {
-            let last_error = unsafe { GetLastError() };
+            let last_error = crate::windows::win32_safe::last_error();
             #[cfg(test)]
-            eprintln!("GetCPInfo failed: page={}, error={last_error}, maximum={}, \
-                default={:?}, lead={:?}, thread={:?}", self.code_page,
-                info.MaxCharSize, info.DefaultChar, info.LeadByte, std::thread::current().id());
+            eprintln!(
+                "GetCPInfo failed: page={}, error={last_error}, maximum={}, \
+                default={:?}, lead={:?}, thread={:?}",
+                self.code_page,
+                info.MaxCharSize,
+                info.DefaultChar,
+                info.LeadByte,
+                std::thread::current().id()
+            );
             return Err(mapping_gap_with_windows_error(
                 self.code_page,
                 "Windows code-page metadata is unavailable for character mapping",
@@ -260,7 +281,9 @@ impl GuestTextCodec {
     }
 
     pub(in crate::windows) fn to_wide_z_into(
-        &self, source: &[u8], wide: &mut Vec<u16>,
+        &self,
+        source: &[u8],
+        wide: &mut Vec<u16>,
     ) -> Result<(), RuntimeError> {
         self.to_wide_buffer(source, wide, true)
     }
@@ -280,7 +303,9 @@ impl GuestTextCodec {
     /// Reuse an owned guest output allocation while preserving its exact byte
     /// count and the converter's default-character indication.
     pub(in crate::windows) fn from_wide_in_buffer(
-        &self, source: &[u16], bytes: Vec<u8>,
+        &self,
+        source: &[u16],
+        bytes: Vec<u8>,
     ) -> Result<GuestTextEncoding, RuntimeError> {
         let required = self.wide_length(source)?;
         self.encode_wide_in_buffer(source, required, bytes)
@@ -299,7 +324,10 @@ impl GuestTextCodec {
     }
 
     pub(in crate::windows) fn from_wide_bounded_in_buffer(
-        &self, source: &[u16], byte_capacity: usize, bytes: Vec<u8>,
+        &self,
+        source: &[u16],
+        byte_capacity: usize,
+        bytes: Vec<u8>,
     ) -> Result<BoundedGuestTextEncoding, RuntimeError> {
         let full_length = self.wide_length(source)?;
         if full_length <= byte_capacity {
@@ -364,7 +392,7 @@ impl GuestTextCodec {
             return Err(windows_failure(
                 "size guest text output",
                 self.code_page,
-                unsafe { GetLastError() },
+                crate::windows::win32_safe::last_error(),
             ));
         }
         checked_usize(required, "size guest text output")
@@ -396,9 +424,9 @@ impl GuestTextCodec {
 
         let source_length = checked_i32(source.len(), "size host UTF-16 text")?;
         let capacity = checked_i32(required, "size guest text output")?;
-        bytes.try_reserve_exact(required).map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted, "allocate guest text output", error,
-        ))?;
+        bytes.try_reserve_exact(required).map_err(|error| {
+            RuntimeError::with_source(Kind::ResourceExhausted, "allocate guest text output", error)
+        })?;
         bytes.resize(required, 0);
         let flags = wide_flags(self.code_page);
         let mut used_default = 0;
@@ -425,7 +453,7 @@ impl GuestTextCodec {
             return Err(windows_failure(
                 "convert host UTF-16 text to guest bytes",
                 self.code_page,
-                unsafe { GetLastError() },
+                crate::windows::win32_safe::last_error(),
             ));
         }
         if written != capacity {
@@ -581,6 +609,7 @@ fn sbcs_dbcs_spans(
             // A trailing lead byte consumes one byte; conversion validation
             // decides whether that byte is representable in this code page.
             let has_trail = guest_start + 1 < run_end;
+            // SAFETY: `IsDBCSLeadByteEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let is_lead = unsafe { IsDBCSLeadByteEx(codec.code_page, source[guest_start]) != 0 };
             let next_offset = guest_start + if is_lead && has_trail { 2 } else { 1 };
             append_verified_span(

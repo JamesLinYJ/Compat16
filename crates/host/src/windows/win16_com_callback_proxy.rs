@@ -6,29 +6,29 @@
 
 use std::cell::Cell;
 use std::collections::BTreeMap;
-use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::os::windows::io::AsRawHandle;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender, SyncSender};
 use std::sync::{Arc, Mutex, OnceLock, Weak};
-use windows_sys::Win32::System::Threading::SetEvent;
 
 use compat_services::com::ComObjectId;
 use runtime::{
-    Win16ComHostAdviseSinkCall, Win16ComHostCallbackCall, Win16ComHostCallbackFrame,
-    Win16ComHostCallbackFailure, Win16ComHostCallbackFailureKind,
-    Win16ComHostCallbackOutcome, Win16ComHostCallbackReply, Win16ComHostCallbackRoute,
-    Win16ComHostCallbackStep, Win16ComHostOperationFailure,
-    Win16ComHostInterface, Win16ComHostOperationIdentity, Win16ComHostOwnerIdentity, Win16ComHostResume,
-    Win16ComHostStep, Win16OleHostValue,
+    Win16ComHostAdviseSinkCall, Win16ComHostCallbackCall, Win16ComHostCallbackFailure,
+    Win16ComHostCallbackFailureKind, Win16ComHostCallbackFrame, Win16ComHostCallbackOutcome,
+    Win16ComHostCallbackReply, Win16ComHostCallbackRoute, Win16ComHostCallbackStep,
+    Win16ComHostInterface, Win16ComHostOperationFailure, Win16ComHostOperationIdentity,
+    Win16ComHostOwnerIdentity, Win16ComHostResume, Win16ComHostStep, Win16OleHostValue,
 };
-use windows_core::{ComObject, HRESULT, Ref, Result as WindowsResult, BOOL};
+use windows_core::{BOOL, ComObject, HRESULT, Ref, Result as WindowsResult};
 
 use super::com_bindings::generated::{
-    IAdviseSink, IAdviseSink_Impl, IMoniker, IOleClientSite, IOleClientSite_Impl,
-    IOleContainer, STGMEDIUM, FORMATETC,
+    FORMATETC, IAdviseSink, IAdviseSink_Impl, IMoniker, IOleClientSite, IOleClientSite_Impl,
+    IOleContainer, STGMEDIUM,
 };
-use super::win16_com_callback_copy::{copy_callback_medium, copy_moniker_display_name, project_format};
+use super::win16_com_callback_copy::{
+    copy_callback_medium, copy_moniker_display_name, project_format,
+};
 use super::win16_com_objects::{NativeComError, Win16ComObjects};
 
 #[path = "win16_com_callback_waiter.rs"]
@@ -91,11 +91,13 @@ struct CallbackShared {
     endpoints: Mutex<BTreeMap<Win16ComHostCallbackRoute, Weak<CallbackEndpoint>>>,
     next_frame: AtomicU64,
     next_medium: AtomicU64,
-    failures: Mutex<Vec<(
-        Option<Win16ComHostOperationIdentity>,
-        Win16ComHostCallbackRoute,
-        Win16ComHostCallbackFailure,
-    )>>,
+    failures: Mutex<
+        Vec<(
+            Option<Win16ComHostOperationIdentity>,
+            Win16ComHostCallbackRoute,
+            Win16ComHostCallbackFailure,
+        )>,
+    >,
     active_native_dispatches: AtomicUsize,
 }
 
@@ -187,7 +189,11 @@ impl Win16ComCallbackRuntime {
     ) -> Result<Win16ComHostStep, &'static str> {
         let outcome = resume.outcome;
         let (sender, acknowledgement, route, parent) = {
-            let mut pending = self.shared.pending.lock().map_err(|_| "callback state poisoned")?;
+            let mut pending = self
+                .shared
+                .pending
+                .lock()
+                .map_err(|_| "callback state poisoned")?;
             if pending.closed {
                 return Err("callback ingress is closed");
             }
@@ -204,7 +210,10 @@ impl Win16ComCallbackRuntime {
             let reply_matches = match &outcome {
                 Win16ComHostCallbackOutcome::Reply(
                     Win16ComHostCallbackReply::ClientSiteSaveObjectHresult(_),
-                ) => matches!(frame.callback, Win16ComHostCallbackCall::ClientSiteSaveObject { .. }),
+                ) => matches!(
+                    frame.callback,
+                    Win16ComHostCallbackCall::ClientSiteSaveObject { .. }
+                ),
                 Win16ComHostCallbackOutcome::Reply(
                     Win16ComHostCallbackReply::AdviseSinkClientWord(_),
                 ) => matches!(frame.callback, Win16ComHostCallbackCall::AdviseSink { .. }),
@@ -214,7 +223,10 @@ impl Win16ComCallbackRuntime {
                 return Err("callback reply belongs to another ABI result domain");
             }
             (
-                frame.reply.take().ok_or("callback frame was already resumed")?,
+                frame
+                    .reply
+                    .take()
+                    .ok_or("callback frame was already resumed")?,
                 frame
                     .acknowledgement
                     .take()
@@ -224,9 +236,11 @@ impl Win16ComCallbackRuntime {
             )
         };
         let step_outcome = outcome.clone();
-        sender.send(outcome).map_err(|_| "native COM callback has retired")?;
+        sender
+            .send(outcome)
+            .map_err(|_| "native COM callback has retired")?;
         // Wake the STA's shared USER/native-input waiter after publishing.
-        unsafe { SetEvent(self.shared.worker_wake.as_raw_handle() as _) };
+        (crate::windows::win32_safe::set_event(self.shared.worker_wake.as_raw_handle() as _));
         acknowledgement
             .recv()
             .map_err(|_| "native COM callback did not acknowledge the reply")?;
@@ -235,15 +249,13 @@ impl Win16ComCallbackRuntime {
                 frame: resume.frame,
                 owner: resume.owner,
             }),
-            Win16ComHostCallbackOutcome::Failed(failure) => {
-                Ok(Win16ComHostStep::CallbackFailed {
-                    frame: Some(resume.frame),
-                    parent,
-                    owner: resume.owner,
-                    route,
-                    failure,
-                })
-            }
+            Win16ComHostCallbackOutcome::Failed(failure) => Ok(Win16ComHostStep::CallbackFailed {
+                frame: Some(resume.frame),
+                parent,
+                owner: resume.owner,
+                route,
+                failure,
+            }),
         }
     }
 
@@ -263,7 +275,11 @@ impl Win16ComCallbackRuntime {
         context: impl Into<String>,
     ) -> Vec<Win16ComHostStep> {
         {
-            let mut pending = self.shared.pending.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            let mut pending = self
+                .shared
+                .pending
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             pending.closed = true;
         }
         self.cancel_pending(context)
@@ -317,7 +333,9 @@ impl Win16ComCallbackRuntime {
             endpoints.insert(route, Arc::downgrade(&endpoint));
         }
 
-        let proxy = ComObject::new(NativeCallbackProxy { endpoint: endpoint.clone() });
+        let proxy = ComObject::new(NativeCallbackProxy {
+            endpoint: endpoint.clone(),
+        });
         let site = proxy.as_interface::<IOleClientSite>().to_owned();
         let sink = proxy.as_interface::<IAdviseSink>().to_owned();
         let site_id = match objects.insert_typed_owned(site) {
@@ -335,7 +353,8 @@ impl Win16ComCallbackRuntime {
                 return Err(error);
             }
         };
-        if endpoint.client_site.set(site_id).is_err() || endpoint.advise_sink.set(sink_id).is_err() {
+        if endpoint.client_site.set(site_id).is_err() || endpoint.advise_sink.set(sink_id).is_err()
+        {
             let _ = objects.release(sink_id);
             let _ = objects.release(site_id);
             shutdown::remove_endpoint(&self.shared, route, &endpoint);
@@ -400,15 +419,21 @@ impl Win16ComCallbackIngress {
                 .pending
                 .lock()
                 .map_err(|_| "callback state poisoned")?;
-            let events = self.events.lock().map_err(|_| "callback ingress poisoned")?;
+            let events = self
+                .events
+                .lock()
+                .map_err(|_| "callback ingress poisoned")?;
             if !pending.sealed_receipts.is_empty() {
                 return Ok(Some(pending.sealed_receipts.remove(0)));
             }
             loop {
                 match events.try_recv() {
                     Ok(Win16ComHostStep::Callback(callback))
-                        if pending.closed || !pending.frames.get(&callback.frame)
-                            .is_some_and(|frame| frame.reply.is_some()) =>
+                        if pending.closed
+                            || !pending
+                                .frames
+                                .get(&callback.frame)
+                                .is_some_and(|frame| frame.reply.is_some()) =>
                     {
                         continue;
                     }
@@ -446,7 +471,9 @@ impl Drop for Win16ComCallbackIngress {
         // failure to every frame that has not already been claimed by resume.
         // This drop path is deliberately nonblocking; the native method's own
         // terminal step remains responsible for operation completion.
-        let callbacks = Win16ComCallbackRuntime { shared: Arc::clone(&self.shared) };
+        let callbacks = Win16ComCallbackRuntime {
+            shared: Arc::clone(&self.shared),
+        };
         let _ = callbacks.close_and_cancel_pending(
             "runtime callback ingress was dropped before the frame resumed",
         );
@@ -460,11 +487,10 @@ impl CallbackEndpoint {
         expects_save_hresult: bool,
     ) -> Result<Win16ComHostCallbackReply, Win16ComHostCallbackFailure> {
         let _native_dispatch = shutdown::enter_native_dispatch(&self.shared);
-        let frame = Win16ComHostCallbackFrame(
-            allocate_id(&self.shared.next_frame).map_err(|reason| {
+        let frame =
+            Win16ComHostCallbackFrame(allocate_id(&self.shared.next_frame).map_err(|reason| {
                 callback_failure(Win16ComHostCallbackFailureKind::CallbackTransport, reason)
-            })?,
-        );
+            })?);
         let parent = ACTIVE_OPERATION.with(Cell::get);
         let (reply_tx, reply_rx) = mpsc::sync_channel(1);
         let (acknowledgement_tx, acknowledgement_rx) = mpsc::sync_channel(1);
@@ -477,7 +503,10 @@ impl CallbackEndpoint {
         };
         if !callback_step.has_valid_identity()
             || expects_save_hresult
-                != matches!(callback_step.callback, Win16ComHostCallbackCall::ClientSiteSaveObject { .. })
+                != matches!(
+                    callback_step.callback,
+                    Win16ComHostCallbackCall::ClientSiteSaveObject { .. }
+                )
         {
             return Err(callback_failure(
                 Win16ComHostCallbackFailureKind::CallbackImplementation,
@@ -486,7 +515,10 @@ impl CallbackEndpoint {
         }
         {
             let mut pending = self.shared.pending.lock().map_err(|_| {
-                callback_failure(Win16ComHostCallbackFailureKind::CallbackTransport, "callback state poisoned")
+                callback_failure(
+                    Win16ComHostCallbackFailureKind::CallbackTransport,
+                    "callback state poisoned",
+                )
             })?;
             if pending.closed {
                 return Err(callback_failure(
@@ -556,12 +588,9 @@ impl CallbackEndpoint {
                 callback.reply.take();
                 callback.sealed_failure = Some(failure.clone());
             }
-            let retain_for_seal = pending
-                    .frames
-                    .get(&frame)
-                    .is_some_and(|callback| {
-                        callback.sealed_failure.is_some() && callback.acknowledgement.is_some()
-                    });
+            let retain_for_seal = pending.frames.get(&frame).is_some_and(|callback| {
+                callback.sealed_failure.is_some() && callback.acknowledgement.is_some()
+            });
             if !retain_for_seal {
                 pending.frames.remove(&frame);
             }
@@ -592,8 +621,7 @@ impl CallbackEndpoint {
             // CallbackFailed step and retained acknowledgement receiver.
             return;
         }
-        if parent.is_none()
-            && failure.kind == Win16ComHostCallbackFailureKind::CheckedGuestCallback
+        if parent.is_none() && failure.kind == Win16ComHostCallbackFailureKind::CheckedGuestCallback
         {
             // continue_operation already returns this exact frame failure to
             // the runtime; do not emit a duplicate unsolicited route failure.
@@ -614,7 +642,10 @@ impl CallbackEndpoint {
         self.advise_sink.get().copied()
     }
 
-    fn dispatch_sink(&self, method: Win16ComHostAdviseSinkCall) -> Result<(), Win16ComHostCallbackFailure> {
+    fn dispatch_sink(
+        &self,
+        method: Win16ComHostAdviseSinkCall,
+    ) -> Result<(), Win16ComHostCallbackFailure> {
         let sink = self.advise_sink_id().ok_or_else(|| {
             callback_failure(
                 Win16ComHostCallbackFailureKind::CallbackImplementation,
@@ -622,7 +653,11 @@ impl CallbackEndpoint {
             )
         })?;
         self.dispatch(
-            Win16ComHostCallbackCall::AdviseSink { sink, object: None, method },
+            Win16ComHostCallbackCall::AdviseSink {
+                sink,
+                object: None,
+                method,
+            },
             false,
         )?;
         Ok(())
@@ -648,7 +683,11 @@ impl IOleClientSite_Impl for NativeCallbackProxy_Impl {
                 // `windows_core::implement` maps `Ok(())` to exactly S_OK.
                 // Return every nonzero HRESULT through its error channel so
                 // successful nonzero codes such as S_FALSE are not rewritten.
-                if result.0 == 0 { Ok(()) } else { Err(result.into()) }
+                if result.0 == 0 {
+                    Ok(())
+                } else {
+                    Err(result.into())
+                }
             }
             Ok(Win16ComHostCallbackReply::AdviseSinkClientWord(_)) => {
                 self.endpoint.record_failure(callback_failure(
@@ -700,25 +739,36 @@ impl IAdviseSink_Impl for NativeCallbackProxy_Impl {
                     "IAdviseSink::OnDataChange received a null argument",
                 ));
             }
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let format = unsafe { *format };
             // STGMEDIUM is provider-owned and deliberately not Copy. Borrow
             // its SDK union for the bounded deep copy; never move it out.
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let medium_value = unsafe { &*medium };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let projected = unsafe { project_format(format) }.map_err(|reason| {
-                callback_failure(Win16ComHostCallbackFailureKind::InvalidNativeCallbackArguments, reason)
+                callback_failure(
+                    Win16ComHostCallbackFailureKind::InvalidNativeCallbackArguments,
+                    reason,
+                )
             })?;
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let payload = unsafe { copy_callback_medium(medium_value) }.map_err(|reason| {
-                callback_failure(Win16ComHostCallbackFailureKind::InvalidNativeCallbackArguments, reason)
+                callback_failure(
+                    Win16ComHostCallbackFailureKind::InvalidNativeCallbackArguments,
+                    reason,
+                )
             })?;
             let id = allocate_id(&self.endpoint.shared.next_medium).map_err(|reason| {
                 callback_failure(Win16ComHostCallbackFailureKind::CallbackTransport, reason)
             })?;
-            self.endpoint.dispatch_sink(Win16ComHostAdviseSinkCall::OnDataChange {
-                format: projected,
-                medium: runtime::Win16ComHostMediumId(id),
-                payload,
-                tymed: medium_value.tymed,
-            })
+            self.endpoint
+                .dispatch_sink(Win16ComHostAdviseSinkCall::OnDataChange {
+                    format: projected,
+                    medium: runtime::Win16ComHostMediumId(id),
+                    payload,
+                    tymed: medium_value.tymed,
+                })
         }));
         if let Ok(Err(failure)) = result {
             self.endpoint.record_failure(failure);
@@ -740,14 +790,16 @@ impl IAdviseSink_Impl for NativeCallbackProxy_Impl {
     fn OnRename(&self, moniker: Ref<'_, IMoniker>) {
         let _native_dispatch = shutdown::enter_native_dispatch(&self.endpoint.shared);
         let result = catch_unwind(AssertUnwindSafe(|| {
-            let moniker = moniker
-                .as_ref()
-                .ok_or_else(|| callback_failure(
+            let moniker = moniker.as_ref().ok_or_else(|| {
+                callback_failure(
                     Win16ComHostCallbackFailureKind::InvalidNativeCallbackArguments,
                     "IAdviseSink::OnRename received a null moniker",
-                ))?;
+                )
+            })?;
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let display_name = unsafe { copy_moniker_display_name(moniker) }?;
-            self.endpoint.dispatch_sink(Win16ComHostAdviseSinkCall::OnRename { display_name })
+            self.endpoint
+                .dispatch_sink(Win16ComHostAdviseSinkCall::OnRename { display_name })
         }));
         if let Ok(Err(failure)) = result {
             self.endpoint.record_failure(failure);
@@ -785,7 +837,10 @@ fn callback_failure(
     kind: Win16ComHostCallbackFailureKind,
     context: impl Into<String>,
 ) -> Win16ComHostCallbackFailure {
-    Win16ComHostCallbackFailure { kind, context: context.into() }
+    Win16ComHostCallbackFailure {
+        kind,
+        context: context.into(),
+    }
 }
 
 fn allocate_id(counter: &AtomicU64) -> Result<u64, &'static str> {

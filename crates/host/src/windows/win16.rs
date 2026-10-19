@@ -1,8 +1,8 @@
 //! Native Windows services requested by the Win16 guest ABI.
 
-pub(super) mod file_metadata;
 mod dos_file_io;
 mod file_ioctl;
+pub(super) mod file_metadata;
 
 use super::bindings::{LZClose, LZRead, LZSeek};
 #[cfg(test)]
@@ -11,20 +11,17 @@ use runtime::Win16HostFile;
 use runtime::Win16HostFileClose;
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use std::collections::{BTreeMap, BTreeSet};
-use windows_sys::Win32::Foundation::{
-    CloseHandle, GENERIC_READ, GENERIC_WRITE, HANDLE, HWND,
-};
-use windows_sys::Win32::Storage::FileSystem::{
-    FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_NORMAL,
-    FILE_ATTRIBUTE_READONLY, FILE_ATTRIBUTE_SYSTEM, FILE_BEGIN, FILE_CURRENT, FILE_END,
-    FILE_SHARE_READ, FILE_SHARE_WRITE, ReadFile, SetEndOfFile, SetFilePointerEx,
-    WriteFile,
-};
-use windows_sys::Win32::UI::WindowsAndMessaging::MessageBoxW;
 #[cfg(test)]
-use windows_sys::Win32::Foundation::{ERROR_NO_UNICODE_TRANSLATION, GetLastError, INVALID_HANDLE_VALUE};
+use windows_sys::Win32::Foundation::{ERROR_NO_UNICODE_TRANSLATION, INVALID_HANDLE_VALUE};
+use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE, HANDLE, HWND};
 #[cfg(test)]
 use windows_sys::Win32::Storage::FileSystem::{CREATE_ALWAYS, CreateFileW, OPEN_EXISTING};
+use windows_sys::Win32::Storage::FileSystem::{
+    FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_READONLY, FILE_ATTRIBUTE_SYSTEM,
+    FILE_BEGIN, FILE_CURRENT, FILE_END, FILE_SHARE_READ, FILE_SHARE_WRITE, ReadFile, SetEndOfFile,
+    SetFilePointerEx, WriteFile,
+};
+use windows_sys::Win32::UI::WindowsAndMessaging::MessageBoxW;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum Win16NativeFile {
@@ -85,11 +82,17 @@ impl Win16Files {
     }
 
     pub(super) fn retain_mapped_file(
-        &mut self, native: Win16NativeFile, access: u32, drive: u8,
+        &mut self,
+        native: Win16NativeFile,
+        access: u32,
+        drive: u8,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
         if drive > 25 {
             close_native(native);
-            return Err(RuntimeError::new(Kind::InternalInvariant, "invalid mapped DOS drive"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "invalid mapped DOS drive",
+            ));
         }
         self.retain_file(native, Some(access), Some(drive))
     }
@@ -109,7 +112,15 @@ impl Win16Files {
         };
         let token = Win16HostFile(self.next_id);
         self.next_id = next_id;
-        self.files.insert(token, RetainedFile { native, access, dos_drive, written: false });
+        self.files.insert(
+            token,
+            RetainedFile {
+                native,
+                access,
+                dos_drive,
+                written: false,
+            },
+        );
         Ok(Some(token))
     }
 
@@ -127,7 +138,9 @@ impl Win16Files {
         &self,
         file: Win16HostFile,
     ) -> Result<(HANDLE, Option<u32>), dos_kernel::DosHostError> {
-        let entry = self.files.get(&file)
+        let entry = self
+            .files
+            .get(&file)
             .ok_or_else(|| super::invalid(dos_kernel::DosErrorCode::InvalidHandle))?;
         let handle = match entry.native {
             Win16NativeFile::NativeHandle(handle) => handle,
@@ -211,7 +224,9 @@ impl Win16Files {
             return Ok(None);
         }
         self.retain_native_with_access(
-            Win16NativeFile::NativeHandle(handle), GENERIC_READ | GENERIC_WRITE)
+            Win16NativeFile::NativeHandle(handle),
+            GENERIC_READ | GENERIC_WRITE,
+        )
     }
 
     pub(super) fn read(
@@ -356,7 +371,9 @@ impl Win16Files {
                 // position. WriteFile(0) alone is a no-op, so use the native
                 // equivalent SetEndOfFile primitive explicitly.
                 // SAFETY: `handle` is an owned synchronous file HANDLE.
-                if unsafe { SetEndOfFile(handle) } == 0 { return Ok(None); }
+                if unsafe { SetEndOfFile(handle) } == 0 {
+                    return Ok(None);
+                }
                 self.mark_written(file);
                 Ok(Some(0))
             }
@@ -382,7 +399,9 @@ impl Win16Files {
                         "Win16 native write exceeded its input buffer",
                     ));
                 }
-                if bytes_written != 0 { self.mark_written(file); }
+                if bytes_written != 0 {
+                    self.mark_written(file);
+                }
                 Ok(Some(bytes_written))
             }
         }
@@ -402,16 +421,15 @@ impl Win16Files {
         &mut self,
         file: Win16HostFile,
     ) -> Result<Win16HostFileClose, dos_kernel::DosHostError> {
-        let native = self.native_file(file)
+        let native = self
+            .native_file(file)
             .ok_or_else(|| super::invalid(dos_kernel::DosErrorCode::InvalidHandle))?;
         let consumed_source = match native {
             Win16NativeFile::NativeHandle(handle) => {
                 // SAFETY: The HANDLE is still owned here; a failed close
                 // keeps it in the table so the caller can retry.
-                if unsafe { CloseHandle(handle) } == 0 {
-                    return Err(file_error(unsafe {
-                        windows_sys::Win32::Foundation::GetLastError()
-                    }));
+                if (crate::windows::win32_safe::close_handle(handle)) == 0 {
+                    return Err(file_error(crate::windows::win32_safe::last_error()));
                 }
                 None
             }
@@ -424,8 +442,8 @@ impl Win16Files {
                     // keeps its table entry and guest alias available for retry.
                     let closed = match self.native_file(source) {
                         Some(Win16NativeFile::NativeHandle(handle)) => {
-                            // SAFETY: This is the table's owned source HANDLE.
-                            unsafe { CloseHandle(handle) != 0 }
+                            // This is the table's owned source HANDLE.
+                            crate::windows::win32_safe::close_handle(handle) != 0
                         }
                         _ => false,
                     };
@@ -460,20 +478,15 @@ impl Drop for Win16Files {
             }
         }
         for source in &consumed_sources {
-            if let Some(
-                native @ Win16NativeFile::NativeHandle(_),
-            ) = self.native_file(*source)
-            {
+            if let Some(native @ Win16NativeFile::NativeHandle(_)) = self.native_file(*source) {
                 // Its LZInit duplicate was closed above; consume the original
                 // owned source only once even if multiple tokens alias it.
                 close_native(native);
             }
         }
         for (token, entry) in &self.files {
-            if matches!(
-                entry.native,
-                Win16NativeFile::NativeHandle(_)
-            ) && !consumed_sources.contains(token)
+            if matches!(entry.native, Win16NativeFile::NativeHandle(_))
+                && !consumed_sources.contains(token)
             {
                 close_native(entry.native);
             }
@@ -499,7 +512,7 @@ fn close_native(native: Win16NativeFile) {
         Win16NativeFile::NativeHandle(handle) => {
             // SAFETY: This HANDLE was returned by CreateFileW and remains
             // owned by this adapter.
-            unsafe { CloseHandle(handle) };
+            (crate::windows::win32_safe::close_handle(handle));
         }
     }
 }
@@ -513,7 +526,8 @@ fn guest_file_path(codec: GuestTextCodec, path: &[u8]) -> Result<Option<Vec<u16>
         Err(error)
             if error.kind() == Kind::InvalidInput
                 || (error.kind() == Kind::HostFailure
-                    && unsafe { GetLastError() } == ERROR_NO_UNICODE_TRANSLATION) =>
+                    && (crate::windows::win32_safe::last_error())
+                        == ERROR_NO_UNICODE_TRANSLATION) =>
         {
             Ok(None)
         }
@@ -569,7 +583,8 @@ pub(super) fn message_box_with_owner(
     caption: Option<&[u8]>,
     style: u16,
 ) -> Result<u16, RuntimeError> {
-    if text.is_some_and(|text| text.contains(&0)) || caption.is_some_and(|caption| caption.contains(&0))
+    if text.is_some_and(|text| text.contains(&0))
+        || caption.is_some_and(|caption| caption.contains(&0))
     {
         return Err(RuntimeError::new(
             Kind::InvalidInput,
@@ -577,7 +592,9 @@ pub(super) fn message_box_with_owner(
         ));
     }
     let text_z = text.map(|text| codec.to_wide_z(text)).transpose()?;
-    let caption_z = caption.map(|caption| codec.to_wide_z(caption)).transpose()?;
+    let caption_z = caption
+        .map(|caption| codec.to_wide_z(caption))
+        .transpose()?;
 
     // Preserve NULL separately from an empty string: MessageBoxW supplies
     // its own default caption for NULL, including the host's localization.
@@ -589,7 +606,9 @@ pub(super) fn message_box_with_owner(
     let result = unsafe {
         MessageBoxW(
             owner.unwrap_or(std::ptr::null_mut()),
-            text_z.as_ref().map_or(std::ptr::null(), |text| text.as_ptr()),
+            text_z
+                .as_ref()
+                .map_or(std::ptr::null(), |text| text.as_ptr()),
             caption_z
                 .as_ref()
                 .map_or(std::ptr::null(), |caption| caption.as_ptr()),

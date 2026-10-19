@@ -343,8 +343,9 @@ impl NetworkAsyncState {
             // WSAAsyncSelect changes socket mode even when clearing its event
             // record. Keep the old route until this native operation succeeds.
             let mut nonblocking = 1u32;
+            // SAFETY: ioctlsocket reads or writes a caller-owned integer argument.
             if unsafe { ioctlsocket(raw, FIONBIO, &mut nonblocking) } == SOCKET_ERROR {
-                return fail(unsafe { WSAGetLastError() }, signed_error());
+                return fail(crate::windows::win32_safe::wsa_last_error(), signed_error());
             }
             let queued_connect_source = self
                 .sockets
@@ -435,8 +436,9 @@ impl NetworkAsyncState {
         // nonzero event mask. The registration is visible only after this
         // native operation succeeds.
         let mut nonblocking = 1u32;
+        // SAFETY: ioctlsocket reads or writes a caller-owned integer argument.
         if unsafe { ioctlsocket(raw, FIONBIO, &mut nonblocking) } == SOCKET_ERROR {
-            return fail(unsafe { WSAGetLastError() }, signed_error());
+            return fail(crate::windows::win32_safe::wsa_last_error(), signed_error());
         }
         let queued_connect_source = self
             .sockets

@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use runtime::{
-    RuntimeError, Win16DrawingOperation, Win16GdiBitmapOperation,
-    Win16GdiDeviceOperation, Win16HostDc, Win16HostGdiObject, Win16HostMetafileOperation,
+    RuntimeError, Win16DrawingOperation, Win16GdiBitmapOperation, Win16GdiDeviceOperation,
+    Win16HostDc, Win16HostGdiObject, Win16HostMetafileOperation,
 };
 use windows_sys::Win32::Graphics::Gdi::{GetCurrentObject, HGDIOBJ, OBJ_BITMAP};
 
@@ -21,7 +21,9 @@ pub(super) fn with_drawing<R>(
     run: impl FnOnce(&mut Win16Objects, Win16DrawingOperation) -> Result<R, RuntimeError>,
 ) -> Result<R, RuntimeError> {
     let (dc_tokens, count) = drawing_dcs(&operation);
-    with_selected(dcs, objects, dc_tokens, count, |objects| run(objects, operation))
+    with_selected(dcs, objects, dc_tokens, count, |objects| {
+        run(objects, operation)
+    })
 }
 
 pub(super) fn with_bitmap_transfer<R>(
@@ -59,14 +61,20 @@ pub(super) fn with_device_operation<R>(
             tokens[0] = Some(*dc);
             1
         }
-        Op::WinGStretchBlt { destination, source, .. } => {
+        Op::WinGStretchBlt {
+            destination,
+            source,
+            ..
+        } => {
             tokens[0] = Some(*destination);
             tokens[1] = Some(*source);
             2
         }
         _ => 0,
     };
-    with_selected(dcs, objects, tokens, count, |objects| run(objects, operation))
+    with_selected(dcs, objects, tokens, count, |objects| {
+        run(objects, operation)
+    })
 }
 
 pub(super) fn with_metafile<R>(
@@ -76,10 +84,13 @@ pub(super) fn with_metafile<R>(
     run: impl FnOnce(&mut Win16Objects, Win16HostMetafileOperation) -> Result<R, RuntimeError>,
 ) -> Result<R, RuntimeError> {
     let (tokens, count) = match &operation {
-        Win16HostMetafileOperation::Play { dc, .. } | Win16HostMetafileOperation::PlayRecord { dc, .. } => ([Some(*dc), None], 1),
+        Win16HostMetafileOperation::Play { dc, .. }
+        | Win16HostMetafileOperation::PlayRecord { dc, .. } => ([Some(*dc), None], 1),
         _ => ([None, None], 0),
     };
-    with_selected(dcs, objects, tokens, count, |objects| run(objects, operation))
+    with_selected(dcs, objects, tokens, count, |objects| {
+        run(objects, operation)
+    })
 }
 
 fn with_bitmap<R>(
@@ -87,7 +98,9 @@ fn with_bitmap<R>(
     bitmap: Win16HostGdiObject,
     run: impl FnOnce(&mut Win16Objects) -> Result<R, RuntimeError>,
 ) -> Result<R, RuntimeError> {
-    let Some(owner) = objects.dib_owner(bitmap) else { return run(objects); };
+    let Some(owner) = objects.dib_owner(bitmap) else {
+        return run(objects);
+    };
     let _native_use = owner.pin_native()?;
     run(objects)
 }
@@ -100,25 +113,39 @@ fn with_selected<R>(
     run: impl FnOnce(&mut Win16Objects) -> Result<R, RuntimeError>,
 ) -> Result<R, RuntimeError> {
     let mut dc_uses = Vec::new();
-    dc_uses.try_reserve_exact(count).map_err(|error| RuntimeError::with_source(
-        runtime::DiagnosticKind::ResourceExhausted,
-        "reserve WinG DIB source and destination DC leases",
-        error,
-    ))?;
+    dc_uses.try_reserve_exact(count).map_err(|error| {
+        RuntimeError::with_source(
+            runtime::DiagnosticKind::ResourceExhausted,
+            "reserve WinG DIB source and destination DC leases",
+            error,
+        )
+    })?;
     let mut owners: Vec<Arc<Win16DibSectionOwner>> = Vec::new();
-    owners.try_reserve_exact(count).map_err(|error| RuntimeError::with_source(
-        runtime::DiagnosticKind::ResourceExhausted,
-        "reserve WinG DIB operation owners",
-        error,
-    ))?;
+    owners.try_reserve_exact(count).map_err(|error| {
+        RuntimeError::with_source(
+            runtime::DiagnosticKind::ResourceExhausted,
+            "reserve WinG DIB operation owners",
+            error,
+        )
+    })?;
 
     for index in 0..count {
-        let Some(token) = tokens[index] else { continue; };
-        if tokens[..index].iter().any(|previous| *previous == Some(token)) { continue; }
-        let Some(dc_use) = dcs.lease_dc(token)? else { continue; };
+        let Some(token) = tokens[index] else {
+            continue;
+        };
+        if tokens[..index]
+            .iter()
+            .any(|previous| *previous == Some(token))
+        {
+            continue;
+        }
+        let Some(dc_use) = dcs.lease_dc(token)? else {
+            continue;
+        };
         // Only pixel-reading/writing operations enter this helper. Query the
         // actual current bitmap so SaveDC/RestoreDC and intervening selections
         // cannot make a cached guest-side selection map stale.
+        // SAFETY: `GetCurrentObject` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let selected: HGDIOBJ = unsafe { GetCurrentObject(dc_use.native(), OBJ_BITMAP as u32) };
         if !selected.is_null() {
             if let Some(owner) = objects.dib_owner_for_native(selected) {
@@ -131,11 +158,13 @@ fn with_selected<R>(
     }
 
     let mut uses: Vec<Win16DibNativeUse> = Vec::new();
-    uses.try_reserve_exact(owners.len()).map_err(|error| RuntimeError::with_source(
-        runtime::DiagnosticKind::ResourceExhausted,
-        "reserve WinG DIB native-use pins",
-        error,
-    ))?;
+    uses.try_reserve_exact(owners.len()).map_err(|error| {
+        RuntimeError::with_source(
+            runtime::DiagnosticKind::ResourceExhausted,
+            "reserve WinG DIB native-use pins",
+            error,
+        )
+    })?;
     for owner in owners {
         uses.push(owner.pin_native()?);
     }
@@ -184,13 +213,23 @@ fn drawing_dcs(operation: &Win16DrawingOperation) -> ([Option<Win16HostDc>; 2], 
             tokens[0] = Some(*dc);
             1
         }
-        Op::BitBlt { destination, source, .. }
-        | Op::StretchBlt { destination, source, .. } => {
+        Op::BitBlt {
+            destination,
+            source,
+            ..
+        }
+        | Op::StretchBlt {
+            destination,
+            source,
+            ..
+        } => {
             tokens[0] = Some(*destination);
             if let Some(source) = source {
                 tokens[1] = Some(*source);
                 2
-            } else { 1 }
+            } else {
+                1
+            }
         }
         _ => 0,
     };

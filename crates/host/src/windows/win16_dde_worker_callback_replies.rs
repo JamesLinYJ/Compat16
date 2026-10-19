@@ -7,10 +7,10 @@ use std::thread;
 use std::time::Duration;
 
 use runtime::{
-    DiagnosticKind as Kind, RuntimeError, Win16DdeAbortPhase,
-    Win16DdeCleanupFailure, Win16DdeCleanupStatus, Win16DdeNativeReplyReceipt,
+    DiagnosticKind as Kind, RuntimeError, Win16DdeAbortPhase, Win16DdeCleanupFailure,
+    Win16DdeCleanupStatus, Win16DdeNativeReplyReceipt,
 };
-use windows_sys::Win32::System::DataExchange::{DdeFreeDataHandle, DdeGetLastError};
+use windows_sys::Win32::System::DataExchange::DdeFreeDataHandle;
 
 use super::WorkerContext;
 
@@ -160,11 +160,14 @@ pub(super) fn release_failed_callback_replies(
         let mut index = 0;
         while index < owners.entries.len() {
             let owner = &owners.entries[index];
+            // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
             if unsafe { DdeFreeDataHandle(owner.handle as _) } != 0 {
                 let owner = owners.entries.remove(index);
                 let status = if owner.owner_slot_was_reserved {
                     Win16DdeCleanupStatus::RetriedAndReleased
-                } else { Win16DdeCleanupStatus::Unresolved };
+                } else {
+                    Win16DdeCleanupStatus::Unresolved
+                };
                 let failure = Some(Arc::clone(&owner.first_failure));
                 replies.push(Win16DdeNativeReplyReceipt {
                     frame: owner.identity.frame,
@@ -223,8 +226,11 @@ pub(super) fn release_failed_callback_replies(
                 all_released_or_transferred: unconsumed_reservations == 0
                     && !ledger_poisoned
                     && replies.iter().all(|reply| {
-                        matches!(reply.status, Win16DdeCleanupStatus::Released
-                            | Win16DdeCleanupStatus::RetriedAndReleased)
+                        matches!(
+                            reply.status,
+                            Win16DdeCleanupStatus::Released
+                                | Win16DdeCleanupStatus::RetriedAndReleased
+                        )
                     }),
                 replies,
                 failures: cleanup_failures,
@@ -245,7 +251,7 @@ fn callback_reply_free_error(native_instance: Option<u32>) -> RuntimeError {
             "retained DDE callback reply lost the native instance needed to read DMLERR",
         );
     };
-    let error = unsafe { DdeGetLastError(native_instance) as u16 };
+    let error = crate::windows::win32_safe::dde_last_error(native_instance) as u16;
     RuntimeError::with_source(
         Kind::HostFailure,
         "DdeFreeDataHandle could not release a retained DDE callback reply",
@@ -267,8 +273,7 @@ impl fmt::Display for CallbackReplyFreeFailure {
         write!(
             formatter,
             "DdeFreeDataHandle failed for DDEML instance {:#010x} (DMLERR={:#06x})",
-            self.native_instance,
-            self.dde_error,
+            self.native_instance, self.dde_error,
         )
     }
 }

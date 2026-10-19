@@ -11,7 +11,8 @@ mod paint;
 #[cfg(test)]
 mod tests;
 
-use context::{window_proc, CallbackRecord, WindowContext};
+use context::{CallbackRecord, WindowContext, window_proc};
+use graphics::{HostAction, HostEvent, Rect, Surface, WindowHandle};
 use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt;
@@ -19,16 +20,12 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
-use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HINSTANCE, HWND};
-use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
-use windows_sys::Win32::UI::Input::KeyboardAndMouse::EnableWindow;
+use windows_sys::Win32::Foundation::{HINSTANCE, HWND};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DestroyWindow, DispatchMessageW, IsWindow, MoveWindow, PeekMessageW,
-    RegisterClassExW, SetWindowLongPtrW, ShowWindow, TranslateMessage, UnregisterClassW,
-    CS_HREDRAW, CS_VREDRAW, GWLP_USERDATA, MSG, PM_REMOVE, SW_HIDE, SW_SHOW, WM_QUIT, WNDCLASSEXW,
-    WS_CHILD, WS_OVERLAPPEDWINDOW,
+    CS_HREDRAW, CS_VREDRAW, CreateWindowExW, DispatchMessageW, GWLP_USERDATA, MSG, MoveWindow,
+    PM_REMOVE, PeekMessageW, RegisterClassExW, SW_HIDE, SW_SHOW, SetWindowLongPtrW,
+    TranslateMessage, UnregisterClassW, WM_QUIT, WNDCLASSEXW, WS_CHILD, WS_OVERLAPPEDWINDOW,
 };
-use graphics::{HostAction, HostEvent, Rect, Surface, WindowHandle};
 
 const HOST_CLASS_PREFIX: &str = "VdmDisplayWindow";
 static NEXT_CLASS_ID: AtomicU64 = AtomicU64::new(1);
@@ -104,7 +101,7 @@ impl fmt::Display for WindowingError {
 impl std::error::Error for WindowingError {}
 
 fn native_error(operation: &'static str) -> WindowingError {
-    let code = unsafe { GetLastError() };
+    let code = { crate::windows::win32_safe::last_error() };
     WindowingError::Native {
         operation,
         code: (code != 0).then_some(code),
@@ -127,10 +124,10 @@ impl RegisteredClass {
         let mut name: Vec<u16> = format!("{HOST_CLASS_PREFIX}_{id}").encode_utf16().collect();
         name.push(0);
 
-        unsafe {
-            SetLastError(0);
+        {
+            crate::windows::win32_safe::set_last_error(0);
         }
-        let instance = unsafe { GetModuleHandleW(std::ptr::null()) };
+        let instance = { crate::windows::win32_safe::current_module() };
         if instance.is_null() {
             return Err(native_error("GetModuleHandleW"));
         }
@@ -143,9 +140,10 @@ impl RegisteredClass {
             lpszClassName: name.as_ptr(),
             ..WNDCLASSEXW::default()
         };
-        unsafe {
-            SetLastError(0);
+        {
+            crate::windows::win32_safe::set_last_error(0);
         }
+        // SAFETY: RegisterClassExW reads a caller-owned WNDCLASSEXW whose string pointers stay live for the call.
         let atom = unsafe { RegisterClassExW(&class) };
         if atom == 0 {
             return Err(native_error("RegisterClassExW"));
@@ -205,7 +203,7 @@ impl Drop for NativeWindow {
         }
         // SAFETY: hwnd is an HWND created and retained by this record. DestroyWindow
         // synchronously sends WM_NCDESTROY, which marks the still-owned context.
-        let destroyed = unsafe { DestroyWindow(self.hwnd) } != 0;
+        let destroyed = { crate::windows::win32_safe::destroy_window(self.hwnd) } != 0;
         if destroyed {
             // A successful DestroyWindow guarantees that no later callback can
             // use this pointer, even if a corrupted WndProc failed to mark it.
@@ -267,25 +265,29 @@ impl Windowing {
             HostAction::SetWindowVisible { handle, visible } => {
                 let hwnd = self.window_handle(handle)?;
                 // ShowWindow returns the previous visibility state, not success.
-                unsafe {
-                    ShowWindow(hwnd, if visible { SW_SHOW } else { SW_HIDE });
+                {
+                    crate::windows::win32_safe::show_window(
+                        hwnd,
+                        if visible { SW_SHOW } else { SW_HIDE },
+                    );
                 }
                 Ok(())
             }
             HostAction::SetWindowEnabled { handle, enabled } => {
                 let hwnd = self.window_handle(handle)?;
                 // EnableWindow likewise reports the previous enabled state.
-                unsafe {
-                    EnableWindow(hwnd, if enabled { 1 } else { 0 });
+                {
+                    crate::windows::win32_safe::enable_window(hwnd, if enabled { 1 } else { 0 });
                 }
                 Ok(())
             }
             HostAction::MoveWindow { handle, rect } => {
                 let hwnd = self.window_handle(handle)?;
                 let (width, height) = rect_extent(rect)?;
-                unsafe {
-                    SetLastError(0);
+                {
+                    crate::windows::win32_safe::set_last_error(0);
                 }
+                // SAFETY: MoveWindow takes no caller pointer. The HWND is a window on this thread.
                 if unsafe { MoveWindow(hwnd, rect.left, rect.top, width, height, 1) } == 0 {
                     return Err(native_error("MoveWindow"));
                 }
@@ -314,7 +316,7 @@ impl Windowing {
             .surface
             .lock()
             .map_err(|_| WindowingError::SurfaceStatePoisoned)? = Some(dib);
-        if unsafe { paint::invalidate(hwnd, None) } == 0 {
+        if { paint::invalidate(hwnd, None) } == 0 {
             return Err(native_error("InvalidateRect"));
         }
         Ok(())
@@ -332,7 +334,7 @@ impl Windowing {
             .surface
             .lock()
             .map_err(|_| WindowingError::SurfaceStatePoisoned)? = None;
-        if unsafe { paint::invalidate(hwnd, None) } == 0 {
+        if { paint::invalidate(hwnd, None) } == 0 {
             return Err(native_error("InvalidateRect"));
         }
         Ok(())
@@ -342,11 +344,13 @@ impl Windowing {
     /// events in FIFO order. `WM_QUIT` is retained for [`take_quit_code`](Self::take_quit_code).
     pub fn poll_events(&mut self) -> Result<Vec<HostEvent>, WindowingError> {
         let mut message = MSG::default();
+        // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
         while unsafe { PeekMessageW(&mut message, std::ptr::null_mut(), 0, 0, PM_REMOVE) } != 0 {
             if message.message == WM_QUIT {
                 self.quit_code = Some(message.wParam as i32);
                 break;
             }
+            // SAFETY: TranslateMessage reads a caller-owned MSG for this call only. DispatchMessageW reads a caller-owned MSG for this call only.
             unsafe {
                 TranslateMessage(&message);
                 DispatchMessageW(&message);
@@ -412,7 +416,7 @@ impl Windowing {
         // synchronous call and parent_hwnd is either null or an owned HWND.
         // No Rust pointer is passed through the Windows creation callback.
         let hwnd = unsafe {
-            SetLastError(0);
+            crate::windows::win32_safe::set_last_error(0);
             CreateWindowExW(
                 0,
                 self.class.name_ptr(),
@@ -438,14 +442,15 @@ impl Windowing {
         // still zero. The stable Box pointer is installed only after native
         // creation has completed, then retained by NativeWindow through
         // WM_NCDESTROY.
-        unsafe {
-            SetLastError(0);
+        {
+            crate::windows::win32_safe::set_last_error(0);
         }
         // windows-sys aliases this API to SetWindowLongW (LONG/i32) on x86;
         // infer the native parameter width so the host-owned pointer keeps
         // every bit on both the 32-bit and pointer-sized API declarations.
+        // SAFETY: SetWindowLongPtrW writes one window-long slot owned by this window.
         let previous = unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, context_ptr as _) };
-        let error = unsafe { GetLastError() };
+        let error = { crate::windows::win32_safe::last_error() };
         if previous != 0 || error != 0 {
             let error = WindowingError::Native {
                 operation: "SetWindowLongPtrW(GWLP_USERDATA)",
@@ -453,7 +458,7 @@ impl Windowing {
             };
             // Keep context alive until HWND destruction has synchronously
             // delivered WM_NCDESTROY if the pointer was installed.
-            let destroyed = unsafe { DestroyWindow(hwnd) } != 0;
+            let destroyed = { crate::windows::win32_safe::destroy_window(hwnd) } != 0;
             if !destroyed && !context.is_destroyed() {
                 let _ = Box::leak(context);
             }
@@ -481,7 +486,7 @@ impl Windowing {
             .get(&handle)
             .ok_or(WindowingError::UnknownWindow(handle))?;
         let context = window.context()?;
-        if context.is_destroyed() || unsafe { IsWindow(window.hwnd) } == 0 {
+        if context.is_destroyed() || { crate::windows::win32_safe::is_window(window.hwnd) } == 0 {
             return Err(WindowingError::ContextUnavailable);
         }
         Ok(window.hwnd)
@@ -496,7 +501,7 @@ impl Windowing {
             right: rect.right,
             bottom: rect.bottom,
         };
-        if unsafe { paint::invalidate(hwnd, Some(&native_rect)) } == 0 {
+        if { paint::invalidate(hwnd, Some(&native_rect)) } == 0 {
             return Err(native_error("InvalidateRect"));
         }
         Ok(())
@@ -508,10 +513,10 @@ impl Windowing {
             return Ok(());
         }
         let hwnd = self.window_handle(handle)?;
-        unsafe {
-            SetLastError(0);
+        {
+            crate::windows::win32_safe::set_last_error(0);
         }
-        if unsafe { DestroyWindow(hwnd) } == 0 {
+        if { crate::windows::win32_safe::destroy_window(hwnd) } == 0 {
             return Err(native_error("DestroyWindow"));
         }
         self.reap_destroyed_windows();

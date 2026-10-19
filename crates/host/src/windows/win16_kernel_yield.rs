@@ -25,6 +25,7 @@ pub(super) fn execute(
         // matches. PM_NOREMOVE leaves posted input, timers and WM_QUIT queued
         // for the guest's GetMessage/PeekMessage and DispatchMessage calls.
         // No WorkerState borrow spans the reentrant native call.
+        // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
         unsafe {
             PeekMessageW(&mut message, std::ptr::null_mut(), 0, 0, flags);
         }

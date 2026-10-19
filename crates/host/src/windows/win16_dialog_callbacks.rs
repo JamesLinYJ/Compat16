@@ -12,10 +12,10 @@ use runtime::{
 use windows_sys::Win32::Foundation::{HWND, LPARAM, WPARAM};
 use windows_sys::Win32::UI::Shell::HDROP;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    DWLP_MSGRESULT, GetParent, IsChild, IsWindow, MINMAXINFO, MSG, SetWindowLongPtrW, WINDOWPOS,
-    WM_CHANGECBCHAIN, WM_COMMAND, WM_DESTROY, WM_DROPFILES, WM_ERASEBKGND, WM_GETDLGCODE,
-    WM_GETMINMAXINFO, WM_GETTEXT, WM_GETTEXTLENGTH, WM_INITDIALOG, WM_NCACTIVATE, WM_NCCALCSIZE,
-    WM_NCDESTROY, WM_NCPAINT, WM_PAINT, WM_SETTEXT, WM_WINDOWPOSCHANGED, WM_WINDOWPOSCHANGING,
+    DWLP_MSGRESULT, MINMAXINFO, MSG, SetWindowLongPtrW, WINDOWPOS, WM_CHANGECBCHAIN, WM_COMMAND,
+    WM_DESTROY, WM_DROPFILES, WM_ERASEBKGND, WM_GETDLGCODE, WM_GETMINMAXINFO, WM_GETTEXT,
+    WM_GETTEXTLENGTH, WM_INITDIALOG, WM_NCACTIVATE, WM_NCCALCSIZE, WM_NCDESTROY, WM_NCPAINT,
+    WM_PAINT, WM_SETTEXT, WM_WINDOWPOSCHANGED, WM_WINDOWPOSCHANGING,
 };
 
 use super::win16_window_callbacks;
@@ -26,6 +26,7 @@ use super::win16_window_worker::{
 #[path = "win16_dialog_callback_routes.rs"]
 mod callback_routes;
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 pub(super) unsafe extern "system" fn host_dialog_proc(
     hwnd: HWND,
     message: u32,
@@ -469,6 +470,7 @@ fn dispatch_dialog_proc(hwnd: HWND, message: u32, w_param: WPARAM, l_param: LPAR
                     // create another with the same HWND bits. A result belongs
                     // only to the original property-bound window identity.
                     if super::win16_window_identity::resolve(&state, route.window) == Some(hwnd) {
+                        // SAFETY: SetWindowLongPtrW writes one window-long slot owned by this window.
                         unsafe {
                             SetWindowLongPtrW(hwnd, DWLP_MSGRESULT as i32, native_value as _)
                         };
@@ -556,7 +558,7 @@ fn copy_dialog_message(
                 Some(worker::token_for_native(state, focus)?)
             };
             let mut focus_ancestry = Vec::new();
-            if !focus.is_null() && unsafe { IsChild(hwnd, focus) } != 0 {
+            if !focus.is_null() && (crate::windows::win32_safe::is_child(hwnd, focus)) != 0 {
                 let mut current = focus;
                 let mut visited = BTreeSet::new();
                 let mut native_edges = Vec::new();
@@ -574,7 +576,7 @@ fn copy_dialog_message(
                     if visited.len() >= MAX_ANCESTRY_HOPS || !visited.insert(current as usize) {
                         break;
                     }
-                    let parent = unsafe { GetParent(current) };
+                    let parent = crate::windows::win32_safe::get_parent(current);
                     if parent.is_null() {
                         break;
                     }
@@ -590,10 +592,13 @@ fn copy_dialog_message(
                 // can be reparented while USER initializes it; such a race
                 // omits ancestry metadata without losing the focus HWND.
                 let stable_chain = reached_dialog
-                    && unsafe { IsChild(hwnd, focus) } != 0
+                    && (crate::windows::win32_safe::is_child(hwnd, focus)) != 0
                     && native_edges
                         .iter()
-                        .all(|(child, parent)| (unsafe { GetParent(*child) }) == *parent);
+                        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+                        .all(|(child, parent)| {
+                            (crate::windows::win32_safe::get_parent(*child)) == *parent
+                        });
                 if stable_chain {
                     let tokens = native_edges
                         .iter()
@@ -604,10 +609,13 @@ fn copy_dialog_message(
                             ))
                         })
                         .collect::<Result<Vec<_>, RuntimeError>>()?;
-                    let still_stable = unsafe { IsChild(hwnd, focus) } != 0
+                    let still_stable = (crate::windows::win32_safe::is_child(hwnd, focus)) != 0
                         && native_edges
                             .iter()
-                            .all(|(child, parent)| (unsafe { GetParent(*child) }) == *parent);
+                            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+                            .all(|(child, parent)| {
+                                (crate::windows::win32_safe::get_parent(*child)) == *parent
+                            });
                     if still_stable {
                         focus_ancestry = tokens;
                     }
@@ -627,6 +635,7 @@ fn copy_dialog_message(
             let copied_message = if l_param == 0 {
                 None
             } else {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 let native = unsafe { &*(l_param as *const MSG) };
                 let Some(message) = callback_routes::copy_native_queued_message(state, native)?
                 else {
@@ -797,11 +806,11 @@ fn copy_typed_message(
                 (None, None)
             } else {
                 let native = l_param as HWND;
-                if unsafe { IsWindow(native) } == 0 {
+                if (crate::windows::win32_safe::is_window(native)) == 0 {
                     return Ok(None);
                 } else {
                     let control = worker::token_for_native(state, native)?;
-                    let native_parent = unsafe { GetParent(native) };
+                    let native_parent = crate::windows::win32_safe::get_parent(native);
                     let control_parent = if native_parent.is_null() {
                         None
                     } else {
@@ -850,6 +859,7 @@ fn copy_typed_message(
             worker::update_clipboard_viewer_chain(state, window, w_param as HWND, l_param as HWND);
             Win16HostMessage::ClipboardChainChange { removed, next }
         }
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         WM_SETTEXT => Win16HostMessage::SetText(unsafe {
             super::win16_window_text_context::copy_native_wide_z(state, l_param as *const u16)?
         }),
@@ -869,6 +879,7 @@ fn copy_typed_message(
         }
         WM_GETTEXTLENGTH => Win16HostMessage::GetTextLength,
         WM_GETMINMAXINFO if l_param != 0 => {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let native = unsafe { &*(l_param as *const MINMAXINFO) };
             Win16HostMessage::MinMaxInfo(super::win16_window_sizing::minmax_for_guest(native))
         }
@@ -882,15 +893,18 @@ fn copy_typed_message(
             let Some(kind) = Win16ScalarMessage::from_raw(message as u16) else {
                 return Ok(None);
             };
-            if matches!(kind, Win16ScalarMessage::Timer | Win16ScalarMessage::SystemTimer)
-                && l_param != 0
+            if matches!(
+                kind,
+                Win16ScalarMessage::Timer | Win16ScalarMessage::SystemTimer
+            ) && l_param != 0
             {
                 return Ok(None);
             }
             Win16HostMessage::Scalar {
                 kind,
                 w_param: match super::win16_character_messages::to_guest(state, message, w_param) {
-                    Some(word) => word, None => return Ok(None),
+                    Some(word) => word,
+                    None => return Ok(None),
                 },
                 l_param: l_param as u32,
             }
@@ -1096,7 +1110,10 @@ fn retire_after_native_destroy(state: &Rc<RefCell<WorkerState>>, hwnd: HWND, mes
 
 #[cfg(test)]
 pub(super) fn test_dialog_route(
-    state: &Rc<RefCell<WorkerState>>, hwnd: HWND, message: u32, parameter: isize,
+    state: &Rc<RefCell<WorkerState>>,
+    hwnd: HWND,
+    message: u32,
+    parameter: isize,
 ) -> Result<Option<DialogRoute>, RuntimeError> {
     callback_routes::dialog_route(state, hwnd, message, parameter)
 }

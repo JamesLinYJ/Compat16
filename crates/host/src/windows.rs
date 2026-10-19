@@ -1,14 +1,14 @@
 mod bindings;
 mod com_bindings;
-mod win16_com_objects;
+mod environment;
+mod jit_cache;
 mod win16_com_callback_copy;
 mod win16_com_callback_proxy;
 mod win16_com_interface_calls;
+mod win16_com_objects;
 mod win16_com_request_executor;
 mod win16_ole_native;
 mod win16_storage_ole;
-mod environment;
-mod jit_cache;
 
 impl WindowsHost {
     pub fn jit_artifact_store(&self) -> Option<std::sync::Arc<dyn runtime::JitArtifactStore>> {
@@ -21,9 +21,10 @@ mod win16_program_launch;
 pub use win16_program_launch::{GuestChildLaunch, ProgramLoadReporter};
 #[path = "windows/error_mapping.rs"]
 mod error_mapping;
-pub(crate) use error_mapping::{invalid, os_error};
 use error_mapping::{console_input_runtime_error, last_error, vga_runtime_error};
+pub(crate) use error_mapping::{invalid, os_error};
 mod mouse;
+mod multimedia_wake;
 mod native_output_buffer;
 mod printer_protocol;
 mod printer_worker;
@@ -32,54 +33,53 @@ mod service_trace;
 #[path = "vga_window.rs"]
 mod vga_window;
 mod win16;
-mod win16_open_file;
-mod win16_file_paths;
-mod win16_file_devices;
 mod win16_comm;
-mod win16_lz_file_paths;
 mod win16_common;
-mod win16_injected_input;
-mod win16_drawing;
-mod win16_gdi;
 mod win16_devmode;
-mod win16_printer_mode;
-mod win16_get_dc_ex;
-mod win16_metafile;
+mod win16_drawing;
+mod win16_file_devices;
+mod win16_file_paths;
+mod win16_gdi;
 mod win16_gdi_bitmap_transfer;
 mod win16_gdi_device;
-mod win16_gdi_services;
-mod win16_network_redirector;
-mod win16_spool_jobs;
-mod win16_network_print_queues;
 mod win16_gdi_object_factories;
-mod win16_gdi_oem_bitmaps;
 mod win16_gdi_objects;
+mod win16_gdi_oem_bitmaps;
+mod win16_gdi_services;
+mod win16_get_dc_ex;
+mod win16_injected_input;
 mod win16_io_trace;
+mod win16_kernel_file_system;
+mod win16_lz_file_paths;
 mod win16_mci_owner;
 mod win16_media_services;
+mod win16_metafile;
 mod win16_midi;
 mod win16_multimedia_buffers;
-mod win16_wave_format_storage;
 mod win16_netbios;
 mod win16_network;
-mod win16_wnet_caps;
+mod win16_network_print_queues;
+mod win16_network_redirector;
 mod win16_network_wake;
 mod win16_ole2disp;
 mod win16_ole2nls;
+mod win16_open_file;
 mod win16_path_info;
-mod win16_kernel_file_system;
+mod win16_printer;
+mod win16_printer_mode;
+mod win16_private_profile;
+mod win16_profile_sections;
+mod win16_profile_struct;
+mod win16_registered_names;
+mod win16_spool_jobs;
+mod win16_wave_format_storage;
+mod win16_wing_brush;
 mod win16_wing_dib_backend;
 mod win16_wing_dib_format;
 mod win16_wing_dib_header;
 mod win16_wing_dib_storage;
 mod win16_wing_dib_use;
-mod multimedia_wake;
-mod win16_printer;
-mod win16_profile_sections;
-mod win16_private_profile;
-mod win16_profile_struct;
-mod win16_registered_names;
-mod win16_wing_brush;
+mod win16_wnet_caps;
 
 pub(crate) fn run_native_worker() -> Result<(), RuntimeError> {
     use windows_sys::Win32::System::Diagnostics::Debug::{
@@ -93,51 +93,51 @@ pub(crate) fn run_native_worker() -> Result<(), RuntimeError> {
     };
     printer_worker::run_native_worker()
 }
-mod guest_memory;
-mod runtime_host;
+#[cfg(test)]
+#[path = "windows/win16_dialog_static_creation_probe_tests.rs"]
+mod dialog_static_creation_probe_tests;
 mod dos_time;
+mod guest_memory;
 mod guest_text;
-pub mod text_encoding_metadata;
+mod runtime_host;
 #[path = "windows/runtime_host_dde.rs"]
 mod runtime_host_dde;
-#[path = "windows/runtime_host_multimedia.rs"]
-mod runtime_host_multimedia;
+#[path = "windows/runtime_host_diagnostics.rs"]
+mod runtime_host_diagnostics;
 #[path = "windows/runtime_host_gdi.rs"]
 mod runtime_host_gdi;
 #[path = "windows/runtime_host_input.rs"]
 mod runtime_host_input;
-#[path = "windows/runtime_host_diagnostics.rs"]
-mod runtime_host_diagnostics;
+#[path = "windows/runtime_host_lz.rs"]
+mod runtime_host_lz;
+#[path = "windows/runtime_host_mouse.rs"]
+mod runtime_host_mouse;
+#[path = "windows/runtime_host_multimedia.rs"]
+mod runtime_host_multimedia;
+#[path = "windows/runtime_host_ver.rs"]
+mod runtime_host_ver;
 #[path = "windows/runtime_host_wave.rs"]
 mod runtime_host_wave;
 #[path = "windows/runtime_host_windows.rs"]
 mod runtime_host_windows;
-#[path = "windows/runtime_host_lz.rs"]
-mod runtime_host_lz;
-#[path = "windows/runtime_host_ver.rs"]
-mod runtime_host_ver;
-#[path = "windows/runtime_host_mouse.rs"]
-mod runtime_host_mouse;
-mod win16_atoms;
-#[path = "windows/win16_acm_direct.rs"]
-mod win16_acm_direct;
-mod win16_compat_calls_lzexpand;
-mod win16_compat_calls_ver;
-mod win16_dde;
-#[path = "windows/win16_classic_dde_wire.rs"]
-mod win16_classic_dde_wire;
-mod win16_images;
-mod win16_dialog_icon_retention;
-#[cfg(test)]
-#[path = "windows/win16_dialog_static_creation_probe_tests.rs"]
-mod dialog_static_creation_probe_tests;
 #[cfg(test)]
 #[path = "windows/win16_static_icon_ownership_probe_tests.rs"]
 mod static_icon_ownership_probe_tests;
+pub mod text_encoding_metadata;
+#[path = "windows/win16_acm_direct.rs"]
+mod win16_acm_direct;
+mod win16_atoms;
+#[path = "windows/win16_classic_dde_wire.rs"]
+mod win16_classic_dde_wire;
+mod win16_compat_calls_lzexpand;
+mod win16_compat_calls_ver;
+mod win16_dde;
+mod win16_dialog_icon_retention;
+mod win16_images;
+mod win16_kernel_diagnostics;
 mod win16_keyboard;
 #[path = "windows/win16_modal.rs"]
 mod win16_modal;
-mod win16_kernel_diagnostics;
 mod win16_module_files;
 mod win16_registry;
 mod win16_storage;
@@ -145,8 +145,8 @@ mod win16_text;
 mod win16_user_services_system;
 mod win16_windows;
 mod win32_import_system;
+pub(crate) mod win32_safe;
 
-pub use environment::EnvironmentReport;
 use crate::filesystem::Filesystem;
 use devices::keyboard::KeyStroke;
 use devices::mouse::MouseInput;
@@ -156,6 +156,7 @@ use dos_kernel::{
     DosFileOpenResult, DosFileSharing, DosHost, DosHostError, DosHostFile, DosHostSearch,
     DosSeekOrigin,
 };
+pub use environment::EnvironmentReport;
 use mouse::{MouseMapper, map_button_state};
 use runtime::{
     Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostAtomName,
@@ -180,7 +181,7 @@ use windows_sys::Win32::System::Console::{
     MOUSE_EVENT, MOUSE_EVENT_RECORD, ReadConsoleInputW, SMALL_RECT, SetConsoleCursorPosition,
     SetConsoleMode, WriteConsoleOutputW, WriteConsoleW,
 };
-use windows_sys::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_MOUSEPRESENT, WaitMessage};
+use windows_sys::Win32::UI::WindowsAndMessaging::{SM_MOUSEPRESENT, WaitMessage};
 
 pub fn decode(bytes: &[u8], code_page: u32) -> Result<String, DosHostError> {
     CodePage::try_from(code_page)
@@ -200,8 +201,10 @@ pub fn encode_ansi(text: &str, code_page: u32) -> Result<Vec<u8>, RuntimeError> 
     let encoded = guest_text::GuestTextCodec::new(code_page)?
         .from_wide(&text.encode_utf16().collect::<Vec<_>>())?;
     if encoded.used_default_char == Some(true) {
-        return Err(RuntimeError::new(Kind::InvalidInput,
-            "command text is not representable in the selected Win16 ANSI code page"));
+        return Err(RuntimeError::new(
+            Kind::InvalidInput,
+            "command text is not representable in the selected Win16 ANSI code page",
+        ));
     }
     Ok(encoded.bytes)
 }
@@ -302,8 +305,17 @@ impl WindowsHost {
     pub fn new(root: &Path, code_page: u32) -> Result<Self, DosHostError> {
         Self::new_with_ansi_code_page(root, code_page, if code_page == 936 { 936 } else { 1252 })
     }
-    pub fn new_with_ansi_code_page(root: &Path, code_page: u32, ansi_code_page: u32) -> Result<Self, DosHostError> {
-        Self::new_with_console_policy(root, code_page, ansi_code_page, ConsolePolicy::AllocateIfMissing)
+    pub fn new_with_ansi_code_page(
+        root: &Path,
+        code_page: u32,
+        ansi_code_page: u32,
+    ) -> Result<Self, DosHostError> {
+        Self::new_with_console_policy(
+            root,
+            code_page,
+            ansi_code_page,
+            ConsolePolicy::AllocateIfMissing,
+        )
     }
     pub fn new_with_console_policy(
         root: &Path,
@@ -353,6 +365,7 @@ impl WindowsHost {
                     | ENABLE_QUICK_EDIT_MODE))
                 | ENABLE_MOUSE_INPUT
                 | ENABLE_EXTENDED_FLAGS;
+            // SAFETY: `SetConsoleMode` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             if unsafe { SetConsoleMode(input, input_mode) } == 0 {
                 return Err(last_error());
             }
@@ -373,17 +386,18 @@ impl WindowsHost {
         let multimedia_wake = win16_windows
             .multimedia_wake_sender()
             .map_err(|error| DosHostError::with_source(DosErrorCode::GeneralFailure, error))?;
-        let win16_midi = win16_midi::Win16MidiHost::new(
-            Arc::clone(&identity_source),
-            multimedia_wake.clone(),
-        );
+        let win16_midi =
+            win16_midi::Win16MidiHost::new(Arc::clone(&identity_source), multimedia_wake.clone());
         let win16_mci = win16_mci_owner::Win16MciHost::new(
-            multimedia_wake.clone(), Arc::clone(&identity_source), codec)
-            .map_err(|error| DosHostError::with_source(DosErrorCode::GeneralFailure, error))?;
+            multimedia_wake.clone(),
+            Arc::clone(&identity_source),
+            codec,
+        )
+        .map_err(|error| DosHostError::with_source(DosErrorCode::GeneralFailure, error))?;
         let win16_wave = win16_windows.new_wave_host(Arc::clone(&identity_source), codec);
-        let win16_network = win16_network::Win16NetworkHost::new(
-            identity_source, multimedia_wake.clone())
-            .map_err(|error| DosHostError::with_source(DosErrorCode::GeneralFailure, error))?;
+        let win16_network =
+            win16_network::Win16NetworkHost::new(identity_source, multimedia_wake.clone())
+                .map_err(|error| DosHostError::with_source(DosErrorCode::GeneralFailure, error))?;
         let win16_work_generation = multimedia_wake.generation_observer();
         Ok(Self {
             program_load_reporter: None,
@@ -450,15 +464,20 @@ impl WindowsHost {
 
     /// Start an explicitly requested Win16 trace without logging file contents.
     /// Complete mode streams all events to disk instead of retaining a bounded transcript.
-    pub fn enable_win16_io_trace(&mut self, path: &Path, complete: bool) -> Result<(), RuntimeError> {
-        self.win16_io_trace =
-            Some(win16_io_trace::Win16IoTrace::create(path, complete).map_err(|error| {
+    pub fn enable_win16_io_trace(
+        &mut self,
+        path: &Path,
+        complete: bool,
+    ) -> Result<(), RuntimeError> {
+        self.win16_io_trace = Some(
+            win16_io_trace::Win16IoTrace::create(path, complete).map_err(|error| {
                 RuntimeError::with_source(
                     Kind::HostFailure,
                     format!("create Win16 I/O trace {}", path.display()),
                     error,
                 )
-            })?);
+            })?,
+        );
         Ok(())
     }
 
@@ -483,6 +502,7 @@ impl WindowsHost {
                     if let Some(key) = self.keys.pop_front() {
                         return Ok(Some(key));
                     }
+                    // SAFETY: WaitMessage waits on the calling thread's message queue and takes no pointers.
                     if unsafe { WaitMessage() } == 0 {
                         return Err(last_error());
                     }
@@ -674,10 +694,13 @@ impl WindowsHost {
     pub fn finish_output(&mut self) -> Result<(), DosHostError> {
         if let Some(mut trace) = self.win16_io_trace.take() {
             if let Err(error) = trace.flush_recent() {
-                self.report_diagnostic(&runtime::Diagnostic::warning(
-                    runtime::DiagnosticKind::HostFailure,
-                    "could not save recent Win16 observations",
-                ).with_cause(error));
+                self.report_diagnostic(
+                    &runtime::Diagnostic::warning(
+                        runtime::DiagnosticKind::HostFailure,
+                        "could not save recent Win16 observations",
+                    )
+                    .with_cause(error),
+                );
             }
         }
         let stdout = self
@@ -838,7 +861,11 @@ impl DosHost for WindowsHost {
     fn file_create(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
         self.filesystem.file_create(path, attributes)
     }
-    fn file_create_new(&mut self, path: &[u8], attributes: u8) -> Result<DosHostFile, DosHostError> {
+    fn file_create_new(
+        &mut self,
+        path: &[u8],
+        attributes: u8,
+    ) -> Result<DosHostFile, DosHostError> {
         self.filesystem.file_create_new(path, attributes)
     }
     fn file_extended_open(
@@ -863,8 +890,13 @@ impl DosHost for WindowsHost {
     ) -> Result<DosHostFile, DosHostError> {
         let result = self.filesystem.file_open(path, access, sharing);
         if let Err(error) = &result {
-            runtime_host_diagnostics::observe_win16_io(self,
-                &runtime::Win16IoEvent::DosOpenFailure { path, error: error.code as u16 });
+            runtime_host_diagnostics::observe_win16_io(
+                self,
+                &runtime::Win16IoEvent::DosOpenFailure {
+                    path,
+                    error: error.code as u16,
+                },
+            );
         }
         result
     }
@@ -916,11 +948,15 @@ impl DosHost for WindowsHost {
     ) -> Result<usize, DosHostError> {
         self.filesystem.directory_get_current(drive, output)
     }
-    fn file_short_name(&mut self, parent: &[u8], name: &[u8]) -> Result<Option<Vec<u8>>, DosHostError> {
+    fn file_short_name(
+        &mut self,
+        parent: &[u8],
+        name: &[u8],
+    ) -> Result<Option<Vec<u8>>, DosHostError> {
         self.filesystem.project_short_component(parent, name)
     }
-    fn file_delete_fcb(&mut self,path:&[u8],ignore_read_only:bool)->Result<(),DosHostError> {
-        self.filesystem.file_delete_fcb(path,ignore_read_only)
+    fn file_delete_fcb(&mut self, path: &[u8], ignore_read_only: bool) -> Result<(), DosHostError> {
+        self.filesystem.file_delete_fcb(path, ignore_read_only)
     }
     fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError> {
         self.filesystem.file_rename(old_path, new_path)

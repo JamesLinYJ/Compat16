@@ -6,8 +6,8 @@ use std::rc::Rc;
 use runtime::{Win16HostMessageOutput as Output, Win16HostMessageResult, Win16HostWindow};
 use windows_sys::Win32::Foundation::{HWND, LPARAM};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    WM_GETMINMAXINFO, WM_GETTEXT, WM_NCCALCSIZE, WM_WINDOWPOSCHANGED,
-    WM_WINDOWPOSCHANGING, MINMAXINFO,
+    MINMAXINFO, WM_GETMINMAXINFO, WM_GETTEXT, WM_NCCALCSIZE, WM_WINDOWPOSCHANGED,
+    WM_WINDOWPOSCHANGING,
 };
 
 use super::super::win16_window_worker::WorkerState;
@@ -18,32 +18,45 @@ pub(in crate::windows::win16_windows) fn write_native_output(
     l_param: LPARAM,
     capacity: usize,
     receiver: Option<(Win16HostWindow, HWND)>,
-    original_nonclient_position: Option<*mut windows_sys::Win32::UI::WindowsAndMessaging::WINDOWPOS>,
+    original_nonclient_position: Option<
+        *mut windows_sys::Win32::UI::WindowsAndMessaging::WINDOWPOS,
+    >,
     original_native_high_flags: Option<u32>,
     result: &Win16HostMessageResult,
 ) -> bool {
     if matches!(&result.output, Output::FindReplace { .. }) {
         return super::super::win16_common_dialog_callbacks::write_output(
-            state, message, l_param, receiver, &result.output,
+            state,
+            message,
+            l_param,
+            receiver,
+            &result.output,
         );
     }
     match (message, &result.output) {
-        (windows_sys::Win32::UI::WindowsAndMessaging::WM_MEASUREITEM,
-            Output::OwnerDrawMeasure { width, height }) => {
-            super::super::win16_owner_draw_callbacks::write_measure(l_param, *width, *height)
-        }
-        (WM_NCCALCSIZE, Output::NonClientCalcSize(data)) => {
-            super::write_nonclient_output(
-                state, receiver, capacity, l_param, original_nonclient_position,
-                original_native_high_flags, *data,
-            )
-        }
+        (
+            windows_sys::Win32::UI::WindowsAndMessaging::WM_MEASUREITEM,
+            Output::OwnerDrawMeasure { width, height },
+        ) => super::super::win16_owner_draw_callbacks::write_measure(l_param, *width, *height),
+        (WM_NCCALCSIZE, Output::NonClientCalcSize(data)) => super::write_nonclient_output(
+            state,
+            receiver,
+            capacity,
+            l_param,
+            original_nonclient_position,
+            original_native_high_flags,
+            *data,
+        ),
         (WM_WINDOWPOSCHANGING, Output::WindowPosition(data)) => {
             let Some(original_native_high_flags) = original_native_high_flags else {
                 return false;
             };
             super::super::win16_window_position::write_output(
-                state, receiver, l_param, *data, original_native_high_flags,
+                state,
+                receiver,
+                l_param,
+                *data,
+                original_native_high_flags,
             )
         }
         (WM_WINDOWPOSCHANGING, Output::None) => {
@@ -56,6 +69,7 @@ pub(in crate::windows::win16_windows) fn write_native_output(
             super::super::win16_window_sizing::record_minmax(state, receiver, *data);
             // The native MINMAXINFO remains writable for this suspended
             // WndProc. All fields come from an owned, typed reply.
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe {
                 *(l_param as *mut MINMAXINFO) =
                     super::super::win16_window_geometry::native_minmax(*data);
@@ -79,14 +93,18 @@ pub(in crate::windows::win16_windows) fn write_native_text_output(
     output: &Output,
 ) -> Option<isize> {
     let (guest_capacity, buffer_is_null) = super::super::win16_window_text_context::guest_capacity(
-        state, window, hwnd, WM_GETTEXT, native_capacity_units, l_param == 0,
-    ).ok()?;
+        state,
+        window,
+        hwnd,
+        WM_GETTEXT,
+        native_capacity_units,
+        l_param == 0,
+    )
+    .ok()?;
     match output {
         Output::None if guest_result_count == 0 => Some(0),
         Output::None if guest_result_count == u32::MAX => Some(-1),
-        Output::Text(bytes) if native_capacity_units == 0 => {
-            bytes.is_empty().then_some(0)
-        }
+        Output::Text(bytes) if native_capacity_units == 0 => bytes.is_empty().then_some(0),
         Output::Text(bytes) => {
             let guest_count = usize::try_from(guest_result_count).ok()?;
             if buffer_is_null
@@ -98,9 +116,13 @@ pub(in crate::windows::win16_windows) fn write_native_text_output(
             {
                 return None;
             }
-            let (wide, native_count) = super::super::win16_window_text_context::guest_z_to_native_prefix(
-                state, bytes, native_capacity_units,
-            ).ok()?;
+            let (wide, native_count) =
+                super::super::win16_window_text_context::guest_z_to_native_prefix(
+                    state,
+                    bytes,
+                    native_capacity_units,
+                )
+                .ok()?;
             if wide.len() > native_capacity_units {
                 return None;
             }
@@ -108,9 +130,7 @@ pub(in crate::windows::win16_windows) fn write_native_text_output(
             // and cch; conversion guarantees the copied NUL-terminated output
             // fits the same number of UTF-16 code units.
             unsafe {
-                std::ptr::copy_nonoverlapping(
-                    wide.as_ptr(), l_param as *mut u16, wide.len(),
-                );
+                std::ptr::copy_nonoverlapping(wide.as_ptr(), l_param as *mut u16, wide.len());
             }
             Some(native_count as isize)
         }

@@ -76,6 +76,7 @@ pub(super) fn initialize(
     };
     let callback = super::callback::CALLBACKS[usize::from(callback_slot)];
     worker::push_initializing_instance(context, host_instance, &mut native_instance)?;
+    // SAFETY: DdeInitializeW writes a caller-owned instance id and installs the declared callback.
     let result_code = unsafe { DdeInitializeW(&mut native_instance, callback, flags, reserved) };
     worker::pop_initializing_instance(context, host_instance)?;
     if result_code != DMLERR_NO_ERROR {
@@ -202,6 +203,7 @@ pub(super) fn connect_list(
         .as_ref()
         .map_or(ptr::null(), |value| value as *const _);
     let native =
+        // SAFETY: `DdeConnectList` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { DdeConnectList(native_instance, service, topic, previous, context_pointer) };
     if native.is_null() {
         return Ok(result(
@@ -212,6 +214,7 @@ pub(super) fn connect_list(
     match context.state.borrow_mut().intern_list(instance, native) {
         Ok(token) => Ok(result(Win16HostDdeValue::ConversationList(token), 0)),
         Err(error) => {
+            // SAFETY: `DdeDisconnectList` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe {
                 DdeDisconnectList(native);
             }
@@ -239,6 +242,7 @@ pub(super) fn connect(
     let context_pointer = native_context
         .as_ref()
         .map_or(ptr::null(), |value| value as *const _);
+    // SAFETY: DdeConnect reads caller-owned service and topic strings.
     let native = unsafe { DdeConnect(native_instance, service, topic, context_pointer) };
     if native.is_null() {
         return Ok(result(
@@ -253,6 +257,7 @@ pub(super) fn connect(
     {
         Ok(token) => Ok(result(Win16HostDdeValue::Conversation(token), 0)),
         Err(error) => {
+            // SAFETY: DdeDisconnect ends a conversation this owner opened.
             unsafe {
                 DdeDisconnect(native);
             }
@@ -275,10 +280,12 @@ pub(super) fn query_conversation_info(
             state.native_instance(instance)?,
         )
     };
+    // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
     let mut native_info: CONVINFO = unsafe { zeroed() };
     native_info.cb = u32::try_from(size_of::<CONVINFO>()).expect("CONVINFO size fits DWORD");
     native_info.ConvCtxt.cb =
         u32::try_from(size_of::<CONVCONTEXT>()).expect("CONVCONTEXT size fits DWORD");
+    // SAFETY: `DdeQueryConvInfo` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let copied = unsafe { DdeQueryConvInfo(native_conversation, transaction, &mut native_info) };
     if copied == 0 {
         return Ok(result(
@@ -365,6 +372,7 @@ pub(super) fn enable_callback(
         (state.native_instance(instance)?, native_conversation)
     };
     let succeeded =
+        // SAFETY: `DdeEnableCallback` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { DdeEnableCallback(native_instance, native_conversation, u32::from(command)) } != 0;
     let error = if succeeded {
         0
@@ -389,6 +397,7 @@ pub(super) fn name_service(
             state.native_optional_string(instance, reserved)?,
         )
     };
+    // SAFETY: DdeNameService reads a caller-owned service name.
     let native = unsafe { DdeNameService(native_instance, service, reserved, u32::from(command)) };
     let succeeded = !native.is_null();
     let error = if succeeded {
@@ -421,6 +430,7 @@ pub(super) fn compare_strings(
             state.native_string(right_instance, right)?,
         )
     };
+    // SAFETY: `DdeCmpStringHandles` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let comparison = unsafe { DdeCmpStringHandles(native_left, native_right) };
     Ok(result(Win16HostDdeValue::Scalar(comparison as u32), 0))
 }
@@ -438,6 +448,7 @@ pub(super) fn reconnect(
             state.native_instance(instance)?,
         )
     };
+    // SAFETY: `DdeReconnect` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let native = unsafe { DdeReconnect(native_conversation) };
     if native.is_null() {
         return Ok(result(
@@ -452,6 +463,7 @@ pub(super) fn reconnect(
     {
         Ok(token) => Ok(result(Win16HostDdeValue::Conversation(token), 0)),
         Err(error) => {
+            // SAFETY: DdeDisconnect ends a conversation this owner opened.
             unsafe {
                 DdeDisconnect(native);
             }
@@ -473,6 +485,7 @@ pub(in super::super) fn execute_call(
         } => initialize(context, existing, callback_route, flags, reserved),
         Win16HostDdeCall::Uninitialize { instance } => {
             let native_instance = context.state.borrow().native_instance(instance)?;
+            // SAFETY: DdeUninitialize releases a DDE instance this owner initialized.
             let succeeded = unsafe { DdeUninitialize(native_instance) } != 0;
             let error = if succeeded {
                 0
@@ -518,6 +531,7 @@ pub(in super::super) fn execute_call(
                 })?;
                 (native_list, native_previous, owner)
             };
+            // SAFETY: `DdeQueryNextServer` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let native = unsafe { DdeQueryNextServer(native_list, native_previous) };
             let value = context
                 .state
@@ -547,6 +561,7 @@ pub(in super::super) fn execute_call(
             let mut native_previous = ptr::null_mut();
             let mut members = Vec::new();
             loop {
+                // SAFETY: `DdeQueryNextServer` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 let next = unsafe { DdeQueryNextServer(native, native_previous) };
                 if next.is_null() {
                     break;
@@ -564,6 +579,7 @@ pub(in super::super) fn execute_call(
                 }
                 native_previous = next;
             }
+            // SAFETY: `DdeDisconnectList` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let succeeded = unsafe { DdeDisconnectList(native) } != 0;
             let error = if succeeded { 0 } else { native_error(owner) };
             if succeeded {
@@ -587,6 +603,7 @@ pub(in super::super) fn execute_call(
                 (native, state.owner_for_conversation(conversation)?)
             };
             let error_instance = context.state.borrow().native_instance(owner)?;
+            // SAFETY: DdeDisconnect ends a conversation this owner opened.
             let succeeded = unsafe { DdeDisconnect(native) } != 0;
             let error = if succeeded {
                 0
@@ -615,6 +632,7 @@ pub(in super::super) fn execute_call(
                     state.native_instance(owner)?,
                 )
             };
+            // SAFETY: `DdeSetUserHandle` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let succeeded = unsafe {
                 DdeSetUserHandle(
                     native,
@@ -664,6 +682,7 @@ pub(in super::super) fn execute_call(
                 (state.native_instance(instance)?, native_conversation)
             };
             let succeeded =
+                // SAFETY: `DdeAbandonTransaction` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 unsafe { DdeAbandonTransaction(native_instance, native_conversation, transaction) }
                     != 0;
             let error = if succeeded {
@@ -687,6 +706,7 @@ pub(in super::super) fn execute_call(
                 )
             };
             let succeeded =
+                // SAFETY: DdePostAdvise reads caller-owned topic and item strings.
                 unsafe { DdePostAdvise(native_instance, native_topic, native_item) } != 0;
             let error = if succeeded {
                 0
@@ -721,7 +741,7 @@ pub(in super::super) fn execute_call(
         Win16HostDdeCall::FreeData { data } => super::data::free_data(context, data),
         Win16HostDdeCall::GetLastError { instance } => {
             let native_instance = context.state.borrow().native_instance(instance)?;
-            let error = unsafe { DdeGetLastError(native_instance) } as u16;
+            let error = (crate::windows::win32_safe::dde_last_error(native_instance)) as u16;
             Ok(result(Win16HostDdeValue::Scalar(u32::from(error)), 0))
         }
         Win16HostDdeCall::CreateString {

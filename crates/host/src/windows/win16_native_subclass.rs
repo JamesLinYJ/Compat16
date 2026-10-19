@@ -125,9 +125,9 @@ pub(in crate::windows::win16_windows) fn set_procedure(
     // The saved provider remains pinned, and the callback owner was published
     // before entering USER. No worker borrow is held across this native call.
     let replaced = unsafe {
-        SetLastError(0);
+        crate::windows::win32_safe::set_last_error(0);
         let replaced = SetWindowLongPtrW(hwnd, GWLP_WNDPROC, replacement);
-        if replaced == 0 && GetLastError() != 0 {
+        if replaced == 0 && crate::windows::win32_safe::last_error() != 0 {
             None
         } else {
             Some(replaced)
@@ -199,10 +199,7 @@ pub(in crate::windows::win16_windows) fn restore_subclasses(
         if win16_window_identity::resolve(state, window).is_none() {
             // An identity failure is not proof of destruction. Retain the
             // bridge owner rather than changing a potentially recycled HWND.
-            if unsafe {
-                windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(binding.hwnd as HWND)
-            } != 0
-            {
+            if (crate::windows::win32_safe::is_window(binding.hwnd as HWND)) != 0 {
                 return Err(RuntimeError::new(
                     Kind::HostFailure,
                     "live native subclass lost its exact window identity during shutdown",

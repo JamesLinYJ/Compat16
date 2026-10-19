@@ -6,7 +6,7 @@
 
 use runtime::Win16GuestPath;
 use std::os::windows::io::{FromRawHandle, OwnedHandle};
-use windows_sys::Win32::Foundation::{GetLastError, INVALID_HANDLE_VALUE};
+use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
 use windows_sys::Win32::Storage::FileSystem::{CreateFileW, FILE_ATTRIBUTE_NORMAL, OPEN_EXISTING};
 
 pub(super) fn name(path: &Win16GuestPath) -> Option<&'static str> {
@@ -41,8 +41,9 @@ pub(super) fn open(name: &str, access: u32, share: u32) -> Result<OwnedHandle, u
         )
     };
     if handle == INVALID_HANDLE_VALUE {
-        Err(unsafe { GetLastError() })
+        Err(crate::windows::win32_safe::last_error())
     } else {
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         Ok(unsafe { OwnedHandle::from_raw_handle(handle) })
     }
 }

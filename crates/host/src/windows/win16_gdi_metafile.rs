@@ -4,7 +4,7 @@ use super::{DcOrigin, NativeDc, Win16DcState, Win16Dcs};
 use cap_std::fs::File;
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostDc};
 use windows_sys::Win32::Graphics::Gdi::{
-    CloseMetaFile, DeleteMetaFile, GetObjectType, HDC, HMETAFILE, OBJ_METADC,
+    CloseMetaFile, DeleteMetaFile, HDC, HMETAFILE, OBJ_METADC,
 };
 
 pub(in crate::windows) struct NativeMetafile(pub(in crate::windows) HMETAFILE);
@@ -12,6 +12,7 @@ impl Drop for NativeMetafile {
     fn drop(&mut self) {
         // This private object is the result of a native factory/close, never
         // a guest HMETAFILE16 (which is a checked HGLOBAL allocation).
+        // SAFETY: DeleteMetaFile releases a metafile this process owns.
         unsafe {
             DeleteMetaFile(self.0);
         }
@@ -77,8 +78,12 @@ impl Win16DcState {
         }
         // Closing a recorder only appends EOF and retires GDI-owned recording
         // state. No native abort procedure/USER callback is installed here.
+        // SAFETY: `CloseMetaFile` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let metafile = unsafe { CloseMetaFile(dc.handle()) };
-        if metafile.is_null() && unsafe { GetObjectType(dc.handle()) } == OBJ_METADC as u32 {
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+        if metafile.is_null()
+            && (crate::windows::win32_safe::get_object_type(dc.handle())) == OBJ_METADC as u32
+        {
             // Retain a still-live recorder after a native failure. A consumed
             // DC must instead be forgotten even when no output was produced.
             return unchanged();
@@ -92,6 +97,7 @@ impl Win16DcState {
     }
 }
 pub(super) fn discard(native: HDC) {
+    // SAFETY: `CloseMetaFile` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let metafile = unsafe { CloseMetaFile(native) };
     if !metafile.is_null() {
         drop(NativeMetafile(metafile));

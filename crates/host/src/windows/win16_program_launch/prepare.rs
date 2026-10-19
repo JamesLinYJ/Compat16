@@ -16,8 +16,13 @@ pub(in crate::windows) fn prepare(
     operation: &Win16HostShellExecutionOperation,
 ) -> Result<Result<PreparedLaunch, u16>, RuntimeError> {
     if let Win16HostShellExecutionOperation::LoadModule {
-        input, image, command_tail, environment, show,
-    } = operation {
+        input,
+        image,
+        command_tail,
+        environment,
+        show,
+    } = operation
+    {
         return super::module::prepare_module(host, input, image, command_tail, environment, *show);
     }
     let Win16HostShellExecutionOperation::WinExec {
@@ -342,6 +347,7 @@ fn system_directory(
 ) -> Result<PathBuf, RuntimeError> {
     use std::os::windows::ffi::OsStringExt;
     let mut buffer = vec![0_u16; 32_768];
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     let count = unsafe { api(buffer.as_mut_ptr(), buffer.len() as u32) } as usize;
     if count == 0 || count >= buffer.len() {
         return Err(failure(

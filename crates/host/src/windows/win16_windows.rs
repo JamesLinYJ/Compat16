@@ -3,6 +3,8 @@
 //! The worker owns every HWND and registered class. Only numeric tokens and
 //! owned Win16 message data cross this client boundary.
 
+#[path = "win16_character_messages.rs"]
+mod win16_character_messages;
 #[path = "win16_common_controls_bitmap_pins.rs"]
 pub(super) mod win16_common_controls_bitmap_pins;
 #[path = "win16_common_controls_dc_retention.rs"]
@@ -11,14 +13,18 @@ mod win16_common_controls_dc_retention;
 mod win16_common_controls_drag_list;
 #[path = "win16_control_outputs.rs"]
 mod win16_control_outputs;
+#[path = "win16_ctl3d_worker.rs"]
+mod win16_ctl3d_worker;
 #[path = "win16_cursor_clip.rs"]
 mod win16_cursor_clip;
 #[path = "win16_deferred_native_messages.rs"]
 mod win16_deferred_native_messages;
-#[path = "win16_dialog_icon_controls.rs"]
-mod win16_dialog_icon_controls;
 #[path = "win16_dialog_callbacks.rs"]
 mod win16_dialog_callbacks;
+#[path = "win16_dialog_icon_controls.rs"]
+mod win16_dialog_icon_controls;
+#[path = "win16_dialog_root_identity.rs"]
+mod win16_dialog_root_identity;
 #[path = "win16_gdi_bitmap_lease.rs"]
 pub(super) mod win16_gdi_bitmap_lease;
 #[path = "win16_guest_notifications.rs"]
@@ -29,12 +35,6 @@ mod win16_ime_profiles;
 mod win16_mdi_pending_creation;
 #[path = "win16_native_procedures.rs"]
 mod win16_native_procedures;
-#[path = "win16_window_instances.rs"]
-mod win16_window_instances;
-#[path = "win16_character_messages.rs"]
-mod win16_character_messages;
-#[path = "win16_subclass_send.rs"]
-mod win16_subclass_send;
 #[path = "win16_owner_draw_callbacks.rs"]
 mod win16_owner_draw_callbacks;
 #[path = "win16_shell_execution.rs"]
@@ -43,6 +43,8 @@ mod win16_shell_execution;
 mod win16_standard_controls;
 #[path = "win16_static_controls.rs"]
 mod win16_static_controls;
+#[path = "win16_subclass_send.rs"]
+mod win16_subclass_send;
 #[path = "win16_system_classes.rs"]
 mod win16_system_classes;
 #[path = "win16_window_callbacks.rs"]
@@ -57,12 +59,10 @@ mod win16_window_default;
 mod win16_window_dialog_creation;
 #[path = "win16_window_identity.rs"]
 mod win16_window_identity;
-#[path = "win16_dialog_root_identity.rs"]
-mod win16_dialog_root_identity;
 #[path = "win16_window_input.rs"]
 mod win16_window_input;
-#[path = "win16_ctl3d_worker.rs"]
-mod win16_ctl3d_worker;
+#[path = "win16_window_instances.rs"]
+mod win16_window_instances;
 #[path = "win16_window_worker.rs"]
 mod win16_window_worker;
 pub(super) use win16_window_worker::{
@@ -86,6 +86,8 @@ mod win16_common_controls_worker;
 mod win16_common_dialog_callbacks;
 #[path = "win16_common_dialog_worker.rs"]
 mod win16_common_dialog_worker;
+#[path = "win16_frame_geometry.rs"]
+mod win16_frame_geometry;
 #[path = "win16_menu_attachment.rs"]
 mod win16_menu_attachment;
 #[path = "win16_menu_worker.rs"]
@@ -118,13 +120,11 @@ mod win16_window_enumeration;
 mod win16_window_geometry;
 #[path = "win16_window_sizing.rs"]
 mod win16_window_sizing;
-#[path = "win16_frame_geometry.rs"]
-mod win16_frame_geometry;
 pub(super) use win16_frame_geometry::caption_height;
-#[path = "win16_window_ops.rs"]
-mod win16_window_ops;
 #[path = "win16_window_caret.rs"]
 mod win16_window_caret;
+#[path = "win16_window_ops.rs"]
+mod win16_window_ops;
 #[path = "win16_window_position.rs"]
 mod win16_window_position;
 #[path = "win16_window_properties.rs"]
@@ -137,15 +137,15 @@ mod win16_window_text_context;
 mod win16_windows_dde;
 
 use operation_inputs::{
-    native_bitmap_tokens, toolbar_bitmap_tokens, transferred_dc_region,
-    update_region_output, update_region_tokens,
+    native_bitmap_tokens, toolbar_bitmap_tokens, transferred_dc_region, update_region_output,
+    update_region_tokens,
 };
-#[path = "win16_gray_string.rs"]
-mod win16_gray_string;
-#[path = "win16_metafile_enumeration.rs"]
-pub(in crate::windows) mod metafile_enumeration;
 #[path = "win16_windows_graphics.rs"]
 mod graphics;
+#[path = "win16_metafile_enumeration.rs"]
+pub(in crate::windows) mod metafile_enumeration;
+#[path = "win16_gray_string.rs"]
+mod win16_gray_string;
 
 #[path = "win16_control_color_return.rs"]
 mod control_color_return;
@@ -174,8 +174,8 @@ use runtime::{
     Win16WindowStep, Win16WindowTerminalAck, Win16WindowTerminalSourceTop,
 };
 use win16_window_worker::{
-    NativeClassResource, NativeDropRetirementQueue, NativeDropRetirementQueueHandle,
-    WindowWorker, WorkerCommand,
+    NativeClassResource, NativeDropRetirementQueue, NativeDropRetirementQueueHandle, WindowWorker,
+    WorkerCommand,
 };
 pub(super) use win16_windows_dde::allocate_shared_identity;
 use win16_windows_dde::{DdeSourceLedger, PendingSource};
@@ -511,8 +511,10 @@ impl Win16Windows {
         };
         self.refresh_pending_graphics(objects)?;
         let graphics = match &operation {
-            Win16WindowOperation::EnumMetafile { dc, .. } | Win16WindowOperation::GrayString { dc, .. } =>
-                Some(graphics::DrawingLease::capture(&self.dcs, objects, *dc)?),
+            Win16WindowOperation::EnumMetafile { dc, .. }
+            | Win16WindowOperation::GrayString { dc, .. } => {
+                Some(graphics::DrawingLease::capture(&self.dcs, objects, *dc)?)
+            }
             _ => None,
         };
         let control_color_return =
@@ -597,8 +599,9 @@ impl Win16Windows {
             });
         }
         let gray_string_brush = match &operation {
-            Win16WindowOperation::GrayString { brush: Some(brush), .. } =>
-                win16_gray_string::BrushLease::capture(objects, *brush),
+            Win16WindowOperation::GrayString {
+                brush: Some(brush), ..
+            } => win16_gray_string::BrushLease::capture(objects, *brush),
             _ => None,
         };
         super::win16_gdi::flush_thread_batch();

@@ -7,14 +7,11 @@ use std::sync::{Arc, Mutex};
 
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostCommonDialogResult as ResultValue,
-    Win16HostFindReplaceDialog, Win16HostFindReplaceNotification,
-    Win16HostFindReplaceUpdate, Win16HostWindow,
+    Win16HostFindReplaceDialog, Win16HostFindReplaceNotification, Win16HostFindReplaceUpdate,
+    Win16HostWindow,
 };
 use windows_sys::Win32::Foundation::HWND;
-use windows_sys::Win32::UI::Controls::Dialogs::{
-    FINDREPLACEW, FindTextW, ReplaceTextW,
-};
-use windows_sys::Win32::UI::WindowsAndMessaging::{DestroyWindow, IsWindow};
+use windows_sys::Win32::UI::Controls::Dialogs::{FINDREPLACEW, FindTextW, ReplaceTextW};
 
 use super::super::{win16_window_identity, win16_window_worker::WorkerState};
 #[path = "win16_common_dialog_find_replace_text.rs"]
@@ -49,7 +46,8 @@ pub(in crate::windows::win16_windows) struct ShutdownStorageGuard(Arc<NativeBack
 // FINDREPLACEW record.
 unsafe impl Send for ShutdownStorageGuard {}
 
-pub(in crate::windows::win16_windows) type ShutdownStoragePool = Arc<Mutex<Vec<ShutdownStorageGuard>>>;
+pub(in crate::windows::win16_windows) type ShutdownStoragePool =
+    Arc<Mutex<Vec<ShutdownStorageGuard>>>;
 
 /// The dialog library mutates this record and its text during a modeless
 /// lifetime. Each cell has stable storage; no Rust slice or shared reference
@@ -83,11 +81,14 @@ impl LiveFindReplaceDialog {
     }
 
     fn replace_text_ptr(&self) -> *mut u16 {
-        self.backing.replace_text.as_ref().map_or(ptr::null_mut(), |text| {
-            // SAFETY: UnsafeCell is repr(transparent); native writes are
-            // observed only through raw pointers into these owned cells.
-            text.as_ptr().cast_mut().cast::<u16>()
-        })
+        self.backing
+            .replace_text
+            .as_ref()
+            .map_or(ptr::null_mut(), |text| {
+                // SAFETY: UnsafeCell is repr(transparent); native writes are
+                // observed only through raw pointers into these owned cells.
+                text.as_ptr().cast_mut().cast::<u16>()
+            })
     }
 
     fn flags(&self) -> u32 {
@@ -113,21 +114,34 @@ impl LiveFindReplaceDialog {
             )
         };
         let expected_find_len = native_field_capacity(self.find_guest_capacity)?;
-        let expected_replace_len = self.replace_guest_capacity
-            .map(native_field_capacity).transpose()?;
+        let expected_replace_len = self
+            .replace_guest_capacity
+            .map(native_field_capacity)
+            .transpose()?;
         if find_pointer != self.find_text_ptr()
             || find_len != usize::from(expected_find_len)
             || find_pointer.is_null()
         {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "native FINDREPLACE find buffer no longer matches its owned record"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "native FINDREPLACE find buffer no longer matches its owned record",
+            ));
         }
-        match (&self.backing.replace_text, replace_pointer.is_null(), replace_len) {
-            (Some(_text), false, length) if replace_pointer == self.replace_text_ptr()
-                && expected_replace_len.map(usize::from) == Some(length) => {}
+        match (
+            &self.backing.replace_text,
+            replace_pointer.is_null(),
+            replace_len,
+        ) {
+            (Some(_text), false, length)
+                if replace_pointer == self.replace_text_ptr()
+                    && expected_replace_len.map(usize::from) == Some(length) => {}
             (None, true, 0) => {}
-            _ => return Err(RuntimeError::new(Kind::InternalInvariant,
-                "native FINDREPLACE replacement buffer no longer matches its owned record")),
+            _ => {
+                return Err(RuntimeError::new(
+                    Kind::InternalInvariant,
+                    "native FINDREPLACE replacement buffer no longer matches its owned record",
+                ));
+            }
         }
         Ok(Win16HostFindReplaceNotification {
             request_id: self.request_id,
@@ -135,14 +149,27 @@ impl LiveFindReplaceDialog {
             owner: self.owner_token,
             find_message: self.find_message,
             flags: self.flags(),
-            find_text: copy_native_text(state, self.backing.find_text.as_ptr(),
-                self.backing.find_text.len(), self.find_guest_capacity,
-                "copy native FINDREPLACEW find buffer")?,
-            replace_text: self.backing.replace_text.as_ref().map(|text| copy_native_text(
-                state, text.as_ptr(), text.len(),
-                self.replace_guest_capacity.unwrap_or_default(),
-                "copy native FINDREPLACEW replacement buffer",
-            )).transpose()?,
+            find_text: copy_native_text(
+                state,
+                self.backing.find_text.as_ptr(),
+                self.backing.find_text.len(),
+                self.find_guest_capacity,
+                "copy native FINDREPLACEW find buffer",
+            )?,
+            replace_text: self
+                .backing
+                .replace_text
+                .as_ref()
+                .map(|text| {
+                    copy_native_text(
+                        state,
+                        text.as_ptr(),
+                        text.len(),
+                        self.replace_guest_capacity.unwrap_or_default(),
+                        "copy native FINDREPLACEW replacement buffer",
+                    )
+                })
+                .transpose()?,
             dialog_terminated: self.flags() & FR_DIALOGTERM != 0,
         })
     }
@@ -156,15 +183,21 @@ impl LiveFindReplaceDialog {
             || update.find_text.len() != self.find_guest_capacity
             || !update.find_text.contains(&0)
         {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "guest FINDREPLACE update does not match its registered buffer"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "guest FINDREPLACE update does not match its registered buffer",
+            ));
         }
         match (&self.backing.replace_text, update.replace_text.as_ref()) {
             (Some(_buffer), Some(bytes))
                 if self.replace_guest_capacity == Some(bytes.len()) && bytes.contains(&0) => {}
             (None, None) => {}
-            _ => return Err(RuntimeError::new(Kind::InternalInvariant,
-                "guest FINDREPLACE replacement update does not match its registered buffer")),
+            _ => {
+                return Err(RuntimeError::new(
+                    Kind::InternalInvariant,
+                    "guest FINDREPLACE replacement update does not match its registered buffer",
+                ));
+            }
         }
         let native = self.native_ptr();
         // SAFETY: No native message is being dispatched while the synchronous
@@ -176,36 +209,49 @@ impl LiveFindReplaceDialog {
             )
         };
         if find_pointer != self.find_text_ptr() || replace_pointer != self.replace_text_ptr() {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "native FINDREPLACE record lost its owned text-buffer pointers"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "native FINDREPLACE record lost its owned text-buffer pointers",
+            ));
         }
-        let find_wide = match guest_text_for_native(state, &update.find_text,
+        let find_wide = match guest_text_for_native(
+            state,
+            &update.find_text,
             self.backing.find_text.len(),
             usize::from(native_field_capacity(self.find_guest_capacity)?) / 2,
-            "Win16 FINDREPLACE find update exceeds W buffer")
-        {
+            "Win16 FINDREPLACE find update exceeds W buffer",
+        ) {
             Ok(wide) => wide,
             Err(error) if error.kind() == Kind::CompatibilityGap => {
-                super::super::win16_window_position::report_diagnostic(state,
+                super::super::win16_window_position::report_diagnostic(
+                    state,
                     Kind::CompatibilityGap,
-                    "Find/Replace guest text update is not representable in its native W buffer; update ignored");
+                    "Find/Replace guest text update is not representable in its native W buffer; update ignored",
+                );
                 return Ok(());
             }
             Err(error) => return Err(error),
         };
         let replace_wide = match update.replace_text.as_ref() {
-            Some(bytes) => match guest_text_for_native(state, bytes,
-                self.backing.replace_text.as_ref().map_or(0, |value| value.len()),
+            Some(bytes) => match guest_text_for_native(
+                state,
+                bytes,
+                self.backing
+                    .replace_text
+                    .as_ref()
+                    .map_or(0, |value| value.len()),
                 usize::from(native_field_capacity(
                     self.replace_guest_capacity.unwrap_or_default(),
                 )?) / 2,
-                "Win16 FINDREPLACE replacement update exceeds W buffer")
-            {
+                "Win16 FINDREPLACE replacement update exceeds W buffer",
+            ) {
                 Ok(wide) => Some(wide),
                 Err(error) if error.kind() == Kind::CompatibilityGap => {
-                    super::super::win16_window_position::report_diagnostic(state,
+                    super::super::win16_window_position::report_diagnostic(
+                        state,
                         Kind::CompatibilityGap,
-                        "Find/Replace replacement update is not representable in its native W buffer; update ignored");
+                        "Find/Replace replacement update is not representable in its native W buffer; update ignored",
+                    );
                     return Ok(());
                 }
                 Err(error) => return Err(error),
@@ -216,15 +262,24 @@ impl LiveFindReplaceDialog {
         // arrays owned by this live record; guest byte capacities and W-unit
         // lengths were checked above.
         unsafe {
-            ptr::copy_nonoverlapping(find_wide.as_ptr(), self.find_text_ptr(),
-                find_wide.len());
-            ptr::write_bytes(self.find_text_ptr().add(find_wide.len()), 0,
-                self.backing.find_text.len() - find_wide.len());
+            ptr::copy_nonoverlapping(find_wide.as_ptr(), self.find_text_ptr(), find_wide.len());
+            ptr::write_bytes(
+                self.find_text_ptr().add(find_wide.len()),
+                0,
+                self.backing.find_text.len() - find_wide.len(),
+            );
             if let Some(wide) = replace_wide.as_ref() {
                 ptr::copy_nonoverlapping(wide.as_ptr(), self.replace_text_ptr(), wide.len());
-                let capacity = self.backing.replace_text.as_ref().map_or(0, |value| value.len());
-                ptr::write_bytes(self.replace_text_ptr().add(wide.len()), 0,
-                    capacity - wide.len());
+                let capacity = self
+                    .backing
+                    .replace_text
+                    .as_ref()
+                    .map_or(0, |value| value.len());
+                ptr::write_bytes(
+                    self.replace_text_ptr().add(wide.len()),
+                    0,
+                    capacity - wide.len(),
+                );
             }
             ptr::addr_of_mut!((*native).Flags).write(update.flags);
         }
@@ -250,12 +305,16 @@ pub(super) fn create(
     request: Win16HostFindReplaceDialog,
 ) -> Result<ResultValue, RuntimeError> {
     if request.flags & FR_HOOK_OR_TEMPLATE != 0 {
-        return Err(RuntimeError::new(Kind::CompatibilityGap,
-            "Win16 FINDREPLACE hook or template needs guest callback/resource conversion"));
+        return Err(RuntimeError::new(
+            Kind::CompatibilityGap,
+            "Win16 FINDREPLACE hook or template needs guest callback/resource conversion",
+        ));
     }
     if request.request_id == 0 {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "runtime supplied a zero common-dialog request identity"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "runtime supplied a zero common-dialog request identity",
+        ));
     }
     let Some(owner_token) = request.owner else {
         return Ok(failed_create(request.request_id, 0, 0));
@@ -265,18 +324,24 @@ pub(super) fn create(
     };
     let find_len = native_buffer_length(request.find_text.len(), "find")?;
     if find_len == 0 || !request.find_text.contains(&0) {
-        return Err(RuntimeError::new(Kind::CompatibilityGap,
-            "Win16 FINDREPLACE find buffer is empty or not NUL terminated"));
+        return Err(RuntimeError::new(
+            Kind::CompatibilityGap,
+            "Win16 FINDREPLACE find buffer is empty or not NUL terminated",
+        ));
     }
     let replace_len = if request.replace {
         let Some(bytes) = request.replace_text.as_ref() else {
-            return Err(RuntimeError::new(Kind::CompatibilityGap,
-                "Win16 ReplaceText has no replacement buffer"));
+            return Err(RuntimeError::new(
+                Kind::CompatibilityGap,
+                "Win16 ReplaceText has no replacement buffer",
+            ));
         };
         let length = native_buffer_length(bytes.len(), "replacement")?;
         if length == 0 || !bytes.contains(&0) {
-            return Err(RuntimeError::new(Kind::CompatibilityGap,
-                "Win16 ReplaceText buffer is empty or not NUL terminated"));
+            return Err(RuntimeError::new(
+                Kind::CompatibilityGap,
+                "Win16 ReplaceText buffer is empty or not NUL terminated",
+            ));
         }
         length
     } else {
@@ -294,28 +359,47 @@ pub(super) fn create(
     let _ = super::help_message_id();
     let request_id = request.request_id;
     if state.borrow().live_find_replace.contains_key(&request_id) {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "runtime reused an active Find/Replace request identity"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "runtime reused an active Find/Replace request identity",
+        ));
     }
-    let record = Rc::new(make_live_record(state, request, owner, find_message,
-        find_len, replace_len)?);
+    let record = Rc::new(make_live_record(
+        state,
+        request,
+        owner,
+        find_message,
+        find_len,
+        replace_len,
+    )?);
     let storage_pool = { state.borrow().shutdown_storage.clone() };
-    storage_pool.lock().map_err(|_| RuntimeError::new(Kind::HostFailure,
-        "Find/Replace shutdown storage pool is poisoned"))?
+    storage_pool
+        .lock()
+        .map_err(|_| {
+            RuntimeError::new(
+                Kind::HostFailure,
+                "Find/Replace shutdown storage pool is poisoned",
+            )
+        })?
         .push(ShutdownStorageGuard(Arc::clone(&record.backing)));
     {
         let mut state = state.borrow_mut();
         if state.live_find_replace.contains_key(&request_id) {
             release_shutdown_storage(&storage_pool, &record);
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "runtime reused an active Find/Replace request identity"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "runtime reused an active Find/Replace request identity",
+            ));
         }
-        state.live_find_replace.insert(request_id, Rc::clone(&record));
+        state
+            .live_find_replace
+            .insert(request_id, Rc::clone(&record));
     }
 
     // The request record is visible to registered-message callbacks before
     // entering COMMDLG. The native API and any nested WndProc use raw pointers
     // into this Rc-owned UnsafeCell record; no Rust borrow crosses that call.
+    // SAFETY: ReplaceTextW reads a caller-owned FINDREPLACE that stays live for the dialog. FindTextW reads a caller-owned FINDREPLACE that stays live for the dialog.
     let dialog = unsafe {
         if record.replace {
             ReplaceTextW(record.native_ptr())
@@ -370,14 +454,21 @@ pub(super) fn classify_registered_message(
     }
     let record = {
         let state = state.borrow();
-        state.live_find_replace.values().find(|record| {
-            record.route_active.get() && record.owner_token == owner
-                && record.find_message == message
-                && record.native_address() == l_param
-        }).cloned()
+        state
+            .live_find_replace
+            .values()
+            .find(|record| {
+                record.route_active.get()
+                    && record.owner_token == owner
+                    && record.find_message == message
+                    && record.native_address() == l_param
+            })
+            .cloned()
     };
     match record {
-        Some(record) => Ok(RegisteredCommonDialogMessage::FindReplace(record.snapshot(state)?)),
+        Some(record) => Ok(RegisteredCommonDialogMessage::FindReplace(
+            record.snapshot(state)?,
+        )),
         None => Ok(RegisteredCommonDialogMessage::NativeOnly),
     }
 }
@@ -399,11 +490,15 @@ pub(super) fn apply_find_replace_update(
     native_l_param: isize,
     update: Option<&Win16HostFindReplaceUpdate>,
 ) -> Result<bool, RuntimeError> {
-    let Some(record) = notification_guard(state, request_id) else { return Ok(false); };
+    let Some(record) = notification_guard(state, request_id) else {
+        return Ok(false);
+    };
     if record.native_address() != native_l_param {
         return Ok(false);
     }
-    let Some(update) = update else { return Ok(true); };
+    let Some(update) = update else {
+        return Ok(true);
+    };
     if !record.route_active.get() {
         return Ok(false);
     }
@@ -428,8 +523,10 @@ pub(in crate::windows::win16_windows) fn finish_terminal(
         || record.find_message != notification.find_message
         || record.dialog_token.get() != notification.dialog
     {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "terminal Find/Replace notification does not match its live dialog identity"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "terminal Find/Replace notification does not match its live dialog identity",
+        ));
     }
     record.route_active.set(false);
     let (Some(token), dialog) = (notification.dialog, record.dialog_hwnd.get()) else {
@@ -439,8 +536,10 @@ pub(in crate::windows::win16_windows) fn finish_terminal(
         return Ok(true);
     };
     if dialog.is_null() {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "terminal Find/Replace identity has no native HWND"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "terminal Find/Replace identity has no native HWND",
+        ));
     }
 
     let mapped = { state.borrow().windows.get(&token).copied() };
@@ -451,8 +550,12 @@ pub(in crate::windows::win16_windows) fn finish_terminal(
             // still be inside the owner's native callback stack.
             super::super::win16_window_worker::remove_window_maps(state, token, dialog);
         }
-        Some(_) => return Err(RuntimeError::new(Kind::InternalInvariant,
-            "terminal Find/Replace token was rebound to a different native HWND")),
+        Some(_) => {
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "terminal Find/Replace token was rebound to a different native HWND",
+            ));
+        }
         None => {
             // A WM_NCDESTROY/property-retirement path may already have removed
             // the token. That does not release backing; the outer pool still
@@ -465,16 +568,20 @@ pub(in crate::windows::win16_windows) fn finish_terminal(
 /// Disable the route whose property-bound host identity retired. If the HWND
 /// still exists, keep its backing in the shutdown pool: a lost cookie does not
 /// prove USER has unwound a nested common-dialog procedure.
-pub(super) fn retire_window(
-    state: &Rc<RefCell<WorkerState>>,
-    window: Win16HostWindow,
-) -> bool {
+pub(super) fn retire_window(state: &Rc<RefCell<WorkerState>>, window: Win16HostWindow) -> bool {
     let candidates = {
         let state = state.borrow();
-        state.live_find_replace.iter().filter_map(|(id, record)| {
-            (record.dialog_token.get() == Some(window))
-                .then_some((*id, Rc::clone(record), record.dialog_hwnd.get()))
-        }).collect::<Vec<_>>()
+        state
+            .live_find_replace
+            .iter()
+            .filter_map(|(id, record)| {
+                (record.dialog_token.get() == Some(window)).then_some((
+                    *id,
+                    Rc::clone(record),
+                    record.dialog_hwnd.get(),
+                ))
+            })
+            .collect::<Vec<_>>()
     };
     let mut retired = false;
     for (request_id, record, dialog) in candidates {
@@ -483,7 +590,7 @@ pub(super) fn retire_window(
         }
         // SAFETY: The opaque HWND was created by this UI worker. IsWindow does
         // not dispatch to its procedure or expose native pointers.
-        if dialog.is_null() || unsafe { IsWindow(dialog) } == 0 {
+        if dialog.is_null() || { crate::windows::win32_safe::is_window(dialog) } == 0 {
             // IsWindow==0 is positive evidence that this HWND no longer
             // exists. A missing/replaced cookie alone is not: USER may still
             // be unwinding a nested common-dialog procedure that holds the
@@ -501,7 +608,10 @@ pub(super) fn retire_window(
 pub(super) fn shutdown(state: &Rc<RefCell<WorkerState>>) -> Result<(), RuntimeError> {
     let records = {
         let state = state.borrow();
-        state.live_find_replace.iter().map(|(id, record)| (*id, Rc::clone(record)))
+        state
+            .live_find_replace
+            .iter()
+            .map(|(id, record)| (*id, Rc::clone(record)))
             .collect::<Vec<_>>()
     };
     for (request_id, record) in records {
@@ -514,19 +624,21 @@ pub(super) fn shutdown(state: &Rc<RefCell<WorkerState>>) -> Result<(), RuntimeEr
         let Some(token) = record.dialog_token.get() else {
             // SAFETY: The HWND came from FindTextW on this worker; no state
             // borrow spans this same-thread liveness query.
-            if unsafe { IsWindow(dialog) } == 0 {
+            if (crate::windows::win32_safe::is_window(dialog)) == 0 {
                 remove_request_if_same(state, request_id, &record);
                 release_shutdown_storage(&storage_pool, &record);
                 continue;
             }
             record.route_active.set(false);
-            return Err(RuntimeError::new(Kind::HostFailure,
-                "Find/Replace HWND remains live after dialog identity adoption failed"));
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "Find/Replace HWND remains live after dialog identity adoption failed",
+            ));
         };
         if win16_window_identity::resolve(state, token) != Some(dialog) {
             // SAFETY: IsWindow checks only the retained opaque HWND. Missing
             // cookies alone are not proof that USER stopped reading it.
-            if unsafe { IsWindow(dialog) } == 0 {
+            if (crate::windows::win32_safe::is_window(dialog)) == 0 {
                 // The native window is gone, so no dialog procedure can read
                 // the retained structure or text allocations.
                 remove_request_if_same(state, request_id, &record);
@@ -537,33 +649,37 @@ pub(super) fn shutdown(state: &Rc<RefCell<WorkerState>>) -> Result<(), RuntimeEr
             // stopped reading this structure. Keep the map entry for retry
             // and the outer shutdown pool through thread join.
             record.route_active.set(false);
-            return Err(RuntimeError::new(Kind::HostFailure,
-                "Find/Replace HWND is live but its original identity is unavailable"));
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "Find/Replace HWND is live but its original identity is unavailable",
+            ));
         }
         // Keep the native record alive in the external shutdown pool from the
         // first native pointer publication until the thread joins. No
         // RefCell borrow spans DestroyWindow or callbacks it may dispatch.
         // SAFETY: Strict identity resolution proves the exact current HWND
         // incarnation and destruction runs on its owning worker thread.
-        let destroyed = unsafe { DestroyWindow(dialog) } != 0;
+        let destroyed = (crate::windows::win32_safe::destroy_window(dialog)) != 0;
         if destroyed {
             remove_request_if_same(state, request_id, &record);
             release_shutdown_storage(&storage_pool, &record);
             continue;
         }
         // Preserve GetLastError before the follow-up IsWindow call.
-        let destroy_error = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+        let destroy_error = crate::windows::win32_safe::last_error();
         // SAFETY: DestroyWindow returned; this checks whether nested callbacks
         // nevertheless completed destruction before it reported failure.
-        if unsafe { IsWindow(dialog) } == 0 {
+        if (crate::windows::win32_safe::is_window(dialog)) == 0 {
             remove_request_if_same(state, request_id, &record);
             release_shutdown_storage(&storage_pool, &record);
             continue;
         }
         record.route_active.set(false);
-        return Err(RuntimeError::with_source(Kind::HostFailure,
+        return Err(RuntimeError::with_source(
+            Kind::HostFailure,
             "DestroyWindow failed for a live modeless Find/Replace dialog",
-            std::io::Error::from_raw_os_error(destroy_error as i32)));
+            std::io::Error::from_raw_os_error(destroy_error as i32),
+        ));
     }
     Ok(())
 }
@@ -580,7 +696,10 @@ fn make_live_record(
     let replace_guest_capacity = request.replace.then_some(usize::from(replace_len));
     let find_text = native_text(state, request.find_text, "FindText")?;
     let replace_text = if request.replace {
-        request.replace_text.map(|bytes| native_text(state, bytes, "ReplaceText")).transpose()?
+        request
+            .replace_text
+            .map(|bytes| native_text(state, bytes, "ReplaceText"))
+            .transpose()?
     } else {
         None
     };
@@ -590,18 +709,25 @@ fn make_live_record(
     native.hInstance = ptr::null_mut();
     native.Flags = request.flags;
     native.lpstrFindWhat = find_text.as_ptr().cast_mut().cast::<u16>();
-    native.lpstrReplaceWith = replace_text.as_ref().map_or(ptr::null_mut(), |text|
-        text.as_ptr().cast_mut().cast::<u16>());
+    native.lpstrReplaceWith = replace_text.as_ref().map_or(ptr::null_mut(), |text| {
+        text.as_ptr().cast_mut().cast::<u16>()
+    });
     native.wFindWhatLen = native_field_capacity(find_guest_capacity)?;
-    native.wReplaceWithLen = replace_guest_capacity.map(native_field_capacity)
-        .transpose()?.unwrap_or(0);
+    native.wReplaceWithLen = replace_guest_capacity
+        .map(native_field_capacity)
+        .transpose()?
+        .unwrap_or(0);
     native.lCustData = 0;
     native.lpfnHook = None;
     native.lpTemplateName = ptr::null();
     Ok(LiveFindReplaceDialog {
         request_id: request.request_id,
-        owner_token: request.owner.ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
-            "validated Find/Replace request lost its owner token"))?,
+        owner_token: request.owner.ok_or_else(|| {
+            RuntimeError::new(
+                Kind::InternalInvariant,
+                "validated Find/Replace request lost its owner token",
+            )
+        })?,
         find_message,
         replace: request.replace,
         dialog_token: Cell::new(None),
@@ -633,8 +759,10 @@ fn remove_request_if_same(
     record: &Rc<LiveFindReplaceDialog>,
 ) -> bool {
     let mut state = state.borrow_mut();
-    if state.live_find_replace.get(&request_id).is_some_and(|current|
-        Rc::ptr_eq(current, record))
+    if state
+        .live_find_replace
+        .get(&request_id)
+        .is_some_and(|current| Rc::ptr_eq(current, record))
     {
         state.live_find_replace.remove(&request_id);
         true
@@ -643,10 +771,7 @@ fn remove_request_if_same(
     }
 }
 
-fn release_shutdown_storage(
-    pool: &ShutdownStoragePool,
-    record: &LiveFindReplaceDialog,
-) {
+fn release_shutdown_storage(pool: &ShutdownStoragePool, record: &LiveFindReplaceDialog) {
     if let Ok(mut guards) = pool.lock() {
         guards.retain(|guard| !Arc::ptr_eq(&guard.0, &record.backing));
     }
@@ -656,22 +781,25 @@ fn release_shutdown_storage(
 
 fn cleanup_unregistered_dialog(state: &Rc<RefCell<WorkerState>>, dialog: HWND) -> bool {
     let mapped = {
-        state.borrow().windows_by_native.get(&(dialog as usize))
+        state
+            .borrow()
+            .windows_by_native
+            .get(&(dialog as usize))
             .map(|identity| identity.window)
     };
-    let exact = mapped.is_some_and(|token|
-        win16_window_identity::resolve(state, token) == Some(dialog));
-    let untracked_worker_window = mapped.is_none()
-        && win16_window_identity::belongs_to_worker(dialog) == Some(true);
+    let exact =
+        mapped.is_some_and(|token| win16_window_identity::resolve(state, token) == Some(dialog));
+    let untracked_worker_window =
+        mapped.is_none() && win16_window_identity::belongs_to_worker(dialog) == Some(true);
     if exact || untracked_worker_window {
         // SAFETY: Either the current cookie proves this exact window, or this
         // is the just-returned same-thread dialog before another USER call can
         // recycle its HWND. No state borrow spans native destruction.
-        if unsafe { DestroyWindow(dialog) } != 0 {
+        if (crate::windows::win32_safe::destroy_window(dialog)) != 0 {
             return true;
         }
     }
     // SAFETY: `dialog` was returned by FindTextW on this worker. No state
     // borrow remains, and this query does not dispatch the dialog procedure.
-    unsafe { IsWindow(dialog) == 0 }
+    crate::windows::win32_safe::is_window(dialog) == 0
 }

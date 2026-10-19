@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use runtime::Win16HostGdiObject;
-use windows_sys::Win32::Graphics::Gdi::{DeleteObject, HGDIOBJ, HRGN};
+use windows_sys::Win32::Graphics::Gdi::{HGDIOBJ, HRGN};
 
 /// Owns a copied region independently from the guest's original HRGN.
 ///
@@ -19,7 +19,10 @@ struct RegionSnapshot {
 
 impl RegionSnapshot {
     fn new(source: Win16HostGdiObject, native: HRGN) -> Arc<Self> {
-        Arc::new(Self { source, native: native as usize })
+        Arc::new(Self {
+            source,
+            native: native as usize,
+        })
     }
 
     fn native(&self) -> HRGN {
@@ -31,7 +34,7 @@ impl Drop for RegionSnapshot {
     fn drop(&mut self) {
         // SAFETY: This is the owned CreateRectRgn snapshot, represented as
         // integer bits so the lease remains Send across the worker boundary.
-        unsafe { DeleteObject(self.native as HGDIOBJ); }
+        crate::windows::win32_safe::delete_object(self.native as HGDIOBJ);
     }
 }
 
@@ -43,7 +46,9 @@ pub(in crate::windows) struct Win16RegionLease {
 
 impl Win16RegionLease {
     pub(in crate::windows) fn new(source: Win16HostGdiObject, native: HRGN) -> Self {
-        Self { snapshot: RegionSnapshot::new(source, native) }
+        Self {
+            snapshot: RegionSnapshot::new(source, native),
+        }
     }
 
     pub(in crate::windows) fn source_token(&self) -> Win16HostGdiObject {

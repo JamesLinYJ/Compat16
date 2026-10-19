@@ -9,9 +9,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostWindow};
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass};
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    DestroyWindow, GetClassNameW, GetDlgCtrlID, GetParent, IsWindow, WM_NCDESTROY,
-};
+use windows_sys::Win32::UI::WindowsAndMessaging::{GetClassNameW, WM_NCDESTROY};
 
 use super::win16_gdi_bitmap_lease::Win16BitmapLease;
 use super::win16_window_worker::{self, WorkerState};
@@ -438,7 +436,7 @@ fn retire_sidecar_vector(
     while index < sidecars.len() {
         let live = sidecars[index]
             .hwnd
-            .is_some_and(|hwnd| unsafe { IsWindow(hwnd as HWND) } != 0);
+            .is_some_and(|hwnd| { crate::windows::win32_safe::is_window(hwnd as HWND) } != 0);
         if live {
             remember(
                 failure,
@@ -577,8 +575,8 @@ impl ToolbarBitmapOwner {
             Self::Owned(handle) if *handle == 0 => Ok(()),
             Self::Owned(handle) => {
                 // SAFETY: `handle` is owned by this exact toolbar sidecar.
-                if unsafe {
-                    windows_sys::Win32::Graphics::Gdi::DeleteObject(
+                if {
+                    crate::windows::win32_safe::delete_object(
                         *handle as windows_sys::Win32::Graphics::Gdi::HGDIOBJ,
                     )
                 } == 0
@@ -617,7 +615,7 @@ pub(super) fn bind_and_install(
     window: Option<Win16HostWindow>,
     hwnd: HWND,
 ) -> Result<(), RuntimeError> {
-    if hwnd.is_null() || unsafe { IsWindow(hwnd) } == 0 {
+    if hwnd.is_null() || { crate::windows::win32_safe::is_window(hwnd) } == 0 {
         return Err(RuntimeError::new(
             Kind::HostFailure,
             "CreateToolbarEx returned an HWND that is no longer live",
@@ -653,8 +651,8 @@ pub(super) fn bind_and_install(
             sidecar.control_id,
         )
     };
-    if unsafe { GetParent(hwnd) } as usize != expected_parent
-        || unsafe { GetDlgCtrlID(hwnd) } != i32::from(control_id)
+    if (crate::windows::win32_safe::get_parent(hwnd)) as usize != expected_parent
+        || { crate::windows::win32_safe::get_dlg_ctrl_id(hwnd) } != i32::from(control_id)
         || !is_toolbar_class(hwnd)
     {
         return Err(RuntimeError::new(
@@ -754,7 +752,7 @@ pub(super) fn retire_destroyed(
         .iter()
         .find(|entry| entry.operation == operation)
         .and_then(|entry| entry.hwnd)
-        .is_some_and(|hwnd| unsafe { IsWindow(hwnd as HWND) } != 0);
+        .is_some_and(|hwnd| { crate::windows::win32_safe::is_window(hwnd as HWND) } != 0);
     if live {
         return Err(RuntimeError::new(
             Kind::HostFailure,
@@ -783,8 +781,9 @@ pub(super) fn destroy_orphan(
         .is_some_and(|entry| {
             entry.window.is_none()
                 && entry.hwnd == Some(hwnd as usize)
-                && entry.expected_parent == unsafe { GetParent(hwnd) } as usize
-                && i32::from(entry.control_id) == unsafe { GetDlgCtrlID(hwnd) }
+                && entry.expected_parent == (crate::windows::win32_safe::get_parent(hwnd)) as usize
+                && i32::from(entry.control_id)
+                    == (crate::windows::win32_safe::get_dlg_ctrl_id(hwnd))
                 && is_toolbar_class(hwnd)
         });
     if !exact {
@@ -795,7 +794,9 @@ pub(super) fn destroy_orphan(
     }
     // SAFETY: The HWND is the exact direct CreateToolbarEx result retained by
     // the staged owner and still matches its original parent, ID and class.
-    if unsafe { DestroyWindow(hwnd) } == 0 && unsafe { IsWindow(hwnd) } != 0 {
+    if (crate::windows::win32_safe::destroy_window(hwnd)) == 0
+        && (crate::windows::win32_safe::is_window(hwnd)) != 0
+    {
         return Err(RuntimeError::new(
             Kind::HostFailure,
             "DestroyWindow failed for an unregistered toolbar result",
@@ -851,15 +852,16 @@ pub(super) fn retire_all(state: &Rc<RefCell<WorkerState>>) -> Result<(), Runtime
         };
         if let Some(hwnd) = hwnd
             .map(|value| value as HWND)
-            .filter(|hwnd| unsafe { IsWindow(*hwnd) } != 0)
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+            .filter(|hwnd| { crate::windows::win32_safe::is_window(*hwnd) } != 0)
         {
             let exact = window.is_some_and(|token| {
                 super::win16_window_identity::resolve(state, token) == Some(hwnd)
             });
             let orphan_is_exact_child = window.is_none()
                 && hwnd as usize != parent
-                && unsafe { GetParent(hwnd) } as usize == parent
-                && unsafe { GetDlgCtrlID(hwnd) } == i32::from(control_id)
+                && (crate::windows::win32_safe::get_parent(hwnd)) as usize == parent
+                && (crate::windows::win32_safe::get_dlg_ctrl_id(hwnd)) == i32::from(control_id)
                 && is_toolbar_class(hwnd);
             if !exact && !orphan_is_exact_child {
                 remember(
@@ -873,7 +875,9 @@ pub(super) fn retire_all(state: &Rc<RefCell<WorkerState>>) -> Result<(), Runtime
             }
             // SAFETY: Either the stored generation token resolves to this
             // HWND, or this is the still-live child returned by our API call.
-            if unsafe { DestroyWindow(hwnd) } == 0 && unsafe { IsWindow(hwnd) } != 0 {
+            if (crate::windows::win32_safe::destroy_window(hwnd)) == 0
+                && (crate::windows::win32_safe::is_window(hwnd)) != 0
+            {
                 remember(
                     &mut failure,
                     RuntimeError::new(
@@ -933,7 +937,7 @@ pub(super) fn retire_destroyed_windows(
         for sidecar in &worker.toolbar_bitmap_sidecars {
             if sidecar
                 .hwnd
-                .is_some_and(|hwnd| unsafe { IsWindow(hwnd as HWND) } == 0)
+                .is_some_and(|hwnd| { crate::windows::win32_safe::is_window(hwnd as HWND) } == 0)
             {
                 operations.push(sidecar.operation);
             }
@@ -967,7 +971,7 @@ fn retire_operation(state: &Rc<RefCell<WorkerState>>, operation: u64) -> Result<
         })?;
     if worker.toolbar_bitmap_sidecars[index]
         .hwnd
-        .is_some_and(|hwnd| unsafe { IsWindow(hwnd as HWND) } != 0)
+        .is_some_and(|hwnd| { crate::windows::win32_safe::is_window(hwnd as HWND) } != 0)
     {
         return Err(RuntimeError::new(
             Kind::HostFailure,
@@ -984,6 +988,7 @@ fn retire_operation(state: &Rc<RefCell<WorkerState>>, operation: u64) -> Result<
     Ok(())
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn toolbar_bitmap_subclass_proc(
     hwnd: HWND,
     message: u32,
@@ -1011,6 +1016,7 @@ unsafe extern "system" fn toolbar_bitmap_subclass_proc(
             })
         });
         if !matched {
+            // SAFETY: DefSubclassProc forwards this subclass message. Pointer parameters stay live for the call.
             let native = unsafe { DefSubclassProc(hwnd, message, w_param, l_param) };
             forwarded.set(Some(native));
             super::win16_window_callbacks::fail_worker(
@@ -1023,8 +1029,10 @@ unsafe extern "system" fn toolbar_bitmap_subclass_proc(
             return native;
         };
         let removed =
+            // SAFETY: `RemoveWindowSubclass`, `Some` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe { RemoveWindowSubclass(hwnd, Some(toolbar_bitmap_subclass_proc), subclass_id) }
                 != 0;
+        // SAFETY: DefSubclassProc forwards this subclass message. Pointer parameters stay live for the call.
         let native = unsafe { DefSubclassProc(hwnd, message, w_param, l_param) };
         forwarded.set(Some(native));
         let removal = if removed {
@@ -1054,6 +1062,7 @@ unsafe extern "system" fn toolbar_bitmap_subclass_proc(
             }
             forwarded
                 .get()
+                // SAFETY: DefSubclassProc forwards this subclass message. Pointer parameters stay live for the call.
                 .unwrap_or_else(|| unsafe { DefSubclassProc(hwnd, message, w_param, l_param) })
         }
     }
@@ -1078,6 +1087,7 @@ fn is_toolbar_class(hwnd: HWND) -> bool {
         b'2' as u16,
     ];
     let mut name = [0_u16; 64];
+    // SAFETY: GetClassNameW writes into a caller-owned UTF-16 buffer of the capacity passed with it.
     let count = unsafe { GetClassNameW(hwnd, name.as_mut_ptr(), name.len() as i32) };
     count > 0 && &name[..count as usize] == TOOLBAR_WINDOW32
 }

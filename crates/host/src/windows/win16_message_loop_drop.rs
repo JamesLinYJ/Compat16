@@ -75,7 +75,7 @@ pub(in super::super) fn expose_native_drop_files(
             "queued WM_DROPFILES does not carry the documented HDROP parameter shape",
         ));
     }
-    if unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(native.hwnd) } == 0 {
+    if (crate::windows::win32_safe::is_window(native.hwnd)) == 0 {
         retire_removed_drop_message(state, &native, removed)?;
         return Err(RuntimeError::new(
             Kind::CompatibilityGap,
@@ -186,7 +186,7 @@ pub(in super::super) fn retain_deferred_native_drop(
     };
     if mapping != Some(window)
         || super::super::win16_window_identity::resolve(state, window) != Some(native.hwnd)
-        || unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(native.hwnd) } == 0
+        || { crate::windows::win32_safe::is_window(native.hwnd) } == 0
     {
         retire_removed_drop_message(state, native, true)?;
         return Err(RuntimeError::new(
@@ -262,6 +262,7 @@ pub(super) fn retire_removed_drop_message(
         // The native queue transferred this message to the worker. It was
         // rejected before a persistent lease existed, so release the exact
         // transferred HDROP here instead of forwarding its pointer.
+        // SAFETY: DragFinish releases an HDROP Windows passed for this drop.
         unsafe {
             windows_sys::Win32::UI::Shell::DragFinish(
                 native.wParam as windows_sys::Win32::UI::Shell::HDROP,
@@ -284,6 +285,7 @@ pub(in super::super) fn retire_drop_files_for_window(
         loop {
             let mut native = MSG::default();
             let found =
+                // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
                 unsafe { PeekMessageW(&mut native, hwnd, WM_DROPFILES, WM_DROPFILES, PM_REMOVE) };
             if found == 0 {
                 break;

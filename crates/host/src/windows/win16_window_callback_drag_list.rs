@@ -18,7 +18,8 @@ pub(super) fn native_context(
     l_param: LPARAM,
     notification: &Win16HostDragListNotification,
 ) -> Option<NativeCallbackContext> {
-    if l_param == 0 || message != u32::from(notification.message)
+    if l_param == 0
+        || message != u32::from(notification.message)
         || w_param as u16 != notification.control_id
     {
         return None;
@@ -35,20 +36,28 @@ pub(super) fn native_context(
             && entry.installed
     })?;
     let parent_live = worker.windows.get(&parent) == Some(&parent_hwnd)
-        && worker.windows_by_native.get(&(parent_hwnd as usize))
+        && worker
+            .windows_by_native
+            .get(&(parent_hwnd as usize))
             .is_some_and(|identity| identity.window == parent);
-    let child_live = worker.windows.get(&origin.list_box)
+    let child_live = worker
+        .windows
+        .get(&origin.list_box)
         .is_some_and(|hwnd| *hwnd as usize == origin.hwnd)
-        && worker.windows_by_native.get(&origin.hwnd)
+        && worker
+            .windows_by_native
+            .get(&origin.hwnd)
             .is_some_and(|identity| identity.window == origin.list_box);
-    if active.id != operation || !active.allows_drag_list_origin()
-        || origin.operation != operation || origin.parent != parent
+    if active.id != operation
+        || !active.allows_drag_list_origin()
+        || origin.operation != operation
+        || origin.parent != parent
         || origin.list_box != notification.list_box
         || origin.message != notification.message
         || origin.owner_thread != sidecar.owner_thread
-        || unsafe { windows_sys::Win32::System::Threading::GetCurrentThreadId() }
-            != sidecar.owner_thread
-        || !parent_live || !child_live
+        || { crate::windows::win32_safe::current_thread_id() } != sidecar.owner_thread
+        || !parent_live
+        || !child_live
     {
         return None;
     }

@@ -16,9 +16,8 @@ use runtime::{
 use windows_sys::Win32::Foundation::{RECT, SIZE};
 use windows_sys::Win32::Graphics::Gdi::{
     ABC, AddFontResourceW, CreateScalableFontResourceW, GDI_ERROR, GetAspectRatioFilterEx,
-    GetBoundsRect, GetCharABCWidthsW, GetFontData, GetKerningPairsW, GetObjectType,
-    GetRasterizerCaps, KERNINGPAIR, OBJ_METADC, RASTERIZER_STATUS, RemoveFontResourceW,
-    SetBoundsRect, SetMapperFlags,
+    GetBoundsRect, GetCharABCWidthsW, GetFontData, GetKerningPairsW, GetRasterizerCaps,
+    KERNINGPAIR, OBJ_METADC, RASTERIZER_STATUS, RemoveFontResourceW, SetBoundsRect, SetMapperFlags,
 };
 
 use super::{win16_gdi::Win16Dcs, win16_gdi_objects::Win16Objects};
@@ -34,8 +33,14 @@ pub(super) fn execute(
     use ResultValue as Value;
 
     match operation {
-        Op::GetGlyphOutline { dc, character, format, matrix, byte_count, copy_buffer } =>
-            glyph_outline::execute(dcs, dc, character, format, matrix, byte_count, copy_buffer),
+        Op::GetGlyphOutline {
+            dc,
+            character,
+            format,
+            matrix,
+            byte_count,
+            copy_buffer,
+        } => glyph_outline::execute(dcs, dc, character, format, matrix, byte_count, copy_buffer),
         Op::SetBoundsRect { dc, rect, flags } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else {
                 return Ok(Value::Dword(0));
@@ -200,6 +205,7 @@ pub(super) fn execute(
             // native W API reports GDI_ERROR for that case, so query the size
             // on this same pinned HDC before making the data call. An unknown
             // table or other native query error remains GDI_ERROR.
+            // SAFETY: `GetFontData` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let table_size = unsafe { GetFontData(dc_use.native(), table, 0, ptr::null_mut(), 0) };
             if table_size == GDI_ERROR as u32 {
                 return Ok(Value::FontData {
@@ -292,6 +298,7 @@ pub(super) fn execute(
                 // converts both WORD characters and narrows the amount to
                 // INT16. The HDC stays pinned and this owned array has room
                 // for every pair reported by the count query.
+                // SAFETY: `GetKerningPairsW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 let fetched = unsafe {
                     GetKerningPairsW(dc_use.native(), native_count, native_entries.as_mut_ptr())
                 };
@@ -352,9 +359,9 @@ pub(super) fn execute(
             };
             // SAFETY: `dc_use` pins a live native HDC for the duration of the
             // type query; the guest supplied only an opaque checked token.
-            Ok(Value::Bool(unsafe {
-                GetObjectType(dc_use.native()) == OBJ_METADC as u32
-            }))
+            Ok(Value::Bool(
+                crate::windows::win32_safe::get_object_type(dc_use.native()) == OBJ_METADC as u32,
+            ))
         }
         Op::IsGdiObject {
             identity: Win16HostGdiIdentity::Dc(dc),
@@ -364,7 +371,9 @@ pub(super) fn execute(
             };
             // SAFETY: `dc_use` pins a live native HDC. HDC and HGDIOBJ are
             // Windows handle aliases; no guest value is cast or forwarded.
-            Ok(Value::Bool(unsafe { GetObjectType(dc_use.native()) != 0 }))
+            Ok(Value::Bool(
+                crate::windows::win32_safe::get_object_type(dc_use.native()) != 0,
+            ))
         }
         Op::IsGdiObject {
             identity: Win16HostGdiIdentity::Object(object),

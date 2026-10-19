@@ -88,6 +88,7 @@ pub(super) fn send_command(
         }
     }
     let (result, returned_device) =
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         match unsafe { command_unsafe(context, native_id, message, flags, callback, parameters) } {
             Ok(result) => result,
             Err(primary) => {
@@ -193,6 +194,7 @@ fn target_device(
         .map(|entry| entry.identity)
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 unsafe fn command_unsafe(
     context: &MciNativeContext,
     native_id: u32,
@@ -248,6 +250,7 @@ unsafe fn command_unsafe(
                     dwBufferSeconds: seconds,
                     ..Default::default()
                 };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 let code = unsafe { call_native(native_id, message, open_flags, &mut parms) };
                 let opened =
                     (code == 0).then_some((parms.wDeviceID, query_device_type(parms.wDeviceID)));
@@ -274,6 +277,7 @@ unsafe fn command_unsafe(
                         ..Default::default()
                     };
                     let code =
+                        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                         unsafe { call_native(MCI_ALL_DEVICE_ID, message, open_flags, &mut parms) };
                     let opened = (code == 0)
                         .then_some((parms.wDeviceID, query_device_type(parms.wDeviceID)));
@@ -295,6 +299,7 @@ unsafe fn command_unsafe(
                         ..Default::default()
                     };
                     let code =
+                        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                         unsafe { call_native(MCI_ALL_DEVICE_ID, message, open_flags, &mut parms) };
                     let opened = (code == 0)
                         .then_some((parms.wDeviceID, query_device_type(parms.wDeviceID)));
@@ -318,6 +323,7 @@ unsafe fn command_unsafe(
                 lpstrAlias: alias_text.as_ref().map_or(ptr::null(), |v| v.as_ptr()),
                 ..Default::default()
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let code = unsafe { call_native(MCI_ALL_DEVICE_ID, message, open_flags, &mut parms) };
             let opened =
                 (code == 0).then_some((parms.wDeviceID, query_device_type(parms.wDeviceID)));
@@ -330,6 +336,7 @@ unsafe fn command_unsafe(
         (MCI_CLOSE_VALUE, P::Null) => {
             return Ok((
                 Win16HostMciResult {
+                    // SAFETY: mciSendCommandW receives an integer device id. A null parameter pointer carries no record; a non-null record stays live for the call.
                     return_value: unsafe {
                         mciSendCommandW(native_id, u32::from(message), flags as usize, 0)
                     },
@@ -342,6 +349,7 @@ unsafe fn command_unsafe(
             let mut parms = MCI_GENERIC_PARMS {
                 dwCallback: callback,
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
         (
@@ -357,6 +365,7 @@ unsafe fn command_unsafe(
                 dwFrom: from,
                 dwTo: to,
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
         (
@@ -374,6 +383,7 @@ unsafe fn command_unsafe(
                     dwTo: to,
                     dwSpeed: speed,
                 };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { call_native(native_id, message, flags, &mut parms) }
             }
             Some(519) => {
@@ -383,6 +393,7 @@ unsafe fn command_unsafe(
                     dwTo: to,
                     dwSpeed: speed,
                 };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { call_native(native_id, message, flags, &mut parms) }
             }
             _ => return Ok((unsupported(MCIERR_UNSUPPORTED_FUNCTION_VALUE), None)),
@@ -392,6 +403,7 @@ unsafe fn command_unsafe(
                 dwCallback: callback,
                 dwTo: to,
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
         (0x0814, P::Status { item, track }) => {
@@ -401,6 +413,7 @@ unsafe fn command_unsafe(
                 dwTrack: track,
                 ..Default::default()
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let code = unsafe { call_native(native_id, message, flags, &mut parms) };
             let Ok(value) = u32::try_from(parms.dwReturn) else {
                 return Ok((unsupported(MCIERR_UNSUPPORTED_FUNCTION_VALUE), None));
@@ -414,6 +427,7 @@ unsafe fn command_unsafe(
                 dwItem: item,
                 ..Default::default()
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let code = unsafe { call_native(native_id, message, flags, &mut parms) };
             output = Win16HostMciOutput::Scalar(parms.dwReturn);
             code
@@ -441,6 +455,7 @@ unsafe fn command_unsafe(
                     )
                 })?,
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let code = unsafe { call_native(native_id, message, flags | item_flags, &mut parms) };
             output = Win16HostMciOutput::Bytes(guest_output_from_wide(
                 context.state.text_codec,
@@ -472,6 +487,7 @@ unsafe fn command_unsafe(
                     wDeviceType: u32::from(device_type),
                 };
                 let code =
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     unsafe { call_native(native_id, message, flags | item_flags, &mut parms) };
                 output = Win16HostMciOutput::Scalar(value[0]);
                 code
@@ -495,6 +511,7 @@ unsafe fn command_unsafe(
                     wDeviceType: u32::from(device_type),
                 };
                 let code =
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     unsafe { call_native(native_id, message, flags | item_flags, &mut parms) };
                 let (bytes, truncated) =
                     guest_output_projection(context.state.text_codec, &wide, capacity)?;
@@ -519,6 +536,7 @@ unsafe fn command_unsafe(
                 dwTimeFormat: time_format,
                 dwAudio: audio,
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
         (
@@ -553,6 +571,7 @@ unsafe fn command_unsafe(
                 wBitsPerSample: bits_per_sample,
                 ..Default::default()
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
         (
@@ -580,6 +599,7 @@ unsafe fn command_unsafe(
                 dwMaster: master,
                 dwOffset: offset,
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
         (0x080f, P::Record { from, to }) => {
@@ -588,6 +608,7 @@ unsafe fn command_unsafe(
                 dwFrom: from,
                 dwTo: to,
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
         (
@@ -602,6 +623,7 @@ unsafe fn command_unsafe(
                 nVirtKey: i32::from(virtual_key),
                 hwndBreak: ptr::null_mut(),
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
         (
@@ -633,18 +655,21 @@ unsafe fn command_unsafe(
                     dwCallback: callback,
                     dwFrames: frames,
                 };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { call_native(native_id, message, flags, &mut parms) }
             } else if matches!(device_type, Some(519)) {
                 let mut parms = MCI_ANIM_STEP_PARMS {
                     dwCallback: callback,
                     dwFrames: frames,
                 };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { call_native(native_id, message, flags, &mut parms) }
             } else if matches!(device_type, Some(520)) {
                 let mut parms = MCI_DGV_STEP_PARMS {
                     dwCallback: callback,
                     dwFrames: frames,
                 };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { call_native(native_id, message, flags, &mut parms) }
             } else {
                 return Ok((unsupported(MCIERR_UNSUPPORTED_FUNCTION_VALUE), None));
@@ -664,6 +689,7 @@ unsafe fn command_unsafe(
             // Win16 SDK 3.1's guest record has LPCSTR; the native MCI command
             // boundary uses the equivalent MCI_SOUND_PARMSW LPCWSTR field.
             // windows-sys has no named binding for this legacy MCI message.
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
         (0x0805, P::Escape { command }) => {
@@ -675,6 +701,7 @@ unsafe fn command_unsafe(
                 dwCallback: callback,
                 lpstrCommand: command.as_ptr(),
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
         (
@@ -697,6 +724,7 @@ unsafe fn command_unsafe(
                         nCmdShow: u32::from(show_command),
                         lpstrText: text.as_ref().map_or(ptr::null(), |v| v.as_ptr()),
                     };
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     unsafe { call_native(native_id, message, flags, &mut parms) }
                 }
                 Some(515) => {
@@ -706,6 +734,7 @@ unsafe fn command_unsafe(
                         nCmdShow: u32::from(show_command),
                         lpstrText: text.as_ref().map_or(ptr::null(), |v| v.as_ptr()),
                     };
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     unsafe { call_native(native_id, message, flags, &mut parms) }
                 }
                 Some(520) => {
@@ -715,6 +744,7 @@ unsafe fn command_unsafe(
                         nCmdShow: u32::from(show_command),
                         lpstrText: text.as_mut().map_or(ptr::null_mut(), |v| v.as_mut_ptr()),
                     };
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     unsafe { call_native(native_id, message, flags, &mut parms) }
                 }
                 _ => return Ok((unsupported(MCIERR_UNSUPPORTED_FUNCTION_VALUE), None)),
@@ -749,6 +779,7 @@ unsafe fn command_unsafe(
                         dwCallback: callback,
                         rc,
                     };
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     let code = unsafe { call_native(native_id, message, flags, &mut parms) };
                     if is_output && code == 0 {
                         let Some(value) = rect16(parms.rc) else {
@@ -763,6 +794,7 @@ unsafe fn command_unsafe(
                         dwCallback: callback,
                         rc,
                     };
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     let code = unsafe { call_native(native_id, message, flags, &mut parms) };
                     if is_output && code == 0 {
                         let Some(value) = rect16(parms.rc) else {
@@ -777,6 +809,7 @@ unsafe fn command_unsafe(
                         dwCallback: callback,
                         rc,
                     };
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     let code = unsafe { call_native(native_id, message, flags, &mut parms) };
                     if is_output && code == 0 {
                         let Some(value) = rect16(parms.rc) else {
@@ -796,6 +829,7 @@ unsafe fn command_unsafe(
                     dwFrom: from,
                     dwTo: to,
                 };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { call_native(native_id, message, flags, &mut parms) }
             }
             Some(520) => {
@@ -805,6 +839,7 @@ unsafe fn command_unsafe(
                     dwTo: to,
                     ..Default::default()
                 };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { call_native(native_id, message, flags, &mut parms) }
             }
             _ => return Ok((unsupported(MCIERR_UNSUPPORTED_FUNCTION_VALUE), None)),
@@ -813,11 +848,12 @@ unsafe fn command_unsafe(
             let mut parms = MCI_GENERIC_PARMS {
                 dwCallback: callback,
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut parms) }
         }
-        (0x0808 | 0x0809 | 0x080c | 0x0830 | 0x0855, P::Null) => unsafe {
+        (0x0808 | 0x0809 | 0x080c | 0x0830 | 0x0855, P::Null) => {
             call_native_null(native_id, message, flags)
-        },
+        }
         _ => return Ok((unsupported(MCIERR_UNSUPPORTED_FUNCTION_VALUE), None)),
     };
     Ok((

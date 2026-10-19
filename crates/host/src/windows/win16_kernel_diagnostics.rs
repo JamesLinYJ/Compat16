@@ -8,7 +8,7 @@ use runtime::{
     Win16HostUserServiceResult, Win16NativeModalCancelSignal, Win16NativeModalCancellation,
     Win16WindowResult,
 };
-use windows_sys::Win32::Foundation::{GetLastError, HWND, LPARAM, WPARAM};
+use windows_sys::Win32::Foundation::{HWND, LPARAM, WPARAM};
 use windows_sys::Win32::System::Diagnostics::Debug::OutputDebugStringW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     DLGTEMPLATE, DialogBoxIndirectParamW, EndDialog, MessageBoxW, WM_CLOSE, WM_COMMAND,
@@ -88,7 +88,7 @@ pub(super) fn fatal_app_exit_message(
             )
         };
         // Capture this before modal-hook cleanup or any subsequent Win32 call.
-        let last_error = (value == 0).then(|| unsafe { GetLastError() });
+        let last_error = (value == 0).then(|| crate::windows::win32_safe::last_error());
         (value, last_error)
     })?;
     let call = match call {
@@ -274,7 +274,7 @@ pub(super) fn fatal_exit_prompt(
         )
     };
     // Read last-error before scope.finish can unhook or call another Win32 API.
-    let dialog_error = (result == -1).then(|| unsafe { GetLastError() });
+    let dialog_error = (result == -1).then(|| crate::windows::win32_safe::last_error());
     let (mut scope_disposition, scope_result) = match callback_state.modal_scope.take() {
         Some(scope) => {
             let disposition = scope.disposition();
@@ -459,6 +459,7 @@ fn merge_fatal_exit_failure(
     });
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn fatal_exit_dialog_proc(
     dialog: HWND,
     message: u32,
@@ -523,7 +524,7 @@ fn fatal_exit_dialog_message(dialog: HWND, message: u32, w_param: WPARAM) -> isi
     if let Some(result) = chosen {
         // SAFETY: User32 supplied the live modal dialog HWND to its DLGPROC.
         if unsafe { EndDialog(dialog, result as isize) } == 0 {
-            let error = unsafe { GetLastError() };
+            let error = crate::windows::win32_safe::last_error();
             record_fatal_exit_dialog_failure(
                 RuntimeError::with_source(
                     Kind::HostFailure,
@@ -591,6 +592,7 @@ fn handle_fatal_exit_modal_message(
                 .iter()
                 .rev()
                 .copied()
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 .find(|state| !state.is_null() && unsafe { (**state).dialog == dialog })
         })
     });
@@ -619,7 +621,7 @@ fn close_fatal_exit_dialog_after_callback_failure(dialog: HWND) -> Result<(), Ru
     if result != 0 {
         return Ok(());
     }
-    let error = unsafe { GetLastError() };
+    let error = crate::windows::win32_safe::last_error();
     Err(RuntimeError::with_source(
         Kind::HostFailure,
         "close the Win16 FatalExit dialog after a callback failure",
@@ -639,6 +641,7 @@ fn record_fatal_exit_dialog_failure(error: RuntimeError, dialog: HWND, initializ
                 let pending_creation = active.last().copied().filter(|state| {
                     // Messages may arrive before WM_INITDIALOG records the HWND.
                     // The unbound top cookie belongs to the innermost creation.
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     !state.is_null() && unsafe { (**state).dialog.is_null() }
                 });
                 pending_creation

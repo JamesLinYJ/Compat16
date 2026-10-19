@@ -2,7 +2,7 @@
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::slice;
 
 use windows_sys::Win32::Foundation::{HANDLE, HWND};
@@ -54,7 +54,10 @@ pub(super) fn property_exists(hwnd: HWND, key: &[u16], atom: u16) -> bool {
     }
     owned_key.extend_from_slice(key);
     let mut context = KeySearchContext {
-        key: owned_key, atom, found: false, failed: false,
+        key: owned_key,
+        atom,
+        found: false,
+        failed: false,
     };
     let _active = KeySearchGuard::push(&mut context);
     // SAFETY: Callers validate `hwnd` first. The callback compares a copied
@@ -77,14 +80,19 @@ pub(super) fn property_atom(
     }
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn property_key_search_callback(
     _hwnd: HWND,
     name: windows_sys::core::PCWSTR,
     _data: HANDLE,
 ) -> windows_sys::core::BOOL {
     match catch_unwind(AssertUnwindSafe(|| {
-        let Some(context) = current_key_search() else { return 1; };
-        let Some(name) = read_native_name(name) else { return 1; };
+        let Some(context) = current_key_search() else {
+            return 1;
+        };
+        let Some(name) = read_native_name(name) else {
+            return 1;
+        };
         // SAFETY: The search frame is scoped around EnumPropsW and remains
         // alive throughout this native callback.
         let context = unsafe { &mut *context };
@@ -105,7 +113,9 @@ unsafe extern "system" fn property_key_search_callback(
         Err(_) => {
             if let Some(context) = current_key_search() {
                 // SAFETY: The active search context is scoped to EnumPropsW.
-                unsafe { (*context).failed = true; }
+                unsafe {
+                    (*context).failed = true;
+                }
             }
             0
         }
@@ -118,7 +128,9 @@ enum NativePropertyName {
 }
 
 fn read_native_name(pointer: windows_sys::core::PCWSTR) -> Option<NativePropertyName> {
-    if pointer.is_null() { return None; }
+    if pointer.is_null() {
+        return None;
+    }
     if pointer as usize <= usize::from(u16::MAX) {
         return Some(NativePropertyName::Atom(pointer as usize as u16));
     }
@@ -144,7 +156,9 @@ fn read_native_name(pointer: windows_sys::core::PCWSTR) -> Option<NativeProperty
 fn parse_private_key(name: &[u16]) -> Option<u16> {
     let prefix = super::PROPERTY_KEY_PREFIX.as_bytes();
     if name.len() != prefix.len() + 4
-        || !name[..prefix.len()].iter().zip(prefix)
+        || !name[..prefix.len()]
+            .iter()
+            .zip(prefix)
             .all(|(wide, ascii)| fold_ascii(*wide) == fold_ascii(u16::from(*ascii)))
     {
         return None;
@@ -165,7 +179,10 @@ fn parse_private_key(name: &[u16]) -> Option<u16> {
 
 fn wide_ascii_eq_ignore_case(left: &[u16], right: &[u16]) -> bool {
     left.len() == right.len()
-        && left.iter().zip(right).all(|(left, right)| fold_ascii(*left) == fold_ascii(*right))
+        && left
+            .iter()
+            .zip(right)
+            .all(|(left, right)| fold_ascii(*left) == fold_ascii(*right))
 }
 
 fn fold_ascii(unit: u16) -> u16 {

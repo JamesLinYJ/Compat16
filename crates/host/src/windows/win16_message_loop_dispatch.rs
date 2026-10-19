@@ -9,9 +9,9 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    DispatchMessageW, GetParent, MSG, PM_REMOVE, PeekMessageW, WM_CHANGECBCHAIN, WM_CHAR,
-    WM_COMMAND, WM_DEADCHAR, WM_DROPFILES, WM_NCACTIVATE, WM_QUIT, WM_SYSCHAR,
-    WM_SYSDEADCHAR, WM_TIMER, WM_USER,
+    DispatchMessageW, MSG, PM_REMOVE, PeekMessageW, WM_CHANGECBCHAIN, WM_CHAR, WM_COMMAND,
+    WM_DEADCHAR, WM_DROPFILES, WM_NCACTIVATE, WM_QUIT, WM_SYSCHAR, WM_SYSDEADCHAR, WM_TIMER,
+    WM_USER,
 };
 
 use super::{NativeFilter, WorkerState, filter_is_alive, mdi_queue, worker};
@@ -110,6 +110,7 @@ pub(super) fn expose_or_dispatch(
         if !filter_is_alive(state, filter) {
             return Ok(None);
         }
+        // SAFETY: DispatchMessageW reads a caller-owned MSG for this call only.
         unsafe { DispatchMessageW(&native) };
         return Ok(None);
     };
@@ -317,6 +318,7 @@ pub(super) fn expose_or_dispatch(
                 ));
             }
             if filter_is_alive(state, filter) {
+                // SAFETY: DispatchMessageW reads a caller-owned MSG for this call only.
                 unsafe { DispatchMessageW(&native) };
             }
             return Ok(None);
@@ -518,16 +520,13 @@ pub(super) fn expose_or_dispatch(
                 .windows_by_native
                 .get(&(native.hwnd as usize))
                 .map(|identity| identity.window);
-            let control = if unsafe {
-                windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(native.lParam as HWND)
-            } != 0
-            {
+            let control = if (crate::windows::win32_safe::is_window(native.lParam as HWND)) != 0 {
                 Some(worker::token_for_native(state, native.lParam as HWND)?)
             } else {
                 None
             };
             let parent = if control.is_some() {
-                unsafe { GetParent(native.lParam as HWND) }
+                crate::windows::win32_safe::get_parent(native.lParam as HWND)
             } else {
                 std::ptr::null_mut()
             };
@@ -617,7 +616,8 @@ pub(super) fn expose_or_dispatch(
     let timer_parameters_are_scalar = !Win16ScalarMessage::is_timer_message(message_id)
         || (native.lParam == 0 && native.wParam <= usize::from(u16::MAX));
     let pointer_free = (Win16ScalarMessage::from_raw(message_id).is_some()
-        && !paint_has_dc && timer_parameters_are_scalar)
+        && !paint_has_dc
+        && timer_parameters_are_scalar)
         || timer_without_native_callback;
     let token = if native.hwnd.is_null() {
         Some(None)
@@ -715,6 +715,7 @@ fn remove_after_peek(
         flags | PM_REMOVE,
     )?;
     let mut removed = MSG::default();
+    // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
     let found = unsafe {
         PeekMessageW(
             &mut removed,

@@ -1,10 +1,10 @@
 //! Global USER effects run only on disposable GitHub-hosted native runners.
 use super::*;
 use runtime::{Win16WindowCall, Win16WindowCallResult};
-use windows_sys::Win32::Graphics::Gdi::{COLOR_WINDOW, GetSysColor, SetSysColors};
+use windows_sys::Win32::Graphics::Gdi::{COLOR_WINDOW, SetSysColors};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::SwapMouseButton;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GWLP_WNDPROC, GetSystemMetrics, SM_SWAPBUTTON, SetWindowLongPtrW, WM_SYSCOLORCHANGE,
+    GWLP_WNDPROC, SM_SWAPBUTTON, SetWindowLongPtrW, WM_SYSCOLORCHANGE,
 };
 
 fn require_disposable_runner() {
@@ -34,6 +34,7 @@ thread_local! {
     static COLOR_NOTIFICATIONS: Cell<usize> = const {Cell::new(0)};
     static COLOR_ACTION: RefCell<Option<Box<dyn FnOnce()>>> = const {RefCell::new(None)};
 }
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn color_proc(hwnd: HWND, message: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     if message == WM_SYSCOLORCHANGE {
         COLOR_NOTIFICATIONS.with(|count| count.set(count.get() + 1));
@@ -44,6 +45,7 @@ unsafe extern "system" fn color_proc(hwnd: HWND, message: u32, wp: WPARAM, lp: L
             }
         }
     }
+    // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
     unsafe { DefWindowProcW(hwnd, message, wp, lp) }
 }
 struct RestoreColor {
@@ -76,10 +78,11 @@ fn system_colors_native_worker_allows_synchronous_notification_reentry() {
         let windows = NativeWindows::new(state);
         let window = windows.window(ptr::null_mut(), 0);
         assert_ne!(
+            // SAFETY: SetWindowLongPtrW writes one window-long slot owned by this window.
             unsafe { SetWindowLongPtrW(window.1, GWLP_WNDPROC, color_proc as *const () as isize) },
             0
         );
-        let original = unsafe { GetSysColor(COLOR_WINDOW) };
+        let original = crate::windows::win32_safe::system_color(COLOR_WINDOW);
         let mut restore = RestoreColor {
             value: original,
             armed: true,
@@ -91,7 +94,10 @@ fn system_colors_native_worker_allows_synchronous_notification_reentry() {
             *slot.borrow_mut() = Some(Box::new(move || {
                 // Synchronous notification must be able to reenter worker state.
                 assert_eq!(identity::resolve(&retained, window.0), Some(window.1));
-                assert_eq!(unsafe { GetSysColor(COLOR_WINDOW) }, changed);
+                assert_eq!(
+                    (crate::windows::win32_safe::system_color(COLOR_WINDOW)),
+                    changed
+                );
                 drop(retained.borrow_mut());
             }))
         });
@@ -113,15 +119,22 @@ fn system_colors_native_worker_allows_synchronous_notification_reentry() {
             "SetSysColors must notify the owning thread synchronously"
         );
         assert!(COLOR_NOTIFICATIONS.with(Cell::get) > 0);
-        assert_eq!(unsafe { GetSysColor(COLOR_WINDOW) }, changed);
+        assert_eq!(
+            (crate::windows::win32_safe::system_color(COLOR_WINDOW)),
+            changed
+        );
         assert!(restore.restore());
-        assert_eq!(unsafe { GetSysColor(COLOR_WINDOW) }, original);
+        assert_eq!(
+            (crate::windows::win32_safe::system_color(COLOR_WINDOW)),
+            original
+        );
     });
 }
 
 struct RestoreButtons(bool);
 impl Drop for RestoreButtons {
     fn drop(&mut self) {
+        // SAFETY: `SwapMouseButton` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe {
             SwapMouseButton(i32::from(self.0));
         }
@@ -131,16 +144,22 @@ impl Drop for RestoreButtons {
 #[ignore = "disposable CI only; temporarily reverses and restores mouse-button mapping"]
 fn system_colors_native_mouse_adapter_returns_previous_mapping() {
     require_disposable_runner();
-    let original = unsafe { GetSystemMetrics(SM_SWAPBUTTON) != 0 };
+    let original = crate::windows::win32_safe::system_metrics(SM_SWAPBUTTON) != 0;
     let _restore = RestoreButtons(original);
     assert_eq!(
         crate::windows::win16_user_services_system::swap_mouse_button(!original),
         original
     );
-    assert_eq!(unsafe { GetSystemMetrics(SM_SWAPBUTTON) != 0 }, !original);
+    assert_eq!(
+        (crate::windows::win32_safe::system_metrics(SM_SWAPBUTTON) != 0),
+        !original
+    );
     assert_eq!(
         crate::windows::win16_user_services_system::swap_mouse_button(original),
         !original
     );
-    assert_eq!(unsafe { GetSystemMetrics(SM_SWAPBUTTON) != 0 }, original);
+    assert_eq!(
+        (crate::windows::win32_safe::system_metrics(SM_SWAPBUTTON) != 0),
+        original
+    );
 }

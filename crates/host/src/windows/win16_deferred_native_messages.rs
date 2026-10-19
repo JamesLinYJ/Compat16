@@ -11,7 +11,7 @@ use std::rc::Rc;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::Foundation::HWND;
-use windows_sys::Win32::UI::WindowsAndMessaging::{IsChild, MSG, WM_QUIT};
+use windows_sys::Win32::UI::WindowsAndMessaging::{MSG, WM_QUIT};
 
 use super::win16_window_worker::WorkerState;
 
@@ -224,7 +224,7 @@ fn matches_filter(message: &MSG, hwnd: HWND, min_message: u32, max_message: u32)
     } else if message.hwnd.is_null() {
         false
     } else {
-        message.hwnd == hwnd || unsafe { IsChild(hwnd, message.hwnd) != 0 }
+        message.hwnd == hwnd || { crate::windows::win32_safe::is_child(hwnd, message.hwnd) != 0 }
     };
     let id_matches = message.message == WM_QUIT
         || (min_message == 0 && max_message == 0)

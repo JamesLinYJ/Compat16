@@ -9,7 +9,9 @@ impl State {
     pub fn command(&mut self, id: u16, notification: u16) {
         match id {
             controls::RUN if notification == BN_CLICKED as u16 => self.launch(),
-            controls::CLOSE => unsafe {
+            controls::CLOSE =>
+            // SAFETY: `PostMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe {
                 PostMessageW(self.window, WM_CLOSE, 0, 0);
             },
             controls::ADVANCED if notification == BN_CLICKED as u16 => {
@@ -38,7 +40,9 @@ impl State {
             }
             controls::LOG if notification == BN_CLICKED as u16 => {
                 if let Some(log) = &self.log {
-                    let result = unsafe {
+                    let result =
+                        // SAFETY: `ShellExecuteW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+                        unsafe {
                         ShellExecuteW(
                             self.window,
                             wide("open").as_ptr(),
@@ -54,13 +58,18 @@ impl State {
                 }
             }
             controls::PROGRAM if notification == CBN_SELCHANGE as u16 => {
-                let index = unsafe { SendMessageW(self.controls.program, CB_GETCURSEL, 0, 0) };
+                let index =
+                    // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+                    unsafe { SendMessageW(self.controls.program, CB_GETCURSEL, 0, 0) };
                 if index >= 0 {
-                    let length = unsafe {
+                    let length =
+                        // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+                        unsafe {
                         SendMessageW(self.controls.program, CB_GETLBTEXTLEN, index as usize, 0)
                     };
                     if (0..=32_767).contains(&length) {
                         let mut buffer = vec![0; length as usize + 1];
+                        // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
                         unsafe {
                             SendMessageW(
                                 self.controls.program,
@@ -89,23 +98,30 @@ impl State {
         struct DropFiles(HDROP);
         impl Drop for DropFiles {
             fn drop(&mut self) {
+                // SAFETY: `DragFinish` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
                 unsafe {
                     DragFinish(self.0);
                 }
             }
         }
         let drop = DropFiles(drop);
-        if unsafe { DragQueryFileW(drop.0, u32::MAX, null_mut(), 0) } != 1 {
+        if
+        // SAFETY: `DragQueryFileW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { DragQueryFileW(drop.0, u32::MAX, null_mut(), 0) } != 1 {
             self.status("请一次拖入一个程序文件。", true);
             return;
         }
-        let length = unsafe { DragQueryFileW(drop.0, 0, null_mut(), 0) };
+        let length =
+            // SAFETY: `DragQueryFileW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { DragQueryFileW(drop.0, 0, null_mut(), 0) };
         if length == 0 || length > 32_767 {
             self.status("拖入的文件路径不可用。", true);
             return;
         }
         let mut buffer = vec![0; length as usize + 1];
-        let copied = unsafe { DragQueryFileW(drop.0, 0, buffer.as_mut_ptr(), buffer.len() as u32) };
+        let copied =
+            // SAFETY: `DragQueryFileW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { DragQueryFileW(drop.0, 0, buffer.as_mut_ptr(), buffer.len() as u32) };
         self.select_program(PathBuf::from(OsString::from_wide(
             &buffer[..copied as usize],
         )));
@@ -113,7 +129,9 @@ impl State {
 
     pub(super) fn current_settings(&self) -> Result<Settings, String> {
         let mut settings = self.settings.clone();
-        settings.engine = match unsafe { SendMessageW(self.controls.engine, CB_GETCURSEL, 0, 0) } {
+        settings.engine = match
+            // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { SendMessageW(self.controls.engine, CB_GETCURSEL, 0, 0) } {
             1 => Engine::Jit,
             2 => Engine::Interpreter,
             _ => Engine::Default,
@@ -130,13 +148,16 @@ impl State {
                     .ok_or("Win16 字符编码须为“自动”或 Windows 代码页编号。")?,
             )
         };
-        settings.dos_page = if unsafe { SendMessageW(self.controls.dos, CB_GETCURSEL, 0, 0) } == 1 {
+        settings.dos_page = if
+        // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { SendMessageW(self.controls.dos, CB_GETCURSEL, 0, 0) } == 1 {
             936
         } else {
             437
         };
         settings.dos_version = text(self.controls.version);
         settings.diagnostics =
+            // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
             unsafe { SendMessageW(self.controls.diagnostics, BM_GETCHECK, 0, 0) } == 1;
         Ok(settings)
     }
@@ -160,10 +181,12 @@ impl State {
             if let Err(error) = store::save(&self.root, &self.settings) {
                 self.status(&error, true);
             }
+            // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
             unsafe {
                 SendMessageW(self.controls.program, CB_RESETCONTENT, 0, 0);
             }
             for path in &self.settings.recent {
+                // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
                 unsafe {
                     SendMessageW(
                         self.controls.program,
@@ -230,6 +253,7 @@ impl State {
                     }
                 }
             }
+            // SAFETY: `EnableWindow` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
             unsafe {
                 EnableWindow(self.controls.log, 1);
             }
@@ -250,8 +274,12 @@ fn browse_program(owner: HWND) -> Result<Option<PathBuf>, String> {
         Flags: OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR,
         ..Default::default()
     };
-    if unsafe { GetOpenFileNameW(&mut request) } == 0 {
-        let error = unsafe { CommDlgExtendedError() };
+    if
+    // SAFETY: `GetOpenFileNameW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+    unsafe { GetOpenFileNameW(&mut request) } == 0 {
+        let error =
+            // SAFETY: `CommDlgExtendedError` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { CommDlgExtendedError() };
         return if error == 0 {
             Ok(None)
         } else {
@@ -273,13 +301,17 @@ fn browse_directory(owner: HWND) -> Option<PathBuf> {
         ulFlags: BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_EDITBOX,
         ..Default::default()
     };
-    let item = unsafe { SHBrowseForFolderW(&request) };
+    let item =
+        // SAFETY: `SHBrowseForFolderW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { SHBrowseForFolderW(&request) };
     if item.is_null() {
         return None;
     }
     let mut buffer = vec![0; 32_768];
     let success =
+        // SAFETY: `SHGetPathFromIDListEx` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe { SHGetPathFromIDListEx(item, buffer.as_mut_ptr(), buffer.len() as u32, 0) };
+    // SAFETY: `CoTaskMemFree` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe {
         CoTaskMemFree(item.cast());
     }

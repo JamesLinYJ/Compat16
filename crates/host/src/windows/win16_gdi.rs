@@ -2,42 +2,43 @@
 
 #[path = "win16_gdi_cleanup.rs"]
 mod cleanup;
-#[path = "win16_gdi_metafile.rs"]
-pub(super) mod metafile;
-#[path = "win16_gdi_update_region.rs"]
-mod update_region;
 #[path = "win16_gdi_dc_lease.rs"]
 mod dc_lease;
-#[path = "win16_gdi_fonts.rs"]
-pub(super) mod fonts;
-#[path = "win16_gdi_outline_metrics.rs"]
-mod outline_metrics;
 #[path = "win16_gdi_device_caps.rs"]
 mod device_caps;
+#[path = "win16_gdi_fonts.rs"]
+pub(super) mod fonts;
+#[path = "win16_gdi_metafile.rs"]
+pub(super) mod metafile;
+#[path = "win16_gdi_outline_metrics.rs"]
+mod outline_metrics;
+#[path = "win16_gdi_update_region.rs"]
+mod update_region;
 
-use std::alloc::{alloc_zeroed, dealloc, Layout};
+use std::alloc::{Layout, alloc_zeroed, dealloc};
 use std::collections::BTreeMap;
 use std::mem::{align_of, size_of};
 use std::ptr::{self, NonNull};
 use std::sync::{Arc, Mutex, MutexGuard};
 
+use super::guest_text::GuestTextCodec;
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16DrawingRect, Win16HostDc, Win16HostDevMode,
     Win16HostWindow,
 };
 use windows_sys::Win32::Graphics::Gdi::{
-    CreateCompatibleDC, CreateDCW, CreateICW, DeleteDC, GetDC,
-    GetDeviceCaps, GetWindowDC, ReleaseDC, ResetDCW,
-    DEVMODEW, DEVMODEW_0, DEVMODEW_0_0, DM_SPECVERSION, HDC,
+    CreateCompatibleDC, CreateDCW, CreateICW, DEVMODEW, DEVMODEW_0, DEVMODEW_0_0, DM_SPECVERSION,
+    GetDC, GetDeviceCaps, GetWindowDC, HDC, ResetDCW,
 };
-use super::guest_text::GuestTextCodec;
 
 /// Complete this thread's batched drawing before another thread uses a shared
 /// HDC. GdiFlush drains the batch even when its BOOL reports a failed drawing
 /// command; that BOOL is not an inability to perform the synchronization.
 pub(super) fn flush_thread_batch() {
     // SAFETY: GdiFlush has no arguments and operates on the calling thread.
-    unsafe { windows_sys::Win32::Graphics::Gdi::GdiFlush(); }
+    unsafe {
+        windows_sys::Win32::Graphics::Gdi::GdiFlush();
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -47,8 +48,13 @@ enum DcOrigin {
     Screen,
     Created,
     Metafile,
-    FunctionCallback { callback: runtime::Win16HostCallback },
-    Window { window: Win16HostWindow, lease: WindowDcLease },
+    FunctionCallback {
+        callback: runtime::Win16HostCallback,
+    },
+    Window {
+        window: Win16HostWindow,
+        lease: WindowDcLease,
+    },
 }
 
 /// A window DC's matching release operation. The USER worker executes that
@@ -76,7 +82,9 @@ struct NativeDc {
 }
 
 impl NativeDc {
-    fn handle(self) -> HDC { self.handle as HDC }
+    fn handle(self) -> HDC {
+        self.handle as HDC
+    }
 }
 
 #[derive(Clone)]
@@ -104,23 +112,31 @@ struct Win16DcState {
 
 impl Win16Dcs {
     pub(super) fn with_text_codec(text_codec: super::guest_text::GuestTextCodec) -> Self {
-        Self { text_codec, shared: Arc::new(Mutex::new(Win16DcState {
-            objects: BTreeMap::new(), metafile_outputs: BTreeMap::new(), next_id: 1,
-        })) }
+        Self {
+            text_codec,
+            shared: Arc::new(Mutex::new(Win16DcState {
+                objects: BTreeMap::new(),
+                metafile_outputs: BTreeMap::new(),
+                next_id: 1,
+            })),
+        }
     }
-    pub(in crate::windows) fn text_codec(&self) -> super::guest_text::GuestTextCodec { self.text_codec }
+    pub(in crate::windows) fn text_codec(&self) -> super::guest_text::GuestTextCodec {
+        self.text_codec
+    }
 
     /// A poisoned guard retains only host-owned DC identities. Host calls
     /// validate tokens before use, and window/callback leases are still
     /// removed only by their matching owner operation.
     fn lock(&self) -> MutexGuard<'_, Win16DcState> {
-        self.shared.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+        self.shared
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
     /// Transfer a newly created DeleteDC-owned context into the shared table.
     /// The table also releases it if identity allocation fails.
-    pub(super) fn adopt_created(&self, native: HDC)
-        -> Result<Option<Win16HostDc>, RuntimeError> {
+    pub(super) fn adopt_created(&self, native: HDC) -> Result<Option<Win16HostDc>, RuntimeError> {
         self.lock().record_created(native, DcOrigin::Created)
     }
 
@@ -135,7 +151,8 @@ impl Win16Dcs {
             },
             None => None,
         };
-        let native_source = source_use.as_ref()
+        let native_source = source_use
+            .as_ref()
             .map_or(ptr::null_mut(), |source_use| source_use.native());
         // SAFETY: A non-NULL source remains pinned until CreateCompatibleDC
         // returns; NULL requests a compatible display DC as documented.
@@ -151,7 +168,8 @@ impl Win16Dcs {
         output: Option<&[u8]>,
         devmode: Option<&Win16HostDevMode>,
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
-        self.lock().create_dc(self.text_codec, driver, device, output, devmode)
+        self.lock()
+            .create_dc(self.text_codec, driver, device, output, devmode)
     }
 
     pub(super) fn create_ic(
@@ -161,7 +179,8 @@ impl Win16Dcs {
         output: Option<&[u8]>,
         devmode: Option<&Win16HostDevMode>,
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
-        self.lock().create_ic(self.text_codec, driver, device, output, devmode)
+        self.lock()
+            .create_ic(self.text_codec, driver, device, output, devmode)
     }
 
     pub(super) fn acquire_screen(
@@ -180,8 +199,7 @@ impl Win16Dcs {
         self.lock().adopt_window_dc(window, whole_window, raw_hdc)
     }
 
-    pub(super) fn adopt_screen_dc(&self, native: HDC)
-        -> Result<Option<Win16HostDc>, RuntimeError> {
+    pub(super) fn adopt_screen_dc(&self, native: HDC) -> Result<Option<Win16HostDc>, RuntimeError> {
         self.lock().record_screen_dc(native)
     }
 
@@ -210,25 +228,40 @@ impl Win16Dcs {
         self.lock().adopt_callback_dc(window, raw_hdc)
     }
 
-    pub(super) fn adopt_function_dc(&self, callback: runtime::Win16HostCallback, raw_hdc: usize)
-        -> Result<Option<Win16HostDc>, RuntimeError> {
-        self.lock().record_borrowed_dc(DcOrigin::FunctionCallback { callback }, raw_hdc, None)
+    pub(super) fn adopt_function_dc(
+        &self,
+        callback: runtime::Win16HostCallback,
+        raw_hdc: usize,
+    ) -> Result<Option<Win16HostDc>, RuntimeError> {
+        self.lock()
+            .record_borrowed_dc(DcOrigin::FunctionCallback { callback }, raw_hdc, None)
     }
 
     pub(super) fn is_function_dc(&self, token: Win16HostDc) -> bool {
-        self.lock().objects.get(&token)
+        self.lock()
+            .objects
+            .get(&token)
             .is_some_and(|dc| matches!(dc.origin, DcOrigin::FunctionCallback { .. }))
     }
 
-    pub(super) fn retire_function_dc(&self, token: Win16HostDc,
-        callback: runtime::Win16HostCallback) -> bool {
+    pub(super) fn retire_function_dc(
+        &self,
+        token: Win16HostDc,
+        callback: runtime::Win16HostCallback,
+    ) -> bool {
         let mut state = self.lock();
-        let Some(dc) = state.objects.get_mut(&token) else { return false; };
-        if !matches!(dc.origin, DcOrigin::FunctionCallback { callback: owner } if owner == callback) {
+        let Some(dc) = state.objects.get_mut(&token) else {
+            return false;
+        };
+        if !matches!(dc.origin, DcOrigin::FunctionCallback { callback: owner } if owner == callback)
+        {
             return false;
         }
-        if dc.pin_count == 0 { state.objects.remove(&token); }
-        else { dc.retire_on_unpin = true; }
+        if dc.pin_count == 0 {
+            state.objects.remove(&token);
+        } else {
+            dc.retire_on_unpin = true;
+        }
         true
     }
 
@@ -244,7 +277,9 @@ impl Win16Dcs {
         token: Win16HostDc,
         index: i16,
     ) -> Result<Option<i16>, RuntimeError> {
-        let Some(dc_use) = self.lease_dc(token)? else { return Ok(None); };
+        let Some(dc_use) = self.lease_dc(token)? else {
+            return Ok(None);
+        };
         // SAFETY: The HDC lease pins its table identity through this call.
         let native = unsafe { GetDeviceCaps(dc_use.native(), i32::from(index)) };
         Ok(Some(device_caps::project_count(index, native)))
@@ -268,12 +303,19 @@ impl Win16DcState {
         output: Option<&[u8]>,
         devmode: Option<&Win16HostDevMode>,
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
-        self.create_device_dc(codec, driver, device, output, devmode, false,
+        self.create_device_dc(
+            codec,
+            driver,
+            device,
+            output,
+            devmode,
+            false,
             |driver, device, output, mode| {
-            // SAFETY: The UTF-16 strings and converted native DEVMODE stay
-            // alive for this synchronous GDI call; guest pointers never cross.
-            unsafe { CreateDCW(driver, device, output, mode) }
-        })
+                // SAFETY: The UTF-16 strings and converted native DEVMODE stay
+                // alive for this synchronous GDI call; guest pointers never cross.
+                unsafe { CreateDCW(driver, device, output, mode) }
+            },
+        )
     }
 
     fn create_ic(
@@ -284,12 +326,19 @@ impl Win16DcState {
         output: Option<&[u8]>,
         devmode: Option<&Win16HostDevMode>,
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
-        self.create_device_dc(codec, driver, device, output, devmode, true,
+        self.create_device_dc(
+            codec,
+            driver,
+            device,
+            output,
+            devmode,
+            true,
             |driver, device, output, mode| {
-            // SAFETY: The UTF-16 strings and converted native DEVMODE stay
-            // alive for this synchronous GDI call; guest pointers never cross.
-            unsafe { CreateICW(driver, device, output, mode) }
-        })
+                // SAFETY: The UTF-16 strings and converted native DEVMODE stay
+                // alive for this synchronous GDI call; guest pointers never cross.
+                unsafe { CreateICW(driver, device, output, mode) }
+            },
+        )
     }
 
     fn create_device_dc(
@@ -308,75 +357,97 @@ impl Win16DcState {
         let driver = wide_string(codec, driver, "driver")?;
         let device = wide_string(codec, device, "device")?;
         let output = wide_string(codec, output, "output")?;
-        let native_mode = devmode.map(|mode| native_devmode(mode, codec)).transpose()?;
-        let native_mode_ptr = native_mode.as_ref()
+        let native_mode = devmode
+            .map(|mode| native_devmode(mode, codec))
+            .transpose()?;
+        let native_mode_ptr = native_mode
+            .as_ref()
             .map_or(ptr::null(), NativeDevMode::as_ptr);
         let driver_ptr = driver.as_ref().map_or(ptr::null(), |value| value.as_ptr());
         let device_ptr = device.as_ref().map_or(ptr::null(), |value| value.as_ptr());
         let output_ptr = output.as_ref().map_or(ptr::null(), |value| value.as_ptr());
         let native = create(driver_ptr, device_ptr, output_ptr, native_mode_ptr);
-        self.record_created(native, if information_context {
-            DcOrigin::Information
-        } else {
-            DcOrigin::Created
-        })
+        self.record_created(
+            native,
+            if information_context {
+                DcOrigin::Information
+            } else {
+                DcOrigin::Created
+            },
+        )
     }
 
-    fn record_created(&mut self, native: HDC, origin: DcOrigin)
-        -> Result<Option<Win16HostDc>, RuntimeError>
-    {
-        if native.is_null() { return Ok(None); }
+    fn record_created(
+        &mut self,
+        native: HDC,
+        origin: DcOrigin,
+    ) -> Result<Option<Win16HostDc>, RuntimeError> {
+        if native.is_null() {
+            return Ok(None);
+        }
         let Some(next_id) = self.next_id.checked_add(1) else {
             // SAFETY: This is a newly created, owned HDC not yet returned to
             // the runtime; CreateDC/CreateIC contexts require DeleteDC.
-            unsafe { DeleteDC(native) };
-            return Err(RuntimeError::new(Kind::ResourceExhausted,
-                "Win16 host device-context identity exhausted"));
+            (crate::windows::win32_safe::delete_dc(native));
+            return Err(RuntimeError::new(
+                Kind::ResourceExhausted,
+                "Win16 host device-context identity exhausted",
+            ));
         };
         let token = Win16HostDc(self.next_id);
         self.next_id = next_id;
-        self.objects.insert(token, NativeDc {
-            handle: native as usize,
-            origin,
-            paint_info: None,
-            pin_count: 0,
-            release_pending: false,
-            retire_on_unpin: false,
-        });
+        self.objects.insert(
+            token,
+            NativeDc {
+                handle: native as usize,
+                origin,
+                paint_info: None,
+                pin_count: 0,
+                release_pending: false,
+                retire_on_unpin: false,
+            },
+        );
         Ok(Some(token))
     }
 
-    fn acquire_screen(&mut self, whole_window: bool)
-        -> Result<Option<Win16HostDc>, RuntimeError> {
+    fn acquire_screen(&mut self, whole_window: bool) -> Result<Option<Win16HostDc>, RuntimeError> {
         // SAFETY: A null HWND requests the display DC. USER32 owns this DC;
         // it must later be returned with ReleaseDC, never DeleteDC.
-        let native = unsafe { if whole_window {
-            GetWindowDC(ptr::null_mut())
-        } else {
-            GetDC(ptr::null_mut())
-        } };
+        let native = unsafe {
+            if whole_window {
+                GetWindowDC(ptr::null_mut())
+            } else {
+                GetDC(ptr::null_mut())
+            }
+        };
         self.record_screen_dc(native)
     }
 
-    fn record_screen_dc(&mut self, native: HDC)
-        -> Result<Option<Win16HostDc>, RuntimeError> {
-        if native.is_null() { return Ok(None); }
+    fn record_screen_dc(&mut self, native: HDC) -> Result<Option<Win16HostDc>, RuntimeError> {
+        if native.is_null() {
+            return Ok(None);
+        }
         let Some(next_id) = self.next_id.checked_add(1) else {
             // SAFETY: The unpublished screen DC was acquired on this thread.
-            unsafe { ReleaseDC(ptr::null_mut(), native) };
-            return Err(RuntimeError::new(Kind::ResourceExhausted,
-                "Win16 host device-context identity exhausted"));
+            (crate::windows::win32_safe::release_dc(ptr::null_mut(), native));
+            return Err(RuntimeError::new(
+                Kind::ResourceExhausted,
+                "Win16 host device-context identity exhausted",
+            ));
         };
         let token = Win16HostDc(self.next_id);
         self.next_id = next_id;
-        self.objects.insert(token, NativeDc {
-            handle: native as usize,
-            origin: DcOrigin::Screen,
-            paint_info: None,
-            pin_count: 0,
-            release_pending: false,
-            retire_on_unpin: false,
-        });
+        self.objects.insert(
+            token,
+            NativeDc {
+                handle: native as usize,
+                origin: DcOrigin::Screen,
+                paint_info: None,
+                pin_count: 0,
+                release_pending: false,
+                retire_on_unpin: false,
+            },
+        );
         Ok(Some(token))
     }
 
@@ -388,7 +459,11 @@ impl Win16DcState {
         whole_window: bool,
         raw_hdc: usize,
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
-        let lease = if whole_window { WindowDcLease::WholeWindow } else { WindowDcLease::Client };
+        let lease = if whole_window {
+            WindowDcLease::WholeWindow
+        } else {
+            WindowDcLease::Client
+        };
         self.adopt_window_dc_lease(window, lease, raw_hdc, None)
     }
 
@@ -424,26 +499,37 @@ impl Win16DcState {
         self.record_borrowed_dc(DcOrigin::Window { window, lease }, raw_hdc, paint_info)
     }
 
-    fn record_borrowed_dc(&mut self, origin: DcOrigin, raw_hdc: usize,
-        paint_info: Option<Win16NativePaintInfo>) -> Result<Option<Win16HostDc>, RuntimeError> {
-        if raw_hdc == 0 { return Ok(None); }
+    fn record_borrowed_dc(
+        &mut self,
+        origin: DcOrigin,
+        raw_hdc: usize,
+        paint_info: Option<Win16NativePaintInfo>,
+    ) -> Result<Option<Win16HostDc>, RuntimeError> {
+        if raw_hdc == 0 {
+            return Ok(None);
+        }
         let Some(next_id) = self.next_id.checked_add(1) else {
-            return Err(RuntimeError::new(Kind::ResourceExhausted,
-                "Win16 host device-context identity exhausted"));
+            return Err(RuntimeError::new(
+                Kind::ResourceExhausted,
+                "Win16 host device-context identity exhausted",
+            ));
         };
         let token = Win16HostDc(self.next_id);
         self.next_id = next_id;
         // SAFETY: `raw_hdc` is supplied only by the USER worker that acquired
         // this HDC; `usize` is its host-only transport representation.
         let handle = raw_hdc;
-        self.objects.insert(token, NativeDc {
-            handle,
-            origin,
-            paint_info,
-            pin_count: 0,
-            release_pending: false,
-            retire_on_unpin: false,
-        });
+        self.objects.insert(
+            token,
+            NativeDc {
+                handle,
+                origin,
+                paint_info,
+                pin_count: 0,
+                release_pending: false,
+                retire_on_unpin: false,
+            },
+        );
         Ok(Some(token))
     }
 
@@ -465,10 +551,15 @@ impl Win16DcState {
         if devmode.is_some_and(|mode| !mode.has_mapped_fields()) {
             return Ok(None);
         }
-        let native_mode = devmode.map(|mode| native_devmode(mode, codec)).transpose()?;
-        let native_mode_ptr = native_mode.as_ref()
+        let native_mode = devmode
+            .map(|mode| native_devmode(mode, codec))
+            .transpose()?;
+        let native_mode_ptr = native_mode
+            .as_ref()
             .map_or(ptr::null(), NativeDevMode::as_ptr);
-        let Some(dc) = self.objects.get(&token) else { return Ok(None); };
+        let Some(dc) = self.objects.get(&token) else {
+            return Ok(None);
+        };
         let old_handle = dc.handle;
         if !matches!(dc.origin, DcOrigin::Created)
             || dc.retire_on_unpin
@@ -483,17 +574,20 @@ impl Win16DcState {
         // SAFETY: The DC is an owned created printer/device DC. The converted
         // DEVMODEW and its private bytes remain alive for the synchronous call.
         let replacement = unsafe { ResetDCW(old_handle as HDC, native_mode_ptr) };
-        if replacement.is_null() { return Ok(None); }
+        if replacement.is_null() {
+            return Ok(None);
+        }
         let replacement_handle = replacement as usize;
         if replacement_handle != old_handle {
             // ResetDCW normally returns the original handle. If the native
             // result differs, only the owned token receives that replacement;
             // aliases of the retired raw handle cannot be rebound to it.
-            self.objects.retain(|id, alias| {
-                *id == token || alias.handle != old_handle
-            });
+            self.objects
+                .retain(|id, alias| *id == token || alias.handle != old_handle);
         }
-        let Some(dc) = self.objects.get_mut(&token) else { return Ok(None); };
+        let Some(dc) = self.objects.get_mut(&token) else {
+            return Ok(None);
+        };
         dc.handle = replacement_handle;
         Ok(Some(token))
     }
@@ -503,15 +597,21 @@ impl Drop for Win16DcState {
     fn drop(&mut self) {
         for (_, native) in std::mem::take(&mut self.objects) {
             // SAFETY: This table recorded the matching acquisition operation.
-            unsafe { match native.origin {
-                DcOrigin::Compatible | DcOrigin::Information | DcOrigin::Created => {
-                    DeleteDC(native.handle());
+            {
+                match native.origin {
+                    DcOrigin::Compatible | DcOrigin::Information | DcOrigin::Created => {
+                        crate::windows::win32_safe::delete_dc(native.handle());
+                    }
+                    DcOrigin::Metafile => {
+                        metafile::discard(native.handle());
+                    }
+                    DcOrigin::Screen => {
+                        crate::windows::win32_safe::release_dc(ptr::null_mut(), native.handle());
+                    }
+                    // A borrowed window HDC must be released by its USER worker.
+                    DcOrigin::Window { .. } | DcOrigin::FunctionCallback { .. } => {}
                 }
-                DcOrigin::Metafile => { metafile::discard(native.handle()); }
-                DcOrigin::Screen => { ReleaseDC(ptr::null_mut(), native.handle()); }
-                // A borrowed window HDC must be released by its USER worker.
-                DcOrigin::Window { .. } | DcOrigin::FunctionCallback { .. } => {}
-            } };
+            };
         }
     }
 }
@@ -521,10 +621,14 @@ fn wide_string(
     bytes: Option<&[u8]>,
     field: &str,
 ) -> Result<Option<Vec<u16>>, RuntimeError> {
-    let Some(bytes) = bytes else { return Ok(None); };
+    let Some(bytes) = bytes else {
+        return Ok(None);
+    };
     if bytes.contains(&0) {
-        return Err(RuntimeError::new(Kind::InvalidInput,
-            format!("Win16 GDI {field} string contains an embedded NUL")));
+        return Err(RuntimeError::new(
+            Kind::InvalidInput,
+            format!("Win16 GDI {field} string contains an embedded NUL"),
+        ));
     }
     codec.to_wide_z(bytes).map(Some)
 }
@@ -541,16 +645,27 @@ impl NativeDevMode {
 
     pub(super) fn from_bytes(bytes: &[u8]) -> Result<Self, RuntimeError> {
         if bytes.len() < size_of::<DEVMODEW>() {
-            return Err(RuntimeError::new(Kind::InvalidInput, "native DEVMODE buffer is incomplete"));
+            return Err(RuntimeError::new(
+                Kind::InvalidInput,
+                "native DEVMODE buffer is incomplete",
+            ));
         }
-        let layout = Layout::from_size_align(bytes.len(), align_of::<DEVMODEW>())
-            .map_err(|error| RuntimeError::with_source(Kind::ResourceExhausted,
-                "native DEVMODE allocation layout is invalid", error))?;
+        let layout =
+            Layout::from_size_align(bytes.len(), align_of::<DEVMODEW>()).map_err(|error| {
+                RuntimeError::with_source(
+                    Kind::ResourceExhausted,
+                    "native DEVMODE allocation layout is invalid",
+                    error,
+                )
+            })?;
         // SAFETY: The nonzero checked layout has the binding's native alignment.
-        let allocation = NonNull::new(unsafe { alloc_zeroed(layout) }).ok_or_else(||
-            RuntimeError::new(Kind::ResourceExhausted, "allocate native DEVMODE buffer"))?;
+        let allocation = NonNull::new(unsafe { alloc_zeroed(layout) }).ok_or_else(|| {
+            RuntimeError::new(Kind::ResourceExhausted, "allocate native DEVMODE buffer")
+        })?;
         // SAFETY: Source and destination are disjoint allocations of equal size.
-        unsafe { ptr::copy_nonoverlapping(bytes.as_ptr(), allocation.as_ptr(), bytes.len()); }
+        unsafe {
+            ptr::copy_nonoverlapping(bytes.as_ptr(), allocation.as_ptr(), bytes.len());
+        }
         Ok(Self { allocation, layout })
     }
 
@@ -572,33 +687,58 @@ pub(super) fn native_devmode(
     value: &Win16HostDevMode,
     codec: GuestTextCodec,
 ) -> Result<NativeDevMode, RuntimeError> {
-    if let Some(extra) = win16_abi::gdi_abi::decode_wow_devmode_extra(
-        value.public_size, &value.driver_extra,
-    ).map_err(|_| RuntimeError::new(Kind::InvalidInput, "malformed WOW DEVMODE trailer"))? {
+    if let Some(extra) =
+        win16_abi::gdi_abi::decode_wow_devmode_extra(value.public_size, &value.driver_extra)
+            .map_err(|_| RuntimeError::new(Kind::InvalidInput, "malformed WOW DEVMODE trailer"))?
+    {
         return super::win16_devmode::restore(value, extra, codec);
     }
-    let name_end = value.device_name.iter().position(|byte| *byte == 0).ok_or_else(||
-        RuntimeError::new(Kind::InvalidInput,
-            "Win16 DEVMODE device name is not terminated within its fixed field"))?;
+    let name_end = value
+        .device_name
+        .iter()
+        .position(|byte| *byte == 0)
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::InvalidInput,
+                "Win16 DEVMODE device name is not terminated within its fixed field",
+            )
+        })?;
     let wide_name = codec.to_wide(&value.device_name[..name_end])?;
     if wide_name.len() >= 32 {
-        return Err(RuntimeError::new(Kind::InvalidInput,
-            "Win16 DEVMODE device name exceeds the native UTF-16 field"));
+        return Err(RuntimeError::new(
+            Kind::InvalidInput,
+            "Win16 DEVMODE device name exceeds the native UTF-16 field",
+        ));
     }
     let native_size = size_of::<DEVMODEW>();
     let Some(native_size_u16) = u16::try_from(native_size).ok() else {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "native DEVMODEW size does not fit its documented WORD field"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "native DEVMODEW size does not fit its documented WORD field",
+        ));
     };
     let Some(extra_size) = u16::try_from(value.driver_extra.len()).ok() else {
-        return Err(RuntimeError::new(Kind::InvalidInput,
-            "Win16 DEVMODE driver-private data exceeds its WORD length"));
+        return Err(RuntimeError::new(
+            Kind::InvalidInput,
+            "Win16 DEVMODE driver-private data exceeds its WORD length",
+        ));
     };
-    let allocation_size = native_size.checked_add(value.driver_extra.len()).ok_or_else(||
-        RuntimeError::new(Kind::ResourceExhausted, "native DEVMODE buffer size overflow"))?;
-    let layout = Layout::from_size_align(allocation_size, align_of::<DEVMODEW>())
-        .map_err(|error| RuntimeError::with_source(Kind::ResourceExhausted,
-            "native DEVMODE allocation layout is invalid", error))?;
+    let allocation_size = native_size
+        .checked_add(value.driver_extra.len())
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "native DEVMODE buffer size overflow",
+            )
+        })?;
+    let layout =
+        Layout::from_size_align(allocation_size, align_of::<DEVMODEW>()).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "native DEVMODE allocation layout is invalid",
+                error,
+            )
+        })?;
     // Keep the guest private tail opaque. The native printer driver decides
     // whether its current implementation can consume these bytes.
     // Public extensions are not appended because their layouts have not been
@@ -606,8 +746,9 @@ pub(super) fn native_devmode(
     // field is decoded with the executable's fixed guest codec; the Windows
     // binding supplies the host structure layout.
     // SAFETY: The checked layout has nonzero size and DEVMODEW alignment.
-    let allocation = NonNull::new(unsafe { alloc_zeroed(layout) }).ok_or_else(||
-        RuntimeError::new(Kind::ResourceExhausted, "allocate native DEVMODE buffer"))?;
+    let allocation = NonNull::new(unsafe { alloc_zeroed(layout) }).ok_or_else(|| {
+        RuntimeError::new(Kind::ResourceExhausted, "allocate native DEVMODE buffer")
+    })?;
     let owned = NativeDevMode { allocation, layout };
 
     let mut native = DEVMODEW::default();
@@ -700,10 +841,7 @@ mod tests {
         // SAFETY: The tail follows the native structure and its two-byte
         // length is the value declared in dmDriverExtra above.
         let tail = unsafe {
-            std::slice::from_raw_parts(
-                native.as_ptr().cast::<u8>().add(size_of::<DEVMODEW>()),
-                2,
-            )
+            std::slice::from_raw_parts(native.as_ptr().cast::<u8>().add(size_of::<DEVMODEW>()), 2)
         };
         assert_eq!(tail, &[0xa5, 0x5a]);
     }

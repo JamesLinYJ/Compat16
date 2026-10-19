@@ -5,7 +5,7 @@ use super::super::super::win16_window_ops::{execute as window_call, flash_window
 use super::*;
 use runtime::{Win16WindowCall, Win16WindowCallResult};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    FlashWindow, IsIconic, SW_SHOWMINNOACTIVE, ShowWindow, WS_OVERLAPPEDWINDOW,
+    FlashWindow, SW_SHOWMINNOACTIVE, WS_OVERLAPPEDWINDOW,
 };
 
 fn flash(state: &SharedWorker, window: Win16WindowTarget, invert: bool) -> bool {
@@ -22,7 +22,7 @@ fn flash_window_uses_native_prior_state_and_win16_iconic_contract() {
         let windows = NativeWindows::new(state);
         let target = windows.window(ptr::null_mut(), WS_OVERLAPPEDWINDOW);
         let mapped = Win16WindowTarget::Mapped(target.0);
-        assert_eq!(unsafe { IsIconic(target.1) }, 0);
+        assert_eq!((crate::windows::win32_safe::is_iconic(target.1)), 0);
         assert_eq!(identity::resolve(state, target.0), Some(target.1));
         // Compare the exact native invocation's prior-caption result. Separate
         // calls can observe different caption states even when invert is FALSE.
@@ -32,11 +32,12 @@ fn flash_window_uses_native_prior_state_and_win16_iconic_contract() {
             state,
             mapped,
             false,
-            |native| unsafe { IsIconic(native) != 0 },
+            |native| crate::windows::win32_safe::is_iconic(native) != 0,
             |native, invert| {
                 calls += 1;
                 assert_eq!(native, target.1);
                 assert!(!invert);
+                // SAFETY: `FlashWindow` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 let previous = unsafe { FlashWindow(native, i32::from(invert)) != 0 };
                 native_previous = Some(previous);
                 previous
@@ -48,13 +49,11 @@ fn flash_window_uses_native_prior_state_and_win16_iconic_contract() {
         );
         assert_eq!(native_previous, Some(returned));
         assert_eq!(identity::resolve(state, target.0), Some(target.1));
-        unsafe {
-            ShowWindow(target.1, SW_SHOWMINNOACTIVE);
-        }
-        assert_ne!(unsafe { IsIconic(target.1) }, 0);
+        crate::windows::win32_safe::show_window(target.1, SW_SHOWMINNOACTIVE);
+        assert_ne!((crate::windows::win32_safe::is_iconic(target.1)), 0);
         for invert in [false, true, false] {
             assert!(flash(state, mapped, invert));
-            assert_ne!(unsafe { IsIconic(target.1) }, 0);
+            assert_ne!((crate::windows::win32_safe::is_iconic(target.1)), 0);
             assert_eq!(identity::resolve(state, target.0), Some(target.1));
         }
     });

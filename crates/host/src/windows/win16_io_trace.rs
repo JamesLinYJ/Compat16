@@ -1,6 +1,12 @@
 //! Explicit Win16 I/O diagnostics with bounded or complete disk transcripts.
 
-use std::{collections::VecDeque, fs::File, io::{self, BufWriter, Write}, path::Path, time::Instant};
+use std::{
+    collections::VecDeque,
+    fs::File,
+    io::{self, BufWriter, Write},
+    path::Path,
+    time::Instant,
+};
 
 const MAX_ROWS: usize = 4096;
 // The startup transcript is bounded separately from recent observations, so
@@ -41,17 +47,32 @@ impl Win16IoTrace {
         })
     }
 
-    pub(super) const fn is_full(&self) -> bool { self.rows >= MAX_ROWS }
-    pub(super) const fn is_complete(&self) -> bool { self.complete }
+    pub(super) const fn is_full(&self) -> bool {
+        self.rows >= MAX_ROWS
+    }
+    pub(super) const fn is_complete(&self) -> bool {
+        self.complete
+    }
 
     pub(super) fn native_pixel(
-        &mut self, dc: u64, x: i32, y: i32, kind: u32,
+        &mut self,
+        dc: u64,
+        x: i32,
+        y: i32,
+        kind: u32,
         bitmap: Option<(i32, i32, i32, u16, u16, bool)>,
     ) -> io::Result<()> {
-        if !self.complete { return Ok(()); }
+        if !self.complete {
+            return Ok(());
+        }
         let elapsed = self.started.elapsed().as_micros();
-        write_complete_row(&mut self.file, self.observed, &format_args!(
-            "native-pixel dc={dc} x={x} y={y} dc-kind={kind} bitmap={bitmap:?} elapsed-us={elapsed}"))?;
+        write_complete_row(
+            &mut self.file,
+            self.observed,
+            &format_args!(
+                "native-pixel dc={dc} x={x} y={y} dc-kind={kind} bitmap={bitmap:?} elapsed-us={elapsed}"
+            ),
+        )?;
         self.observed = self.observed.saturating_add(1);
         Ok(())
     }
@@ -64,8 +85,11 @@ impl Win16IoTrace {
             // guest execution between calls. Keep the event/sequence prefix
             // intact for existing readers and flush the entry before dispatch.
             let elapsed = self.started.elapsed().as_micros();
-            write_complete_row(&mut self.file, self.observed,
-                &format_args!("{event} elapsed-us={elapsed}"))?;
+            write_complete_row(
+                &mut self.file,
+                self.observed,
+                &format_args!("{event} elapsed-us={elapsed}"),
+            )?;
             self.observed = self.observed.saturating_add(1);
             return Ok(());
         }
@@ -73,13 +97,17 @@ impl Win16IoTrace {
         let mut text = event.to_string();
         if text.len() > RECENT_BYTES {
             let mut end = RECENT_BYTES;
-            while !text.is_char_boundary(end) { end -= 1; }
+            while !text.is_char_boundary(end) {
+                end -= 1;
+            }
             text.truncate(end);
         }
         while self.recent.len() >= RECENT_ROWS || self.recent_bytes + text.len() > RECENT_BYTES {
             if let Some((_, removed)) = self.recent.pop_front() {
                 self.recent_bytes -= removed.len();
-            } else { break; }
+            } else {
+                break;
+            }
         }
         self.recent_bytes += text.len();
         self.recent.push_back((self.observed, text));
@@ -90,7 +118,9 @@ impl Win16IoTrace {
             // still alive; a forced stop cannot run Drop to save this tail.
             // At most one message-loop entry and eight validated WM_NULL
             // returns trigger a live flush, each bounded by RECENT_BYTES.
-            if persist_startup { self.flush_recent()?; }
+            if persist_startup {
+                self.flush_recent()?;
+            }
             return Ok(());
         }
         let service_enter = matches!(
@@ -123,7 +153,10 @@ impl Win16IoTrace {
                 }
                 // Do not start a final call when its leave row cannot fit.
                 self.rows = MAX_ROWS;
-                writeln!(self.file, "trace limit reached ({MAX_ROWS} operations; next service boundary omitted to preserve pairing)")?;
+                writeln!(
+                    self.file,
+                    "trace limit reached ({MAX_ROWS} operations; next service boundary omitted to preserve pairing)"
+                )?;
                 self.file.flush()?;
                 return Ok(());
             }
@@ -165,8 +198,13 @@ impl Win16IoTrace {
     }
 
     pub(super) fn flush_recent(&mut self) -> io::Result<()> {
-        if self.recent.is_empty() { return self.file.flush(); }
-        writeln!(self.file, "recent observations (bounded tail; first service may be partial):")?;
+        if self.recent.is_empty() {
+            return self.file.flush();
+        }
+        writeln!(
+            self.file,
+            "recent observations (bounded tail; first service may be partial):"
+        )?;
         while let Some((sequence, text)) = self.recent.front() {
             writeln!(self.file, "@{sequence} {text}")?;
             self.recent_bytes -= text.len();

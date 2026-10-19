@@ -36,6 +36,7 @@ pub(super) fn create_data(
             bytes.as_ptr()
         }
     });
+    // SAFETY: DdeCreateDataHandle reads a caller-owned byte span.
     let native = unsafe {
         DdeCreateDataHandle(
             native_instance,
@@ -65,6 +66,7 @@ pub(super) fn create_data(
     ) {
         Ok(token) => Ok(result(Win16HostDdeValue::Data(token), 0)),
         Err(error) => {
+            // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
             if unsafe { DdeFreeDataHandle(native) } == 0 {
                 return Err(RuntimeError::with_source(
                     Kind::HostFailure,
@@ -111,6 +113,7 @@ pub(super) fn add_data(
     } else {
         bytes.as_ptr()
     };
+    // SAFETY: DdeAddData reads a caller-owned byte span.
     let native = unsafe { DdeAddData(native_data, source, length, offset) };
     if native.is_null() {
         return Ok(result(
@@ -129,6 +132,7 @@ pub(super) fn add_data(
     match interned {
         Ok(token) => Ok(result(Win16HostDdeValue::Data(token), 0)),
         Err(error) => {
+            // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
             if unsafe { DdeFreeDataHandle(native) } == 0 {
                 return Err(RuntimeError::with_source(
                     Kind::HostFailure,
@@ -163,6 +167,7 @@ pub(super) fn copy_transaction_data(
     } else {
         bytes.as_ptr()
     };
+    // SAFETY: DdeCreateDataHandle reads a caller-owned byte span.
     let copy = unsafe {
         DdeCreateDataHandle(
             native_instance,
@@ -177,7 +182,7 @@ pub(super) fn copy_transaction_data(
     if !copy.is_null() {
         return Ok(DataCopyCreation::Created(copy));
     }
-    let error = unsafe { DdeGetLastError(native_instance) } as u16;
+    let error = (crate::windows::win32_safe::dde_last_error(native_instance)) as u16;
     if matches!(
         error,
         compat_services::win16_dde::error::DLL_NOT_INITIALIZED
@@ -195,6 +200,7 @@ pub(super) fn copy_transaction_data(
 /// Copy a DDE object while pairing its DdeAccessData lease before returning.
 pub(super) fn snapshot_transaction_data(source: HDDEDATA) -> Result<Vec<u8>, RuntimeError> {
     let mut length = 0u32;
+    // SAFETY: DdeAccessData locks a data handle this instance owns.
     let pointer = unsafe { DdeAccessData(source, &mut length) };
     if pointer.is_null() {
         return Err(RuntimeError::new(
@@ -205,6 +211,7 @@ pub(super) fn snapshot_transaction_data(source: HDDEDATA) -> Result<Vec<u8>, Run
     let length_usize = match usize::try_from(length) {
         Ok(value) => value,
         Err(_) => {
+            // SAFETY: DdeUnaccessData balances one DdeAccessData.
             if unsafe { DdeUnaccessData(source) } == 0 {
                 return Err(RuntimeError::new(
                     Kind::HostFailure,
@@ -219,6 +226,7 @@ pub(super) fn snapshot_transaction_data(source: HDDEDATA) -> Result<Vec<u8>, Run
     };
     let mut bytes = Vec::new();
     if let Err(error) = bytes.try_reserve_exact(length_usize) {
+        // SAFETY: DdeUnaccessData balances one DdeAccessData.
         let released = unsafe { DdeUnaccessData(source) } != 0;
         if !released {
             return Err(RuntimeError::with_source(
@@ -274,6 +282,7 @@ pub(super) fn get_data(
     };
     let Some(capacity) = capacity_usize else {
         let _ = native_error(native_instance);
+        // SAFETY: DdeGetData writes into a caller-owned buffer.
         let copied = unsafe { DdeGetData(native_data, ptr::null_mut(), 0, offset) };
         let error = if copied == 0 {
             native_error(native_instance)
@@ -304,6 +313,7 @@ pub(super) fn get_data(
         bytes.as_mut_ptr()
     };
     let _ = native_error(native_instance);
+    // SAFETY: DdeGetData writes into a caller-owned buffer.
     let copied = unsafe { DdeGetData(native_data, destination, capacity as u32, offset) };
     bytes.truncate(usize::try_from(copied).unwrap_or(capacity).min(capacity));
     let error = if copied == 0 {
@@ -340,6 +350,7 @@ pub(super) fn access_data(
     };
     context.state.borrow_mut().reserve_access_slot(data)?;
     let mut length = 0u32;
+    // SAFETY: DdeAccessData locks a data handle this instance owns.
     let pointer = unsafe { DdeAccessData(native_data, &mut length) };
     if pointer.is_null() {
         context.state.borrow_mut().cancel_access_slot(data);
@@ -354,6 +365,7 @@ pub(super) fn access_data(
     let length_usize = match usize::try_from(length) {
         Ok(length) => length,
         Err(_) => {
+            // SAFETY: DdeUnaccessData balances one DdeAccessData.
             if unsafe { DdeUnaccessData(native_data) } != 0 {
                 context.state.borrow_mut().cancel_access_slot(data);
                 return Err(RuntimeError::new(
@@ -371,6 +383,7 @@ pub(super) fn access_data(
     };
     let mut bytes = Vec::new();
     if let Err(error) = bytes.try_reserve_exact(length_usize) {
+        // SAFETY: DdeUnaccessData balances one DdeAccessData.
         if unsafe { DdeUnaccessData(native_data) } == 0 {
             context
                 .state
@@ -398,6 +411,7 @@ pub(super) fn access_data(
         .borrow_mut()
         .note_access(data, pointer, length)
     {
+        // SAFETY: DdeUnaccessData balances one DdeAccessData.
         if unsafe { DdeUnaccessData(native_data) } == 0 {
             return Err(RuntimeError::with_source(
                 Kind::HostFailure,
@@ -445,6 +459,7 @@ pub(super) fn unaccess_data(
             ptr::copy_nonoverlapping(bytes.as_ptr(), access_lease.pointer, bytes.len());
         }
     }
+    // SAFETY: DdeUnaccessData balances one DdeAccessData.
     let succeeded = unsafe { DdeUnaccessData(native_data) } != 0;
     let error = if succeeded {
         0
@@ -484,6 +499,7 @@ pub(super) fn free_data(
             compat_services::win16_dde::error::INVALIDPARAMETER,
         ));
     }
+    // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
     let succeeded = unsafe { DdeFreeDataHandle(native_data) } != 0;
     let error = if succeeded {
         0

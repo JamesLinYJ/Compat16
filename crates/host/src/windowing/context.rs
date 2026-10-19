@@ -1,14 +1,14 @@
 use super::events::{decode_character, decode_key, decode_mouse};
 use super::paint::paint_window;
-use std::cell::Cell;
-use std::sync::mpsc::Sender;
-use std::sync::Mutex;
-use windows_sys::Win32::Foundation::{GetLastError, HWND, LPARAM, LRESULT, WPARAM};
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    DefWindowProcW, GetWindowLongPtrW, SetWindowLongPtrW, GWLP_USERDATA, WM_CLOSE, WM_KEYDOWN,
-    WM_CHAR, WM_KEYUP, WM_NCDESTROY, WM_PAINT, WM_SYSKEYDOWN, WM_SYSKEYUP,
-};
 use graphics::{HostEvent, WindowHandle};
+use std::cell::Cell;
+use std::sync::Mutex;
+use std::sync::mpsc::Sender;
+use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+use windows_sys::Win32::UI::WindowsAndMessaging::{
+    DefWindowProcW, GWLP_USERDATA, GetWindowLongPtrW, SetWindowLongPtrW, WM_CHAR, WM_CLOSE,
+    WM_KEYDOWN, WM_KEYUP, WM_NCDESTROY, WM_PAINT, WM_SYSKEYDOWN, WM_SYSKEYUP,
+};
 
 use super::WindowingError;
 
@@ -44,7 +44,7 @@ impl WindowContext {
     }
 
     pub(super) fn report_native_failure(&self, operation: &'static str) {
-        let error = unsafe { GetLastError() };
+        let error = { crate::windows::win32_safe::last_error() };
         let _ = self
             .events
             .send(CallbackRecord::Failure(WindowingError::Native {
@@ -60,12 +60,14 @@ impl WindowContext {
 
 /// Window procedure installed only on the adapter's private registered class.
 /// The panic boundary prevents Rust unwinding from crossing the system ABI.
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 pub(super) unsafe extern "system" fn window_proc(
     hwnd: HWND,
     message: u32,
     w_param: WPARAM,
     l_param: LPARAM,
 ) -> LRESULT {
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| unsafe {
         window_proc_inner(hwnd, message, w_param, l_param)
     })) {
@@ -83,6 +85,7 @@ pub(super) unsafe extern "system" fn window_proc(
     }
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 unsafe fn report_callback_panic(hwnd: HWND) {
     // SAFETY: This callback is installed only for our private class. A nonzero
     // GWLP_USERDATA value was written from a stable WindowContext Box owned
@@ -94,6 +97,7 @@ unsafe fn report_callback_panic(hwnd: HWND) {
     }
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 unsafe fn window_proc_inner(hwnd: HWND, message: u32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     // SAFETY: Only the private class registered by this module stores a pointer
     // in GWLP_USERDATA. The owning Windowing keeps the Box alive until
@@ -111,6 +115,7 @@ unsafe fn window_proc_inner(hwnd: HWND, message: u32, w_param: WPARAM, l_param: 
             context.destroyed.set(true);
             // WM_NCDESTROY is the final lifetime notification. Clear the stored
             // pointer before control returns to Windows; Rust frees it afterward.
+            // SAFETY: SetWindowLongPtrW writes one window-long slot owned by this window.
             unsafe {
                 SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
             }
@@ -121,6 +126,7 @@ unsafe fn window_proc_inner(hwnd: HWND, message: u32, w_param: WPARAM, l_param: 
 
     let Some(context) = context else {
         // Creation failure or an unrelated HWND reached this procedure.
+        // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
         return unsafe { DefWindowProcW(hwnd, message, w_param, l_param) };
     };
 
@@ -147,6 +153,7 @@ unsafe fn window_proc_inner(hwnd: HWND, message: u32, w_param: WPARAM, l_param: 
                 context.emit(event);
             }
             // Keep default system-key behavior, including Alt+F4 -> WM_CLOSE.
+            // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
             unsafe { DefWindowProcW(hwnd, message, w_param, l_param) }
         }
         _ => {
@@ -154,6 +161,7 @@ unsafe fn window_proc_inner(hwnd: HWND, message: u32, w_param: WPARAM, l_param: 
                 context.emit(event);
             }
             // Preserve native activation, focus, and non-modeled input behavior.
+            // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
             unsafe { DefWindowProcW(hwnd, message, w_param, l_param) }
         }
     }

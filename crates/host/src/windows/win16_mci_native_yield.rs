@@ -27,8 +27,10 @@ pub(in crate::windows::win16_mci_owner::worker) fn disable_yield_registration(
     }
     let reserved = state.reserve_yield_source_evidence(owner)?;
     debug_assert!(reserved);
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     let set_result = unsafe { mciSetYieldProc(native, None, 0) };
     let mut data = 0_u32;
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     let installed = unsafe { mciGetYieldProc(native, &mut data) }
         .is_some_and(|proc| proc as usize == mci_yield_proc as *const () as usize);
     if !installed {

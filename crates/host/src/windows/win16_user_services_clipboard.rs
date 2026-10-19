@@ -51,10 +51,14 @@ pub(super) fn execute(
                 },
                 None => std::ptr::null_mut(),
             };
+            // SAFETY: OpenClipboard opens the clipboard for this thread.
             Result::Bool(unsafe { OpenClipboard(owner) != 0 })
         }
+        // SAFETY: CloseClipboard closes the clipboard this thread opened.
         Call::Close => Result::Bool(unsafe { CloseClipboard() != 0 }),
+        // SAFETY: EmptyClipboard clears the clipboard this thread opened.
         Call::Empty => Result::Bool(unsafe { EmptyClipboard() != 0 }),
+        // SAFETY: `GetClipboardOwner` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         Call::Owner => Result::Window(token_for_native(state, unsafe { GetClipboardOwner() })?),
         Call::SetData { format, data } => {
             let accepted = match data {
@@ -71,12 +75,14 @@ pub(super) fn execute(
         }
         Call::GetData { format } => Result::Data(get_global_data(ansi_codec, oem_codec, format)?),
         Call::CountFormats => {
+            // SAFETY: `CountClipboardFormats` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             Result::Count(unsafe { CountClipboardFormats() }.clamp(0, i32::from(u16::MAX)) as u16)
         }
         Call::EnumFormats { previous } => {
             // Enumeration reflects formats actually present on the native
             // clipboard. The CF_TEXT/CF_OEMTEXT compatibility views below
             // are lookup aliases to CF_UNICODETEXT, not synthetic enum items.
+            // SAFETY: EnumClipboardFormats takes a format integer and no pointers.
             Result::Format(unsafe { EnumClipboardFormats(u32::from(previous)) } as u16)
         }
         Call::RegisterFormat { name } => Result::Format(
@@ -101,6 +107,7 @@ pub(super) fn execute(
             })?;
             Result::FormatName { copied, bytes }
         }
+        // SAFETY: IsClipboardFormatAvailable takes a format integer and no pointers.
         Call::IsFormatAvailable { format } => Result::Bool(unsafe {
             IsClipboardFormatAvailable(native_clipboard_format(format)) != 0
         }),
@@ -128,6 +135,7 @@ pub(super) fn execute(
             } else {
                 formats32.as_ptr()
             };
+            // SAFETY: `GetPriorityClipboardFormat` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let native = unsafe { GetPriorityClipboardFormat(pointer, count) };
             let guest = if native > 0 {
                 formats
@@ -150,13 +158,16 @@ pub(super) fn execute(
                 },
                 None => std::ptr::null_mut(),
             };
+            // SAFETY: `SetClipboardViewer` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             Result::Window(token_for_native(state, unsafe {
                 SetClipboardViewer(viewer)
             })?)
         }
         Call::GetViewer => {
+            // SAFETY: `GetClipboardViewer` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             Result::Window(token_for_native(state, unsafe { GetClipboardViewer() })?)
         }
+        // SAFETY: `GetOpenClipboardWindow` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         Call::GetOpenClipboardWindow => Result::Window(token_for_native(state, unsafe {
             GetOpenClipboardWindow()
         })?),
@@ -171,9 +182,11 @@ pub(super) fn execute(
                 },
                 None => std::ptr::null_mut(),
             };
+            // SAFETY: `ChangeClipboardChain` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             Result::Bool(unsafe { ChangeClipboardChain(remove, next) != 0 })
         }
     };
+    // SAFETY: `GetClipboardSequenceNumber` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let sequence = unsafe { GetClipboardSequenceNumber() };
     Ok(Result::Sequenced {
         sequence,
@@ -206,28 +219,35 @@ fn set_global_data(
         bytes
     };
     let size = bytes.len().max(1);
+    // SAFETY: GlobalAlloc returns a new HGLOBAL or null. The pointer is not a guest address.
     let memory = unsafe { GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size) };
     if memory.is_null() {
         return Ok(false);
     }
+    // SAFETY: GlobalLock locks an HGLOBAL this owner holds and returns a pointer valid until GlobalUnlock.
     let destination = unsafe { GlobalLock(memory) };
     if destination.is_null() {
+        // SAFETY: GlobalFree releases an HGLOBAL this owner holds.
         unsafe {
             GlobalFree(memory);
         }
         return Ok(false);
     }
     if !bytes.is_empty() {
+        // SAFETY: The source and destination are non-overlapping, and both spans were checked to cover the copied length.
         unsafe {
             std::ptr::copy_nonoverlapping(bytes.as_ptr(), destination.cast::<u8>(), bytes.len());
         }
     }
+    // SAFETY: GlobalUnlock balances one GlobalLock on this HGLOBAL.
     unsafe {
         GlobalUnlock(memory);
     }
     let transferred =
+        // SAFETY: SetClipboardData transfers an HGLOBAL this owner allocated.
         unsafe { SetClipboardData(native_format, memory.cast::<core::ffi::c_void>()) };
     if transferred.is_null() {
+        // SAFETY: GlobalFree releases an HGLOBAL this owner holds.
         unsafe {
             GlobalFree(memory);
         }
@@ -244,10 +264,12 @@ fn get_global_data(
     oem_codec: super::super::guest_text::GuestTextCodec,
     format: u16,
 ) -> Result<Option<Data>, RuntimeError> {
+    // SAFETY: GetClipboardData returns a handle valid until the clipboard is closed.
     let native = unsafe { GetClipboardData(native_clipboard_format(format)) };
     if native.is_null() {
         return Ok(None);
     }
+    // SAFETY: `GlobalSize` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let size = unsafe { GlobalSize(native.cast()) };
     if size > MAX_CLIPBOARD_BYTES {
         return Ok(None);
@@ -262,12 +284,14 @@ fn get_global_data(
         }
         return Ok(Some(Data::GlobalMemory(Vec::new())));
     }
+    // SAFETY: GlobalLock locks an HGLOBAL this owner holds and returns a pointer valid until GlobalUnlock.
     let source = unsafe { GlobalLock(native.cast()) };
     if source.is_null() {
         return Ok(None);
     }
     let mut bytes = Vec::new();
     if let Err(error) = bytes.try_reserve_exact(size) {
+        // SAFETY: GlobalUnlock balances one GlobalLock on this HGLOBAL.
         unsafe {
             GlobalUnlock(native.cast());
         }
@@ -278,9 +302,11 @@ fn get_global_data(
         ));
     }
     bytes.resize(size, 0);
+    // SAFETY: The source and destination are non-overlapping, and both spans were checked to cover the copied length.
     unsafe {
         std::ptr::copy_nonoverlapping(source.cast::<u8>(), bytes.as_mut_ptr(), size);
     }
+    // SAFETY: GlobalUnlock balances one GlobalLock on this HGLOBAL.
     unsafe {
         GlobalUnlock(native.cast());
     }

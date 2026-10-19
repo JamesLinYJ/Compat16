@@ -110,6 +110,7 @@ pub(super) fn disable_yield_sources_for_close(
             continue;
         }
         let mut native_data = 0_u32;
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         match unsafe { mciGetYieldProc(*native_id, &mut native_data) } {
             Some(proc) if proc as usize == mci_yield_proc as *const () as usize => {
                 return Err(RuntimeError::new(
@@ -199,6 +200,7 @@ pub(super) fn query_device_type(native: u32) -> Option<u32> {
         dwItem: MCI_GETDEVCAPS_DEVICE_TYPE as u32,
         ..Default::default()
     };
+    // SAFETY: mciSendCommandW receives an integer device id. A null parameter pointer carries no record; a non-null record stays live for the call.
     let result = unsafe {
         mciSendCommandW(
             native,

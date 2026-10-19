@@ -14,11 +14,10 @@ use std::ptr;
 use runtime::Win16ComHostFormatEtc;
 use runtime::{Win16ComHostCallbackFailure, Win16ComHostCallbackFailureKind};
 use windows_core::{IUnknown, Interface, PWSTR};
-use windows_sys::Win32::Foundation::{GetLastError, SetLastError};
 use windows_sys::Win32::System::Com::CreateBindCtx;
 
 use super::com_bindings::generated::{
-    CoTaskMemFree, GlobalLock, GlobalSize, GlobalUnlock, HGLOBAL, IMoniker, FORMATETC, STGMEDIUM,
+    CoTaskMemFree, FORMATETC, GlobalLock, GlobalSize, GlobalUnlock, HGLOBAL, IMoniker, STGMEDIUM,
 };
 use super::win16_com_interface_calls::valid_target_device;
 
@@ -31,10 +30,12 @@ const TYMED_FILE_VALUE: u32 = 2;
 
 /// Balance a successful GlobalLock. Zero is also the successful final unlock;
 /// only a nonzero last-error value distinguishes a failure (Win32 GlobalUnlock).
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn unlock_medium(handle: HGLOBAL) -> io::Result<()> {
-    unsafe { SetLastError(0) };
+    (crate::windows::win32_safe::set_last_error(0));
+    // SAFETY: GlobalUnlock balances one GlobalLock on this HGLOBAL.
     if !unsafe { GlobalUnlock(handle) }.as_bool() {
-        let error = unsafe { GetLastError() };
+        let error = crate::windows::win32_safe::last_error();
         if error != 0 {
             return Err(io::Error::from_raw_os_error(error as i32));
         }
@@ -42,6 +43,7 @@ pub(super) unsafe fn unlock_medium(handle: HGLOBAL) -> io::Result<()> {
     Ok(())
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn copy_callback_medium(
     medium: &STGMEDIUM,
 ) -> Result<Option<runtime::Win16ComHostStorageMedium>, String> {
@@ -52,17 +54,23 @@ pub(super) unsafe fn copy_callback_medium(
             let handle = unsafe { medium.Anonymous.hGlobal };
             let size = unsafe { GlobalSize(handle) };
             if handle.0.is_null() || size > MAX_CALLBACK_MEDIUM_BYTES {
-                return Err("IAdviseSink HGLOBAL payload is invalid or exceeds the host limit".into());
+                return Err(
+                    "IAdviseSink HGLOBAL payload is invalid or exceeds the host limit".into(),
+                );
             }
             if size == 0 {
-                return Ok(Some(runtime::Win16ComHostStorageMedium::HGlobal(Vec::new())));
+                return Ok(Some(
+                    runtime::Win16ComHostStorageMedium::HGlobal(Vec::new()),
+                ));
             }
             // SAFETY: lock only long enough to make a bounded owned copy.
             let locked = unsafe { GlobalLock(handle) };
             if locked.is_null() {
                 return Err("GlobalLock failed for IAdviseSink HGLOBAL payload".into());
             }
+            // SAFETY: The pointer and length were checked against the owning allocation, and the bytes stay live for this copy.
             let payload = unsafe { std::slice::from_raw_parts(locked.cast::<u8>(), size) }.to_vec();
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { unlock_medium(handle) }
                 .map_err(|error| format!("unlock IAdviseSink HGLOBAL payload: {error}"))?;
             Ok(Some(runtime::Win16ComHostStorageMedium::HGlobal(payload)))
@@ -73,6 +81,7 @@ pub(super) unsafe fn copy_callback_medium(
             if path.is_null() {
                 return Err("IAdviseSink TYMED_FILE path is null".into());
             }
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { read_file_medium_contents(path) }
                 .map(runtime::Win16ComHostStorageMedium::FileContents)
                 .map(Some)
@@ -84,12 +93,17 @@ pub(super) unsafe fn copy_callback_medium(
 
 /// Read a TYMED_FILE while its containing STGMEDIUM still owns the file.
 /// The caller releases the complete medium only after this bounded copy ends.
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn read_file_medium_contents(path: *const u16) -> io::Result<Vec<u8>> {
     if path.is_null() {
-        return Err(io::Error::new(io::ErrorKind::InvalidInput, "TYMED_FILE path is null"));
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "TYMED_FILE path is null",
+        ));
     }
     let mut path_units = Vec::new();
     for index in 0..MAX_CALLBACK_FILE_UNITS {
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let unit = unsafe { *path.add(index) };
         if unit == 0 {
             let mut file = File::open(OsString::from_wide(&path_units))?;
@@ -113,6 +127,7 @@ pub(super) unsafe fn read_file_medium_contents(path: *const u16) -> io::Result<V
     ))
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn project_format(
     format: FORMATETC,
 ) -> Result<Win16ComHostFormatEtc, &'static str> {
@@ -125,6 +140,7 @@ pub(super) unsafe fn project_format(
         if !(12..=MAX_TARGET_DEVICE_BYTES).contains(&size) {
             return Err("FORMATETC target device size is outside the accepted bound");
         }
+        // SAFETY: The pointer and length were checked against the owning allocation, and the bytes stay live for this copy.
         let bytes = unsafe { std::slice::from_raw_parts(format.ptd.cast::<u8>(), size) }.to_vec();
         if !valid_target_device(&bytes) {
             return Err("IAdviseSink::OnDataChange received a malformed target device");
@@ -140,6 +156,7 @@ pub(super) unsafe fn project_format(
     })
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn copy_moniker_display_name(
     moniker: &IMoniker,
 ) -> Result<Vec<u16>, Win16ComHostCallbackFailure> {
@@ -155,7 +172,10 @@ pub(super) unsafe fn copy_moniker_display_name(
         }
         return Err(callback_failure(
             Win16ComHostCallbackFailureKind::CallbackTransport,
-            format!("CreateBindCtx failed with HRESULT 0x{:08X}", bind_result as u32),
+            format!(
+                "CreateBindCtx failed with HRESULT 0x{:08X}",
+                bind_result as u32
+            ),
         ));
     }
     if bind_context.is_null() {
@@ -170,6 +190,7 @@ pub(super) unsafe fn copy_moniker_display_name(
     let mut output = PWSTR::null();
     // Use the generated IMoniker vtable for exact SDK dispatch. The left
     // moniker is null; GetDisplayName still receives a valid IBindCtx.
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     let result = unsafe {
         (moniker.vtable().GetDisplayName)(
             moniker.as_raw(),
@@ -181,11 +202,15 @@ pub(super) unsafe fn copy_moniker_display_name(
     drop(bind_context);
     if result.0 < 0 {
         if !output.0.is_null() {
+            // SAFETY: CoTaskMemFree releases a COM allocation this owner holds, or null.
             unsafe { CoTaskMemFree(output.0.cast()) };
         }
         return Err(callback_failure(
             Win16ComHostCallbackFailureKind::CallbackImplementation,
-            format!("IMoniker::GetDisplayName failed with HRESULT 0x{:08X}", result.0 as u32),
+            format!(
+                "IMoniker::GetDisplayName failed with HRESULT 0x{:08X}",
+                result.0 as u32
+            ),
         ));
     }
     if output.0.is_null() {
@@ -196,13 +221,16 @@ pub(super) unsafe fn copy_moniker_display_name(
     }
     let mut name = Vec::new();
     for index in 0..MAX_MONIKER_NAME_UNITS {
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let unit = unsafe { *output.0.add(index) };
         if unit == 0 {
+            // SAFETY: CoTaskMemFree releases a COM allocation this owner holds, or null.
             unsafe { CoTaskMemFree(output.0.cast()) };
             return Ok(name);
         }
         name.push(unit);
     }
+    // SAFETY: CoTaskMemFree releases a COM allocation this owner holds, or null.
     unsafe { CoTaskMemFree(output.0.cast()) };
     Err(callback_failure(
         Win16ComHostCallbackFailureKind::InvalidNativeCallbackArguments,
@@ -214,5 +242,8 @@ fn callback_failure(
     kind: Win16ComHostCallbackFailureKind,
     context: impl Into<String>,
 ) -> Win16ComHostCallbackFailure {
-    Win16ComHostCallbackFailure { kind, context: context.into() }
+    Win16ComHostCallbackFailure {
+        kind,
+        context: context.into(),
+    }
 }

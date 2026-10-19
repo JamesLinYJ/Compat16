@@ -9,7 +9,6 @@ use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16NativeModalCancellation, Win16WindowResult,
 };
 use windows_sys::Win32::Foundation::LPARAM;
-use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{PostThreadMessageW, WM_APP};
 
 #[path = "win16_modal_hooks.rs"]
@@ -157,7 +156,7 @@ impl ModalWorkerControl {
             let _ =
                 self.wake_posted
                     .compare_exchange(request, 0, Ordering::AcqRel, Ordering::Acquire);
-            let error = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+            let error = crate::windows::win32_safe::last_error();
             let failure = RuntimeError::with_source(
                 Kind::HostFailure,
                 "post terminal cancellation to the Win16 USER owner thread",
@@ -238,7 +237,7 @@ impl ModalWorkerControl {
     }
 
     fn owner_thread(&self) -> bool {
-        (unsafe { GetCurrentThreadId() }) == self.thread_id.load(Ordering::Acquire)
+        (crate::windows::win32_safe::current_thread_id()) == self.thread_id.load(Ordering::Acquire)
     }
 }
 
@@ -268,8 +267,7 @@ pub(super) struct MessageBoxCall<T> {
     pub(super) value: T,
     pub(super) disposition: ModalDisposition,
     pub(super) cleanup_error: Option<RuntimeError>,
-    pub(super) retired_guest_work:
-        Vec<runtime::Win16NativeModalGuestWorkRetirement>,
+    pub(super) retired_guest_work: Vec<runtime::Win16NativeModalGuestWorkRetirement>,
 }
 
 #[derive(Debug)]

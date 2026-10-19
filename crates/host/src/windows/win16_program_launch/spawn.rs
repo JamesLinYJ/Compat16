@@ -4,13 +4,11 @@ use super::*;
 use std::io::{Read, Seek, Write};
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
-use windows_sys::Win32::Foundation::{
-    DuplicateHandle, GetLastError, HANDLE, WAIT_FAILED, WAIT_OBJECT_0,
-};
+use windows_sys::Win32::Foundation::{DuplicateHandle, HANDLE, WAIT_FAILED, WAIT_OBJECT_0};
 use windows_sys::Win32::Storage::FileSystem::{FILE_GENERIC_READ, FILE_GENERIC_WRITE};
 use windows_sys::Win32::System::Pipes::{CreatePipe, PeekNamedPipe};
 use windows_sys::Win32::System::Threading::{
-    CreateProcessW, DeleteProcThreadAttributeList, EXTENDED_STARTUPINFO_PRESENT, GetCurrentProcess,
+    CreateProcessW, DeleteProcThreadAttributeList, EXTENDED_STARTUPINFO_PRESENT,
     InitializeProcThreadAttributeList, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, PROCESS_INFORMATION,
     STARTF_USESHOWWINDOW, STARTUPINFOEXW, TerminateProcess, UpdateProcThreadAttribute,
     WaitForSingleObject,
@@ -80,6 +78,7 @@ pub(in crate::windows) fn launch(
     let mut process = PROCESS_INFORMATION::default();
     // Only the three read/read/write capabilities are inherited. Guest file,
     // USER, printer and synchronization handles never cross this boundary.
+    // SAFETY: CreateProcessW reads caller-owned strings and writes caller-owned startup and process records.
     let created = unsafe {
         CreateProcessW(
             application.as_ptr(),
@@ -95,13 +94,15 @@ pub(in crate::windows) fn launch(
         )
     };
     if created == 0 {
-        let error = unsafe { GetLastError() };
+        let error = crate::windows::win32_safe::last_error();
         return Ok(Err(runtime::Win16HostWinExecFailure {
             code: native_error_code(error),
             native_error: Some(error),
         }));
     }
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     let owned = unsafe { OwnedHandle::from_raw_handle(process.hProcess) };
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     let thread = unsafe { OwnedHandle::from_raw_handle(process.hThread) };
     drop(thread);
     let mut process = StartupProcess(Some(owned));
@@ -144,6 +145,7 @@ fn wait_for_load(
             return Ok(Ok(()));
         }
         let mut available = 0;
+        // SAFETY: `PeekNamedPipe` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe {
             PeekNamedPipe(
                 reply.as_raw_handle(),
@@ -174,6 +176,7 @@ fn wait_for_load(
             }
             continue;
         }
+        // SAFETY: WaitForSingleObject waits on a handle this process owns.
         let wait = unsafe { WaitForSingleObject(process.as_raw_handle(), 10) };
         if wait == WAIT_FAILED {
             return Err(failure(
@@ -185,6 +188,7 @@ fn wait_for_load(
             // Check the pipe once more: a short-lived successfully loaded
             // guest can exit immediately after publishing its receipt.
             let mut available = 0;
+            // SAFETY: `PeekNamedPipe` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             if unsafe {
                 PeekNamedPipe(
                     reply.as_raw_handle(),
@@ -210,9 +214,11 @@ impl Drop for StartupProcess {
         if let Some(process) = &self.0 {
             // A failed/canceled startup is our newly created child, still
             // unpublished to the guest. A successful child is taken above.
+            // SAFETY: TerminateProcess signals a process handle this owner holds.
             unsafe {
                 TerminateProcess(process.as_raw_handle(), 125);
             }
+            // SAFETY: WaitForSingleObject waits on a handle this process owns.
             unsafe {
                 WaitForSingleObject(process.as_raw_handle(), u32::MAX);
             }
@@ -222,12 +228,14 @@ impl Drop for StartupProcess {
 
 fn response_pipe() -> Result<(File, OwnedHandle), RuntimeError> {
     let (mut read, mut write) = (std::ptr::null_mut(), std::ptr::null_mut());
+    // SAFETY: `CreatePipe` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     if unsafe { CreatePipe(&mut read, &mut write, std::ptr::null(), 0) } == 0 {
         return Err(failure(
             "create private child receipt pipe",
             std::io::Error::last_os_error(),
         ));
     }
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     Ok(unsafe {
         (
             File::from_raw_handle(read),
@@ -237,14 +245,16 @@ fn response_pipe() -> Result<(File, OwnedHandle), RuntimeError> {
 }
 
 fn inherit(source: HANDLE, access: u32) -> Result<OwnedHandle, RuntimeError> {
-    let process = unsafe { GetCurrentProcess() };
+    let process = crate::windows::win32_safe::current_process();
     let mut target = std::ptr::null_mut();
+    // SAFETY: DuplicateHandle writes a caller-owned handle slot.
     if unsafe { DuplicateHandle(process, source, process, &mut target, access, 1, 0) } == 0 {
         return Err(failure(
             "create child handle capability",
             std::io::Error::last_os_error(),
         ));
     }
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     Ok(unsafe { OwnedHandle::from_raw_handle(target) })
 }
 
@@ -257,6 +267,7 @@ impl<'a> Attributes<'a> {
 
     fn new(handles: &'a [HANDLE]) -> Result<Self, RuntimeError> {
         let mut bytes = 0;
+        // SAFETY: `InitializeProcThreadAttributeList` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe {
             InitializeProcThreadAttributeList(std::ptr::null_mut(), 1, 0, &mut bytes);
         }
@@ -267,6 +278,7 @@ impl<'a> Attributes<'a> {
             ));
         }
         let mut storage = vec![0_usize; bytes.div_ceil(std::mem::size_of::<usize>())];
+        // SAFETY: `InitializeProcThreadAttributeList` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe {
             InitializeProcThreadAttributeList(storage.as_mut_ptr().cast(), 1, 0, &mut bytes)
         } == 0
@@ -277,6 +289,7 @@ impl<'a> Attributes<'a> {
             ));
         }
         let mut attributes = Self(storage, std::marker::PhantomData);
+        // SAFETY: `UpdateProcThreadAttribute` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe {
             UpdateProcThreadAttribute(
                 attributes.pointer(),
@@ -300,6 +313,7 @@ impl<'a> Attributes<'a> {
 
 impl Drop for Attributes<'_> {
     fn drop(&mut self) {
+        // SAFETY: `DeleteProcThreadAttributeList` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { DeleteProcThreadAttributeList(self.pointer()) };
     }
 }

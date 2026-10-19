@@ -12,6 +12,7 @@ pub(super) fn abandon_until_terminal(owner: &mut NativeNcbOwner) {
         super::cancel_native(owner);
     }
     loop {
+        // SAFETY: WaitForSingleObject waits on a handle this process owns.
         match unsafe { WaitForSingleObject(owner.event, u32::MAX) } {
             WAIT_OBJECT_0 => {
                 owner.terminal = true;
@@ -27,10 +28,9 @@ pub(super) fn abandon_until_terminal(owner: &mut NativeNcbOwner) {
                     "infinite NetBIOS event wait timed out without native terminal proof",
                 ),
             ),
-            WAIT_FAILED => park_after_failed_wait(
-                owner,
-                last_error("wait for abandoned NetBIOS native owner"),
-            ),
+            WAIT_FAILED => {
+                park_after_failed_wait(owner, last_error("wait for abandoned NetBIOS native owner"))
+            }
             _ => park_after_failed_wait(
                 owner,
                 RuntimeError::new(
@@ -53,9 +53,13 @@ pub(super) fn close_after_terminal(owner: &mut NativeNcbOwner) {
     if owner.event.is_null() {
         return;
     }
-    if unsafe { CloseHandle(owner.event) } != 0 {
+    if (crate::windows::win32_safe::close_handle(owner.event)) != 0 {
         owner.event = std::ptr::null_mut();
-        owner.wake_status.lock().unwrap_or_else(PoisonError::into_inner).event_closed = true;
+        owner
+            .wake_status
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .event_closed = true;
     } else {
         park_after_close_failure(
             owner,
@@ -81,8 +85,11 @@ impl Drop for NativeNcbOwner {
             self.terminal = true;
             super::mark_native_terminal(&self.wake_status);
         }
-        let event_closed = self.wake_status.lock()
-            .unwrap_or_else(PoisonError::into_inner).event_closed;
+        let event_closed = self
+            .wake_status
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .event_closed;
         if self.terminal && self.start_reported && !event_closed {
             note_no_consumer(
                 &self.wake_status,
@@ -98,6 +105,7 @@ impl Drop for NativeNcbOwner {
                 super::cancel_native(self);
             }
             loop {
+                // SAFETY: WaitForSingleObject waits on a handle this process owns.
                 match unsafe { WaitForSingleObject(self.event, u32::MAX) } {
                     WAIT_OBJECT_0 => {
                         self.terminal = true;
@@ -127,9 +135,12 @@ impl Drop for NativeNcbOwner {
             }
         }
         if !self.event.is_null() && self.terminal {
-            if unsafe { CloseHandle(self.event) } != 0 {
+            if (crate::windows::win32_safe::close_handle(self.event)) != 0 {
                 self.event = std::ptr::null_mut();
-                self.wake_status.lock().unwrap_or_else(PoisonError::into_inner).event_closed = true;
+                self.wake_status
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .event_closed = true;
             } else {
                 park_after_close_failure(
                     self,
@@ -142,10 +153,7 @@ impl Drop for NativeNcbOwner {
 
 fn note_no_consumer(status: &SharedWakeStatus, message: &'static str) {
     let mut status = status.lock().unwrap_or_else(PoisonError::into_inner);
-    super::super::mark_no_consumer(
-        &mut status,
-        RuntimeError::new(Kind::HostFailure, message),
-    );
+    super::super::mark_no_consumer(&mut status, RuntimeError::new(Kind::HostFailure, message));
 }
 
 fn park_after_failed_wait(owner: &mut NativeNcbOwner, error: RuntimeError) -> ! {
@@ -166,8 +174,14 @@ fn park_after_failed_wait(owner: &mut NativeNcbOwner, error: RuntimeError) -> ! 
 fn park_after_close_failure(owner: &mut NativeNcbOwner, error: RuntimeError) -> ! {
     let error = std::sync::Arc::new(error);
     {
-        let mut status = owner.wake_status.lock().unwrap_or_else(PoisonError::into_inner);
-        status.failure_diagnostics.native_event_close.record(std::sync::Arc::clone(&error));
+        let mut status = owner
+            .wake_status
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        status
+            .failure_diagnostics
+            .native_event_close
+            .record(std::sync::Arc::clone(&error));
         if status.teardown_error.is_none() {
             status.teardown_error = Some(std::sync::Arc::clone(&error));
         }

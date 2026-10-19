@@ -52,13 +52,19 @@ pub(super) fn write_private_profile_section(
 }
 
 pub(super) fn private_section_wide(
-    codec: GuestTextCodec, section: Option<&[u8]>, filename: &[u16], capacity: u16,
+    codec: GuestTextCodec,
+    section: Option<&[u8]>,
+    filename: &[u16],
+    capacity: u16,
 ) -> Result<ProfileSectionOutput, RuntimeError> {
     read_section(codec, section, None, true, capacity, Some(filename))
 }
 
 pub(super) fn private_write_wide(
-    codec: GuestTextCodec, section: Option<&[u8]>, entries: Option<&[u8]>, filename: &[u16],
+    codec: GuestTextCodec,
+    section: Option<&[u8]>,
+    entries: Option<&[u8]>,
+    filename: &[u16],
 ) -> Result<bool, RuntimeError> {
     write_section(codec, section, entries, None, true, Some(filename))
 }
@@ -84,8 +90,10 @@ fn read_section(
         }
         Err(error) => return Err(error),
     };
-    let filename = match native_filename.map(|path| Ok(Some(path.to_vec())))
-        .unwrap_or_else(|| optional_wide_z(codec, filename)) {
+    let filename = match native_filename
+        .map(|path| Ok(Some(path.to_vec())))
+        .unwrap_or_else(|| optional_wide_z(codec, filename))
+    {
         Ok(value) => value,
         Err(error) if guest_text_failure(&error) => {
             return Ok(ProfileSectionOutput { buffer, copied: 0 });
@@ -282,8 +290,10 @@ fn write_section(
         Err(error) if guest_text_failure(&error) => return Ok(false),
         Err(error) => return Err(error),
     };
-    let filename = match native_filename.map(|path| Ok(Some(path.to_vec())))
-        .unwrap_or_else(|| optional_wide_z(codec, filename)) {
+    let filename = match native_filename
+        .map(|path| Ok(Some(path.to_vec())))
+        .unwrap_or_else(|| optional_wide_z(codec, filename))
+    {
         Ok(value) => value,
         Err(error) if guest_text_failure(&error) => return Ok(false),
         Err(error) => return Err(error),

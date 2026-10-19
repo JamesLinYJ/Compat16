@@ -9,8 +9,7 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{HWND, LPARAM};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CREATESTRUCTW, GWL_EXSTYLE, GetParent, GetWindowLongPtrW, IsWindow, WM_CREATE, WM_NCCREATE,
-    WS_EX_MDICHILD,
+    CREATESTRUCTW, GWL_EXSTYLE, GetWindowLongPtrW, WM_CREATE, WM_NCCREATE, WS_EX_MDICHILD,
 };
 
 use super::super::win16_window_worker::{NativeWindowIdentity, WorkerState, remove_window_maps};
@@ -178,12 +177,13 @@ pub(super) fn suppresses_unproven_mdi_candidate(
     hwnd: HWND,
 ) -> bool {
     if hwnd.is_null()
-        || unsafe { IsWindow(hwnd) } == 0
+        ||  { crate::windows::win32_safe::is_window(hwnd) } == 0
+        // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
         || unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32 } & WS_EX_MDICHILD == 0
     {
         return false;
     }
-    let client = unsafe { GetParent(hwnd) };
+    let client = crate::windows::win32_safe::get_parent(hwnd);
     let Some((process_id, thread_id)) =
         super::super::win16_window_identity::native_owner_identity(hwnd)
     else {
@@ -332,14 +332,7 @@ pub(super) fn apply_live_mdi_create_fields(
     }
     let callback_mdi_struct = callback_parameter as usize;
 
-    let (
-        operation,
-        live_hwnd,
-        native_mdi_struct,
-        native_class,
-        title,
-        updated_title,
-    ) = {
+    let (operation, live_hwnd, native_mdi_struct, native_class, title, updated_title) = {
         let borrowed = state.try_borrow().map_err(|_| {
             super::mdi_route_error(
                 Kind::InternalInvariant,
@@ -622,8 +615,8 @@ pub(super) fn validate_pending_operation(
                     })
                 })
         });
-    let frame_is_exact = unsafe { IsWindow(pending.frame) } != 0
-        && unsafe { GetParent(pending.client) } == pending.frame
+    let frame_is_exact = (crate::windows::win32_safe::is_window(pending.frame)) != 0
+        && (crate::windows::win32_safe::get_parent(pending.client)) == pending.frame
         && borrowed.windows.get(&pending.frame_window) == Some(&pending.frame)
         && super::super::win16_window_identity::native_owner_identity(pending.frame)
             == Some((pending.owner_process, pending.owner_thread))
@@ -639,9 +632,9 @@ pub(super) fn validate_pending_operation(
     if !client_is_exact
         || !frame_is_exact
         || !borrowed
-        .active_operations
-        .iter()
-        .any(|active| active.id == pending.operation)
+            .active_operations
+            .iter()
+            .any(|active| active.id == pending.operation)
         || !borrowed.pending_mdi_creations.iter().any(|current| {
             current.native_mdi_struct == pending.native_mdi_struct
                 && current.creation == pending.creation
@@ -675,8 +668,9 @@ pub(super) fn validate_native_system_result(
     })?;
 
     if hwnd.is_null()
-        || unsafe { IsWindow(hwnd) } == 0
-        || unsafe { GetParent(hwnd) } != pending.client
+        ||  { crate::windows::win32_safe::is_window(hwnd) } == 0
+        ||  { crate::windows::win32_safe::get_parent(hwnd) } != pending.client
+        // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
         || unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32 } & WS_EX_MDICHILD == 0
         || !native_class_matches(hwnd, &pending.native_class_name)
     {

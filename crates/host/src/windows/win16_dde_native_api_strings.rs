@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::windows::guest_text::GuestTextCodec;
-use windows_sys::Win32::Foundation::{ERROR_NO_UNICODE_TRANSLATION, GetLastError};
+use windows_sys::Win32::Foundation::ERROR_NO_UNICODE_TRANSLATION;
 
 pub(super) fn create_string(
     context: &WorkerContext,
@@ -21,6 +21,7 @@ pub(super) fn create_string(
         }
         Err(error) => return Err(error),
     };
+    // SAFETY: DdeCreateStringHandleW reads a caller-owned string.
     let native = unsafe { DdeCreateStringHandleW(native_instance, value.as_ptr(), CP_WINUNICODE) };
     if native.is_null() {
         return Ok(result(
@@ -32,6 +33,7 @@ pub(super) fn create_string(
     match interned {
         Ok(Some(token)) => {
             if let Err(error) = context.state.borrow_mut().retain_string(token) {
+                // SAFETY: DdeFreeStringHandle releases a string handle this instance created.
                 unsafe {
                     DdeFreeStringHandle(native_instance, native);
                 }
@@ -48,6 +50,7 @@ pub(super) fn create_string(
             native_error(native_instance),
         )),
         Err(error) => {
+            // SAFETY: DdeFreeStringHandle releases a string handle this instance created.
             unsafe {
                 DdeFreeStringHandle(native_instance, native);
             }
@@ -81,6 +84,7 @@ pub(super) fn free_string(
             compat_services::win16_dde::error::INVALIDPARAMETER,
         ));
     }
+    // SAFETY: DdeFreeStringHandle releases a string handle this instance created.
     let succeeded = unsafe { DdeFreeStringHandle(native_instance, native_string) } != 0;
     let error = if succeeded {
         0
@@ -123,6 +127,7 @@ pub(super) fn query_string(
         None => None,
     };
     let _ = native_error(native_instance);
+    // SAFETY: DdeQueryStringW writes into a caller-owned buffer.
     let required = unsafe {
         DdeQueryStringW(
             native_instance,
@@ -168,6 +173,7 @@ pub(super) fn query_string(
             error,
         )
     })?;
+    // SAFETY: DdeQueryStringW writes into a caller-owned buffer.
     let copied = unsafe {
         DdeQueryStringW(
             native_instance,
@@ -336,7 +342,7 @@ fn validate_guest_code_page(code_page: i16) -> Result<(), RuntimeError> {
 fn is_guest_parameter_error(error: &RuntimeError) -> bool {
     error.kind() == Kind::InvalidInput
         || (error.kind() == Kind::HostFailure
-            && unsafe { GetLastError() } == ERROR_NO_UNICODE_TRANSLATION)
+            && (crate::windows::win32_safe::last_error()) == ERROR_NO_UNICODE_TRANSLATION)
 }
 
 fn empty_query_bytes(capacity: Option<u32>) -> Result<Vec<u8>, RuntimeError> {
@@ -377,6 +383,7 @@ pub(super) fn keep_string(
             state.native_string(instance, string)?,
         )
     };
+    // SAFETY: `DdeKeepStringHandle` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let succeeded = unsafe { DdeKeepStringHandle(native_instance, native_string) } != 0;
     let error = if succeeded {
         0
@@ -385,6 +392,7 @@ pub(super) fn keep_string(
     };
     if succeeded {
         if let Err(error) = context.state.borrow_mut().retain_string(string) {
+            // SAFETY: DdeFreeStringHandle releases a string handle this instance created.
             unsafe {
                 DdeFreeStringHandle(native_instance, native_string);
             }

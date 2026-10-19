@@ -7,14 +7,21 @@ struct TestKey(Vec<u16>);
 impl TestKey {
     fn assert_absent(&self) {
         let mut opened = std::ptr::null_mut();
-        let status = unsafe { RegOpenKeyW(HKEY_CURRENT_USER, self.0.as_ptr(), &mut opened) };
+        // SAFETY: RegOpenKeyW reads a caller-owned subkey name and writes a caller-owned HKEY.
+        let status =
+            // SAFETY: this HKEY is owned by the guard and is closed only here.
+            unsafe { RegOpenKeyW(HKEY_CURRENT_USER, self.0.as_ptr(), &mut opened) };
         if status == 0 {
+            // SAFETY: this HKEY is owned by the guard and is closed only here.
             unsafe { RegCloseKey(opened) };
         }
         assert_eq!(status, 2, "unique fixture key must be absent");
     }
     fn cleanup(&self) {
-        let status = unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.0.as_ptr()) };
+        // SAFETY: RegDeleteTreeW reads a caller-owned subkey name, or null for the key itself.
+        let status =
+            // SAFETY: `RegDeleteTreeW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.0.as_ptr()) };
         assert!(status == 0 || status == 2, "fixture key cleanup: {status}");
         self.assert_absent();
     }
@@ -22,6 +29,7 @@ impl TestKey {
 impl Drop for TestKey {
     fn drop(&mut self) {
         // Only this fixture's unique direct child of HKCU can be removed.
+        // SAFETY: RegDeleteTreeW reads a caller-owned subkey name, or null for the key itself.
         unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.0.as_ptr()) };
     }
 }
@@ -35,8 +43,12 @@ fn verify(engine: &str, make_image: fn(&str) -> Vec<u8>) {
     // Check before installing the cleanup guard; never delete a pre-existing key.
     let wide: Vec<_> = path.encode_utf16().chain([0]).collect();
     let mut opened = std::ptr::null_mut();
-    let status = unsafe { RegOpenKeyW(HKEY_CURRENT_USER, wide.as_ptr(), &mut opened) };
+    // SAFETY: RegOpenKeyW reads a caller-owned subkey name and writes a caller-owned HKEY.
+    let status =
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
+        unsafe { RegOpenKeyW(HKEY_CURRENT_USER, wide.as_ptr(), &mut opened) };
     if status == 0 {
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
         unsafe { RegCloseKey(opened) };
     }
     assert_eq!(status, 2, "fixture key already exists or cannot be checked");

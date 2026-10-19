@@ -6,15 +6,11 @@ use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16GdiDeviceOperation as Operation,
     Win16GdiDeviceResult as ResultValue, Win16HostDibSection,
 };
-use windows_sys::Win32::Graphics::Gdi::{
-    GetDC, GetDeviceCaps, ReleaseDC, BITSPIXEL, PLANES,
-};
+use windows_sys::Win32::Graphics::Gdi::{BITSPIXEL, GetDC, GetDeviceCaps, PLANES};
 
 use super::{
-    win16_gdi::Win16Dcs,
-    win16_gdi_objects::Win16Objects,
-    win16_wing_dib_header::BitmapInfoHeaderWire,
-    win16_wing_dib_storage::Win16DibSectionOwner,
+    win16_gdi::Win16Dcs, win16_gdi_objects::Win16Objects,
+    win16_wing_dib_header::BitmapInfoHeaderWire, win16_wing_dib_storage::Win16DibSectionOwner,
 };
 
 /// Handles only the two DIB-section operations; the existing GDI adapter
@@ -25,14 +21,18 @@ pub(super) fn execute(
     operation: &Operation,
 ) -> Result<Option<ResultValue>, RuntimeError> {
     match operation {
-        Operation::RecommendWinGDibFormat => {
-            Ok(Some(ResultValue::DibHeader(recommend_format()?)))
-        }
-        Operation::CreateWinGDibSection { dc, info, image_bytes } => {
-            Ok(Some(ResultValue::DibSection(create_section(
-                dcs, objects, *dc, info, *image_bytes,
-            )?)))
-        }
+        Operation::RecommendWinGDibFormat => Ok(Some(ResultValue::DibHeader(recommend_format()?))),
+        Operation::CreateWinGDibSection {
+            dc,
+            info,
+            image_bytes,
+        } => Ok(Some(ResultValue::DibSection(create_section(
+            dcs,
+            objects,
+            *dc,
+            info,
+            *image_bytes,
+        )?))),
         _ => Ok(None),
     }
 }
@@ -44,13 +44,15 @@ fn create_section(
     info: &[u8],
     image_bytes: u32,
 ) -> Result<Option<Win16HostDibSection>, RuntimeError> {
-    let Some(dc_use) = dcs.lease_dc(dc)? else { return Ok(None); };
-    let Some(created) = Win16DibSectionOwner::create(
-        dc_use.native(), info, image_bytes,
-    )? else { return Ok(None); };
-    let Some(object) = objects.adopt_dib_section(
-        created.bitmap, std::sync::Arc::clone(&created.owner),
-    )? else {
+    let Some(dc_use) = dcs.lease_dc(dc)? else {
+        return Ok(None);
+    };
+    let Some(created) = Win16DibSectionOwner::create(dc_use.native(), info, image_bytes)? else {
+        return Ok(None);
+    };
+    let Some(object) =
+        objects.adopt_dib_section(created.bitmap, std::sync::Arc::clone(&created.owner))?
+    else {
         return Err(RuntimeError::new(
             Kind::InternalInvariant,
             "created WinG DIB section returned no registered bitmap identity",
@@ -67,22 +69,31 @@ fn create_section(
 fn recommend_format() -> Result<Option<[u8; 40]>, RuntimeError> {
     // Use an actually supported display bit depth, not a historical-speed
     // guess. A positive one-scanline BI_RGB DIB is a host-supported suggestion.
+    // SAFETY: GetDC returns a device context for the HWND or the screen when the HWND is null.
     let dc = unsafe { GetDC(ptr::null_mut()) };
-    if dc.is_null() { return Ok(None); }
+    if dc.is_null() {
+        return Ok(None);
+    }
+    // SAFETY: GetDeviceCaps reads one integer capability of a live DC.
     let planes = unsafe { GetDeviceCaps(dc, PLANES as i32) };
+    // SAFETY: GetDeviceCaps reads one integer capability of a live DC.
     let bits_per_plane = unsafe { GetDeviceCaps(dc, BITSPIXEL as i32) };
-    let released = unsafe { ReleaseDC(ptr::null_mut(), dc) } != 0;
+    let released = (crate::windows::win32_safe::release_dc(ptr::null_mut(), dc)) != 0;
     if !released {
         return Err(RuntimeError::new(
             Kind::HostFailure,
             "ReleaseDC failed after WinG display-format query",
         ));
     }
-    let Some(bits) = planes.checked_mul(bits_per_plane)
+    let Some(bits) = planes
+        .checked_mul(bits_per_plane)
         .and_then(|bits| u16::try_from(bits).ok())
         .filter(|bits| matches!(*bits, 1 | 4 | 8 | 16 | 24 | 32))
-    else { return Ok(None); };
+    else {
+        return Ok(None);
+    };
 
-    Ok(Some(BitmapInfoHeaderWire::new(40, 1, 1, 1, bits, 0, 0, 0, 0, 0, 0)
-        .into_bytes()))
+    Ok(Some(
+        BitmapInfoHeaderWire::new(40, 1, 1, 1, bits, 0, 0, 0, 0, 0, 0).into_bytes(),
+    ))
 }

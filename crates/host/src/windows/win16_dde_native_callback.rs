@@ -17,6 +17,7 @@ use projection::{CallbackProjection, callback_call};
 mod slots;
 pub(super) use slots::CALLBACKS;
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 pub(super) unsafe extern "system" fn callback_trampoline<const SLOT: u16>(
     transaction_type: u32,
     format: u32,
@@ -136,13 +137,7 @@ fn run_callback(
     let mut completion =
         CallbackFrameCompletion::new(context, &call, delivery.frame, delivery.parent);
     let response = match worker::wait_for_callback_reply(context, delivery.reply) {
-        Ok(Some(reply)) => callback_reply(
-            context,
-            &call,
-            delivery.frame,
-            delivery.parent,
-            reply,
-        ),
+        Ok(Some(reply)) => callback_reply(context, &call, delivery.frame, delivery.parent, reply),
         Ok(None) => Err(RuntimeError::new(
             Kind::HostFailure,
             "native DDE callback was cancelled before its guest reply",
@@ -188,9 +183,7 @@ impl fmt::Display for DdeNativeApiFailure {
         write!(
             formatter,
             "{} failed for DDEML instance {:#010x} (DMLERR={:#06x})",
-            self.operation,
-            self.native_instance,
-            self.dde_error,
+            self.operation, self.native_instance, self.dde_error,
         )
     }
 }
@@ -377,6 +370,7 @@ fn callback_reply(
                     )
                 })?;
             worker::reserve_callback_reply_cleanup_slot(context)?;
+            // SAFETY: DdeCreateDataHandle reads a caller-owned byte span.
             let native = unsafe {
                 DdeCreateDataHandle(
                     native_instance,
@@ -406,13 +400,14 @@ fn callback_reply(
                 source_record.origin,
                 DataOrigin::Created {
                     retain_after_transfer: false
-                }
+                } // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
             ) && unsafe { DdeFreeDataHandle(source_record.native) } == 0
             {
                 let source_failure = callback_native_api_failure(
                     "DdeFreeDataHandle for WILDCONNECT source",
                     native_instance,
                 );
+                // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
                 if unsafe { DdeFreeDataHandle(native) } == 0 {
                     let reply_error = Arc::new(callback_native_api_failure(
                         "DdeFreeDataHandle for untransferred WILDCONNECT reply",

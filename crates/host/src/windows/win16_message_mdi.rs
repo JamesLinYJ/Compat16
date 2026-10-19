@@ -14,13 +14,13 @@ use runtime::{
     Win16HostMdiOutput, Win16HostMdiQueuedMessage, Win16HostMenu, Win16HostWindow,
     Win16MdiEndpoint,
 };
-use windows_sys::core::BOOL;
 use windows_sys::Win32::Foundation::{HWND, LPARAM, WPARAM};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     MDICREATESTRUCTW, WM_MDIACTIVATE, WM_MDICASCADE, WM_MDICREATE, WM_MDIDESTROY, WM_MDIGETACTIVE,
     WM_MDIICONARRANGE, WM_MDIMAXIMIZE, WM_MDINEXT, WM_MDIREFRESHMENU, WM_MDIRESTORE, WM_MDISETMENU,
     WM_MDITILE,
 };
+use windows_sys::core::BOOL;
 
 use super::super::win16_mdi_pending_creation::PendingMdiCreationGuard;
 use super::super::win16_window_worker::WorkerState;
@@ -42,8 +42,7 @@ const WM32_MDIREFRESHMENU: u32 = 0x0234;
 #[path = "win16_mdi_destroy.rs"]
 mod destroy;
 pub(in crate::windows) use destroy::{
-    dispatch_queued_message, finish_window_retirements,
-    snapshot_window_retirements,
+    dispatch_queued_message, finish_window_retirements, snapshot_window_retirements,
 };
 
 /// Keep all storage referenced by a native MDICREATESTRUCTW alive through the
@@ -167,7 +166,7 @@ fn window_token_for_native(
         let identity = state.windows_by_native.get(&(hwnd as usize))?;
         (state.windows.get(&identity.window).copied() == Some(hwnd)).then_some(identity.window)?
     };
-    if unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(hwnd) } == 0 {
+    if (crate::windows::win32_safe::is_window(hwnd)) == 0 {
         return None;
     }
     Some(Some(token))
@@ -262,8 +261,7 @@ pub(super) fn invoke(
             invoke_handle_message(state, invocation, hwnd, WM_MDIMAXIMIZE, child, 0)
         }
         Win16HostMdiMessage::Tile { flags } => {
-            let result =
-                invoke_native_message(invocation, hwnd, WM_MDITILE, usize::from(flags), 0);
+            let result = invoke_native_message(invocation, hwnd, WM_MDITILE, usize::from(flags), 0);
             Ok(Some(scalar_result(result)))
         }
         Win16HostMdiMessage::Cascade { flags } => {
@@ -381,11 +379,12 @@ pub(super) fn with_menu_call_owners<T>(
             error,
         )
     })?;
-    roots.extend([existing, requested_frame, requested_window].into_iter().flatten());
-    let _menu_owners = super::super::win16_menu_attachment::retain_menu_call_owners(
-        state,
-        &roots,
-    )?;
+    roots.extend(
+        [existing, requested_frame, requested_window]
+            .into_iter()
+            .flatten(),
+    );
+    let _menu_owners = super::super::win16_menu_attachment::retain_menu_call_owners(state, &roots)?;
     let result = call();
     super::super::win16_menu_attachment::reconcile_window_menu_ledger(state);
     result
@@ -427,13 +426,9 @@ fn invoke_create(
             ));
         }
     };
-    let frame = unsafe {
-        windows_sys::Win32::UI::WindowsAndMessaging::GetParent(client)
-    };
+    let frame = crate::windows::win32_safe::get_parent(client);
     let invocation_targets_exact_frame = match invocation {
-        MessageInvocation::FrameDefault { mdi_client } => {
-            mdi_client == client && hwnd == frame
-        }
+        MessageInvocation::FrameDefault { mdi_client } => mdi_client == client && hwnd == frame,
         MessageInvocation::Send => hwnd == client,
         _ => false,
     };
@@ -443,13 +438,8 @@ fn invoke_create(
             "Win16 WM_MDICREATE did not target its exact registered MDI frame/client pair",
         ));
     }
-    let pending = PendingMdiCreationGuard::register(
-        state,
-        client,
-        frame,
-        &storage.structure,
-        &data,
-    )?;
+    let pending =
+        PendingMdiCreationGuard::register(state, client, frame, &storage.structure, &data)?;
     let result = invoke_native_message(
         invocation,
         hwnd,

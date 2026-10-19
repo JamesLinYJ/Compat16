@@ -12,11 +12,11 @@ use runtime::{
     Win16HostFindFirst, Win16HostSearchId, Win16PathNamespace,
 };
 use windows_sys::Win32::{
-    Foundation::{GetLastError, HANDLE, INVALID_HANDLE_VALUE},
+    Foundation::{HANDLE, INVALID_HANDLE_VALUE},
     Storage::FileSystem::{
-        CreateDirectoryW, DeleteFileW, FILE_ATTRIBUTE_DIRECTORY, FindClose, FindFirstFileW,
-        FindNextFileW, GetDiskFreeSpaceW, GetFileAttributesW, INVALID_FILE_ATTRIBUTES,
-        RemoveDirectoryW, SetFileAttributesW, WIN32_FIND_DATAW,
+        CreateDirectoryW, DeleteFileW, FILE_ATTRIBUTE_DIRECTORY, FindFirstFileW, FindNextFileW,
+        GetDiskFreeSpaceW, GetFileAttributesW, INVALID_FILE_ATTRIBUTES, RemoveDirectoryW,
+        SetFileAttributesW, WIN32_FIND_DATAW,
     },
 };
 
@@ -40,9 +40,7 @@ impl Drop for Win16HostFileSystemState {
         for search in self.searches.values() {
             // SAFETY: every retained handle was returned by FindFirstFileW
             // and remains privately owned by this registry.
-            unsafe {
-                FindClose(search.handle);
-            }
+            crate::windows::win32_safe::find_close(search.handle);
         }
     }
 }
@@ -228,7 +226,7 @@ fn find_first(
         // An entry that cannot be represented in the task's current ANSI code
         // page is not truncated into a different guest filename.
         // SAFETY: this is the fresh FindFirst handle from the call above.
-        if unsafe { FindClose(handle) } == 0 {
+        if (crate::windows::win32_safe::find_close(handle)) == 0 {
             return Err(last_error(
                 "FindClose after unrepresentable Win16 FindFirst result",
             ));
@@ -240,7 +238,7 @@ fn find_first(
         Err(primary) => {
             // SAFETY: no token was published; this is still the new native
             // search handle returned above.
-            if unsafe { FindClose(handle) } == 0 {
+            if (crate::windows::win32_safe::find_close(handle)) == 0 {
                 return Err(primary.with_cleanup(
                     "close native search after registry failure",
                     last_error("FindClose after Win16 FindFirst registry failure"),
@@ -283,7 +281,7 @@ fn close_search(
     };
     // SAFETY: the native handle is owned by this exact owner/token registry
     // entry. Remove it only after the native close succeeds.
-    if unsafe { FindClose(handle) } == 0 {
+    if (crate::windows::win32_safe::find_close(handle)) == 0 {
         return false;
     }
     state.searches.remove(&search);
@@ -301,7 +299,7 @@ fn retire_task(state: &mut Win16HostFileSystemState, owner: OwnerId) -> Result<(
             continue;
         };
         // SAFETY: this handle is retained for the matching owner and ID.
-        if unsafe { FindClose(search.handle) } == 0 {
+        if (crate::windows::win32_safe::find_close(search.handle)) == 0 {
             return Err(last_error("FindClose while retiring Win16 file searches"));
         }
         state.searches.remove(&id);
@@ -340,8 +338,10 @@ fn short_path(
         return Ok(ResultValue::ShortPath(None));
     };
     if text.is_empty() || text.contains('\0') {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "short Win16 path text is empty or contains NUL"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "short Win16 path text is empty or contains NUL",
+        ));
     }
     let codec = super::guest_text::GuestTextCodec::new(ansi_code_page)?;
     let wide: Vec<u16> = text.encode_utf16().collect();
@@ -496,6 +496,7 @@ fn wide_z(path: &std::ffi::OsStr) -> Vec<u16> {
 }
 
 fn last_error(operation: &'static str) -> RuntimeError {
-    let error = std::io::Error::from_raw_os_error(unsafe { GetLastError() } as i32);
+    let error =
+        std::io::Error::from_raw_os_error((crate::windows::win32_safe::last_error()) as i32);
     RuntimeError::with_source(Kind::HostFailure, operation, error)
 }

@@ -2,15 +2,15 @@
 
 use super::guest_text::GuestTextCodec;
 use runtime::{DiagnosticKind as Kind, RuntimeError};
+use runtime::{Win16HostKeyboardCall, Win16HostKeyboardResult};
 use windows_sys::Win32::Globalization::IsDBCSLeadByteEx;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-    GetKeyNameTextW, GetKeyboardLayout, GetKeyboardType, MapVirtualKeyExW, MapVirtualKeyW,
-    ToUnicodeEx, VkKeyScanExW, VkKeyScanW, MAPVK_VK_TO_CHAR, MAPVK_VK_TO_VSC,
+    GetKeyNameTextW, GetKeyboardLayout, GetKeyboardType, MAPVK_VK_TO_CHAR, MAPVK_VK_TO_VSC,
+    MapVirtualKeyExW, MapVirtualKeyW, ToUnicodeEx, VkKeyScanExW, VkKeyScanW,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    SystemParametersInfoW, SPI_GETKEYBOARDSPEED, SPI_SETKEYBOARDSPEED,
+    SPI_GETKEYBOARDSPEED, SPI_SETKEYBOARDSPEED, SystemParametersInfoW,
 };
-use runtime::{Win16HostKeyboardCall, Win16HostKeyboardResult};
 
 /// Execute a copied KEYBOARD-family request through the native Windows
 /// code-page and keyboard APIs. `guest_oem_page` is the configured page for
@@ -21,31 +21,41 @@ pub(super) fn execute(
     guest_oem_page: u32,
 ) -> Result<Win16HostKeyboardResult, RuntimeError> {
     let result = match call {
-        Win16HostKeyboardCall::AnsiToOem { source } =>
-            Win16HostKeyboardResult::Converted(ansi_to_oem(ansi_codec, &source, guest_oem_page)?),
-        Win16HostKeyboardCall::OemToAnsi { source } =>
-            Win16HostKeyboardResult::Converted(oem_to_ansi(ansi_codec, &source, guest_oem_page)?),
-        Win16HostKeyboardCall::IsDbcsLeadByte { code_page, value } =>
-            Win16HostKeyboardResult::IsDbcsLeadByte(is_dbcs_lead_byte(code_page, value)),
-        Win16HostKeyboardCall::OemKeyScan { character } =>
-            Win16HostKeyboardResult::OemKeyScan(oem_key_scan(
-                GuestTextCodec::new(guest_oem_page)?,
-                character,
-            )?),
-        Win16HostKeyboardCall::VirtualKeyScan { ansi_character } =>
-            Win16HostKeyboardResult::VirtualKeyScan(virtual_key_scan(ansi_codec, ansi_character)?),
-        Win16HostKeyboardCall::KeyboardType { selector } =>
-            Win16HostKeyboardResult::KeyboardType(keyboard_type(selector)),
-        Win16HostKeyboardCall::MapVirtualKey { code, map_type } =>
-            Win16HostKeyboardResult::MapVirtualKey(map_virtual_key(ansi_codec, code, map_type)?),
-        Win16HostKeyboardCall::GetCodePage =>
-            Win16HostKeyboardResult::CodePage(guest_oem_page),
-        Win16HostKeyboardCall::ToAscii { virtual_key, scan_code, key_state, flags } => {
-            let (count, characters) = to_ascii(ansi_codec, virtual_key, scan_code, &key_state, flags)?;
+        Win16HostKeyboardCall::AnsiToOem { source } => {
+            Win16HostKeyboardResult::Converted(ansi_to_oem(ansi_codec, &source, guest_oem_page)?)
+        }
+        Win16HostKeyboardCall::OemToAnsi { source } => {
+            Win16HostKeyboardResult::Converted(oem_to_ansi(ansi_codec, &source, guest_oem_page)?)
+        }
+        Win16HostKeyboardCall::IsDbcsLeadByte { code_page, value } => {
+            Win16HostKeyboardResult::IsDbcsLeadByte(is_dbcs_lead_byte(code_page, value))
+        }
+        Win16HostKeyboardCall::OemKeyScan { character } => Win16HostKeyboardResult::OemKeyScan(
+            oem_key_scan(GuestTextCodec::new(guest_oem_page)?, character)?,
+        ),
+        Win16HostKeyboardCall::VirtualKeyScan { ansi_character } => {
+            Win16HostKeyboardResult::VirtualKeyScan(virtual_key_scan(ansi_codec, ansi_character)?)
+        }
+        Win16HostKeyboardCall::KeyboardType { selector } => {
+            Win16HostKeyboardResult::KeyboardType(keyboard_type(selector))
+        }
+        Win16HostKeyboardCall::MapVirtualKey { code, map_type } => {
+            Win16HostKeyboardResult::MapVirtualKey(map_virtual_key(ansi_codec, code, map_type)?)
+        }
+        Win16HostKeyboardCall::GetCodePage => Win16HostKeyboardResult::CodePage(guest_oem_page),
+        Win16HostKeyboardCall::ToAscii {
+            virtual_key,
+            scan_code,
+            key_state,
+            flags,
+        } => {
+            let (count, characters) =
+                to_ascii(ansi_codec, virtual_key, scan_code, &key_state, flags)?;
             Win16HostKeyboardResult::ToAscii { count, characters }
         }
-        Win16HostKeyboardCall::SetSpeed { speed } =>
-            Win16HostKeyboardResult::SetSpeed(set_keyboard_speed(speed)),
+        Win16HostKeyboardCall::SetSpeed { speed } => {
+            Win16HostKeyboardResult::SetSpeed(set_keyboard_speed(speed))
+        }
         Win16HostKeyboardCall::KeyNameText { parameter, output } => {
             let (output, written) = key_name_text(ansi_codec, parameter, output)?;
             Win16HostKeyboardResult::KeyNameText { output, written }
@@ -64,7 +74,11 @@ fn set_keyboard_speed(speed: u16) -> u16 {
         // settings through Windows; read availability without invoking the
         // setter, which could overwrite a concurrent user setting.
         // https://www.pcjs.org/documents/books/mspl13/win/w3ddkadp/
-        return if query_keyboard_speed().is_some() { 0 } else { u16::MAX };
+        return if query_keyboard_speed().is_some() {
+            0
+        } else {
+            u16::MAX
+        };
     }
 
     let requested = u32::from(speed & 0x001f);
@@ -76,28 +90,20 @@ fn set_keyboard_speed(speed: u16) -> u16 {
 
 fn set_native_keyboard_speed(speed: u32) -> bool {
     // SAFETY: This action consumes a scalar rate; no caller pointer is used.
-    unsafe {
-        SystemParametersInfoW(
-            SPI_SETKEYBOARDSPEED,
-            speed,
-            std::ptr::null_mut(),
-            0,
-        ) != 0
-    }
+    unsafe { SystemParametersInfoW(SPI_SETKEYBOARDSPEED, speed, std::ptr::null_mut(), 0) != 0 }
 }
 
 fn query_keyboard_speed() -> Option<u16> {
     let mut speed = 0_u32;
     // SAFETY: SPI_GETKEYBOARDSPEED writes one UINT into this live local.
     let succeeded = unsafe {
-        SystemParametersInfoW(
-            SPI_GETKEYBOARDSPEED,
-            0,
-            (&mut speed as *mut u32).cast(),
-            0,
-        )
+        SystemParametersInfoW(SPI_GETKEYBOARDSPEED, 0, (&mut speed as *mut u32).cast(), 0)
     } != 0;
-    if succeeded { u16::try_from(speed).ok() } else { None }
+    if succeeded {
+        u16::try_from(speed).ok()
+    } else {
+        None
+    }
 }
 
 pub(super) fn oem_to_ansi(
@@ -139,10 +145,7 @@ pub(super) fn is_dbcs_lead_byte(guest_code_page: u32, value: u8) -> bool {
 /// fixed guest OEM codec, then use the W layout APIs so a host code page cannot
 /// alter the guest character. Reject a DBCS lead byte because this entrypoint
 /// describes one OEMASCII character, not a multibyte string.
-pub(super) fn oem_key_scan(
-    codec: GuestTextCodec,
-    value: u16,
-) -> Result<u32, RuntimeError> {
+pub(super) fn oem_key_scan(codec: GuestTextCodec, value: u16) -> Result<u32, RuntimeError> {
     let Ok(byte) = u8::try_from(value) else {
         return Ok(u32::MAX);
     };
@@ -150,6 +153,7 @@ pub(super) fn oem_key_scan(
         return Ok(u32::MAX);
     };
 
+    // SAFETY: `GetKeyboardLayout` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let layout = unsafe { GetKeyboardLayout(0) };
     // SAFETY: The call reads one decoded UTF-16 character and the current
     // thread's layout handle, matching the layout used by the follow-up W map.
@@ -169,13 +173,8 @@ pub(super) fn oem_key_scan(
     // high WORD exactly as the keyboard layout's shift-state byte.
     // SAFETY: Both arguments are scalar values and `layout` is a native HKL
     // returned by GetKeyboardLayout on this same worker thread.
-    let scan_code = unsafe {
-        MapVirtualKeyExW(
-            u32::from(key_and_shift as u8),
-            MAPVK_VK_TO_VSC,
-            layout,
-        )
-    };
+    let scan_code =
+        unsafe { MapVirtualKeyExW(u32::from(key_and_shift as u8), MAPVK_VK_TO_VSC, layout) };
     if scan_code == 0 {
         return Ok(u32::MAX);
     }
@@ -209,7 +208,9 @@ fn decode_guest_keyboard_byte(
 
 /// Return the virtual key and modifier state for one guest ANSI character.
 pub(super) fn virtual_key_scan(codec: GuestTextCodec, value: u8) -> Result<i16, RuntimeError> {
-    let Some(character) = decode_guest_keyboard_byte(codec, value)? else { return Ok(-1); };
+    let Some(character) = decode_guest_keyboard_byte(codec, value)? else {
+        return Ok(-1);
+    };
     // SAFETY: The API reads only the decoded Unicode scalar.
     Ok(unsafe { VkKeyScanW(character) })
 }
@@ -240,12 +241,17 @@ fn encode_map_virtual_key_character(
 ) -> Result<u32, RuntimeError> {
     let encoded = codec.from_wide(&[mapped as u16])?.bytes;
     if encoded.len() > std::mem::size_of::<u32>() {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "guest code-page character does not fit MapVirtualKey's DWORD result"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "guest code-page character does not fit MapVirtualKey's DWORD result",
+        ));
     }
-    let guest_character = encoded.iter().enumerate().fold(0_u32, |value, (index, byte)| {
-        value | (u32::from(*byte) << (index * 8))
-    });
+    let guest_character = encoded
+        .iter()
+        .enumerate()
+        .fold(0_u32, |value, (index, byte)| {
+            value | (u32::from(*byte) << (index * 8))
+        });
     // The W and A APIs both reserve the top bit to mark dead keys.
     Ok((mapped & 0xffff_0000) | guest_character)
 }
@@ -344,18 +350,31 @@ pub(super) fn key_name_text(
     parameter: i32,
     mut output: Vec<u8>,
 ) -> Result<(Vec<u8>, usize), RuntimeError> {
-    let capacity = i32::try_from(output.len()).map_err(|_| RuntimeError::new(
-        Kind::InvalidInput, "Win16 key-name buffer exceeds the Windows API limit"))?;
-    if capacity == 0 { return Ok((output, 0)); }
+    let capacity = i32::try_from(output.len()).map_err(|_| {
+        RuntimeError::new(
+            Kind::InvalidInput,
+            "Win16 key-name buffer exceeds the Windows API limit",
+        )
+    })?;
+    if capacity == 0 {
+        return Ok((output, 0));
+    }
     let mut wide = Vec::new();
-    wide.try_reserve_exact(output.len()).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "allocate Win16 key-name UTF-16 buffer", error))?;
+    wide.try_reserve_exact(output.len()).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "allocate Win16 key-name UTF-16 buffer",
+            error,
+        )
+    })?;
     wide.resize(output.len(), 0);
     // SAFETY: The owned vector contains the complete WCHAR capacity.
     let written = unsafe { GetKeyNameTextW(parameter, wide.as_mut_ptr(), capacity) };
     if written < 0 || written as usize >= wide.len() {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "Windows GetKeyNameTextW returned an invalid output length"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "Windows GetKeyNameTextW returned an invalid output length",
+        ));
     }
     let guest_written = encode_key_name(codec, &wide[..written as usize], &mut output)?;
     Ok((output, guest_written))
@@ -407,19 +426,24 @@ mod tests {
     fn key_name_capacity_truncates_only_at_guest_character_boundaries() {
         let codec = cp936();
         let mut output = [0xcc; 3];
-        assert_eq!(encode_key_name(codec, &[0x4e2d, b'A' as u16], &mut output).unwrap(), 2);
+        assert_eq!(
+            encode_key_name(codec, &[0x4e2d, b'A' as u16], &mut output).unwrap(),
+            2
+        );
         assert_eq!(output, [0xd6, 0xd0, 0]);
 
         let mut too_small = [0xcc; 2];
-        assert_eq!(encode_key_name(codec, &[0x4e2d], &mut too_small).unwrap(), 0);
+        assert_eq!(
+            encode_key_name(codec, &[0x4e2d], &mut too_small).unwrap(),
+            0
+        );
         assert_eq!(too_small, [0, 0xcc]);
     }
 
     #[test]
     fn unicode_keyboard_translation_keeps_guest_byte_count_and_dead_key_sign() {
         let codec = cp936();
-        let (count, bytes) =
-            encode_to_ascii_result(codec, &[0x4e2d, b'A' as u16], false).unwrap();
+        let (count, bytes) = encode_to_ascii_result(codec, &[0x4e2d, b'A' as u16], false).unwrap();
         assert_eq!(count, 2);
         assert_eq!(bytes, [0x00d6, 0x00d0]);
 

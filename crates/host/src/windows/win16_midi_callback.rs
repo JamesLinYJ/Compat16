@@ -1,14 +1,14 @@
 //! Native CALLBACK_FUNCTION trampoline. It records, signals and returns.
 
 use std::collections::VecDeque;
-use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::ops::Deref;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::Duration;
 
-use runtime::{DiagnosticKind as Kind, RuntimeError};
 use super::super::multimedia_wake::MultimediaWakeSender;
+use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::Media::Multimedia::HDRVR;
 
 const CALLBACK_QUEUE_LIMIT: usize = 4096;
@@ -36,7 +36,9 @@ struct CallbackInvocation(Arc<CallbackContext>);
 impl Deref for CallbackInvocation {
     type Target = CallbackContext;
 
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl Drop for CallbackInvocation {
@@ -60,21 +62,32 @@ pub(super) struct QueueWake {
 
 impl QueueWake {
     pub(super) fn new() -> Self {
-        Self { pending: Mutex::new(false), changed: Condvar::new() }
+        Self {
+            pending: Mutex::new(false),
+            changed: Condvar::new(),
+        }
     }
 
     fn signal(&self) {
-        *self.pending.lock().unwrap_or_else(|poison| poison.into_inner()) = true;
+        *self
+            .pending
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner()) = true;
         self.changed.notify_all();
     }
 
     pub(super) fn wait(&self, timeout: Duration) -> bool {
-        let mut pending = self.pending.lock().unwrap_or_else(|poison| poison.into_inner());
+        let mut pending = self
+            .pending
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
         if *pending {
             *pending = false;
             return true;
         }
-        let (mut pending, result) = self.changed.wait_timeout(pending, timeout)
+        let (mut pending, result) = self
+            .changed
+            .wait_timeout(pending, timeout)
             .unwrap_or_else(|poison| poison.into_inner());
         let signalled = *pending;
         *pending = false;
@@ -99,11 +112,18 @@ impl CallbackContext {
     }
 
     pub(super) fn peek(&self) -> Option<NativeMidiCallback> {
-        self.queue.lock().unwrap_or_else(|poison| poison.into_inner()).front().copied()
+        self.queue
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .front()
+            .copied()
     }
 
     pub(super) fn contains_header(&self, native_header: usize) -> bool {
-        self.queue.lock().unwrap_or_else(|poison| poison.into_inner()).iter()
+        self.queue
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .iter()
             .any(|event| event.parameter1 == native_header)
     }
 
@@ -112,10 +132,15 @@ impl CallbackContext {
         sequence: u64,
         _disposition: runtime::Win16HostMidiNotificationDisposition,
     ) -> Result<(), RuntimeError> {
-        let mut queue = self.queue.lock().unwrap_or_else(|poison| poison.into_inner());
+        let mut queue = self
+            .queue
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
         if queue.front().is_none_or(|event| event.sequence != sequence) {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "native MIDI callback ACK did not match the owned queue front"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "native MIDI callback ACK did not match the owned queue front",
+            ));
         }
         queue.pop_front();
         Ok(())
@@ -126,16 +151,21 @@ impl CallbackContext {
     }
 
     pub(super) fn take_failure(&self) -> Option<RuntimeError> {
-        self.failure.lock().unwrap_or_else(|poison| poison.into_inner()).take()
+        self.failure
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .take()
     }
 
     pub(super) fn latch(&self, error: RuntimeError) {
-        let mut failure = self.failure.lock().unwrap_or_else(|poison| poison.into_inner());
+        let mut failure = self
+            .failure
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
         *failure = Some(match failure.take() {
-            Some(primary) => primary.with_cleanup(
-                "native MIDI callback publication and wake failed",
-                error,
-            ),
+            Some(primary) => {
+                primary.with_cleanup("native MIDI callback publication and wake failed", error)
+            }
             None => error,
         });
         self.queue_wake.signal();
@@ -143,13 +173,23 @@ impl CallbackContext {
 
     fn publish(&self, event: NativeMidiCallback) -> Result<(), RuntimeError> {
         {
-            let mut queue = self.queue.lock().unwrap_or_else(|poison| poison.into_inner());
+            let mut queue = self
+                .queue
+                .lock()
+                .unwrap_or_else(|poison| poison.into_inner());
             if queue.len() >= CALLBACK_QUEUE_LIMIT {
-                return Err(RuntimeError::new(Kind::ResourceExhausted,
-                    "native MIDI callback queue exceeded its owned bound"));
+                return Err(RuntimeError::new(
+                    Kind::ResourceExhausted,
+                    "native MIDI callback queue exceeded its owned bound",
+                ));
             }
-            queue.try_reserve(1).map_err(|error| RuntimeError::with_source(
-                Kind::ResourceExhausted, "reserve native MIDI callback event", error))?;
+            queue.try_reserve(1).map_err(|error| {
+                RuntimeError::with_source(
+                    Kind::ResourceExhausted,
+                    "reserve native MIDI callback event",
+                    error,
+                )
+            })?;
             queue.push_back(event);
         }
         self.queue_wake.signal();
@@ -166,29 +206,50 @@ fn registry() -> &'static Mutex<Vec<(usize, Arc<CallbackContext>)>> {
 }
 
 pub(super) fn register(id: usize, context: Arc<CallbackContext>) -> Result<(), RuntimeError> {
-    let mut entries = registry().lock().unwrap_or_else(|poison| poison.into_inner());
+    let mut entries = registry()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
     if entries.iter().any(|(existing, _)| *existing == id) {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "native MIDI callback context identity was reused"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "native MIDI callback context identity was reused",
+        ));
     }
-    entries.try_reserve(1).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "reserve native MIDI callback context table", error))?;
+    entries.try_reserve(1).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "reserve native MIDI callback context table",
+            error,
+        )
+    })?;
     entries.push((id, context));
     Ok(())
 }
 
 pub(super) fn unregister_if_idle(id: usize, context: &Arc<CallbackContext>) -> bool {
-    let mut entries = registry().lock().unwrap_or_else(|poison| poison.into_inner());
-    let Some(index) = entries.iter().position(|(registered, existing)|
-        *registered == id && Arc::ptr_eq(existing, context)) else { return false; };
-    if context.in_flight() != 0 || context.peek().is_some() { return false; }
+    let mut entries = registry()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let Some(index) = entries
+        .iter()
+        .position(|(registered, existing)| *registered == id && Arc::ptr_eq(existing, context))
+    else {
+        return false;
+    };
+    if context.in_flight() != 0 || context.peek().is_some() {
+        return false;
+    }
     entries.remove(index);
     true
 }
 
 pub(super) fn unknown_context_failure() -> Option<RuntimeError> {
-    UNKNOWN_CONTEXT.swap(false, Ordering::AcqRel).then(|| RuntimeError::new(
-        Kind::InternalInvariant, "native MIDI callback named an unregistered owner context"))
+    UNKNOWN_CONTEXT.swap(false, Ordering::AcqRel).then(|| {
+        RuntimeError::new(
+            Kind::InternalInvariant,
+            "native MIDI callback named an unregistered owner context",
+        )
+    })
 }
 
 pub(super) fn has_unknown_context_failure() -> bool {
@@ -196,14 +257,24 @@ pub(super) fn has_unknown_context_failure() -> bool {
 }
 
 fn context_for(id: usize) -> Option<CallbackInvocation> {
-    let entries = registry().lock().unwrap_or_else(|poison| poison.into_inner());
-    let context = entries.iter().find(|(registered, _)| *registered == id)
+    let entries = registry()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let context = entries
+        .iter()
+        .find(|(registered, _)| *registered == id)
         .map(|(_, context)| Arc::clone(context))?;
-    if context.in_flight.try_update(Ordering::AcqRel, Ordering::Acquire,
-        |current| current.checked_add(1)).is_err()
+    if context
+        .in_flight
+        .try_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+            current.checked_add(1)
+        })
+        .is_err()
     {
-        context.latch(RuntimeError::new(Kind::ResourceExhausted,
-            "native MIDI callback in-flight counter exhausted"));
+        context.latch(RuntimeError::new(
+            Kind::ResourceExhausted,
+            "native MIDI callback in-flight counter exhausted",
+        ));
         None
     } else {
         Some(CallbackInvocation(context))
@@ -211,14 +282,21 @@ fn context_for(id: usize) -> Option<CallbackInvocation> {
 }
 
 fn next_sequence(source: &AtomicU64) -> Result<u64, RuntimeError> {
-    source.try_update(Ordering::AcqRel, Ordering::Acquire, |next| {
-        next.checked_add(1).filter(|value| *value != 0)
-    }).map_err(|_| RuntimeError::new(Kind::ResourceExhausted,
-        "native MIDI callback sequence source exhausted"))
+    source
+        .try_update(Ordering::AcqRel, Ordering::Acquire, |next| {
+            next.checked_add(1).filter(|value| *value != 0)
+        })
+        .map_err(|_| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "native MIDI callback sequence source exhausted",
+            )
+        })
 }
 
 /// Native callbacks may run on a driver-owned thread. Their only outputs are
 /// queue records and a typed failure latch; guest addresses are never read.
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn midi_callback(
     driver: HDRVR,
     message: u32,
@@ -244,9 +322,13 @@ unsafe extern "system" fn midi_callback(
     match result {
         Ok(Ok(())) => {}
         Ok(Err(error)) => context.latch(error),
-        Err(_) => context.latch(RuntimeError::new(Kind::HostFailure,
-            "panic was contained in native MIDI callback trampoline")),
+        Err(_) => context.latch(RuntimeError::new(
+            Kind::HostFailure,
+            "panic was contained in native MIDI callback trampoline",
+        )),
     }
 }
 
-pub(super) fn procedure() -> usize { midi_callback as *const () as usize }
+pub(super) fn procedure() -> usize {
+    midi_callback as *const () as usize
+}

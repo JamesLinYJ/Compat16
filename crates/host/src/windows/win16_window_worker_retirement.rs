@@ -12,7 +12,7 @@ use runtime::{
     Win16HostWindowRetirementReceipt,
 };
 use windows_sys::Win32::Foundation::HWND;
-use windows_sys::Win32::UI::WindowsAndMessaging::{GetAncestor, GetWindow, GA_PARENT, GW_OWNER, IsWindow};
+use windows_sys::Win32::UI::WindowsAndMessaging::{GA_PARENT, GW_OWNER};
 
 use super::{NativeWindowIdentity, WorkerState, remove_window_maps, retire_clipboard_viewer};
 
@@ -33,9 +33,11 @@ impl WindowRetirementPreparation {
         window: Win16HostWindow,
         hwnd: HWND,
     ) -> Option<NativeWindowRetirementCandidate> {
-        self.scope.candidates.iter().copied().find(|candidate| {
-            candidate.window == window && candidate.hwnd == hwnd
-        })
+        self.scope
+            .candidates
+            .iter()
+            .copied()
+            .find(|candidate| candidate.window == window && candidate.hwnd == hwnd)
     }
 }
 
@@ -93,36 +95,42 @@ fn begin_window_retirement_scope(
     root_hwnd: HWND,
     reject_active_dc: bool,
 ) -> Result<Option<WindowRetirementScope>, RuntimeError> {
-    if unsafe { IsWindow(root_hwnd) } == 0
+    if (crate::windows::win32_safe::is_window(root_hwnd)) == 0
         || !super::native_windows::native_window_is_destruction_target(state, root, root_hwnd)
     {
         return Ok(None);
     }
     let candidates = snapshot_window_retirement_candidates(state, root, root_hwnd)?;
-    if candidates.is_empty()
-        || (reject_active_dc && subtree_has_active_dc(state, &candidates))
-    {
+    if candidates.is_empty() || (reject_active_dc && subtree_has_active_dc(state, &candidates)) {
         return Ok(None);
     }
     let mut windows = Vec::new();
-    windows.try_reserve_exact(candidates.len()).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve exact native window owners before menu retirement begins",
-            error,
-        )
-    })?;
-    windows.extend(candidates.iter().map(|candidate| (candidate.window, candidate.hwnd)));
+    windows
+        .try_reserve_exact(candidates.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve exact native window owners before menu retirement begins",
+                error,
+            )
+        })?;
+    windows.extend(
+        candidates
+            .iter()
+            .map(|candidate| (candidate.window, candidate.hwnd)),
+    );
     let mut receipts = Vec::new();
-    receipts.try_reserve_exact(candidates.len()).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve exact window retirement receipts before USER teardown",
-            error,
-        )
-    })?;
-    let menu_retirement_ids = super::super::win16_menu_attachment::
-        begin_window_menu_retirement(state, &windows)?;
+    receipts
+        .try_reserve_exact(candidates.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve exact window retirement receipts before USER teardown",
+                error,
+            )
+        })?;
+    let menu_retirement_ids =
+        super::super::win16_menu_attachment::begin_window_menu_retirement(state, &windows)?;
     Ok(Some(WindowRetirementScope {
         candidates,
         receipts,
@@ -138,7 +146,7 @@ fn extend_window_retirement(
     root: Win16HostWindow,
     root_hwnd: HWND,
 ) -> Result<bool, RuntimeError> {
-    if unsafe { IsWindow(root_hwnd) } == 0
+    if (crate::windows::win32_safe::is_window(root_hwnd)) == 0
         || !super::native_windows::native_window_is_destruction_target(state, root, root_hwnd)
     {
         return Ok(false);
@@ -147,50 +155,78 @@ fn extend_window_retirement(
     if candidates.is_empty() || subtree_has_active_dc(state, &candidates) {
         return Ok(false);
     }
-    let root_is_current = candidates.iter().any(|candidate| {
-        candidate.window == root && candidate.hwnd == root_hwnd
-    });
+    let root_is_current = candidates
+        .iter()
+        .any(|candidate| candidate.window == root && candidate.hwnd == root_hwnd);
     let mut windows = Vec::new();
-    windows.try_reserve_exact(candidates.len()).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve current exact window owners before extending menu pins",
-            error,
-        )
-    })?;
-    windows.extend(candidates.iter().map(|candidate| (candidate.window, candidate.hwnd)));
-    let additions = candidates.iter().copied().filter(|candidate| {
-        !scope.candidates.iter().any(|existing| same_candidate(*existing, *candidate))
-    }).collect::<Vec<_>>();
-    scope.candidates.try_reserve(additions.len()).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve newly observed exact window identities before USER teardown",
-            error,
-        )
-    })?;
-    let receipt_capacity = scope.candidates.len().checked_add(additions.len()).ok_or_else(|| {
-        RuntimeError::new(Kind::ResourceExhausted,
-            "native window retirement receipt capacity overflow")
-    })?;
+    windows
+        .try_reserve_exact(candidates.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve current exact window owners before extending menu pins",
+                error,
+            )
+        })?;
+    windows.extend(
+        candidates
+            .iter()
+            .map(|candidate| (candidate.window, candidate.hwnd)),
+    );
+    let additions = candidates
+        .iter()
+        .copied()
+        .filter(|candidate| {
+            !scope
+                .candidates
+                .iter()
+                .any(|existing| same_candidate(*existing, *candidate))
+        })
+        .collect::<Vec<_>>();
+    scope
+        .candidates
+        .try_reserve(additions.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve newly observed exact window identities before USER teardown",
+                error,
+            )
+        })?;
+    let receipt_capacity = scope
+        .candidates
+        .len()
+        .checked_add(additions.len())
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "native window retirement receipt capacity overflow",
+            )
+        })?;
     // Receipts remain empty until USER returns. Reserve the whole candidate
     // set, not only additions relative to the still-empty receipt vector.
-    scope.receipts.try_reserve(receipt_capacity).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve receipts for newly observed exact window identities",
-            error,
-        )
-    })?;
-    scope.menu_retirement_ids.try_reserve(candidates.len()).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve menu retirement pins before extending the native subtree snapshot",
-            error,
-        )
-    })?;
-    let menu_ids = super::super::win16_menu_attachment::
-        begin_window_menu_retirement(state, &windows)?;
+    scope
+        .receipts
+        .try_reserve(receipt_capacity)
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve receipts for newly observed exact window identities",
+                error,
+            )
+        })?;
+    scope
+        .menu_retirement_ids
+        .try_reserve(candidates.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve menu retirement pins before extending the native subtree snapshot",
+                error,
+            )
+        })?;
+    let menu_ids =
+        super::super::win16_menu_attachment::begin_window_menu_retirement(state, &windows)?;
     scope.menu_retirement_ids.extend(menu_ids);
     scope.candidates.extend(additions);
     Ok(root_is_current)
@@ -201,7 +237,9 @@ fn subtree_has_active_dc(
     candidates: &[NativeWindowRetirementCandidate],
 ) -> bool {
     let dcs = state.borrow().dcs.clone();
-    candidates.iter().any(|candidate| dcs.window_has_active_dc(candidate.window))
+    candidates
+        .iter()
+        .any(|candidate| dcs.window_has_active_dc(candidate.window))
 }
 
 pub(in crate::windows) fn finish_window_retirement(
@@ -217,14 +255,17 @@ pub(in crate::windows) fn finish_window_retirement(
         }
     }
     let menu_snapshot = super::super::win16_menu_attachment::finish_window_menu_retirement(
-        state, &scope.menu_retirement_ids,
+        state,
+        &scope.menu_retirement_ids,
     );
     // HWND destruction can consume menus even when a callback has already
     // removed the window maps. This exact snapshot is invalidated only when
     // IsMenu/native generation evidence confirms consumption or reuse.
     let invalidated_menus = if probe_consumed_menus {
-        super::super::win16_menu_attachment::
-            retire_destroyed_window_menu_snapshot(state, &menu_snapshot)
+        super::super::win16_menu_attachment::retire_destroyed_window_menu_snapshot(
+            state,
+            &menu_snapshot,
+        )
     } else {
         Vec::new()
     };
@@ -265,25 +306,36 @@ pub(in crate::windows::win16_windows) fn snapshot_window_retirement_candidates(
 ) -> Result<Vec<NativeWindowRetirementCandidate>, RuntimeError> {
     let descendants = descendants_of(state, root, root_hwnd)?;
     let mut candidates = Vec::new();
-    candidates.try_reserve_exact(descendants.len()).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve exact native window identities before a USER teardown call",
-            error,
+    candidates
+        .try_reserve_exact(descendants.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve exact native window identities before a USER teardown call",
+                error,
+            )
+        })?;
+    let borrowed = state.try_borrow().map_err(|_| {
+        RuntimeError::new(
+            Kind::InternalInvariant,
+            "snapshot exact native window identities without a conflicting worker borrow",
         )
     })?;
-    let borrowed = state.try_borrow().map_err(|_| RuntimeError::new(
-        Kind::InternalInvariant,
-        "snapshot exact native window identities without a conflicting worker borrow",
-    ))?;
     for (window, hwnd) in descendants {
-        let Some(identity) = borrowed.windows_by_native.get(&(hwnd as usize)).copied()
+        let Some(identity) = borrowed
+            .windows_by_native
+            .get(&(hwnd as usize))
+            .copied()
             .filter(|identity| identity.window == window)
         else {
             continue;
         };
         if borrowed.windows.get(&window).copied() == Some(hwnd) {
-            candidates.push(NativeWindowRetirementCandidate { window, hwnd, identity });
+            candidates.push(NativeWindowRetirementCandidate {
+                window,
+                hwnd,
+                identity,
+            });
         }
     }
     Ok(candidates)
@@ -299,9 +351,16 @@ pub(in crate::windows::win16_windows) fn capture_window_retirement_candidate(
     if borrowed.windows.get(&window).copied() != Some(hwnd) {
         return None;
     }
-    let identity = borrowed.windows_by_native.get(&(hwnd as usize)).copied()
+    let identity = borrowed
+        .windows_by_native
+        .get(&(hwnd as usize))
+        .copied()
         .filter(|identity| identity.window == window)?;
-    Some(NativeWindowRetirementCandidate { window, hwnd, identity })
+    Some(NativeWindowRetirementCandidate {
+        window,
+        hwnd,
+        identity,
+    })
 }
 
 /// Retire a candidate only after USER confirms the HWND is dead, the native
@@ -333,8 +392,9 @@ pub(in crate::windows::win16_windows) fn retire_dead_window_candidate(
         Some(current) if current.window == candidate.window => {
             // The token still owns this exact native generation. USER must
             // confirm its HWND is dead before we clear its native sidecars.
-            if !same_window_identity(current, candidate.identity)
-                || unsafe { IsWindow(candidate.hwnd) } != 0
+            if !same_window_identity(current, candidate.identity) || {
+                crate::windows::win32_safe::is_window(candidate.hwnd)
+            } != 0
             {
                 return false;
             }
@@ -349,7 +409,9 @@ pub(in crate::windows::win16_windows) fn retire_dead_window_candidate(
     let borrowed = state.borrow();
     borrowed.retired_window_tokens.contains(&candidate.window)
         && !borrowed.windows.contains_key(&candidate.window)
-        && borrowed.windows_by_native.get(&(candidate.hwnd as usize))
+        && borrowed
+            .windows_by_native
+            .get(&(candidate.hwnd as usize))
             .is_none_or(|identity| identity.window != candidate.window)
 }
 
@@ -369,11 +431,16 @@ pub(super) fn descendants_of(
 ) -> Result<Vec<(Win16HostWindow, HWND)>, RuntimeError> {
     let windows = {
         let state = state.borrow();
-        state.windows.iter().map(|(token, hwnd)| (*token, *hwnd)).collect::<Vec<_>>()
+        state
+            .windows
+            .iter()
+            .map(|(token, hwnd)| (*token, *hwnd))
+            .collect::<Vec<_>>()
     };
     let mut descendants = Vec::new();
     for (token, hwnd) in windows {
-        let exact_retained_root = token == root && hwnd == root_hwnd
+        let exact_retained_root = token == root
+            && hwnd == root_hwnd
             && super::native_windows::native_window_is_destruction_target(state, root, root_hwnd);
         if !exact_retained_root
             && super::super::win16_window_identity::resolve(state, token) != Some(hwnd)
@@ -384,12 +451,17 @@ pub(super) fn descendants_of(
         // Foreign intermediate HWNDs need not have guest aliases. Exhaustion
         // is an error before USER, never evidence that a candidate is outside
         // the native destruction closure.
-        let reaches_root = token == root || hwnd == root_hwnd
+        let reaches_root = token == root
+            || hwnd == root_hwnd
             || reaches_destruction_root(hwnd as usize, root_hwnd as usize, 65_536, |current| {
-                [unsafe { GetAncestor(current as HWND, GA_PARENT) } as usize,
-                    unsafe { GetWindow(current as HWND, GW_OWNER) } as usize]
+                [
+                    (crate::windows::win32_safe::get_ancestor(current as HWND, GA_PARENT)) as usize,
+                    (crate::windows::win32_safe::get_window(current as HWND, GW_OWNER)) as usize,
+                ]
             })?;
-        if reaches_root { descendants.push((token, hwnd)); }
+        if reaches_root {
+            descendants.push((token, hwnd));
+        }
     }
     Ok(descendants)
 }
@@ -403,16 +475,26 @@ fn reaches_destruction_root(
     let mut pending = vec![start];
     let mut visited = BTreeSet::new();
     while let Some(current) = pending.pop() {
-        if current == root { return Ok(true); }
-        if current == 0 || visited.contains(&current) { continue; }
+        if current == root {
+            return Ok(true);
+        }
+        if current == 0 || visited.contains(&current) {
+            continue;
+        }
         if visited.len() >= maximum_nodes {
-            return Err(RuntimeError::new(Kind::ResourceExhausted,
-                "native parent/owner destruction graph exceeds its bounded traversal"));
+            return Err(RuntimeError::new(
+                Kind::ResourceExhausted,
+                "native parent/owner destruction graph exceeds its bounded traversal",
+            ));
         }
         visited.insert(current);
         for parent in links(current) {
-            if parent == root && parent != 0 { return Ok(true); }
-            if parent != 0 && !visited.contains(&parent) { pending.push(parent); }
+            if parent == root && parent != 0 {
+                return Ok(true);
+            }
+            if parent != 0 && !visited.contains(&parent) {
+                pending.push(parent);
+            }
         }
     }
     Ok(false)
@@ -426,9 +508,15 @@ mod destruction_graph_tests {
     fn both_actual_parent_and_owner_paths_reach_the_root() {
         for reverse in [false, true] {
             let reached = reaches_destruction_root(1, 9, 8, |node| {
-                let edges = match node { 1 => [2, 3], 2 => [4, 0], 3 => [0, 9], _ => [0, 0] };
+                let edges = match node {
+                    1 => [2, 3],
+                    2 => [4, 0],
+                    3 => [0, 9],
+                    _ => [0, 0],
+                };
                 if reverse { [edges[1], edges[0]] } else { edges }
-            }).unwrap();
+            })
+            .unwrap();
             assert!(reached);
         }
     }
@@ -436,10 +524,17 @@ mod destruction_graph_tests {
     #[test]
     fn cycles_and_shared_ancestors_terminate_without_false_retirement_evidence() {
         let mut queries = 0;
-        assert!(!reaches_destruction_root(1, 9, 3, |node| {
-            queries += 1;
-            match node { 1 => [2, 3], 2 => [1, 3], _ => [2, 1] }
-        }).unwrap());
+        assert!(
+            !reaches_destruction_root(1, 9, 3, |node| {
+                queries += 1;
+                match node {
+                    1 => [2, 3],
+                    2 => [1, 3],
+                    _ => [2, 1],
+                }
+            })
+            .unwrap()
+        );
         assert_eq!(queries, 3);
     }
 

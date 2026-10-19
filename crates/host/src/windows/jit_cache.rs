@@ -179,6 +179,7 @@ fn local_app_data() -> Option<PathBuf> {
     struct Folder(*mut u16);
     impl Drop for Folder {
         fn drop(&mut self) {
+            // SAFETY: CoTaskMemFree releases a COM allocation this owner holds, or null.
             unsafe {
                 CoTaskMemFree(self.0.cast());
             }
@@ -200,7 +201,9 @@ fn local_app_data() -> Option<PathBuf> {
         return None;
     }
     for length in 0..32768 {
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         if unsafe { *folder.0.add(length) } == 0 {
+            // SAFETY: The pointer and length were checked against the owning allocation, and the bytes stay live for this copy.
             let wide = unsafe { std::slice::from_raw_parts(folder.0, length) };
             return Some(PathBuf::from(OsString::from_wide(wide)));
         }

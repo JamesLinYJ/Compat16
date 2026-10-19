@@ -4,11 +4,11 @@
 //! compare-and-release operation. Matching observations reduce interference
 //! with another application but cannot prove ownership or remove that race.
 
-use std::cell::Cell;
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostRect};
+use std::cell::Cell;
 use windows_sys::Win32::Foundation::RECT;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    ClipCursor, GetClipCursor, GetForegroundWindow, GetWindowThreadProcessId,
+    ClipCursor, GetClipCursor, GetWindowThreadProcessId,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -43,17 +43,27 @@ impl Drop for WorkerExitGuard {
 pub(super) fn set(rect: Option<Win16HostRect>) -> Result<bool, RuntimeError> {
     // This is a local reentry sequence, not a native desktop ownership token.
     let sequence = SEQUENCE.with(|current| {
-        let next = current.get().and_then(|value| value.checked_add(1)).ok_or_else(|| RuntimeError::new(
-            Kind::ResourceExhausted, "cursor clipping call sequence exhausted"))?;
+        let next = current
+            .get()
+            .and_then(|value| value.checked_add(1))
+            .ok_or_else(|| {
+                RuntimeError::new(
+                    Kind::ResourceExhausted,
+                    "cursor clipping call sequence exhausted",
+                )
+            })?;
         current.set(Some(next));
         Ok::<_, RuntimeError>(next)
     })?;
     let native = rect.map(|rect| RECT {
-        left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom,
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
     });
-    let succeeded = unsafe {
-        ClipCursor(native.as_ref().map_or(std::ptr::null(), |rect| rect)) != 0
-    };
+    // SAFETY: ClipCursor reads an optional caller-owned RECT.
+    let succeeded =
+        unsafe { ClipCursor(native.as_ref().map_or(std::ptr::null(), |rect| rect)) != 0 };
     if !succeeded || SEQUENCE.with(Cell::get) != Some(sequence) {
         return Ok(succeeded);
     }
@@ -73,10 +83,18 @@ pub(super) fn set(rect: Option<Win16HostRect>) -> Result<bool, RuntimeError> {
     CLEANUP.with(|slot| slot.set(None));
     let foreground = foreground?;
     let Some(rect) = observed else {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "cursor clipping succeeded but its cleanup rectangle could not be read"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "cursor clipping succeeded but its cleanup rectangle could not be read",
+        ));
     };
-    CLEANUP.with(|slot| slot.set(Some(CleanupObligation { sequence, rect, foreground })));
+    CLEANUP.with(|slot| {
+        slot.set(Some(CleanupObligation {
+            sequence,
+            rect,
+            foreground,
+        }))
+    });
     Ok(true)
 }
 
@@ -91,32 +109,50 @@ pub(super) fn forget_after_deactivation() {
 /// Failure keeps the observation for a later shutdown attempt. No operation
 /// runs for workers which have never successfully installed a constraint.
 pub(super) fn cleanup_for_exit() -> Result<(), RuntimeError> {
-    let Some(observed) = CLEANUP.with(Cell::get) else { return Ok(()); };
+    let Some(observed) = CLEANUP.with(Cell::get) else {
+        return Ok(());
+    };
     // Terminal cleanup cannot start another guest callback on a client which
     // is already waiting for Abort/Shutdown rather than a USER operation.
     if let Some(state) = super::win16_window_worker::worker_context() {
-        state.try_borrow_mut().map_err(|_| RuntimeError::new(Kind::HostFailure,
-            "cursor cleanup cannot close guest callbacks during a worker borrow"))?
+        state
+            .try_borrow_mut()
+            .map_err(|_| {
+                RuntimeError::new(
+                    Kind::HostFailure,
+                    "cursor cleanup cannot close guest callbacks during a worker borrow",
+                )
+            })?
             .callbacks_enabled = false;
     }
     if foreground()? != observed.foreground {
         forget_if_current(observed.sequence);
         return Ok(());
     }
-    let current = read_clip().ok_or_else(|| RuntimeError::new(Kind::HostFailure,
-        "read the cursor constraint before worker exit"))?;
+    let current = read_clip().ok_or_else(|| {
+        RuntimeError::new(
+            Kind::HostFailure,
+            "read the cursor constraint before worker exit",
+        )
+    })?;
     if current != observed.rect {
         forget_if_current(observed.sequence);
         return Ok(());
     }
-    if !CLEANUP.with(|slot| slot.get().is_some_and(|value| value.sequence == observed.sequence)) {
+    if !CLEANUP.with(|slot| {
+        slot.get()
+            .is_some_and(|value| value.sequence == observed.sequence)
+    }) {
         return Ok(());
     }
     // There is no public atomic compare-and-release. Another process can
     // still replace the global rectangle between this read and ClipCursor.
+    // SAFETY: ClipCursor reads an optional caller-owned RECT.
     if unsafe { ClipCursor(std::ptr::null()) } == 0 {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "release the observed cursor constraint before worker exit"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "release the observed cursor constraint before worker exit",
+        ));
     }
     forget_if_current(observed.sequence);
     Ok(())
@@ -132,21 +168,32 @@ fn forget_if_current(sequence: u64) {
 
 fn read_clip() -> Option<Win16HostRect> {
     let mut rect = RECT::default();
+    // SAFETY: GetClipCursor writes into a caller-owned RECT.
     (unsafe { GetClipCursor(&mut rect) } != 0).then_some(Win16HostRect {
-        left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom,
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
     })
 }
 
 fn foreground() -> Result<Option<ForegroundObservation>, RuntimeError> {
-    let window = unsafe { GetForegroundWindow() };
-    if window.is_null() { return Ok(None); }
+    let window = crate::windows::win32_safe::foreground_window();
+    if window.is_null() {
+        return Ok(None);
+    }
     let mut process = 0;
+    // SAFETY: GetWindowThreadProcessId optionally writes a caller-owned process id.
     let thread = unsafe { GetWindowThreadProcessId(window, &mut process) };
     if thread == 0 || process == 0 {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "observe the foreground window for cursor constraint cleanup"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "observe the foreground window for cursor constraint cleanup",
+        ));
     }
     Ok(Some(ForegroundObservation {
-        window: window as usize, process, thread,
+        window: window as usize,
+        process,
+        thread,
     }))
 }

@@ -38,12 +38,13 @@ pub(super) fn execute(
             let Some(dialog) = hwnd(state, dialog) else {
                 return Ok(Result::Item(None));
             };
+            // SAFETY: GetDlgItem looks up a child control id in a dialog this thread owns.
             let native = unsafe { GetDlgItem(dialog, i32::from(id)) };
             Result::Item(token_for_native(state, native)?)
         }
         Call::GetControlId { control } => {
-            let id = hwnd(state, control).map_or(0, |control| unsafe {
-                windows_sys::Win32::UI::WindowsAndMessaging::GetDlgCtrlID(control)
+            let id = hwnd(state, control).map_or(0, |control| {
+                crate::windows::win32_safe::get_dlg_ctrl_id(control)
             });
             Result::ControlId(id as u16)
         }
@@ -62,6 +63,7 @@ pub(super) fn execute(
                 },
                 None => std::ptr::null_mut(),
             };
+            // SAFETY: `GetNextDlgGroupItem` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let native = unsafe { GetNextDlgGroupItem(dialog, control, i32::from(previous)) };
             Result::NextItem(token_for_native(state, native)?)
         }
@@ -80,6 +82,7 @@ pub(super) fn execute(
                 },
                 None => std::ptr::null_mut(),
             };
+            // SAFETY: `GetNextDlgTabItem` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let native = unsafe { GetNextDlgTabItem(dialog, control, i32::from(previous)) };
             Result::NextItem(token_for_native(state, native)?)
         }
@@ -101,6 +104,7 @@ pub(super) fn execute(
                 })
                 .transpose();
             let success = match text {
+                // SAFETY: `SetDlgItemTextW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 Ok(text) => unsafe {
                     SetDlgItemTextW(
                         dialog,
@@ -124,6 +128,7 @@ pub(super) fn execute(
                     bytes: Vec::new(),
                 });
             };
+            // SAFETY: GetDlgItem looks up a child control id in a dialog this thread owns.
             let control = unsafe { GetDlgItem(dialog, i32::from(id)) };
             if control.is_null() {
                 return Ok(Result::Text {
@@ -168,6 +173,7 @@ pub(super) fn execute(
                 },
             )?;
             let copied_units =
+                // SAFETY: `GetDlgItemTextW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 unsafe { GetDlgItemTextW(dialog, i32::from(id), output, native_capacity as i32) };
             let mut bytes = Vec::new();
             let mut guest_count = copied_units;
@@ -222,6 +228,7 @@ pub(super) fn execute(
             } else {
                 u32::from(value)
             };
+            // SAFETY: `SetDlgItemInt` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let success = hwnd(state, dialog).is_some_and(|dialog| unsafe {
                 SetDlgItemInt(dialog, i32::from(id), native_value, i32::from(signed)) != 0
             });
@@ -229,6 +236,7 @@ pub(super) fn execute(
         }
         Call::GetItemInteger { dialog, id, signed } => {
             let mut translated = 0_i32;
+            // SAFETY: `GetDlgItemInt` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let value = hwnd(state, dialog).map_or(0, |dialog| unsafe {
                 GetDlgItemInt(dialog, i32::from(id), &mut translated, i32::from(signed))
             });
@@ -249,12 +257,14 @@ pub(super) fn execute(
             id,
             state: check_state,
         } => {
+            // SAFETY: `CheckDlgButton` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let success = hwnd(state, dialog).is_some_and(|dialog| unsafe {
                 CheckDlgButton(dialog, i32::from(id), u32::from(check_state)) != 0
             });
             Result::Succeeded(success)
         }
         Call::IsButtonChecked { dialog, id } => {
+            // SAFETY: `IsDlgButtonChecked` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let state = hwnd(state, dialog).map_or(0, |dialog| unsafe {
                 IsDlgButtonChecked(dialog, i32::from(id))
             });
@@ -266,6 +276,7 @@ pub(super) fn execute(
             last,
             checked,
         } => {
+            // SAFETY: `CheckRadioButton` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let success = hwnd(state, dialog).is_some_and(|dialog| unsafe {
                 CheckRadioButton(
                     dialog,
@@ -296,6 +307,7 @@ pub(super) fn execute(
                 .map(|path| bounded_path_buffer(codec, path, path_capacity))
                 .transpose()?
             else {
+                // SAFETY: `DlgDirListComboBoxW`, `DlgDirListW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 let success = unsafe {
                     if combo_box {
                         DlgDirListComboBoxW(
@@ -320,6 +332,7 @@ pub(super) fn execute(
                     path_spec: None,
                 });
             };
+            // SAFETY: `DlgDirListComboBoxW`, `DlgDirListW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let success = unsafe {
                 if combo_box {
                     DlgDirListComboBoxW(
@@ -375,6 +388,7 @@ pub(super) fn execute(
             // leaves lpString untouched. A nonzero sentinel also distinguishes
             // a written empty string when capacity is one.
             wide.fill(DIRECTORY_SELECT_UNWRITTEN);
+            // SAFETY: `DlgDirSelectComboBoxExW`, `DlgDirSelectExW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let selected = hwnd(state, dialog).is_some_and(|dialog| unsafe {
                 if combo_box {
                     DlgDirSelectComboBoxExW(
@@ -422,9 +436,15 @@ pub(super) fn execute(
         } => {
             let mut native = native_rect(rect);
             let succeeded =
+                // SAFETY: AdjustWindowRectEx updates a caller-owned RECT.
                 unsafe { AdjustWindowRectEx(&mut native, style, i32::from(menu), ex_style) != 0 };
-            if succeeded && let Some(frame) = super::win16_frame_geometry::CaptionFrame::query(style, ex_style) {
-                let Some(projected) = frame.adjust_outer(native) else { return Ok(Result::Rect(None)); };
+            if succeeded
+                && let Some(frame) =
+                    super::win16_frame_geometry::CaptionFrame::query(style, ex_style)
+            {
+                let Some(projected) = frame.adjust_outer(native) else {
+                    return Ok(Result::Rect(None));
+                };
                 native = projected;
             }
             Result::Rect(succeeded.then(|| host_rect(native)))
@@ -434,6 +454,7 @@ pub(super) fn execute(
                 return Ok(Result::Rect(None));
             };
             let mut native = native_rect(rect);
+            // SAFETY: MapDialogRect updates a caller-owned RECT.
             let succeeded = unsafe { MapDialogRect(dialog, &mut native) != 0 };
             Result::Rect(succeeded.then(|| host_rect(native)))
         }

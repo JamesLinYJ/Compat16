@@ -5,7 +5,6 @@ use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostShellPathEncodingCause,
     Win16HostShellPathEncodingFailure,
 };
-use windows_sys::Win32::Foundation::GetLastError;
 use windows_sys::Win32::Storage::FileSystem::{
     GetBinaryTypeW, GetFullPathNameW, GetShortPathNameW,
 };
@@ -47,6 +46,7 @@ pub(super) fn resolve_executable_input(
         if directory.last() != Some(&0) {
             return Ok(None);
         }
+        // SAFETY: `PathCchCombineEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let result = unsafe {
             PathCchCombineEx(
                 combined.as_mut_ptr(),
@@ -74,6 +74,7 @@ pub(super) fn resolve_executable_input(
         "reserve absolute SHELL input path",
     )?;
     full_path.fill(u16::MAX);
+    // SAFETY: GetFullPathNameW reads a caller-owned path and writes into a caller-owned buffer.
     let length = unsafe {
         GetFullPathNameW(
             combined.as_ptr(),
@@ -87,6 +88,7 @@ pub(super) fn resolve_executable_input(
     }
     full_path.truncate(length + 1);
     let mut binary_type = 0;
+    // SAFETY: `GetBinaryTypeW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     if unsafe { GetBinaryTypeW(full_path.as_ptr(), &mut binary_type) } == 0 {
         return Ok(None);
     }
@@ -239,7 +241,7 @@ fn conversion_failure(
 ) -> Result<Win16HostShellPathEncodingCause, RuntimeError> {
     if error.kind() == Kind::HostFailure {
         Ok(Win16HostShellPathEncodingCause::ConversionFailed {
-            last_error: unsafe { GetLastError() },
+            last_error: (crate::windows::win32_safe::last_error()),
         })
     } else {
         Err(error)
@@ -260,6 +262,7 @@ fn short_executable_path(full_path: &[u16]) -> Result<ShortPathLookup, RuntimeEr
         "reserve short SHELL executable path",
     )?;
     short_path.fill(u16::MAX);
+    // SAFETY: GetShortPathNameW reads a caller-owned path and writes into a caller-owned buffer.
     let length = unsafe {
         GetShortPathNameW(
             full_path.as_ptr(),
@@ -270,7 +273,7 @@ fn short_executable_path(full_path: &[u16]) -> Result<ShortPathLookup, RuntimeEr
     if length == 0 {
         return Ok(ShortPathLookup::Unavailable(
             Win16HostShellPathEncodingCause::ShortAliasUnavailable {
-                last_error: unsafe { GetLastError() },
+                last_error: (crate::windows::win32_safe::last_error()),
             },
         ));
     }
@@ -287,10 +290,11 @@ fn short_executable_path(full_path: &[u16]) -> Result<ShortPathLookup, RuntimeEr
     }
     short_path.truncate(length + 1);
     let mut binary_type = 0;
+    // SAFETY: `GetBinaryTypeW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     if unsafe { GetBinaryTypeW(short_path.as_ptr(), &mut binary_type) } == 0 {
         return Ok(ShortPathLookup::Unavailable(
             Win16HostShellPathEncodingCause::ShortAliasUnavailable {
-                last_error: unsafe { GetLastError() },
+                last_error: (crate::windows::win32_safe::last_error()),
             },
         ));
     }

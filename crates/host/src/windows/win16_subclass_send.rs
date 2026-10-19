@@ -97,6 +97,7 @@ pub(super) fn send(
     let _guard = Guard(id);
     // USER sees only the private numeric tag and nonce. Original Win16 words
     // stay in this owned thread-local frame across nested guest callbacks.
+    // SAFETY: SendMessageW runs synchronously on the window thread. Pointer arguments are caller-owned records that stay live for the call and are not guest addresses.
     let value = unsafe { SendMessageW(hwnd, WM_NULL, TAG, id as isize) } as u32;
     Ok(Some(Win16HostMessageResult {
         value,

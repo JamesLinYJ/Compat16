@@ -126,6 +126,7 @@ pub(super) fn poll_callback_signal(
                         // so completion reflects post-unprepare flags without a
                         // callback-thread read racing the native API.
                         let state =
+                            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                             unsafe { callback::header_state(ptr::addr_of!(buffer.storage.header)) };
                         let input_bytes = native::completed_input_bytes(direction, buffer, state)?;
                         if !buffer.signal.consume(sequence) {
@@ -238,8 +239,7 @@ pub(super) fn reap_closed_devices(host: &mut Win16WaveHost) -> Result<(), Runtim
             let callback = device.callback.as_ref();
             let callbacks_active = callback.is_some_and(|context| context.active_callbacks() != 0);
             let callback_signals_pending = callback.is_some_and(|context| {
-                context.open_signal().peek().is_some()
-                    || context.close_signal().peek().is_some()
+                context.open_signal().peek().is_some() || context.close_signal().peek().is_some()
             });
             device.closing
                 && device.native_closed

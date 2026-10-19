@@ -105,6 +105,7 @@ pub(super) fn execute(
     session.finish()?;
     result
 }
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn enumerate(
     dc: HDC,
     table: *const HANDLETABLE,
@@ -167,6 +168,7 @@ fn enumerate_inner(
         .checked_mul(2)
         .filter(|n| *n >= 6 && *n <= context.session.maximum_record_bytes)
         .ok_or_else(|| invariant("native WMF callback exceeded its checked record extent"))?;
+    // SAFETY: The pointer and length were checked against the owning allocation, and the bytes stay live for this copy.
     let bytes = unsafe { std::slice::from_raw_parts(record.cast::<u8>(), length) }.to_vec();
     if formats::parse_wmf_record(&bytes).is_err() {
         return Err(invariant("native WMF callback supplied invalid framing"));

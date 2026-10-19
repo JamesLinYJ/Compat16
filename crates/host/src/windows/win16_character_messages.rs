@@ -24,6 +24,7 @@ pub(super) fn to_native(
     }
     let codec = state.borrow().text_codec;
     let bytes = word.to_le_bytes();
+    // SAFETY: `IsDBCSLeadByteEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let lead = unsafe { IsDBCSLeadByteEx(codec.code_page(), bytes[0]) } != 0;
     if lead && bytes[1] == 0 {
         return Ok(None);

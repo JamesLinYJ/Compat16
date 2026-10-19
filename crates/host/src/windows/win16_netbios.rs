@@ -11,6 +11,7 @@ use windows_sys::Win32::NetworkManagement::NetBios::{
     ADAPTER_STATUS, FIND_NAME_BUFFER, FIND_NAME_HEADER, LANA_ENUM, NAME_BUFFER, NCB, Netbios,
     SESSION_BUFFER, SESSION_HEADER,
 };
+use zerocopy::IntoBytes;
 
 #[path = "win16_netbios_async.rs"]
 mod asynchronous;
@@ -55,11 +56,10 @@ pub(super) fn execute(
         // one owned flat buffer without interpreting transport-specific bytes.
         NCBACTION => execute_flat_payload(call),
         command if has_flat_payload_contract(command) => execute_flat_payload(call),
-        _ => Ok(invoke_native(
-            NativeCallFields::from(&call),
-            std::ptr::null_mut(),
-        )
-        .into_guest_result(runtime::Win16HostNetbiosOutput::None)),
+        _ => Ok(
+            invoke_native(NativeCallFields::from(&call), std::ptr::null_mut())
+                .into_guest_result(runtime::Win16HostNetbiosOutput::None),
+        ),
     }
 }
 
@@ -149,10 +149,7 @@ fn execute_find_name(
     require_capacity_matches_ncb_length(capacity, call.native_length)?;
     require_find_name_layout()?;
     let mut native_buffer = NativeBuffer::zeroed(capacity)?;
-    let mut outcome = invoke_native(
-        NativeCallFields::from(&call),
-        native_buffer.as_mut_ptr(),
-    );
+    let mut outcome = invoke_native(NativeCallFields::from(&call), native_buffer.as_mut_ptr());
     native_buffer.check_overrun()?;
     let payload = if has_successful_completion(outcome) {
         let bytes = native_buffer.as_bytes();
@@ -198,10 +195,7 @@ fn execute_lana_enum(
     require_capacity_matches_ncb_length(capacity, call.native_length)?;
     require_lana_enum_layout()?;
     let mut native_buffer = NativeBuffer::zeroed(capacity)?;
-    let outcome = invoke_native(
-        NativeCallFields::from(&call),
-        native_buffer.as_mut_ptr(),
-    );
+    let outcome = invoke_native(NativeCallFields::from(&call), native_buffer.as_mut_ptr());
     native_buffer.check_overrun()?;
     let payload = if has_successful_completion(outcome) {
         let extent = std::mem::size_of::<LANA_ENUM>();
@@ -460,23 +454,16 @@ impl NativeBuffer {
     }
 
     fn as_bytes(&self) -> &[u8] {
-        // SAFETY: the word allocation is initialized and has at least `length`
-        // bytes. The native API is called only while this owner remains live.
-        unsafe { std::slice::from_raw_parts(self.words.as_ptr().cast::<u8>(), self.length) }
+        // `words` is initialized u64 storage with a trailing canary past `length`.
+        &self.words.as_bytes()[..self.length]
     }
 
     fn as_bytes_mut(&mut self) -> &mut [u8] {
-        // SAFETY: the word allocation is initialized and has at least `length`
-        // bytes. This exclusive borrow prevents native access while editing.
-        unsafe { std::slice::from_raw_parts_mut(self.words.as_mut_ptr().cast::<u8>(), self.length) }
+        &mut self.words.as_mut_bytes()[..self.length]
     }
 
     fn check_overrun(&self) -> Result<(), RuntimeError> {
-        let allocated = self.words.len() * std::mem::size_of::<u64>();
-        // SAFETY: `allocated` is exactly the size of the initialized word
-        // allocation, including the trailing canary word.
-        let all =
-            unsafe { std::slice::from_raw_parts(self.words.as_ptr().cast::<u8>(), allocated) };
+        let all = self.words.as_bytes();
         if all[self.length..].iter().all(|byte| *byte == 0xa5) {
             Ok(())
         } else {

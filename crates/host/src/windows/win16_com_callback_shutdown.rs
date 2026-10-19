@@ -1,13 +1,17 @@
 //! Exact cancellation acknowledgements and native callback-stack retirement.
 
+use std::os::windows::io::AsRawHandle;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::TryRecvError;
-use std::os::windows::io::AsRawHandle;
 
-use runtime::{DiagnosticKind as Kind, RuntimeError, Win16ComHostCallbackFailureKind, Win16ComHostStep};
-use windows_sys::Win32::System::Threading::SetEvent;
+use runtime::{
+    DiagnosticKind as Kind, RuntimeError, Win16ComHostCallbackFailureKind, Win16ComHostStep,
+};
 
-use super::{CallbackShared, CallbackEndpoint, Win16ComCallbackRuntime, Win16ComHostCallbackRoute, callback_failure};
+use super::{
+    CallbackEndpoint, CallbackShared, Win16ComCallbackRuntime, Win16ComHostCallbackRoute,
+    callback_failure,
+};
 use std::sync::{Arc, Weak};
 
 pub(super) struct NativeCallbackDispatchGuard<'a>(&'a AtomicUsize);
@@ -30,20 +34,26 @@ pub(super) fn seal_and_cancel_pending(
     context: &'static str,
 ) -> Result<(), RuntimeError> {
     let mut pending = callbacks.shared.pending.lock().map_err(|_| {
-        RuntimeError::new(Kind::InternalInvariant, "COM callback state lock was poisoned during Seal")
+        RuntimeError::new(
+            Kind::InternalInvariant,
+            "COM callback state lock was poisoned during Seal",
+        )
     })?;
     let additional = pending
         .frames
         .values()
         .filter(|callback| callback.reply.is_some())
         .count();
-    pending.sealed_receipts.try_reserve(additional).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve exact COM callback Seal receipts",
-            error,
-        )
-    })?;
+    pending
+        .sealed_receipts
+        .try_reserve(additional)
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve exact COM callback Seal receipts",
+                error,
+            )
+        })?;
     pending.closed = true;
 
     for callback in pending.frames.values_mut() {
@@ -55,7 +65,9 @@ pub(super) fn seal_and_cancel_pending(
             context,
         );
         let failure = if reply
-            .send(super::Win16ComHostCallbackOutcome::Failed(checked_failure.clone()))
+            .send(super::Win16ComHostCallbackOutcome::Failed(
+                checked_failure.clone(),
+            ))
             .is_ok()
         {
             checked_failure
@@ -69,7 +81,10 @@ pub(super) fn seal_and_cancel_pending(
         // The original callback and acknowledgement stay in the frame. Only
         // an owning-STA native-return boundary may publish its failure receipt.
     }
-    if additional != 0 && unsafe { SetEvent(callbacks.shared.worker_wake.as_raw_handle() as _) } == 0 {
+    if additional != 0
+        && (crate::windows::win32_safe::set_event(callbacks.shared.worker_wake.as_raw_handle() as _))
+            == 0
+    {
         return Err(RuntimeError::new(
             Kind::HostFailure,
             "wake USER STA to return sealed native COM callbacks",
@@ -103,11 +118,19 @@ pub(super) fn native_stacks_quiet(shared: &CallbackShared) -> bool {
     };
     // Called by the USER STA after its native dispatch scopes return. A reply
     // send, a disconnected channel, or an empty frame map is not that proof.
-    let additional = pending.frames.values().filter(|callback| callback.sealed_failure.is_some()).count();
+    let additional = pending
+        .frames
+        .values()
+        .filter(|callback| callback.sealed_failure.is_some())
+        .count();
     if pending.sealed_receipts.try_reserve(additional).is_err() {
         return false;
     }
-    let super::CallbackPendingState { frames, sealed_receipts, .. } = &mut *pending;
+    let super::CallbackPendingState {
+        frames,
+        sealed_receipts,
+        ..
+    } = &mut *pending;
     frames.retain(|frame, callback| {
         if callback.reply.is_some() {
             return true;
@@ -149,7 +172,9 @@ pub(super) fn cancel_pending_frames(
             pending.closed = true;
         }
         for (frame, callback) in pending.frames.iter_mut() {
-            let Some(reply) = callback.reply.take() else { continue; };
+            let Some(reply) = callback.reply.take() else {
+                continue;
+            };
             let failure = callback_failure(
                 Win16ComHostCallbackFailureKind::CallbackTransport,
                 context.clone(),
@@ -169,7 +194,7 @@ pub(super) fn cancel_pending_frames(
         !steps.is_empty()
     };
     if has_frames {
-        unsafe { SetEvent(shared.worker_wake.as_raw_handle() as _) };
+        (crate::windows::win32_safe::set_event(shared.worker_wake.as_raw_handle() as _));
     }
     steps
 }

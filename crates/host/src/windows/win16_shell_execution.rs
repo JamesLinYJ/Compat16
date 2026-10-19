@@ -8,22 +8,21 @@ use std::sync::Arc;
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostProcess, Win16HostShellActivation,
     Win16HostShellExecutionOperation, Win16HostShellExecutionResult, Win16HostShellFailure,
-    Win16HostShellInputEncodingFailure, Win16HostWinExecFailure, Win16NativeModalCancelSignal, Win16NativeModalCancellation,
-    Win16WindowResult, Win16WindowTarget,
+    Win16HostShellInputEncodingFailure, Win16HostWinExecFailure, Win16NativeModalCancelSignal,
+    Win16NativeModalCancellation, Win16WindowResult, Win16WindowTarget,
 };
 use windows_sys::Win32::Foundation::{
-    ERROR_ACCESS_DENIED, ERROR_ELEVATION_REQUIRED, ERROR_FILE_NOT_FOUND,
-    ERROR_NOT_ENOUGH_MEMORY, ERROR_OUTOFMEMORY,
-    ERROR_PATH_NOT_FOUND, ERROR_SHARING_VIOLATION, GetLastError, HWND, MAX_PATH,
+    ERROR_ACCESS_DENIED, ERROR_ELEVATION_REQUIRED, ERROR_FILE_NOT_FOUND, ERROR_NOT_ENOUGH_MEMORY,
+    ERROR_OUTOFMEMORY, ERROR_PATH_NOT_FOUND, ERROR_SHARING_VIOLATION, HWND, MAX_PATH,
 };
+use windows_sys::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
 use windows_sys::Win32::System::Threading::{
-    CreateProcessW, CREATE_UNICODE_ENVIRONMENT, PROCESS_INFORMATION, STARTF_USESHOWWINDOW, STARTUPINFOW, WaitForInputIdle,
+    CREATE_UNICODE_ENVIRONMENT, CreateProcessW, PROCESS_INFORMATION, STARTF_USESHOWWINDOW,
+    STARTUPINFOW, WaitForInputIdle,
 };
-use windows_sys::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx, CoUninitialize};
 use windows_sys::Win32::UI::Shell::{
     DragAcceptFiles, FindExecutableW, SEE_MASK_CLASSNAME, SEE_MASK_NOASYNC,
-    SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW,
-    ShellAboutW, ShellExecuteExW,
+    SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellAboutW, ShellExecuteExW,
 };
 
 #[path = "win16_shell_execution_paths.rs"]
@@ -32,11 +31,11 @@ use paths::{
     AnsiInputConversion, PathEncodingOutcome, lossless_executable_path, resolve_executable_input,
 };
 
-use crate::windows::win16_program_launch;
-use win16_program_launch::native_error_code as win_exec_error;
 use super::super::win16_images::Win16IconLease;
 use super::win16_window_worker::WorkerState;
 use super::win16_windows_dde::allocate_shared_identity;
+use crate::windows::win16_program_launch;
+use win16_program_launch::native_error_code as win_exec_error;
 
 pub(super) struct ProcessLease {
     pub(super) token: Win16HostProcess,
@@ -52,6 +51,7 @@ impl ComApartment {
     fn initialize_sta() -> Result<Self, i32> {
         // Shell extensions may require STA. Balance both S_OK and S_FALSE;
         // never call CoUninitialize after a failed COM initialization.
+        // SAFETY: CoInitializeEx initializes COM on the calling thread.
         let result = unsafe { CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32) };
         if result < 0 {
             return Err(result);
@@ -63,7 +63,7 @@ impl ComApartment {
 impl Drop for ComApartment {
     fn drop(&mut self) {
         if self.initialized {
-            unsafe { CoUninitialize() };
+            (crate::windows::win32_safe::co_uninitialize());
         }
     }
 }
@@ -113,8 +113,10 @@ pub(super) fn execute(
                 Some(process) => {
                     let lease = {
                         let mut worker = state.borrow_mut();
-                        worker.shell_processes.iter().position(|lease|
-                            lease.token == process && lease.handle.is_some())
+                        worker
+                            .shell_processes
+                            .iter()
+                            .position(|lease| lease.token == process && lease.handle.is_some())
                             .map(|index| worker.shell_processes.remove(index))
                     };
                     let released = lease.is_some();
@@ -124,17 +126,29 @@ pub(super) fn execute(
                     released
                 }
             };
-            Ok(super::super::win16_modal::NativeModalOperationOutcome::Returned(
-                Win16WindowResult::ShellExecution(Win16HostShellExecutionResult::ProcessReleased(released))))
+            Ok(
+                super::super::win16_modal::NativeModalOperationOutcome::Returned(
+                    Win16WindowResult::ShellExecution(
+                        Win16HostShellExecutionResult::ProcessReleased(released),
+                    ),
+                ),
+            )
         }
         Win16HostShellExecutionOperation::WinExec { show, .. }
         | Win16HostShellExecutionOperation::LoadModule { show, .. } => {
-            let prepared = prepared.ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
-                "WinExec reached USER without an owned executable preparation"))?;
-            win_exec(state, prepared, show).map(|result|
+            let prepared = prepared.ok_or_else(|| {
+                RuntimeError::new(
+                    Kind::InternalInvariant,
+                    "WinExec reached USER without an owned executable preparation",
+                )
+            })?;
+            win_exec(state, prepared, show).map(|result| {
                 super::super::win16_modal::NativeModalOperationOutcome::Returned(
-                    Win16WindowResult::ShellExecution(Win16HostShellExecutionResult::WinExec(result)),
-                ))
+                    Win16WindowResult::ShellExecution(Win16HostShellExecutionResult::WinExec(
+                        result,
+                    )),
+                )
+            })
         }
         Win16HostShellExecutionOperation::DragAcceptFiles { owner, accept } => {
             let Some((token, hwnd)) = resolve_drop_owner(state, owner) else {
@@ -168,6 +182,7 @@ pub(super) fn execute(
                         )
                     })?;
             }
+            // SAFETY: DragAcceptFiles enables or disables drop on a window this thread owns.
             unsafe {
                 DragAcceptFiles(hwnd, if accept { 1 } else { 0 });
             }
@@ -230,7 +245,12 @@ fn win_exec(
 ) -> Result<Result<Win16HostShellActivation, Win16HostWinExecFailure>, RuntimeError> {
     let mut prepared = match prepared {
         Ok(value) => value,
-        Err(code) => return Ok(Err(Win16HostWinExecFailure { code, native_error: None })),
+        Err(code) => {
+            return Ok(Err(Win16HostWinExecFailure {
+                code,
+                native_error: None,
+            }));
+        }
     };
     let token = {
         let source = Arc::clone(&state.borrow().identity_source);
@@ -238,20 +258,38 @@ fn win_exec(
     };
     {
         let mut worker = state.borrow_mut();
-        worker.shell_processes.try_reserve(1).map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted, "reserve WinExec process lease", error))?;
-        worker.shell_processes.push(ProcessLease { token, handle: None });
+        worker.shell_processes.try_reserve(1).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve WinExec process lease",
+                error,
+            )
+        })?;
+        worker.shell_processes.push(ProcessLease {
+            token,
+            handle: None,
+        });
     }
     if prepared.guest {
-        let launched = win16_program_launch::launch(&prepared, show, || receive_win_exec_sends(state));
+        let launched =
+            win16_program_launch::launch(&prepared, show, || receive_win_exec_sends(state));
         return match launched {
             Ok(Ok(handle)) => {
                 let mut worker = state.borrow_mut();
-                let lease = worker.shell_processes.iter_mut().find(|lease| lease.token == token)
-                    .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
-                        "guest WinExec lost its reserved process identity"))?;
+                let lease = worker
+                    .shell_processes
+                    .iter_mut()
+                    .find(|lease| lease.token == token)
+                    .ok_or_else(|| {
+                        RuntimeError::new(
+                            Kind::InternalInvariant,
+                            "guest WinExec lost its reserved process identity",
+                        )
+                    })?;
                 lease.handle = Some(handle);
-                Ok(Ok(Win16HostShellActivation::ProcessStarted { process: token }))
+                Ok(Ok(Win16HostShellActivation::ProcessStarted {
+                    process: token,
+                }))
             }
             Ok(Err(failure)) => {
                 retire_process_reservation(state, token);
@@ -264,31 +302,52 @@ fn win_exec(
         };
     }
     use std::os::windows::ffi::OsStrExt;
-    let cwd: Vec<u16> = prepared.directory.as_os_str().encode_wide().chain([0]).collect();
-    let application: Vec<u16> = prepared.program.as_os_str().encode_wide().chain([0]).collect();
-    let environment = prepared.native_environment.as_ref()
+    let cwd: Vec<u16> = prepared
+        .directory
+        .as_os_str()
+        .encode_wide()
+        .chain([0])
+        .collect();
+    let application: Vec<u16> = prepared
+        .program
+        .as_os_str()
+        .encode_wide()
+        .chain([0])
+        .collect();
+    let environment = prepared
+        .native_environment
+        .as_ref()
         .map_or(std::ptr::null(), |block| block.as_ptr().cast());
-    let flags = if prepared.native_environment.is_some() { CREATE_UNICODE_ENVIRONMENT } else { 0 };
+    let flags = if prepared.native_environment.is_some() {
+        CREATE_UNICODE_ENVIRONMENT
+    } else {
+        0
+    };
     let command = &mut prepared.native_command;
     let mut startup = STARTUPINFOW::default();
     startup.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
     startup.dwFlags = STARTF_USESHOWWINDOW;
     startup.wShowWindow = show;
     let mut process = PROCESS_INFORMATION::default();
-    let created = unsafe { CreateProcessW(
-        application.as_ptr(), command.as_mut_ptr(), std::ptr::null(), std::ptr::null(), 0, flags,
-        environment, cwd.as_ptr(), &startup, &mut process,
-    ) };
+    // SAFETY: CreateProcessW reads caller-owned strings and writes caller-owned startup and process records.
+    let created = unsafe {
+        CreateProcessW(
+            application.as_ptr(),
+            command.as_mut_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            0,
+            flags,
+            environment,
+            cwd.as_ptr(),
+            &startup,
+            &mut process,
+        )
+    };
     if created == 0 {
-        let error = unsafe { GetLastError() };
+        let error = crate::windows::win32_safe::last_error();
         if error == ERROR_ELEVATION_REQUIRED && prepared.native_environment.is_none() {
-            let result = shell_execute_for_elevation(
-                state,
-                token,
-                command,
-                &cwd,
-                show,
-            );
+            let result = shell_execute_for_elevation(state, token, command, &cwd, show);
             if !matches!(&result, Ok(Ok(_))) {
                 retire_process_reservation(state, token);
             }
@@ -296,38 +355,71 @@ fn win_exec(
         }
         retire_process_reservation(state, token);
         let code = win_exec_error(error);
-        return Ok(Err(Win16HostWinExecFailure { code, native_error: Some(error) }));
+        return Ok(Err(Win16HostWinExecFailure {
+            code,
+            native_error: Some(error),
+        }));
     }
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     let owned = unsafe { OwnedHandle::from_raw_handle(process.hProcess as RawHandle) };
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     let thread = unsafe { OwnedHandle::from_raw_handle(process.hThread as RawHandle) };
     drop(thread);
+    // SAFETY: WaitForInputIdle waits on a process handle this owner holds.
     let _ = unsafe { WaitForInputIdle(process.hProcess, 10_000) };
     let mut worker = state.borrow_mut();
-    let lease = worker.shell_processes.iter_mut().find(|lease| lease.token == token)
-        .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
-            "WinExec process reservation disappeared after native launch"))?;
+    let lease = worker
+        .shell_processes
+        .iter_mut()
+        .find(|lease| lease.token == token)
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::InternalInvariant,
+                "WinExec process reservation disappeared after native launch",
+            )
+        })?;
     lease.handle = Some(owned);
-    Ok(Ok(Win16HostShellActivation::ProcessStarted { process: token }))
+    Ok(Ok(Win16HostShellActivation::ProcessStarted {
+        process: token,
+    }))
 }
 
 fn receive_win_exec_sends(state: &Rc<RefCell<WorkerState>>) -> Result<(), RuntimeError> {
     use super::win16_guest_notifications as notifications;
-    use windows_sys::Win32::UI::WindowsAndMessaging::{MSG, PeekMessageW, PM_NOREMOVE, PM_QS_SENDMESSAGE};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        MSG, PM_NOREMOVE, PM_QS_SENDMESSAGE, PeekMessageW,
+    };
     if state.borrow().aborted {
-        return Err(RuntimeError::new(Kind::HostFailure, "WinExec startup was canceled"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "WinExec startup was canceled",
+        ));
     }
     // LibMain may synchronously send to a parent window. Keep the ordinary
     // resumable USER owner active and leave its posted guest messages queued.
     notifications::requeue_deferred()?;
     let queue = notifications::require_bound_queue(notifications::current_queue());
-    let _scope = queue.map(|queue| notifications::guest_retrieval_scope(queue,
-        PM_NOREMOVE | PM_QS_SENDMESSAGE)).transpose()?;
+    let _scope = queue
+        .map(|queue| notifications::guest_retrieval_scope(queue, PM_NOREMOVE | PM_QS_SENDMESSAGE))
+        .transpose()?;
     let mut message = MSG::default();
-    unsafe { PeekMessageW(&mut message, std::ptr::null_mut(), 0, 0, PM_NOREMOVE | PM_QS_SENDMESSAGE); }
-    if state.borrow().aborted || queue.is_some_and(|queue|
-        notifications::require_bound_queue(Some(queue)) != Some(queue)) {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "WinExec lost its USER owner during a synchronous callback"));
+    // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
+    unsafe {
+        PeekMessageW(
+            &mut message,
+            std::ptr::null_mut(),
+            0,
+            0,
+            PM_NOREMOVE | PM_QS_SENDMESSAGE,
+        );
+    }
+    if state.borrow().aborted
+        || queue.is_some_and(|queue| notifications::require_bound_queue(Some(queue)) != Some(queue))
+    {
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "WinExec lost its USER owner during a synchronous callback",
+        ));
     }
     Ok(())
 }
@@ -353,15 +445,23 @@ fn shell_execute_for_elevation(
     };
     let _apartment = match ComApartment::initialize_sta() {
         Ok(apartment) => apartment,
-        Err(_) => return Ok(Err(Win16HostWinExecFailure {
-            code: 31,
-            native_error: None,
-        })),
+        Err(_) => {
+            return Ok(Err(Win16HostWinExecFailure {
+                code: 31,
+                native_error: None,
+            }));
+        }
     };
     let verb: [u16; 5] = [b'o' as u16, b'p' as u16, b'e' as u16, b'n' as u16, 0];
     let class: [u16; 8] = [
-        b'e' as u16, b'x' as u16, b'e' as u16, b'f' as u16,
-        b'i' as u16, b'l' as u16, b'e' as u16, 0,
+        b'e' as u16,
+        b'x' as u16,
+        b'e' as u16,
+        b'f' as u16,
+        b'i' as u16,
+        b'l' as u16,
+        b'e' as u16,
+        0,
     ];
     let mut info = SHELLEXECUTEINFOW::default();
     info.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
@@ -371,29 +471,41 @@ fn shell_execute_for_elevation(
     info.fMask = SEE_MASK_CLASSNAME | SEE_MASK_NOASYNC | SEE_MASK_NOCLOSEPROCESS;
     info.lpVerb = verb.as_ptr();
     info.lpFile = file.as_ptr();
-    info.lpParameters = parameters.as_ref().map_or(std::ptr::null(), |value| value.as_ptr());
+    info.lpParameters = parameters
+        .as_ref()
+        .map_or(std::ptr::null(), |value| value.as_ptr());
     info.lpDirectory = cwd.as_ptr();
     info.lpClass = class.as_ptr();
     info.nShow = i32::from(show);
+    // SAFETY: `ShellExecuteExW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let called = unsafe { ShellExecuteExW(&mut info) } != 0;
-    let native_error = unsafe { GetLastError() };
+    let native_error = crate::windows::win32_safe::last_error();
     let shell_status = info.hInstApp as usize;
     if called && shell_status > 32 {
         if info.hProcess.is_null() {
             retire_process_reservation(state, token);
             return Ok(Ok(Win16HostShellActivation::NativeActivationReceipt));
         }
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let handle = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
         let mut worker = state.borrow_mut();
-        let lease = worker.shell_processes.iter_mut().find(|lease| lease.token == token)
-            .ok_or_else(|| RuntimeError::new(
-                Kind::InternalInvariant,
-                "WinExec process reservation disappeared after ShellExecuteEx",
-            ))?;
+        let lease = worker
+            .shell_processes
+            .iter_mut()
+            .find(|lease| lease.token == token)
+            .ok_or_else(|| {
+                RuntimeError::new(
+                    Kind::InternalInvariant,
+                    "WinExec process reservation disappeared after ShellExecuteEx",
+                )
+            })?;
         lease.handle = Some(handle);
-        return Ok(Ok(Win16HostShellActivation::ProcessStarted { process: token }));
+        return Ok(Ok(Win16HostShellActivation::ProcessStarted {
+            process: token,
+        }));
     }
     if !info.hProcess.is_null() {
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let _unexpected = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
     }
     let code = if shell_status > 0 && shell_status <= 32 {
@@ -415,14 +527,22 @@ fn split_win_exec_command_line(command: &[u16]) -> Option<(Vec<u16>, Option<Vec<
         let end = text[1..].iter().position(|unit| *unit == b'"' as u16)? + 1;
         (&text[1..end], &text[end + 1..])
     } else {
-        let end = text.iter().position(|unit| matches!(*unit, 0x20 | 0x09))
+        let end = text
+            .iter()
+            .position(|unit| matches!(*unit, 0x20 | 0x09))
             .unwrap_or(text.len());
         (&text[..end], &text[end..])
     };
-    if file.is_empty() || tail.first().is_some_and(|unit| !matches!(*unit, 0x20 | 0x09)) {
+    if file.is_empty()
+        || tail
+            .first()
+            .is_some_and(|unit| !matches!(*unit, 0x20 | 0x09))
+    {
         return None;
     }
-    let tail_start = tail.iter().position(|unit| !matches!(*unit, 0x20 | 0x09))
+    let tail_start = tail
+        .iter()
+        .position(|unit| !matches!(*unit, 0x20 | 0x09))
         .unwrap_or(tail.len());
     let mut file = file.to_vec();
     file.push(0);
@@ -561,10 +681,12 @@ fn execute_file(
     // Shell association and error UI is owned by the native shell target and
     // is not enrolled in the ShellAbout modal scope; no cancellation guarantee
     // is made for any UI ShellExecuteEx may display.
+    // SAFETY: `ShellExecuteExW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let called = unsafe { ShellExecuteExW(&mut info) } != 0;
     let status = info.hInstApp as usize;
     if called && status > 32 {
         if !info.hProcess.is_null() {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let owned = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
             let mut state = state.borrow_mut();
             let Some(lease) = state
@@ -592,13 +714,14 @@ fn execute_file(
         )));
     }
 
-    let native_error = unsafe { GetLastError() };
+    let native_error = crate::windows::win32_safe::last_error();
     let shell_error = if status <= 32 && status != 0 {
         status as u16
     } else {
         map_shell_error(native_error)
     };
     if !info.hProcess.is_null() {
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let _unexpected = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
     }
     retire_process_reservation(state, token);
@@ -718,6 +841,7 @@ fn find_executable(
     // that exact executable's resolved path. This API call therefore handles
     // document association; Windows documents that association lookup may
     // start a DDE server.
+    // SAFETY: `FindExecutableW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let instance = unsafe {
         FindExecutableW(
             file_wide.as_ptr(),
@@ -807,6 +931,7 @@ fn about(
     // Its dialog has no private DLGPROC/HWND return, so the scoped modal hook
     // tracks only its real system-dialog activation and waits for API return.
     let call = super::super::win16_modal::with_native_modal(operation_id, || {
+        // SAFETY: `ShellAboutW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let shown = unsafe {
             ShellAboutW(
                 hwnd,
@@ -815,7 +940,7 @@ fn about(
                 native_icon,
             )
         } != 0;
-        let last_error = (!shown).then(|| unsafe { GetLastError() });
+        let last_error = (!shown).then(|| crate::windows::win32_safe::last_error());
         (shown, last_error)
     })?;
     use super::super::win16_modal::{

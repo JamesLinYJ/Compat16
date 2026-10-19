@@ -6,7 +6,7 @@ use runtime::{
     Win16HostMetafileResult as ResultValue,
 };
 use windows_sys::Win32::Graphics::Gdi::{
-    GetStockObject, HANDLETABLE, METARECORD, PlayMetaFileRecord, SelectObject,
+    HANDLETABLE, METARECORD, PlayMetaFileRecord, SelectObject,
 };
 
 pub(in crate::windows) fn play(
@@ -51,7 +51,8 @@ pub(in crate::windows) fn play(
     } else if function == 0x012d && u16::from_le_bytes([record[6], record[7]]) & 0x8000 != 0 {
         let stock = u16::from_le_bytes([record[6], record[7]]) & 0x7fff;
         // Resolve WMF's stock-object encoding without indexing the table.
-        let stock = unsafe { GetStockObject(i32::from(stock)) };
+        let stock = crate::windows::win32_safe::stock_object(i32::from(stock));
+        // SAFETY: SelectObject selects a GDI object this process created into a live DC.
         let previous = unsafe { SelectObject(dc.native(), stock) };
         !previous.is_null() && previous as isize != -1
     } else {

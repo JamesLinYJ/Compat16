@@ -3,8 +3,8 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use runtime::{
-    DiagnosticKind, RuntimeError, Win16GuestNotificationSource,
-    Win16HostNetworkEvent, Win16HostNetworkValue,
+    DiagnosticKind, RuntimeError, Win16GuestNotificationSource, Win16HostNetworkEvent,
+    Win16HostNetworkValue,
 };
 use windows_sys::Win32::Networking::WinSock::*;
 
@@ -22,10 +22,17 @@ impl std::error::Error for SocketProbeError {}
 pub(super) fn allocate_source_id(identity_source: &AtomicU64) -> Option<u64> {
     loop {
         let current = identity_source.load(Ordering::Acquire);
-        if current == 0 || current == u64::MAX { return None; }
+        if current == 0 || current == u64::MAX {
+            return None;
+        }
         let next = current.checked_add(1)?;
-        if next == 0 { return None; }
-        if identity_source.compare_exchange_weak(current, next, Ordering::AcqRel, Ordering::Acquire).is_ok() {
+        if next == 0 {
+            return None;
+        }
+        if identity_source
+            .compare_exchange_weak(current, next, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+        {
             return Some(current);
         }
     }
@@ -41,20 +48,36 @@ pub(super) fn event_source(event: &Win16HostNetworkEvent) -> Win16GuestNotificat
 pub(super) fn socket_error(raw: SOCKET) -> Result<i32, i32> {
     let mut error = 0i32;
     let mut length = std::mem::size_of::<i32>() as i32;
+    // SAFETY: getsockopt writes into a caller-owned option buffer.
     let result = unsafe {
-        getsockopt(raw, SOL_SOCKET, SO_ERROR, (&mut error as *mut i32).cast(), &mut length)
+        getsockopt(
+            raw,
+            SOL_SOCKET,
+            SO_ERROR,
+            (&mut error as *mut i32).cast(),
+            &mut length,
+        )
     };
-    if result == SOCKET_ERROR { Err(unsafe { WSAGetLastError() }) }
-    else { Ok(error) }
+    if result == SOCKET_ERROR {
+        Err(crate::windows::win32_safe::wsa_last_error())
+    } else {
+        Ok(error)
+    }
 }
 
 pub(super) fn socket_peek_status(raw: SOCKET) -> Result<Option<usize>, i32> {
     let mut byte = 0u8;
+    // SAFETY: recv writes into a caller-owned byte span.
     let result = unsafe { recv(raw, (&mut byte as *mut u8).cast(), 1, MSG_PEEK) };
-    if result >= 0 { Ok(Some(result as usize)) }
-    else {
-        let error = unsafe { WSAGetLastError() };
-        if error == WSAEWOULDBLOCK { Ok(None) } else { Err(error) }
+    if result >= 0 {
+        Ok(Some(result as usize))
+    } else {
+        let error = { crate::windows::win32_safe::wsa_last_error() };
+        if error == WSAEWOULDBLOCK {
+            Ok(None)
+        } else {
+            Err(error)
+        }
     }
 }
 

@@ -5,9 +5,7 @@ use crate::windows::{guest_text::GuestTextCodec, win16_gdi::Win16Dcs, win16_imag
 use runtime::{Win16MessageCall, Win16MessageCallResult};
 use std::sync::{Arc, atomic::AtomicU64, mpsc};
 use std::time::Duration;
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DestroyWindow, PostMessageW, WS_POPUP,
-};
+use windows_sys::Win32::UI::WindowsAndMessaging::{CreateWindowExW, PostMessageW, WS_POPUP};
 
 #[path = "win16_message_loop_host_timer_tests.rs"]
 mod host_timer_tests;
@@ -43,6 +41,7 @@ struct Window {
 impl Window {
     fn new(state: &Rc<RefCell<WorkerState>>) -> Self {
         let class: Vec<u16> = "STATIC\0".encode_utf16().collect();
+        // SAFETY: CreateWindowExW receives caller-owned class and title strings that stay live for the call. The creation parameter is null or a live record.
         let hwnd = unsafe {
             CreateWindowExW(
                 0,
@@ -71,9 +70,7 @@ impl Window {
 
 impl Drop for Window {
     fn drop(&mut self) {
-        unsafe {
-            DestroyWindow(self.hwnd);
-        }
+        crate::windows::win32_safe::destroy_window(self.hwnd);
         worker::remove_window_maps(&self.state, self.token, self.hwnd);
     }
 }
@@ -118,6 +115,7 @@ impl Drop for Operation {
     }
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn native_timer_proc(_hwnd: HWND, _message: u32, _id: usize, _time: u32) {}
 
 #[test]
@@ -161,6 +159,7 @@ fn system_timer_native_callback_never_becomes_guest_scalar_or_farproc() {
         // existing remove/compare/dispatch route rather than leaking bits.
         native.lParam = native_timer_proc as *const () as isize;
         assert_ne!(
+            // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
             unsafe { PostMessageW(window.hwnd, native.message, native.wParam, native.lParam) },
             0
         );

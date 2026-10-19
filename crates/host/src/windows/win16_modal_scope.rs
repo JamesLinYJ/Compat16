@@ -8,7 +8,6 @@ use std::sync::atomic::Ordering;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::Foundation::{HWND, WPARAM};
-use windows_sys::Win32::System::Threading::GetCurrentProcessId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{EndDialog, GetWindowThreadProcessId};
 
 use super::{MODAL_CANCEL_SENTINEL, ModalWorkerControl, current_control, merge_failure};
@@ -27,20 +26,21 @@ pub(super) struct ModalToken(pub(super) usize);
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::windows) enum ModalDisposition {
     Returned,
-    Cancelled { signal: ModalCancellationSignal, scope_id: u64 },
+    Cancelled {
+        signal: ModalCancellationSignal,
+        scope_id: u64,
+    },
 }
 
 pub(in crate::windows) struct ModalScopeRetirement {
     pub(in crate::windows) disposition: ModalDisposition,
-    pub(in crate::windows) retired_guest_work:
-        Vec<runtime::Win16NativeModalGuestWorkRetirement>,
+    pub(in crate::windows) retired_guest_work: Vec<runtime::Win16NativeModalGuestWorkRetirement>,
 }
 
 #[derive(Debug)]
 pub(in crate::windows) struct ModalScopeFinishError {
     pub(in crate::windows) cause: RuntimeError,
-    pub(in crate::windows) retired_guest_work:
-        Vec<runtime::Win16NativeModalGuestWorkRetirement>,
+    pub(in crate::windows) retired_guest_work: Vec<runtime::Win16NativeModalGuestWorkRetirement>,
 }
 
 impl std::fmt::Display for ModalScopeFinishError {
@@ -293,9 +293,10 @@ impl ModalScope {
             ));
         }
         let mut owner_process = 0u32;
+        // SAFETY: GetWindowThreadProcessId optionally writes a caller-owned process id.
         let owner_thread = unsafe { GetWindowThreadProcessId(dialog, &mut owner_process) };
         if owner_thread == 0 {
-            let error = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+            let error = crate::windows::win32_safe::last_error();
             return Err(RuntimeError::with_source(
                 Kind::HostFailure,
                 "query the Win16 DLGPROC HWND owner",
@@ -303,7 +304,7 @@ impl ModalScope {
             ));
         }
         if owner_thread != self.control.thread_id.load(Ordering::Acquire)
-            || owner_process != unsafe { GetCurrentProcessId() }
+            || owner_process != (crate::windows::win32_safe::current_process_id())
         {
             return Err(RuntimeError::new(
                 Kind::InternalInvariant,
@@ -370,8 +371,9 @@ impl ModalScope {
             return Ok(false);
         }
         // No TLS borrow is held while calling reentrant USER code.
+        // SAFETY: EndDialog ends a dialog this thread is running.
         if unsafe { EndDialog(dialog, MODAL_CANCEL_SENTINEL) } == 0 {
-            let error = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+            let error = crate::windows::win32_safe::last_error();
             let failure = RuntimeError::with_source(
                 Kind::HostFailure,
                 "end the Win16 modal dialog from its DLGPROC during worker cancellation",
@@ -454,13 +456,16 @@ impl ModalScope {
                         scope_id: self.token.0 as u64,
                     }
                 });
-                match self.control.retire_modal_scope(
-                    self.operation_id,
-                    self.token.0 as u64,
-                ) {
+                match self
+                    .control
+                    .retire_modal_scope(self.operation_id, self.token.0 as u64)
+                {
                     Ok(retired) => retired_guest_work = retired,
-                    Err(error) => merge_failure(&mut failure, error,
-                        "Win16 modal return and guest-work scope retirement both failed"),
+                    Err(error) => merge_failure(
+                        &mut failure,
+                        error,
+                        "Win16 modal return and guest-work scope retirement both failed",
+                    ),
                 }
                 if let Some(error) = frame_failure {
                     merge_failure(&mut failure, error, "Win16 modal DLGPROC failures combined");
@@ -468,22 +473,38 @@ impl ModalScope {
                 if let Some(error) = self.control.take_callback_failure() {
                     merge_failure(&mut failure, error, "Win16 modal hook callback failed");
                 }
-                if let Err(error) = super::super::win16_windows::requeue_deferred_guest_notifications() {
-                    merge_failure(&mut failure, error,
-                        "Win16 modal return and deferred notification requeue both failed");
+                if let Err(error) =
+                    super::super::win16_windows::requeue_deferred_guest_notifications()
+                {
+                    merge_failure(
+                        &mut failure,
+                        error,
+                        "Win16 modal return and deferred notification requeue both failed",
+                    );
                 }
                 return match failure {
-                    Some(cause) => Err(ModalScopeFinishError { cause, retired_guest_work }),
-                    None => Ok(ModalScopeRetirement { disposition, retired_guest_work }),
+                    Some(cause) => Err(ModalScopeFinishError {
+                        cause,
+                        retired_guest_work,
+                    }),
+                    None => Ok(ModalScopeRetirement {
+                        disposition,
+                        retired_guest_work,
+                    }),
                 };
             }
             Err(error) => merge_failure(&mut failure, error, "Win16 modal scope cleanup failed"),
         }
-        let cause = failure.unwrap_or_else(|| RuntimeError::new(
-            Kind::InternalInvariant,
-            "Win16 modal scope returned without retiring its native frame",
-        ));
-        Err(ModalScopeFinishError { cause, retired_guest_work })
+        let cause = failure.unwrap_or_else(|| {
+            RuntimeError::new(
+                Kind::InternalInvariant,
+                "Win16 modal scope returned without retiring its native frame",
+            )
+        });
+        Err(ModalScopeFinishError {
+            cause,
+            retired_guest_work,
+        })
     }
 
     fn mark_cancel_signal(&self, signal: ModalCancellationSignal) -> Result<(), RuntimeError> {

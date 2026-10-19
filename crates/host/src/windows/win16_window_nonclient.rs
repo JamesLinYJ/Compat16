@@ -50,8 +50,10 @@ pub(in crate::windows::win16_windows) fn copy_native_input(
         u16::try_from(w_param).unwrap_or(1)
     };
     if l_param == 0 {
-        return Err(RuntimeError::new(Kind::InvalidInput,
-            "native WM_NCCALCSIZE has a null structure pointer"));
+        return Err(RuntimeError::new(
+            Kind::InvalidInput,
+            "native WM_NCCALCSIZE has a null structure pointer",
+        ));
     }
 
     if w_param == 0 {
@@ -78,7 +80,9 @@ pub(in crate::windows::win16_windows) fn copy_native_input(
         Some(pointer) => {
             let (position, _identity, high_flags) =
                 super::super::win16_window_position::copy_from_native(
-                    state, unsafe { &*pointer },
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+                    state,
+                    unsafe { &*pointer },
                 )?;
             (Some(position), Some(high_flags))
         }
@@ -102,25 +106,24 @@ impl NativeNonClientCalcSize {
         data: Win16HostNonClientCalcSize,
     ) -> Result<Option<Box<Self>>, RuntimeError> {
         match (w_param == 0, data) {
-            (true, Win16HostNonClientCalcSize::Rect(rect)) => {
-                Ok(Some(Box::new(Self {
-                    data: NativeNonClientCalcSizeData::Rect(Box::new(native_rect(rect))),
-                })))
-            }
+            (true, Win16HostNonClientCalcSize::Rect(rect)) => Ok(Some(Box::new(Self {
+                data: NativeNonClientCalcSizeData::Rect(Box::new(native_rect(rect))),
+            }))),
             (false, Win16HostNonClientCalcSize::ValidRects { rects, position }) => {
-                let position = match position {
-                    Some(typed) => {
-                        // The shared owner snapshots both raw handles and
-                        // their tokens before reentrant USER execution.
-                        let Some(native) =
+                let position =
+                    match position {
+                        Some(typed) => {
+                            // The shared owner snapshots both raw handles and
+                            // their tokens before reentrant USER execution.
+                            let Some(native) =
                             super::super::win16_window_position::NativeWindowPosition::from_owned(
                                 state, typed,
                             )?
                         else { return Ok(None); };
-                        Some(native)
-                    }
-                    None => None,
-                };
+                            Some(native)
+                        }
+                        None => None,
+                    };
                 let params = NCCALCSIZE_PARAMS {
                     rgrc: rects.map(native_rect),
                     // Derive this pointer only after the complete boxed owner
@@ -134,8 +137,10 @@ impl NativeNonClientCalcSize {
                     },
                 })))
             }
-            _ => Err(RuntimeError::new(Kind::InvalidInput,
-                "Win16 WM_NCCALCSIZE parameter and rectangle shape disagree")),
+            _ => Err(RuntimeError::new(
+                Kind::InvalidInput,
+                "Win16 WM_NCCALCSIZE parameter and rectangle shape disagree",
+            )),
         }
     }
 
@@ -146,8 +151,9 @@ impl NativeNonClientCalcSize {
         match &mut self.data {
             NativeNonClientCalcSizeData::Rect(rect) => (&mut **rect as *mut RECT) as LPARAM,
             NativeNonClientCalcSizeData::ValidRects { params, position } => {
-                params.lppos = position.as_deref_mut().map_or(std::ptr::null_mut(),
-                    |position| position.native_ptr());
+                params.lppos = position
+                    .as_deref_mut()
+                    .map_or(std::ptr::null_mut(), |position| position.native_ptr());
                 (&mut **params as *mut NCCALCSIZE_PARAMS) as LPARAM
             }
         }
@@ -165,10 +171,9 @@ impl NativeNonClientCalcSize {
                 // This is the owned pointer projection limit: never follow
                 // params.lppos after native code may have rewritten it. Read
                 // only this call's WINDOWPOS box, never an unknown pointer.
-                let expected_lppos = position.as_ref().map_or(
-                    0,
-                    |position| position.native_address(),
-                );
+                let expected_lppos = position
+                    .as_ref()
+                    .map_or(0, |position| position.native_address());
                 let pointer_changed = params.lppos as usize != expected_lppos;
                 let position = match position.as_deref() {
                     Some(position) => {
@@ -212,7 +217,9 @@ pub(in crate::windows::win16_windows) fn write_output(
     original_position_high_flags: Option<u32>,
     data: Win16HostNonClientCalcSize,
 ) -> bool {
-    if l_param == 0 { return false; }
+    if l_param == 0 {
+        return false;
+    }
     if receiver.is_some_and(|(window, hwnd)| {
         !NativeNonClientCalcSize::receiver_is_current(state, window, hwnd)
     }) {
@@ -226,42 +233,49 @@ pub(in crate::windows::win16_windows) fn write_output(
             let native = native_rect(rect);
             // SAFETY: The original synchronous false-branch caller supplied a
             // writable RECT and the owned shape was validated above.
-            unsafe { *(l_param as *mut RECT) = native; }
+            unsafe {
+                *(l_param as *mut RECT) = native;
+            }
             true
         }
         (false, Win16HostNonClientCalcSize::ValidRects { rects, position }) => {
             let (native_position, nullness_changed, invalid_position) =
                 match (original_position, position) {
-                (Some(_), Some(position)) => match super::super::win16_window_position::
-                    checked_native_position(state, position)
-                {
-                    Ok(Some(mut position)) => {
-                        let Some(original_high_flags) = original_position_high_flags else {
-                            return false;
-                        };
-                        position.flags = super::super::win16_window_position::
-                            merge_callback_flags(position.flags, original_high_flags);
-                        (Some(position), false, false)
+                    (Some(_), Some(position)) => {
+                        match super::super::win16_window_position::checked_native_position(
+                            state, position,
+                        ) {
+                            Ok(Some(mut position)) => {
+                                let Some(original_high_flags) = original_position_high_flags else {
+                                    return false;
+                                };
+                                position.flags =
+                                    super::super::win16_window_position::merge_callback_flags(
+                                        position.flags,
+                                        original_high_flags,
+                                    );
+                                (Some(position), false, false)
+                            }
+                            // Retain the native nested destination, but rectangles
+                            // remain independently checked and can still be applied.
+                            Ok(None) => (None, false, true),
+                            Err(_) => return false,
+                        }
                     }
-                    // Retain the native nested destination, but rectangles
-                    // remain independently checked and can still be applied.
-                    Ok(None) => (None, false, true),
-                    Err(_) => return false,
-                },
-                (None, Some(position)) => {
-                    // Validate every output handle even though there is no
-                    // native nested destination in which to project the value.
-                    match super::super::win16_window_position::checked_native_position(
-                        state, position,
-                    ) {
-                        Ok(Some(_)) => (None, true, false),
-                        Ok(None) => (None, false, true),
-                        Err(_) => return false,
+                    (None, Some(position)) => {
+                        // Validate every output handle even though there is no
+                        // native nested destination in which to project the value.
+                        match super::super::win16_window_position::checked_native_position(
+                            state, position,
+                        ) {
+                            Ok(Some(_)) => (None, true, false),
+                            Ok(None) => (None, false, true),
+                            Err(_) => return false,
+                        }
                     }
-                }
-                (Some(_), None) => (None, true, false),
-                (None, None) => (None, false, false),
-            };
+                    (Some(_), None) => (None, true, false),
+                    (None, None) => (None, false, false),
+                };
             let native_rects = rects.map(native_rect);
             let params = l_param as *mut NCCALCSIZE_PARAMS;
 
@@ -303,7 +317,9 @@ fn report_nonclient_gap(state: &Rc<RefCell<WorkerState>>, message: &'static str)
         let diagnostic = runtime::Diagnostic::warning(Kind::CompatibilityGap, message);
         // Runtime consumes diagnostics as recoverable operation steps, then
         // resumes this same suspended USER call without a callback reply.
-        let _ = active.response.send(Ok(Win16WindowStep::Diagnostic(diagnostic)));
+        let _ = active
+            .response
+            .send(Ok(Win16WindowStep::Diagnostic(diagnostic)));
     }
 }
 

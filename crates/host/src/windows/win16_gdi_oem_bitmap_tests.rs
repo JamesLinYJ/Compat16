@@ -5,8 +5,8 @@ use super::super::{
 use super::*;
 use runtime::Win16GdiObjectOperation;
 use windows_sys::Win32::Graphics::Gdi::{
-    BI_RGB, BITMAP, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS, DeleteObject, GetDC, GetDIBits,
-    GetObjectW, HBITMAP, HDC, LoadBitmapW, ReleaseDC,
+    BI_RGB, BITMAP, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS, GetDC, GetDIBits, GetObjectW,
+    HBITMAP, HDC, LoadBitmapW,
 };
 
 const PAIRS: [(u16, u16); 8] = [
@@ -39,13 +39,14 @@ fn oem_bitmap_other_resource_ids_remain_unchanged() {
 struct Bitmap(HBITMAP);
 impl Drop for Bitmap {
     fn drop(&mut self) {
-        unsafe { DeleteObject(self.0.cast()) };
+        (crate::windows::win32_safe::delete_object(self.0.cast()));
     }
 }
 
 struct Screen(HDC);
 impl Screen {
     fn new() -> Self {
+        // SAFETY: GetDC returns a device context for the HWND or the screen when the HWND is null.
         let dc = unsafe { GetDC(std::ptr::null_mut()) };
         assert!(!dc.is_null());
         Self(dc)
@@ -53,13 +54,14 @@ impl Screen {
 }
 impl Drop for Screen {
     fn drop(&mut self) {
-        unsafe { ReleaseDC(std::ptr::null_mut(), self.0) };
+        (crate::windows::win32_safe::release_dc(std::ptr::null_mut(), self.0));
     }
 }
 
 fn pixels(dc: HDC, bitmap: HBITMAP) -> (i32, i32, Vec<[u8; 3]>) {
     let mut object = BITMAP::default();
     assert_eq!(
+        // SAFETY: GetObjectW writes into a caller-owned buffer of the byte count passed with it.
         unsafe {
             GetObjectW(
                 bitmap.cast(),
@@ -85,6 +87,7 @@ fn pixels(dc: HDC, bitmap: HBITMAP) -> (i32, i32, Vec<[u8; 3]>) {
     };
     let mut bytes = vec![0; object.bmWidth as usize * object.bmHeight as usize * 4];
     assert_eq!(
+        // SAFETY: `GetDIBits` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe {
             GetDIBits(
                 dc,
@@ -113,6 +116,7 @@ fn oem_bitmap_native_legacy_outputs_match_current_user_glyph_pixels() {
     let dcs = Win16Dcs::with_text_codec(GuestTextCodec::new(1252).unwrap());
     let screen = Screen::new();
     for (old, canonical) in PAIRS {
+        // SAFETY: `LoadBitmapW` receives a host pointer formed in this function. The pointer is non-null when dereferenced, stays live for this synchronous call, and is not a guest address.
         let expected = Bitmap(unsafe {
             LoadBitmapW(std::ptr::null_mut(), usize::from(canonical) as *const u16)
         });

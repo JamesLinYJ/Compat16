@@ -5,7 +5,10 @@
 //! host token can be used or cleaned up again. Replacing the class brush does
 //! not retire the displaced brush, which is still owned by the GDI table.
 
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 #[derive(Clone)]
 pub(in crate::windows) struct Win16ClassBrush {
@@ -19,7 +22,7 @@ impl Win16ClassBrush {
         // their existing aliases usable; only acknowledge an actual deletion.
         // SAFETY: This is the host-private brush incarnation installed on the
         // class whose successful UnregisterClass acknowledgement we received.
-        if unsafe { windows_sys::Win32::Graphics::Gdi::GetObjectType(self.handle as _) } == 0 {
+        if (crate::windows::win32_safe::get_object_type(self.handle as _)) == 0 {
             self.retired.store(true, Ordering::Release);
         }
     }
@@ -34,6 +37,9 @@ pub(in crate::windows) struct NativeClassBackground {
 
 impl NativeClassBackground {
     pub(in crate::windows) fn shared(handle: usize) -> Self {
-        Self { handle, brush: None }
+        Self {
+            handle,
+            brush: None,
+        }
     }
 }

@@ -38,6 +38,7 @@ pub(super) fn send(
                     lpfilename: filename.as_ptr(),
                     rc,
                 };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 Ok(unsafe { super::call_native(native_id, message, flags, &mut record) })
             } else {
                 let mut record = MCI_OVLY_LOAD_PARMSW {
@@ -45,6 +46,7 @@ pub(super) fn send(
                     lpfilename: filename.as_ptr(),
                     rc,
                 };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 Ok(unsafe { super::call_native(native_id, message, flags, &mut record) })
             }
         }
@@ -58,6 +60,7 @@ pub(super) fn send(
                 dwCallback: callback,
                 lpfilename: filename.as_ptr(),
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             Ok(unsafe { super::call_native(native_id, message, flags, &mut record) })
         }
         (false, None) => {
@@ -65,6 +68,7 @@ pub(super) fn send(
                 dwCallback: callback,
                 lpfilename: filename.as_ptr(),
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             Ok(unsafe { super::call_native(native_id, message, flags, &mut record) })
         }
     }

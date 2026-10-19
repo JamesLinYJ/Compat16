@@ -8,11 +8,11 @@ mod native;
 mod operation_lifecycle;
 #[path = "win16_dde_shutdown.rs"]
 mod shutdown;
-#[path = "win16_dde_worker.rs"]
-mod worker;
 #[cfg(test)]
 #[path = "win16_dde_test_support.rs"]
 mod test_support;
+#[path = "win16_dde_worker.rs"]
+mod worker;
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
@@ -305,7 +305,8 @@ impl Win16DdeHost {
         };
         let transfer_data = match &call {
             Win16HostDdeCall::ClientTransaction {
-                data: Win16HostDdeTransactionData::Data(data), ..
+                data: Win16HostDdeTransactionData::Data(data),
+                ..
             } => Some(*data),
             _ => None,
         };
@@ -434,6 +435,7 @@ impl Win16DdeHost {
     }
 
     fn wake_worker(&self) -> Result<(), RuntimeError> {
+        // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
         let posted = unsafe {
             windows_sys::Win32::UI::WindowsAndMessaging::PostMessageW(
                 self.control_window as _,

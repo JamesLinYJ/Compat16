@@ -58,6 +58,7 @@ struct NativeBlob(CRYPT_INTEGER_BLOB);
 impl Drop for NativeBlob {
     fn drop(&mut self) {
         if !self.0.pbData.is_null() {
+            // SAFETY: LocalFree releases a pointer this owner obtained from the API that produced it.
             unsafe {
                 LocalFree(self.0.pbData.cast());
             }
@@ -115,6 +116,7 @@ fn crypt(protect: bool, key: &[u8; 32], input: &[u8]) -> Option<Vec<u8>> {
     }
     let mut bytes = Vec::new();
     bytes.try_reserve_exact(length).ok()?;
+    // SAFETY: The pointer and length were checked against the owning allocation, and the bytes stay live for this copy.
     bytes.extend_from_slice(unsafe { std::slice::from_raw_parts(output.0.pbData, length) });
     Some(bytes)
 }

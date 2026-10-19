@@ -36,6 +36,7 @@ pub(super) fn send(
                     bottom: 0,
                 },
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut record) }
         }
         (
@@ -56,6 +57,7 @@ pub(super) fn send(
                     bottom: i32::from(bottom),
                 },
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             unsafe { call_native(native_id, message, flags, &mut record) }
         }
         _ => MCIERR_UNSUPPORTED_FUNCTION,

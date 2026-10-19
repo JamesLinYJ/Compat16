@@ -3,12 +3,8 @@
 use super::*;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, SyncSender, TryRecvError};
 use std::time::Duration;
-use windows_sys::Win32::Foundation::{
-    CloseHandle, GetLastError, HANDLE, WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT,
-};
-use windows_sys::Win32::System::Threading::{
-    CreateEventW, WaitForSingleObject,
-};
+use windows_sys::Win32::Foundation::{HANDLE, WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT};
+use windows_sys::Win32::System::Threading::{CreateEventW, WaitForSingleObject};
 
 const NRC_PENDING: u8 = 0xff;
 const NRC_GOODRET: u8 = 0x00;
@@ -34,17 +30,14 @@ pub(super) fn native_worker(
     multimedia_wake: MultimediaWakeSender,
     wake_status: super::SharedWakeStatus,
 ) {
-    let mut owner = match NativeNcbOwner::new(
-        call,
-        start.clone(),
-        std::sync::Arc::clone(&wake_status),
-    ) {
-        Ok(owner) => Box::new(owner),
-        Err(error) => {
-            let _ = start.send(Err(error));
-            return;
-        }
-    };
+    let mut owner =
+        match NativeNcbOwner::new(call, start.clone(), std::sync::Arc::clone(&wake_status)) {
+            Ok(owner) => Box::new(owner),
+            Err(error) => {
+                let _ = start.send(Err(error));
+                return;
+            }
+        };
     // SAFETY: this worker owns the NCB and aligned buffer. A zero return may
     // still leave Windows writing them asynchronously, so no field is read
     // until the request event proves terminal completion.
@@ -54,13 +47,17 @@ pub(super) fn native_worker(
     if function_return == NRC_INVDDID {
         mark_native_terminal(&wake_status);
         let result = runtime::Win16HostNetbiosResult::status(NRC_INVDDID);
-        if unsafe { CloseHandle(owner.event) } == 0 {
+        if (crate::windows::win32_safe::close_handle(owner.event)) == 0 {
             let error = last_error("close rejected asynchronous NetBIOS event");
             let _ = send_worker_start(&mut owner, Err(error));
             return;
         }
         owner.event = std::ptr::null_mut();
-        owner.wake_status.lock().unwrap_or_else(PoisonError::into_inner).event_closed = true;
+        owner
+            .wake_status
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .event_closed = true;
         let _ = send_worker_start(&mut owner, Ok(WorkerStart::Immediate(result)));
         return;
     }
@@ -83,6 +80,7 @@ pub(super) fn native_worker(
     // Zero means accepted, not completed. Mark the owner potentially in
     // flight before polling; the event is the only proof that permits an NCB
     // or native buffer read.
+    // SAFETY: WaitForSingleObject waits on a handle this process owns.
     match unsafe { WaitForSingleObject(owner.event, 0) } {
         WAIT_OBJECT_0 => {
             owner.terminal = true;
@@ -144,7 +142,10 @@ fn send_worker_start(
     owner.start_reported = true;
     let sent = owner.start.send(receipt).is_ok();
     if !sent {
-        let mut status = owner.wake_status.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut status = owner
+            .wake_status
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
         super::mark_no_consumer(
             &mut status,
             RuntimeError::new(
@@ -184,7 +185,10 @@ fn publish_terminal_projection(
         }
         match snapshot(owner, 0) {
             Ok(completion) => {
-                if completions.send(WorkerCompletion::Completed(completion)).is_err() {
+                if completions
+                    .send(WorkerCompletion::Completed(completion))
+                    .is_err()
+                {
                     close_after_terminal(owner);
                     return;
                 }
@@ -218,7 +222,10 @@ fn publish_terminal_projection(
                 // projection has reached the runtime and guest commit succeeds.
                 let _ = reply.send(Ok(false));
             }
-            Ok(WorkerCommand::Teardown { reason, issue_cancel }) => {
+            Ok(WorkerCommand::Teardown {
+                reason,
+                issue_cancel,
+            }) => {
                 clear_native_probe_pending(wake_status);
                 owner.teardown_reason = Some(reason);
                 mark_teardown_requested(wake_status, reason);
@@ -238,7 +245,12 @@ fn publish_terminal_projection(
     if owner.teardown_reason.is_some() {
         finish_native_teardown(owner, commands, wake_status);
     } else {
-        await_exact_ack(owner, commands, Some((multimedia_wake, wake_status)), wake_status);
+        await_exact_ack(
+            owner,
+            commands,
+            Some((multimedia_wake, wake_status)),
+            wake_status,
+        );
     }
 }
 
@@ -251,22 +263,20 @@ fn publish_projection_failure(
     // Record once before send so a vanished consumer still leaves the native
     // receipt with the actual projection cause and its bounded phase tally.
     super::record_projection_failure(wake_status, std::sync::Arc::clone(&cause));
-    completions.send(WorkerCompletion::ProjectionFailure(cause)).is_ok()
+    completions
+        .send(WorkerCompletion::ProjectionFailure(cause))
+        .is_ok()
 }
 
-fn raw_snapshot(
-    owner: &NativeNcbOwner,
-    function_return: u8,
-) -> runtime::Win16HostNetbiosResult {
+fn raw_snapshot(owner: &NativeNcbOwner, function_return: u8) -> runtime::Win16HostNetbiosResult {
     // SAFETY: callers use this only after inline return or terminal event.
     let native = unsafe { &*owner.ncb.get() };
-    let projected_function_return = if function_return == NRC_GOODRET
-        && native.ncb_retcode != NRC_GOODRET
-    {
-        native.ncb_retcode
-    } else {
-        function_return
-    };
+    let projected_function_return =
+        if function_return == NRC_GOODRET && native.ncb_retcode != NRC_GOODRET {
+            native.ncb_retcode
+        } else {
+            function_return
+        };
     runtime::Win16HostNetbiosResult {
         function_return: projected_function_return,
         retcode: native.ncb_retcode,
@@ -304,11 +314,16 @@ impl NativeNcbOwner {
         wake_status: super::SharedWakeStatus,
     ) -> Result<Self, RuntimeError> {
         let mut buffer = make_native_buffer(&call)?;
+        // SAFETY: CreateEventW reads an optional caller-owned name and returns a new event handle.
         let event = unsafe { CreateEventW(std::ptr::null(), 1, 0, std::ptr::null()) };
         if event.is_null() {
-            return Err(last_error("create manual-reset event for asynchronous NetBIOS"));
+            return Err(last_error(
+                "create manual-reset event for asynchronous NetBIOS",
+            ));
         }
-        let buffer_pointer = buffer.as_mut().map_or(std::ptr::null_mut(), NativeBuffer::as_mut_ptr);
+        let buffer_pointer = buffer
+            .as_mut()
+            .map_or(std::ptr::null_mut(), NativeBuffer::as_mut_ptr);
         let mut ncb = NCB::default();
         ncb.ncb_command = call.command | ASYNCH;
         ncb.ncb_retcode = NRC_PENDING;
@@ -325,7 +340,10 @@ impl NativeNcbOwner {
         ncb.ncb_lana_num = call.lana_num;
         ncb.ncb_cmd_cplt = NRC_PENDING;
         ncb.ncb_event = event;
-        wake_status.lock().unwrap_or_else(PoisonError::into_inner).native_owner_created = true;
+        wake_status
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .native_owner_created = true;
         Ok(Self {
             call,
             ncb: std::cell::UnsafeCell::new(ncb),
@@ -376,6 +394,7 @@ fn wait_for_terminal(
         if owner.teardown_reason.is_none() {
             let _ = super::publish_pending_wake(multimedia_wake, wake_status);
         }
+        // SAFETY: WaitForSingleObject waits on a handle this process owns.
         match unsafe { WaitForSingleObject(owner.event, POLL_INTERVAL.as_millis() as u32) } {
             WAIT_OBJECT_0 => {
                 owner.terminal = true;
@@ -409,7 +428,10 @@ fn wait_for_terminal(
             Ok(WorkerCommand::Ack { reply, .. }) => {
                 let _ = reply.send(Ok(false));
             }
-            Ok(WorkerCommand::Teardown { reason, issue_cancel }) => {
+            Ok(WorkerCommand::Teardown {
+                reason,
+                issue_cancel,
+            }) => {
                 clear_native_probe_pending(wake_status);
                 owner.teardown_reason = Some(reason);
                 mark_teardown_requested(wake_status, reason);
@@ -455,13 +477,11 @@ fn await_exact_ack(
                     let _ = reply.send(Ok(false));
                     continue;
                 }
-                if unsafe { CloseHandle(owner.event) } == 0 {
-                    let error = std::sync::Arc::new(last_error(
-                        "close exact completed NetBIOS event",
-                    ));
+                if (crate::windows::win32_safe::close_handle(owner.event)) == 0 {
+                    let error =
+                        std::sync::Arc::new(last_error("close exact completed NetBIOS event"));
                     {
-                        let mut shared = wake_status
-                            .lock().unwrap_or_else(PoisonError::into_inner);
+                        let mut shared = wake_status.lock().unwrap_or_else(PoisonError::into_inner);
                         super::remember_native_event_close_error(
                             &mut shared,
                             std::sync::Arc::clone(&error),
@@ -475,11 +495,17 @@ fn await_exact_ack(
                     continue;
                 }
                 owner.event = std::ptr::null_mut();
-                wake_status.lock().unwrap_or_else(PoisonError::into_inner).event_closed = true;
+                wake_status
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .event_closed = true;
                 let _ = reply.send(Ok(true));
                 return;
             }
-            Ok(WorkerCommand::Teardown { reason, issue_cancel }) => {
+            Ok(WorkerCommand::Teardown {
+                reason,
+                issue_cancel,
+            }) => {
                 clear_native_probe_pending(wake_status);
                 owner.teardown_reason = Some(reason);
                 mark_teardown_requested(wake_status, reason);
@@ -532,7 +558,10 @@ fn mark_native_wait_failed(
     let mut status = status.lock().unwrap_or_else(PoisonError::into_inner);
     status.native_wait_failed = true;
     if let Some(error) = cause.as_ref() {
-        status.failure_diagnostics.native_wait.record(std::sync::Arc::clone(error));
+        status
+            .failure_diagnostics
+            .native_wait
+            .record(std::sync::Arc::clone(error));
     }
     if status.native_wait_error.is_none() {
         status.native_wait_error = cause;
@@ -540,7 +569,10 @@ fn mark_native_wait_failed(
 }
 
 fn clear_native_probe_pending(status: &super::SharedWakeStatus) {
-    status.lock().unwrap_or_else(PoisonError::into_inner).native_probe_pending = false;
+    status
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .native_probe_pending = false;
 }
 
 fn mark_teardown_requested(
@@ -561,9 +593,12 @@ fn finish_native_teardown(
         return;
     }
     loop {
-        if owner.event.is_null() || unsafe { CloseHandle(owner.event) } != 0 {
+        if owner.event.is_null() || { crate::windows::win32_safe::close_handle(owner.event) } != 0 {
             owner.event = std::ptr::null_mut();
-            status.lock().unwrap_or_else(PoisonError::into_inner).event_closed = true;
+            status
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .event_closed = true;
             return;
         }
         let error = std::sync::Arc::new(last_error(
@@ -587,10 +622,11 @@ fn finish_native_teardown(
                     let _ = reply.send(Ok(false));
                 }
                 Ok(WorkerCommand::Teardown { reason, .. })
-                    if owner.teardown_reason == Some(reason) => {
-                        clear_native_probe_pending(status);
-                        break;
-                    }
+                    if owner.teardown_reason == Some(reason) =>
+                {
+                    clear_native_probe_pending(status);
+                    break;
+                }
                 Ok(WorkerCommand::Teardown { .. }) => {}
                 Err(RecvTimeoutError::Timeout) => {}
                 Err(RecvTimeoutError::Disconnected) => return,
@@ -695,10 +731,8 @@ fn snapshot(
                 if usize::from(*capacity) < extent || buffer.as_bytes().len() < extent {
                     return Err(super::native_buffer_overrun());
                 }
-                let mut bytes = super::output_buffer(
-                    extent,
-                    "unable to retain asynchronous LANA_ENUM output",
-                )?;
+                let mut bytes =
+                    super::output_buffer(extent, "unable to retain asynchronous LANA_ENUM output")?;
                 bytes.extend_from_slice(&buffer.as_bytes()[..extent]);
                 runtime::Win16HostNetbiosOutput::LanaEnum { bytes }
             } else {
@@ -730,7 +764,10 @@ fn snapshot(
                 )?;
                 runtime::Win16HostNetbiosOutput::SessionStatus {
                     bytes: super::project_session_status(
-                        buffer.as_bytes(), output, usize::from(outcome.length), false,
+                        buffer.as_bytes(),
+                        output,
+                        usize::from(outcome.length),
+                        false,
                     )?,
                 }
             } else if outcome.function_return == 0x06
@@ -744,7 +781,10 @@ fn snapshot(
                 )?;
                 runtime::Win16HostNetbiosOutput::SessionStatus {
                     bytes: super::project_session_status(
-                        buffer.as_bytes(), output, usize::from(outcome.length), true,
+                        buffer.as_bytes(),
+                        output,
+                        usize::from(outcome.length),
+                        true,
                     )?,
                 }
             } else {
@@ -773,7 +813,7 @@ fn last_error(operation: &'static str) -> RuntimeError {
     RuntimeError::with_source(
         Kind::HostFailure,
         operation,
-        Win16NetbiosWindowsError(unsafe { GetLastError() }),
+        Win16NetbiosWindowsError(crate::windows::win32_safe::last_error()),
     )
 }
 

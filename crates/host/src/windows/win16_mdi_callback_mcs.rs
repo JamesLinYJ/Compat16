@@ -2,20 +2,18 @@
 
 use std::cell::RefCell;
 use std::ffi::c_void;
-use std::rc::Rc;
 use std::mem::{MaybeUninit, size_of};
+use std::rc::Rc;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::System::Diagnostics::Debug::{ReadProcessMemory, WriteProcessMemory};
-use windows_sys::Win32::System::Threading::GetCurrentProcess;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CREATESTRUCTW, GWL_EXSTYLE, GetClassNameW, GetParent, GetWindowLongPtrW, IsWindow,
-    MDICREATESTRUCTW, WS_EX_MDICHILD,
+    CREATESTRUCTW, GWL_EXSTYLE, GetClassNameW, GetWindowLongPtrW, MDICREATESTRUCTW, WS_EX_MDICHILD,
 };
 
-use super::super::PendingMdiCreation;
 use super::super::super::win16_window_worker::WorkerState;
+use super::super::PendingMdiCreation;
 
 /// Copy the MCS named by USER's CREATESTRUCT without forming a Rust reference
 /// to an address that originated in native callback data.
@@ -30,7 +28,7 @@ pub(in super::super) fn read_callback_mdi_struct(pointer: usize) -> Option<MDICR
     // MCS copy live for this bounded read.
     let succeeded = unsafe {
         ReadProcessMemory(
-            GetCurrentProcess(),
+            crate::windows::win32_safe::current_process(),
             pointer as *const c_void,
             output.as_mut_ptr().cast::<c_void>(),
             size_of::<MDICREATESTRUCTW>(),
@@ -61,7 +59,7 @@ pub(in super::super) fn write_callback_mdi_struct(
     // local snapshot and does not create an aliased Rust reference.
     let succeeded = unsafe {
         WriteProcessMemory(
-            GetCurrentProcess(),
+            crate::windows::win32_safe::current_process(),
             pointer as *mut c_void,
             (value as *const MDICREATESTRUCTW).cast::<c_void>(),
             size_of::<MDICREATESTRUCTW>(),
@@ -86,11 +84,12 @@ pub(in super::super) fn native_callback_candidate_matches(
     pending: &PendingMdiCreation,
 ) -> bool {
     if hwnd.is_null()
-        || unsafe { IsWindow(hwnd) } == 0
+        ||  { crate::windows::win32_safe::is_window(hwnd) } == 0
         || create.lpCreateParams.is_null()
         || create.hwndParent != pending.client
-        || unsafe { GetParent(hwnd) } != pending.client
+        ||  { crate::windows::win32_safe::get_parent(hwnd) } != pending.client
         || create.dwExStyle & WS_EX_MDICHILD == 0
+        // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
         || unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32 } & WS_EX_MDICHILD == 0
         || !native_class_matches(hwnd, &pending.native_class_name)
     {
@@ -115,6 +114,7 @@ pub(in super::super) fn native_class_matches(hwnd: HWND, expected: &[u16]) -> bo
         return false;
     }
     actual.resize(capacity, 0);
+    // SAFETY: GetClassNameW writes into a caller-owned UTF-16 buffer of the capacity passed with it.
     let copied = unsafe { GetClassNameW(hwnd, actual.as_mut_ptr(), capacity as i32) };
     copied > 0
         && copied as usize == expected.len()
@@ -140,11 +140,12 @@ pub(in super::super) fn validate_native_candidate(
     pending: &PendingMdiCreation,
 ) -> Result<(), RuntimeError> {
     if hwnd.is_null()
-        || unsafe { IsWindow(hwnd) } == 0
+        ||  { crate::windows::win32_safe::is_window(hwnd) } == 0
         || create.lpCreateParams as usize != callback_mdi_struct
         || create.hwndParent != pending.client
-        || unsafe { GetParent(hwnd) } != pending.client
+        ||  { crate::windows::win32_safe::get_parent(hwnd) } != pending.client
         || create.dwExStyle & WS_EX_MDICHILD == 0
+        // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
         || unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32 } & WS_EX_MDICHILD == 0
         || !native_class_matches(hwnd, &pending.native_class_name)
     {
@@ -153,13 +154,15 @@ pub(in super::super) fn validate_native_candidate(
             "native MDI child failed callback MCS, parent, class, or WS_EX_MDICHILD validation",
         ));
     }
-    let (process_id, thread_id) = super::super::super::win16_window_identity::native_owner_identity(hwnd)
-        .ok_or_else(|| {
-            super::super::mdi_route_error(
-                Kind::HostFailure,
-                "read the live native MDI child process and thread",
-            )
-        })?;
+    let (process_id, thread_id) =
+        super::super::super::win16_window_identity::native_owner_identity(hwnd).ok_or_else(
+            || {
+                super::super::mdi_route_error(
+                    Kind::HostFailure,
+                    "read the live native MDI child process and thread",
+                )
+            },
+        )?;
     if process_id != pending.owner_process || thread_id != pending.owner_thread {
         return Err(super::super::mdi_route_error(
             Kind::HostFailure,
@@ -206,7 +209,12 @@ pub(in super::super) fn validate_native_candidate(
             class_instance,
             expected_title.as_deref(),
         )
-        || !callback_mdi_identity_matches(&copied_mdi, pending, class_instance, canonical_mdi.lParam)
+        || !callback_mdi_identity_matches(
+            &copied_mdi,
+            pending,
+            class_instance,
+            canonical_mdi.lParam,
+        )
     {
         return Err(super::super::mdi_route_error(
             Kind::HostFailure,
@@ -276,7 +284,7 @@ fn remote_wide_string_matches(
     // only the exact expected string length plus its terminator.
     let succeeded = unsafe {
         ReadProcessMemory(
-            GetCurrentProcess(),
+            crate::windows::win32_safe::current_process(),
             pointer.cast::<c_void>(),
             actual.as_mut_ptr().cast::<c_void>(),
             byte_count,

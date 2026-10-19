@@ -1,9 +1,7 @@
 //! Opt-in native pixel context; publishes no native handle or memory address.
 use super::super::{WindowsHost, win16_io_trace::Win16IoTrace};
 use runtime::{Diagnostic, DiagnosticKind, RuntimeError, RuntimeHost, Win16DrawingOperation};
-use windows_sys::Win32::Graphics::Gdi::{
-    BITMAP, GetCurrentObject, GetObjectType, GetObjectW, OBJ_BITMAP,
-};
+use windows_sys::Win32::Graphics::Gdi::{BITMAP, GetCurrentObject, GetObjectW, OBJ_BITMAP};
 
 pub(super) fn observe(
     host: &mut WindowsHost,
@@ -23,11 +21,12 @@ pub(super) fn observe(
         return Ok(());
     };
     // SAFETY: The native HDC is pinned for these synchronous metadata queries.
-    let kind = unsafe { GetObjectType(lease.native().cast()) };
+    let kind = crate::windows::win32_safe::get_object_type(lease.native().cast());
     let selected = unsafe { GetCurrentObject(lease.native(), OBJ_BITMAP as u32) };
     let mut bitmap = BITMAP::default();
     let size = std::mem::size_of::<BITMAP>() as i32;
     let facts = (!selected.is_null()
+        // SAFETY: GetObjectW writes into a caller-owned buffer of the byte count passed with it.
         && unsafe { GetObjectW(selected, size, std::ptr::from_mut(&mut bitmap).cast()) } == size)
         .then_some((
             bitmap.bmWidth,
