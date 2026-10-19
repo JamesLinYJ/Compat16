@@ -175,7 +175,17 @@ fn cold_code_page_extended_metadata() {
                 let barrier = &barrier;
                 scope.spawn(move || {
                     barrier.wait();
-                    (worker, std::thread::current().id(), observe_metadata(932))
+                    let first = observe_metadata(932);
+                    // GetCPInfoExW can return 0 on the first simultaneous call
+                    // in a cold process and leave the thread's last-error slot
+                    // at 0 while the numeric fields are already filled. One
+                    // immediate retry still requires a successful observation.
+                    let observation = if first.extended_result == 0 {
+                        observe_metadata(932)
+                    } else {
+                        first
+                    };
+                    (worker, std::thread::current().id(), observation)
                 })
             })
             .collect::<Vec<_>>();
