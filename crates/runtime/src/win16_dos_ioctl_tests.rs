@@ -371,4 +371,3 @@ fn file_ioctl_routes_reject_invalid_host_drive_without_publishing_success() {
         assert_eq!(host.win16_queries, [KERNEL_FILE]);
     }
 }
-
