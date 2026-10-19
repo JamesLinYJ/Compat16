@@ -1,4 +1,4 @@
-//! Retained, window-bound native WNDPROC identities for Win16 CallWindowProc.
+//! Retained native WNDPROC identities and checked CallWindowProc targets.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -138,6 +138,13 @@ impl Drop for ModuleLease {
 }
 
 impl NativeProcedures {
+    fn implementation(&self, procedure: Win16HostProcedure) -> Option<(isize, isize)> {
+        self.class_entries.get(&procedure)
+            .map(|entry| (entry.native_procedure, entry.provider_procedure))
+            .or_else(|| self.entries.get(&procedure)
+                .map(|entry| (entry.key.native_procedure, entry.key.provider_procedure)))
+    }
+
     fn allocate_token(&mut self) -> Option<Win16HostProcedure> {
         let token_value = self.next_token.checked_add(1)?;
         self.next_token = token_value;
@@ -222,8 +229,8 @@ pub(super) fn query(
     Ok(Some(token))
 }
 
-/// Call a previously captured procedure only on the exact HWND incarnation
-/// from which it was queried. Native HWND pointers never leave this module.
+/// Call retained code on a live target proven to use that implementation.
+/// Native HWND pointers never leave this module.
 pub(super) fn call(
     state: &Rc<RefCell<WorkerState>>,
     procedure: Win16HostProcedure,
@@ -254,19 +261,25 @@ pub(super) fn call(
             ..
         }
     );
-    if nc_destroy
-        && let Some(binding) = state.borrow_mut().native_procedures.bases.get_mut(&window)
-        && binding.procedure == procedure
-    {
-        if binding.destroy_entered {
-            return Ok(Some(Win16HostMessageResult {
-                value: 0,
-                output: runtime::Win16HostMessageOutput::None,
-                dialog_result: None,
-            }));
+    let guarded_base = if nc_destroy {
+        let mut state = state.borrow_mut();
+        let registry = &mut state.native_procedures;
+        let binding = registry.bases.get(&window).copied().filter(|binding|
+            binding.hwnd == key.hwnd && binding.cookie == key.cookie
+                && registry.implementation(binding.procedure)
+                    == Some((key.native_procedure, key.provider_procedure)));
+        if let Some(binding) = binding {
+            if binding.destroy_entered {
+                return Ok(Some(Win16HostMessageResult {
+                    value: 0,
+                    output: runtime::Win16HostMessageOutput::None,
+                    dialog_result: None,
+                }));
+            }
+            registry.bases.get_mut(&window).unwrap().destroy_entered = true;
         }
-        binding.destroy_entered = true;
-    }
+        binding
+    } else { None };
     let result = win16_window_default::procedure_message(
         state,
         window,
@@ -278,10 +291,12 @@ pub(super) fn call(
     );
     // NcDestroy is scalar: a successful call has no post-call conversion that
     // could fail after the base released its state. Undo only a rejected call.
-    if nc_destroy
-        && !matches!(&result, Ok(Some(_)))
+    if !matches!(&result, Ok(Some(_)))
+        && let Some(guarded) = guarded_base
         && let Some(binding) = state.borrow_mut().native_procedures.bases.get_mut(&window)
-        && binding.procedure == procedure
+        && binding.procedure == guarded.procedure
+        && binding.hwnd == guarded.hwnd && binding.cookie == guarded.cookie
+        && binding.subclass_generation == guarded.subclass_generation
     {
         binding.destroy_entered = false;
     }
@@ -332,8 +347,10 @@ pub(super) fn call_static_icon(
     super::win16_static_controls::icon(state, window, Some(key.native_procedure), operation)
 }
 
-/// Resolve a procedure token only while its exact captured window identity is
-/// live. The retained entry also anchors the provider module for this call.
+/// A saved WNDPROC denotes code, not its source window. Keep exact cookie
+/// checks for that window; another live target must independently prove the
+/// same current procedure or the same retained subclass/superclass base.
+/// The source capture continues to pin the provider after source retirement.
 fn resolve_call_target(
     state: &Rc<RefCell<WorkerState>>,
     procedure: Win16HostProcedure,
@@ -375,20 +392,30 @@ fn resolve_call_target(
                 "Win16 CallWindowProc refers to an unknown native procedure token",
             )
         })?;
-    if key.window != window {
-        return Ok(None);
-    }
     let Some(hwnd) = win16_window_identity::resolve(state, window) else {
         return Ok(None);
     };
-    let identity = WindowCookieBinding {
-        hwnd: hwnd as usize,
-        value: key.cookie,
+    let Some(identity) = identity_for(state, window, hwnd) else {
+        return Ok(None);
     };
-    if key.hwnd != hwnd as usize || !identity_is_live(state, window, identity) {
+    if key.window == window {
+        return Ok((key.hwnd == identity.hwnd && key.cookie == identity.value)
+            .then_some((key, hwnd)));
+    }
+    let same_base = {
+        let state = state.borrow();
+        let registry = &state.native_procedures;
+        registry.bases.get(&window).is_some_and(|binding|
+            binding.hwnd == identity.hwnd && binding.cookie == identity.value
+                && registry.implementation(binding.procedure)
+                    == Some((key.native_procedure, key.provider_procedure)))
+    };
+    if !same_base && get_window_procedure(hwnd) != Some(key.native_procedure) {
         return Ok(None);
     }
-    Ok(Some((key, hwnd)))
+    Ok(Some((ProcedureKey {
+        window, hwnd: identity.hwnd, cookie: identity.value, ..key
+    }, hwnd)))
 }
 
 fn prepare_class_call(
@@ -773,3 +800,7 @@ fn pin_provider(address: isize) -> Option<ModuleLease> {
 #[path = "win16_native_subclass.rs"]
 mod subclass;
 pub(super) use subclass::{is_subclassed, set_procedure, restore_subclasses};
+
+#[cfg(test)]
+#[path = "win16_native_procedure_tests.rs"]
+mod tests;
