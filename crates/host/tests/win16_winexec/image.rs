@@ -70,6 +70,10 @@ pub use oem_bitmap::oem_bitmap_program;
 mod current_directory;
 pub use current_directory::{current_directory_com, current_directory_program};
 
+#[path = "image/launch_options.rs"]
+mod launch_options;
+pub use launch_options::command_tail_com;
+
 #[path = "image/global_notify.rs"]
 mod global_notify;
 pub use global_notify::global_notify_program;

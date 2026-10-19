@@ -82,6 +82,10 @@ mod oem_bitmap;
 mod current_directory;
 
 #[cfg(windows)]
+#[path = "win16_winexec/launch_options.rs"]
+mod launch_options;
+
+#[cfg(windows)]
 #[path = "win16_winexec/load_module.rs"]
 mod load_module;
 
@@ -181,6 +185,17 @@ mod native {
     }
 
     fn run_configured(program: &Path, page: u32, dos_page: u32, engine: &str, input: Stdio, version: Option<&str>) {
+        run_configured_with_options(program, page, dos_page, engine, input, version, &[]);
+    }
+
+    pub(super) fn run_with_launch_options(program: &Path, page: u32, engine: &str, tail: &str, directory: &Path) {
+        run_configured_with_options(program, page, 437, engine, Stdio::null(), None, &[
+            "--command-tail".into(), tail.into(), "--working-directory".into(), directory.as_os_str().to_os_string(),
+        ]);
+    }
+
+    fn run_configured_with_options(program: &Path, page: u32, dos_page: u32, engine: &str, input: Stdio,
+        version: Option<&str>, launch_options: &[std::ffi::OsString]) {
         let package = PathBuf::from(
             std::env::var_os("COMPAT16_TEST_PACKAGE_DIR")
                 .expect("set COMPAT16_TEST_PACKAGE_DIR to the matching scripts/build.ps1 package"),
@@ -213,6 +228,7 @@ mod native {
                 .args(version.into_iter().flat_map(|version| ["--dos-version", version]))
                 .arg("--trace-win16-io-complete")
                 .arg(&trace)
+                .args(launch_options)
                 .arg(program)
                 .stdin(input)
                 .stdout(Stdio::piped())

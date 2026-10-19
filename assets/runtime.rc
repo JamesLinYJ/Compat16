@@ -2,6 +2,8 @@
 
 #define IDI_COMPAT16 101
 IDI_COMPAT16 ICON "icon.ico"
+// Activated explicitly by the home UI; legacy execution keeps its own context.
+201 RT_MANIFEST "launcher.manifest"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 0,1,0,0

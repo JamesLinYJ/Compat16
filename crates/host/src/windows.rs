@@ -194,6 +194,18 @@ pub fn encode(text: &str, code_page: u32) -> Result<Vec<u8>, DosHostError> {
         .map_err(|error| DosHostError::with_source(DosErrorCode::InvalidData, error))
 }
 
+/// Encode a Win16 command using its concrete Windows ANSI profile, separately
+/// from DOS country/OEM conversion. Reject replacement instead of losing text.
+pub fn encode_ansi(text: &str, code_page: u32) -> Result<Vec<u8>, RuntimeError> {
+    let encoded = guest_text::GuestTextCodec::new(code_page)?
+        .from_wide(&text.encode_utf16().collect::<Vec<_>>())?;
+    if encoded.used_default_char == Some(true) {
+        return Err(RuntimeError::new(Kind::InvalidInput,
+            "command text is not representable in the selected Win16 ANSI code page"));
+    }
+    Ok(encoded.bytes)
+}
+
 /// Whether host initialization may create a console for guest DOS input.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ConsolePolicy {

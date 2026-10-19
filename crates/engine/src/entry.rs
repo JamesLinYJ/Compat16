@@ -53,6 +53,8 @@ fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Resu
     let mut code_page = child.map_or(437, |child| child.dos_code_page);
     let mut dos_reported_version = None;
     let mut ansi_code_page = child.map(|child| child.ansi_code_page);
+    let mut explicit_command_tail = None;
+    let mut working_directory = None;
     let mut program = child.map(|child| child.program.clone())
         .or_else(|| system_launch.as_ref().map(|launch| launch.program.clone()));
     let mut trace_on_failure = false;
@@ -71,6 +73,14 @@ fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Resu
     while child.is_none() && system_launch.is_none() {
         let Some(argument) = arguments.next() else { break; };
         match argument.to_str() {
+            Some("--command-tail") => {
+                explicit_command_tail = Some(arguments.next().and_then(|value| value.into_string().ok())
+                    .ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "missing command tail"))?);
+            }
+            Some("--working-directory") => {
+                working_directory = Some(PathBuf::from(arguments.next()
+                    .ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "missing working directory"))?));
+            }
             Some("--cpu-engine") => {
                 execution_engine = match arguments.next().as_deref().and_then(|text| text.to_str()) {
                     Some("jit") => runtime::ExecutionEngine::Jit,
@@ -147,6 +157,7 @@ fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Resu
             }
             Some("--help") | Some("-h") => {
                 println!("{command_name} [--max-instructions N] [--cpu-engine jit|interpreter] [--jit-stats] [--no-jit-cache] [--code-page 437|936] [--dos-version MAJOR.MINOR] [--win16-code-page auto|N] [--trace-on-failure] [--trace-file PATH] [--watch-memory ADDRESS:LENGTH | --watch-win16-memory SELECTOR:OFFSET:LENGTH] [--dump-guest-memory PATH] [--trace-dos-services PATH] [--trace-win16-io PATH | --trace-win16-io-complete PATH] PROGRAM [DOS arguments]\nExample: --watch-memory 0x10000:16\nDOS/Win16 development runtime: COM/MZ and early NE execution; compatibility coverage is incomplete.");
+                println!("Launch options: --command-tail TEXT preserves program argument quotes and spacing; --working-directory PATH selects the initial directory.");
                 return Ok(0);
             }
             Some(value) if value.starts_with('-') => return Err(RuntimeError::new(Kind::InvalidInput, format!("unknown option {value}"))),
@@ -156,20 +167,6 @@ fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Resu
     let program = program.ok_or_else(|| RuntimeError::new(Kind::InvalidInput,
         format!("usage: {command_name} PROGRAM [DOS arguments]")))?
         .canonicalize().map_err(|e| RuntimeError::with_source(Kind::HostFailure, "resolve program path", e))?;
-    let tail = if let Some(child) = child {
-        child.command_tail.clone()
-    } else if let Some(launch) = system_launch {
-        let command = String::from_utf16(&launch.command).map_err(|error|
-            RuntimeError::with_source(Kind::InvalidInput, "system command contains invalid UTF-16", error))?;
-        encode(&command, code_page)
-            .map_err(|error| RuntimeError::with_source(Kind::InvalidInput, "command encoding", error))?
-    } else {
-        let args = arguments.map(|a| a.into_string().map_err(|_| RuntimeError::new(Kind::InvalidInput, "DOS arguments contain invalid Unicode"))).collect::<Result<Vec<_>,_>>()?;
-        if args.is_empty() { Vec::new() } else {
-            encode(&format!(" {}", args.join(" ")), code_page)
-                .map_err(|e| RuntimeError::with_source(Kind::InvalidInput, "command encoding", e))?
-        }
-    };
     let bytes = if let Some(child) = child { std::borrow::Cow::Borrowed(child.image.as_slice()) } else {
         std::borrow::Cow::Owned(std::fs::read(&program)
             .map_err(|e| RuntimeError::with_source(Kind::HostFailure, "read program image", e))?)
@@ -180,6 +177,35 @@ fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Resu
         return Err(RuntimeError::new(Kind::InvalidInput,
             "WinExec requires a Windows executable, not a library or another NE target"));
     }
+    let text_profile = crate::program_encoding::resolve(&bytes, ansi_code_page);
+    let ansi_code_page = text_profile.as_ref().map(|profile| profile.selection.code_page)
+        .unwrap_or(if code_page == 936 { 936 } else { 1252 });
+    // Win16 lpCmdLine uses Windows ANSI; a DOS PSP tail uses OEM. Internal
+    // WinExec requests already carry the caller's encoded command tail.
+    let tail = if let Some(child) = child {
+        child.command_tail.clone()
+    } else {
+        let command = if let Some(launch) = system_launch {
+            String::from_utf16(&launch.command).map_err(|error|
+                RuntimeError::with_source(Kind::InvalidInput, "system command contains invalid UTF-16", error))?
+        } else {
+            crate::launch_options::command_text(explicit_command_tail, arguments)?
+        };
+        if is_win16 {
+            host_services::windows::encode_ansi(&command, ansi_code_page)?
+        } else {
+            encode(&command, code_page).map_err(|error|
+                RuntimeError::with_source(Kind::InvalidInput, "command encoding", error))?
+        }
+    };
+    let working_directory = working_directory.map(|path| {
+        let path = path.canonicalize().map_err(|error| RuntimeError::with_source(
+            Kind::HostFailure, "resolve working directory", error))?;
+        if !path.is_dir() {
+            return Err(RuntimeError::new(Kind::InvalidInput, "working directory is not a directory"));
+        }
+        Ok(path)
+    }).transpose()?;
     // Preserve the caller's output paths before host initialization establishes
     // the guest program's working directory for native relative file APIs.
     for path in [&mut trace_file, &mut guest_memory_dump, &mut dos_service_trace, &mut win16_io_trace] {
@@ -189,13 +215,11 @@ fn run_program(child: Option<&host_services::windows::GuestChildLaunch>) -> Resu
         }
     }
     let directory = if let Some(child) = child { child.directory.as_path() } else {
-        program.parent().ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "program has no parent directory"))?
+        working_directory.as_deref().unwrap_or(program.parent().ok_or_else(||
+            RuntimeError::new(Kind::InvalidInput, "program has no parent directory"))?)
     };
-    let text_profile = crate::program_encoding::resolve(&bytes, ansi_code_page);
     // Declared first so every runtime/host owner retires before the executor.
     let work = std::sync::Arc::new(parallel_work::BoundedExecutor::new());
-    let ansi_code_page = text_profile.as_ref().map(|profile| profile.selection.code_page)
-        .unwrap_or(if code_page == 936 { 936 } else { 1252 });
     let console_policy = if is_win16 { ConsolePolicy::Inherit } else { ConsolePolicy::AllocateIfMissing };
     let mut host = WindowsHost::new_with_console_policy(
         directory, code_page, ansi_code_page, console_policy,
