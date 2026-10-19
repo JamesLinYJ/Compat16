@@ -31,7 +31,9 @@ pub(super) fn validate_server_registration(
         key: Win16RegistryKeyRef::Predefined(Win16RegistryRoot::ClassesRoot),
         subkey,
         output: crate::Win16RegistryQueryOutput::Bounded(124),
-        view: crate::Win16RegistryQueryView::Native,
+        // OLE1 consumes the Win3.1 string view, just like SHELL. Retain
+        // environment references instead of rejecting REG_EXPAND_SZ.
+        view: crate::Win16RegistryQueryView::Win31Strings,
     })?;
     let Win16HostRegistryResult::QueryValue {
         status,

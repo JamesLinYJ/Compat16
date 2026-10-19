@@ -111,7 +111,9 @@ fn query_default_string(
             key: Win16RegistryKeyRef::Predefined(Win16RegistryRoot::ClassesRoot),
             subkey: request_subkey,
             output: crate::Win16RegistryQueryOutput::Bounded(capacity),
-            view: crate::Win16RegistryQueryView::Native,
+            // OLE1 has no native registry type field. Use its string view
+            // without expanding environment references or changing the value.
+            view: crate::Win16RegistryQueryView::Win31Strings,
         })?;
         let Win16HostRegistryResult::QueryValue {
             status,

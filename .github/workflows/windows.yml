@@ -230,6 +230,7 @@ jobs:
             '-p runtime --lib win16_dde_callback::retirement::tests::'
             '-p host-services --lib dde_normal_tombstone_shutdown_'
             '-p host-services --lib dde_shutdown_'
+            '-p runtime --lib ole1_registry_'
             '-p runtime --lib win16_runtime::aux_tests::'
             '-p runtime --lib win16_runtime::comm::tests::'
             '-p runtime --lib win16_runtime::commdlg::hook_tests::'
@@ -289,6 +290,7 @@ jobs:
             '-p runtime --lib win16_dde_callback::retirement::tests::' = 1
             '-p host-services --lib dde_normal_tombstone_shutdown_' = 2
             '-p host-services --lib dde_shutdown_' = 6
+            '-p runtime --lib ole1_registry_' = 3
             '-p runtime --lib win16_runtime::aux_tests::' = 6
             '-p runtime --lib win16_runtime::comm::tests::' = 7
             '-p runtime --lib win16_runtime::commdlg::hook_tests::' = 5
