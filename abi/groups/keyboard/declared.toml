@@ -41,16 +41,42 @@ ordinal = 10
 name = "TOASCIIEX"
 kind = "stub"
 
+binding = { rust_id = "DriverKeyboard10TOASCIIEX", id_value = 7000052, constant = "DRIVER_KEYBOARD_10" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "virtual_key", type = "U16" },
+  { name = "scan_code", type = "U16" },
+  { name = "key_state", type = "FarBuffer" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "flags", type = "U16" },
+  { name = "layout", type = "U16" },
+]
 [[exports]]
 ordinal = 11
 name = "VKKEYSCANEX"
 kind = "stub"
 
+binding = { rust_id = "DriverKeyboard11VKKEYSCANEX", id_value = 7000053, constant = "DRIVER_KEYBOARD_11" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "character", type = "U16" },
+  { name = "layout", type = "U16" },
+]
 [[exports]]
 ordinal = 12
 name = "MAPVIRTUALKEYEX"
 kind = "stub"
 
+binding = { rust_id = "DriverKeyboard12MAPVIRTUALKEYEX", id_value = 7000054, constant = "DRIVER_KEYBOARD_12" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "code", type = "U16" },
+  { name = "map_type", type = "U16" },
+  { name = "layout", type = "U16" },
+]
 [[exports]]
 ordinal = 13
 name = "NEWTABLEEX"

@@ -5,61 +5,185 @@ ordinal = 1
 name = "DEVBITBLT"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool1DEVBITBLT", id_value = 7000056, constant = "DRIVER_WINSPOOL_1" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "dest_x", type = "U16" },
+  { name = "dest_y", type = "U16" },
+  { name = "source", type = "FarPointer" },
+  { name = "source_x", type = "U16" },
+  { name = "source_y", type = "U16" },
+  { name = "width", type = "U16" },
+  { name = "height", type = "U16" },
+  { name = "rop3", type = "U32" },
+  { name = "brush", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 2
 name = "COLORINFO"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool2COLORINFO", id_value = 7000057, constant = "DRIVER_WINSPOOL_2" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "color", type = "U32" },
+  { name = "physical", type = "FarOutputBuffer" },
+]
 [[exports]]
 ordinal = 3
 name = "CONTROL"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool3CONTROL", id_value = 7000058, constant = "DRIVER_WINSPOOL_3" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "function", type = "U16" },
+  { name = "input", type = "FarPointer" },
+  { name = "output", type = "FarOutputBuffer" },
+]
 [[exports]]
 ordinal = 4
 name = "DISABLE"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool4DISABLE", id_value = 7000059, constant = "DRIVER_WINSPOOL_4" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dest", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 5
 name = "ENABLE"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool5ENABLE", id_value = 7000060, constant = "DRIVER_WINSPOOL_5" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "style", type = "U16" },
+  { name = "device_type", type = "NullableFarString" },
+  { name = "output_file", type = "NullableFarString" },
+  { name = "data", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 6
 name = "ENUMDFONTS"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool6ENUMDFONTS", id_value = 7000061, constant = "DRIVER_WINSPOOL_6" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "face", type = "NullableFarString" },
+  { name = "callback", type = "FarPointer" },
+  { name = "client", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 7
 name = "ENUMOBJ"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool7ENUMOBJ", id_value = 7000062, constant = "DRIVER_WINSPOOL_7" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "style", type = "U16" },
+  { name = "callback", type = "FarPointer" },
+  { name = "client", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 8
 name = "OUTPUT"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool8OUTPUT", id_value = 7000063, constant = "DRIVER_WINSPOOL_8" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "style", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "points", type = "FarPointer" },
+  { name = "pen", type = "FarPointer" },
+  { name = "brush", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "clip", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 9
 name = "PIXEL"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool9PIXEL", id_value = 7000064, constant = "DRIVER_WINSPOOL_9" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "physical_color", type = "U32" },
+  { name = "draw_mode", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 10
 name = "REALIZEOBJECT"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool10REALIZEOBJECT", id_value = 7000065, constant = "DRIVER_WINSPOOL_10" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "style", type = "U16" },
+  { name = "input", type = "FarPointer" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "text_xform", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 11
 name = "STRBLT"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool11STRBLT", id_value = 7000066, constant = "DRIVER_WINSPOOL_11" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "clip", type = "FarPointer" },
+  { name = "text", type = "FarString" },
+  { name = "count", type = "I16" },
+  { name = "font", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "text_xform", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 12
 name = "SCANLR"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool12SCANLR", id_value = 7000067, constant = "DRIVER_WINSPOOL_12" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "physical_color", type = "U32" },
+  { name = "style", type = "U16" },
+]
 [[exports]]
 ordinal = 13
 name = "DeviceMode"
@@ -79,31 +203,113 @@ ordinal = 14
 name = "DEVEXTTEXTOUT"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool14DEVEXTTEXTOUT", id_value = 7000068, constant = "DRIVER_WINSPOOL_14" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "clip", type = "FarPointer" },
+  { name = "text", type = "FarString" },
+  { name = "count", type = "I16" },
+  { name = "font", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "text_xform", type = "FarPointer" },
+  { name = "widths", type = "FarPointer" },
+  { name = "opaque", type = "FarPointer" },
+  { name = "options", type = "U16" },
+]
 [[exports]]
 ordinal = 15
 name = "DEVGETCHARWIDTH"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool15DEVGETCHARWIDTH", id_value = 7000069, constant = "DRIVER_WINSPOOL_15" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "first", type = "U16" },
+  { name = "last", type = "U16" },
+  { name = "font", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "text_xform", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 19
 name = "DEVICEBITMAPBITS"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool19DEVICEBITMAPBITS", id_value = 7000070, constant = "DRIVER_WINSPOOL_19" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "bitmap", type = "FarPointer" },
+  { name = "get", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "scans", type = "U16" },
+  { name = "bits", type = "FarPointer" },
+  { name = "info", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "translate", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 20
 name = "CREATEDIBITMAP"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool20CREATEDIBITMAP", id_value = 7000071, constant = "DRIVER_WINSPOOL_20" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 21
 name = "SETDIBITSTODEVICE"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool21SETDIBITSTODEVICE", id_value = 7000072, constant = "DRIVER_WINSPOOL_21" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "scans", type = "U16" },
+  { name = "clip", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "bits", type = "FarPointer" },
+  { name = "info", type = "FarPointer" },
+  { name = "translate", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 28
 name = "STRETCHDIB"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool28STRETCHDIB", id_value = 7000073, constant = "DRIVER_WINSPOOL_28" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "FarPointer" },
+  { name = "get", type = "U16" },
+  { name = "dest_x", type = "U16" },
+  { name = "dest_y", type = "U16" },
+  { name = "dest_width", type = "U16" },
+  { name = "dest_height", type = "U16" },
+  { name = "source_x", type = "U16" },
+  { name = "source_y", type = "U16" },
+  { name = "source_width", type = "U16" },
+  { name = "source_height", type = "U16" },
+  { name = "bits", type = "FarPointer" },
+  { name = "info", type = "FarPointer" },
+  { name = "translate", type = "FarPointer" },
+  { name = "rop", type = "U32" },
+  { name = "brush", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "clip", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 90
 name = "ExtDeviceMode"
@@ -132,7 +338,26 @@ ordinal = 94
 name = "DEVINSTALL"
 kind = "stub"
 
+binding = { rust_id = "DriverWinspool94DEVINSTALL", id_value = 7000074, constant = "DRIVER_WINSPOOL_94" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "model", type = "FarString" },
+  { name = "old_port", type = "FarString" },
+  { name = "new_port", type = "FarString" },
+]
 [[exports]]
 ordinal = 1000
 name = "ADVANCEDSETUPDIALOG"
 kind = "stub"
+
+binding = { rust_id = "DriverWinspool1000ADVANCEDSETUPDIALOG", id_value = 7000075, constant = "DRIVER_WINSPOOL_1000" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "driver", type = "U16" },
+  { name = "input", type = "FarBuffer" },
+  { name = "output", type = "FarOutputBuffer" },
+]

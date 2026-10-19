@@ -1121,9 +1121,14 @@ the same hidden icon readback and destruction protocol.
 ### Unknown parameter frames
 
 An unknown historical stub signature is not a zero-argument Pascal call.
-Driver stubs without verified parameter frames stay declaration-only, including
-register-based display and COMM driver entries. Existing binding IDs are not
-renumbered when an unsafe provisional binding is removed.
+Driver frames verified from the Windows 3.1 DDK, or from the NT 3.5 Video for
+Windows header when the DDK is silent, are bound in ids `7000000`–`7000102`.
+A documented zero-argument entry, such as `CreateDIBitmap` or
+`MouseGetIntVect`, keeps that empty frame. Rows whose parameter list is still
+unpublished stay declaration-only, including `ReadCommString`, `StretchDIB`,
+`InquireEx`, `NewTableEx`, `DoBeep`, `MyOpenSound`, `InquireLongInts`,
+`QueryDeviceNames`, and the unnamed display ordinals. Existing binding IDs are
+not renumbered.
 
 The same rule applies to KERNEL, USER and GDI. Their declaration groups retain
 71, 63 and 100 additional stub rows respectively without runtime call bindings.
