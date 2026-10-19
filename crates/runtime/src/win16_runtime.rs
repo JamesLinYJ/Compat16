@@ -100,6 +100,8 @@ mod kernel_task;
 mod kernel_remainder;
 #[path = "win16_ole_remainder.rs"]
 mod ole_remainder;
+#[path = "win16_library_remainder.rs"]
+mod library_remainder;
 #[path = "win16_window_task.rs"]
 mod window_task;
 #[path = "win16_kernel_module.rs"]
@@ -717,6 +719,7 @@ pub(crate) struct Win16State {
     user_hooks: user_hooks::Win16UserHooks,
     user_declared: user_declared::UserDeclaredSession,
     ole_remainder_reported: BTreeSet<(u8, u16)>,
+    library_remainder_reported: BTreeSet<(u8, u16)>,
     driver_gaps: driver::DriverGaps,
     window_callbacks: Vec<windows::WindowCallbackFrame>,
     retired_window_payloads: Vec<windows::RetiredWindowPayloadOwner>,

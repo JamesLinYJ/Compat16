@@ -129,6 +129,19 @@ params = [
 ordinal = 11
 name = "OLECREATELINK"
 kind = "stub"
+decl = { args = ["pointer", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "LibOle211", id_value = 6000097, constant = "LIB_OLE2_11" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a5", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 12
@@ -359,6 +372,14 @@ params = [
 ordinal = 31
 name = "OLEGETMALLOC"
 kind = "stub"
+decl = { args = ["long", "pointer"] }
+binding = { rust_id = "LibOle231", id_value = 6000098, constant = "LIB_OLE2_31" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 32
@@ -487,26 +508,70 @@ kind = "stub"
 ordinal = 44
 name = "CREATEANTIMONIKER"
 kind = "stub"
+decl = { args = ["pointer"] }
+binding = { rust_id = "LibOle244", id_value = 6000099, constant = "LIB_OLE2_44" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 45
 name = "CREATEPOINTERMONIKER"
 kind = "stub"
+decl = { args = ["pointer", "pointer"] }
+binding = { rust_id = "LibOle245", id_value = 6000100, constant = "LIB_OLE2_45" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 46
 name = "MONIKERRELATIVEPATHTO"
 kind = "stub"
+decl = { args = ["pointer", "pointer", "pointer", "word"] }
+binding = { rust_id = "LibOle246", id_value = 6000101, constant = "LIB_OLE2_46" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 47
 name = "MONIKERCOMMONPREFIXWITH"
 kind = "stub"
+decl = { args = ["pointer", "pointer", "pointer"] }
+binding = { rust_id = "LibOle247", id_value = 6000102, constant = "LIB_OLE2_47" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 48
 name = "ISACCELERATOR"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word", "pointer", "pointer"] }
+binding = { rust_id = "LibOle248", id_value = 6000103, constant = "LIB_OLE2_48" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 49
@@ -721,6 +786,19 @@ kind = "stub"
 ordinal = 67
 name = "OLECREATEFROMFILE"
 kind = "stub"
+decl = { args = ["string", "pointer", "long", "pointer", "segmented_pointer", "segmented_pointer", "pointer"] }
+binding = { rust_id = "LibOle267", id_value = 6000104, constant = "LIB_OLE2_67" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a5", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a6", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 68
@@ -743,6 +821,16 @@ params = [
 ordinal = 69
 name = "CREATEDATACACHE"
 kind = "stub"
+decl = { args = ["pointer", "pointer", "pointer", "pointer"] }
+binding = { rust_id = "LibOle269", id_value = 6000105, constant = "LIB_OLE2_69" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 70

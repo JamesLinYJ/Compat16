@@ -4,13 +4,36 @@ module = "RMPATCH"
 ordinal = 1
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
+binding = { rust_id = "LibRmpatch1", id_value = 6000106, constant = "LIB_RMPATCH_1" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U16" },
+]
 
 [[exports]]
 ordinal = 2
 name = "intcb"
 decl = { attributes = ["register"] }
+binding = { rust_id = "LibRmpatch2", id_value = 6000107, constant = "LIB_RMPATCH_2" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
 
 [[exports]]
 ordinal = 3
 name = "checkpatch"
 decl = { args = ["word", "long"] }
+binding = { rust_id = "LibRmpatch3", id_value = 6000108, constant = "LIB_RMPATCH_3" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+]
+

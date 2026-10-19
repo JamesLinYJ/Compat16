@@ -1,0 +1,55 @@
+//! Library remainder ids 6000000–6999999 decode to one request.
+
+use super::*;
+use crate::{
+    AccessRights, ReturnAddressWidth, SegmentedPointer, SelectorTable, Win16CallFrame,
+    Win16RegisterContext,
+};
+use guest_core::{GuestMemory, PhysAddr, memory::Memory};
+
+#[test]
+fn library_remainder_contract_every_new_id_decodes() {
+    let mut memory = Memory::with_size(0x10_0000).unwrap();
+    let mut selectors = SelectorTable::new().unwrap();
+    let stack = selectors
+        .alloc_block(PhysAddr(0x1000), 256, AccessRights::read_write(), &memory)
+        .unwrap();
+    memory.write(PhysAddr(0x1000), &[0u8; 256]).unwrap();
+    let frame = Win16CallFrame::new(SegmentedPointer::new(stack, 0), ReturnAddressWidth::Far);
+    let mut seen = 0u16;
+    for descriptor in export_descriptors() {
+        let id = descriptor.id as u32;
+        if !(6_000_000..7_000_000).contains(&id) {
+            continue;
+        }
+        seen += 1;
+        let decoded = decode_export_call_with_register_context(
+            descriptor,
+            frame,
+            Win16RegisterContext::default(),
+            &selectors,
+            &memory,
+        )
+        .unwrap_or_else(|error| {
+            panic!(
+                "{}:{} decode failed: {error}",
+                descriptor.module(),
+                descriptor.ordinal()
+            )
+        });
+        assert!(
+            matches!(
+                decoded.request,
+                Win16ApiRequest::Libraries(Win16LibraryRequest::LibraryRemainder { ordinal })
+                    if ordinal == descriptor.ordinal()
+            ),
+            "{}:{}",
+            descriptor.module(),
+            descriptor.name()
+        );
+        if descriptor.abi_kind == Win16ExportAbiKind::RegisterContext {
+            assert!(decode_export_call(descriptor, frame, &selectors, &memory).is_err());
+        }
+    }
+    assert_eq!(seen, 135);
+}

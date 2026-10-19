@@ -4,148 +4,412 @@ module = "COMMCTRL"
 ordinal = 3
 name = "SHOWHIDEMENUCTL"
 kind = "stub"
+decl = { args = ["word", "word", "pointer"] }
+binding = { rust_id = "LibCommctrl3", id_value = 6000000, constant = "LIB_COMMCTRL_3" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 5
 name = "DRAWSTATUSTEXT"
 kind = "stub"
+decl = { args = ["word", "pointer", "string", "word"] }
+binding = { rust_id = "LibCommctrl5", id_value = 6000001, constant = "LIB_COMMCTRL_5" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "FarString" },
+  { name = "a3", type = "U16" },
+]
 
 [[exports]]
 ordinal = 14
 name = "LBITEMFROMPT"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "long", "word"] }
+binding = { rust_id = "LibCommctrl14", id_value = 6000002, constant = "LIB_COMMCTRL_14" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 15
 name = "DRAWINSERT"
 kind = "stub"
+decl = { args = ["word", "word", "word"] }
+binding = { rust_id = "LibCommctrl15", id_value = 6000003, constant = "LIB_COMMCTRL_15" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 16
 name = "CREATEUPDOWNCONTROL"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["long", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word", "word"] }
+binding = { rust_id = "LibCommctrl16", id_value = 6000004, constant = "LIB_COMMCTRL_16" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U16" },
+  { name = "a5", type = "U16" },
+  { name = "a6", type = "U16" },
+  { name = "a7", type = "U16" },
+  { name = "a8", type = "U16" },
+  { name = "a9", type = "U16" },
+  { name = "a10", type = "U16" },
+  { name = "a11", type = "U16" },
+]
 
 [[exports]]
 ordinal = 40
 name = "IMAGELIST_CREATE"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word", "word", "word", "word"] }
+binding = { rust_id = "LibCommctrl40", id_value = 6000005, constant = "LIB_COMMCTRL_40" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U16" },
+]
 
 [[exports]]
 ordinal = 41
 name = "IMAGELIST_DESTROY"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "LibCommctrl41", id_value = 6000006, constant = "LIB_COMMCTRL_41" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 42
 name = "IMAGELIST_GETIMAGECOUNT"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "LibCommctrl42", id_value = 6000007, constant = "LIB_COMMCTRL_42" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 43
 name = "IMAGELIST_SETOVERLAYIMAGE"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
+binding = { rust_id = "LibCommctrl43", id_value = 6000008, constant = "LIB_COMMCTRL_43" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 44
 name = "IMAGELIST_SETBKCOLOR"
 kind = "stub"
+decl = { args = ["word", "long"] }
+binding = { rust_id = "LibCommctrl44", id_value = 6000009, constant = "LIB_COMMCTRL_44" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 45
 name = "IMAGELIST_GETBKCOLOR"
 kind = "stub"
+decl = { args = ["word"] }
+binding = { rust_id = "LibCommctrl45", id_value = 6000010, constant = "LIB_COMMCTRL_45" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 46
 name = "IMAGELIST_ADD"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
+binding = { rust_id = "LibCommctrl46", id_value = 6000011, constant = "LIB_COMMCTRL_46" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 49
 name = "IMAGELIST_DRAW"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word", "word", "word", "word", "word"] }
+binding = { rust_id = "LibCommctrl49", id_value = 6000012, constant = "LIB_COMMCTRL_49" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U16" },
+  { name = "a5", type = "U16" },
+]
 
 [[exports]]
 ordinal = 53
 name = "IMAGELIST_ADDICON"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+binding = { rust_id = "LibCommctrl53", id_value = 6000013, constant = "LIB_COMMCTRL_53" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 54
 name = "IMAGELIST_REPLACEICON"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word", "word"] }
+binding = { rust_id = "LibCommctrl54", id_value = 6000014, constant = "LIB_COMMCTRL_54" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+]
 
 [[exports]]
 ordinal = 159
 name = "PROPERTYSHEET"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "LibCommctrl159", id_value = 6000015, constant = "LIB_COMMCTRL_159" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 160
 name = "CREATEPROPERTYSHEETPAGE"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "LibCommctrl160", id_value = 6000016, constant = "LIB_COMMCTRL_160" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 161
 name = "DESTROYPROPERTYSHEETPAGE"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "LibCommctrl161", id_value = 6000017, constant = "LIB_COMMCTRL_161" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 328
 name = "DPA_CREATE"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "LibCommctrl328", id_value = 6000018, constant = "LIB_COMMCTRL_328" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 329
 name = "DPA_DESTROY"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "LibCommctrl329", id_value = 6000019, constant = "LIB_COMMCTRL_329" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 330
 name = "DPA_GROW"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+binding = { rust_id = "LibCommctrl330", id_value = 6000020, constant = "LIB_COMMCTRL_330" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 331
 name = "DPA_CLONE"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word"] }
+binding = { rust_id = "LibCommctrl331", id_value = 6000021, constant = "LIB_COMMCTRL_331" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 332
 name = "DPA_GETPTR"
 kind = "stub"
+decl = { args = ["word", "word"] }
+binding = { rust_id = "LibCommctrl332", id_value = 6000022, constant = "LIB_COMMCTRL_332" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 333
 name = "DPA_GETPTRINDEX"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "pointer"] }
+binding = { rust_id = "LibCommctrl333", id_value = 6000023, constant = "LIB_COMMCTRL_333" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 334
 name = "DPA_INSERTPTR"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word", "pointer"] }
+binding = { rust_id = "LibCommctrl334", id_value = 6000024, constant = "LIB_COMMCTRL_334" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 335
 name = "DPA_SETPTR"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "word", "pointer"] }
+binding = { rust_id = "LibCommctrl335", id_value = 6000025, constant = "LIB_COMMCTRL_335" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 336
 name = "DPA_DELETEPTR"
 kind = "stub"
+decl = { args = ["word", "word"] }
+binding = { rust_id = "LibCommctrl336", id_value = 6000026, constant = "LIB_COMMCTRL_336" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 337
 name = "DPA_DELETEALLPTRS"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "LibCommctrl337", id_value = 6000027, constant = "LIB_COMMCTRL_337" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 338
 name = "DPA_SORT"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "pointer", "long"] }
+binding = { rust_id = "LibCommctrl338", id_value = 6000028, constant = "LIB_COMMCTRL_338" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 339
 name = "DPA_SEARCH"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "pointer", "word", "pointer", "long", "word"] }
+binding = { rust_id = "LibCommctrl339", id_value = 6000029, constant = "LIB_COMMCTRL_339" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "FarPointer" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U16" },
+]
+

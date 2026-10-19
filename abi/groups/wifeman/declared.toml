@@ -314,6 +314,12 @@ kind = "stub"
 ordinal = 66
 name = "MISCGETEUDCLEADBYTERANGE"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "LibWifeman66", id_value = 6000114, constant = "LIB_WIFEMAN_66" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 67

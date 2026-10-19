@@ -4,48 +4,139 @@ module = "COMMDLG"
 ordinal = 6
 name = "FileOpenDlgProc"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCommdlg6", id_value = 6000030, constant = "LIB_COMMDLG_6" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 7
 name = "FileSaveDlgProc"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCommdlg7", id_value = 6000031, constant = "LIB_COMMDLG_7" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 8
 name = "ColorDlgProc"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCommdlg8", id_value = 6000032, constant = "LIB_COMMDLG_8" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 13
 name = "FindTextDlgProc"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCommdlg13", id_value = 6000033, constant = "LIB_COMMDLG_13" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 14
 name = "ReplaceTextDlgProc"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCommdlg14", id_value = 6000034, constant = "LIB_COMMDLG_14" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 16
 name = "FormatCharDlgProc"
 decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCommdlg16", id_value = 6000035, constant = "LIB_COMMDLG_16" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 18
 name = "FontStyleEnumProc"
 decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word", "long"] }
+binding = { rust_id = "LibCommdlg18", id_value = 6000036, constant = "LIB_COMMDLG_18" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 19
 name = "FontFamilyEnumProc"
 decl = { attributes = ["ret16"], args = ["pointer", "pointer", "word", "long"] }
+binding = { rust_id = "LibCommdlg19", id_value = 6000037, constant = "LIB_COMMDLG_19" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "FarPointer" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 21
 name = "PrintDlgProc"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCommdlg21", id_value = 6000038, constant = "LIB_COMMDLG_21" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 22
 name = "PrintSetupDlgProc"
 decl = { args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibCommdlg22", id_value = 6000039, constant = "LIB_COMMDLG_22" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
+

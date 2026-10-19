@@ -4,6 +4,17 @@ module = "MSACM"
 ordinal = 2
 name = "DRIVERPROC"
 kind = "stub"
+decl = { args = ["long", "word", "word", "long", "long"] }
+binding = { rust_id = "LibMsacm2", id_value = 6000080, constant = "LIB_MSACM_2" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+  { name = "a4", type = "U32" },
+]
 
 [[exports]]
 ordinal = 4

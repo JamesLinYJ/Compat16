@@ -5,3 +5,14 @@ defaults = { attributes = ["ret16"] }
 ordinal = 249
 name = "NetWkstaGetInfo"
 decl = { args = ["string", "word", "pointer", "word", "pointer"] }
+binding = { rust_id = "LibNetapi249", id_value = 6000096, constant = "LIB_NETAPI_249" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarString" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "FarPointer" },
+]
+

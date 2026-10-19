@@ -48,6 +48,11 @@ pub fn decode_export_call_with_register_context(
                         Win16KernelRemainderRequest::Register { ordinal: id.ordinal() },
                     ))
                 }
+                id if (6_000_000..7_000_000).contains(&(id as u32)) => {
+                    Win16ApiRequest::Libraries(Win16LibraryRequest::LibraryRemainder {
+                        ordinal: id.ordinal(),
+                    })
+                }
                 _ => return Err(Win16Error::UnsupportedRegisterContextExport),
             };
             let stack_cleanup = match descriptor.stack_cleanup {

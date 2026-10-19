@@ -4,26 +4,70 @@ module = "SHELL"
 ordinal = 33
 name = "AboutDlgProc"
 decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibShell33", id_value = 6000109, constant = "LIB_SHELL_33" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 101
 name = "DllEntryPoint"
 decl = { args = ["long", "word", "word", "word", "long", "word"] }
+binding = { rust_id = "LibShell101", id_value = 6000110, constant = "LIB_SHELL_101" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U32" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U16" },
+  { name = "a4", type = "U32" },
+  { name = "a5", type = "U16" },
+]
 
 [[exports]]
 ordinal = 102
 name = "RegisterShellHook"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
+binding = { rust_id = "LibShell102", id_value = 6000111, constant = "LIB_SHELL_102" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 103
 name = "ShellHookProc"
 decl = { args = ["word", "word", "long"] }
+binding = { rust_id = "LibShell103", id_value = 6000112, constant = "LIB_SHELL_103" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U32" },
+]
 
 [[exports]]
 ordinal = 157
 name = "RESTARTDIALOG"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "string", "long"] }
+binding = { rust_id = "LibShell157", id_value = 6000134, constant = "LIB_SHELL_157" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "parent", type = "U16" },
+  { name = "prompt", type = "FarString" },
+  { name = "exit_code", type = "U32" },
+]
 
 [[exports]]
 ordinal = 401

@@ -29,6 +29,9 @@ impl Win16State {
                 descriptor.name(),
                 host,
             )?,
+            Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::LibraryRemainder {
+                ordinal,
+            }) => self.library_remainder(ordinal, descriptor, host)?,
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::IsEqualGuid {
                 left, right,
             }) => u32::from(left == right),

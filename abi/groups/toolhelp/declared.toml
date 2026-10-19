@@ -4,18 +4,46 @@ module = "TOOLHELP"
 ordinal = 84
 name = "Local32Info"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["pointer", "word"] }
+binding = { rust_id = "LibToolhelp84", id_value = 6000131, constant = "LIB_TOOLHELP_84" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "info", type = "FarPointer" },
+  { name = "flags", type = "U16" },
+]
 
 [[exports]]
 ordinal = 85
 name = "Local32First"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["pointer", "word"] }
+binding = { rust_id = "LibToolhelp85", id_value = 6000132, constant = "LIB_TOOLHELP_85" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "info", type = "FarPointer" },
+  { name = "flags", type = "U16" },
+]
 
 [[exports]]
 ordinal = 86
 name = "Local32Next"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["pointer"] }
+binding = { rust_id = "LibToolhelp86", id_value = 6000133, constant = "LIB_TOOLHELP_86" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "info", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 100
 name = "next_intcb"
 decl = { attributes = ["register"] }
+binding = { rust_id = "LibToolhelp100", id_value = 6000113, constant = "LIB_TOOLHELP_100" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
+

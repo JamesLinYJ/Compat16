@@ -14,18 +14,44 @@ returns = "register_context"
 ordinal = 3
 name = "__Win87EmInfo"
 decl = { args = ["pointer", "word"] }
+binding = { rust_id = "LibWin87em3", id_value = 6000115, constant = "LIB_WIN87EM_3" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 4
 name = "__Win87EmRestore"
 decl = { args = ["pointer", "word"] }
+binding = { rust_id = "LibWin87em4", id_value = 6000116, constant = "LIB_WIN87EM_4" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 5
 name = "__Win87EmSave"
 decl = { args = ["pointer", "word"] }
+binding = { rust_id = "LibWin87em5", id_value = 6000117, constant = "LIB_WIN87EM_5" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 100
 name = "fpe_return"
 decl = { attributes = ["register"] }
+binding = { rust_id = "LibWin87em100", id_value = 6000118, constant = "LIB_WIN87EM_100" }
+[exports.call]
+kind = "register_context"
+returns = "register_context"
+

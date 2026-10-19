@@ -24,11 +24,25 @@ kind = "stub"
 ordinal = 6
 name = "SendIMEMessage"
 decl = { args = ["word", "long"] }
+binding = { rust_id = "LibWinnls6", id_value = 6000119, constant = "LIB_WINNLS_6" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 7
 name = "SendIMEMessageEx"
 decl = { args = ["word", "long"] }
+binding = { rust_id = "LibWinnls7", id_value = 6000120, constant = "LIB_WINNLS_7" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U32" },
+]
 
 [[exports]]
 ordinal = 9
@@ -44,16 +58,37 @@ kind = "stub"
 ordinal = 11
 name = "WINNLSSetIMEHandle"
 decl = { attributes = ["ret16"], args = ["segmented_pointer", "word"] }
+binding = { rust_id = "LibWinnls11", id_value = 6000121, constant = "LIB_WINNLS_11" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "FarPointer", encoding = "segmented_pointer" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 12
 name = "WINNLSSetIMEStatus"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
+binding = { rust_id = "LibWinnls12", id_value = 6000122, constant = "LIB_WINNLS_12" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 14
 name = "WINNLSSetIMEHotkey"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
+binding = { rust_id = "LibWinnls14", id_value = 6000123, constant = "LIB_WINNLS_14" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
 
 [[exports]]
 ordinal = 15
@@ -69,6 +104,12 @@ kind = "stub"
 ordinal = 19
 name = "WINNLSSetKeyState"
 decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "LibWinnls19", id_value = 6000124, constant = "LIB_WINNLS_19" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+]
 
 [[exports]]
 ordinal = 20
@@ -84,18 +125,52 @@ kind = "stub"
 ordinal = 30
 name = "WINNLSSendString"
 decl = { attributes = ["ret16"], args = ["word", "word", "pointer"] }
+binding = { rust_id = "LibWinnls30", id_value = 6000125, constant = "LIB_WINNLS_30" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "FarPointer" },
+]
 
 [[exports]]
 ordinal = 31
 name = "WINNLSPostAppMessage"
 decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibWinnls31", id_value = 6000126, constant = "LIB_WINNLS_31" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 32
 name = "WINNLSSendAppMessage"
 decl = { attributes = ["ret16"], args = ["word", "word", "word", "long"] }
+binding = { rust_id = "LibWinnls32", id_value = 6000127, constant = "LIB_WINNLS_32" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+  { name = "a2", type = "U16" },
+  { name = "a3", type = "U32" },
+]
 
 [[exports]]
 ordinal = 33
 name = "WINNLSSendControl"
 decl = { attributes = ["ret16"], args = ["word", "word"] }
+binding = { rust_id = "LibWinnls33", id_value = 6000128, constant = "LIB_WINNLS_33" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "a0", type = "U16" },
+  { name = "a1", type = "U16" },
+]
+

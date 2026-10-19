@@ -109,6 +109,9 @@ impl Win16State {
                 Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Remainder(
                     win16_abi::Win16KernelRemainderRequest::Register { .. },
                 )) => self.fail_kernel_register_remainder(cpu, memory),
+                Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::LibraryRemainder {
+                    ..
+                }) => self.fail_library_register_remainder(cpu, memory, host, descriptor),
                 _ => Err(RuntimeError::new(
                     Kind::InternalInvariant,
                     "Win16 register-context export decoded to a stack request",
