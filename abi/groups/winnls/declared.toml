@@ -94,6 +94,13 @@ params = [
 ordinal = 15
 name = "WINNLSGETIMEHOTKEY"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word"] }
+binding = { rust_id = "LibWinnls15", id_value = 9200001, constant = "LIB_WINNLS_15" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+]
 
 [[exports]]
 ordinal = 17

@@ -47,6 +47,9 @@ pub(super) fn decode(
             device: word_argument(arguments, 0)?,
             info: dword_argument(arguments, 1)?,
         }),
+        111 => Ok(Win16JoystickRequest::ConfigChanged {
+            flags: dword_argument(arguments, 0)?,
+        }),
         _ => Err(Win16Error::InvalidRange),
     }
 }

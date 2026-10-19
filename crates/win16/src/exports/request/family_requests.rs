@@ -198,8 +198,9 @@ pub enum Win16LibraryRequest {
         module: Win16OleRemainderModule,
         ordinal: u16,
     },
-    /// Library and leftover OLE exports. Binding ids are `6000000`–`6999999`.
-    /// The ordinal selects the catalog row. Guest far pointers stay on the stack.
+    /// Library and leftover OLE exports. Binding ids are `6000000`–`6999999`
+    /// and `9200000`–`9299999`. The ordinal selects the catalog row. Guest
+    /// far pointers stay on the stack.
     LibraryRemainder { ordinal: u16 },
     Strings(Win16LibraryStringsRequest),
     Interrupts(Win16LibraryInterruptsRequest),

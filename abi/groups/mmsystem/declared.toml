@@ -110,6 +110,13 @@ kind = "stub"
 ordinal = 111
 name = "JOYCONFIGCHANGED"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["long"] }
+binding = { rust_id = "LibMmsystem111", id_value = 9200000, constant = "LIB_MMSYSTEM_111" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "flags", type = "U32" },
+]
 
 [[exports]]
 ordinal = 900

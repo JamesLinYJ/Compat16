@@ -1,8 +1,10 @@
 //! Runtime for library exports and leftover OLE rows that had no call.
 //!
-//! Binding ids are `6000000`–`6999999`. Guest selectors stay on the caller's
-//! stack. This module does not read them and does not turn them into host
-//! pointers. A call the host cannot perform returns the SDK failure value.
+//! Binding ids are `6000000`–`6999999`, plus `9200000`–`9299999` for library
+//! signatures recovered from public Microsoft documentation. Guest selectors
+//! stay on the caller's stack. This module does not read them and does not
+//! turn them into host pointers. A call the host cannot perform returns the
+//! SDK failure value.
 
 use guest_core::memory::Memory;
 use win16_abi::{Win16ExportDescriptor, Win16ReturnKind};
@@ -165,6 +167,9 @@ fn failure_phrase(module: &str, name: &str, return_kind: Win16ReturnKind) -> &'s
     if module == "MMSYSTEM" && matches!(upper.as_str(), "MMTASKCREATE" | "MMTHREADCREATE") {
         return "returns MMSYSERR_NOTSUPPORTED";
     }
+    if module == "WINNLS" && upper == "WINNLSGETIMEHOTKEY" {
+        return "returns zero because no IME hotkey is published";
+    }
     if module == "COMMCTRL"
         && matches!(
             upper.as_str(),
@@ -300,6 +305,14 @@ mod tests {
         assert_eq!(
             failure_value("SHELL", "RESTARTDIALOG", Win16ReturnKind::Word),
             0
+        );
+        assert_eq!(
+            failure_value("WINNLS", "WINNLSGETIMEHOTKEY", Win16ReturnKind::Word),
+            0
+        );
+        assert_eq!(
+            failure_phrase("WINNLS", "WINNLSGETIMEHOTKEY", Win16ReturnKind::Word),
+            "returns zero because no IME hotkey is published"
         );
         assert_eq!(
             failure_value("TOOLHELP", "Local32Info", Win16ReturnKind::Word),
