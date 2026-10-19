@@ -13,7 +13,7 @@ use windows_sys::Win32::System::WindowsProgramming::{
     WritePrivateProfileStringW,
 };
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState;
-use windows_sys::Win32::UI::WindowsAndMessaging::GetSystemMetrics;
+use windows_sys::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CYCAPTION};
 
 /// A Win16 addressable string must fit in at most one 64-KiB segment.
 const MAX_WIN16_STRING_BYTES: usize = 1 << 16;
@@ -39,11 +39,12 @@ pub(super) fn get_async_key_state(virtual_key: i32) -> i16 {
     unsafe { GetAsyncKeyState(virtual_key) }
 }
 
-/// Return the native system metric value. Invalid indexes retain the API's
-/// ordinary zero result.
+/// Expose caption space consistent with the Win16 frame geometry. Other
+/// metrics and invalid indexes retain their native results.
 pub(super) fn get_system_metrics(index: i32) -> i32 {
     // SAFETY: GetSystemMetrics has no pointer arguments or ownership requirements.
-    unsafe { GetSystemMetrics(index) }
+    let native = unsafe { GetSystemMetrics(index) };
+    if index == SM_CYCAPTION { super::win16_windows::caption_height(native) } else { native }
 }
 
 /// Call the Windows Unicode profile integer reader using guest-code-page input.

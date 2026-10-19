@@ -955,6 +955,15 @@ fn message_with_invocation(
             }
         }
         Win16HostMessage::NonClientCalcSize { w_param, data } => {
+            let frame = matches!(invocation, MessageInvocation::Default
+                | MessageInvocation::FrameDefault { .. } | MessageInvocation::MdiChildDefault
+                | MessageInvocation::DialogDefault)
+                .then(|| super::win16_frame_geometry::CaptionFrame::for_window(state, window, hwnd))
+                .flatten();
+            let (data, frame) = match frame.and_then(|frame| frame.prepare(data).map(|data| (data, frame))) {
+                Some((data, frame)) => (data, Some(frame)),
+                None => (data, None),
+            };
             let mut native =
                 match super::win16_window_callbacks::NativeNonClientCalcSize::from_owned(
                     state, w_param, data,
@@ -986,6 +995,11 @@ fn message_with_invocation(
             }
             let Some(output) = native.owned_output(state)? else {
                 return Ok(None);
+            };
+            let output = match frame {
+                Some(frame) => frame.finish(output).ok_or_else(|| RuntimeError::new(
+                    Kind::InvalidInput, "legacy nonclient result exceeds native coordinate range"))?,
+                None => output,
             };
             Win16HostMessageResult {
                 dialog_result: None,

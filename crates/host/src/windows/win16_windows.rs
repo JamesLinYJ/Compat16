@@ -118,6 +118,9 @@ mod win16_window_enumeration;
 mod win16_window_geometry;
 #[path = "win16_window_sizing.rs"]
 mod win16_window_sizing;
+#[path = "win16_frame_geometry.rs"]
+mod win16_frame_geometry;
+pub(super) use win16_frame_geometry::caption_height;
 #[path = "win16_window_ops.rs"]
 mod win16_window_ops;
 #[path = "win16_window_caret.rs"]
