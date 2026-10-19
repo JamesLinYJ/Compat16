@@ -24,6 +24,7 @@ pub(super) fn get_error_string(
             error,
         )
     })?;
+    // SAFETY: mciGetErrorStringW writes into a caller-owned buffer.
     let success = unsafe { mciGetErrorStringW(error, wide.as_mut_ptr(), wide_capacity) } != 0;
     let output = guest_output_from_wide(codec, &wide, capacity)?;
     Ok(Win16HostMciResult {

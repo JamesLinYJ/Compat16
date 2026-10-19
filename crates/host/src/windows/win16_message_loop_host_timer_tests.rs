@@ -3,8 +3,7 @@
 use super::*;
 use std::cell::Cell;
 use std::time::Instant;
-use windows_sys::Win32::System::Threading::GetCurrentThreadId;
-use windows_sys::Win32::UI::WindowsAndMessaging::{KillTimer, SetTimer, WM_TIMER};
+use windows_sys::Win32::UI::WindowsAndMessaging::{SetTimer, WM_TIMER};
 
 #[derive(Clone, Copy, Default)]
 struct Observation {
@@ -21,20 +20,21 @@ thread_local! {
     static OBSERVED: Cell<Observation> = Cell::new(Observation::default());
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn record_timer(hwnd: HWND, message: u32, id: usize, _time: u32) {
     OBSERVED.with(|slot| {
         let mut observation = slot.get();
         observation.calls += 1;
-        observation.thread = unsafe { GetCurrentThreadId() };
+        observation.thread = crate::windows::win32_safe::current_thread_id();
         observation.hwnd = hwnd as usize;
         observation.message = message;
         observation.id = id;
         observation.borrow_free =
             worker::worker_context().is_some_and(|state| state.try_borrow_mut().is_ok());
         slot.set(observation);
-        unsafe { KillTimer(hwnd, id) };
+        (crate::windows::win32_safe::kill_timer(hwnd, id));
         if observation.destroy {
-            unsafe { DestroyWindow(hwnd) };
+            (crate::windows::win32_safe::destroy_window(hwnd));
         }
     });
 }
@@ -46,6 +46,7 @@ struct NativeTimer {
 
 impl NativeTimer {
     fn new(hwnd: HWND) -> Self {
+        // SAFETY: `SetTimer`, `Some` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let returned = unsafe { SetTimer(hwnd, 0x4477, 10, Some(record_timer)) };
         assert_ne!(returned, 0);
         Self {
@@ -57,7 +58,7 @@ impl NativeTimer {
 
 impl Drop for NativeTimer {
     fn drop(&mut self) {
-        unsafe { KillTimer(self.hwnd, self.id) };
+        (crate::windows::win32_safe::kill_timer(self.hwnd, self.id));
     }
 }
 
@@ -169,7 +170,10 @@ fn host_timer_native_peeks_dispatch_once_on_installing_thread() {
                 ));
                 let observed = OBSERVED.get();
                 assert_eq!(observed.calls, 1);
-                assert_eq!(observed.thread, unsafe { GetCurrentThreadId() });
+                assert_eq!(
+                    observed.thread,
+                    (crate::windows::win32_safe::current_thread_id())
+                );
                 assert_eq!(
                     (observed.hwnd, observed.message, observed.id),
                     (timer.hwnd as usize, WM_TIMER, timer.id)
@@ -198,6 +202,7 @@ fn host_timer_native_deferred_dispatch_preserves_following_guest_peeks() {
             .unwrap();
         assert!(!deferred);
         reservation.defer(native, Some(window.token)).unwrap();
+        // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
         assert_ne!(unsafe { PostMessageW(window.hwnd, 0, 0x55, 0) }, 0);
         let any = Win16MessageFilter {
             min_message: 0,
@@ -235,7 +240,7 @@ fn host_timer_native_changed_queue_routes_actual_removed_guest_record() {
         let (expected, deferred) = await_timer(state, filter);
         assert!(!deferred);
         peek_matching(state, filter, PM_REMOVE).unwrap().unwrap();
-        unsafe { KillTimer(timer.hwnd, timer.id) };
+        (crate::windows::win32_safe::kill_timer(timer.hwnd, timer.id));
         assert_eq!(
             call(
                 state,
@@ -348,6 +353,7 @@ fn host_timer_native_unregistered_thunk_drains_without_callback_delivery() {
         // This is native queue data with the actual host thunk. Guest timer
         // posts use their registered sidecar instead of this unregistered ID.
         assert_ne!(
+            // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
             unsafe {
                 PostMessageW(
                     window.hwnd,

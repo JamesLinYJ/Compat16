@@ -13,7 +13,7 @@ use windows_sys::Win32::System::WindowsProgramming::{
     WritePrivateProfileStringW,
 };
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState;
-use windows_sys::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CYCAPTION};
+use windows_sys::Win32::UI::WindowsAndMessaging::SM_CYCAPTION;
 
 /// A Win16 addressable string must fit in at most one 64-KiB segment.
 const MAX_WIN16_STRING_BYTES: usize = 1 << 16;
@@ -43,8 +43,12 @@ pub(super) fn get_async_key_state(virtual_key: i32) -> i16 {
 /// metrics and invalid indexes retain their native results.
 pub(super) fn get_system_metrics(index: i32) -> i32 {
     // SAFETY: GetSystemMetrics has no pointer arguments or ownership requirements.
-    let native = unsafe { GetSystemMetrics(index) };
-    if index == SM_CYCAPTION { super::win16_windows::caption_height(native) } else { native }
+    let native = crate::windows::win32_safe::system_metrics(index);
+    if index == SM_CYCAPTION {
+        super::win16_windows::caption_height(native)
+    } else {
+        native
+    }
 }
 
 /// Call the Windows Unicode profile integer reader using guest-code-page input.
@@ -67,30 +71,62 @@ pub(super) fn get_private_profile_int(
 }
 
 pub(super) fn private_int_wide(
-    codec: GuestTextCodec, section: Option<&[u8]>, key: Option<&[u8]>,
-    default: i32, filename: &[u16],
+    codec: GuestTextCodec,
+    section: Option<&[u8]>,
+    key: Option<&[u8]>,
+    default: i32,
+    filename: &[u16],
 ) -> Result<u32, RuntimeError> {
-    profile_int(codec, section, key, default, ProfileIntSource::WideFile(filename))
+    profile_int(
+        codec,
+        section,
+        key,
+        default,
+        ProfileIntSource::WideFile(filename),
+    )
 }
 
 pub(super) fn private_string_wide(
-    codec: GuestTextCodec, section: Option<&[u8]>, key: Option<&[u8]>,
-    default: Option<&[u8]>, filename: &[u16], capacity: u32,
+    codec: GuestTextCodec,
+    section: Option<&[u8]>,
+    key: Option<&[u8]>,
+    default: Option<&[u8]>,
+    filename: &[u16],
+    capacity: u32,
 ) -> Result<ProfileStringOutput, RuntimeError> {
-    profile_string(codec, section, key, default, ProfileStringSource::WideFile(filename), capacity)
+    profile_string(
+        codec,
+        section,
+        key,
+        default,
+        ProfileStringSource::WideFile(filename),
+        capacity,
+    )
 }
 
 pub(super) fn private_write_wide(
-    codec: GuestTextCodec, section: Option<&[u8]>, key: Option<&[u8]>,
-    value: Option<&[u8]>, filename: &[u16],
+    codec: GuestTextCodec,
+    section: Option<&[u8]>,
+    key: Option<&[u8]>,
+    value: Option<&[u8]>,
+    filename: &[u16],
 ) -> Result<bool, RuntimeError> {
-    if !inputs_are_valid(&[section, key, value]) { return Ok(false); }
+    if !inputs_are_valid(&[section, key, value]) {
+        return Ok(false);
+    }
     let section = copy_optional_wide_z(codec, section)?;
     let key = copy_optional_wide_z(codec, key)?;
     let value = copy_optional_wide_z(codec, value)?;
     // The path belongs to a private host temporary file, never guest text.
-    Ok(unsafe { WritePrivateProfileStringW(wide_ptr(section.as_ref()),
-        wide_ptr(key.as_ref()), wide_ptr(value.as_ref()), filename.as_ptr()) } != 0)
+    // SAFETY: `WritePrivateProfileStringW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+    Ok(unsafe {
+        WritePrivateProfileStringW(
+            wide_ptr(section.as_ref()),
+            wide_ptr(key.as_ref()),
+            wide_ptr(value.as_ref()),
+            filename.as_ptr(),
+        )
+    } != 0)
 }
 
 /// Read the system profile using Windows' WIN.INI compatibility mapping.
@@ -257,14 +293,16 @@ fn profile_string(
                 output.as_mut_ptr(),
                 wide_capacity_u32,
             ),
-            ProfileStringSource::File(_) | ProfileStringSource::WideFile(_) => GetPrivateProfileStringW(
-                wide_ptr(app_name.as_ref()),
-                wide_ptr(key_name.as_ref()),
-                default,
-                output.as_mut_ptr(),
-                wide_capacity_u32,
-                wide_ptr(file_name.as_ref()),
-            ),
+            ProfileStringSource::File(_) | ProfileStringSource::WideFile(_) => {
+                GetPrivateProfileStringW(
+                    wide_ptr(app_name.as_ref()),
+                    wide_ptr(key_name.as_ref()),
+                    default,
+                    output.as_mut_ptr(),
+                    wide_capacity_u32,
+                    wide_ptr(file_name.as_ref()),
+                )
+            }
         }
     };
     let native_copied = read_profile(&mut wide, wide_ptr(default.as_ref()));
@@ -281,13 +319,19 @@ fn profile_string(
         // A default string can have exactly the same count as the MULTI_SZ
         // truncation sentinel. Query names without that default only for this
         // ambiguity, while keeping the original API's default text and trim.
-        let ambiguous_default = native_multisz_truncated && app_name.is_some()
-            && key_name.is_none() && default.as_ref().is_some_and(|value| value.len() > 1);
+        let ambiguous_default = native_multisz_truncated
+            && app_name.is_some()
+            && key_name.is_none()
+            && default.as_ref().is_some_and(|value| value.len() > 1);
         let missing_names = if ambiguous_default {
-            let mut names = zeroed_wide(wide_capacity, "query profile enumeration without default")?;
+            let mut names =
+                zeroed_wide(wide_capacity, "query profile enumeration without default")?;
             read_profile(&mut names, std::ptr::null()) == 0
-        } else { false };
-        let ordinary_default = missing_names || native_copied == wide_capacity.saturating_sub(1)
+        } else {
+            false
+        };
+        let ordinary_default = missing_names
+            || native_copied == wide_capacity.saturating_sub(1)
             || (!native_multisz_truncated
                 && native_copied > 0
                 && wide.get(native_copied.saturating_sub(1)) != Some(&0));

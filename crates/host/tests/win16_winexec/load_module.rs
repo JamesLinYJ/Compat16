@@ -55,6 +55,7 @@ fn verify_program(page: u32, name: &str, environment: Option<&[u8]>, tail: &[u8]
     // target DOS pages (437/936), so use Windows for the 1252/936 readback.
     use windows_sys::Win32::Globalization::{MB_ERR_INVALID_CHARS, MultiByteToWideChar};
     let length = i32::try_from(path.len()).unwrap();
+    // SAFETY: MultiByteToWideChar reads a caller-owned byte span and writes a caller-owned UTF-16 buffer.
     let needed = unsafe {
         MultiByteToWideChar(
             page,
@@ -71,6 +72,7 @@ fn verify_program(page: u32, name: &str, environment: Option<&[u8]>, tail: &[u8]
         std::io::Error::last_os_error()
     );
     let mut wide = vec![0; needed as usize];
+    // SAFETY: MultiByteToWideChar reads a caller-owned byte span and writes a caller-owned UTF-16 buffer.
     let written = unsafe {
         MultiByteToWideChar(
             page,

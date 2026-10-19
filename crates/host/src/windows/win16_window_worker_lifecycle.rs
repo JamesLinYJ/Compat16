@@ -4,11 +4,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use runtime::{
-    DiagnosticKind as Kind, RuntimeError, Win16HostClass, Win16HostClassSpec,
-    Win16HostSystemClass, Win16RegisteredClass,
+    DiagnosticKind as Kind, RuntimeError, Win16HostClass, Win16HostClassSpec, Win16HostSystemClass,
+    Win16RegisteredClass,
 };
-use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND};
-use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetClassLongPtrW, RegisterClassExW, SetClassLongPtrW, UnregisterClassW, WNDCLASSEXW,
 };
@@ -30,40 +29,63 @@ pub(super) fn register_class(
     cursor: usize,
     background: NativeClassBackground,
 ) -> Result<Option<Win16RegisteredClass>, RuntimeError> {
-    if state.borrow().aborted { return Ok(None); }
-    if spec.class_extra < 0 || spec.window_extra < 0 { return Ok(None); }
+    if state.borrow().aborted {
+        return Ok(None);
+    }
+    if spec.class_extra < 0 || spec.window_extra < 0 {
+        return Ok(None);
+    }
     if let Some(system_class) = spec.system_class {
         let name = predefined_class_name(system_class).to_vec();
-        state.borrow_mut().classes.insert(token, Rc::new(NativeClass {
-            name,
-            instance: std::ptr::null_mut(),
-            system_class: true,
-            system_class_kind: Some(system_class),
-            native_extras: None,
-            background: RefCell::new(NativeClassBackground::default()),
-        }));
+        state.borrow_mut().classes.insert(
+            token,
+            Rc::new(NativeClass {
+                name,
+                instance: std::ptr::null_mut(),
+                system_class: true,
+                system_class_kind: Some(system_class),
+                native_extras: None,
+                background: RefCell::new(NativeClassBackground::default()),
+            }),
+        );
         // Atom zero marks an internal alias; it is never returned by a guest
         // RegisterClass operation or inserted in the guest class registry.
-        return Ok(Some(Win16RegisteredClass { class: token, atom: 0 }));
+        return Ok(Some(Win16RegisteredClass {
+            class: token,
+            atom: 0,
+        }));
     }
     let mut name = format!("Win16GuestClass_{}", token.0).into_bytes();
     name.push(0);
     // SAFETY: A NULL module name asks Windows for this process module.
-    let instance = unsafe { GetModuleHandleW(std::ptr::null()) };
+    let instance = crate::windows::win32_safe::current_module();
     if instance.is_null() {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "GetModuleHandleW could not identify the Win16 host module"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "GetModuleHandleW could not identify the Win16 host module",
+        ));
     }
-    let Some((class_reserve, window_reserve)) = super::super::win16_system_classes::native_reserves()
-        else { return Ok(None); };
+    let Some((class_reserve, window_reserve)) =
+        super::super::win16_system_classes::native_reserves()
+    else {
+        return Ok(None);
+    };
     let class_extra = i32::from(spec.class_extra).max(class_reserve);
-    let window_extra = i32::from(spec.window_extra.max(NATIVE_DLGWINDOWEXTRA_BYTES)).max(window_reserve);
+    let window_extra =
+        i32::from(spec.window_extra.max(NATIVE_DLGWINDOWEXTRA_BYTES)).max(window_reserve);
     let native_class = Rc::new(NativeClass {
-        name, instance, system_class: false, system_class_kind: None,
+        name,
+        instance,
+        system_class: false,
+        system_class_kind: None,
         native_extras: Some((class_extra, window_extra)),
         background: RefCell::new(background),
     });
-    let wide_name = native_class.name.iter().map(|byte| u16::from(*byte)).collect::<Vec<_>>();
+    let wide_name = native_class
+        .name
+        .iter()
+        .map(|byte| u16::from(*byte))
+        .collect::<Vec<_>>();
     let class = WNDCLASSEXW {
         cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
         style: u32::from(spec.style),
@@ -79,24 +101,32 @@ pub(super) fn register_class(
     };
     // Resource numbers were resolved from host-owned tables before entering
     // the worker. They are reconstituted here and never sent back to runtime.
+    // SAFETY: RegisterClassExW reads a caller-owned WNDCLASSEXW whose string pointers stay live for the call.
     let atom = unsafe { RegisterClassExW(&class) };
-    if atom == 0 { return Ok(None); }
+    if atom == 0 {
+        return Ok(None);
+    }
     state.borrow_mut().classes.insert(token, native_class);
     Ok(Some(Win16RegisteredClass { class: token, atom }))
 }
 
-pub(super) fn unregister_class(
-    state: &Rc<RefCell<WorkerState>>,
-    token: Win16HostClass,
-) -> bool {
-    let Some(class) = state.borrow().classes.get(&token).cloned() else { return false; };
+pub(super) fn unregister_class(state: &Rc<RefCell<WorkerState>>, token: Win16HostClass) -> bool {
+    let Some(class) = state.borrow().classes.get(&token).cloned() else {
+        return false;
+    };
     if class.system_class {
         state.borrow_mut().classes.remove(&token);
         return true;
     }
     // SAFETY: This class name and module identify a class registered here.
-    let wide_name = class.name.iter().map(|byte| u16::from(*byte)).collect::<Vec<_>>();
-    if unsafe { UnregisterClassW(wide_name.as_ptr(), class.instance) } == 0 { return false; }
+    let wide_name = class
+        .name
+        .iter()
+        .map(|byte| u16::from(*byte))
+        .collect::<Vec<_>>();
+    if unsafe { UnregisterClassW(wide_name.as_ptr(), class.instance) } == 0 {
+        return false;
+    }
     if let Some(brush) = &class.background.borrow().brush {
         brush.retire();
     }
@@ -116,17 +146,29 @@ pub(super) fn replace_class_resource(
     window: runtime::Win16HostWindow,
     resource: NativeClassResource,
 ) -> Result<bool, RuntimeError> {
-    let Some(hwnd) = super::super::win16_window_identity::resolve_user_window(state, window)
-        else { return Ok(false); };
+    let Some(hwnd) = super::super::win16_window_identity::resolve_user_window(state, window) else {
+        return Ok(false);
+    };
     let registration = {
         let state = state.borrow();
-        if state.aborted { return Ok(false); }
-        let Some(registration) = state.classes.get(&class) else { return Ok(false); };
-        if registration.system_class { return Ok(false); }
-        let matches = state.windows_by_native.get(&(hwnd as usize)).is_some_and(|identity| {
-            identity.owned && identity.window == window && identity.class == Some(class)
-        });
-        if !matches { return Ok(false); }
+        if state.aborted {
+            return Ok(false);
+        }
+        let Some(registration) = state.classes.get(&class) else {
+            return Ok(false);
+        };
+        if registration.system_class {
+            return Ok(false);
+        }
+        let matches = state
+            .windows_by_native
+            .get(&(hwnd as usize))
+            .is_some_and(|identity| {
+                identity.owned && identity.window == window && identity.class == Some(class)
+            });
+        if !matches {
+            return Ok(false);
+        }
         Rc::clone(registration)
     };
     let field = resource.field();
@@ -138,14 +180,18 @@ pub(super) fn replace_class_resource(
     // SAFETY: This is the verified, owned class HWND on its USER worker.
     unsafe { SetClassLongPtrW(hwnd, field, requested as isize) };
     if super::super::win16_window_identity::resolve_user_window(state, window) != Some(hwnd) {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "native class resource replacement lost its window incarnation"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "native class resource replacement lost its window incarnation",
+        ));
     }
     let installed = read_class_resource(hwnd, field)?;
     if installed != requested {
         if installed != previous {
-            return Err(RuntimeError::new(Kind::HostFailure,
-                "native class resource replacement left an unexpected class value"));
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "native class resource replacement left an unexpected class value",
+            ));
         }
         // A refusal is reported only after confirming the old value remains.
         return Ok(false);
@@ -161,12 +207,15 @@ pub(super) fn replace_class_resource(
 fn read_class_resource(hwnd: HWND, field: i32) -> Result<usize, RuntimeError> {
     // SAFETY: Callers resolve this live HWND and select only pointer-valued
     // icon, cursor or background class fields. Zero is a valid empty field.
-    unsafe { SetLastError(0) };
+    (crate::windows::win32_safe::set_last_error(0));
     let value = unsafe { GetClassLongPtrW(hwnd, field) };
-    let error = unsafe { GetLastError() };
+    let error = crate::windows::win32_safe::last_error();
     if value == 0 && error != 0 {
-        return Err(RuntimeError::with_source(Kind::HostFailure,
-            "read native class resource field", std::io::Error::from_raw_os_error(error as i32)));
+        return Err(RuntimeError::with_source(
+            Kind::HostFailure,
+            "read native class resource field",
+            std::io::Error::from_raw_os_error(error as i32),
+        ));
     }
     Ok(value)
 }
@@ -175,33 +224,51 @@ pub(in super::super) fn shutdown_all(state: &Rc<RefCell<WorkerState>>) -> Result
     let cursor_cleanup = super::super::win16_cursor_clip::cleanup_for_exit();
     let dialog_cleanup = super::super::win16_common_dialog_worker::shutdown(state);
     let drag_list_cleanup = super::super::win16_common_controls_drag_list::retire_all(state);
-    let mut result = combine_cleanup(cursor_cleanup, combine_cleanup(dialog_cleanup, drag_list_cleanup));
+    let mut result = combine_cleanup(
+        cursor_cleanup,
+        combine_cleanup(dialog_cleanup, drag_list_cleanup),
+    );
     let mut windows = {
         let state = state.borrow();
-        state.windows.iter().filter_map(|(token, hwnd)| {
-            state.windows_by_native.get(&(*hwnd as usize))
-                .filter(|identity| identity.owned && identity.window == *token)
-                .map(|_| (*token, *hwnd))
-        }).collect::<Vec<_>>()
+        state
+            .windows
+            .iter()
+            .filter_map(|(token, hwnd)| {
+                state
+                    .windows_by_native
+                    .get(&(*hwnd as usize))
+                    .filter(|identity| identity.owned && identity.window == *token)
+                    .map(|_| (*token, *hwnd))
+            })
+            .collect::<Vec<_>>()
     };
     windows.sort_unstable_by_key(|(token, _)| *token);
     for (token, hwnd) in windows {
         let (destroyed, _) = super::destroy_window_operation(state, token);
-        if destroyed { continue; }
-        if unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(hwnd) } == 0 {
+        if destroyed {
+            continue;
+        }
+        if (crate::windows::win32_safe::is_window(hwnd)) == 0 {
             super::super::win16_window_worker::remove_window_maps(state, token, hwnd);
         } else {
-            result = combine_cleanup(result, Err(RuntimeError::new(
-                Kind::HostFailure,
-                "worker shutdown could not destroy an owned HWND; its identity remains live for retry",
-            )));
+            result = combine_cleanup(
+                result,
+                Err(RuntimeError::new(
+                    Kind::HostFailure,
+                    "worker shutdown could not destroy an owned HWND; its identity remains live for retry",
+                )),
+            );
         }
     }
-    result = combine_cleanup(result,
-        super::super::win16_native_procedures::restore_subclasses(state));
+    result = combine_cleanup(
+        result,
+        super::super::win16_native_procedures::restore_subclasses(state),
+    );
     result = combine_cleanup(result, super::super::win16_window_caret::shutdown());
-    result = combine_cleanup(result,
-        super::super::win16_common_controls_bitmap_pins::retire_all(state));
+    result = combine_cleanup(
+        result,
+        super::super::win16_common_controls_bitmap_pins::retire_all(state),
+    );
 
     let roots = {
         let state = state.borrow();
@@ -209,14 +276,25 @@ pub(in super::super) fn shutdown_all(state: &Rc<RefCell<WorkerState>>) -> Result
     };
     for menu in roots {
         let native = { state.borrow().menus.get(&menu).copied() };
-        let Some(native) = native else { continue; };
-        if unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsMenu(native) } == 0 {
+        let Some(native) = native else {
+            continue;
+        };
+        if (crate::windows::win32_safe::is_menu(native)) == 0 {
             let identities = super::super::win16_menu_attachment::menu_tree(state, menu)
-                .into_iter().filter_map(|token| state.borrow().menus.get(&token).copied()
-                    .map(|native| (token, native as usize)))
+                .into_iter()
+                .filter_map(|token| {
+                    state
+                        .borrow()
+                        .menus
+                        .get(&token)
+                        .copied()
+                        .map(|native| (token, native as usize))
+                })
                 .collect::<std::collections::BTreeMap<_, _>>();
             let _ = super::super::win16_menu_attachment::invalidate_menu_identities(
-                state, &identities, false,
+                state,
+                &identities,
+                false,
             );
             continue;
         }
@@ -225,10 +303,13 @@ pub(in super::super) fn shutdown_all(state: &Rc<RefCell<WorkerState>>) -> Result
         ) {
             Ok(Some(tree)) => tree,
             Ok(None) => {
-                result = combine_cleanup(result, Err(RuntimeError::new(
-                    Kind::HostFailure,
-                    "worker shutdown retained a menu tree with a live, shared, or in-flight owner",
-                )));
+                result = combine_cleanup(
+                    result,
+                    Err(RuntimeError::new(
+                        Kind::HostFailure,
+                        "worker shutdown retained a menu tree with a live, shared, or in-flight owner",
+                    )),
+                );
                 continue;
             }
             Err(error) => {
@@ -236,41 +317,40 @@ pub(in super::super) fn shutdown_all(state: &Rc<RefCell<WorkerState>>) -> Result
                 continue;
             }
         };
-        let owners = match super::super::win16_menu_attachment::retain_menu_call_owners(
-            state, &[menu],
-        ) {
-            Ok(owners) => owners,
-            Err(error) => {
-                result = combine_cleanup(result, Err(error));
-                continue;
-            }
-        };
-        let reservation = match super::super::win16_menu_attachment::reserve_menu_retirement(
-            state, &tree,
-        ) {
-            Ok(reservation) => reservation,
-            Err(error) => {
-                result = combine_cleanup(result, Err(error));
-                drop(owners);
-                continue;
-            }
-        };
-        let destroyed = unsafe {
-            windows_sys::Win32::UI::WindowsAndMessaging::DestroyMenu(native) != 0
-        };
+        let owners =
+            match super::super::win16_menu_attachment::retain_menu_call_owners(state, &[menu]) {
+                Ok(owners) => owners,
+                Err(error) => {
+                    result = combine_cleanup(result, Err(error));
+                    continue;
+                }
+            };
+        let reservation =
+            match super::super::win16_menu_attachment::reserve_menu_retirement(state, &tree) {
+                Ok(reservation) => reservation,
+                Err(error) => {
+                    result = combine_cleanup(result, Err(error));
+                    drop(owners);
+                    continue;
+                }
+            };
+        let destroyed = crate::windows::win32_safe::destroy_menu(native) != 0;
         drop(reservation);
         let _ = super::super::win16_menu_attachment::invalidate_menu_identities(
             state, &tree, destroyed,
         );
         drop(owners);
-        if !destroyed && super::super::win16_menu_attachment::menu_token_matches(
-            state, menu, native,
-        ) && unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsMenu(native) } != 0
+        if !destroyed
+            && super::super::win16_menu_attachment::menu_token_matches(state, menu, native)
+            && (crate::windows::win32_safe::is_menu(native)) != 0
         {
-            result = combine_cleanup(result, Err(RuntimeError::new(
-                Kind::HostFailure,
-                "worker shutdown could not destroy a detached native menu; its owner remains mapped for retry",
-            )));
+            result = combine_cleanup(
+                result,
+                Err(RuntimeError::new(
+                    Kind::HostFailure,
+                    "worker shutdown could not destroy a detached native menu; its owner remains mapped for retry",
+                )),
+            );
         }
     }
     let mut unmapped_menus = {
@@ -280,29 +360,29 @@ pub(in super::super) fn shutdown_all(state: &Rc<RefCell<WorkerState>>) -> Result
     let mut index = 0;
     while index < unmapped_menus.len() {
         let native = unmapped_menus[index];
-        let live_before = unsafe {
-            windows_sys::Win32::UI::WindowsAndMessaging::IsMenu(native) != 0
-        };
-        let destroyed = !live_before || unsafe {
-            windows_sys::Win32::UI::WindowsAndMessaging::DestroyMenu(native) != 0
-        };
-        let live_after = unsafe {
-            windows_sys::Win32::UI::WindowsAndMessaging::IsMenu(native) != 0
-        };
+        let live_before = crate::windows::win32_safe::is_menu(native) != 0;
+        let destroyed = !live_before || { crate::windows::win32_safe::destroy_menu(native) != 0 };
+        let live_after = crate::windows::win32_safe::is_menu(native) != 0;
         if destroyed || !live_after {
             unmapped_menus.swap_remove(index);
         } else {
-            result = combine_cleanup(result, Err(RuntimeError::new(
-                Kind::HostFailure,
-                "worker shutdown retained an unmapped native class-menu owner after DestroyMenu failed",
-            )));
+            result = combine_cleanup(
+                result,
+                Err(RuntimeError::new(
+                    Kind::HostFailure,
+                    "worker shutdown retained an unmapped native class-menu owner after DestroyMenu failed",
+                )),
+            );
             index += 1;
         }
     }
     state.borrow_mut().retained_unmapped_menu_owners = unmapped_menus;
     let owned_windows_remain = {
         let state = state.borrow();
-        state.windows_by_native.values().any(|identity| identity.owned)
+        state
+            .windows_by_native
+            .values()
+            .any(|identity| identity.owned)
     };
     if !owned_windows_remain {
         let classes = {
@@ -311,10 +391,13 @@ pub(in super::super) fn shutdown_all(state: &Rc<RefCell<WorkerState>>) -> Result
         };
         for class in classes {
             if !unregister_class(state, class) {
-                result = combine_cleanup(result, Err(RuntimeError::new(
-                    Kind::HostFailure,
-                    "worker shutdown could not unregister a native class; its owner remains mapped for retry",
-                )));
+                result = combine_cleanup(
+                    result,
+                    Err(RuntimeError::new(
+                        Kind::HostFailure,
+                        "worker shutdown could not unregister a native class; its owner remains mapped for retry",
+                    )),
+                );
             }
         }
         super::super::win16_window_properties::retire_all(state);

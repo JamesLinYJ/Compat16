@@ -13,7 +13,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use runtime::{DiagnosticKind as Kind, RuntimeError};
-use windows_sys::Win32::System::Threading::SetEvent;
 
 #[derive(Clone)]
 pub(crate) struct MultimediaWakeSender {
@@ -67,23 +66,27 @@ impl MultimediaWakeSender {
 
         // SAFETY: this clone keeps the worker's auto-reset event alive while
         // SetEvent uses its process-local handle.
-        let set_event = if unsafe { SetEvent(self.event.as_raw_handle() as _) } == 0 {
-            let code = unsafe { windows_sys::Win32::Foundation::GetLastError() };
-            Err(RuntimeError::with_source(
-                Kind::HostFailure,
-                format!("signal the Win16 USER worker event (Windows error {code})"),
-                io::Error::from_raw_os_error(code as i32),
-            ))
-        } else {
-            Ok(())
-        };
+        let set_event =
+            if (crate::windows::win32_safe::set_event(self.event.as_raw_handle() as _)) == 0 {
+                let code = crate::windows::win32_safe::last_error();
+                Err(RuntimeError::with_source(
+                    Kind::HostFailure,
+                    format!("signal the Win16 USER worker event (Windows error {code})"),
+                    io::Error::from_raw_os_error(code as i32),
+                ))
+            } else {
+                Ok(())
+            };
         match (modal_publish, set_event) {
             (Ok(()), Ok(())) => Ok(()),
             (Err(primary), Ok(())) | (Ok(()), Err(primary)) => Err(primary),
             (Err(primary), Err(additional)) => Err(RuntimeError::with_source(
                 primary.kind().with_cleanup(additional.kind()),
                 "publish the modal marker and wake the Win16 USER worker",
-                WakeFailurePair { primary, additional },
+                WakeFailurePair {
+                    primary,
+                    additional,
+                },
             )),
         }
     }
@@ -97,7 +100,11 @@ struct WakeFailurePair {
 
 impl std::fmt::Display for WakeFailurePair {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "{}; additional failure: {}", self.primary, self.additional)
+        write!(
+            formatter,
+            "{}; additional failure: {}",
+            self.primary, self.additional
+        )
     }
 }
 

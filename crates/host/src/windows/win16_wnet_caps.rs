@@ -59,15 +59,21 @@ const NETWORK_DRIVER_INSTANCE: u16 = 0xffff;
 
 pub(super) fn get_caps(host: &mut WindowsHost, index: u16) -> Result<u16, RuntimeError> {
     match index {
-        WNNC_SPEC_VERSION => Ok(if provider_type(host)? == 0 { 0 }
-            else { WIN16_NETWORK_SPEC_VERSION }),
+        WNNC_SPEC_VERSION => Ok(if provider_type(host)? == 0 {
+            0
+        } else {
+            WIN16_NETWORK_SPEC_VERSION
+        }),
         WNNC_NET_TYPE => provider_type(host),
         WNNC_USER | WNNC_CONNECTION | WNNC_ERROR => {
-            if provider_type(host)? == 0 { return Ok(0); }
+            if provider_type(host)? == 0 {
+                return Ok(0);
+            }
             Ok(match index {
                 WNNC_USER => WNNC_USR_GET_USER,
-                WNNC_CONNECTION => WNNC_CON_ADD_CONNECTION
-                    | WNNC_CON_CANCEL_CONNECTION | WNNC_CON_GET_CONNECTIONS,
+                WNNC_CONNECTION => {
+                    WNNC_CON_ADD_CONNECTION | WNNC_CON_CANCEL_CONNECTION | WNNC_CON_GET_CONNECTIONS
+                }
                 WNNC_ERROR => WNNC_ERR_GET_ERROR | WNNC_ERR_GET_ERROR_TEXT,
                 _ => unreachable!(),
             })
@@ -76,20 +82,26 @@ pub(super) fn get_caps(host: &mut WindowsHost, index: u16) -> Result<u16, Runtim
         // invent a Win16 driver version. There is also no guest driver module
         // corresponding to MPR's native handle. These queries report absence.
         WNNC_DRIVER_VERSION | NETWORK_DRIVER_INSTANCE => {
-            host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
-                "legacy network driver version or module identity is unavailable"));
+            host.report_diagnostic(&Diagnostic::warning(
+                Kind::CompatibilityGap,
+                "legacy network driver version or module identity is unavailable",
+            ));
             Ok(0)
         }
         // Printing flags above reflect only guest calls actually routed by
         // this runtime. Other native provider support cannot claim dialogs
         // or operations whose Win16 bridges are still absent.
         WNNC_PRINTING => {
-            if provider_type(host)? == 0 { return Ok(0); }
+            if provider_type(host)? == 0 {
+                return Ok(0);
+            }
             Ok(WNNC_IMPLEMENTED_PRINTING)
         }
         8 | 9 => {
-            host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
-                "legacy network operation capabilities are not yet bridged"));
+            host.report_diagnostic(&Diagnostic::warning(
+                Kind::CompatibilityGap,
+                "legacy network operation capabilities are not yet bridged",
+            ));
             Ok(0)
         }
         _ => Ok(0),
@@ -99,30 +111,50 @@ pub(super) fn get_caps(host: &mut WindowsHost, index: u16) -> Result<u16, Runtim
 fn provider_type(host: &mut WindowsHost) -> Result<u16, RuntimeError> {
     let mut name = vec![0u16; 256];
     loop {
-        let mut length = u32::try_from(name.len()).map_err(|error|
-            RuntimeError::with_source(Kind::ResourceExhausted,
-                "network provider name exceeds Windows buffer width", error))?;
+        let mut length = u32::try_from(name.len()).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "network provider name exceeds Windows buffer width",
+                error,
+            )
+        })?;
         // The writable UTF-16 array is owned and length matches its capacity.
-        let status = unsafe { WNetGetProviderNameW(WNNC_NET_LANMAN32,
-            name.as_mut_ptr(), &mut length) };
+        // SAFETY: `WNetGetProviderNameW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+        let status =
+            unsafe { WNetGetProviderNameW(WNNC_NET_LANMAN32, name.as_mut_ptr(), &mut length) };
         if status == ERROR_MORE_DATA && usize::try_from(length).is_ok_and(|n| n > name.len()) {
-            let required = usize::try_from(length).map_err(|error|
-                RuntimeError::with_source(Kind::ResourceExhausted,
-                    "network provider name extent", error))?;
-            name.try_reserve_exact(required - name.len()).map_err(|error|
-                RuntimeError::with_source(Kind::ResourceExhausted,
-                    "allocate network provider name", error))?;
+            let required = usize::try_from(length).map_err(|error| {
+                RuntimeError::with_source(
+                    Kind::ResourceExhausted,
+                    "network provider name extent",
+                    error,
+                )
+            })?;
+            name.try_reserve_exact(required - name.len())
+                .map_err(|error| {
+                    RuntimeError::with_source(
+                        Kind::ResourceExhausted,
+                        "allocate network provider name",
+                        error,
+                    )
+                })?;
             name.resize(required, 0);
             continue;
         }
         if status != NO_ERROR {
-            host.report_diagnostic(&Diagnostic::warning(Kind::HostFailure,
-                format!("Windows network provider query returned {status}; no legacy provider reported")));
+            host.report_diagnostic(&Diagnostic::warning(
+                Kind::HostFailure,
+                format!(
+                    "Windows network provider query returned {status}; no legacy provider reported"
+                ),
+            ));
             return Ok(0);
         }
         if name.first() == Some(&0) || !name.contains(&0) {
-            return Err(RuntimeError::new(Kind::HostFailure,
-                "Windows returned an empty or unterminated network provider name"));
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "Windows returned an empty or unterminated network provider name",
+            ));
         }
         break;
     }
@@ -130,15 +162,20 @@ fn provider_type(host: &mut WindowsHost) -> Result<u16, RuntimeError> {
     info.cbStructure = core::mem::size_of::<NETINFOSTRUCT>() as u32;
     // The input is terminated and owned. The native struct is aligned, sized
     // with the official binding, and never exposes dwHandle to the guest.
+    // SAFETY: `WNetGetNetworkInformationW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let status = unsafe { WNetGetNetworkInformationW(name.as_ptr(), &mut info) };
     if status != NO_ERROR {
-        host.report_diagnostic(&Diagnostic::warning(Kind::HostFailure,
-            format!("Windows network information returned {status}; no legacy provider reported")));
+        host.report_diagnostic(&Diagnostic::warning(
+            Kind::HostFailure,
+            format!("Windows network information returned {status}; no legacy provider reported"),
+        ));
         return Ok(0);
     }
     let Ok(kind) = u8::try_from(info.wNetType) else {
-        host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
-            "Windows network provider type has no Win16 representation"));
+        host.report_diagnostic(&Diagnostic::warning(
+            Kind::CompatibilityGap,
+            "Windows network provider type has no Win16 representation",
+        ));
         return Ok(0);
     };
     Ok(u16::from(kind) << 8)

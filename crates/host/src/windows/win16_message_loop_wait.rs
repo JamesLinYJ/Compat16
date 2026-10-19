@@ -6,9 +6,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError};
-use windows_sys::Win32::Foundation::{
-    GetLastError, HANDLE, WAIT_ABANDONED_0, WAIT_FAILED, WAIT_OBJECT_0,
-};
+use windows_sys::Win32::Foundation::{HANDLE, WAIT_ABANDONED_0, WAIT_FAILED, WAIT_OBJECT_0};
 use windows_sys::Win32::UI::WindowsAndMessaging::{MsgWaitForMultipleObjectsEx, QS_ALLINPUT};
 
 use super::{NativeFilter, WaitResult, WorkerState, wait_command::try_receive_command};
@@ -41,6 +39,7 @@ pub(super) fn wait_for_input_or_command_with_filter(
         };
         let handle = event.as_raw_handle() as HANDLE;
         let handles = [handle];
+        // SAFETY: `MsgWaitForMultipleObjectsEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let result = unsafe {
             MsgWaitForMultipleObjectsEx(
                 1,
@@ -73,7 +72,7 @@ pub(super) fn wait_for_input_or_command_with_filter(
         let detail = match result {
             WAIT_FAILED => format!(
                 "Win16 USER queue wait failed with Windows error {}",
-                unsafe { GetLastError() }
+                (crate::windows::win32_safe::last_error())
             ),
             WAIT_ABANDONED_0 => "Win16 USER wake event was abandoned".to_owned(),
             _ => format!("Win16 USER queue wait returned unexpected status {result}"),

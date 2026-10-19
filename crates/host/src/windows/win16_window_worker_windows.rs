@@ -1,7 +1,7 @@
 //! Native USER-window lifecycle and identity helpers.
 
-use super::*;
 use super::window_retirement;
+use super::*;
 
 pub(super) fn create_window(
     state: &Rc<RefCell<WorkerState>>,
@@ -15,8 +15,10 @@ pub(super) fn create_window(
     };
     let is_mdi_client = class.system_class_kind == Some(runtime::Win16HostSystemClass::MdiClient);
     if is_mdi_client != data.mdi_client.is_some() {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "MDI client creation fields do not match their exact predefined class identity"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "MDI client creation fields do not match their exact predefined class identity",
+        ));
     }
     let mut mdi_client = match data.mdi_client {
         Some(input) => {
@@ -24,15 +26,19 @@ pub(super) fn create_window(
                 None => std::ptr::null_mut(),
                 Some(menu) => match state.borrow().menus.get(&menu).copied() {
                     Some(native) => native,
-                    None => return Ok(Win16HostWindowCreationResult::not_invoked(
-                        Win16WindowCreationRejection::NativeMenuUnavailable,
-                    )),
+                    None => {
+                        return Ok(Win16HostWindowCreationResult::not_invoked(
+                            Win16WindowCreationRejection::NativeMenuUnavailable,
+                        ));
+                    }
                 },
             };
-            Some(windows_sys::Win32::UI::WindowsAndMessaging::CLIENTCREATESTRUCT {
-                hWindowMenu: native_menu,
-                idFirstChild: u32::from(input.first_child_id),
-            })
+            Some(
+                windows_sys::Win32::UI::WindowsAndMessaging::CLIENTCREATESTRUCT {
+                    hWindowMenu: native_menu,
+                    idFirstChild: u32::from(input.first_child_id),
+                },
+            )
         }
         None => None,
     };
@@ -41,38 +47,46 @@ pub(super) fn create_window(
         .map(|parent| super::super::win16_window_identity::resolve_user_window(state, parent));
     let parent = match (data.parent, parent_handle) {
         (Some(_), Some(Some(hwnd))) => {
-            if unsafe { IsWindow(hwnd) } == 0 {
+            if (crate::windows::win32_safe::is_window(hwnd)) == 0 {
                 return Ok(Win16HostWindowCreationResult::not_invoked(
                     Win16WindowCreationRejection::NativeParentUnavailable,
                 ));
             }
             hwnd
         }
-        (Some(_), _) => return Ok(Win16HostWindowCreationResult::not_invoked(
-            Win16WindowCreationRejection::NativeParentUnavailable,
-        )),
+        (Some(_), _) => {
+            return Ok(Win16HostWindowCreationResult::not_invoked(
+                Win16WindowCreationRejection::NativeParentUnavailable,
+            ));
+        }
         (None, _) => std::ptr::null_mut(),
     };
     let title = super::super::win16_window_text_context::wide_z_from_guest(
         state,
         data.title.as_deref().unwrap_or_default(),
     )?;
-    let class_name = class.name.iter().map(|byte| u16::from(*byte)).collect::<Vec<_>>();
+    let class_name = class
+        .name
+        .iter()
+        .map(|byte| u16::from(*byte))
+        .collect::<Vec<_>>();
     let child_id = data.child_id.map_or(std::ptr::null_mut(), |id| {
         usize::from(id) as *mut std::ffi::c_void
     });
     let child_window = data.style & windows_sys::Win32::UI::WindowsAndMessaging::WS_CHILD != 0;
     if (child_window || data.menu.is_some()) && data.class_menu_template.is_some() {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "class-menu template was sent for a child or alongside an explicit HMENU"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "class-menu template was sent for a child or alongside an explicit HMENU",
+        ));
     }
     let token = allocate_window_token(state)?;
     super::super::win16_window_identity::reserve_creation_owner_capacity(
-        state, !class.system_class,
+        state,
+        !class.system_class,
     )?;
-    let creation_owner = super::super::win16_window_identity::native_creation_owner_identity(
-        token, creation,
-    )?;
+    let creation_owner =
+        super::super::win16_window_identity::native_creation_owner_identity(token, creation)?;
     let mut class_menu_token = None;
     // HWND parent also represents an owner for popup/overlapped windows.
     // Only WS_CHILD changes hMenu into a child control identifier (SDK 3.1,
@@ -83,9 +97,11 @@ pub(super) fn create_window(
         match data.menu {
             Some(token) => match state.borrow().menus.get(&token).copied() {
                 Some(native) => native,
-                None => return Ok(Win16HostWindowCreationResult::not_invoked(
-                    Win16WindowCreationRejection::NativeMenuUnavailable,
-                )),
+                None => {
+                    return Ok(Win16HostWindowCreationResult::not_invoked(
+                        Win16WindowCreationRejection::NativeMenuUnavailable,
+                    ));
+                }
             },
             None => match data.class_menu_template.as_ref() {
                 Some(template) => {
@@ -95,14 +111,14 @@ pub(super) fn create_window(
                         ));
                     };
                     class_menu_token = Some(class_menu);
-                    let class_menu_native = {
-                        state.borrow().menus.get(&class_menu).copied()
-                    };
+                    let class_menu_native = { state.borrow().menus.get(&class_menu).copied() };
                     match class_menu_native {
                         Some(native) => native,
                         None => {
-                            let error = RuntimeError::new(Kind::InternalInvariant,
-                                "materialized class menu lost its native owner record");
+                            let error = RuntimeError::new(
+                                Kind::InternalInvariant,
+                                "materialized class menu lost its native owner record",
+                            );
                             return match super::class_menu::retire_unattached_class_menu(
                                 state, class_menu,
                             ) {
@@ -124,9 +140,9 @@ pub(super) fn create_window(
     } else {
         None
     };
-    if menu_owner.is_some_and(|menu| super::super::win16_menu_attachment::
-        cached_menu_tree_is_retiring(state, menu))
-    {
+    if menu_owner.is_some_and(|menu| {
+        super::super::win16_menu_attachment::cached_menu_tree_is_retiring(state, menu)
+    }) {
         if let Some(class_menu) = class_menu_token {
             super::class_menu::retire_unattached_class_menu(state, class_menu)?;
         }
@@ -138,18 +154,20 @@ pub(super) fn create_window(
     // published in WorkerState; keep its hMenu tree alive through that frame.
     let mut menu_owners = menu_owner.into_iter().collect::<Vec<_>>();
     if let Some(menu) = data.mdi_client.and_then(|data| data.window_menu) {
-        if !menu_owners.contains(&menu) { menu_owners.push(menu); }
+        if !menu_owners.contains(&menu) {
+            menu_owners.push(menu);
+        }
     }
-    let menu_owner_guard = if menu_owners.is_empty() { None } else {
+    let menu_owner_guard = if menu_owners.is_empty() {
+        None
+    } else {
         Some(super::super::win16_menu_attachment::retain_menu_call_owners(state, &menu_owners))
     };
     let menu_owner_guard = match menu_owner_guard {
         Some(Ok(guard)) => Some(guard),
         Some(Err(error)) => {
             if let Some(class_menu) = class_menu_token {
-                return match super::class_menu::retire_unattached_class_menu(
-                    state, class_menu,
-                ) {
+                return match super::class_menu::retire_unattached_class_menu(state, class_menu) {
                     Ok(()) => Err(error),
                     Err(cleanup) => Err(error.with_cleanup(
                         "failed to retain class-menu owner through CreateWindowEx",
@@ -161,16 +179,21 @@ pub(super) fn create_window(
         }
         None => None,
     };
-    let cookie = (!class.system_class).then(|| Box::new(NativeCreateCookie {
-        creation,
-        window: token,
-        class: data.class,
-    }));
-    let cookie_value = cookie.as_ref().map_or(0, |cookie|
-        (&**cookie as *const NativeCreateCookie) as usize);
+    let cookie = (!class.system_class).then(|| {
+        Box::new(NativeCreateCookie {
+            creation,
+            window: token,
+            class: data.class,
+        })
+    });
+    let cookie_value = cookie.as_ref().map_or(0, |cookie| {
+        (&**cookie as *const NativeCreateCookie) as usize
+    });
     let native_parameter = match mdi_client.as_mut() {
-        Some(data) => (data as *mut windows_sys::Win32::UI::WindowsAndMessaging::CLIENTCREATESTRUCT)
-            .cast::<std::ffi::c_void>() as *const std::ffi::c_void,
+        Some(data) => {
+            (data as *mut windows_sys::Win32::UI::WindowsAndMessaging::CLIENTCREATESTRUCT)
+                .cast::<std::ffi::c_void>() as *const std::ffi::c_void
+        }
         None => cookie_value as *const std::ffi::c_void,
     };
     if cookie.is_some() {
@@ -196,7 +219,8 @@ pub(super) fn create_window(
     ];
     let creation_hook = (|| {
         let sizing = super::super::win16_window_sizing::MinimizedCreation::enter(
-            state, creation, token, &data)?;
+            state, creation, token, &data,
+        )?;
         let hook = super::super::win16_window_creation_hook::NativeCreateCallScope::enter(
             state,
             creation,
@@ -216,17 +240,20 @@ pub(super) fn create_window(
         Ok(scope) => scope,
         Err(error) => {
             if cookie.is_some() {
-                let pending_index = { state.borrow().pending_creations.iter()
-                    .rposition(|pending| pending.window == token) };
+                let pending_index = {
+                    state
+                        .borrow()
+                        .pending_creations
+                        .iter()
+                        .rposition(|pending| pending.window == token)
+                };
                 if let Some(index) = pending_index {
                     state.borrow_mut().pending_creations.remove(index);
                 }
             }
             drop(menu_owner_guard);
             if let Some(class_menu) = class_menu_token {
-                return match super::class_menu::retire_unattached_class_menu(
-                    state, class_menu,
-                ) {
+                return match super::class_menu::retire_unattached_class_menu(state, class_menu) {
                     Ok(()) => Err(error),
                     Err(cleanup) => Err(error.with_cleanup(
                         "retire the class-menu owner after native creation-hook setup failed",
@@ -268,9 +295,9 @@ pub(super) fn create_window(
         let mut state = state.borrow_mut();
         if cookie.is_some() {
             if let Some(index) = state
-            .pending_creations
-            .iter()
-            .rposition(|pending| pending.window == token)
+                .pending_creations
+                .iter()
+                .rposition(|pending| pending.window == token)
             {
                 state.pending_creations.remove(index);
             }
@@ -291,7 +318,7 @@ pub(super) fn create_window(
         };
     }
     let mut hook_error = creation_hook_result.err();
-    if unsafe { IsWindow(hwnd) } == 0 {
+    if (crate::windows::win32_safe::is_window(hwnd)) == 0 {
         remove_window_maps(state, token, hwnd);
         return Err(hook_error.take().unwrap_or_else(|| RuntimeError::new(
             Kind::HostFailure,
@@ -315,8 +342,10 @@ pub(super) fn create_window(
     if !creation_owner.matches(token, creation)
         || queried_owner.is_some_and(|owner| owner != creation_owner.identity())
     {
-        let owner_error = RuntimeError::new(Kind::HostFailure,
-            "CreateWindowExW returned an HWND with an owner identity inconsistent with its exact creation call; the queried owner record was retained");
+        let owner_error = RuntimeError::new(
+            Kind::HostFailure,
+            "CreateWindowExW returned an HWND with an owner identity inconsistent with its exact creation call; the queried owner record was retained",
+        );
         if let Err(cleanup) = retain_created_window_owner(state, hwnd, identity) {
             return Err(hook_error.take().unwrap_or(owner_error).with_cleanup(
                 "retain exact native ownership after a CreateWindowEx identity mismatch",
@@ -364,10 +393,10 @@ pub(super) fn create_window(
         return match destroy_native_quiet(state, token, hwnd) {
             Ok(()) if hook_failed => Err(primary_error),
             Ok(()) => Ok(Win16HostWindowCreationResult {
-                    native_api_return,
-                    preflight_rejection: None,
-                    live_window: None,
-                }),
+                native_api_return,
+                preflight_rejection: None,
+                live_window: None,
+            }),
             Err(cleanup_error) => Err(primary_error.with_cleanup(
                 "Win16 HWND identity binding failed and native cleanup remains pending",
                 cleanup_error,
@@ -377,15 +406,13 @@ pub(super) fn create_window(
     // Callbacks may replace the creation menu. Publish only the HMENU still
     // attached to this exact HWND after CreateWindowEx returns.
     let attached_menu = super::super::win16_menu_attachment::token_for_native(
-        state, unsafe { windows_sys::Win32::UI::WindowsAndMessaging::GetMenu(hwnd) },
+        state,
+        crate::windows::win32_safe::get_menu(hwnd),
     );
     {
         let mut state = state.borrow_mut();
         state.windows.insert(token, hwnd);
-        state.windows_by_native.insert(
-            hwnd as usize,
-            identity,
-        );
+        state.windows_by_native.insert(hwnd as usize, identity);
         if let Some(menu) = attached_menu {
             state.window_menus.insert(token, menu);
         }
@@ -395,8 +422,10 @@ pub(super) fn create_window(
         && attached_menu != Some(class_menu)
     {
         let Some(native) = state.borrow().menus.get(&class_menu).copied() else {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "successful HWND lost its internally materialized class-menu owner"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "successful HWND lost its internally materialized class-menu owner",
+            ));
         };
         if !super::super::win16_menu_attachment::menu_attached_to_live_window(
             state, class_menu, native,
@@ -419,7 +448,9 @@ pub(super) fn create_window(
         if let Err(error) = sizing.finish(hwnd) {
             return match destroy_native_quiet(state, token, hwnd) {
                 Ok(()) => Err(error),
-                Err(cleanup) => Err(error.with_cleanup("destroy after minimized sizing failed", cleanup)),
+                Err(cleanup) => {
+                    Err(error.with_cleanup("destroy after minimized sizing failed", cleanup))
+                }
             };
         }
     }
@@ -428,8 +459,8 @@ pub(super) fn create_window(
     if state.borrow().aborted {
         destroy_native_quiet(state, token, hwnd)?;
     }
-    let live_window = (super::super::win16_window_identity::resolve(state, token) == Some(hwnd))
-        .then_some(token);
+    let live_window =
+        (super::super::win16_window_identity::resolve(state, token) == Some(hwnd)).then_some(token);
     Ok(Win16HostWindowCreationResult {
         native_api_return,
         preflight_rejection: None,
@@ -444,7 +475,7 @@ pub(in crate::windows::win16_windows) fn show_window(
 ) -> Option<bool> {
     let hwnd = super::super::win16_window_identity::resolve_user_window(state, token)?;
     // ShowWindow returns previous visibility, not operation success.
-    Some(unsafe { ShowWindow(hwnd, i32::from(command)) } != 0)
+    Some((crate::windows::win32_safe::show_window(hwnd, i32::from(command))) != 0)
 }
 
 pub(in crate::windows::win16_windows) fn destroy_window_operation(
@@ -458,9 +489,7 @@ pub(in crate::windows::win16_windows) fn destroy_window_operation(
     let Some(hwnd) = destruction_target(state, token) else {
         return (false, empty());
     };
-    let preparation = match window_retirement::prepare_window_retirement(
-        state, token, hwnd,
-    ) {
+    let preparation = match window_retirement::prepare_window_retirement(state, token, hwnd) {
         Ok(Some(preparation)) => preparation,
         Ok(None) => return (false, empty()),
         Err(error) => {
@@ -474,14 +503,15 @@ pub(in crate::windows::win16_windows) fn destroy_window_operation(
     // Preparation may reenter and retire an exact candidate even when the
     // outer native call can no longer proceed. Its receipts still belong to
     // this completion; the API BOOL is not evidence of their lifetime.
-    let destroyed = preparation.ready && unsafe { DestroyWindow(hwnd) } != 0;
-    let finished = window_retirement::finish_window_retirement(
-        state, preparation.scope, true,
-    );
-    (destroyed, runtime::Win16HostWindowRetirementBatch {
-        receipts: finished.receipts,
-        invalidated_menus: finished.invalidated_menus,
-    })
+    let destroyed = preparation.ready && (crate::windows::win32_safe::destroy_window(hwnd)) != 0;
+    let finished = window_retirement::finish_window_retirement(state, preparation.scope, true);
+    (
+        destroyed,
+        runtime::Win16HostWindowRetirementBatch {
+            receipts: finished.receipts,
+            invalidated_menus: finished.invalidated_menus,
+        },
+    )
 }
 
 pub(in crate::windows::win16_windows) fn destroy_quiet(
@@ -512,43 +542,48 @@ fn destroy_native_quiet(
     token: Win16HostWindow,
     hwnd: HWND,
 ) -> Result<(), RuntimeError> {
-    if unsafe { IsWindow(hwnd) } == 0 {
+    if (crate::windows::win32_safe::is_window(hwnd)) == 0 {
         remove_window_maps(state, token, hwnd);
         return Ok(());
     }
     let identity = retained_created_window_owner(state, token, hwnd).ok_or_else(|| {
-        RuntimeError::new(Kind::InternalInvariant,
-            "quiet HWND cleanup has no exact retained native owner record")
+        RuntimeError::new(
+            Kind::InternalInvariant,
+            "quiet HWND cleanup has no exact retained native owner record",
+        )
     })?;
     if !native_owner_record_is_live(state, token, hwnd, identity) {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "quiet HWND cleanup could not revalidate its exact native owner; owner record retained"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "quiet HWND cleanup could not revalidate its exact native owner; owner record retained",
+        ));
     }
     let restore_callbacks = state.borrow().callbacks_enabled;
     let prior_failure_count = state.borrow().terminal_failures.len();
     state.borrow_mut().callbacks_enabled = false;
     let (destroyed, _) = destroy_window_operation(state, token);
-    if !destroyed && unsafe { IsWindow(hwnd) } == 0 {
+    if !destroyed && (crate::windows::win32_safe::is_window(hwnd)) == 0 {
         remove_window_maps(state, token, hwnd);
     } else if !destroyed {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "DestroyWindow failed for a retained Win16 HWND owner; ownership remains available for retry"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "DestroyWindow failed for a retained Win16 HWND owner; ownership remains available for retry",
+        ));
     }
     let retirement_succeeded = state.borrow().terminal_failures.len() == prior_failure_count;
     if restore_callbacks && retirement_succeeded && !state.borrow().aborted {
         state.borrow_mut().callbacks_enabled = true;
     }
     if !retirement_succeeded {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "native HWND was destroyed but one or more owner sidecars remain pending retirement"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "native HWND was destroyed but one or more owner sidecars remain pending retirement",
+        ));
     }
     Ok(())
 }
 
-fn destruction_target(
-    state: &Rc<RefCell<WorkerState>>,
-    token: Win16HostWindow,
-) -> Option<HWND> {
+fn destruction_target(state: &Rc<RefCell<WorkerState>>, token: Win16HostWindow) -> Option<HWND> {
     let hwnd = state.borrow().windows.get(&token).copied()?;
     native_window_is_destruction_target(state, token, hwnd).then_some(hwnd)
 }
@@ -573,13 +608,18 @@ fn retain_created_window_owner(
     let native = hwnd as usize;
     let attached_menu = super::super::win16_menu_attachment::token_for_native(
         state,
-        unsafe { windows_sys::Win32::UI::WindowsAndMessaging::GetMenu(hwnd) },
+        crate::windows::win32_safe::get_menu(hwnd),
     );
-    let mut state = state.try_borrow_mut().map_err(|_| RuntimeError::new(
-        Kind::InternalInvariant,
-        "retain an unpublished Win16 HWND owner without a conflicting worker borrow",
-    ))?;
-    if state.windows.get(&identity.window).is_some_and(|current| *current != hwnd)
+    let mut state = state.try_borrow_mut().map_err(|_| {
+        RuntimeError::new(
+            Kind::InternalInvariant,
+            "retain an unpublished Win16 HWND owner without a conflicting worker borrow",
+        )
+    })?;
+    if state
+        .windows
+        .get(&identity.window)
+        .is_some_and(|current| *current != hwnd)
         || state.windows_by_native.get(&native).is_some_and(|current| {
             current.window != identity.window
                 || current.process_id != identity.process_id
@@ -587,15 +627,25 @@ fn retain_created_window_owner(
                 || current.creation != identity.creation
         })
     {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "retain a failed HWND binding without replacing another native owner"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "retain a failed HWND binding without replacing another native owner",
+        ));
     }
-    state.windows.try_reserve(1).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "retain the unpublished HWND owner for native cleanup", error,
-    ))?;
-    state.windows_by_native.try_reserve(1).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "retain the HWND's exact native owner identity", error,
-    ))?;
+    state.windows.try_reserve(1).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "retain the unpublished HWND owner for native cleanup",
+            error,
+        )
+    })?;
+    state.windows_by_native.try_reserve(1).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "retain the HWND's exact native owner identity",
+            error,
+        )
+    })?;
     state.windows.insert(identity.window, hwnd);
     state.windows_by_native.insert(native, identity);
     if let Some(menu) = attached_menu {
@@ -613,10 +663,16 @@ fn retained_created_window_owner(
     if state.windows.get(&token).copied() != Some(hwnd) {
         return None;
     }
-    state.windows_by_native.get(&(hwnd as usize)).copied().filter(|identity| {
-        identity.window == token && identity.owned && identity.class.is_some()
-            && identity.creation.is_some()
-    })
+    state
+        .windows_by_native
+        .get(&(hwnd as usize))
+        .copied()
+        .filter(|identity| {
+            identity.window == token
+                && identity.owned
+                && identity.class.is_some()
+                && identity.creation.is_some()
+        })
 }
 
 fn native_owner_record_is_live(
@@ -641,7 +697,9 @@ fn native_owner_record_is_live(
     if super::super::win16_window_identity::resolve(state, token) == Some(hwnd) {
         return true;
     }
-    let Some(class_token) = identity.class else { return false; };
+    let Some(class_token) = identity.class else {
+        return false;
+    };
     native_class_name_matches(state, class_token, hwnd)
 }
 
@@ -668,7 +726,10 @@ pub(in crate::windows::win16_windows) fn identify_window(
     };
     if let Some(identity) = existing {
         let dialog_creation = {
-            state.borrow().dialog_creation_data.get(&native)
+            state
+                .borrow()
+                .dialog_creation_data
+                .get(&native)
                 .map(|(creation, data)| (*creation, data.clone()))
         };
         if let Some((creation, data)) = dialog_creation {
@@ -703,25 +764,36 @@ pub(in crate::windows::win16_windows) fn native_class_name_matches(
     hwnd: HWND,
 ) -> bool {
     let (class_name, codec) = {
-        let Ok(state) = state.try_borrow() else { return false; };
-        let Some(class) = state.classes.get(&class_token) else { return false; };
-        let Some(class_name) = class.name.strip_suffix(&[0]) else { return false; };
-        if class_name.contains(&0) { return false; }
+        let Ok(state) = state.try_borrow() else {
+            return false;
+        };
+        let Some(class) = state.classes.get(&class_token) else {
+            return false;
+        };
+        let Some(class_name) = class.name.strip_suffix(&[0]) else {
+            return false;
+        };
+        if class_name.contains(&0) {
+            return false;
+        }
         (class_name.to_vec(), state.text_codec)
     };
-    let Ok(expected) = codec.to_wide(&class_name) else { return false; };
+    let Ok(expected) = codec.to_wide(&class_name) else {
+        return false;
+    };
     if expected.is_empty() || expected.len() >= i32::MAX as usize {
         return false;
     }
     let mut native = vec![0_u16; expected.len() + 1];
+    // SAFETY: GetClassNameW writes into a caller-owned UTF-16 buffer of the capacity passed with it.
     let copied = unsafe {
         windows_sys::Win32::UI::WindowsAndMessaging::GetClassNameW(
-            hwnd, native.as_mut_ptr(), native.len() as i32,
+            hwnd,
+            native.as_mut_ptr(),
+            native.len() as i32,
         )
     };
-    copied > 0
-        && copied as usize == expected.len()
-        && native[..expected.len()] == expected
+    copied > 0 && copied as usize == expected.len() && native[..expected.len()] == expected
 }
 
 pub(in crate::windows::win16_windows) fn allocate_callback_id(
@@ -738,26 +810,36 @@ pub(in crate::windows::win16_windows) fn allocate_callback_id(
 
 pub(in crate::windows::win16_windows) fn allocate_window_token(
     state: &Rc<RefCell<WorkerState>>,
-)
--> Result<Win16HostWindow, RuntimeError> {
+) -> Result<Win16HostWindow, RuntimeError> {
     {
-        let mut state = state.try_borrow_mut().map_err(|_| RuntimeError::new(
-            Kind::InternalInvariant,
-            "reserve a retired Win16 window identity without a conflicting worker borrow",
-        ))?;
-        let outstanding = state.windows.len()
+        let mut state = state.try_borrow_mut().map_err(|_| {
+            RuntimeError::new(
+                Kind::InternalInvariant,
+                "reserve a retired Win16 window identity without a conflicting worker borrow",
+            )
+        })?;
+        let outstanding = state
+            .windows
+            .len()
             .checked_add(state.pending_creations.len())
             .and_then(|count| count.checked_add(state.pending_mdi_creations.len()))
             .and_then(|count| count.checked_add(1))
-            .ok_or_else(|| RuntimeError::new(Kind::ResourceExhausted,
-                "Win16 retired-window identity capacity is exhausted"))?;
-        state.retired_window_tokens.try_reserve(outstanding).map_err(|error| {
-            RuntimeError::with_source(
-                Kind::ResourceExhausted,
-                "reserve exact Win16 window retirement evidence before issuing its token",
-                error,
-            )
-        })?;
+            .ok_or_else(|| {
+                RuntimeError::new(
+                    Kind::ResourceExhausted,
+                    "Win16 retired-window identity capacity is exhausted",
+                )
+            })?;
+        state
+            .retired_window_tokens
+            .try_reserve(outstanding)
+            .map_err(|error| {
+                RuntimeError::with_source(
+                    Kind::ResourceExhausted,
+                    "reserve exact Win16 window retirement evidence before issuing its token",
+                    error,
+                )
+            })?;
     }
     static NEXT_WINDOW_ID: AtomicU64 = AtomicU64::new(1);
     NEXT_WINDOW_ID

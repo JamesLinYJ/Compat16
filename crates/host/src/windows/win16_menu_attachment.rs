@@ -7,9 +7,7 @@ use std::sync::atomic::AtomicU64;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostMenu, Win16HostWindow};
 use windows_sys::Win32::Foundation::HWND;
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetMenu, GetMenuItemCount, GetSubMenu, HMENU, IsMenu, IsWindow,
-};
+use windows_sys::Win32::UI::WindowsAndMessaging::{GetMenuItemCount, GetSubMenu, HMENU};
 
 use super::win16_window_worker::WorkerState;
 
@@ -19,11 +17,9 @@ static NEXT_MENU_RETIREMENT_ID: AtomicU64 = AtomicU64::new(1);
 mod retirement;
 
 pub(super) use retirement::{
-    begin_window_menu_retirement, capture_window_menu_retirement,
-    finish_window_menu_retirement, flush_deferred_menu_retirements,
-    invalidate_menu_identities,
-    latch_retirement_failure, reserve_menu_retirement,
-    retire_destroyed_window_menu_snapshot, publish_fresh_menu_generation,
+    begin_window_menu_retirement, capture_window_menu_retirement, finish_window_menu_retirement,
+    flush_deferred_menu_retirements, invalidate_menu_identities, latch_retirement_failure,
+    publish_fresh_menu_generation, reserve_menu_retirement, retire_destroyed_window_menu_snapshot,
 };
 
 /// The submenu graph is also the resource owner graph used by SetMenu and
@@ -33,9 +29,13 @@ pub(super) fn menu_tree(
     root: Win16HostMenu,
 ) -> Vec<Win16HostMenu> {
     fn visit(state: &WorkerState, current: Win16HostMenu, seen: &mut BTreeSet<Win16HostMenu>) {
-        if !seen.insert(current) { return; }
+        if !seen.insert(current) {
+            return;
+        }
         if let Some(children) = state.menu_children.get(&current) {
-            for child in children { visit(state, *child, seen); }
+            for child in children {
+                visit(state, *child, seen);
+            }
         }
     }
     let state = state.borrow();
@@ -57,30 +57,42 @@ pub(super) fn refresh_menu_tree(
         menus: &mut std::collections::BTreeMap<Win16HostMenu, usize>,
         edges: &mut std::collections::BTreeMap<Win16HostMenu, BTreeSet<Win16HostMenu>>,
     ) -> Result<Win16HostMenu, RuntimeError> {
-        let token = super::win16_menu_worker::intern_menu(state, native, false)?
-            .ok_or_else(|| RuntimeError::new(Kind::HostFailure,
-                "native submenu disappeared while reading its owner tree"))?;
+        let token =
+            super::win16_menu_worker::intern_menu(state, native, false)?.ok_or_else(|| {
+                RuntimeError::new(
+                    Kind::HostFailure,
+                    "native submenu disappeared while reading its owner tree",
+                )
+            })?;
         if let Some(previous) = menus.get(&token) {
             if *previous != native as usize {
-                return Err(RuntimeError::new(Kind::InternalInvariant,
-                    "one menu token resolved to two native generations"));
+                return Err(RuntimeError::new(
+                    Kind::InternalInvariant,
+                    "one menu token resolved to two native generations",
+                ));
             }
             return Ok(token);
         }
-        if unsafe { IsMenu(native) } == 0
+        if (crate::windows::win32_safe::is_menu(native)) == 0
             || !menu_token_matches(state, token, native)
         {
-            return Err(RuntimeError::new(Kind::HostFailure,
-                "native menu identity changed while reading its owner tree"));
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "native menu identity changed while reading its owner tree",
+            ));
         }
         menus.insert(token, native as usize);
+        // SAFETY: GetMenuItemCount takes a menu handle and no pointers.
         let count = unsafe { GetMenuItemCount(native) };
         if count < 0 {
-            return Err(RuntimeError::new(Kind::HostFailure,
-                "read native menu entries before owner-sensitive cleanup"));
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "read native menu entries before owner-sensitive cleanup",
+            ));
         }
         let mut children = BTreeSet::new();
         for position in 0..count {
+            // SAFETY: GetSubMenu returns a submenu handle, or null.
             let child = unsafe { GetSubMenu(native, position) };
             if !child.is_null() {
                 let child_token = visit(state, child, menus, edges)?;
@@ -91,9 +103,12 @@ pub(super) fn refresh_menu_tree(
         Ok(token)
     }
 
-    let native = state.borrow().menus.get(&root).copied()
-        .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
-            "menu tree root disappeared before native ownership inspection"))?;
+    let native = state.borrow().menus.get(&root).copied().ok_or_else(|| {
+        RuntimeError::new(
+            Kind::InternalInvariant,
+            "menu tree root disappeared before native ownership inspection",
+        )
+    })?;
     let mut menus = std::collections::BTreeMap::new();
     let mut edges = std::collections::BTreeMap::new();
     visit(state, native, &mut menus, &mut edges)?;
@@ -107,11 +122,16 @@ fn apply_menu_edges(
 ) {
     let mut state = state.borrow_mut();
     for (parent, children) in edges {
-        let previous = state.menu_children.insert(parent, children.clone())
+        let previous = state
+            .menu_children
+            .insert(parent, children.clone())
             .unwrap_or_default();
         for child in previous.difference(&children) {
             if state.owned_menus.contains(child)
-                && !state.menu_children.values().any(|items| items.contains(child))
+                && !state
+                    .menu_children
+                    .values()
+                    .any(|items| items.contains(child))
             {
                 state.owned_menu_roots.insert(*child);
             }
@@ -120,20 +140,31 @@ fn apply_menu_edges(
             state.owned_menu_roots.remove(&child);
         }
     }
-    state.owned_menu_roots = state.owned_menus.iter().copied().filter(|menu| {
-        !state.menu_children.values().any(|children| children.contains(menu))
-    }).collect();
+    state.owned_menu_roots = state
+        .owned_menus
+        .iter()
+        .copied()
+        .filter(|menu| {
+            !state
+                .menu_children
+                .values()
+                .any(|children| children.contains(menu))
+        })
+        .collect();
 }
 
 fn refresh_all_menu_graph(state: &Rc<RefCell<WorkerState>>) -> Result<(), RuntimeError> {
     let roots = {
         let state = state.borrow();
-        state.menus.iter().map(|(token, native)| (*token, *native))
+        state
+            .menus
+            .iter()
+            .map(|(token, native)| (*token, *native))
             .collect::<Vec<_>>()
     };
     for (token, native) in roots {
         if !cached_menu_tree_is_retiring(state, token)
-            && unsafe { IsMenu(native) } != 0
+            && (crate::windows::win32_safe::is_menu(native)) != 0
             && menu_token_matches(state, token, native)
         {
             refresh_menu_tree(state, token)?;
@@ -148,11 +179,14 @@ fn tree_has_pinned_identity(
 ) -> bool {
     let state = state.borrow();
     tree.iter().any(|(token, native)| {
-        state.pending_window_menu_retirements.iter().any(|pending| {
-            pending.menu_tokens.get(token) == Some(native)
-        }) || state.active_menu_call_owners.iter().any(|owners| {
-            owners.get(token) == Some(native)
-        })
+        state
+            .pending_window_menu_retirements
+            .iter()
+            .any(|pending| pending.menu_tokens.get(token) == Some(native))
+            || state
+                .active_menu_call_owners
+                .iter()
+                .any(|owners| owners.get(token) == Some(native))
     })
 }
 
@@ -161,14 +195,18 @@ fn tree_has_external_parent(
     tree: &std::collections::BTreeMap<Win16HostMenu, usize>,
     allowed_parent: Option<(Win16HostMenu, Win16HostMenu)>,
 ) -> bool {
-    state.borrow().menu_children.iter().any(|(parent, children)| {
-        children.iter().any(|child| {
-            if !tree.contains_key(child) || tree.contains_key(parent) {
-                return false;
-            }
-            allowed_parent != Some((*parent, *child))
+    state
+        .borrow()
+        .menu_children
+        .iter()
+        .any(|(parent, children)| {
+            children.iter().any(|child| {
+                if !tree.contains_key(child) || tree.contains_key(parent) {
+                    return false;
+                }
+                allowed_parent != Some((*parent, *child))
+            })
         })
-    })
 }
 
 fn tree_has_conflicting_live_owner(
@@ -178,7 +216,10 @@ fn tree_has_conflicting_live_owner(
 ) -> Result<bool, RuntimeError> {
     let mut windows = {
         let state = state.borrow();
-        state.windows.iter().map(|(window, hwnd)| (*window, *hwnd))
+        state
+            .windows
+            .iter()
+            .map(|(window, hwnd)| (*window, *hwnd))
             .collect::<Vec<_>>()
     };
     windows.sort_unstable_by_key(|(window, _)| *window);
@@ -212,7 +253,8 @@ pub(super) fn preflight_destroy_menu_tree(
     }
     if tree_has_pinned_identity(state, &tree)
         || tree_has_external_parent(state, &tree, None)
-        || tree_has_conflicting_live_owner(state, &tree, None)? {
+        || tree_has_conflicting_live_owner(state, &tree, None)?
+    {
         return Ok(None);
     }
     Ok(Some(tree))
@@ -229,9 +271,11 @@ pub(super) fn preflight_consume_submenu(
     refresh_all_menu_graph(state)?;
     let tree = refresh_menu_tree(state, child)?;
     if tree.contains_key(&parent)
-        || !state.borrow().menu_children.get(&parent).is_some_and(|children| {
-            children.contains(&child)
-        })
+        || !state
+            .borrow()
+            .menu_children
+            .get(&parent)
+            .is_some_and(|children| children.contains(&child))
     {
         return Ok(None);
     }
@@ -245,7 +289,8 @@ pub(super) fn preflight_consume_submenu(
     }
     if tree_has_pinned_identity(state, &tree)
         || tree_has_external_parent(state, &tree, Some((parent, child)))
-        || tree_has_conflicting_live_owner(state, &tree, Some(parent))? {
+        || tree_has_conflicting_live_owner(state, &tree, Some(parent))?
+    {
         return Ok(None);
     }
     Ok(Some(tree))
@@ -285,7 +330,10 @@ fn tree_has_other_live_window_owner(
 ) -> Result<bool, RuntimeError> {
     let mut windows = {
         let state = state.borrow();
-        state.windows.iter().map(|(window, hwnd)| (*window, *hwnd))
+        state
+            .windows
+            .iter()
+            .map(|(window, hwnd)| (*window, *hwnd))
             .collect::<Vec<_>>()
     };
     windows.sort_unstable_by_key(|(window, _)| *window);
@@ -317,7 +365,10 @@ pub(super) fn preflight_replace_system_menu(
 ) -> Result<Option<std::collections::BTreeMap<Win16HostMenu, usize>>, RuntimeError> {
     refresh_all_menu_graph(state)?;
     let tree = refresh_menu_tree(state, root)?;
-    let current_cookie = state.borrow().window_identity_cookies.get(&window)
+    let current_cookie = state
+        .borrow()
+        .window_identity_cookies
+        .get(&window)
         .filter(|binding| binding.hwnd == hwnd as usize)
         .map(|binding| binding.value);
     if tree.get(&root) != Some(&(native as usize))
@@ -337,9 +388,14 @@ pub(super) fn menu_tree_is_retiring(
     state: &Rc<RefCell<WorkerState>>,
     tree: &std::collections::BTreeMap<Win16HostMenu, usize>,
 ) -> bool {
-    state.borrow().retiring_menu_native_handles.iter().any(|identity| {
-        tree.iter().any(|(token, native)| identity == &(*token, *native))
-    })
+    state
+        .borrow()
+        .retiring_menu_native_handles
+        .iter()
+        .any(|identity| {
+            tree.iter()
+                .any(|(token, native)| identity == &(*token, *native))
+        })
 }
 
 /// Compare exact token/native generations after each live graph is refreshed
@@ -348,7 +404,8 @@ pub(super) fn menu_identity_sets_intersect(
     left: &std::collections::BTreeMap<Win16HostMenu, usize>,
     right: &std::collections::BTreeMap<Win16HostMenu, usize>,
 ) -> bool {
-    left.iter().any(|(token, native)| right.get(token) == Some(native))
+    left.iter()
+        .any(|(token, native)| right.get(token) == Some(native))
 }
 
 pub(super) fn cached_menu_tree_is_retiring(
@@ -357,23 +414,37 @@ pub(super) fn cached_menu_tree_is_retiring(
 ) -> bool {
     let tree = menu_tree(state, root);
     let state = state.borrow();
-    tree.iter().any(|token| state.menus.get(token).is_some_and(|native| {
-        state.retiring_menu_native_handles.contains(&(*token, *native as usize))
-    }))
+    tree.iter().any(|token| {
+        state.menus.get(token).is_some_and(|native| {
+            state
+                .retiring_menu_native_handles
+                .contains(&(*token, *native as usize))
+        })
+    })
 }
 
 fn native_submenu_occurrences(parent: HMENU, child: HMENU) -> Option<usize> {
+    // SAFETY: GetMenuItemCount takes a menu handle and no pointers.
     let count = unsafe { GetMenuItemCount(parent) };
-    if count < 0 { return None; }
-    Some((0..count).filter(|position| unsafe {
-        GetSubMenu(parent, *position) == child
-    }).count())
+    if count < 0 {
+        return None;
+    }
+    // SAFETY: GetSubMenu returns a submenu handle, or null.
+    Some(
+        (0..count)
+            .filter(|position| unsafe { GetSubMenu(parent, *position) == child })
+            .count(),
+    )
 }
 
 pub(super) fn mark_owned(state: &Rc<RefCell<WorkerState>>, token: Win16HostMenu) {
     let mut state = state.borrow_mut();
     state.owned_menus.insert(token);
-    if !state.menu_children.values().any(|children| children.contains(&token)) {
+    if !state
+        .menu_children
+        .values()
+        .any(|children| children.contains(&token))
+    {
         state.owned_menu_roots.insert(token);
     }
 }
@@ -383,7 +454,9 @@ pub(super) fn menu_token_matches(
     token: Win16HostMenu,
     native: HMENU,
 ) -> bool {
-    if native.is_null() { return false; }
+    if native.is_null() {
+        return false;
+    }
     let state = state.borrow();
     state.menus.get(&token).copied() == Some(native)
         && state.menus_by_native.get(&(native as usize)).copied() == Some(token)
@@ -393,7 +466,9 @@ pub(super) fn token_for_native(
     state: &Rc<RefCell<WorkerState>>,
     native: HMENU,
 ) -> Option<Win16HostMenu> {
-    if native.is_null() { return None; }
+    if native.is_null() {
+        return None;
+    }
     let state = state.borrow();
     let token = state.menus_by_native.get(&(native as usize)).copied()?;
     (state.menus.get(&token).copied() == Some(native)).then_some(token)
@@ -411,7 +486,9 @@ pub(super) fn dialog_attachment_is_current(
     {
         return false;
     }
-    unsafe { IsWindow(hwnd) != 0 && IsMenu(native) != 0 && GetMenu(hwnd) == native }
+    crate::windows::win32_safe::is_window(hwnd) != 0
+        && crate::windows::win32_safe::is_menu(native) != 0
+        && crate::windows::win32_safe::get_menu(hwnd) == native
 }
 
 pub(super) fn publish_dialog_attachment(
@@ -438,7 +515,10 @@ pub(super) fn clear_dialog_attachment(
 ) -> bool {
     if !menu_token_matches(state, token, native)
         || super::win16_window_identity::resolve(state, window) != Some(hwnd)
-        || unsafe { IsWindow(hwnd) == 0 || !GetMenu(hwnd).is_null() }
+        || {
+            crate::windows::win32_safe::is_window(hwnd) == 0
+                || !crate::windows::win32_safe::get_menu(hwnd).is_null()
+        }
     {
         return false;
     }
@@ -468,15 +548,20 @@ pub(super) fn record_requested_attachment(
     }
     match token {
         Some(token) => {
-            if !menu_token_matches(state, token, native)
-                || unsafe { IsWindow(hwnd) == 0 || IsMenu(native) == 0 || GetMenu(hwnd) != native }
-            {
+            if !menu_token_matches(state, token, native) || {
+                crate::windows::win32_safe::is_window(hwnd) == 0
+                    || crate::windows::win32_safe::is_menu(native) == 0
+                    || crate::windows::win32_safe::get_menu(hwnd) != native
+            } {
                 return false;
             }
             state.borrow_mut().window_menus.insert(window, token);
         }
         None => {
-            if !native.is_null() || unsafe { IsWindow(hwnd) == 0 || !GetMenu(hwnd).is_null() } {
+            if !native.is_null() || {
+                crate::windows::win32_safe::is_window(hwnd) == 0
+                    || !crate::windows::win32_safe::get_menu(hwnd).is_null()
+            } {
                 return false;
             }
             state.borrow_mut().window_menus.remove(&window);
@@ -489,17 +574,25 @@ pub(super) fn record_requested_attachment(
 pub(super) fn reconcile_window_menu_ledger(state: &Rc<RefCell<WorkerState>>) {
     let owners = {
         let state = state.borrow();
-        state.window_menus.iter().map(|(window, token)| {
-            (*window, state.windows.get(window).copied(), *token)
-        }).collect::<Vec<_>>()
+        state
+            .window_menus
+            .iter()
+            .map(|(window, token)| (*window, state.windows.get(window).copied(), *token))
+            .collect::<Vec<_>>()
     };
     for (window, hwnd, token) in owners {
         let current = hwnd.is_some_and(|hwnd| {
             super::win16_window_identity::resolve_user_window(state, window) == Some(hwnd)
-                && state.borrow().menus.get(&token).copied().is_some_and(|native| {
-                    menu_token_matches(state, token, native)
-                        && unsafe { IsWindow(hwnd) != 0 && GetMenu(hwnd) == native }
-                })
+                && state
+                    .borrow()
+                    .menus
+                    .get(&token)
+                    .copied()
+                    .is_some_and(|native| {
+                        menu_token_matches(state, token, native)
+                            && (crate::windows::win32_safe::is_window(hwnd) != 0
+                                && crate::windows::win32_safe::get_menu(hwnd) == native)
+                    })
         });
         if !current {
             let mut state = state.borrow_mut();
@@ -522,17 +615,25 @@ pub(super) fn menu_attached_to_live_window(
     }
     let mut windows = {
         let state = state.borrow();
-        if state.pending_window_menu_retirements.iter().any(|pending| {
-                pending.menu_tokens.get(&token) == Some(&(native as usize))
-            }) {
+        if state
+            .pending_window_menu_retirements
+            .iter()
+            .any(|pending| pending.menu_tokens.get(&token) == Some(&(native as usize)))
+        {
             return Ok(true);
         }
-        state.windows.iter().map(|(window, hwnd)| (
-            *window,
-            *hwnd,
-            state.window_menus.get(window).copied(),
-            state.system_menus.get(window).copied(),
-        )).collect::<Vec<_>>()
+        state
+            .windows
+            .iter()
+            .map(|(window, hwnd)| {
+                (
+                    *window,
+                    *hwnd,
+                    state.window_menus.get(window).copied(),
+                    state.system_menus.get(window).copied(),
+                )
+            })
+            .collect::<Vec<_>>()
     };
     windows.sort_unstable_by_key(|(window, _, _, _)| *window);
     for (window, hwnd, _, _) in windows {
@@ -555,9 +656,12 @@ fn current_window_menu_roots(
     }
     let (window_menu, system_menu) = {
         let state = state.borrow();
-        (state.window_menus.get(&window).copied(), state.system_menus.get(&window).copied())
+        (
+            state.window_menus.get(&window).copied(),
+            state.system_menus.get(&window).copied(),
+        )
     };
-    let native = unsafe { GetMenu(hwnd) };
+    let native = crate::windows::win32_safe::get_menu(hwnd);
     let mut roots = BTreeSet::new();
     if let Some(token) = window_menu {
         if menu_token_matches(state, token, native) {
@@ -565,9 +669,16 @@ fn current_window_menu_roots(
         }
     }
     if let Some(token) = system_menu {
-        if state.borrow().menus.get(&token).copied().is_some_and(|native| {
-            menu_token_matches(state, token, native) && unsafe { IsMenu(native) != 0 }
-        }) {
+        if state
+            .borrow()
+            .menus
+            .get(&token)
+            .copied()
+            .is_some_and(|native| {
+                menu_token_matches(state, token, native)
+                    && (crate::windows::win32_safe::is_menu(native) != 0)
+            })
+        {
             roots.insert(token);
         }
     }
@@ -591,33 +702,52 @@ pub(super) fn retain_menu_call_owners(
     let mut owners = std::collections::BTreeMap::new();
     for root in roots {
         if cached_menu_tree_is_retiring(state, *root) {
-            return Err(RuntimeError::new(Kind::HostFailure,
-                "native menu owner is being consumed by an active USER call"));
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "native menu owner is being consumed by an active USER call",
+            ));
         }
         owners.extend(refresh_menu_tree(state, *root)?);
     }
     let mut borrowed = state.borrow_mut();
-    borrowed.active_menu_call_owners.try_reserve(1).map_err(|error| {
-        RuntimeError::with_source(Kind::ResourceExhausted,
-            "reserve an in-flight native menu owner frame", error)
-    })?;
+    borrowed
+        .active_menu_call_owners
+        .try_reserve(1)
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve an in-flight native menu owner frame",
+                error,
+            )
+        })?;
     // A nested DestroyWindow may report invalid aliases before this outer USER
     // call returns, so reserve space for every exact identity pinned here.
-    borrowed.deferred_menu_retirements.try_reserve(owners.len()).map_err(|error| {
-        RuntimeError::with_source(Kind::ResourceExhausted,
-            "reserve deferred native menu retirement records", error)
-    })?;
+    borrowed
+        .deferred_menu_retirements
+        .try_reserve(owners.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve deferred native menu retirement records",
+                error,
+            )
+        })?;
     borrowed.active_menu_call_owners.push(owners.clone());
     drop(borrowed);
-    Ok(MenuCallOwnerGuard { state: Rc::clone(state), owners })
+    Ok(MenuCallOwnerGuard {
+        state: Rc::clone(state),
+        owners,
+    })
 }
 
 impl Drop for MenuCallOwnerGuard {
     fn drop(&mut self) {
         let mut state = self.state.borrow_mut();
-        if let Some(index) = state.active_menu_call_owners.iter().rposition(|owners| {
-            owners == &self.owners
-        }) {
+        if let Some(index) = state
+            .active_menu_call_owners
+            .iter()
+            .rposition(|owners| owners == &self.owners)
+        {
             state.active_menu_call_owners.remove(index);
         }
         drop(state);

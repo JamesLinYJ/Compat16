@@ -1,7 +1,7 @@
 //! Native WinMM WAVE structures, buffers, and calls.
 
-use super::*;
 use super::super::guest_text::GuestTextCodec;
+use super::*;
 use std::mem::size_of;
 use windows_sys::Win32::Media::Audio::{
     HWAVEIN, HWAVEOUT, WAVE_MAPPER, WAVEFORMATEX, WAVEINCAPSW, WAVEOUTCAPSW, waveInAddBuffer,
@@ -39,14 +39,20 @@ pub(super) fn device_capabilities(
             // windows-sys packs this native SDK record to byte alignment.
             // Read fields unaligned and project each field into the distinct
             // Windows 3.1 ABI; the Win16 VERSION is only 16 bits.
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let manufacturer_id = unsafe { ptr::addr_of!(native.wMid).read_unaligned() };
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let product_id = unsafe { ptr::addr_of!(native.wPid).read_unaligned() };
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let driver_version = unsafe { ptr::addr_of!(native.vDriverVersion).read_unaligned() };
             let product_name = guest_wave_product_name(
                 codec,
+                // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
                 unsafe { ptr::addr_of!(native.szPname).read_unaligned() },
             )?;
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let formats = unsafe { ptr::addr_of!(native.dwFormats).read_unaligned() };
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let channels = unsafe { ptr::addr_of!(native.wChannels).read_unaligned() };
             Ok((
                 result,
@@ -70,15 +76,22 @@ pub(super) fn device_capabilities(
             if result != MMSYSERR_NOERROR {
                 return Ok((result, None));
             }
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let manufacturer_id = unsafe { ptr::addr_of!(native.wMid).read_unaligned() };
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let product_id = unsafe { ptr::addr_of!(native.wPid).read_unaligned() };
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let driver_version = unsafe { ptr::addr_of!(native.vDriverVersion).read_unaligned() };
             let product_name = guest_wave_product_name(
                 codec,
+                // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
                 unsafe { ptr::addr_of!(native.szPname).read_unaligned() },
             )?;
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let formats = unsafe { ptr::addr_of!(native.dwFormats).read_unaligned() };
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let channels = unsafe { ptr::addr_of!(native.wChannels).read_unaligned() };
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let support = unsafe { ptr::addr_of!(native.dwSupport).read_unaligned() };
             Ok((
                 result,
@@ -145,11 +158,18 @@ pub(super) fn error_text(
     }
     let mut bytes = Vec::new();
     if capacity != 0 {
-        let text_length = wide.iter().position(|unit| *unit == 0).unwrap_or(wide.len());
+        let text_length = wide
+            .iter()
+            .position(|unit| *unit == 0)
+            .unwrap_or(wide.len());
         let encoded = codec.from_wide_bounded(&wide[..text_length], capacity - 1)?;
-        bytes.try_reserve_exact(capacity).map_err(|source| RuntimeError::with_source(
-            Kind::ResourceExhausted, "reserve guest WinMM error-text buffer", source,
-        ))?;
+        bytes.try_reserve_exact(capacity).map_err(|source| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve guest WinMM error-text buffer",
+                source,
+            )
+        })?;
         bytes.resize(capacity, 0);
         bytes[..encoded.bytes.len()].copy_from_slice(&encoded.bytes);
     }
@@ -157,6 +177,7 @@ pub(super) fn error_text(
     Ok((result, bytes))
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn get_device_id(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
@@ -180,6 +201,7 @@ pub(super) unsafe fn get_device_id(
     (result, (result == MMSYSERR_NOERROR).then_some(device_id))
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn get_parameter(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
@@ -211,7 +233,7 @@ pub(super) unsafe fn get_parameter(
 /// either an open HWAVEOUT or a device identifier in its handle-shaped slot.
 /// This dedicated path converts only that scalar identity; it never treats a
 /// guest FAR or guest handle as a native pointer.
-pub(super) unsafe fn get_volume_by_id(device_id: u16) -> (u32, Option<u32>) {
+pub(super) fn get_volume_by_id(device_id: u16) -> (u32, Option<u32>) {
     let mut value = 0_u32;
     let native_id = if device_id == u16::MAX {
         WAVE_MAPPER as usize
@@ -224,7 +246,7 @@ pub(super) unsafe fn get_volume_by_id(device_id: u16) -> (u32, Option<u32>) {
     (result, (result == MMSYSERR_NOERROR).then_some(value))
 }
 
-pub(super) unsafe fn set_volume_by_id(device_id: u16, value: u32) -> u32 {
+pub(super) fn set_volume_by_id(device_id: u16, value: u32) -> u32 {
     let native_id = if device_id == u16::MAX {
         WAVE_MAPPER as usize
     } else {
@@ -260,7 +282,7 @@ pub(super) unsafe fn set_parameter(
     }
 }
 
-pub(super) unsafe fn query_mappable(direction: Win16HostWaveDirection, device_id: u16) -> u32 {
+pub(super) fn query_mappable(direction: Win16HostWaveDirection, device_id: u16) -> u32 {
     let device_id = if device_id == u16::MAX {
         WAVE_MAPPER as usize
     } else {
@@ -269,6 +291,7 @@ pub(super) unsafe fn query_mappable(direction: Win16HostWaveDirection, device_id
     // `DRV_QUERYMAPPABLE` is a system-intercepted scalar query: both message
     // parameters are specified as zero. WinMM's documented interface casts a
     // device ID to the corresponding wave handle type for this message.
+    // SAFETY: waveInMessage sends a scalar driver message. Both parameters are zero for this query. waveOutMessage sends a scalar driver message. Both parameters are zero for this query.
     unsafe {
         match direction {
             Win16HostWaveDirection::Input => {
@@ -281,6 +304,7 @@ pub(super) unsafe fn query_mappable(direction: Win16HostWaveDirection, device_id
     }
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn open_native(
     direction: Win16HostWaveDirection,
     device_id: u32,
@@ -448,6 +472,7 @@ impl NativeWaveBuffer {
     }
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn prepare_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
@@ -467,6 +492,7 @@ pub(super) unsafe fn prepare_native(
     }
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn position_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
@@ -498,11 +524,13 @@ pub(super) unsafe fn position_native(
     if result != MMSYSERR_NOERROR {
         return (result, None);
     }
+    // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
     let time_type = unsafe { ptr::addr_of!(native.wType).read_unaligned() };
     let mut value = [0_u8; 8];
     // MMTIME's union is eight bytes on both supported host architectures. Its
     // active discriminant is returned separately; the runtime projects the
     // Win16-sized union only after checking the guest output range.
+    // SAFETY: The source and destination are non-overlapping, and both spans were checked to cover the copied length.
     unsafe {
         ptr::copy_nonoverlapping(
             ptr::addr_of!(native.u).cast::<u8>(),
@@ -513,6 +541,7 @@ pub(super) unsafe fn position_native(
     (result, Some(Win16HostWavePosition { time_type, value }))
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn submit_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
@@ -532,6 +561,7 @@ pub(super) unsafe fn submit_native(
     }
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn unprepare_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
@@ -551,6 +581,7 @@ pub(super) unsafe fn unprepare_native(
     }
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn control_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
@@ -609,6 +640,7 @@ pub(super) unsafe fn control_native(
     }
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn reset_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
@@ -627,6 +659,7 @@ pub(super) unsafe fn reset_native(
     }
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn close_native(device: &NativeWaveHandle) -> u32 {
     // SAFETY: caller retains this handle until native Close returns success.
     unsafe {

@@ -5,10 +5,10 @@ use runtime::{Win16HostNonClientCalcSize as Calc, Win16HostRect, Win16HostWindow
 use std::{cell::RefCell, rc::Rc};
 use windows_sys::Win32::Foundation::{HWND, RECT};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    AdjustWindowRectEx, GWL_EXSTYLE, GWL_STYLE, GetSystemMetrics, GetWindowLongPtrW, IsIconic,
-    SM_CXBORDER, SM_CXDLGFRAME, SM_CXEDGE, SM_CXFRAME, SM_CYBORDER, SM_CYDLGFRAME, SM_CYEDGE,
-    SM_CYFRAME, WS_CAPTION, WS_EX_CLIENTEDGE, WS_EX_DLGMODALFRAME, WS_EX_STATICEDGE,
-    WS_EX_TOOLWINDOW, WS_EX_WINDOWEDGE, WS_THICKFRAME,
+    AdjustWindowRectEx, GWL_EXSTYLE, GWL_STYLE, GetWindowLongPtrW, SM_CXBORDER, SM_CXDLGFRAME,
+    SM_CXEDGE, SM_CXFRAME, SM_CYBORDER, SM_CYDLGFRAME, SM_CYEDGE, SM_CYFRAME, WS_CAPTION,
+    WS_EX_CLIENTEDGE, WS_EX_DLGMODALFRAME, WS_EX_STATICEDGE, WS_EX_TOOLWINDOW, WS_EX_WINDOWEDGE,
+    WS_THICKFRAME,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,13 +23,15 @@ fn eligible(style: u32, ex_style: u32) -> bool {
 }
 
 fn caption_padding() -> Option<i32> {
+    // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
     let mut native: RECT = unsafe { std::mem::zeroed() };
+    // SAFETY: AdjustWindowRectEx updates a caller-owned RECT.
     if unsafe { AdjustWindowRectEx(&mut native, WS_CAPTION, 0, 0) } == 0 {
         return None;
     }
     let padding = native
         .bottom
-        .checked_sub(unsafe { GetSystemMetrics(SM_CYBORDER) })?;
+        .checked_sub(crate::windows::win32_safe::system_metrics(SM_CYBORDER))?;
     (padding >= 0).then_some(padding)
 }
 
@@ -50,7 +52,9 @@ impl CaptionFrame {
         if !eligible(style, ex_style) {
             return None;
         }
+        // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
         let mut native: RECT = unsafe { std::mem::zeroed() };
+        // SAFETY: AdjustWindowRectEx updates a caller-owned RECT.
         if unsafe { AdjustWindowRectEx(&mut native, style, 0, ex_style) } == 0 {
             return None;
         }
@@ -63,15 +67,19 @@ impl CaptionFrame {
         } else {
             (SM_CXBORDER, SM_CYBORDER)
         };
-        let mut legacy_x = unsafe { GetSystemMetrics(cx) };
-        let mut legacy_y = unsafe { GetSystemMetrics(cy) };
+        let mut legacy_x = crate::windows::win32_safe::system_metrics(cx);
+        let mut legacy_y = crate::windows::win32_safe::system_metrics(cy);
         if ex_style & WS_EX_CLIENTEDGE != 0 {
-            legacy_x = legacy_x.checked_add(unsafe { GetSystemMetrics(SM_CXEDGE) })?;
-            legacy_y = legacy_y.checked_add(unsafe { GetSystemMetrics(SM_CYEDGE) })?;
+            legacy_x =
+                legacy_x.checked_add(crate::windows::win32_safe::system_metrics(SM_CXEDGE))?;
+            legacy_y =
+                legacy_y.checked_add(crate::windows::win32_safe::system_metrics(SM_CYEDGE))?;
         }
         if ex_style & WS_EX_STATICEDGE != 0 && ex_style & WS_EX_WINDOWEDGE == 0 {
-            legacy_x = legacy_x.checked_add(unsafe { GetSystemMetrics(SM_CXBORDER) })?;
-            legacy_y = legacy_y.checked_add(unsafe { GetSystemMetrics(SM_CYBORDER) })?;
+            legacy_x =
+                legacy_x.checked_add(crate::windows::win32_safe::system_metrics(SM_CXBORDER))?;
+            legacy_y =
+                legacy_y.checked_add(crate::windows::win32_safe::system_metrics(SM_CYBORDER))?;
         }
         let caption = caption_padding()?;
         let x = native.right.checked_sub(legacy_x)?;
@@ -91,12 +99,15 @@ impl CaptionFrame {
         window: Win16HostWindow,
         hwnd: HWND,
     ) -> Option<Self> {
-        if win16_window_identity::resolve(state, window) != Some(hwnd)
-            || unsafe { IsIconic(hwnd) } != 0
+        if win16_window_identity::resolve(state, window) != Some(hwnd) || {
+            crate::windows::win32_safe::is_iconic(hwnd)
+        } != 0
         {
             return None;
         }
+        // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
         let style = unsafe { GetWindowLongPtrW(hwnd, GWL_STYLE) } as u32;
+        // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
         let ex_style = unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) } as u32;
         Self::query(style, ex_style)
     }

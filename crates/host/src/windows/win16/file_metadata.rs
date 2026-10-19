@@ -5,9 +5,7 @@ use super::{Win16Files, file_error};
 use crate::windows::invalid;
 use dos_kernel::{DosErrorCode, DosHostError};
 use runtime::Win16HostFile;
-use windows_sys::Win32::Foundation::{
-    ERROR_INVALID_FUNCTION, FILETIME, GENERIC_WRITE, GetLastError, HANDLE,
-};
+use windows_sys::Win32::Foundation::{ERROR_INVALID_FUNCTION, FILETIME, GENERIC_WRITE, HANDLE};
 use windows_sys::Win32::Storage::FileSystem::{
     BY_HANDLE_FILE_INFORMATION, FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE, FlushFileBuffers,
     GetFileInformationByHandle, GetFileType, SetFileTime,
@@ -34,8 +32,9 @@ impl Win16Files {
         // FlushFileBuffers requires GENERIC_WRITE. Preserve a native failure
         // for unknown legacy access rather than treating AccessDenied as clean.
         // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers
+        // SAFETY: `FlushFileBuffers` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe { FlushFileBuffers(handle) } == 0 {
-            return Err(file_error(unsafe { GetLastError() }));
+            return Err(file_error(crate::windows::win32_safe::last_error()));
         }
         Ok(())
     }
@@ -71,7 +70,7 @@ impl Win16Files {
         // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfiletime
         // SAFETY: The retained HANDLE and initialized FILETIME remain live.
         if unsafe { SetFileTime(handle, std::ptr::null(), std::ptr::null(), &last_write) } == 0 {
-            return Err(file_error(unsafe { GetLastError() }));
+            return Err(file_error(crate::windows::win32_safe::last_error()));
         }
         self.mark_written(file);
         Ok(())
@@ -86,6 +85,7 @@ pub(in crate::windows) fn last_write_ticks(handle: HANDLE) -> Result<u64, u32> {
         FILE_TYPE_CHAR => {
             let mut now = FILETIME::default();
             // DOS character-device queries use the current local clock.
+            // SAFETY: `GetSystemTimeAsFileTime` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe { GetSystemTimeAsFileTime(&mut now) };
             now
         }
@@ -93,8 +93,9 @@ pub(in crate::windows) fn last_write_ticks(handle: HANDLE) -> Result<u64, u32> {
         _ => {
             let mut info = BY_HANDLE_FILE_INFORMATION::default();
             // This query supports write-only opens without adding read rights.
+            // SAFETY: `GetFileInformationByHandle` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             if unsafe { GetFileInformationByHandle(handle, &mut info) } == 0 {
-                return Err(unsafe { GetLastError() });
+                return Err(crate::windows::win32_safe::last_error());
             }
             info.ftLastWriteTime
         }

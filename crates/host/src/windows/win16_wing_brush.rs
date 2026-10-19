@@ -2,19 +2,15 @@
 
 use std::mem::size_of;
 
-use runtime::{
-    DiagnosticKind as Kind, RuntimeError, Win16DitherPattern, Win16HostGdiObject,
-};
-use windows_sys::Win32::Graphics::Gdi::{
-    BI_RGB, CreateDIBPatternBrushPt, CreateHalftonePalette, DeleteObject,
-    CLR_INVALID, DIB_RGB_COLORS,
-    GetCurrentObject, GetDeviceCaps, GetNearestColor, GetNearestPaletteIndex, GetObjectType, GetObjectW,
-    GetPaletteEntries, HDC, HPALETTE, OBJ_PAL, PALETTEENTRY, PC_EXPLICIT, RASTERCAPS,
-    RC_PALETTE,
-};
-use super::win16_wing_dib_header::{BitmapInfoHeaderWire, BITMAPINFOHEADER_SIZE};
 use super::win16_gdi_bitmap_transfer::AlignedBytes;
 use super::win16_gdi_objects::Win16Objects;
+use super::win16_wing_dib_header::{BITMAPINFOHEADER_SIZE, BitmapInfoHeaderWire};
+use runtime::{DiagnosticKind as Kind, RuntimeError, Win16DitherPattern, Win16HostGdiObject};
+use windows_sys::Win32::Graphics::Gdi::{
+    BI_RGB, CLR_INVALID, CreateDIBPatternBrushPt, CreateHalftonePalette, DIB_RGB_COLORS,
+    GetCurrentObject, GetDeviceCaps, GetNearestColor, GetNearestPaletteIndex, GetObjectW,
+    GetPaletteEntries, HDC, HPALETTE, OBJ_PAL, PALETTEENTRY, PC_EXPLICIT, RASTERCAPS, RC_PALETTE,
+};
 
 const MAX_HALFTONE_PALETTE_ENTRIES: usize = 256;
 const MAX_PATTERN_DIB_BYTES: usize =
@@ -71,12 +67,7 @@ const fn bayer_8x8() -> [u8; 64] {
 /// Center-out 4x4 clustered-dot ranks: the central 2x2 square appears first,
 /// 4-neighbor bands grow it next, and tile corners enter last. This standard
 /// ordered-screen construction is deterministic but not WinG bit-exact.
-const CLUSTERED_4X4: [u8; 16] = [
-    12, 4, 5, 13,
-    6, 0, 1, 7,
-    8, 2, 3, 9,
-    14, 10, 11, 15,
-];
+const CLUSTERED_4X4: [u8; 16] = [12, 4, 5, 13, 6, 0, 1, 7, 8, 2, 3, 9, 14, 10, 11, 15];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct Rgb {
@@ -95,11 +86,19 @@ impl Rgb {
     }
 
     fn from_palette_entry(entry: PALETTEENTRY) -> Self {
-        Self { red: entry.peRed, green: entry.peGreen, blue: entry.peBlue }
+        Self {
+            red: entry.peRed,
+            green: entry.peGreen,
+            blue: entry.peBlue,
+        }
     }
 
     fn channels(self) -> [i32; 3] {
-        [i32::from(self.red), i32::from(self.green), i32::from(self.blue)]
+        [
+            i32::from(self.red),
+            i32::from(self.green),
+            i32::from(self.blue),
+        ]
     }
 }
 
@@ -108,7 +107,7 @@ struct OwnedPalette(HPALETTE);
 impl Drop for OwnedPalette {
     fn drop(&mut self) {
         // SAFETY: This guard owns the palette returned by CreateHalftonePalette.
-        unsafe { DeleteObject(self.0.cast()); }
+        crate::windows::win32_safe::delete_object(self.0.cast());
     }
 }
 
@@ -121,26 +120,37 @@ pub(super) fn create(
     color: u32,
     pattern: Win16DitherPattern,
 ) -> Result<Option<Win16HostGdiObject>, RuntimeError> {
-    let Some(color) = resolve_colorref(dc, color)? else { return Ok(None); };
+    let Some(color) = resolve_colorref(dc, color)? else {
+        return Ok(None);
+    };
 
     // SAFETY: `dc` is leased by the caller for this entire synchronous call.
     let palette = unsafe { CreateHalftonePalette(dc) };
-    if palette.is_null() { return Ok(None); }
+    if palette.is_null() {
+        return Ok(None);
+    }
     let palette = OwnedPalette(palette);
     // DIB indices below address this exact generated palette snapshot. The
     // COLORREF palette markers were resolved against `dc`'s selected palette.
-    let Some(colors) = palette_colors(palette.0)? else { return Ok(None); };
-    if colors.is_empty() { return Ok(None); }
+    let Some(colors) = palette_colors(palette.0)? else {
+        return Ok(None);
+    };
+    if colors.is_empty() {
+        return Ok(None);
+    }
 
     let (low, high, high_weight) = closest_palette_mix(color, &colors);
     let (matrix, side) = threshold_matrix(pattern);
-    let Some(packed_dib) = make_pattern_dib(&colors, low, high, high_weight, matrix, side)?
-    else { return Ok(None); };
+    let Some(packed_dib) = make_pattern_dib(&colors, low, high, high_weight, matrix, side)? else {
+        return Ok(None);
+    };
 
     // SAFETY: `packed_dib` is DWORD-aligned and contains a complete BI_RGB
     // BITMAPINFO plus color table and pixel tile. GDI consumes it synchronously.
     let brush = unsafe { CreateDIBPatternBrushPt(packed_dib.as_ptr(), DIB_RGB_COLORS) };
-    if brush.is_null() { return Ok(None); }
+    if brush.is_null() {
+        return Ok(None);
+    }
     objects.adopt_owned(brush.cast())
 }
 
@@ -158,7 +168,9 @@ fn resolve_colorref(dc: HDC, color: u32) -> Result<Option<Rgb>, RuntimeError> {
         1 => {
             // PALETTEINDEX encodes a WORD index in the low 16 bits; the
             // intervening byte is reserved by the COLORREF encoding.
-            if color & 0x00ff_0000 != 0 { return Ok(None); }
+            if color & 0x00ff_0000 != 0 {
+                return Ok(None);
+            }
             Ok(selected_palette_color(dc, color as u16 as u32))
         }
         2 => {
@@ -187,7 +199,7 @@ fn selected_palette(dc: HDC) -> Option<HPALETTE> {
     }
     // SAFETY: `object` is returned by GetCurrentObject for OBJ_PAL; the type
     // check rejects a stale or unexpected native object before palette calls.
-    if unsafe { GetObjectType(object) } != OBJ_PAL as u32 {
+    if (crate::windows::win32_safe::get_object_type(object)) != OBJ_PAL as u32 {
         return None;
     }
     Some(object.cast())
@@ -198,25 +210,33 @@ fn selected_palette_color(dc: HDC, index: u32) -> Option<Rgb> {
     palette_color(palette, index)
 }
 
-fn nearest_selected_palette_color(
-    dc: HDC,
-    color: u32,
-) -> Result<Option<Rgb>, RuntimeError> {
-    let Some(palette) = selected_palette(dc) else { return Ok(None); };
+fn nearest_selected_palette_color(dc: HDC, color: u32) -> Result<Option<Rgb>, RuntimeError> {
+    let Some(palette) = selected_palette(dc) else {
+        return Ok(None);
+    };
     let Some(entries) = palette_entries(palette, MAX_LOGICAL_PALETTE_ENTRIES)? else {
         return Ok(None);
     };
     // GDI documents the nearest-index result as undefined if any entry is
     // PC_EXPLICIT. Fail cleanly instead of treating pixel values as RGB.
-    if entries.iter().any(|entry| u32::from(entry.peFlags) & PC_EXPLICIT != 0) {
+    if entries
+        .iter()
+        .any(|entry| u32::from(entry.peFlags) & PC_EXPLICIT != 0)
+    {
         return Ok(None);
     }
     // SAFETY: The palette was returned from this leased DC and type-checked;
     // its full entry table has no PC_EXPLICIT entries.
     let index = unsafe { GetNearestPaletteIndex(palette, color) };
-    if index == u32::MAX { return Ok(None); }
-    let Some(entry) = usize::try_from(index).ok().and_then(|index| entries.get(index))
-    else { return Ok(None); };
+    if index == u32::MAX {
+        return Ok(None);
+    }
+    let Some(entry) = usize::try_from(index)
+        .ok()
+        .and_then(|index| entries.get(index))
+    else {
+        return Ok(None);
+    };
     Ok(Some(Rgb::from_palette_entry(*entry)))
 }
 
@@ -236,12 +256,15 @@ fn palette_colors(palette: HPALETTE) -> Result<Option<Vec<Rgb>>, RuntimeError> {
         return Ok(None);
     };
     let mut colors = Vec::new();
-    colors.try_reserve_exact(entries.len()).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "allocate WinG halftone RGB colors", error,
-    ))?;
+    colors.try_reserve_exact(entries.len()).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "allocate WinG halftone RGB colors",
+            error,
+        )
+    })?;
     colors.extend(entries.into_iter().filter_map(|entry| {
-        (u32::from(entry.peFlags) & PC_EXPLICIT == 0)
-            .then(|| Rgb::from_palette_entry(entry))
+        (u32::from(entry.peFlags) & PC_EXPLICIT == 0).then(|| Rgb::from_palette_entry(entry))
     }));
     Ok(Some(colors))
 }
@@ -265,22 +288,22 @@ fn palette_entries(
     // Supported Windows host targets are little-endian AMD64/ARM64, so these
     // two bytes are the low WORD written by GDI.
     let count = usize::from(count_storage as u16);
-    if copied != size_of::<u16>() as i32 || count == 0
-        || count > max_entries
-    {
+    if copied != size_of::<u16>() as i32 || count == 0 || count > max_entries {
         return Ok(None);
     }
 
     let mut entries = Vec::new();
-    entries.try_reserve_exact(count).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "allocate WinG logical palette entries", error,
-    ))?;
+    entries.try_reserve_exact(count).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "allocate WinG logical palette entries",
+            error,
+        )
+    })?;
     entries.resize(count, PALETTEENTRY::default());
     // SAFETY: The owned vector contains `count` writable entries and the
     // palette handle remains owned until brush creation finishes.
-    if unsafe {
-        GetPaletteEntries(palette, 0, count as u32, entries.as_mut_ptr())
-    } != count as u32
+    if unsafe { GetPaletteEntries(palette, 0, count as u32, entries.as_mut_ptr()) } != count as u32
     {
         return Ok(None);
     }
@@ -313,11 +336,16 @@ fn closest_palette_mix(target: Rgb, colors: &[Rgb]) -> (usize, usize, u8) {
                 target_channels[1] - low_channels[1],
                 target_channels[2] - low_channels[2],
             ];
-            let denominator = direction.iter()
+            let denominator = direction
+                .iter()
                 .map(|value| i64::from(*value * *value))
                 .sum::<i64>();
-            if denominator == 0 { continue; }
-            let numerator = direction.iter().zip(offset)
+            if denominator == 0 {
+                continue;
+            }
+            let numerator = direction
+                .iter()
+                .zip(offset)
                 .map(|(direction, offset)| i64::from(*direction * offset))
                 .sum::<i64>();
             let weight = projected_weight(numerator, denominator);
@@ -331,8 +359,12 @@ fn closest_palette_mix(target: Rgb, colors: &[Rgb]) -> (usize, usize, u8) {
 }
 
 fn projected_weight(numerator: i64, denominator: i64) -> u8 {
-    if numerator <= 0 { return 0; }
-    if numerator >= denominator { return u8::MAX; }
+    if numerator <= 0 {
+        return 0;
+    }
+    if numerator >= denominator {
+        return u8::MAX;
+    }
     ((numerator * 255 + denominator / 2) / denominator) as u8
 }
 
@@ -351,7 +383,8 @@ fn interpolate(low: Rgb, high: Rgb, weight: u8) -> Rgb {
 fn color_distance_squared(left: Rgb, right: Rgb) -> i64 {
     let left = left.channels();
     let right = right.channels();
-    left.iter().zip(right)
+    left.iter()
+        .zip(right)
         .map(|(left, right)| i64::from(*left - right).pow(2))
         .sum()
 }
@@ -372,27 +405,33 @@ fn make_pattern_dib(
     matrix: &[u8],
     side: usize,
 ) -> Result<Option<AlignedBytes>, RuntimeError> {
-    let cell_count = side.checked_mul(side).ok_or_else(|| RuntimeError::new(
-        Kind::ResourceExhausted, "WinG dither tile size overflowed",
-    ))?;
+    let cell_count = side.checked_mul(side).ok_or_else(|| {
+        RuntimeError::new(Kind::ResourceExhausted, "WinG dither tile size overflowed")
+    })?;
     let row_bytes = side;
-    let stride = row_bytes.checked_add(3).map(|value| value & !3)
-        .ok_or_else(|| RuntimeError::new(
-            Kind::ResourceExhausted, "WinG dither stride overflowed",
-        ))?;
-    let pixel_bytes = stride.checked_mul(side).ok_or_else(|| RuntimeError::new(
-        Kind::ResourceExhausted, "WinG dither pixel size overflowed",
-    ))?;
-    let color_table_bytes = colors.len().checked_mul(4).ok_or_else(|| RuntimeError::new(
-        Kind::ResourceExhausted, "WinG DIB palette size overflowed",
-    ))?;
-    let total_bytes = BITMAPINFOHEADER_SIZE.checked_add(color_table_bytes)
+    let stride = row_bytes
+        .checked_add(3)
+        .map(|value| value & !3)
+        .ok_or_else(|| {
+            RuntimeError::new(Kind::ResourceExhausted, "WinG dither stride overflowed")
+        })?;
+    let pixel_bytes = stride.checked_mul(side).ok_or_else(|| {
+        RuntimeError::new(Kind::ResourceExhausted, "WinG dither pixel size overflowed")
+    })?;
+    let color_table_bytes = colors.len().checked_mul(4).ok_or_else(|| {
+        RuntimeError::new(Kind::ResourceExhausted, "WinG DIB palette size overflowed")
+    })?;
+    let total_bytes = BITMAPINFOHEADER_SIZE
+        .checked_add(color_table_bytes)
         .and_then(|size| size.checked_add(pixel_bytes))
-        .ok_or_else(|| RuntimeError::new(
-            Kind::ResourceExhausted, "WinG packed DIB size overflowed",
-        ))?;
-    if colors.is_empty() || low_index >= colors.len() || high_index >= colors.len()
-        || matrix.len() != cell_count || colors.len() > MAX_HALFTONE_PALETTE_ENTRIES
+        .ok_or_else(|| {
+            RuntimeError::new(Kind::ResourceExhausted, "WinG packed DIB size overflowed")
+        })?;
+    if colors.is_empty()
+        || low_index >= colors.len()
+        || high_index >= colors.len()
+        || matrix.len() != cell_count
+        || colors.len() > MAX_HALFTONE_PALETTE_ENTRIES
         || !matches!(side, 4 | 8)
         || total_bytes > MAX_PATTERN_DIB_BYTES
     {
@@ -400,21 +439,36 @@ fn make_pattern_dib(
     }
 
     let mut bytes = Vec::new();
-    bytes.try_reserve_exact(total_bytes).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "allocate WinG packed DIB", error,
-    ))?;
-    let width = i32::try_from(side).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "WinG DIB width exceeds native header", error,
-    ))?;
-    let height = width.checked_neg().ok_or_else(|| RuntimeError::new(
-        Kind::ResourceExhausted, "WinG top-down DIB height overflowed",
-    ))?;
-    let image_size = u32::try_from(pixel_bytes).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "WinG DIB pixel size exceeds native header", error,
-    ))?;
-    let colors_used = u32::try_from(colors.len()).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "WinG palette size exceeds native header", error,
-    ))?;
+    bytes.try_reserve_exact(total_bytes).map_err(|error| {
+        RuntimeError::with_source(Kind::ResourceExhausted, "allocate WinG packed DIB", error)
+    })?;
+    let width = i32::try_from(side).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "WinG DIB width exceeds native header",
+            error,
+        )
+    })?;
+    let height = width.checked_neg().ok_or_else(|| {
+        RuntimeError::new(
+            Kind::ResourceExhausted,
+            "WinG top-down DIB height overflowed",
+        )
+    })?;
+    let image_size = u32::try_from(pixel_bytes).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "WinG DIB pixel size exceeds native header",
+            error,
+        )
+    })?;
+    let colors_used = u32::try_from(colors.len()).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "WinG palette size exceeds native header",
+            error,
+        )
+    })?;
     let header = BitmapInfoHeaderWire::new(
         BITMAPINFOHEADER_SIZE as u32,
         width,
@@ -440,24 +494,37 @@ fn make_pattern_dib(
         .checked_mul(cell_count)
         .and_then(|weight| weight.checked_add(127))
         .map(|weight| weight / 255)
-        .ok_or_else(|| RuntimeError::new(
-            Kind::ResourceExhausted, "WinG dither coverage count overflowed",
-        ))?;
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "WinG dither coverage count overflowed",
+            )
+        })?;
     for row in 0..side {
         for column in 0..side {
             let rank = usize::from(matrix[row * side + column]);
-            let index = if rank < high_count { high_index } else { low_index };
+            let index = if rank < high_count {
+                high_index
+            } else {
+                low_index
+            };
             bytes.push(index as u8);
         }
         let row_end = bytes.len().checked_add(stride - row_bytes).ok_or_else(|| {
             RuntimeError::new(Kind::ResourceExhausted, "WinG DIB row end overflowed")
         })?;
-        if row_end > total_bytes { return Ok(None); }
+        if row_end > total_bytes {
+            return Ok(None);
+        }
         bytes.resize(row_end, 0);
     }
 
-    if bytes.len() != total_bytes { return Ok(None); }
+    if bytes.len() != total_bytes {
+        return Ok(None);
+    }
 
-    if bytes.len() % 4 != 0 { return Ok(None); }
+    if bytes.len() % 4 != 0 {
+        return Ok(None);
+    }
     Ok(Some(AlignedBytes::copy_from(&bytes)?))
 }

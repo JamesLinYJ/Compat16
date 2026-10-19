@@ -2,13 +2,10 @@
 //! Creates one hidden, empty-title STATIC and never shows it or supplies input.
 
 use std::ptr;
-use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND};
-use windows_sys::Win32::Graphics::Gdi::DeleteObject;
-use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CopyIcon, CreateWindowExW, DestroyIcon, DestroyWindow, GetIconInfo, HICON, ICONINFO,
-    IDI_APPLICATION, IsWindow, IsWindowVisible, LoadIconW, SendMessageW,
-    STM_GETICON, STM_SETICON, WS_POPUP,
+    CopyIcon, CreateWindowExW, DestroyIcon, GetIconInfo, HICON, ICONINFO, IDI_APPLICATION,
+    LoadIconW, STM_GETICON, STM_SETICON, SendMessageW, WS_POPUP,
 };
 
 const SS_ICON: u32 = 3;
@@ -22,22 +19,29 @@ struct IconValidity {
 }
 
 fn inspect_icon(icon: HICON) -> IconValidity {
+    // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
     let mut info: ICONINFO = unsafe { std::mem::zeroed() };
-    unsafe { SetLastError(0) };
+    (crate::windows::win32_safe::set_last_error(0));
+    // SAFETY: GetIconInfo writes into a caller-owned ICONINFO.
     let valid = !icon.is_null() && unsafe { GetIconInfo(icon, &mut info) } != 0;
-    let error = unsafe { GetLastError() };
+    let error = crate::windows::win32_safe::last_error();
     let mut bitmaps_deleted = true;
     if valid {
         // GetIconInfo allocates these bitmap copies even for a validity probe.
         // Delete each returned object once, never the source icon's bitmaps.
         if !info.hbmMask.is_null() {
-            bitmaps_deleted &= unsafe { DeleteObject(info.hbmMask) } != 0;
+            bitmaps_deleted &= (crate::windows::win32_safe::delete_object(info.hbmMask)) != 0;
         }
         if !info.hbmColor.is_null() && info.hbmColor != info.hbmMask {
-            bitmaps_deleted &= unsafe { DeleteObject(info.hbmColor) } != 0;
+            bitmaps_deleted &= (crate::windows::win32_safe::delete_object(info.hbmColor)) != 0;
         }
     }
-    IconValidity { valid, is_icon: valid && info.fIcon != 0, error, bitmaps_deleted }
+    IconValidity {
+        valid,
+        is_icon: valid && info.fIcon != 0,
+        error,
+        bitmaps_deleted,
+    }
 }
 
 #[derive(Debug, Default)]
@@ -55,22 +59,33 @@ struct Resources {
 }
 
 impl Resources {
-    fn new() -> Self { Self { control: ptr::null_mut(), icons: [ptr::null_mut(); 2] } }
+    fn new() -> Self {
+        Self {
+            control: ptr::null_mut(),
+            icons: [ptr::null_mut(); 2],
+        }
+    }
 
     fn destroy_control(&mut self) -> (bool, bool, u32) {
-        if self.control.is_null() { return (true, true, 0); }
-        unsafe { SetLastError(0) };
-        let reported = unsafe { DestroyWindow(self.control) } != 0;
-        let error = unsafe { GetLastError() };
-        let gone = unsafe { IsWindow(self.control) } == 0;
-        if gone { self.control = ptr::null_mut(); }
+        if self.control.is_null() {
+            return (true, true, 0);
+        }
+        (crate::windows::win32_safe::set_last_error(0));
+        let reported = (crate::windows::win32_safe::destroy_window(self.control)) != 0;
+        let error = crate::windows::win32_safe::last_error();
+        let gone = (crate::windows::win32_safe::is_window(self.control)) == 0;
+        if gone {
+            self.control = ptr::null_mut();
+        }
         (reported, gone, error)
     }
 
     fn cleanup(&mut self) -> CleanupReport {
         let (_, gone, _) = self.destroy_control();
         let mut report = CleanupReport {
-            control_gone: gone, bitmap_cleanup_ok: true, ..CleanupReport::default()
+            control_gone: gone,
+            bitmap_cleanup_ok: true,
+            ..CleanupReport::default()
         };
         if !gone {
             // Do not free a possibly still attached image after failed teardown.
@@ -79,13 +94,16 @@ impl Resources {
         }
         for index in 0..self.icons.len() {
             let icon = std::mem::replace(&mut self.icons[index], ptr::null_mut());
-            if icon.is_null() { continue; }
+            if icon.is_null() {
+                continue;
+            }
             let validity = inspect_icon(icon);
             report.icon_was_valid[index] = validity.valid;
             report.bitmap_cleanup_ok &= validity.bitmaps_deleted;
             // Native destruction is the fact under investigation. Never blindly
             // DestroyIcon a second time if the control already invalidated it.
             if validity.valid {
+                // SAFETY: DestroyIcon destroys an icon this process created.
                 report.icon_destroyed[index] = unsafe { DestroyIcon(icon) } != 0;
             }
         }
@@ -94,23 +112,27 @@ impl Resources {
 }
 
 impl Drop for Resources {
-    fn drop(&mut self) { let _ = self.cleanup(); }
+    fn drop(&mut self) {
+        let _ = self.cleanup();
+    }
 }
 
 #[test]
 #[ignore = "hidden native ownership diagnostic; dedicated CI step supplies bounded invocation"]
 fn hidden_seticon_preserves_caller_owned_icons() {
     let mut resources = Resources::new();
-    unsafe { SetLastError(0) };
+    (crate::windows::win32_safe::set_last_error(0));
+    // SAFETY: LoadIconW loads an icon from this module or a system id.
     let shared = unsafe { LoadIconW(ptr::null_mut(), IDI_APPLICATION) };
-    let load_error = unsafe { GetLastError() };
+    let load_error = crate::windows::win32_safe::last_error();
     let mut copy_errors = [0; 2];
     let mut copies_distinct = !shared.is_null();
     if !shared.is_null() {
         for (index, error) in copy_errors.iter_mut().enumerate() {
-            unsafe { SetLastError(0) };
+            (crate::windows::win32_safe::set_last_error(0));
+            // SAFETY: `CopyIcon` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let copied = unsafe { CopyIcon(shared) };
-            *error = unsafe { GetLastError() };
+            *error = crate::windows::win32_safe::last_error();
             if copied.is_null() || copied == shared || resources.icons.contains(&copied) {
                 // Do not arm a second destructor for a shared/duplicate result.
                 copies_distinct = false;
@@ -121,16 +143,28 @@ fn hidden_seticon_preserves_caller_owned_icons() {
     }
     let mut create_error = 0;
     if copies_distinct {
-        unsafe { SetLastError(0) };
-        resources.control = unsafe { CreateWindowExW(
-            0, windows_sys::core::w!("STATIC"), windows_sys::core::w!(""),
-            WS_POPUP | SS_ICON, 0, 0, 16, 16, ptr::null_mut(), ptr::null_mut(),
-            GetModuleHandleW(ptr::null()), ptr::null(),
-        ) };
-        create_error = unsafe { GetLastError() };
+        (crate::windows::win32_safe::set_last_error(0));
+        // SAFETY: CreateWindowExW receives caller-owned class and title strings that stay live for the call. The creation parameter is null or a live record.
+        resources.control = unsafe {
+            CreateWindowExW(
+                0,
+                windows_sys::core::w!("STATIC"),
+                windows_sys::core::w!(""),
+                WS_POPUP | SS_ICON,
+                0,
+                0,
+                16,
+                16,
+                ptr::null_mut(),
+                ptr::null_mut(),
+                crate::windows::win32_safe::current_module(),
+                ptr::null(),
+            )
+        };
+        create_error = crate::windows::win32_safe::last_error();
     }
     let created = !resources.control.is_null();
-    let hidden = created && unsafe { IsWindowVisible(resources.control) } == 0;
+    let hidden = created && (crate::windows::win32_safe::is_window_visible(resources.control)) == 0;
     let originals = resources.icons;
     let mut initial = None;
     let mut after_replacement = None;
@@ -140,16 +174,27 @@ fn hidden_seticon_preserves_caller_owned_icons() {
     let mut readback = [0usize; 3];
     if created && copies_distinct {
         initial = Some(originals.map(inspect_icon));
-        for (index, icon) in [originals[0], originals[1], originals[0]].into_iter().enumerate() {
+        for (index, icon) in [originals[0], originals[1], originals[0]]
+            .into_iter()
+            .enumerate()
+        {
             let validity = inspect_icon(icon);
             before_set[index] = Some(validity);
-            if !validity.valid || !validity.is_icon || !validity.bitmaps_deleted { break; }
+            if !validity.valid || !validity.is_icon || !validity.bitmaps_deleted {
+                break;
+            }
             // Native Win32 message numbers and host HICONs only. This measures
             // STM_SETICON itself, without a runtime adapter or sidecar owner.
-            previous[index] = unsafe { SendMessageW(resources.control, STM_SETICON, icon as usize, 0) } as usize;
-            readback[index] = unsafe { SendMessageW(resources.control, STM_GETICON, 0, 0) } as usize;
+            // SAFETY: SendMessageW runs synchronously on the window thread. Pointer arguments are caller-owned records that stay live for the call and are not guest addresses.
+            previous[index] =
+                unsafe { SendMessageW(resources.control, STM_SETICON, icon as usize, 0) } as usize;
+            // SAFETY: SendMessageW runs synchronously on the window thread. Pointer arguments are caller-owned records that stay live for the call and are not guest addresses.
+            readback[index] =
+                unsafe { SendMessageW(resources.control, STM_GETICON, 0, 0) } as usize;
             completed_sets += 1;
-            if index == 1 { after_replacement = Some(originals.map(inspect_icon)); }
+            if index == 1 {
+                after_replacement = Some(originals.map(inspect_icon));
+            }
         }
     }
     let destruction = resources.destroy_control();
@@ -158,36 +203,76 @@ fn hidden_seticon_preserves_caller_owned_icons() {
     // an arbitrary raw HICON's incarnation. Never own unknown readback handles.
     let after_destruction = if copies_distinct && destruction.1 {
         Some(originals.map(inspect_icon))
-    } else { None };
+    } else {
+        None
+    };
     let cleanup = resources.cleanup();
     drop(resources);
-    eprintln!("STM_SETICON ownership probe (not STM_SETIMAGE): copies_distinct={copies_distinct}, load_error={load_error}, copy_errors={copy_errors:?}, created={created}, hidden={hidden}, create_error={create_error}");
-    eprintln!("owned copies={originals:?}, completed_sets={completed_sets}, previous={previous:?}, readback={readback:?}, destroy={destruction:?}, cleanup={cleanup:?}");
+    eprintln!(
+        "STM_SETICON ownership probe (not STM_SETIMAGE): copies_distinct={copies_distinct}, load_error={load_error}, copy_errors={copy_errors:?}, created={created}, hidden={hidden}, create_error={create_error}"
+    );
+    eprintln!(
+        "owned copies={originals:?}, completed_sets={completed_sets}, previous={previous:?}, readback={readback:?}, destroy={destruction:?}, cleanup={cleanup:?}"
+    );
     eprintln!("validity immediately before each SET: {before_set:?}");
-    for (phase, snapshots) in [("initial", initial), ("after replacement", after_replacement),
-        ("after control destruction", after_destruction)] {
+    for (phase, snapshots) in [
+        ("initial", initial),
+        ("after replacement", after_replacement),
+        ("after control destruction", after_destruction),
+    ] {
         if let Some(snapshots) = snapshots {
             for (index, sample) in snapshots.iter().enumerate() {
-                eprintln!("{phase} icon{index}: valid={}, is_icon={}, error={}, bitmaps_deleted={}",
-                    sample.valid, sample.is_icon, sample.error, sample.bitmaps_deleted);
+                eprintln!(
+                    "{phase} icon{index}: valid={}, is_icon={}, error={}, bitmaps_deleted={}",
+                    sample.valid, sample.is_icon, sample.error, sample.bitmaps_deleted
+                );
             }
         }
     }
-    assert!(copies_distinct, "UNSUPPORTED/FAILED: could not obtain two distinct caller-owned CopyIcon results");
+    assert!(
+        copies_distinct,
+        "UNSUPPORTED/FAILED: could not obtain two distinct caller-owned CopyIcon results"
+    );
     assert!(created, "UNSUPPORTED/FAILED: hidden STATIC creation failed");
-    assert!(hidden, "FAILED: ownership probe unexpectedly created a visible control");
-    assert_eq!(completed_sets, 3, "UNSUPPORTED/FAILED: an owned icon became invalid before its next SET");
-    assert_eq!(previous, [0, originals[0] as usize, originals[1] as usize],
-        "UNSUPPORTED/FAILED: STM_SETICON previous-handle contract differs");
-    assert_eq!(readback, [originals[0] as usize, originals[1] as usize, originals[0] as usize],
-        "UNSUPPORTED/FAILED: STM_GETICON did not return the installed caller handle");
-    assert!(destruction.0 && destruction.1, "FAILED: hidden control teardown did not complete");
+    assert!(
+        hidden,
+        "FAILED: ownership probe unexpectedly created a visible control"
+    );
+    assert_eq!(
+        completed_sets, 3,
+        "UNSUPPORTED/FAILED: an owned icon became invalid before its next SET"
+    );
+    assert_eq!(
+        previous,
+        [0, originals[0] as usize, originals[1] as usize],
+        "UNSUPPORTED/FAILED: STM_SETICON previous-handle contract differs"
+    );
+    assert_eq!(
+        readback,
+        [
+            originals[0] as usize,
+            originals[1] as usize,
+            originals[0] as usize
+        ],
+        "UNSUPPORTED/FAILED: STM_GETICON did not return the installed caller handle"
+    );
+    assert!(
+        destruction.0 && destruction.1,
+        "FAILED: hidden control teardown did not complete"
+    );
     for samples in [initial, after_replacement, after_destruction] {
-        assert!(samples.is_some_and(|samples| samples.iter().all(|sample|
-            sample.valid && sample.is_icon && sample.bitmaps_deleted)),
-            "UNSUPPORTED/FAILED: caller-owned icon did not survive or bitmap cleanup failed");
+        assert!(
+            samples.is_some_and(|samples| samples
+                .iter()
+                .all(|sample| sample.valid && sample.is_icon && sample.bitmaps_deleted)),
+            "UNSUPPORTED/FAILED: caller-owned icon did not survive or bitmap cleanup failed"
+        );
     }
     assert!(cleanup.control_gone && !cleanup.withheld && cleanup.bitmap_cleanup_ok);
     assert_eq!(cleanup.icon_was_valid, [true, true]);
-    assert_eq!(cleanup.icon_destroyed, [true, true], "FAILED: explicit caller icon cleanup failed");
+    assert_eq!(
+        cleanup.icon_destroyed,
+        [true, true],
+        "FAILED: explicit caller icon cleanup failed"
+    );
 }

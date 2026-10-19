@@ -239,6 +239,7 @@ fn attempt_cleanup(device: &mut WaveDevice) -> Result<bool, RuntimeError> {
             }
         }
 
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let result = unsafe { native::reset_native(device.direction, &device.native) };
         if result != MMSYSERR_NOERROR {
             return Err(wave_result_error("reset retained WAVE device", result));
@@ -249,6 +250,7 @@ fn attempt_cleanup(device: &mut WaveDevice) -> Result<bool, RuntimeError> {
             }
             let header = ptr::addr_of_mut!(buffer.storage.header);
             let result =
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { native::unprepare_native(device.direction, &device.native, header) };
             if result != MMSYSERR_NOERROR {
                 return Err(wave_result_error("unprepare retained WAVE header", result));
@@ -256,6 +258,7 @@ fn attempt_cleanup(device: &mut WaveDevice) -> Result<bool, RuntimeError> {
             buffer.prepared = false;
             buffer.in_flight = false;
         }
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let result = unsafe { native::close_native(&device.native) };
         if result != MMSYSERR_NOERROR {
             return Err(wave_result_error("close retained WAVE device", result));
@@ -284,9 +287,7 @@ fn attempt_cleanup(device: &mut WaveDevice) -> Result<bool, RuntimeError> {
 }
 
 impl Win16WaveHost {
-    pub(in crate::windows) fn retired_owner_barrier(
-        &mut self,
-    ) -> Result<(), RuntimeError> {
+    pub(in crate::windows) fn retired_owner_barrier(&mut self) -> Result<(), RuntimeError> {
         let current_thread = thread::current().id();
         let mut failures = Vec::new();
         failures.try_reserve_exact(3).map_err(|error| {

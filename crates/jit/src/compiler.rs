@@ -318,6 +318,11 @@ impl Compiler {
     }
 
     /// All cached entry pointers must be discarded before this call.
+    ///
+    /// # Safety
+    ///
+    /// No generated-code call can still be running on this module. Cached
+    /// entry pointers must already have been discarded.
     pub unsafe fn clear(&mut self) {
         if let Some(module) = self.module.take() {
             // SAFETY: The sole owner cleared entries and excludes generated-code calls.

@@ -11,8 +11,8 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    DispatchMessageW, MSG, PM_REMOVE, PeekMessageW, PostQuitMessage, TranslateMessage,
-    WM_CHANGECBCHAIN, WM_CLOSE, WM_COMMAND, WM_DESTROY, WM_SYSCOMMAND, WM_USER,
+    DispatchMessageW, MSG, PM_REMOVE, PeekMessageW, TranslateMessage, WM_CHANGECBCHAIN, WM_CLOSE,
+    WM_COMMAND, WM_DESTROY, WM_SYSCOMMAND, WM_USER,
 };
 
 use super::win16_window_worker::{self as worker, WorkerCommand, WorkerState};
@@ -309,12 +309,16 @@ pub(super) fn dispatch_message(
             ));
         }
         Win16MessageParam::Scalar(value) => {
-            let Some(native_w) = super::win16_character_messages::to_native(state,
-                u32::from(message.message), message.w_param)? else {
-                    return Ok(Win16WindowResult::Dispatched(0));
-                };
+            let Some(native_w) = super::win16_character_messages::to_native(
+                state,
+                u32::from(message.message),
+                message.w_param,
+            )?
+            else {
+                return Ok(Win16WindowResult::Dispatched(0));
+            };
             (native_w, (value as i32) as isize)
-        },
+        }
         Win16MessageParam::Mdi(_) => {
             unreachable!("typed MDI messages returned through the shared MDI result route")
         }
@@ -430,6 +434,7 @@ pub(super) fn dispatch_message(
     } else {
         None
     };
+    // SAFETY: DispatchMessageW reads a caller-owned MSG for this call only.
     let value = unsafe { DispatchMessageW(&native) as i32 };
     if let Some(snapshot) = mdi_children_before_close {
         let retirements =
@@ -454,7 +459,7 @@ fn may_destroy_window_tree(message: u16, w_param: u16) -> bool {
 }
 
 pub(super) fn post_quit_message(exit_code: u16) {
-    unsafe { PostQuitMessage(i32::from(exit_code)) };
+    (crate::windows::win32_safe::post_quit_message(i32::from(exit_code)));
 }
 
 #[derive(Clone, Copy)]
@@ -495,7 +500,7 @@ fn filter_is_alive(state: &Rc<RefCell<WorkerState>>, filter: NativeFilter) -> bo
     let Some(hwnd) = state.borrow().windows.get(&token).copied() else {
         return false;
     };
-    unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(hwnd) != 0 }
+    crate::windows::win32_safe::is_window(hwnd) != 0
 }
 
 fn peek_matching(
@@ -523,6 +528,7 @@ fn peek_matching(
     }
     let _retrieval = super::win16_guest_notifications::guest_retrieval_scope(filter.queue, flags)?;
     let mut native = MSG::default();
+    // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
     let removed = unsafe { PeekMessageW(&mut native, filter.hwnd, filter.min, filter.max, flags) };
     Ok((removed != 0).then_some((native, false)))
 }
@@ -554,7 +560,7 @@ fn resolve_message_window(
             "Win16 message refers to an unknown native window",
         )
     })?;
-    if unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(hwnd) } == 0 {
+    if (crate::windows::win32_safe::is_window(hwnd)) == 0 {
         return Ok(None);
     }
     Ok(Some(hwnd))

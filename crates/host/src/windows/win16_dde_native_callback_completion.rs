@@ -1,7 +1,7 @@
 //! Callback-frame ownership, cleanup, and acknowledgement completion.
 
-use super::*;
 use super::super::super::errors::combine_cleanup_errors as combine_runtime_error_pair;
+use super::*;
 use runtime::Win16HostDdeCallbackFrame;
 use std::sync::Arc;
 
@@ -69,16 +69,14 @@ impl<'a> CallbackFrameCompletion<'a> {
         result: Result<HDDEDATA, RuntimeError>,
     ) -> Result<HDDEDATA, RuntimeError> {
         let result = match result {
-            Err(error) if self.owned_reply.is_some() => {
-                match self.release_owned_reply() {
-                    Ok(()) => Err(error),
-                    Err(release) => Err(combine_runtime_error_pair(
-                        error,
-                        release,
-                        "DDE callback result and prepared reply release both failed",
-                    )),
-                }
-            }
+            Err(error) if self.owned_reply.is_some() => match self.release_owned_reply() {
+                Ok(()) => Err(error),
+                Err(release) => Err(combine_runtime_error_pair(
+                    error,
+                    release,
+                    "DDE callback result and prepared reply release both failed",
+                )),
+            },
             result => result,
         };
         let (result, acknowledgement) = split_callback_result(result);
@@ -210,6 +208,7 @@ impl CallbackFrameCompletion<'_> {
         let Some(reply) = self.owned_reply else {
             return Ok(());
         };
+        // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
         if unsafe { DdeFreeDataHandle(reply) } == 0 {
             let additional = Arc::new(match self.owned_reply_native_instance {
                 Some(native_instance) => callback_native_api_failure(

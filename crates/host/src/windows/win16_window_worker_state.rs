@@ -52,9 +52,7 @@ impl NativeClassResource {
         match self {
             Self::Icon(_) => windows_sys::Win32::UI::WindowsAndMessaging::GCLP_HICON,
             Self::Cursor(_) => windows_sys::Win32::UI::WindowsAndMessaging::GCLP_HCURSOR,
-            Self::Background(_) => {
-                windows_sys::Win32::UI::WindowsAndMessaging::GCLP_HBRBACKGROUND
-            }
+            Self::Background(_) => windows_sys::Win32::UI::WindowsAndMessaging::GCLP_HBRBACKGROUND,
         }
     }
 
@@ -380,8 +378,7 @@ pub(in crate::windows) struct WorkerState {
         super::super::win16_window_properties::WindowPropertyStore,
     pub(in crate::windows::win16_windows) native_procedures:
         super::super::win16_native_procedures::NativeProcedures,
-    pub(in crate::windows::win16_windows) window_creation_instances:
-        HashMap<Win16HostWindow, u16>,
+    pub(in crate::windows::win16_windows) window_creation_instances: HashMap<Win16HostWindow, u16>,
     pub(in crate::windows::win16_windows) window_identity_cookies:
         HashMap<Win16HostWindow, super::super::win16_window_identity::WindowCookieBinding>,
     pub(in crate::windows::win16_windows) commands: Arc<Mutex<Receiver<WorkerCommand>>>,
@@ -469,7 +466,8 @@ pub(in crate::windows) struct WorkerState {
     /// Runtime operation currently installing a native DLGPROC. This exists
     /// only around CreateDialog*/DialogBox* calls, including their modal pump.
     pub(in crate::windows::win16_windows) pending_dialog_routes: Vec<PendingDialogRoute>,
-    pub(in crate::windows::win16_windows) dialog_icon_sidecars: super::super::win16_dialog_icon_controls::IconSidecars,
+    pub(in crate::windows::win16_windows) dialog_icon_sidecars:
+        super::super::win16_dialog_icon_controls::IconSidecars,
     /// Native dialog HWND to copied route identity; no guest FAR is stored.
     pub(in crate::windows::win16_windows) dialog_routes_by_native: HashMap<usize, DialogRoute>,
     /// Checked CREATESTRUCT16 source copied for each custom dialog WndProc

@@ -10,10 +10,9 @@ use std::cell::Cell;
 use std::ptr;
 
 use runtime::{
-    DiagnosticKind, RuntimeError, Win16ComHostContinue, Win16ComHostCompletion,
-    Win16ComHostExecutionFailure,
-    Win16ComHostRequest, Win16ComHostResult, Win16ComHostStart, Win16ComHostStep,
-    Win16HostWindow, Win16OleHostReply,
+    DiagnosticKind, RuntimeError, Win16ComHostCompletion, Win16ComHostContinue,
+    Win16ComHostExecutionFailure, Win16ComHostRequest, Win16ComHostResult, Win16ComHostStart,
+    Win16ComHostStep, Win16HostWindow, Win16OleHostReply,
 };
 use windows_sys::Win32::Foundation::HWND;
 
@@ -46,12 +45,15 @@ pub(super) fn prepare_start(
     start: Win16ComHostStart,
 ) -> Result<PreparedWin16ComStart, RuntimeError> {
     let request = match start.request {
-        Win16ComHostRequest::Storage(operation) => PreparedWin16ComRequest::Storage(
-            win16_storage_ole::prepare(filesystem, operation)?,
-        ),
+        Win16ComHostRequest::Storage(operation) => {
+            PreparedWin16ComRequest::Storage(win16_storage_ole::prepare(filesystem, operation)?)
+        }
         request => PreparedWin16ComRequest::Native(request),
     };
-    Ok(PreparedWin16ComStart { operation: start.operation, request })
+    Ok(PreparedWin16ComStart {
+        operation: start.operation,
+        request,
+    })
 }
 
 /// Start one typed native operation on the already initialized USER STA.
@@ -66,10 +68,16 @@ pub(super) fn start_prepared(
     resolve_window: impl Fn(Win16HostWindow) -> Option<HWND>,
 ) -> Result<Win16ComHostStep, RuntimeError> {
     if !start.operation.is_valid() {
-        return Err(RuntimeError::new(DiagnosticKind::InvalidInput, "Win16 COM operation identity is invalid"));
+        return Err(RuntimeError::new(
+            DiagnosticKind::InvalidInput,
+            "Win16 COM operation identity is invalid",
+        ));
     }
     if objects.owner_identity() != callbacks.owner_identity() {
-        return Err(RuntimeError::new(DiagnosticKind::InternalInvariant, "COM object table and callback port belong to different USER STA generations"));
+        return Err(RuntimeError::new(
+            DiagnosticKind::InternalInvariant,
+            "COM object table and callback port belong to different USER STA generations",
+        ));
     }
     let operation = start.operation;
     let execution = with_active_operation(operation, || {
@@ -112,13 +120,25 @@ pub(super) fn continue_operation(
     continuation: Win16ComHostContinue,
 ) -> Result<Win16ComHostStep, RuntimeError> {
     let Some(resume) = continuation.resume else {
-        return Err(RuntimeError::new(DiagnosticKind::InvalidInput, "Win16 COM continuation has no callback reply"));
+        return Err(RuntimeError::new(
+            DiagnosticKind::InvalidInput,
+            "Win16 COM continuation has no callback reply",
+        ));
     };
-    if continuation.operation.is_some_and(|identity| !identity.is_valid()) {
-        return Err(RuntimeError::new(DiagnosticKind::InvalidInput, "Win16 COM operation identity is invalid"));
+    if continuation
+        .operation
+        .is_some_and(|identity| !identity.is_valid())
+    {
+        return Err(RuntimeError::new(
+            DiagnosticKind::InvalidInput,
+            "Win16 COM operation identity is invalid",
+        ));
     }
     if resume.parent != continuation.operation {
-        return Err(RuntimeError::new(DiagnosticKind::InvalidInput, "Win16 COM callback reply names a different parent operation"));
+        return Err(RuntimeError::new(
+            DiagnosticKind::InvalidInput,
+            "Win16 COM callback reply names a different parent operation",
+        ));
     }
     callbacks
         .resume(resume)
@@ -141,16 +161,24 @@ fn execute_request(
     resolve_window: impl Fn(Win16HostWindow) -> Option<HWND>,
 ) -> Result<Win16ComHostResult, RuntimeError> {
     match request {
-        PreparedWin16ComRequest::Native(Win16ComHostRequest::Ole(operation)) =>
-            win16_ole_native::execute(objects, apartment, operation)
-            .map(Win16ComHostResult::Ole),
-        PreparedWin16ComRequest::Storage(operation) => win16_storage_ole::execute(objects, operation)
-            .map(Win16ComHostResult::Storage),
+        PreparedWin16ComRequest::Native(Win16ComHostRequest::Ole(operation)) => {
+            win16_ole_native::execute(objects, apartment, operation).map(Win16ComHostResult::Ole)
+        }
+        PreparedWin16ComRequest::Storage(operation) => {
+            win16_storage_ole::execute(objects, operation).map(Win16ComHostResult::Storage)
+        }
         PreparedWin16ComRequest::Native(Win16ComHostRequest::CreateCallbackProxy { route }) => {
-            let value = callbacks
-                .create_proxy(objects, route)
-                .map_err(|error| RuntimeError::with_source(DiagnosticKind::HostFailure, "create native OLE callback interfaces", error))?;
-            Ok(Win16ComHostResult::Ole(Win16OleHostReply { status: S_OK as u32, value }))
+            let value = callbacks.create_proxy(objects, route).map_err(|error| {
+                RuntimeError::with_source(
+                    DiagnosticKind::HostFailure,
+                    "create native OLE callback interfaces",
+                    error,
+                )
+            })?;
+            Ok(Win16ComHostResult::Ole(Win16OleHostReply {
+                status: S_OK as u32,
+                value,
+            }))
         }
         PreparedWin16ComRequest::Native(Win16ComHostRequest::InterfaceCall { object, call }) => {
             win16_com_interface_calls::execute(objects, object, call, resolve_window)
@@ -186,9 +214,9 @@ fn execute_request(
                 remaining_owned_references,
             })
         }
-        PreparedWin16ComRequest::Native(Win16ComHostRequest::Storage(_)) => unreachable!(
-            "guest-path storage operations must be prepared before STA submission"
-        ),
+        PreparedWin16ComRequest::Native(Win16ComHostRequest::Storage(_)) => {
+            unreachable!("guest-path storage operations must be prepared before STA submission")
+        }
     }
 }
 
@@ -202,44 +230,77 @@ pub(super) struct Win16ComApartmentRefs {
 
 impl Win16ComApartmentRefs {
     pub(super) const fn new() -> Self {
-        Self { guest_com: Cell::new(0), guest_ole: Cell::new(0) }
+        Self {
+            guest_com: Cell::new(0),
+            guest_ole: Cell::new(0),
+        }
     }
 
     pub(super) fn initialize(&self, ole: bool, reserved: u32) -> runtime::Win16OleHostReply {
         if reserved != 0 {
-            return runtime::Win16OleHostReply { status: E_INVALIDARG as u32, value: runtime::Win16OleHostValue::None };
+            return runtime::Win16OleHostReply {
+                status: E_INVALIDARG as u32,
+                value: runtime::Win16OleHostValue::None,
+            };
         }
-        let counter = if ole { &self.guest_ole } else { &self.guest_com };
+        let counter = if ole {
+            &self.guest_ole
+        } else {
+            &self.guest_com
+        };
         let Some(next) = counter.get().checked_add(1) else {
-            return runtime::Win16OleHostReply { status: 0x8007_000eu32, value: runtime::Win16OleHostValue::None };
+            return runtime::Win16OleHostReply {
+                status: 0x8007_000eu32,
+                value: runtime::Win16OleHostValue::None,
+            };
         };
         // SAFETY: the STA holds a permanent OLE apartment lease; this call
         // adds one separately tracked guest reference on that same thread.
         let result = unsafe {
-            if ole { windows_sys::Win32::System::Ole::OleInitialize(ptr::null()) }
-            else { windows_sys::Win32::System::Com::CoInitialize(ptr::null()) }
+            if ole {
+                windows_sys::Win32::System::Ole::OleInitialize(ptr::null())
+            } else {
+                windows_sys::Win32::System::Com::CoInitialize(ptr::null())
+            }
         };
-        if result >= 0 { counter.set(next); }
-        runtime::Win16OleHostReply { status: result as u32, value: runtime::Win16OleHostValue::None }
+        if result >= 0 {
+            counter.set(next);
+        }
+        runtime::Win16OleHostReply {
+            status: result as u32,
+            value: runtime::Win16OleHostValue::None,
+        }
     }
 
     pub(super) fn uninitialize(&self, ole: bool) -> runtime::Win16OleHostReply {
-        let counter = if ole { &self.guest_ole } else { &self.guest_com };
+        let counter = if ole {
+            &self.guest_ole
+        } else {
+            &self.guest_com
+        };
         let count = counter.get();
         if count != 0 {
             counter.set(count - 1);
             // SAFETY: only a reference previously acquired by the matching
             // guest initializer is released; the worker lease remains intact.
-            unsafe {
-                if ole { windows_sys::Win32::System::Ole::OleUninitialize() }
-                else { windows_sys::Win32::System::Com::CoUninitialize() }
+            if ole {
+                crate::windows::win32_safe::ole_uninitialize()
+            } else {
+                crate::windows::win32_safe::co_uninitialize()
             }
         }
-        runtime::Win16OleHostReply { status: S_OK as u32, value: runtime::Win16OleHostValue::None }
+        runtime::Win16OleHostReply {
+            status: S_OK as u32,
+            value: runtime::Win16OleHostValue::None,
+        }
     }
 
     pub(super) fn release_guest_refs(&self) {
-        while self.guest_ole.get() != 0 { let _ = self.uninitialize(true); }
-        while self.guest_com.get() != 0 { let _ = self.uninitialize(false); }
+        while self.guest_ole.get() != 0 {
+            let _ = self.uninitialize(true);
+        }
+        while self.guest_com.get() != 0 {
+            let _ = self.uninitialize(false);
+        }
     }
 }

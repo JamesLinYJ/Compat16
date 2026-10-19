@@ -160,6 +160,7 @@ impl NativeTemplateWriter {
             // Win32 requires DWORD-aligned DLGTEMPLATE storage. The owned
             // byte writer has already checked size and the destination is
             // the same number of bytes rounded up to DWORDs.
+            // SAFETY: The source and destination are non-overlapping, and both spans were checked to cover the copied length.
             unsafe {
                 std::ptr::copy_nonoverlapping(
                     self.bytes.as_ptr(),

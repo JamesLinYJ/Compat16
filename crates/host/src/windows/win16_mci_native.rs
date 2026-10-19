@@ -89,6 +89,7 @@ pub(super) fn execute(
             let (native, _) = context.state.native_id(device)?;
             Win16HostMciResult {
                 return_value: 0,
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 output: Win16HostMciOutput::Scalar(unsafe { mciDriverYield(native) }),
             }
         }
@@ -100,6 +101,7 @@ pub(super) fn execute(
             let (native, _) = context.state.native_id(device)?;
             let id = retirement::reserve_device_notification(&context, native, device, target)?;
             let ok =
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { mciDriverNotify(context.state.sink as HANDLE, native, u32::from(status)) }
                     != 0;
             if !ok {
@@ -121,6 +123,7 @@ pub(super) fn execute(
                     Some(registration) => registration,
                     None => context.state.reserve_yield_registration(device)?,
                 };
+                // SAFETY: `Some` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 let ok = unsafe { mciSetYieldProc(native, Some(mci_yield_proc), data) } != 0;
                 if ok {
                     context
@@ -151,6 +154,7 @@ pub(super) fn execute(
                     }
                 } else {
                     let mut current_data = 0_u32;
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     match unsafe { mciGetYieldProc(native, &mut current_data) } {
                         Some(proc) if proc as usize == mci_yield_proc as *const () as usize => {
                             return Err(RuntimeError::new(
@@ -163,6 +167,7 @@ pub(super) fn execute(
                         }
                         _ => {}
                     }
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     let ok = unsafe { mciSetYieldProc(native, None, data) } != 0;
                     (ok, false, None)
                 }
@@ -179,6 +184,7 @@ pub(super) fn execute(
         Win16HostMciCall::GetYieldProc { device } => {
             let (native, _) = context.state.native_id(device)?;
             let mut data = 0_u32;
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let proc = unsafe { mciGetYieldProc(native, &mut data) };
             let registration = context.state.current_yield_registration(device);
             let installed = proc.map(|value| value as usize)
@@ -222,6 +228,7 @@ fn send_string(
             // can create a native device. This leaves no post-side-effect
             // allocation needed to recover its owner identity.
             let terminated_alias = wide_terminated(context.state.text_codec, alias)?;
+            // SAFETY: mciGetDeviceIDW reads a caller-owned device name.
             let existing = unsafe { mciGetDeviceIDW(terminated_alias.as_ptr()) };
             if existing != 0 {
                 return Ok(Win16HostMciResult {
@@ -338,6 +345,7 @@ fn send_string(
     } else {
         output.as_mut_ptr()
     };
+    // SAFETY: mciSendStringW reads a caller-owned command and writes a caller-owned buffer.
     let mut code = unsafe {
         mciSendStringW(
             command.as_ptr(),
@@ -371,6 +379,7 @@ fn send_string(
                         "MCI string OPEN lost its preallocated alias lookup string",
                     )
                 })?;
+                // SAFETY: mciGetDeviceIDW reads a caller-owned device name.
                 let native_id = unsafe { mciGetDeviceIDW(alias_z.as_ptr()) };
                 if native_id == 0 || native_id == u32::MAX {
                     let primary = RuntimeError::new(
@@ -647,6 +656,7 @@ fn keyword(token: &Win16MciCommandToken, value: &[u8]) -> bool {
 }
 
 pub(super) fn close_native_device(native: u32, _sink: HWND) -> u32 {
+    // SAFETY: mciSendCommandW receives an integer device id. A null parameter pointer carries no record; a non-null record stays live for the call.
     unsafe { mciSendCommandW(native, MCI_CLOSE, 0, 0) }
 }
 

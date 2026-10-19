@@ -33,6 +33,7 @@ impl Win16WaveHost {
                 (MIXER_OBJECTF_HANDLE | MIXER_OBJECTF_WAVEOUT) as u32,
             ),
         };
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let result = unsafe { mixerGetID(handle, &mut mixer_id, object_flags) };
         Win16HostWaveMixerId {
             result,

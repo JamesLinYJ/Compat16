@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::System::DataExchange::{ChangeClipboardChain, CloseClipboard};
-use windows_sys::Win32::UI::WindowsAndMessaging::{IsWindow, KillTimer, PeekMessageW};
+use windows_sys::Win32::UI::WindowsAndMessaging::PeekMessageW;
 
 use super::super::super::win16_gdi::Win16Dcs;
 use super::super::super::win16_images::Win16Images;
@@ -58,7 +58,9 @@ pub(super) fn worker_main(
     // Each thread needs its own USER queue. This call intentionally does not
     // dispatch queued messages; callbacks are delivered only by explicit
     // synchronous operations with a runtime continuation available.
+    // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
     let mut message = unsafe { std::mem::zeroed() };
+    // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
     unsafe {
         PeekMessageW(
             &mut message,
@@ -447,7 +449,7 @@ fn finish_abort_or_shutdown(
     for (hwnd, id) in timers {
         // SAFETY: These native timer identities were returned by USER and are
         // killed on the same worker thread after all callbacks have unwound.
-        unsafe { KillTimer(hwnd as HWND, id) };
+        (crate::windows::win32_safe::kill_timer(hwnd as HWND, id));
     }
     cleanup_clipboard_state(state);
     if shutdown {
@@ -507,7 +509,7 @@ fn finish_abort_or_shutdown(
         };
         errors.extend(late_failures);
         for (hwnd, id) in timers {
-            unsafe { KillTimer(hwnd as HWND, id) };
+            (crate::windows::win32_safe::kill_timer(hwnd as HWND, id));
         }
         if let Some(hooks) = modal_hooks.take() {
             if let Err(error) = hooks.finish() {
@@ -665,6 +667,7 @@ fn take_ready_waiters(
 
 fn cleanup_clipboard_state(state: &Rc<RefCell<WorkerState>>) {
     let clipboard_open = state.borrow().clipboard_open;
+    // SAFETY: CloseClipboard closes the clipboard this thread opened.
     if clipboard_open && unsafe { CloseClipboard() } != 0 {
         state.borrow_mut().clipboard_open = false;
     }
@@ -679,7 +682,8 @@ fn cleanup_clipboard_state(state: &Rc<RefCell<WorkerState>>) {
     };
     for (token, viewer) in viewers {
         let hwnd = viewer.window as HWND;
-        let remove = unsafe { IsWindow(hwnd) } == 0
+        let remove = (crate::windows::win32_safe::is_window(hwnd)) == 0
+            // SAFETY: `ChangeClipboardChain` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             || unsafe { ChangeClipboardChain(hwnd, viewer.next_viewer as HWND) != 0 };
         if remove {
             let mut state = state.borrow_mut();

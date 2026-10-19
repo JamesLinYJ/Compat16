@@ -18,14 +18,19 @@ fn wide(text: &str) -> Vec<u16> {
 struct Key(HKEY);
 impl Drop for Key {
     fn drop(&mut self) {
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
         unsafe { RegCloseKey(self.0) };
     }
 }
 
 fn absent(root: HKEY, name: &[u16]) {
     let mut key = null_mut();
-    let status = unsafe { RegOpenKeyW(root, name.as_ptr(), &mut key) };
+    // SAFETY: RegOpenKeyW reads a caller-owned subkey name and writes a caller-owned HKEY.
+    let status =
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
+        unsafe { RegOpenKeyW(root, name.as_ptr(), &mut key) };
     if status == 0 {
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
         unsafe { RegCloseKey(key) };
     }
     assert_eq!(status, 2, "fixture key must be absent");
@@ -37,7 +42,10 @@ struct Fixture {
 }
 impl Fixture {
     fn cleanup(&self) {
-        let status = unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.path.as_ptr()) };
+        // SAFETY: RegDeleteTreeW reads a caller-owned subkey name, or null for the key itself.
+        let status =
+            // SAFETY: `RegDeleteTreeW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.path.as_ptr()) };
         assert_eq!(
             status, 0,
             "remove only this fixture's unique HKCU Classes child"
@@ -48,6 +56,7 @@ impl Fixture {
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
+        // SAFETY: RegDeleteTreeW reads a caller-owned subkey name, or null for the key itself.
         unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.path.as_ptr()) };
     }
 }
@@ -55,11 +64,13 @@ impl Drop for Fixture {
 fn create(root: HKEY, name: &str, value: &str) -> Key {
     let mut key = null_mut();
     assert_eq!(
+        // SAFETY: `RegCreateKeyW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { RegCreateKeyW(root, wide(name).as_ptr(), &mut key) },
         0
     );
     let key = Key(key);
     assert_eq!(
+        // SAFETY: `RegSetValueW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { RegSetValueW(key.0, null(), 1, wide(value).as_ptr(), 0) },
         0
     );
@@ -71,7 +82,10 @@ fn children(root: HKEY) -> Vec<Vec<u16>> {
     for index in 0..16 {
         let mut name = [0_u16; 256];
         let mut length = name.len() as u32;
-        let status = unsafe {
+        // SAFETY: RegEnumKeyExW writes into caller-owned name buffers of the capacities passed with them.
+        let status =
+            // SAFETY: `RegEnumKeyExW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe {
             RegEnumKeyExW(
                 root,
                 index,
@@ -98,6 +112,7 @@ fn value(root: HKEY, name: &[u16]) -> String {
     let mut output = [0_u16; 64];
     let mut count = std::mem::size_of_val(&output) as i32;
     assert_eq!(
+        // SAFETY: `RegQueryValueW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { RegQueryValueW(root, path.as_ptr(), output.as_mut_ptr(), &mut count) },
         0
     );
@@ -121,6 +136,7 @@ fn verify(engine: &str, module: u16) {
     };
     let mut parent = null_mut();
     assert_eq!(
+        // SAFETY: RegOpenKeyW reads a caller-owned subkey name and writes a caller-owned HKEY.
         unsafe {
             RegOpenKeyW(
                 HKEY_CURRENT_USER,
@@ -136,6 +152,7 @@ fn verify(engine: &str, module: u16) {
     // A GBK trail byte of 0x5c belongs to this character, not a separator.
     let mut dbcs_wide = [0_u16; 2];
     assert_eq!(
+        // SAFETY: MultiByteToWideChar reads a caller-owned byte span and writes a caller-owned UTF-16 buffer.
         unsafe { MultiByteToWideChar(936, 0, b"\x81\x5c".as_ptr(), 2, dbcs_wide.as_mut_ptr(), 2) },
         1
     );

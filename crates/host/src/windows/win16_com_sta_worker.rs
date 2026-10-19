@@ -14,11 +14,11 @@ use std::sync::{Arc, Mutex};
 
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16ComHostContinue, Win16ComHostOperationIdentity,
-    Win16ComHostOwnerIdentity, Win16ComHostShutdownOperation,
-    Win16ComHostShutdownReceipt, Win16ComHostShutdownStep, Win16ComHostStep,
+    Win16ComHostOwnerIdentity, Win16ComHostShutdownOperation, Win16ComHostShutdownReceipt,
+    Win16ComHostShutdownStep, Win16ComHostStep,
 };
-use windows_sys::Win32::Foundation::{GetLastError, HANDLE, WAIT_FAILED, WAIT_OBJECT_0};
-use windows_sys::Win32::System::Threading::{INFINITE, SetEvent};
+use windows_sys::Win32::Foundation::{HANDLE, WAIT_FAILED, WAIT_OBJECT_0};
+use windows_sys::Win32::System::Threading::INFINITE;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     DispatchMessageW, MSG, MsgWaitForMultipleObjectsEx, PM_REMOVE, PeekMessageW, QS_ALLINPUT,
     TranslateMessage, WM_DROPFILES,
@@ -68,6 +68,7 @@ impl Win16ComStaState {
     ) -> Result<(Rc<Self>, Win16ComWorkerClient), RuntimeError> {
         // One permanent OLE lease belongs to the USER worker lifetime. Guest
         // Initialize/Uninitialize operations are independently counted below.
+        // SAFETY: OleInitialize initializes OLE on the calling thread and writes no caller pointer.
         let apartment = unsafe { windows_sys::Win32::System::Ole::OleInitialize(std::ptr::null()) };
         if apartment < 0 {
             return Err(RuntimeError::new(
@@ -81,7 +82,7 @@ impl Win16ComStaState {
         let owner = match allocate_owner() {
             Some(owner) => owner,
             None => {
-                unsafe { windows_sys::Win32::System::Ole::OleUninitialize() };
+                (crate::windows::win32_safe::ole_uninitialize());
                 return Err(RuntimeError::new(
                     Kind::ResourceExhausted,
                     "Win16 COM owner identity space was exhausted",
@@ -92,7 +93,7 @@ impl Win16ComStaState {
         let objects = match Win16ComObjects::new(owner) {
             Ok(objects) => Rc::new(objects),
             Err(error) => {
-                unsafe { windows_sys::Win32::System::Ole::OleUninitialize() };
+                (crate::windows::win32_safe::ole_uninitialize());
                 return Err(com_runtime_error(
                     "create the USER STA COM object table",
                     error,
@@ -103,7 +104,7 @@ impl Win16ComStaState {
             Ok(pair) => pair,
             Err(error) => {
                 let _ = objects.shutdown();
-                unsafe { windows_sys::Win32::System::Ole::OleUninitialize() };
+                (crate::windows::win32_safe::ole_uninitialize());
                 return Err(com_runtime_error(
                     "create the USER STA callback port",
                     error,
@@ -115,7 +116,7 @@ impl Win16ComStaState {
             .try_reserve_exact(MAX_UNSETTLED_OPERATIONS)
             .map_err(|error| {
                 let _ = objects.shutdown();
-                unsafe { windows_sys::Win32::System::Ole::OleUninitialize() };
+                (crate::windows::win32_safe::ole_uninitialize());
                 RuntimeError::with_source(
                     Kind::ResourceExhausted,
                     "reserve bounded Win16 COM terminal journal",
@@ -128,7 +129,7 @@ impl Win16ComStaState {
             .try_reserve_exact(MAX_UNSETTLED_OPERATIONS)
             .map_err(|error| {
                 let _ = objects.shutdown();
-                unsafe { windows_sys::Win32::System::Ole::OleUninitialize() };
+                (crate::windows::win32_safe::ole_uninitialize());
                 RuntimeError::with_source(
                     Kind::ResourceExhausted,
                     "reserve active COM operations",
@@ -140,7 +141,7 @@ impl Win16ComStaState {
             .try_reserve_exact(MAX_UNSETTLED_OPERATIONS)
             .map_err(|error| {
                 let _ = objects.shutdown();
-                unsafe { windows_sys::Win32::System::Ole::OleUninitialize() };
+                (crate::windows::win32_safe::ole_uninitialize());
                 RuntimeError::with_source(
                     Kind::ResourceExhausted,
                     "reserve unacknowledged COM results",
@@ -275,10 +276,7 @@ impl Win16ComStaState {
         Ok(())
     }
 
-    pub(super) fn close_callback_ingress(
-        &self,
-        context: &'static str,
-    ) -> Result<(), RuntimeError> {
+    pub(super) fn close_callback_ingress(&self, context: &'static str) -> Result<(), RuntimeError> {
         self.ingress_closed.set(true);
         self.owner_sealed.store(true, Ordering::Release);
         self.callbacks.seal_and_cancel_pending(context)
@@ -357,9 +355,9 @@ impl Win16ComStaState {
         if self.native_objects_shutdown.get() {
             return Ok(());
         }
-        self.objects
-            .shutdown()
-            .map_err(|error| com_runtime_error("release sealed COM-owner objects and media", error))?;
+        self.objects.shutdown().map_err(|error| {
+            com_runtime_error("release sealed COM-owner objects and media", error)
+        })?;
         self.apartment_refs.release_guest_refs();
         self.native_objects_shutdown.set(true);
         Ok(())
@@ -375,7 +373,7 @@ impl Win16ComStaState {
         self.close_callback_ingress("Win16 USER STA is shutting down")?;
         self.shutdown_native_objects()?;
         if self.apartment_lease.replace(false) {
-            unsafe { windows_sys::Win32::System::Ole::OleUninitialize() };
+            (crate::windows::win32_safe::ole_uninitialize());
         }
         Ok(())
     }
@@ -510,6 +508,7 @@ pub(super) fn wait_for_callback_reply(
     };
     let handles = [wake.as_raw_handle() as HANDLE];
     let result =
+        // SAFETY: `MsgWaitForMultipleObjectsEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { MsgWaitForMultipleObjectsEx(1, handles.as_ptr(), INFINITE, QS_ALLINPUT, 0) };
     if result == WAIT_OBJECT_0 {
         let command = receiver
@@ -527,7 +526,7 @@ pub(super) fn wait_for_callback_reply(
                 // The event is auto-reset. Re-signal after the bounded command
                 // slice so already queued commands are not lost to coalesced
                 // SetEvent calls while the callback proxy checks its reply.
-                unsafe { SetEvent(wake.as_raw_handle() as _) };
+                (crate::windows::win32_safe::set_event(wake.as_raw_handle() as _));
                 return Ok(());
             }
             Err(TryRecvError::Empty) => return Ok(()),
@@ -548,7 +547,7 @@ pub(super) fn wait_for_callback_reply(
     let detail = if result == WAIT_FAILED {
         format!(
             "nested Win16 USER STA wait failed with Windows error {}",
-            unsafe { GetLastError() }
+            (crate::windows::win32_safe::last_error())
         )
     } else {
         format!("nested Win16 USER STA wait returned unexpected status {result}")
@@ -562,6 +561,7 @@ fn pump_non_guest_native_message(state: &Rc<RefCell<WorkerState>>) -> Result<boo
     // without dropping guest, thread, or WM_QUIT messages removed here.
     let reservation = super::super::win16_deferred_native_messages::reserve_slot(state)?;
     let mut native = MSG::default();
+    // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
     if unsafe { PeekMessageW(&mut native, std::ptr::null_mut(), 0, 0, PM_REMOVE) } == 0 {
         drop(reservation);
         return Ok(false);
@@ -609,6 +609,7 @@ fn pump_non_guest_native_message(state: &Rc<RefCell<WorkerState>>) -> Result<boo
         return Ok(true);
     }
     drop(reservation);
+    // SAFETY: TranslateMessage reads a caller-owned MSG for this call only. DispatchMessageW reads a caller-owned MSG for this call only.
     unsafe {
         TranslateMessage(&native);
         DispatchMessageW(&native);

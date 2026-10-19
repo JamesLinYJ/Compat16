@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use runtime::{Win16HostCtl3dFrameFacts, Win16HostWindow};
-use windows_sys::Win32::UI::WindowsAndMessaging::{GetWindowLongW, GWL_STYLE, IsIconic};
+use windows_sys::Win32::UI::WindowsAndMessaging::{GWL_STYLE, GetWindowLongW};
 
 use super::win16_window_identity::resolve_user_window;
 use super::win16_window_worker::WorkerState;
@@ -23,7 +23,7 @@ pub(super) fn frame_facts(
     let (style, iconic) = unsafe {
         (
             GetWindowLongW(hwnd, GWL_STYLE) as u32,
-            IsIconic(hwnd) != 0,
+            crate::windows::win32_safe::is_iconic(hwnd) != 0,
         )
     };
     Some(Win16HostCtl3dFrameFacts { style, iconic })

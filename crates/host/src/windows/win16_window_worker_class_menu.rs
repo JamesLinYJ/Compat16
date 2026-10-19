@@ -7,8 +7,10 @@ use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostMenu, Win16MenuOperation, Win16MenuResult,
-    Win16MenuTemplate};
+use runtime::{
+    DiagnosticKind as Kind, RuntimeError, Win16HostMenu, Win16MenuOperation, Win16MenuResult,
+    Win16MenuTemplate,
+};
 
 use super::WorkerState;
 
@@ -53,8 +55,12 @@ pub(super) fn retire_unattached_class_menu(
         &BTreeMap::new(),
     );
     match result {
-        Ok(Win16MenuResult::Boolean { succeeded: true, .. }) => Ok(()),
-        Ok(Win16MenuResult::Boolean { succeeded: false, .. }) => {
+        Ok(Win16MenuResult::Boolean {
+            succeeded: true, ..
+        }) => Ok(()),
+        Ok(Win16MenuResult::Boolean {
+            succeeded: false, ..
+        }) => {
             if retire_dead_class_menu(state, menu) {
                 return Ok(());
             }
@@ -81,26 +87,28 @@ pub(super) fn retire_unattached_class_menu(
 
 fn retire_dead_class_menu(state: &Rc<RefCell<WorkerState>>, menu: Win16HostMenu) -> bool {
     let native = state.borrow().menus.get(&menu).copied();
-    if !native.is_some_and(|native| unsafe {
-        windows_sys::Win32::UI::WindowsAndMessaging::IsMenu(native) == 0
-    }) {
+    if !native.is_some_and(|native| crate::windows::win32_safe::is_menu(native) == 0) {
         return false;
     }
     let identities = super::super::win16_menu_attachment::menu_tree(state, menu)
         .into_iter()
-        .filter_map(|token| state.borrow().menus.get(&token).copied()
-            .map(|native| (token, native as usize)))
+        .filter_map(|token| {
+            state
+                .borrow()
+                .menus
+                .get(&token)
+                .copied()
+                .map(|native| (token, native as usize))
+        })
         .collect::<BTreeMap<_, _>>();
     let _ = super::super::win16_menu_attachment::retire_destroyed_window_menu_snapshot(
-        state, &identities,
+        state,
+        &identities,
     );
     !state.borrow().menus.contains_key(&menu)
 }
 
-pub(super) fn record_retained_owner_failure(
-    state: &Rc<RefCell<WorkerState>>,
-    error: RuntimeError,
-) {
+pub(super) fn record_retained_owner_failure(state: &Rc<RefCell<WorkerState>>, error: RuntimeError) {
     state.borrow_mut().terminal_failures.push(Arc::new(error));
 }
 

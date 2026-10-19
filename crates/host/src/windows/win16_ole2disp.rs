@@ -1,11 +1,11 @@
 //! Native OleAut BSTR and VARIANT operations with explicit Win16 value
 //! marshaling. Guest BSTRs and variants are never used as native structures.
 
+use super::guest_text::GuestTextCodec;
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16AutomationValue, Win16Ole2DispConversionResult,
     Win16Ole2DispConversionValue,
 };
-use super::guest_text::GuestTextCodec;
 use std::ptr;
 use windows_sys::Win32::Foundation::{SysAllocStringLen, SysStringLen, VARIANT_BOOL};
 use windows_sys::Win32::System::Com::CY;
@@ -31,7 +31,9 @@ pub(super) fn change_variant(
     let mut destination = NativeVariant::empty();
     // SAFETY: The source and destination are host-owned native VARIANTs.
     // Native pointers are never derived from guest bytes.
-    let result = unsafe {
+    let result =
+        // SAFETY: `Some` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe {
         match lcid {
             Some(lcid) => VariantChangeTypeEx(
                 &mut destination.value,
@@ -143,36 +145,89 @@ impl NativeVariant {
     fn to_value(&self, codec: GuestTextCodec) -> Result<Win16AutomationValue, RuntimeError> {
         // SAFETY: Native OleAut populated this local VARIANT through one of its
         // documented APIs, and the copied union member is selected by `vt`.
-        let body = unsafe { self.value.Anonymous.Anonymous };
+        let body =
+            // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+            unsafe { self.value.Anonymous.Anonymous };
         let payload = body.Anonymous;
         match body.vt {
             0 => Ok(Win16AutomationValue::Empty),
             1 => Ok(Win16AutomationValue::Null),
-            2 => Ok(Win16AutomationValue::I2(unsafe { payload.iVal })),
-            3 => Ok(Win16AutomationValue::I4(unsafe { payload.lVal })),
-            4 => Ok(Win16AutomationValue::R4(unsafe { payload.fltVal })),
-            5 => Ok(Win16AutomationValue::R8(unsafe { payload.dblVal })),
-            6 => Ok(Win16AutomationValue::Currency(unsafe {
-                payload.cyVal.int64
-            })),
-            7 => Ok(Win16AutomationValue::Date(unsafe { payload.date })),
+            2 => Ok(Win16AutomationValue::I2(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.iVal },
+            )),
+            3 => Ok(Win16AutomationValue::I4(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.lVal },
+            )),
+            4 => Ok(Win16AutomationValue::R4(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.fltVal },
+            )),
+            5 => Ok(Win16AutomationValue::R8(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.dblVal },
+            )),
+            6 => Ok(Win16AutomationValue::Currency(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.cyVal.int64 },
+            )),
+            7 => Ok(Win16AutomationValue::Date(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.date },
+            )),
             8 => {
-                let bstr = unsafe { payload.bstrVal };
-                match unsafe { unsafe_bstr_to_ansi(bstr, codec)? } {
+                let bstr =
+                    // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                    unsafe { payload.bstrVal };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+                match
+                    // SAFETY: `bstr` is null or the BSTR OleAut stored in this VARIANT. The conversion does not free it.
+                    unsafe { unsafe_bstr_to_ansi(bstr, codec)? } {
                     Some(bytes) => Ok(Win16AutomationValue::Bstr(bytes)),
                     None => Ok(Win16AutomationValue::NullBstr),
                 }
             }
-            10 => Ok(Win16AutomationValue::Error(unsafe { payload.scode })),
-            11 => Ok(Win16AutomationValue::Bool(unsafe { payload.boolVal })),
-            17 => Ok(Win16AutomationValue::Ui1(unsafe { payload.bVal })),
-            16 => Ok(Win16AutomationValue::I1(unsafe { payload.cVal })),
-            18 => Ok(Win16AutomationValue::Ui2(unsafe { payload.uiVal })),
-            19 => Ok(Win16AutomationValue::Ui4(unsafe { payload.ulVal })),
-            20 => Ok(Win16AutomationValue::I8(unsafe { payload.llVal })),
-            21 => Ok(Win16AutomationValue::Ui8(unsafe { payload.ullVal })),
-            22 => Ok(Win16AutomationValue::Int(unsafe { payload.intVal })),
-            23 => Ok(Win16AutomationValue::UInt(unsafe { payload.uintVal })),
+            10 => Ok(Win16AutomationValue::Error(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.scode },
+            )),
+            11 => Ok(Win16AutomationValue::Bool(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.boolVal },
+            )),
+            17 => Ok(Win16AutomationValue::Ui1(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.bVal },
+            )),
+            16 => Ok(Win16AutomationValue::I1(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.cVal },
+            )),
+            18 => Ok(Win16AutomationValue::Ui2(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.uiVal },
+            )),
+            19 => Ok(Win16AutomationValue::Ui4(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.ulVal },
+            )),
+            20 => Ok(Win16AutomationValue::I8(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.llVal },
+            )),
+            21 => Ok(Win16AutomationValue::Ui8(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.ullVal },
+            )),
+            22 => Ok(Win16AutomationValue::Int(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.intVal },
+            )),
+            23 => Ok(Win16AutomationValue::UInt(
+                // SAFETY: the VARTYPE on this local VARIANT selects this union arm, and OleAut wrote the value.
+                unsafe { payload.uintVal },
+            )),
             _ => Err(RuntimeError::new(
                 Kind::CompatibilityGap,
                 "OleAut result VARTYPE has no Win16 value marshaler",
@@ -207,7 +262,9 @@ fn allocate_native_bstr_from_ansi(
     })?;
     // SAFETY: `wide` owns the converted Win16 bytes for the call. The native
     // count is UTF-16 units, independent of the guest BSTR byte count.
-    let bstr = unsafe { SysAllocStringLen(wide.as_ptr(), length) };
+    let bstr =
+        // SAFETY: `SysAllocStringLen` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { SysAllocStringLen(wide.as_ptr(), length) };
     if bstr.is_null() {
         return Err(RuntimeError::new(
             Kind::ResourceExhausted,
@@ -235,6 +292,7 @@ fn ansi_to_wide(bytes: &[u8], codec: GuestTextCodec) -> Result<Vec<u16>, Runtime
     Ok(wide)
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 unsafe fn unsafe_bstr_to_ansi(
     bstr: windows_sys::core::BSTR,
     codec: GuestTextCodec,
@@ -244,7 +302,9 @@ unsafe fn unsafe_bstr_to_ansi(
     }
     // SAFETY: The caller provides a live BSTR returned from the local OleAut
     // allocator; SysStringLen bounds the native UTF-16 range independently of NULs.
-    let wide_count = unsafe { SysStringLen(bstr) };
+    let wide_count =
+        // SAFETY: `SysStringLen` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { SysStringLen(bstr) };
     let count = usize::try_from(wide_count).map_err(|error| {
         RuntimeError::with_source(
             Kind::ResourceExhausted,
@@ -253,7 +313,9 @@ unsafe fn unsafe_bstr_to_ansi(
         )
     })?;
     // SAFETY: This BSTR remains live and has `wide_count` readable UTF-16 units.
-    let wide = unsafe { std::slice::from_raw_parts(bstr, count) };
+    let wide =
+        // SAFETY: the length is the counted prefix before the terminating NUL and does not include that NUL.
+        unsafe { std::slice::from_raw_parts(bstr, count) };
     wide_to_ansi(wide, codec).map(Some)
 }
 
@@ -287,16 +349,25 @@ mod tests {
         let wide = ansi_to_wide(&guest_bytes, codec).expect("decode guest BSTR");
         assert_eq!(wide, [0x4E2D, 0, b'A' as u16]);
 
-        let bstr = allocate_native_bstr_from_ansi(&guest_bytes, codec)
-            .expect("allocate host-owned BSTR");
+        let bstr =
+            allocate_native_bstr_from_ansi(&guest_bytes, codec).expect("allocate host-owned BSTR");
         // SAFETY: `bstr` is owned from SysAllocStringLen and remains live here.
-        let wide_length = unsafe { SysStringLen(bstr) };
+        let wide_length =
+            // SAFETY: `SysStringLen` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { SysStringLen(bstr) };
         // SAFETY: The BSTR remains live until the explicit SysFreeString below.
-        let round_trip = unsafe { unsafe_bstr_to_ansi(bstr, codec) };
+        let round_trip =
+            // SAFETY: `SysFreeString` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { unsafe_bstr_to_ansi(bstr, codec) };
         // SAFETY: This test owns the BSTR returned by allocate_native_bstr_from_ansi.
         unsafe { SysFreeString(bstr) };
 
         assert_eq!(wide_length, 3);
-        assert_eq!(round_trip.expect("encode host BSTR").expect("non-null BSTR"), guest_bytes);
+        assert_eq!(
+            round_trip
+                .expect("encode host BSTR")
+                .expect("non-null BSTR"),
+            guest_bytes
+        );
     }
 }

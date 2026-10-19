@@ -9,10 +9,10 @@ use runtime::{
     Win16HostHelpData, Win16HostUserCursorAcceleratorOperation as Operation,
     Win16HostUserCursorAcceleratorResult as ResultValue, Win16MessageParam, Win16MessageSource,
 };
-use windows_sys::Win32::Foundation::{GetLastError, HWND, POINT, SetLastError};
+use windows_sys::Win32::Foundation::{HWND, POINT};
 use windows_sys::Win32::UI::Shell::{HELPWININFOW, MULTIKEYHELPW, WinHelpW};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    ACCEL, CreateAcceleratorTableW, DestroyAcceleratorTable, GetCursor, HCURSOR, IsWindow, MSG, SetCursor,
+    ACCEL, CreateAcceleratorTableW, DestroyAcceleratorTable, GetCursor, HCURSOR, MSG, SetCursor,
     ShowCursor, TranslateAcceleratorW,
 };
 
@@ -136,9 +136,11 @@ fn native_accelerator_key(
     let guest_byte_count = if key <= u16::from(u8::MAX) { 1 } else { 2 };
     let wide = text_codec
         .to_wide(&encoded[..guest_byte_count])
-        .map_err(|error| error.with_context(format!(
-            "decode Win16 character accelerator key 0x{key:04X} using the guest code page",
-        )))?;
+        .map_err(|error| {
+            error.with_context(format!(
+                "decode Win16 character accelerator key 0x{key:04X} using the guest code page",
+            ))
+        })?;
     if wide.len() != 1 {
         return Err(RuntimeError::new(
             Kind::InvalidInput,
@@ -155,6 +157,7 @@ impl Drop for Win16AcceleratorTables {
         for (_, native) in std::mem::take(&mut self.tables) {
             // WorkerState owns this table and is created/dropped on the USER
             // worker, after its synchronous operations and callback frames end.
+            // SAFETY: `DestroyAcceleratorTable` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe {
                 DestroyAcceleratorTable(native as _);
             }
@@ -171,6 +174,7 @@ pub(super) fn execute(
             let images = state.borrow().images.clone();
             // Read the existing USER worker's cursor context. NULL is a valid
             // result; an externally owned cursor must remain borrowed.
+            // SAFETY: `GetCursor` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             get_cursor_with(&images, || unsafe { GetCursor() })
         }
         Operation::SetCursor { cursor } => {
@@ -312,7 +316,7 @@ fn execute_win_help(
     let result = unsafe {
         // WinHelp does not guarantee extended error information. Clear the
         // thread-local value so diagnostics cannot report an older API error.
-        SetLastError(0);
+        crate::windows::win32_safe::set_last_error(0);
         WinHelpW(
             native_window,
             help_file_pointer,
@@ -321,7 +325,7 @@ fn execute_win_help(
         )
     };
     if result == 0 {
-        let error = unsafe { GetLastError() };
+        let error = crate::windows::win32_safe::last_error();
         let file = help_file.as_ref().map_or_else(
             || "<NULL>".to_owned(),
             |path| String::from_utf16_lossy(&path[..path.len().saturating_sub(1)]),
@@ -342,7 +346,7 @@ fn resolve_window(state: &WorkerState, window: Option<runtime::Win16HostWindow>)
         return Some(std::ptr::null_mut());
     };
     let hwnd = *state.windows.get(&window)?;
-    (unsafe { IsWindow(hwnd) } != 0).then_some(hwnd)
+    ((crate::windows::win32_safe::is_window(hwnd)) != 0).then_some(hwnd)
 }
 
 enum NativeHelpData {
@@ -354,32 +358,25 @@ enum NativeHelpData {
 }
 
 impl NativeHelpData {
-    fn new(
-        data: Win16HostHelpData,
-        text_codec: GuestTextCodec,
-    ) -> Result<Self, RuntimeError> {
+    fn new(data: Win16HostHelpData, text_codec: GuestTextCodec) -> Result<Self, RuntimeError> {
         Ok(match data {
             Win16HostHelpData::Ignored => Self::Scalar(0),
             Win16HostHelpData::Scalar(value) => Self::Scalar(value as usize),
             Win16HostHelpData::String(value) => Self::String(
                 value
                     .map(|bytes| {
-                        text_codec
-                            .to_wide_z(&bytes)
-                            .map_err(|error| error.with_context(
+                        text_codec.to_wide_z(&bytes).map_err(|error| {
+                            error.with_context(
                                 "decode WinHelp string data using the guest code page",
-                            ))
+                            )
+                        })
                     })
                     .transpose()?,
             ),
             Win16HostHelpData::MultiKey {
                 key_list,
                 key_phrase,
-            } => Self::MultiKey(native_help_multi_key(
-                text_codec,
-                key_list,
-                &key_phrase,
-            )?),
+            } => Self::MultiKey(native_help_multi_key(text_codec, key_list, &key_phrase)?),
             Win16HostHelpData::WindowPosition {
                 x,
                 y,
@@ -388,13 +385,7 @@ impl NativeHelpData {
                 max_state,
                 member,
             } => Self::WindowPosition(native_help_window_position(
-                text_codec,
-                x,
-                y,
-                width,
-                height,
-                max_state,
-                &member,
+                text_codec, x, y, width, height, max_state, &member,
             )?),
             Win16HostHelpData::NullPointer => Self::Null,
         })
@@ -416,22 +407,18 @@ fn native_help_multi_key(
     key_list: u8,
     key_phrase: &[u8],
 ) -> Result<Vec<MULTIKEYHELPW>, RuntimeError> {
-    let native_key_list = text_codec
-        .to_wide(&[key_list])
-        .map_err(|error| error.with_context(
-            "decode Win16 MULTIKEYHELP key-list character using the guest code page",
-        ))?;
+    let native_key_list = text_codec.to_wide(&[key_list]).map_err(|error| {
+        error.with_context("decode Win16 MULTIKEYHELP key-list character using the guest code page")
+    })?;
     if native_key_list.len() != 1 {
         return Err(RuntimeError::new(
             Kind::InvalidInput,
             "Win16 MULTIKEYHELP key-list character is not one UTF-16 code unit",
         ));
     }
-    let key_phrase = text_codec
-        .to_wide(key_phrase)
-        .map_err(|error| error.with_context(
-            "decode Win16 MULTIKEYHELP key phrase using the guest code page",
-        ))?;
+    let key_phrase = text_codec.to_wide(key_phrase).map_err(|error| {
+        error.with_context("decode Win16 MULTIKEYHELP key phrase using the guest code page")
+    })?;
     if key_phrase.contains(&0) {
         return Err(RuntimeError::new(
             Kind::InternalInvariant,
@@ -446,12 +433,14 @@ fn native_help_multi_key(
             "WinHelp MULTIKEYHELPW phrase size overflow",
         )
     })?;
-    let tail_bytes = tail_units.checked_mul(core::mem::size_of::<u16>()).ok_or_else(|| {
-        RuntimeError::new(
-            Kind::ResourceExhausted,
-            "WinHelp MULTIKEYHELPW UTF-16 tail byte size overflow",
-        )
-    })?;
+    let tail_bytes = tail_units
+        .checked_mul(core::mem::size_of::<u16>())
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "WinHelp MULTIKEYHELPW UTF-16 tail byte size overflow",
+            )
+        })?;
     let tail_end = header_bytes.checked_add(tail_bytes).ok_or_else(|| {
         RuntimeError::new(
             Kind::ResourceExhausted,
@@ -461,10 +450,12 @@ fn native_help_multi_key(
     let phrase_bytes = key_phrase
         .len()
         .checked_mul(core::mem::size_of::<u16>())
-        .ok_or_else(|| RuntimeError::new(
-            Kind::ResourceExhausted,
-            "WinHelp MULTIKEYHELPW phrase byte size overflow",
-        ))?;
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "WinHelp MULTIKEYHELPW phrase byte size overflow",
+            )
+        })?;
     let declared_bytes = native_size.checked_add(phrase_bytes).ok_or_else(|| {
         RuntimeError::new(
             Kind::ResourceExhausted,
@@ -560,11 +551,9 @@ fn native_help_window_position(
     max_state: i16,
     member: &[u8],
 ) -> Result<Vec<HELPWININFOW>, RuntimeError> {
-    let member = text_codec
-        .to_wide(member)
-        .map_err(|error| error.with_context(
-            "decode Win16 HELPWININFO member name using the guest code page",
-        ))?;
+    let member = text_codec.to_wide(member).map_err(|error| {
+        error.with_context("decode Win16 HELPWININFO member name using the guest code page")
+    })?;
     if member.contains(&0) {
         return Err(RuntimeError::new(
             Kind::InternalInvariant,
@@ -579,12 +568,14 @@ fn native_help_window_position(
             "WinHelp HELPWININFOW member size overflow",
         )
     })?;
-    let tail_bytes = tail_units.checked_mul(core::mem::size_of::<u16>()).ok_or_else(|| {
-        RuntimeError::new(
-            Kind::ResourceExhausted,
-            "WinHelp HELPWININFOW UTF-16 tail byte size overflow",
-        )
-    })?;
+    let tail_bytes = tail_units
+        .checked_mul(core::mem::size_of::<u16>())
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "WinHelp HELPWININFOW UTF-16 tail byte size overflow",
+            )
+        })?;
     let tail_end = header_bytes.checked_add(tail_bytes).ok_or_else(|| {
         RuntimeError::new(
             Kind::ResourceExhausted,
@@ -706,5 +697,7 @@ pub(in crate::windows) fn get_cursor_with(
     images: &crate::windows::win16_images::Win16Images,
     read: impl FnOnce() -> HCURSOR,
 ) -> Result<ResultValue, RuntimeError> {
-    images.adopt_borrowed_cursor(read()).map(ResultValue::GetCursor)
+    images
+        .adopt_borrowed_cursor(read())
+        .map(ResultValue::GetCursor)
 }

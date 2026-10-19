@@ -311,6 +311,7 @@ pub(super) fn choose(
     let (mut result, selected_tag, selected_item, mut data_bytes) = match kind {
         Win16HostAcmChooseKind::Format => {
             let mut native = ACMFORMATCHOOSEW::default();
+            // SAFETY: The field belongs to a packed record. addr_of plus write_unaligned writes it without creating a misaligned reference.
             unsafe {
                 ptr::addr_of_mut!(native.cbStruct)
                     .write_unaligned(std::mem::size_of::<ACMFORMATCHOOSEW>() as u32);
@@ -334,11 +335,13 @@ pub(super) fn choose(
             let result = unsafe { acmFormatChooseW(&mut native) };
             let selected_tag = unsafe { ptr::addr_of!(native.szFormatTag).read_unaligned() };
             let selected_item = unsafe { ptr::addr_of!(native.szFormat).read_unaligned() };
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let data_bytes = unsafe { ptr::addr_of!(native.cbwfx).read_unaligned() };
             (result, selected_tag, selected_item, data_bytes)
         }
         Win16HostAcmChooseKind::Filter => {
             let mut native = ACMFILTERCHOOSEW::default();
+            // SAFETY: The field belongs to a packed record. addr_of plus write_unaligned writes it without creating a misaligned reference.
             unsafe {
                 ptr::addr_of_mut!(native.cbStruct)
                     .write_unaligned(std::mem::size_of::<ACMFILTERCHOOSEW>() as u32);
@@ -360,6 +363,7 @@ pub(super) fn choose(
             let result = unsafe { acmFilterChooseW(&mut native) };
             let selected_tag = unsafe { ptr::addr_of!(native.szFilterTag).read_unaligned() };
             let selected_item = unsafe { ptr::addr_of!(native.szFilter).read_unaligned() };
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let data_bytes = unsafe { ptr::addr_of!(native.cbwfltr).read_unaligned() };
             (result, selected_tag, selected_item, data_bytes)
         }

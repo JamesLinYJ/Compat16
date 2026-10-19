@@ -5,6 +5,7 @@ use windows_sys::Win32::UI::Controls::SetScrollInfo;
 impl State {
     pub fn draw_run(&self, item: &windows_sys::Win32::UI::Controls::DRAWITEMSTRUCT) {
         use windows_sys::Win32::UI::Controls::{ODS_DISABLED, ODS_FOCUS, ODS_SELECTED};
+        // SAFETY: `SaveDC` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             let saved = SaveDC(item.hDC);
             let brush = CreateSolidBrush(if item.itemState & ODS_DISABLED != 0 {
@@ -67,6 +68,7 @@ impl State {
                 cbSize: std::mem::size_of::<MONITORINFO>() as u32,
                 ..Default::default()
             };
+            // SAFETY: `AdjustWindowRectExForDpi` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
             unsafe {
                 AdjustWindowRectExForDpi(
                     &mut rect,
@@ -113,6 +115,7 @@ impl State {
             }
         }
         let mut client = RECT::default();
+        // SAFETY: `GetClientRect` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             GetClientRect(self.window, &mut client);
         }
@@ -128,6 +131,7 @@ impl State {
             nPos: self.scroll,
             ..Default::default()
         };
+        // SAFETY: `SetScrollInfo` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             SetScrollInfo(self.window, SB_VERT, &info, 1);
             SendMessageW(
@@ -147,6 +151,7 @@ impl State {
         for item in &self.controls.items {
             let [x, y, width, height] = item.rect;
             let y = y + if item.footer && self.advanced { 178 } else { 0 };
+            // SAFETY: `ShowWindow` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
             unsafe {
                 ShowWindow(
                     item.window,
@@ -166,6 +171,7 @@ impl State {
                 );
             }
         }
+        // SAFETY: `InvalidateRect` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             InvalidateRect(self.window, null(), 1);
         }
@@ -186,6 +192,7 @@ impl State {
                     fMask: SIF_TRACKPOS,
                     ..Default::default()
                 };
+                // SAFETY: `GetScrollInfo` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
                 unsafe {
                     GetScrollInfo(self.window, SB_VERT, &mut info);
                 }

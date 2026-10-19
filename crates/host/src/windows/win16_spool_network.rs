@@ -5,25 +5,23 @@ use std::ptr;
 
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostSpoolDiagnostic, Win16HostSpoolJob,
-    Win16HostSpoolResult as ResultValue, Win16HostTaskOwner,
-    Win16NetworkPrintJobControl,
+    Win16HostSpoolResult as ResultValue, Win16HostTaskOwner, Win16NetworkPrintJobControl,
 };
 use windows_sys::Win32::Foundation::{
-    ERROR_INVALID_HANDLE, ERROR_INVALID_PARAMETER, ERROR_INVALID_PRINTER_NAME,
-    ERROR_NOT_SUPPORTED,
+    ERROR_INVALID_HANDLE, ERROR_INVALID_PARAMETER, ERROR_INVALID_PRINTER_NAME, ERROR_NOT_SUPPORTED,
 };
 use windows_sys::Win32::Graphics::Gdi::{DEVMODEW, DM_COPIES};
 use windows_sys::Win32::Graphics::Printing::{
-    AbortPrinter, ClosePrinter, EndDocPrinter, GetJobW, JOB_CONTROL_DELETE,
-    JOB_CONTROL_PAUSE, JOB_CONTROL_RESUME, JOB_INFO_2W, JOB_POSITION_UNSPECIFIED, SetJobW,
+    AbortPrinter, ClosePrinter, EndDocPrinter, GetJobW, JOB_CONTROL_DELETE, JOB_CONTROL_PAUSE,
+    JOB_CONTROL_RESUME, JOB_INFO_2W, JOB_POSITION_UNSPECIFIED, SetJobW,
 };
 use windows_sys::Win32::Storage::Xps::DeviceCapabilitiesW;
 
-use super::{
-    copy_bytes, copy_wide_units, last_error, ordinal_equal_ignore_case, remove_network_job_index,
-    resolve_printer_name, status_error, status_success, NativeJob, Win16SpoolJobs,
-};
 use super::super::guest_text::GuestTextCodec;
+use super::{
+    NativeJob, Win16SpoolJobs, copy_bytes, copy_wide_units, last_error, ordinal_equal_ignore_case,
+    remove_network_job_index, resolve_printer_name, status_error, status_success,
+};
 
 impl Win16SpoolJobs {
     pub(super) fn open_network_job(
@@ -44,22 +42,18 @@ impl Win16SpoolJobs {
                 copies_diagnostic: None,
             });
         }
-        let started = match self.start_job(
-            codec,
-            queue,
-            document_name,
-            Some(owner),
-            true,
-        )? {
+        let started = match self.start_job(codec, queue, document_name, Some(owner), true)? {
             Ok(started) => started,
-            Err(error) => return Ok(ResultValue::NetworkOpenJob {
-                job: None,
-                queue_name: None,
-                copies_applied: false,
-                native_error: Some(error),
-                copies_error: None,
-                copies_diagnostic: None,
-            }),
+            Err(error) => {
+                return Ok(ResultValue::NetworkOpenJob {
+                    job: None,
+                    queue_name: None,
+                    copies_applied: false,
+                    native_error: Some(error),
+                    copies_error: None,
+                    copies_diagnostic: None,
+                });
+            }
         };
         let job = started.token;
         let queue_name = started.queue_name;
@@ -97,7 +91,10 @@ impl Win16SpoolJobs {
         })
     }
 
-    pub(super) fn close_network_job(&mut self, job: Win16HostSpoolJob) -> Result<ResultValue, RuntimeError> {
+    pub(super) fn close_network_job(
+        &mut self,
+        job: Win16HostSpoolJob,
+    ) -> Result<ResultValue, RuntimeError> {
         let Some(native) = self.jobs.get_mut(&job) else {
             return Ok(ResultValue::NetworkCloseJob {
                 succeeded: false,
@@ -160,8 +157,10 @@ impl Win16SpoolJobs {
         // For a job already closed by WNetCloseJob, SetJob cancels just its
         // native job ID; neither path can remove the host printer queue.
         let result = if native.document_open {
+            // SAFETY: `AbortPrinter` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe { AbortPrinter(native.printer) }
         } else {
+            // SAFETY: `SetJobW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe {
                 SetJobW(
                     native.printer,
@@ -257,7 +256,9 @@ impl Win16SpoolJobs {
         let result = self.apply_job_copies(job, copies)?;
         match result {
             CopyApplyOutcome::Applied(_) => Ok(status_success()),
-            failure => Ok(status_error(failure.native_error().unwrap_or(ERROR_NOT_SUPPORTED))),
+            failure => Ok(status_error(
+                failure.native_error().unwrap_or(ERROR_NOT_SUPPORTED),
+            )),
         }
     }
 
@@ -307,15 +308,25 @@ impl Win16SpoolJobs {
             &native.printer_name,
             "terminate network print DEVMODE device name",
         )?;
-        device_name.try_reserve(1).map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted, "terminate network print DEVMODE device name", error,
-        ))?;
+        device_name.try_reserve(1).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "terminate network print DEVMODE device name",
+                error,
+            )
+        })?;
         device_name.push(0);
         // SAFETY: DeviceCapabilitiesW requires a NUL-terminated device name;
         // this temporary UTF-16 string remains live for the call.
-        let max_copies = unsafe { DeviceCapabilitiesW(
-            device_name.as_ptr(), ptr::null(), DC_COPIES, ptr::null_mut(), devmode,
-        ) };
+        let max_copies = unsafe {
+            DeviceCapabilitiesW(
+                device_name.as_ptr(),
+                ptr::null(),
+                DC_COPIES,
+                ptr::null_mut(),
+                devmode,
+            )
+        };
         if max_copies <= 0 {
             return Ok(CopyApplyOutcome::UnsupportedBeforeMutation {
                 native_error: ERROR_NOT_SUPPORTED,
@@ -326,9 +337,11 @@ impl Win16SpoolJobs {
         let effective_copies = i32::from(copies).min(max_copies);
         let requested = match i16::try_from(effective_copies) {
             Ok(value) => value,
-            Err(_) => return Ok(CopyApplyOutcome::FailedBeforeMutation {
-                native_error: ERROR_INVALID_PARAMETER,
-            }),
+            Err(_) => {
+                return Ok(CopyApplyOutcome::FailedBeforeMutation {
+                    native_error: ERROR_INVALID_PARAMETER,
+                });
+            }
         };
         // SAFETY: the validated DEVMODEW is in the owned GetJobW buffer;
         // write only its printer-copy member before publishing DM_COPIES.
@@ -339,6 +352,7 @@ impl Win16SpoolJobs {
         let job_info = storage.as_mut_ptr().cast::<JOB_INFO_2W>();
         // Preserve the queue position while explicitly asking SetJobW not to
         // reposition this job; the SDK requires JOB_POSITION_UNSPECIFIED.
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         unsafe { (*job_info).Position = JOB_POSITION_UNSPECIFIED };
         // SAFETY: JOB_INFO_2W and DEVMODEW remain inside the writable
         // GetJobW allocation until SetJobW returns.
@@ -373,13 +387,15 @@ impl Win16SpoolJobs {
             None
         };
         if verified_copies == Some(requested) {
-            Ok(CopyApplyOutcome::Applied(u16::try_from(effective_copies).map_err(
-                |error| RuntimeError::with_source(
-                    Kind::InternalInvariant,
-                    "validated printer copy count exceeds WORD",
-                    error,
-                ),
-            )?))
+            Ok(CopyApplyOutcome::Applied(
+                u16::try_from(effective_copies).map_err(|error| {
+                    RuntimeError::with_source(
+                        Kind::InternalInvariant,
+                        "validated printer copy count exceeds WORD",
+                        error,
+                    )
+                })?,
+            ))
         } else {
             Ok(CopyApplyOutcome::MutationAttempted {
                 native_error: ERROR_NOT_SUPPORTED,
@@ -411,6 +427,7 @@ impl Win16SpoolJobs {
         };
         // Keep the same opaque token indexed until ClosePrinter succeeds so
         // task cleanup can retry an exact, partially completed release.
+        // SAFETY: ClosePrinter closes a printer handle this owner opened.
         if unsafe { ClosePrinter(native.printer) } == 0 {
             return Ok(status_error(last_error()));
         }
@@ -421,7 +438,10 @@ impl Win16SpoolJobs {
         Ok(status_success())
     }
 
-    pub(super) fn release_network_job(&mut self, job: Win16HostSpoolJob) -> Result<ResultValue, RuntimeError> {
+    pub(super) fn release_network_job(
+        &mut self,
+        job: Win16HostSpoolJob,
+    ) -> Result<ResultValue, RuntimeError> {
         let Some(native) = self.jobs.get_mut(&job) else {
             return Ok(status_error(ERROR_INVALID_HANDLE));
         };
@@ -436,11 +456,13 @@ impl Win16SpoolJobs {
         if native.document_open {
             // An unfinished WNet document is aborted before releasing its
             // printer. Borrowed snapshot leases are explicitly never aborted.
+            // SAFETY: `AbortPrinter` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             if unsafe { AbortPrinter(native.printer) } == 0 {
                 return Ok(status_error(last_error()));
             }
             native.document_open = false;
         }
+        // SAFETY: ClosePrinter closes a printer handle this owner opened.
         if unsafe { ClosePrinter(native.printer) } == 0 {
             return Ok(status_error(last_error()));
         }
@@ -450,8 +472,6 @@ impl Win16SpoolJobs {
         remove_network_job_index(&mut self.network_job_index, job, &native);
         Ok(status_success())
     }
-
-
 }
 
 fn query_job_info_buffer(
@@ -530,41 +550,59 @@ fn query_job_info_buffer(
     Ok(Ok((storage, available)))
 }
 
-
 fn job_devmode_pointer(
-    storage: &mut [usize], used_bytes: u32,
+    storage: &mut [usize],
+    used_bytes: u32,
 ) -> Result<Option<*mut DEVMODEW>, RuntimeError> {
     if usize::try_from(used_bytes).unwrap_or(0) < size_of::<JOB_INFO_2W>() {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "GetJobW returned a truncated JOB_INFO_2W record"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "GetJobW returned a truncated JOB_INFO_2W record",
+        ));
     }
     let info = storage.as_mut_ptr().cast::<JOB_INFO_2W>();
     // SAFETY: the output allocation is aligned and contains a complete record.
     let pointer = unsafe { (*info).pDevMode };
-    if pointer.is_null() { return Ok(None); }
+    if pointer.is_null() {
+        return Ok(None);
+    }
     let base = storage.as_ptr() as usize;
-    let used = usize::try_from(used_bytes).map_err(|error| RuntimeError::with_source(
-        Kind::InternalInvariant, "GetJobW byte count exceeds address space", error))?;
-    let end = base.checked_add(used).ok_or_else(|| RuntimeError::new(
-        Kind::InternalInvariant, "GetJobW output range overflow"))?;
+    let used = usize::try_from(used_bytes).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::InternalInvariant,
+            "GetJobW byte count exceeds address space",
+            error,
+        )
+    })?;
+    let end = base.checked_add(used).ok_or_else(|| {
+        RuntimeError::new(Kind::InternalInvariant, "GetJobW output range overflow")
+    })?;
     let address = pointer as usize;
-    if address < base || address.checked_add(size_of::<DEVMODEW>())
-        .is_none_or(|last| last > end) || address % align_of::<DEVMODEW>() != 0
+    if address < base
+        || address
+            .checked_add(size_of::<DEVMODEW>())
+            .is_none_or(|last| last > end)
+        || address % align_of::<DEVMODEW>() != 0
     {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "GetJobW returned a DEVMODEW outside its output buffer"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "GetJobW returned a DEVMODEW outside its output buffer",
+        ));
     }
     // SAFETY: range and alignment are checked against the owned buffer.
     let devmode = unsafe { &mut *pointer };
     let declared = usize::from(devmode.dmSize)
         .checked_add(usize::from(devmode.dmDriverExtra))
-        .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
-            "GetJobW DEVMODEW size overflow"))?;
+        .ok_or_else(|| {
+            RuntimeError::new(Kind::InternalInvariant, "GetJobW DEVMODEW size overflow")
+        })?;
     if usize::from(devmode.dmSize) < size_of::<DEVMODEW>()
         || address.checked_add(declared).is_none_or(|last| last > end)
     {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "GetJobW returned an incomplete DEVMODEW"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "GetJobW returned an incomplete DEVMODEW",
+        ));
     }
     Ok(Some(pointer))
 }
@@ -579,15 +617,9 @@ enum NetworkJobDataType {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum CopyApplyOutcome {
     Applied(u16),
-    UnsupportedBeforeMutation {
-        native_error: u32,
-    },
-    FailedBeforeMutation {
-        native_error: u32,
-    },
-    MutationAttempted {
-        native_error: u32,
-    },
+    UnsupportedBeforeMutation { native_error: u32 },
+    FailedBeforeMutation { native_error: u32 },
+    MutationAttempted { native_error: u32 },
 }
 
 impl CopyApplyOutcome {
@@ -601,13 +633,12 @@ impl CopyApplyOutcome {
     }
 }
 
-fn job_data_type(
-    storage: &[usize],
-    used_bytes: u32,
-) -> Result<NetworkJobDataType, RuntimeError> {
+fn job_data_type(storage: &[usize], used_bytes: u32) -> Result<NetworkJobDataType, RuntimeError> {
     if usize::try_from(used_bytes).unwrap_or(0) < size_of::<JOB_INFO_2W>() {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "GetJobW returned a truncated JOB_INFO_2W record"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "GetJobW returned a truncated JOB_INFO_2W record",
+        ));
     }
     // SAFETY: the aligned storage contains the complete JOB_INFO_2W header.
     let pointer = unsafe { (*storage.as_ptr().cast::<JOB_INFO_2W>()).pDatatype };
@@ -615,42 +646,87 @@ fn job_data_type(
         return Ok(NetworkJobDataType::Unknown);
     }
     let base = storage.as_ptr() as usize;
-    let used = usize::try_from(used_bytes).map_err(|error| RuntimeError::with_source(
-        Kind::InternalInvariant, "GetJobW byte count exceeds address space", error))?;
-    let end = base.checked_add(used).ok_or_else(|| RuntimeError::new(
-        Kind::InternalInvariant, "GetJobW output range overflow"))?;
+    let used = usize::try_from(used_bytes).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::InternalInvariant,
+            "GetJobW byte count exceeds address space",
+            error,
+        )
+    })?;
+    let end = base.checked_add(used).ok_or_else(|| {
+        RuntimeError::new(Kind::InternalInvariant, "GetJobW output range overflow")
+    })?;
     let address = pointer as usize;
-    if address < base || address.checked_add(size_of::<u16>()).is_none_or(|last| last > end)
+    if address < base
+        || address
+            .checked_add(size_of::<u16>())
+            .is_none_or(|last| last > end)
         || address % align_of::<u16>() != 0
     {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "GetJobW returned a data-type pointer outside its output buffer"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "GetJobW returned a data-type pointer outside its output buffer",
+        ));
     }
     let maximum_units = (end - address) / size_of::<u16>();
     // SAFETY: the pointer and complete containing-buffer range are checked;
     // the scan is capped to the bytes GetJobW actually returned.
     let units = unsafe { std::slice::from_raw_parts(pointer, maximum_units) };
     let Some(length) = units.iter().position(|unit| *unit == 0) else {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "GetJobW returned an unterminated data-type string"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "GetJobW returned an unterminated data-type string",
+        ));
     };
     let data_type = &units[..length];
     const WINDOWS_EMF_1_008: [u16; 12] = [
-        b'N' as u16, b'T' as u16, b' ' as u16, b'E' as u16, b'M' as u16,
-        b'F' as u16, b' ' as u16, b'1' as u16, b'.' as u16, b'0' as u16,
-        b'0' as u16, b'8' as u16,
+        b'N' as u16,
+        b'T' as u16,
+        b' ' as u16,
+        b'E' as u16,
+        b'M' as u16,
+        b'F' as u16,
+        b' ' as u16,
+        b'1' as u16,
+        b'.' as u16,
+        b'0' as u16,
+        b'0' as u16,
+        b'8' as u16,
     ];
     const RAW: [u16; 3] = [b'R' as u16, b'A' as u16, b'W' as u16];
     const RAW_FF_AUTO: [u16; 13] = [
-        b'R' as u16, b'A' as u16, b'W' as u16, b' ' as u16, b'[' as u16,
-        b'F' as u16, b'F' as u16, b' ' as u16, b'A' as u16, b'u' as u16,
-        b't' as u16, b'o' as u16, b']' as u16,
+        b'R' as u16,
+        b'A' as u16,
+        b'W' as u16,
+        b' ' as u16,
+        b'[' as u16,
+        b'F' as u16,
+        b'F' as u16,
+        b' ' as u16,
+        b'A' as u16,
+        b'u' as u16,
+        b't' as u16,
+        b'o' as u16,
+        b']' as u16,
     ];
     const RAW_FF_APPENDED: [u16; 17] = [
-        b'R' as u16, b'A' as u16, b'W' as u16, b' ' as u16, b'[' as u16,
-        b'F' as u16, b'F' as u16, b' ' as u16, b'A' as u16, b'p' as u16,
-        b'p' as u16, b'e' as u16, b'n' as u16, b'd' as u16, b'e' as u16,
-        b'd' as u16, b']' as u16,
+        b'R' as u16,
+        b'A' as u16,
+        b'W' as u16,
+        b' ' as u16,
+        b'[' as u16,
+        b'F' as u16,
+        b'F' as u16,
+        b' ' as u16,
+        b'A' as u16,
+        b'p' as u16,
+        b'p' as u16,
+        b'e' as u16,
+        b'n' as u16,
+        b'd' as u16,
+        b'e' as u16,
+        b'd' as u16,
+        b']' as u16,
     ];
     if ordinal_equal_ignore_case(data_type, &WINDOWS_EMF_1_008) {
         Ok(NetworkJobDataType::Emf)

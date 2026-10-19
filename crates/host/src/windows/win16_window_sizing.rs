@@ -8,10 +8,10 @@ use runtime::{
     Win16HostWindowPos,
 };
 use std::{cell::RefCell, rc::Rc};
-use windows_sys::Win32::Foundation::{GetLastError, HWND, SetLastError};
+use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GWL_STYLE, GetSystemMetrics, GetWindowLongPtrW, SM_CXBORDER, SM_CXICON, SM_CXMINIMIZED,
-    SM_CYBORDER, SM_CYICON, SM_CYMINIMIZED, WM_GETMINMAXINFO, WS_MINIMIZEBOX,
+    GWL_STYLE, GetWindowLongPtrW, SM_CXBORDER, SM_CXICON, SM_CXMINIMIZED, SM_CYBORDER, SM_CYICON,
+    SM_CYMINIMIZED, WM_GETMINMAXINFO, WS_MINIMIZEBOX,
 };
 
 fn legacy_minimized_size() -> Option<Win16HostPoint> {
@@ -19,8 +19,8 @@ fn legacy_minimized_size() -> Option<Win16HostPoint> {
     // Modern USER substitutes a much wider minimized caption/taskbar size.
     // Use current metrics rather than a fixed application or board size.
     let axis = |icon, border| {
-        let icon = unsafe { GetSystemMetrics(icon) };
-        let border = unsafe { GetSystemMetrics(border) };
+        let icon = crate::windows::win32_safe::system_metrics(icon);
+        let border = crate::windows::win32_safe::system_metrics(border);
         (icon > 0 && border >= 0).then_some(())?;
         icon.checked_add(border.checked_mul(4)?)
     };
@@ -37,8 +37,8 @@ pub(super) fn minmax_for_guest(
 ) -> Win16HostMinMaxInfo {
     let info = copy_minmax(native);
     let modern = Win16HostPoint {
-        x: unsafe { GetSystemMetrics(SM_CXMINIMIZED) },
-        y: unsafe { GetSystemMetrics(SM_CYMINIMIZED) },
+        x: (crate::windows::win32_safe::system_metrics(SM_CXMINIMIZED)),
+        y: (crate::windows::win32_safe::system_metrics(SM_CYMINIMIZED)),
     };
     project_seed(info, modern, legacy_minimized_size())
 }
@@ -125,10 +125,11 @@ impl MinimizedDefault {
         let minimum = legacy_minimized_size().ok_or_else(|| {
             RuntimeError::new(Kind::HostFailure, "query legacy minimized-window metrics")
         })?;
+        // SAFETY: `GetWindowLongPtrW`, `Err` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let style = unsafe {
-            SetLastError(0);
+            crate::windows::win32_safe::set_last_error(0);
             let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
-            if style == 0 && GetLastError() != 0 {
+            if style == 0 && crate::windows::win32_safe::last_error() != 0 {
                 return Err(RuntimeError::new(
                     Kind::HostFailure,
                     "query minimized-window styles",

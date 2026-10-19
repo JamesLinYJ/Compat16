@@ -1,23 +1,20 @@
 //! Native Windows LZEXPAND services for the checked Win16 HFILE bridge.
 
 use super::bindings::{
-    LZClose, LZCopy, LZDone, LZInit,
-    LZRead, LZSeek, LZStart, OF_CREATE, OF_DELETE, OF_EXIST, OF_PARSE, OF_READ, OF_READWRITE,
-    OF_WRITE,
+    LZClose, LZCopy, LZDone, LZInit, LZRead, LZSeek, LZStart, OF_CREATE, OF_DELETE, OF_EXIST,
+    OF_PARSE, OF_READ, OF_READWRITE, OF_WRITE,
 };
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostFile, Win16HostFileClose, Win16HostLzInit,
     Win16HostLzRead,
 };
 use windows_sys::Win32::Foundation::{
-    CloseHandle, DUPLICATE_SAME_ACCESS, DuplicateHandle, ERROR_NO_SYSTEM_RESOURCES,
-    ERROR_NOT_ENOUGH_MEMORY, ERROR_OUTOFMEMORY,
-    ERROR_TOO_MANY_OPEN_FILES, GetLastError, HANDLE, INVALID_HANDLE_VALUE,
+    DUPLICATE_SAME_ACCESS, DuplicateHandle, ERROR_NO_SYSTEM_RESOURCES, ERROR_NOT_ENOUGH_MEMORY,
+    ERROR_OUTOFMEMORY, ERROR_TOO_MANY_OPEN_FILES, HANDLE, INVALID_HANDLE_VALUE,
 };
 use windows_sys::Win32::Storage::FileSystem::{
     FILE_BEGIN, FILE_CURRENT, FILE_END, ReadFile, SetFilePointerEx,
 };
-use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
 use super::win16::{Win16Files, Win16LzNative, Win16NativeFile};
 
@@ -51,7 +48,7 @@ pub(super) fn init(
     if native_lz_handle < 0 {
         // SAFETY: LZInit failed and did not yield an owned LZ token; the
         // duplicate is still our kernel HANDLE, so close it with CloseHandle.
-        unsafe { CloseHandle(hfile_as_kernel_handle(duplicate)) };
+        (crate::windows::win32_safe::close_handle(hfile_as_kernel_handle(duplicate)));
         return Ok(Win16HostLzInit::Error(signed_lz_result(native_lz_handle)?));
     }
     let retained = files.retain_native(Win16NativeFile::LzHandle(Win16LzNative {
@@ -230,7 +227,9 @@ pub(super) fn copy(
     // entering that API and the RAII wrapper keeps the destination alive.
     let destination_handle = destination_temporary.handle;
     let result = unsafe { LZCopy(source_handle, destination_handle) };
-    if result > 0 { files.mark_written(destination); }
+    if result > 0 {
+        files.mark_written(destination);
+    }
     Ok(Some(result))
 }
 
@@ -242,7 +241,7 @@ impl Drop for TemporaryHFile {
     fn drop(&mut self) {
         // SAFETY: This exact kernel HANDLE was returned by DuplicateHandle,
         // checked to fit HFILE, and is still owned by this guard.
-        unsafe { CloseHandle(hfile_as_kernel_handle(self.handle)) };
+        (crate::windows::win32_safe::close_handle(hfile_as_kernel_handle(self.handle)));
     }
 }
 
@@ -277,7 +276,7 @@ fn initialize_duplicate_lz_handle(
     if initialized < 0 {
         // SAFETY: No LZ token was returned; release the duplicate kernel
         // HANDLE directly because this helper owns the DuplicateHandle result.
-        unsafe { CloseHandle(hfile_as_kernel_handle(duplicate)) };
+        (crate::windows::win32_safe::close_handle(hfile_as_kernel_handle(duplicate)));
         return Ok(Err(signed_lz_result(initialized)?));
     }
     Ok(Ok(TemporaryLzHandle {
@@ -299,7 +298,7 @@ fn duplicate_kernel_file_handle(source: HANDLE) -> Result<Result<i32, i16>, Runt
     if checked_hfile_from_kernel_handle(source).is_none() {
         return Ok(Err(LZERROR_BADINHANDLE));
     }
-    let process = unsafe { GetCurrentProcess() };
+    let process = crate::windows::win32_safe::current_process();
     let mut duplicate: HANDLE = std::ptr::null_mut();
     // SAFETY: Both process values are this process's pseudo handle, source is
     // an owned kernel file handle, and output owns one HANDLE slot.
@@ -317,7 +316,7 @@ fn duplicate_kernel_file_handle(source: HANDLE) -> Result<Result<i32, i16>, Runt
     if success == 0 {
         // DuplicateHandle supplies a Win32 error; LZ callers receive their
         // documented handle/resource error rather than an execution failure.
-        let error = unsafe { GetLastError() };
+        let error = crate::windows::win32_safe::last_error();
         return Ok(Err(match error {
             ERROR_NOT_ENOUGH_MEMORY
             | ERROR_OUTOFMEMORY
@@ -328,7 +327,7 @@ fn duplicate_kernel_file_handle(source: HANDLE) -> Result<Result<i32, i16>, Runt
     }
     let Some(duplicate_hfile) = checked_hfile_from_kernel_handle(duplicate) else {
         // SAFETY: DuplicateHandle succeeded and this output HANDLE is ours.
-        unsafe { CloseHandle(duplicate) };
+        (crate::windows::win32_safe::close_handle(duplicate));
         return Ok(Err(LZERROR_BADINHANDLE));
     };
     Ok(Ok(duplicate_hfile))

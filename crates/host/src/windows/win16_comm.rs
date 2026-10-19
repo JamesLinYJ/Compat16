@@ -20,9 +20,7 @@ use windows_sys::Win32::Devices::Communication::{
     PURGE_RXCLEAR, PURGE_TXCLEAR, PurgeComm, SETDTR, SETRTS, SETXOFF, SETXON, SetCommBreak,
     SetCommState, SetCommTimeouts,
 };
-use windows_sys::Win32::Foundation::{
-    GENERIC_READ, GENERIC_WRITE, GetLastError, HANDLE, INVALID_HANDLE_VALUE,
-};
+use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE, HANDLE, INVALID_HANDLE_VALUE};
 use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, FILE_ATTRIBUTE_NORMAL, OPEN_EXISTING, ReadFile, WriteFile,
 };
@@ -72,6 +70,7 @@ impl Win16CommPorts {
         if raw == INVALID_HANDLE_VALUE || raw.is_null() {
             return Err(device_error("open"));
         }
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let handle = unsafe { OwnedHandle::from_raw_handle(raw) };
         if serial {
             let timeouts = COMMTIMEOUTS {
@@ -129,6 +128,7 @@ impl Win16CommPorts {
         dcb.ErrorChar = config.error_char as i8;
         dcb.EofChar = config.eof_char as i8;
         dcb.EvtChar = config.event_char as i8;
+        // SAFETY: `SetCommState` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let applied = unsafe { SetCommState(handle, &dcb) };
         if applied == 0 {
             return Err(device_error("set state"));
@@ -338,7 +338,7 @@ fn transfer(handle: HANDLE, buffer: &mut [u8]) -> Result<usize, RuntimeError> {
 
 fn device_error(action: &str) -> RuntimeError {
     // SAFETY: GetLastError reads the calling thread's last error and has no pointer arguments.
-    let code = unsafe { GetLastError() };
+    let code = crate::windows::win32_safe::last_error();
     RuntimeError::new(
         Kind::HostFailure,
         format!("Win16 comm device {action} failed with Windows error {code}"),

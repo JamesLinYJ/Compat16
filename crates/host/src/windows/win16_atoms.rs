@@ -3,7 +3,6 @@
 use std::collections::BTreeMap;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostAtomName};
-use windows_sys::Win32::Foundation::{GetLastError, SetLastError};
 use windows_sys::Win32::System::DataExchange::{
     GlobalAddAtomW, GlobalDeleteAtom, GlobalFindAtomW, GlobalGetAtomNameW,
 };
@@ -18,23 +17,30 @@ pub(super) struct Win16Atoms {
 }
 
 impl Win16Atoms {
-    pub(super) fn new() -> Self { Self { owned: BTreeMap::new() } }
+    pub(super) fn new() -> Self {
+        Self {
+            owned: BTreeMap::new(),
+        }
+    }
 
     fn call_name(
         codec: GuestTextCodec,
         name: Win16HostAtomName<'_>,
         call: unsafe extern "system" fn(*const u16) -> u16,
-    )
-        -> Result<u16, RuntimeError> {
+    ) -> Result<u16, RuntimeError> {
         match name {
             Win16HostAtomName::Integer(id) => {
-                if !(1..FIRST_STRING_ATOM).contains(&id) { return Ok(0); }
+                if !(1..FIRST_STRING_ATOM).contains(&id) {
+                    return Ok(0);
+                }
                 // SAFETY: MAKEINTATOM is the documented low-word integer
                 // encoding. No Rust code dereferences the pseudo-pointer.
                 Ok(unsafe { call(usize::from(id) as *const u16) })
             }
             Win16HostAtomName::String(bytes) => {
-                if bytes.len() > MAX_ATOM_NAME_BYTES || bytes.contains(&0) { return Ok(0); }
+                if bytes.len() > MAX_ATOM_NAME_BYTES || bytes.contains(&0) {
+                    return Ok(0);
+                }
                 let wide = match codec.to_wide_z(bytes) {
                     Ok(wide) => wide,
                     Err(error) if guest_text_failure(&error) => return Ok(0),
@@ -58,8 +64,10 @@ impl Win16Atoms {
             let Some(next) = count.checked_add(1) else {
                 // SAFETY: Undo the new reference before returning failure.
                 unsafe { GlobalDeleteAtom(atom) };
-                return Err(RuntimeError::new(Kind::ResourceExhausted,
-                    "Win16 global atom reference count exhausted"));
+                return Err(RuntimeError::new(
+                    Kind::ResourceExhausted,
+                    "Win16 global atom reference count exhausted",
+                ));
             };
             *count = next;
         }
@@ -77,11 +85,11 @@ impl Win16Atoms {
     pub(super) fn delete(&mut self, atom: u16) -> Result<(), RuntimeError> {
         // SAFETY: GlobalDeleteAtom accepts integer and string atom values. A
         // zero result is its documented return regardless of success.
-        unsafe { SetLastError(0) };
+        (crate::windows::win32_safe::set_last_error(0));
         unsafe { GlobalDeleteAtom(atom) };
         // The documented ATOM return is always zero. Resource retirement
         // needs the actual deletion outcome, independent of the guest return.
-        let error = unsafe { GetLastError() };
+        let error = crate::windows::win32_safe::last_error();
         if error != 0 {
             return Err(RuntimeError::with_source(
                 Kind::HostFailure,
@@ -91,47 +99,77 @@ impl Win16Atoms {
         }
         if let Some(count) = self.owned.get_mut(&atom) {
             *count -= 1;
-            if *count == 0 { self.owned.remove(&atom); }
+            if *count == 0 {
+                self.owned.remove(&atom);
+            }
         }
         Ok(())
     }
 
-    pub(super) fn get_name(&self, codec: GuestTextCodec, atom: u16, capacity: u16)
-        -> Result<(Vec<u8>, u16), RuntimeError> {
-        if capacity == 0 { return Ok((Vec::new(), 0)); }
+    pub(super) fn get_name(
+        &self,
+        codec: GuestTextCodec,
+        atom: u16,
+        capacity: u16,
+    ) -> Result<(Vec<u8>, u16), RuntimeError> {
+        if capacity == 0 {
+            return Ok((Vec::new(), 0));
+        }
         let mut wide = Vec::new();
-        wide.try_reserve_exact(MAX_ATOM_NAME_BYTES + 1).map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted, "allocate Win16 atom name output", error,
-        ))?;
+        wide.try_reserve_exact(MAX_ATOM_NAME_BYTES + 1)
+            .map_err(|error| {
+                RuntimeError::with_source(
+                    Kind::ResourceExhausted,
+                    "allocate Win16 atom name output",
+                    error,
+                )
+            })?;
         wide.resize(MAX_ATOM_NAME_BYTES + 1, 0);
         // Win16 reports a truncated name's copied length, while Win32
         // reports zero for a short caller buffer. Read the full atom name,
         // then apply the Win16 buffer contract at the guest boundary.
         // SAFETY: `wide` is writable for 256 UTF-16 units and stays live.
-        let full_length = unsafe { GlobalGetAtomNameW(
-            atom, wide.as_mut_ptr(), (MAX_ATOM_NAME_BYTES + 1) as i32,
-        ) };
-        if full_length == 0 { return Ok((Vec::new(), 0)); }
-        let full_length = usize::try_from(full_length).map_err(|_| RuntimeError::new(
-            Kind::InternalInvariant, "Windows returned an invalid atom name length",
-        ))?;
-        if full_length >= wide.len() {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "Windows atom name exceeded the native buffer"));
+        let full_length = unsafe {
+            GlobalGetAtomNameW(atom, wide.as_mut_ptr(), (MAX_ATOM_NAME_BYTES + 1) as i32)
+        };
+        if full_length == 0 {
+            return Ok((Vec::new(), 0));
         }
-        let guest_capacity = usize::from(capacity).saturating_sub(1).min(MAX_ATOM_NAME_BYTES);
+        let full_length = usize::try_from(full_length).map_err(|_| {
+            RuntimeError::new(
+                Kind::InternalInvariant,
+                "Windows returned an invalid atom name length",
+            )
+        })?;
+        if full_length >= wide.len() {
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "Windows atom name exceeded the native buffer",
+            ));
+        }
+        let guest_capacity = usize::from(capacity)
+            .saturating_sub(1)
+            .min(MAX_ATOM_NAME_BYTES);
         let output = match codec.from_wide_bounded(&wide[..full_length], guest_capacity) {
             Ok(output) => output,
             Err(error) if guest_text_failure(&error) => return Ok((Vec::new(), 0)),
             Err(error) => return Err(error),
         };
-        let copied = u16::try_from(output.bytes.len()).map_err(|error| RuntimeError::with_source(
-            Kind::InternalInvariant, "Win16 atom name length exceeds WORD", error,
-        ))?;
+        let copied = u16::try_from(output.bytes.len()).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::InternalInvariant,
+                "Win16 atom name length exceeds WORD",
+                error,
+            )
+        })?;
         let mut bytes = output.bytes;
-        bytes.try_reserve(1).map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted, "terminate Win16 atom name output", error,
-        ))?;
+        bytes.try_reserve(1).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "terminate Win16 atom name output",
+                error,
+            )
+        })?;
         bytes.push(0);
         Ok((bytes, copied))
     }

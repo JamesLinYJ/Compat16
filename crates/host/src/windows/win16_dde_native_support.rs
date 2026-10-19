@@ -11,12 +11,10 @@ use std::time::Duration;
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16DdeAbortPhase, Win16DdeCleanupFailure,
     Win16DdeCleanupStatus, Win16DdeNativeInstanceReceipt, Win16HostDdeContext,
-    Win16HostDdeConversation, Win16HostDdeData, Win16HostDdeInstance,
-    Win16HostDdeResult, Win16HostDdeValue,
+    Win16HostDdeConversation, Win16HostDdeData, Win16HostDdeInstance, Win16HostDdeResult,
+    Win16HostDdeValue,
 };
-use windows_sys::Win32::System::DataExchange::{
-    DdeDisconnect, DdeGetLastError, DdeUnaccessData, DdeUninitialize,
-};
+use windows_sys::Win32::System::DataExchange::{DdeDisconnect, DdeUnaccessData, DdeUninitialize};
 
 use super::{NativeState, WorkerContext};
 
@@ -32,8 +30,9 @@ pub(in super::super) fn release_all_data_accesses(
             protocol_error("DDE access lease lost its native data record during cleanup")
         })?;
         let native_instance = state.native_instance(record.instance)?;
+        // SAFETY: DdeUnaccessData balances one DdeAccessData.
         if unsafe { DdeUnaccessData(record.native) } == 0 {
-            let error = unsafe { DdeGetLastError(native_instance) };
+            let error = crate::windows::win32_safe::dde_last_error(native_instance);
             return Err(RuntimeError::new(
                 Kind::HostFailure,
                 format!(
@@ -61,6 +60,7 @@ pub(in super::super) fn cancel_active_conversations(
         if !conversation_identity_is_live(context, token, instance, native) {
             continue;
         }
+        // SAFETY: DdeDisconnect ends a conversation this owner opened.
         let disconnected = unsafe { DdeDisconnect(native) } != 0;
         if disconnected {
             if conversation_identity_is_live(context, token, instance, native) {
@@ -78,7 +78,7 @@ pub(in super::super) fn cancel_active_conversations(
                     continue;
                 }
             };
-            let error = unsafe { DdeGetLastError(native_instance) };
+            let error = crate::windows::win32_safe::dde_last_error(native_instance);
             remember_cleanup_failure(
                 &mut first_error,
                 RuntimeError::new(
@@ -110,8 +110,7 @@ fn conversation_identity_is_live(
 
 pub(in super::super) struct NativeInstanceShutdownReport {
     pub(in super::super) instances: Vec<Win16DdeNativeInstanceReceipt>,
-    pub(in super::super) transfer_guards:
-        Vec<runtime::Win16DdeNativeTransferGuardReceipt>,
+    pub(in super::super) transfer_guards: Vec<runtime::Win16DdeNativeTransferGuardReceipt>,
     pub(in super::super) failures: Vec<Win16DdeCleanupFailure>,
     pub(in super::super) all_uninitialized: bool,
     pub(in super::super) all_transfer_guards_retired: bool,
@@ -162,28 +161,35 @@ pub(in super::super) fn uninitialize_all(context: &WorkerContext) -> NativeInsta
 
         let mut retry_needed = false;
         for (token, native) in instances {
+            // SAFETY: DdeUninitialize releases a DDE instance this owner initialized.
             if unsafe { DdeUninitialize(native) } != 0 {
                 context.state.borrow_mut().remove_instance(token);
                 let failure = first_errors.get(&token).cloned();
-                receipts.insert(token, Win16DdeNativeInstanceReceipt {
-                    instance: token,
-                    status: if failure.is_some() {
-                        Win16DdeCleanupStatus::RetriedAndReleased
-                    } else {
-                        Win16DdeCleanupStatus::Released
+                receipts.insert(
+                    token,
+                    Win16DdeNativeInstanceReceipt {
+                        instance: token,
+                        status: if failure.is_some() {
+                            Win16DdeCleanupStatus::RetriedAndReleased
+                        } else {
+                            Win16DdeCleanupStatus::Released
+                        },
+                        failure,
                     },
-                    failure,
-                });
+                );
                 continue;
             }
 
             retry_needed = true;
-            let native_error = unsafe { DdeGetLastError(native) };
+            let native_error = crate::windows::win32_safe::dde_last_error(native);
             first_errors.entry(token).or_insert_with(|| {
                 Arc::new(RuntimeError::with_source(
                     Kind::HostFailure,
                     "DDEML refused to release an owned instance during shutdown",
-                    DdeUninitializeFailure { token, native_error },
+                    DdeUninitializeFailure {
+                        token,
+                        native_error,
+                    },
                 ))
             });
         }
@@ -203,20 +209,22 @@ pub(in super::super) fn uninitialize_all(context: &WorkerContext) -> NativeInsta
             cause,
         })
         .collect();
-    failures.extend(access_failures.into_iter().map(|(_token, (instance, cause))| {
-        Win16DdeCleanupFailure {
-            phase: Win16DdeAbortPhase::UninitializeInstance,
-            frame: None,
-            operation: None,
-            instance,
-            status: if instance.is_some_and(|instance| receipts.contains_key(&instance)) {
-                Win16DdeCleanupStatus::RetriedAndReleased
-            } else {
-                Win16DdeCleanupStatus::Retained
-            },
-            cause,
-        }
-    }));
+    failures.extend(
+        access_failures
+            .into_iter()
+            .map(|(_token, (instance, cause))| Win16DdeCleanupFailure {
+                phase: Win16DdeAbortPhase::UninitializeInstance,
+                frame: None,
+                operation: None,
+                instance,
+                status: if instance.is_some_and(|instance| receipts.contains_key(&instance)) {
+                    Win16DdeCleanupStatus::RetriedAndReleased
+                } else {
+                    Win16DdeCleanupStatus::Retained
+                },
+                cause,
+            }),
+    );
     let instances: Vec<_> = receipts.into_values().collect();
     let (transfer_guards, all_transfer_guards_retired) = match context
         .state
@@ -342,7 +350,7 @@ pub(super) fn merge_data_origin(
 }
 
 pub(super) fn native_error(instance: u32) -> u16 {
-    unsafe { DdeGetLastError(instance) as u16 }
+    crate::windows::win32_safe::dde_last_error(instance) as u16
 }
 
 pub(super) fn result(value: Win16HostDdeValue, dde_error: u16) -> Win16HostDdeResult {

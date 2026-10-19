@@ -15,12 +15,10 @@ const DRAG_POLL_WAIT: Duration = Duration::from_millis(10);
 pub(super) fn mouse_available(host: &WindowsHost) -> bool {
     host.mouse_input_enabled
         // SAFETY: GetSystemMetrics has no pointer arguments or ownership requirements.
-        && unsafe { GetSystemMetrics(SM_MOUSEPRESENT) } != 0
+        &&  (crate::windows::win32_safe::system_metrics(SM_MOUSEPRESENT)) != 0
 }
 
-pub(super) fn take_mouse_input(
-    host: &mut WindowsHost,
-) -> Result<Option<MouseInput>, RuntimeError> {
+pub(super) fn take_mouse_input(host: &mut WindowsHost) -> Result<Option<MouseInput>, RuntimeError> {
     if !mouse_available(host) || host.vga_window.is_active() {
         return Ok(None);
     }

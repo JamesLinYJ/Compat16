@@ -10,8 +10,8 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{HWND, RECT};
 use windows_sys::Win32::Graphics::Gdi::{
-    GetUpdateRect, GetUpdateRgn, InvalidateRect, InvalidateRgn, LockWindowUpdate,
-    RedrawWindow, UpdateWindow, ValidateRect, ValidateRgn, HRGN,
+    GetUpdateRect, GetUpdateRgn, HRGN, InvalidateRect, InvalidateRgn, LockWindowUpdate,
+    RedrawWindow, ValidateRect, ValidateRgn,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{ScrollWindow, ScrollWindowEx};
 
@@ -43,11 +43,21 @@ fn window_target(
 }
 
 fn native_rect(rect: Win16HostRect) -> RECT {
-    RECT { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
+    RECT {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+    }
 }
 
 fn host_rect(rect: RECT) -> Win16HostRect {
-    Win16HostRect { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
+    Win16HostRect {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+    }
 }
 
 fn native_region(
@@ -56,7 +66,9 @@ fn native_region(
 ) -> Option<HRGN> {
     // A deleted/tombstoned non-NULL identity is failure. Only the operation's
     // explicit `None` branch below is allowed to become native NULL.
-    regions.get(&token)?.as_ref()
+    regions
+        .get(&token)?
+        .as_ref()
         .map(Win16RegionLease::native)
         .filter(|region| !region.is_null())
 }
@@ -69,12 +81,18 @@ fn failure_result(operation: &Operation) -> ResultValue {
         | Operation::ValidateRect { .. }
         | Operation::ValidateRgn { .. }
         | Operation::ScrollWindow { .. } => ResultValue::Void { succeeded: false },
-        Operation::GetUpdateRect { .. } => ResultValue::Rect { value: 0, rect: None },
-        Operation::GetUpdateRgn { .. } | Operation::ExcludeUpdateRgn { .. }
-        | Operation::RedrawWindow { .. } | Operation::LockWindowUpdate { .. } => {
-            ResultValue::Word(0)
-        }
-        Operation::ScrollWindowEx { .. } | Operation::ScrollDC { .. } => ResultValue::Rect { value: 0, rect: None },
+        Operation::GetUpdateRect { .. } => ResultValue::Rect {
+            value: 0,
+            rect: None,
+        },
+        Operation::GetUpdateRgn { .. }
+        | Operation::ExcludeUpdateRgn { .. }
+        | Operation::RedrawWindow { .. }
+        | Operation::LockWindowUpdate { .. } => ResultValue::Word(0),
+        Operation::ScrollWindowEx { .. } | Operation::ScrollDC { .. } => ResultValue::Rect {
+            value: 0,
+            rect: None,
+        },
     }
 }
 
@@ -93,21 +111,31 @@ pub(super) fn execute(
             };
             // SAFETY: `hwnd` is the copied worker-owned HWND (or NULL, preserved
             // from the guest API); no Rust borrow is held across WM_PAINT delivery.
-            let succeeded = unsafe { UpdateWindow(hwnd) } != 0;
+            let succeeded = (crate::windows::win32_safe::update_window(hwnd)) != 0;
             Ok(ResultValue::Void { succeeded })
         }
-        Operation::InvalidateRect { window, rect, erase } => {
+        Operation::InvalidateRect {
+            window,
+            rect,
+            erase,
+        } => {
             let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             let rect = (*rect).map(native_rect);
-            let rect_ptr = rect.as_ref().map_or(std::ptr::null(), |rect| rect as *const RECT);
+            let rect_ptr = rect
+                .as_ref()
+                .map_or(std::ptr::null(), |rect| rect as *const RECT);
             // SAFETY: `rect_ptr` is NULL for guest NULL or points to this call's
             // owned RECT; `hwnd` is copied and no worker-state borrow is held.
             let succeeded = unsafe { InvalidateRect(hwnd, rect_ptr, *erase as i32) } != 0;
             Ok(ResultValue::Void { succeeded })
         }
-        Operation::InvalidateRgn { window, region, erase } => {
+        Operation::InvalidateRgn {
+            window,
+            region,
+            erase,
+        } => {
             let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
                 return Ok(failure_result(&operation));
             };
@@ -128,7 +156,9 @@ pub(super) fn execute(
                 return Ok(failure_result(&operation));
             };
             let rect = (*rect).map(native_rect);
-            let rect_ptr = rect.as_ref().map_or(std::ptr::null(), |rect| rect as *const RECT);
+            let rect_ptr = rect
+                .as_ref()
+                .map_or(std::ptr::null(), |rect| rect as *const RECT);
             // SAFETY: `rect_ptr` is NULL or references the owned local RECT;
             // `hwnd` is copied and the worker-state borrow has ended.
             let succeeded = unsafe { ValidateRect(hwnd, rect_ptr) } != 0;
@@ -151,12 +181,20 @@ pub(super) fn execute(
             let succeeded = unsafe { ValidateRgn(hwnd, region) } != 0;
             Ok(ResultValue::Void { succeeded })
         }
-        Operation::GetUpdateRect { window, rect_is_null, erase } => {
+        Operation::GetUpdateRect {
+            window,
+            rect_is_null,
+            erase,
+        } => {
             let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             let mut rect = RECT::default();
-            let rect_ptr = if *rect_is_null { std::ptr::null_mut() } else { &mut rect };
+            let rect_ptr = if *rect_is_null {
+                std::ptr::null_mut()
+            } else {
+                &mut rect
+            };
             let has_native_window = !hwnd.is_null();
             // SAFETY: output storage is a live local RECT or NULL as requested;
             // any erase-triggered WM_ERASEBKGND reenters with no RefCell borrow held.
@@ -170,7 +208,11 @@ pub(super) fn execute(
                     .then(|| host_rect(rect)),
             })
         }
-        Operation::GetUpdateRgn { window, region, erase } => {
+        Operation::GetUpdateRgn {
+            window,
+            region,
+            erase,
+        } => {
             let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
                 return Ok(failure_result(&operation));
             };
@@ -191,12 +233,19 @@ pub(super) fn execute(
                 dcs.exclude_update_region(*dc, hwnd)?.unwrap_or(0),
             ))
         }
-        Operation::RedrawWindow { window, rect, region, flags } => {
+        Operation::RedrawWindow {
+            window,
+            rect,
+            region,
+            flags,
+        } => {
             let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             let rect = (*rect).map(native_rect);
-            let rect_ptr = rect.as_ref().map_or(std::ptr::null(), |rect| rect as *const RECT);
+            let rect_ptr = rect
+                .as_ref()
+                .map_or(std::ptr::null(), |rect| rect as *const RECT);
             let region = match region {
                 Some(token) => match native_region(regions, *token) {
                     Some(region) => region,
@@ -219,19 +268,29 @@ pub(super) fn execute(
             let succeeded = unsafe { LockWindowUpdate(hwnd) } != 0;
             Ok(ResultValue::Word(succeeded as u16))
         }
-        Operation::ScrollWindow { window, dx, dy, scroll_rect, clip_rect } => {
+        Operation::ScrollWindow {
+            window,
+            dx,
+            dy,
+            scroll_rect,
+            clip_rect,
+        } => {
             let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             let scroll_rect = (*scroll_rect).map(native_rect);
             let clip_rect = (*clip_rect).map(native_rect);
-            let scroll_ptr = scroll_rect.as_ref().map_or(std::ptr::null(), |rect| rect as *const RECT);
-            let clip_ptr = clip_rect.as_ref().map_or(std::ptr::null(), |rect| rect as *const RECT);
+            let scroll_ptr = scroll_rect
+                .as_ref()
+                .map_or(std::ptr::null(), |rect| rect as *const RECT);
+            let clip_ptr = clip_rect
+                .as_ref()
+                .map_or(std::ptr::null(), |rect| rect as *const RECT);
             // SAFETY: optional pointers reference owned local RECT values or are
             // NULL by guest choice; no worker-state borrow crosses native USER.
-            let succeeded = unsafe {
-                ScrollWindow(hwnd, i32::from(*dx), i32::from(*dy), scroll_ptr, clip_ptr)
-            } != 0;
+            let succeeded =
+                unsafe { ScrollWindow(hwnd, i32::from(*dx), i32::from(*dy), scroll_ptr, clip_ptr) }
+                    != 0;
             Ok(ResultValue::Void { succeeded })
         }
         Operation::ScrollDC { .. } => {
@@ -239,16 +298,26 @@ pub(super) fn execute(
             scroll_dc::execute(&dcs, &operation, regions)
         }
         Operation::ScrollWindowEx {
-            window, dx, dy, scroll_rect, clip_rect, update_region,
-            update_rect_is_null, flags,
+            window,
+            dx,
+            dy,
+            scroll_rect,
+            clip_rect,
+            update_region,
+            update_rect_is_null,
+            flags,
         } => {
             let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             let scroll_rect = (*scroll_rect).map(native_rect);
             let clip_rect = (*clip_rect).map(native_rect);
-            let scroll_ptr = scroll_rect.as_ref().map_or(std::ptr::null(), |rect| rect as *const RECT);
-            let clip_ptr = clip_rect.as_ref().map_or(std::ptr::null(), |rect| rect as *const RECT);
+            let scroll_ptr = scroll_rect
+                .as_ref()
+                .map_or(std::ptr::null(), |rect| rect as *const RECT);
+            let clip_ptr = clip_rect
+                .as_ref()
+                .map_or(std::ptr::null(), |rect| rect as *const RECT);
             let region = match update_region {
                 Some(token) => match native_region(regions, *token) {
                     Some(region) => region,
@@ -269,15 +338,20 @@ pub(super) fn execute(
             // state on ERROR unspecified, so failed scratch output is not returned.
             let native_value = unsafe {
                 ScrollWindowEx(
-                    hwnd, i32::from(*dx), i32::from(*dy), scroll_ptr, clip_ptr,
-                    region, update_ptr, u32::from(*flags),
+                    hwnd,
+                    i32::from(*dx),
+                    i32::from(*dy),
+                    scroll_ptr,
+                    clip_ptr,
+                    region,
+                    update_ptr,
+                    u32::from(*flags),
                 )
             };
             let value = native_value as u16;
             Ok(ResultValue::Rect {
                 value,
-                rect: (!*update_rect_is_null && native_value != 0)
-                    .then(|| host_rect(update_rect)),
+                rect: (!*update_rect_is_null && native_value != 0).then(|| host_rect(update_rect)),
             })
         }
     }

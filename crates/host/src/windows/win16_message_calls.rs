@@ -10,13 +10,13 @@ use runtime::{
     Win16WindowStep,
 };
 use windows_sys::Win32::Foundation::{HWND, LPARAM, WPARAM};
-use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-    GetCapture, GetFocus, GetKeyboardState, ReleaseCapture, SetCapture, SetFocus, SetKeyboardState,
+    GetKeyboardState, ReleaseCapture, SetCapture, SetKeyboardState,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetInputState, GetMessageExtraInfo, GetMessagePos, GetMessageTime, GetQueueStatus, HWND_BROADCAST, InSendMessage, ReplyMessage,
-    KillTimer, PostMessageW, PostThreadMessageW, SendMessageW, SetTimer, TIMERPROC,
+    GetInputState, GetMessageExtraInfo, GetMessagePos, GetMessageTime, GetQueueStatus,
+    HWND_BROADCAST, InSendMessage, PostMessageW, PostThreadMessageW, ReplyMessage, SendMessageW,
+    SetTimer, TIMERPROC,
 };
 
 use super::win16_message_loop::{self, WaitResult};
@@ -38,16 +38,25 @@ const WM_USER: u16 = 0x0400;
 const WM_CHANGECBCHAIN: u16 = 0x030d;
 
 #[derive(Debug)]
-struct MessageWaitRetirementFailure { primary: RuntimeError, cleanup: RuntimeError }
+struct MessageWaitRetirementFailure {
+    primary: RuntimeError,
+    cleanup: RuntimeError,
+}
 
 impl std::fmt::Display for MessageWaitRetirementFailure {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "{}; wait cleanup failed: {}", self.primary, self.cleanup)
+        write!(
+            formatter,
+            "{}; wait cleanup failed: {}",
+            self.primary, self.cleanup
+        )
     }
 }
 
 impl std::error::Error for MessageWaitRetirementFailure {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> { Some(&self.primary) }
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.primary)
+    }
 }
 
 pub(super) fn execute(
@@ -87,16 +96,33 @@ pub(super) fn execute(
     }
     match call {
         Win16MessageCall::Yield { task_queue } => kernel_yield::execute(state, task_queue),
-        Win16MessageCall::SendBroadcast { kind, w_param, l_param } => {
-            let Some((message, native_w, native_l)) = broadcast_arguments(state, kind, w_param, l_param)?
-                else { return Ok(Win16MessageCallResult::Long(0)); };
+        Win16MessageCall::SendBroadcast {
+            kind,
+            w_param,
+            l_param,
+        } => {
+            let Some((message, native_w, native_l)) =
+                broadcast_arguments(state, kind, w_param, l_param)?
+            else {
+                return Ok(Win16MessageCallResult::Long(0));
+            };
+            // SAFETY: SendMessageW runs synchronously on the window thread. Pointer arguments are caller-owned records that stay live for the call and are not guest addresses.
             let result = unsafe { SendMessageW(HWND_BROADCAST, message, native_w, native_l) };
             Ok(Win16MessageCallResult::Long(result as i32))
         }
-        Win16MessageCall::PostBroadcast { kind, w_param, l_param } => {
-            let Some((message, native_w, native_l)) = broadcast_arguments(state, kind, w_param, l_param)?
-                else { return Ok(Win16MessageCallResult::Boolean(false)); };
-            let succeeded = unsafe { PostMessageW(HWND_BROADCAST, message, native_w, native_l) } != 0;
+        Win16MessageCall::PostBroadcast {
+            kind,
+            w_param,
+            l_param,
+        } => {
+            let Some((message, native_w, native_l)) =
+                broadcast_arguments(state, kind, w_param, l_param)?
+            else {
+                return Ok(Win16MessageCallResult::Boolean(false));
+            };
+            // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
+            let succeeded =
+                unsafe { PostMessageW(HWND_BROADCAST, message, native_w, native_l) } != 0;
             Ok(Win16MessageCallResult::Boolean(succeeded))
         }
         Win16MessageCall::SendMessage {
@@ -114,6 +140,7 @@ pub(super) fn execute(
             else {
                 return Ok(Win16MessageCallResult::Long(0));
             };
+            // SAFETY: SendMessageW runs synchronously on the window thread. Pointer arguments are caller-owned records that stay live for the call and are not guest addresses.
             let result = unsafe { SendMessageW(hwnd, native_message, native_w, native_l) };
             Ok(Win16MessageCallResult::Long(result as i32))
         }
@@ -136,12 +163,18 @@ pub(super) fn execute(
                     // in the native queue so modeless and modal windows route
                     // it through their normal WndProc/DLGPROC default rules.
                     let succeeded =
+                        // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
                         unsafe { PostMessageW(hwnd, u32::from(message), usize::from(w_param), 0) }
                             != 0;
                     return Ok(Win16MessageCallResult::Boolean(succeeded));
                 }
-                let succeeded =
-                    worker_window::post_guest_timer_message(state, hwnd, message, w_param, guest_l_param)?;
+                let succeeded = worker_window::post_guest_timer_message(
+                    state,
+                    hwnd,
+                    message,
+                    w_param,
+                    guest_l_param,
+                )?;
                 return Ok(Win16MessageCallResult::Boolean(succeeded));
             }
             let Some((native_message, native_w, native_l)) =
@@ -149,6 +182,7 @@ pub(super) fn execute(
             else {
                 return Ok(Win16MessageCallResult::Boolean(false));
             };
+            // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
             let succeeded = unsafe { PostMessageW(hwnd, native_message, native_w, native_l) } != 0;
             Ok(Win16MessageCallResult::Boolean(succeeded))
         }
@@ -163,7 +197,8 @@ pub(super) fn execute(
                     return Ok(Win16MessageCallResult::Boolean(false));
                 };
                 if guest_l_param == 0 {
-                    let thread = unsafe { GetCurrentThreadId() };
+                    let thread = crate::windows::win32_safe::current_thread_id();
+                    // SAFETY: PostThreadMessageW queues scalar parameters to a thread id.
                     let succeeded = unsafe {
                         PostThreadMessageW(thread, u32::from(message), usize::from(w_param), 0)
                     } != 0;
@@ -178,10 +213,11 @@ pub(super) fn execute(
                 )?;
                 return Ok(Win16MessageCallResult::Boolean(succeeded));
             }
-            let Some(mut native_w) = super::win16_character_messages::to_native(state,
-                u32::from(message), w_param)? else {
-                    return Ok(Win16MessageCallResult::Boolean(false));
-                };
+            let Some(mut native_w) =
+                super::win16_character_messages::to_native(state, u32::from(message), w_param)?
+            else {
+                return Ok(Win16MessageCallResult::Boolean(false));
+            };
             let native_l = match l_param {
                 Win16MessageParam::Scalar(value) | Win16MessageParam::GuestBits(value) => {
                     (value as i32) as isize
@@ -210,18 +246,22 @@ pub(super) fn execute(
                     return Ok(Win16MessageCallResult::Boolean(false));
                 }
             };
-            let thread = unsafe { GetCurrentThreadId() };
-            let succeeded = unsafe {
-                PostThreadMessageW(thread, u32::from(message), native_w, native_l)
-            } != 0;
+            let thread = crate::windows::win32_safe::current_thread_id();
+            // SAFETY: PostThreadMessageW queues scalar parameters to a thread id.
+            let succeeded =
+                unsafe { PostThreadMessageW(thread, u32::from(message), native_w, native_l) } != 0;
             Ok(Win16MessageCallResult::Boolean(succeeded))
         }
         Win16MessageCall::WaitMessage => {
             worker_window::begin_user_wait(
-                state, operation_id, worker_window::UserWaitKind::WaitMessage,
+                state,
+                operation_id,
+                worker_window::UserWaitKind::WaitMessage,
             )?;
             let outcome = (|| loop {
-                if state.borrow().aborted { return Err(canceled()); }
+                if state.borrow().aborted {
+                    return Err(canceled());
+                }
                 worker_window::pump_classic_dde_messages(state)?;
                 match win16_message_loop::wait_for_input_or_command(state)? {
                     WaitResult::NativeInput => return Ok(Win16MessageCallResult::Boolean(true)),
@@ -240,7 +280,9 @@ pub(super) fn execute(
                 }
             })();
             let retired = worker_window::end_user_wait(
-                state, operation_id, worker_window::UserWaitKind::WaitMessage,
+                state,
+                operation_id,
+                worker_window::UserWaitKind::WaitMessage,
             );
             match (outcome, retired) {
                 (Ok(value), Ok(())) => Ok(value),
@@ -252,7 +294,7 @@ pub(super) fn execute(
                     MessageWaitRetirementFailure { primary, cleanup },
                 )),
             }
-        },
+        }
         Win16MessageCall::SetTimer {
             window,
             timer_id,
@@ -303,6 +345,7 @@ pub(super) fn execute(
             };
             let timer_proc: TIMERPROC = guest_callback.then_some(host_timer_proc);
             let result =
+                // SAFETY: SetTimer installs a timer. A callback is the declared TIMERPROC or null.
                 unsafe { SetTimer(hwnd, requested_id, u32::from(interval_ms), timer_proc) };
             if result == 0 {
                 return Ok(Win16MessageCallResult::Timer(None));
@@ -327,12 +370,15 @@ pub(super) fn execute(
                 // reuse would make an old queued WM_TIMER indistinguishable
                 // from this generation, so retire the just-created timer and
                 // report the native failure instead of changing its meaning.
-                unsafe { KillTimer(hwnd, native_id) };
+                (crate::windows::win32_safe::kill_timer(hwnd, native_id));
                 return Ok(Win16MessageCallResult::Timer(None));
             }
             if let Some(previous) = previous {
                 if (previous.hwnd, previous.native_id) != (hwnd as usize, native_id) {
-                    unsafe { KillTimer(previous.hwnd as HWND, previous.native_id) };
+                    (crate::windows::win32_safe::kill_timer(
+                        previous.hwnd as HWND,
+                        previous.native_id,
+                    ));
                     worker_window::retire_native_timer(state, previous.host_id);
                 }
             }
@@ -360,7 +406,7 @@ pub(super) fn execute(
                     ));
                 }
             };
-            let succeeded = unsafe { KillTimer(hwnd, record.native_id) } != 0;
+            let succeeded = (crate::windows::win32_safe::kill_timer(hwnd, record.native_id)) != 0;
             if succeeded {
                 worker_window::retire_native_timer(state, host_timer_id);
             }
@@ -374,11 +420,11 @@ pub(super) fn execute(
                     None => return Ok(Win16MessageCallResult::Window(None)),
                 },
             };
-            let old = unsafe { SetFocus(hwnd) };
+            let old = crate::windows::win32_safe::set_focus(hwnd);
             Ok(Win16MessageCallResult::Window(window_token(state, old)?))
         }
         Win16MessageCall::GetFocus => {
-            let current = unsafe { GetFocus() };
+            let current = crate::windows::win32_safe::focus_window();
             Ok(Win16MessageCallResult::Window(window_token(
                 state, current,
             )?))
@@ -387,27 +433,32 @@ pub(super) fn execute(
             let Some(hwnd) = resolve_window(state, window) else {
                 return Ok(Win16MessageCallResult::Window(None));
             };
+            // SAFETY: SetCapture takes a window this thread owns.
             let old = unsafe { SetCapture(hwnd) };
             Ok(Win16MessageCallResult::Window(window_token(state, old)?))
         }
         Win16MessageCall::GetCapture => {
-            let current = unsafe { GetCapture() };
+            let current = crate::windows::win32_safe::capture_window();
             Ok(Win16MessageCallResult::Window(window_token(
                 state, current,
             )?))
         }
         Win16MessageCall::ReleaseCapture => Ok(Win16MessageCallResult::Boolean(
+            // SAFETY: ReleaseCapture releases the calling thread's capture and takes no pointers.
             unsafe { ReleaseCapture() } != 0,
         )),
         Win16MessageCall::GetMessagePos => {
+            // SAFETY: GetMessagePos returns the cursor position of the last message and takes no pointers.
             Ok(Win16MessageCallResult::Dword(unsafe { GetMessagePos() }))
         }
         Win16MessageCall::GetMessageTime => {
+            // SAFETY: GetMessageTime returns the time of the last message and takes no pointers.
             Ok(Win16MessageCallResult::Long(unsafe { GetMessageTime() }))
         }
         Win16MessageCall::GetMessageExtraInfo => {
             // SDK LPARAM is a 32-bit LONG here. Keep its low 32 bits as queue
             // metadata, without treating native LONG_PTR bits as a pointer.
+            // SAFETY: `GetMessageExtraInfo` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             Ok(Win16MessageCallResult::Long(unsafe {
                 GetMessageExtraInfo() as i32
             }))
@@ -416,6 +467,7 @@ pub(super) fn execute(
             // wait_for_guest_reply executes nested Begin commands inline on
             // the still-live native WndProc stack, preserving its send context.
             // Capture it now; completion retries only project this saved BOOL.
+            // SAFETY: InSendMessage reports whether the calling thread is handling a sent message.
             Ok(Win16MessageCallResult::Boolean(unsafe {
                 InSendMessage() != 0
             }))
@@ -424,13 +476,19 @@ pub(super) fn execute(
             // Same native predicate as InSendMessage. Time and point are read
             // only while that predicate is true, so a posted message cannot
             // leak into the MSG16.
+            // SAFETY: InSendMessage reports whether the calling thread is handling a sent message.
             let in_send = unsafe { InSendMessage() != 0 };
             if !in_send {
                 return Ok(Win16MessageCallResult::QuerySend {
-                    in_send: false, time: 0, x: 0, y: 0,
+                    in_send: false,
+                    time: 0,
+                    x: 0,
+                    y: 0,
                 });
             }
+            // SAFETY: GetMessageTime returns the time of the last message and takes no pointers.
             let time = unsafe { GetMessageTime() } as u32;
+            // SAFETY: GetMessagePos returns the cursor position of the last message and takes no pointers.
             let pos = unsafe { GetMessagePos() };
             Ok(Win16MessageCallResult::QuerySend {
                 in_send: true,
@@ -447,18 +505,22 @@ pub(super) fn execute(
             // cross-thread send inherited by nested same-thread callbacks.
             // Do not copy guest outputs here: early ReplyMessage does not
             // perform WM_GETTEXT's normal return-time buffer copyback.
+            // SAFETY: ReplyMessage replies to the current sent message with an integer result.
             Ok(Win16MessageCallResult::Boolean(unsafe {
                 ReplyMessage(result as isize) != 0
             }))
         }
         Win16MessageCall::GetInputState => Ok(Win16MessageCallResult::Boolean(
+            // SAFETY: `GetInputState` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe { GetInputState() } != 0,
         )),
+        // SAFETY: GetQueueStatus takes a flags integer and no pointers.
         Win16MessageCall::GetQueueStatus { flags } => Ok(Win16MessageCallResult::Dword(unsafe {
             GetQueueStatus(u32::from(flags))
         })),
         Win16MessageCall::GetKeyboardState => {
             let mut keys = [0_u8; 256];
+            // SAFETY: GetKeyboardState writes into a caller-owned 256-byte array.
             let succeeded = unsafe { GetKeyboardState(keys.as_mut_ptr()) } != 0;
             Ok(Win16MessageCallResult::KeyboardState {
                 succeeded,
@@ -466,6 +528,7 @@ pub(super) fn execute(
             })
         }
         Win16MessageCall::SetKeyboardState { state: keys } => {
+            // SAFETY: SetKeyboardState reads a caller-owned 256-byte array.
             let succeeded = unsafe { SetKeyboardState(keys.as_ptr()) } != 0;
             Ok(Win16MessageCallResult::Boolean(succeeded))
         }
@@ -487,8 +550,10 @@ fn broadcast_arguments(
         ));
     }
     let message = u32::from(kind as u16);
-    Ok(super::win16_character_messages::to_native(state, message, w_param)?
-        .map(|native_w| (message, native_w, (l_param as i32) as isize)))
+    Ok(
+        super::win16_character_messages::to_native(state, message, w_param)?
+            .map(|native_w| (message, native_w, (l_param as i32) as isize)),
+    )
 }
 
 fn resolve_window(state: &Rc<RefCell<WorkerState>>, window: Win16HostWindow) -> Option<HWND> {
@@ -572,8 +637,11 @@ fn message_arguments(
             if Win16ScalarMessage::from_raw(message).is_none() {
                 return Ok(None);
             }
-            let Some(native_w) = super::win16_character_messages::to_native(state,
-                u32::from(message), w_param)? else { return Ok(None); };
+            let Some(native_w) =
+                super::win16_character_messages::to_native(state, u32::from(message), w_param)?
+            else {
+                return Ok(None);
+            };
             (native_w, (value as i32) as isize)
         }
         Win16MessageParam::GuestBits(value) => {

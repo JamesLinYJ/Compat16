@@ -10,14 +10,13 @@ use std::collections::BTreeMap;
 use std::ffi::c_void;
 use std::fmt;
 use std::ptr;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use compat_services::com::{ComObjectId, Guid};
 use runtime::{Win16ComHostOwnedMediumId, Win16ComHostOwnerIdentity};
 use windows_core::{GUID as NativeGuid, HRESULT, IUnknown, Interface};
-use windows_sys::Win32::System::Com::{CoGetApartmentType, APTTYPE, APTTYPE_MAINSTA, APTTYPE_STA};
-use windows_sys::Win32::System::Threading::GetCurrentThreadId;
+use windows_sys::Win32::System::Com::{APTTYPE, APTTYPE_MAINSTA, APTTYPE_STA, CoGetApartmentType};
 
 use super::com_bindings::generated::{ReleaseStgMedium, STGMEDIUM};
 
@@ -49,33 +48,46 @@ pub(super) enum NativeComError {
     NullInterface,
     UnknownObject(ComObjectId),
     UnknownMedium(Win16ComHostOwnedMediumId),
-    WrongThread { owner: u32, current: u32 },
+    WrongThread {
+        owner: u32,
+        current: u32,
+    },
     InvalidOwnerIdentity,
     IdentitySpaceExhausted,
     ApartmentQuery(HRESULT),
     WrongApartment(APTTYPE),
     ReferenceCountOverflow,
     InvalidQueryResult,
-    HResult { operation: &'static str, result: HRESULT },
+    HResult {
+        operation: &'static str,
+        result: HRESULT,
+    },
 }
 
 impl fmt::Display for NativeComError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NullInterface => formatter.write_str("native COM interface pointer is null"),
-            Self::UnknownObject(object) => write!(formatter, "native COM object {} is not registered", object.0),
+            Self::UnknownObject(object) => write!(
+                formatter,
+                "native COM object {} is not registered",
+                object.0
+            ),
             Self::UnknownMedium(medium) => write!(
                 formatter,
                 "native COM storage medium {}:{} is not registered",
-                medium.owner.id,
-                medium.id,
+                medium.owner.id, medium.id,
             ),
             Self::WrongThread { owner, current } => write!(
                 formatter,
                 "native COM object belongs to thread {owner}, current thread is {current}",
             ),
-            Self::InvalidOwnerIdentity => formatter.write_str("native COM owner identity is invalid"),
-            Self::IdentitySpaceExhausted => formatter.write_str("native COM identity space was exhausted"),
+            Self::InvalidOwnerIdentity => {
+                formatter.write_str("native COM owner identity is invalid")
+            }
+            Self::IdentitySpaceExhausted => {
+                formatter.write_str("native COM identity space was exhausted")
+            }
             Self::ApartmentQuery(result) => write!(
                 formatter,
                 "native COM apartment query failed with HRESULT 0x{:08X}",
@@ -85,10 +97,18 @@ impl fmt::Display for NativeComError {
                 formatter,
                 "native COM owner must be an STA (reported apartment type {apartment})",
             ),
-            Self::ReferenceCountOverflow => formatter.write_str("native COM reference count overflowed"),
-            Self::InvalidQueryResult => formatter.write_str("native QueryInterface returned a null interface on success"),
+            Self::ReferenceCountOverflow => {
+                formatter.write_str("native COM reference count overflowed")
+            }
+            Self::InvalidQueryResult => {
+                formatter.write_str("native QueryInterface returned a null interface on success")
+            }
             Self::HResult { operation, result } => {
-                write!(formatter, "native COM {operation} failed with HRESULT 0x{:08X}", result.0 as u32)
+                write!(
+                    formatter,
+                    "native COM {operation} failed with HRESULT 0x{:08X}",
+                    result.0 as u32
+                )
             }
         }
     }
@@ -130,7 +150,7 @@ impl Win16ComObjects {
             return Err(NativeComError::InvalidOwnerIdentity);
         }
         // SAFETY: GetCurrentThreadId has no pointer or initialization preconditions.
-        let owner_thread = unsafe { GetCurrentThreadId() };
+        let owner_thread = { crate::windows::win32_safe::current_thread_id() };
         let mut apartment: APTTYPE = 0;
         let mut qualifier = 0;
         // SAFETY: both output slots are valid and COM has been initialized by
@@ -181,15 +201,24 @@ impl Win16ComObjects {
         let canonical_pin = Arc::new(canonical.clone());
         let mut state = self.state.borrow_mut();
         if let Some(object) = state.by_unknown.get(&address).copied() {
-            let can_add = state.by_id.get(&object)
+            let can_add = state
+                .by_id
+                .get(&object)
                 .ok_or(NativeComError::UnknownObject(object))?
-                .references.len();
-            if u32::try_from(can_add).ok().and_then(|count| count.checked_add(1)).is_none() {
+                .references
+                .len();
+            if u32::try_from(can_add)
+                .ok()
+                .and_then(|count| count.checked_add(1))
+                .is_none()
+            {
                 drop(state);
                 drop(canonical_pin);
                 return Err(NativeComError::ReferenceCountOverflow);
             }
-            state.by_id.get_mut(&object)
+            state
+                .by_id
+                .get_mut(&object)
                 .ok_or(NativeComError::UnknownObject(object))?
                 .references
                 .push(canonical);
@@ -210,17 +239,17 @@ impl Win16ComObjects {
         state.by_unknown.insert(address, object);
         state.by_id.insert(
             object,
-            NativeComEntry { canonical: canonical_pin, references: vec![canonical] },
+            NativeComEntry {
+                canonical: canonical_pin,
+                references: vec![canonical],
+            },
         );
         Ok(object)
     }
 
     /// Consume an owned native interface reference returned on a failing
     /// HRESULT. It is not inserted into the guest object table.
-    pub(super) fn discard_owned(
-        &self,
-        interface: *mut c_void,
-    ) -> Result<(), NativeComError> {
+    pub(super) fn discard_owned(&self, interface: *mut c_void) -> Result<(), NativeComError> {
         self.check_thread()?;
         if !interface.is_null() {
             // SAFETY: caller transfers the failing API's output reference.
@@ -236,7 +265,10 @@ impl Win16ComObjects {
         self.check_thread()?;
         let (released, retired, remaining) = {
             let mut state = self.state.borrow_mut();
-            let entry = state.by_id.get_mut(&object).ok_or(NativeComError::UnknownObject(object))?;
+            let entry = state
+                .by_id
+                .get_mut(&object)
+                .ok_or(NativeComError::UnknownObject(object))?;
             let remaining = entry
                 .references
                 .len()
@@ -276,7 +308,9 @@ impl Win16ComObjects {
                 drop(interface);
                 Ok(Some(result))
             }
-            Err(NativeComError::HResult { result, .. }) if result.0 == 0x8000_4002u32 as i32 => Ok(None),
+            Err(NativeComError::HResult { result, .. }) if result.0 == 0x8000_4002u32 as i32 => {
+                Ok(None)
+            }
             Err(error) => Err(error),
         }
     }
@@ -342,7 +376,10 @@ impl Win16ComObjects {
         }
         let native = {
             let mut state = self.state.borrow_mut();
-            state.media.remove(&medium).ok_or(NativeComError::UnknownMedium(medium))?
+            state
+                .media
+                .remove(&medium)
+                .ok_or(NativeComError::UnknownMedium(medium))?
         };
         // SAFETY: the table owns this complete SDK STGMEDIUM exactly once, and
         // ReleaseStgMedium is the documented cleanup for all union arms and
@@ -362,9 +399,12 @@ impl Win16ComObjects {
 
     fn check_thread(&self) -> Result<(), NativeComError> {
         // SAFETY: GetCurrentThreadId has no pointer or initialization preconditions.
-        let current = unsafe { GetCurrentThreadId() };
+        let current = { crate::windows::win32_safe::current_thread_id() };
         if current != self.owner_thread {
-            return Err(NativeComError::WrongThread { owner: self.owner_thread, current });
+            return Err(NativeComError::WrongThread {
+                owner: self.owner_thread,
+                current,
+            });
         }
         let mut apartment: APTTYPE = 0;
         let mut qualifier = 0;
@@ -413,7 +453,7 @@ fn allocate_identity(counter: &AtomicU64) -> Result<u64, NativeComError> {
 impl Drop for Win16ComObjects {
     fn drop(&mut self) {
         // SAFETY: GetCurrentThreadId has no pointer or initialization preconditions.
-        let current = unsafe { GetCurrentThreadId() };
+        let current = { crate::windows::win32_safe::current_thread_id() };
         if current == self.owner_thread {
             if self.shutdown().is_err() {
                 // If COM was already uninitialized or the worker lost its STA,
@@ -445,11 +485,16 @@ fn query_interface(
     // supplies the official generated QueryInterface vtable entry.
     let result = unsafe { unknown.query(&iid, &mut output) };
     if result.0 < 0 {
-        return Err(NativeComError::HResult { operation: "QueryInterface", result });
+        return Err(NativeComError::HResult {
+            operation: "QueryInterface",
+            result,
+        });
     }
     if output.is_null() {
         return Err(NativeComError::InvalidQueryResult);
     }
     // SAFETY: successful QueryInterface transfers one owned COM interface ref.
-    Ok(NativeComInterfaceLease(unsafe { IUnknown::from_raw(output) }))
+    Ok(NativeComInterfaceLease(unsafe {
+        IUnknown::from_raw(output)
+    }))
 }

@@ -27,7 +27,7 @@ use super::win16_spool_jobs::Win16SpoolJobs;
 
 #[path = "win16_network_print_snapshot.rs"]
 mod snapshot;
-use snapshot::{build_snapshot, last_error_or_not_supported, open_printer, SnapshotBuildFailure};
+use snapshot::{SnapshotBuildFailure, build_snapshot, last_error_or_not_supported, open_printer};
 
 const PRINTER_INFO_LEVEL: u32 = 2;
 const JOB_INFO_LEVEL: u32 = 2;
@@ -106,14 +106,22 @@ impl Win16NetworkPrintQueues {
         notification_source_id: Option<u64>,
     ) -> Result<ResultValue, RuntimeError> {
         match operation {
-            Operation::Watch { owner, local_device, user } => {
-                let source_id = notification_source_id.ok_or_else(|| RuntimeError::new(
-                    Kind::InternalInvariant,
-                    "WindowsHost did not allocate a shared WNet notification source ID",
-                ))?;
+            Operation::Watch {
+                owner,
+                local_device,
+                user,
+            } => {
+                let source_id = notification_source_id.ok_or_else(|| {
+                    RuntimeError::new(
+                        Kind::InternalInvariant,
+                        "WindowsHost did not allocate a shared WNet notification source ID",
+                    )
+                })?;
                 if source_id == 0 || source_id == u64::MAX {
-                    return Err(RuntimeError::new(Kind::InternalInvariant,
-                        "WindowsHost supplied a reserved WNet notification source ID"));
+                    return Err(RuntimeError::new(
+                        Kind::InternalInvariant,
+                        "WindowsHost supplied a reserved WNet notification source ID",
+                    ));
                 }
                 self.watch(codec, owner, &local_device, user.as_deref(), source_id)
             }
@@ -292,7 +300,9 @@ impl Win16NetworkPrintQueues {
             Ok(Ok(snapshot)) => {
                 let diagnostic = close_error.map(|error| Win16HostSpoolDiagnostic {
                     kind: Kind::HostFailure,
-                    message: format!("ClosePrinter for WNet queue snapshot failed with Windows error {error}"),
+                    message: format!(
+                        "ClosePrinter for WNet queue snapshot failed with Windows error {error}"
+                    ),
                 });
                 Ok(ResultValue::Snapshot {
                     snapshot: Some(snapshot),
@@ -314,7 +324,10 @@ impl Win16NetworkPrintQueues {
                 })
             }
             Err(failure) => {
-                let SnapshotBuildFailure { error, mut cleanup_jobs } = failure;
+                let SnapshotBuildFailure {
+                    error,
+                    mut cleanup_jobs,
+                } = failure;
                 let mut retained = 0usize;
                 let mut cleanup_native_error = None;
                 let mut diagnostic_kind = error.kind();
@@ -322,8 +335,13 @@ impl Win16NetworkPrintQueues {
                 for index in 0..cleanup_jobs.len() {
                     let token = cleanup_jobs[index];
                     match spool_jobs.release_snapshot_network_job(token) {
-                        Ok(SpoolResult::Status { succeeded: true, .. }) => {}
-                        Ok(SpoolResult::Status { succeeded: false, native_error }) => {
+                        Ok(SpoolResult::Status {
+                            succeeded: true, ..
+                        }) => {}
+                        Ok(SpoolResult::Status {
+                            succeeded: false,
+                            native_error,
+                        }) => {
                             cleanup_jobs[retained] = token;
                             retained += 1;
                             cleanup_native_error = cleanup_native_error.or(native_error);
@@ -332,21 +350,29 @@ impl Win16NetworkPrintQueues {
                             cleanup_jobs[retained] = token;
                             retained += 1;
                             diagnostic_kind = Kind::InternalInvariant;
-                            diagnostic_message.push_str("; snapshot-token rollback returned a different host result");
+                            diagnostic_message.push_str(
+                                "; snapshot-token rollback returned a different host result",
+                            );
                         }
                         Err(cleanup_error) => {
                             cleanup_jobs[retained] = token;
                             retained += 1;
-                            cleanup_native_error = Some(cleanup_native_error.unwrap_or(ERROR_NOT_SUPPORTED));
+                            cleanup_native_error =
+                                Some(cleanup_native_error.unwrap_or(ERROR_NOT_SUPPORTED));
                             diagnostic_kind = cleanup_error.kind();
-                            diagnostic_message.push_str(&format!("; rollback token {} failed: {cleanup_error}", token.token()));
+                            diagnostic_message.push_str(&format!(
+                                "; rollback token {} failed: {cleanup_error}",
+                                token.token()
+                            ));
                         }
                     }
                 }
                 cleanup_jobs.truncate(retained);
                 if let Some(close_error) = close_error {
                     cleanup_native_error = cleanup_native_error.or(Some(close_error));
-                    diagnostic_message.push_str(&format!("; closing the queue printer handle failed with Windows error {close_error}"));
+                    diagnostic_message.push_str(&format!(
+                        "; closing the queue printer handle failed with Windows error {close_error}"
+                    ));
                 }
                 let native_error = cleanup_native_error.unwrap_or(ERROR_NOT_SUPPORTED);
                 Ok(ResultValue::Snapshot {
@@ -505,6 +531,7 @@ impl Drop for Win16NetworkPrintQueues {
         for (_, native) in self.watches.drain() {
             // The owner is shutting down; release the notification before its
             // matching printer handle. No guest watch outlives this registry.
+            // SAFETY: `Some`, `FindClosePrinterChangeNotification`, `ClosePrinter` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe {
                 if let Some(notification) = native.notification {
                     FindClosePrinterChangeNotification(notification);
@@ -515,9 +542,11 @@ impl Drop for Win16NetworkPrintQueues {
             }
         }
         for notification in self.orphaned_notifications.drain(..) {
+            // SAFETY: `FindClosePrinterChangeNotification` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe { FindClosePrinterChangeNotification(notification) };
         }
         for (_, printer) in self.orphaned_printers.drain(..) {
+            // SAFETY: ClosePrinter closes a printer handle this owner opened.
             unsafe { ClosePrinter(printer) };
         }
     }

@@ -9,14 +9,11 @@ use runtime::{
     Win16HostDragListNotification, Win16HostWindow,
 };
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
-use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::Controls::{
     DL_BEGINDRAG, DL_CANCELDRAG, DL_DRAGGING, DL_DROPPED, DRAGLISTINFO, MakeDragList,
 };
 use windows_sys::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass};
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetDlgCtrlID, GetParent, RegisterWindowMessageW, WM_NCDESTROY,
-};
+use windows_sys::Win32::UI::WindowsAndMessaging::{RegisterWindowMessageW, WM_NCDESTROY};
 
 use super::win16_window_worker::{self, DragListOrigin, DragListSidecar, WorkerState};
 
@@ -59,18 +56,19 @@ pub(super) fn make_drag_list(
     let Some(hwnd) = super::win16_window_identity::resolve_user_window(state, list_box) else {
         return Ok(Win16HostCommonControlsResult::Bool(false));
     };
-    let parent_hwnd = unsafe { GetParent(hwnd) };
+    let parent_hwnd = crate::windows::win32_safe::get_parent(hwnd);
     if parent_hwnd.is_null() {
         return Ok(Win16HostCommonControlsResult::Bool(false));
     }
     let parent = super::win16_window_worker::token_for_native(state, parent_hwnd)?;
-    let owner_thread = unsafe { GetCurrentThreadId() };
+    let owner_thread = crate::windows::win32_safe::current_thread_id();
     if owner_thread == 0 {
         return Err(RuntimeError::new(
             Kind::HostFailure,
             "GetCurrentThreadId returned zero for MakeDragList owner",
         ));
     }
+    // SAFETY: `RegisterWindowMessageW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let message = unsafe { RegisterWindowMessageW(DRAG_LIST_MESSAGE.as_ptr()) };
     if !(0xc000..=u32::from(u16::MAX)).contains(&message) {
         return Err(RuntimeError::new(
@@ -140,6 +138,7 @@ pub(super) fn make_drag_list(
     // Publish identity and reserve callback capacity before the native effect:
     // setup can synchronously notify, and a pointer-bearing LPARAM must never
     // fall through to the generic guest-message path.
+    // SAFETY: `MakeDragList` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     if unsafe { MakeDragList(hwnd) } == 0 {
         if !existing {
             state.borrow_mut().drag_lists.retain(|entry| {
@@ -160,7 +159,7 @@ pub(super) fn make_drag_list(
         }
         return Ok(Win16HostCommonControlsResult::Bool(false));
     }
-    let current_parent = unsafe { GetParent(hwnd) };
+    let current_parent = crate::windows::win32_safe::get_parent(hwnd);
     if current_parent.is_null() {
         return Err(RuntimeError::new(
             Kind::HostFailure,
@@ -183,6 +182,7 @@ pub(super) fn make_drag_list(
     // Register after MakeDragList so this sidecar is outermost and its exact
     // DefSubclassProc scope contains the control's synchronous parent send.
     let installed =
+        // SAFETY: `SetWindowSubclass`, `Some` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { SetWindowSubclass(hwnd, Some(drag_list_subclass_proc), subclass_id, 0) } != 0;
     if !installed {
         // Keep the uninstrumented identity so a later native pointer-bearing
@@ -261,7 +261,7 @@ pub(super) fn classify(
         || origin.list_box != sidecar.list_box
         || origin.hwnd != sidecar.hwnd
         || origin.owner_thread != sidecar.owner_thread
-        || unsafe { GetCurrentThreadId() } != sidecar.owner_thread
+        || { crate::windows::win32_safe::current_thread_id() } != sidecar.owner_thread
         || !active
             .as_ref()
             .is_some_and(|active| active.id == origin.operation && active.allows_drag_list_origin())
@@ -273,9 +273,10 @@ pub(super) fn classify(
     {
         return Ok(DragListDispatch::SuppressUnprovenNativePointer);
     }
-    let native_parent = unsafe { GetParent(sidecar.hwnd as HWND) };
-    if native_parent != parent_hwnd
-        || unsafe { GetDlgCtrlID(sidecar.hwnd as HWND) as u16 } != w_param as u16
+    let native_parent = crate::windows::win32_safe::get_parent(sidecar.hwnd as HWND);
+    if native_parent != parent_hwnd || {
+        crate::windows::win32_safe::get_dlg_ctrl_id(sidecar.hwnd as HWND) as u16
+    } != w_param as u16
     {
         return Ok(DragListDispatch::SuppressUnprovenNativePointer);
     }
@@ -340,6 +341,7 @@ pub(super) fn retire_all(state: &Rc<RefCell<WorkerState>>) -> Result<(), Runtime
             remove_sidecar(state, &entry);
             continue;
         }
+        // SAFETY: `RemoveWindowSubclass`, `Some` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe { RemoveWindowSubclass(hwnd, Some(drag_list_subclass_proc), entry.subclass_id) }
             != 0
             || super::win16_window_identity::resolve(state, entry.list_box) != Some(hwnd)
@@ -364,6 +366,7 @@ pub(super) fn retire_all(state: &Rc<RefCell<WorkerState>>) -> Result<(), Runtime
     first_error.map_or(Ok(()), Err)
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn drag_list_subclass_proc(
     hwnd: HWND,
     message: u32,
@@ -387,6 +390,7 @@ unsafe extern "system" fn drag_list_subclass_proc(
                     ),
                 );
             }
+            // SAFETY: DefSubclassProc forwards this subclass message. Pointer parameters stay live for the call.
             unsafe { DefSubclassProc(hwnd, message, w_param, l_param) }
         }
     }
@@ -400,6 +404,7 @@ fn dispatch_drag_list_subclass(
     subclass_id: usize,
 ) -> LRESULT {
     let Some(state) = win16_window_worker::worker_context() else {
+        // SAFETY: DefSubclassProc forwards this subclass message. Pointer parameters stay live for the call.
         return unsafe { DefSubclassProc(hwnd, message, w_param, l_param) };
     };
     let frame = {
@@ -414,10 +419,11 @@ fn dispatch_drag_list_subclass(
             .cloned()
         else {
             drop(worker);
+            // SAFETY: DefSubclassProc forwards this subclass message. Pointer parameters stay live for the call.
             return unsafe { DefSubclassProc(hwnd, message, w_param, l_param) };
         };
         let active = worker.active_operations.last().cloned();
-        let owner_thread = unsafe { GetCurrentThreadId() };
+        let owner_thread = crate::windows::win32_safe::current_thread_id();
         if let Some(active) = active
             .filter(|frame| frame.allows_drag_list_origin() && sidecar.owner_thread == owner_thread)
         {
@@ -430,6 +436,7 @@ fn dispatch_drag_list_subclass(
                         "reserve MakeDragList callback origin",
                     ),
                 );
+                // SAFETY: DefSubclassProc forwards this subclass message. Pointer parameters stay live for the call.
                 return unsafe { DefSubclassProc(hwnd, message, w_param, l_param) };
             }
             let origin = DragListOrigin {
@@ -446,6 +453,7 @@ fn dispatch_drag_list_subclass(
             None
         }
     };
+    // SAFETY: DefSubclassProc forwards this subclass message. Pointer parameters stay live for the call.
     let result = unsafe { DefSubclassProc(hwnd, message, w_param, l_param) };
     if let Some(frame) = frame {
         let popped = {
@@ -469,8 +477,9 @@ fn dispatch_drag_list_subclass(
     }
     if message == WM_NCDESTROY {
         let retired =
+            // SAFETY: `RemoveWindowSubclass`, `Some` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe { RemoveWindowSubclass(hwnd, Some(drag_list_subclass_proc), subclass_id) };
-        let is_live = unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(hwnd) } != 0;
+        let is_live = (crate::windows::win32_safe::is_window(hwnd)) != 0;
         if retired != 0 || !is_live {
             state
                 .borrow_mut()

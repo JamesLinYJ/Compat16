@@ -17,7 +17,9 @@ pub(super) struct Fonts {
 }
 impl Fonts {
     pub fn new(dpi: u32) -> Result<Self, String> {
-        let font = |height, weight, face| unsafe {
+        let font = |height, weight, face|
+            // SAFETY: `CreateFontW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe {
             CreateFontW(
                 -scale(height, dpi),
                 0,
@@ -49,6 +51,7 @@ impl Fonts {
 }
 impl Drop for Fonts {
     fn drop(&mut self) {
+        // SAFETY: `DeleteObject` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             if !self.regular.is_null() {
                 DeleteObject(self.regular);
@@ -99,7 +102,9 @@ impl Controls {
                        footer: bool,
                        title: bool|
          -> Result<HWND, String> {
-            let window = unsafe {
+            let window =
+                // SAFETY: `CreateWindowExW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+                unsafe {
                 CreateWindowExW(
                     0,
                     wide(class).as_ptr(),
@@ -431,6 +436,7 @@ impl Controls {
         }
         combo_select(dos, usize::from(settings.dos_page == 936));
         set_text(version, &settings.dos_version);
+        // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             SendMessageW(
                 diagnostics,
@@ -451,6 +457,7 @@ impl Controls {
 
     pub fn fonts(&self, fonts: &Fonts) {
         for item in &self.items {
+            // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
             unsafe {
                 SendMessageW(
                     item.window,
@@ -473,11 +480,13 @@ pub(super) fn scale(value: i32, dpi: u32) -> i32 {
     ((i64::from(value) * i64::from(dpi) + 48) / 96) as i32
 }
 fn combo_add(window: HWND, label: &str) {
+    // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe {
         SendMessageW(window, CB_ADDSTRING, 0, wide(label).as_ptr() as isize);
     }
 }
 fn combo_select(window: HWND, index: usize) {
+    // SAFETY: `SendMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe {
         SendMessageW(window, CB_SETCURSEL, index, 0);
     }

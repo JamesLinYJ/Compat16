@@ -157,6 +157,7 @@ impl Win16WaveHost {
     ) -> Result<Win16HostWaveResult, RuntimeError> {
         match operation {
             Win16HostWaveOperation::DeviceCount { direction } => {
+                // SAFETY: waveInGetNumDevs takes no pointers. waveOutGetNumDevs takes no pointers.
                 let count = unsafe {
                     match direction {
                         Win16HostWaveDirection::Input => waveInGetNumDevs(),
@@ -191,7 +192,7 @@ impl Win16WaveHost {
                 Ok(self.get_parameter(device, parameter))
             }
             Win16HostWaveOperation::GetVolumeById { device_id } => {
-                let (result, value) = unsafe { native::get_volume_by_id(device_id) };
+                let (result, value) = { native::get_volume_by_id(device_id) };
                 if result == MMSYSERR_NOERROR && value.is_none() {
                     return Err(wave_invariant(
                         "successful WinMM device-volume query omitted output",
@@ -210,7 +211,7 @@ impl Win16WaveHost {
                 value,
             } => Ok(self.set_parameter(device, parameter, value)),
             Win16HostWaveOperation::SetVolumeById { device_id, value } => {
-                Ok(Win16HostWaveResult::Scalar(unsafe {
+                Ok(Win16HostWaveResult::Scalar({
                     native::set_volume_by_id(device_id, value)
                 }))
             }
@@ -218,7 +219,7 @@ impl Win16WaveHost {
                 direction,
                 device_id,
             } => {
-                let result = unsafe { native::query_mappable(direction, device_id) };
+                let result = { native::query_mappable(direction, device_id) };
                 Ok(Win16HostWaveResult::Scalar(result))
             }
             Win16HostWaveOperation::ErrorText {
@@ -421,6 +422,7 @@ impl Win16WaveHost {
         if let Some(callback) = self.devices[device_index].callback.as_ref() {
             callback.register_header(native_header_address, Arc::clone(&signal))?;
         }
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let result = unsafe {
             native::prepare_native(
                 self.devices[device_index].direction,
@@ -428,6 +430,7 @@ impl Win16WaveHost {
                 native_header,
             )
         };
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let state = Some(unsafe { callback::header_state(native_header) });
         if result != MMSYSERR_NOERROR {
             if let Some(callback) = self.devices[device_index].callback.as_ref() {
@@ -516,6 +519,7 @@ impl Win16WaveHost {
             return Ok(header_result(
                 MMSYSERR_INVALPARAM,
                 Some(buffer_token),
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 Some(unsafe { callback::header_state(ptr::addr_of!(buffer.storage.header)) }),
             ));
         }
@@ -551,7 +555,9 @@ impl Win16WaveHost {
         buffer.active_submission = Some(submission);
         buffer.signal.arm_submission(submission);
         buffer.in_flight = true;
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let result = unsafe { native::submit_native(direction, native_device, native_header) };
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let state = unsafe { callback::header_state(native_header) };
         if result != MMSYSERR_NOERROR {
             buffer.in_flight = false;
@@ -602,6 +608,7 @@ impl Win16WaveHost {
             let buffer = &mut device.buffers[buffer_index];
             let native_header = ptr::addr_of_mut!(buffer.storage.header);
             let result = if buffer.prepared {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { native::unprepare_native(device.direction, &device.native, native_header) }
             } else {
                 // A prior native unprepare may have succeeded before a
@@ -609,6 +616,7 @@ impl Win16WaveHost {
                 // state without calling WinMM on an already unprepared header.
                 MMSYSERR_NOERROR
             };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let state = unsafe { callback::header_state(native_header) };
             let submission = buffer.active_submission;
             let had_submission = submission.is_some();
@@ -670,6 +678,7 @@ impl Win16WaveHost {
         if device.native_closed {
             return Ok(Win16HostWaveResult::Scalar(MMSYSERR_INVALHANDLE));
         }
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let result = unsafe { native::control_native(device.direction, &device.native, command) };
         if command == Win16HostWaveControl::Close && result == MMSYSERR_NOERROR {
             device.closing = true;

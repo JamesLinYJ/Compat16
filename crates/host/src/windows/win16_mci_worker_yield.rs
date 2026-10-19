@@ -31,6 +31,7 @@ fn pump_until_resume(
     }
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 pub(in crate::windows::win16_mci_owner::worker) unsafe extern "system" fn mci_yield_proc(
     native_device: u32,
     data: u32,
@@ -57,11 +58,17 @@ pub(in crate::windows::win16_mci_owner::worker) unsafe extern "system" fn mci_yi
         match registry.existing_identity(native_device) {
             Some(device) => match registry.current_yield_registration(device) {
                 Some(registration) => Ok((device, registration)),
-                None => Err((Some(device), MciEnteredYieldFailurePhase::ResolveRegistration,
-                    MciEnteredYieldFailureCause::RegistrationMissing)),
+                None => Err((
+                    Some(device),
+                    MciEnteredYieldFailurePhase::ResolveRegistration,
+                    MciEnteredYieldFailureCause::RegistrationMissing,
+                )),
             },
-            None => Err((None, MciEnteredYieldFailurePhase::ResolveNativeDevice,
-                MciEnteredYieldFailureCause::NativeDeviceUnowned)),
+            None => Err((
+                None,
+                MciEnteredYieldFailurePhase::ResolveNativeDevice,
+                MciEnteredYieldFailureCause::NativeDeviceUnowned,
+            )),
         }
     };
     let (device, registration) = match owner {
@@ -81,11 +88,11 @@ pub(in crate::windows::win16_mci_owner::worker) unsafe extern "system" fn mci_yi
             },
         ),
     };
-    let frame = match invocation
-        .state
-        .next_frame
-        .try_update(Ordering::Relaxed, Ordering::Relaxed, |value: u64| value.checked_add(1))
-    {
+    let frame = match invocation.state.next_frame.try_update(
+        Ordering::Relaxed,
+        Ordering::Relaxed,
+        |value: u64| value.checked_add(1),
+    ) {
         Ok(value) => Win16HostMciYieldFrame(value),
         Err(_) => retain_and_park_entered_yield(
             &invocation,
@@ -107,12 +114,7 @@ pub(in crate::windows::win16_mci_owner::worker) unsafe extern "system" fn mci_yi
         frame,
         device,
     };
-    if let Err(error) = invocation
-        .state
-        .returned_yields
-        .borrow_mut()
-        .try_reserve(2)
-    {
+    if let Err(error) = invocation.state.returned_yields.borrow_mut().try_reserve(2) {
         retain_and_park_entered_yield(
             &invocation,
             MciEnteredYieldFailure {
@@ -186,12 +188,7 @@ pub(in crate::windows::win16_mci_owner::worker) unsafe extern "system" fn mci_yi
             },
         );
     }
-    let guest_return = pump_until_resume(
-        &invocation.state,
-        invocation.operation,
-        frame,
-        device,
-    );
+    let guest_return = pump_until_resume(&invocation.state, invocation.operation, frame, device);
     let returned_yield = Win16HostMciYieldReturn {
         owner: active_yield,
         guest_return,

@@ -163,6 +163,7 @@ pub(super) fn retire_events(
 
 /// WinMM invokes this on a timer thread. It publishes owned callback values
 /// and returns; it does not enter guest code.
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn multimedia_timer_callback(
     _timer_id: u32,
     _message: u32,

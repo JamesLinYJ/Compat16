@@ -12,8 +12,12 @@ fn wide(text: &str) -> Vec<u16> {
 
 fn absent(root: HKEY, name: &[u16]) {
     let mut key = null_mut();
-    let status = unsafe { RegOpenKeyW(root, name.as_ptr(), &mut key) };
+    // SAFETY: RegOpenKeyW reads a caller-owned subkey name and writes a caller-owned HKEY.
+    let status =
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
+        unsafe { RegOpenKeyW(root, name.as_ptr(), &mut key) };
     if status == 0 {
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
         unsafe { RegCloseKey(key) };
     }
     assert_eq!(
@@ -28,7 +32,10 @@ struct Fixture {
 }
 impl Fixture {
     fn cleanup(&self) {
-        let status = unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.path.as_ptr()) };
+        // SAFETY: RegDeleteTreeW reads a caller-owned subkey name, or null for the key itself.
+        let status =
+            // SAFETY: `RegDeleteTreeW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.path.as_ptr()) };
         assert_eq!(
             status, 0,
             "remove only the fixture's unique HKCU Classes child"
@@ -39,6 +46,7 @@ impl Fixture {
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
+        // SAFETY: RegDeleteTreeW reads a caller-owned subkey name, or null for the key itself.
         unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.path.as_ptr()) };
     }
 }
@@ -58,7 +66,10 @@ fn verify(engine: &str) {
     // Install cleanup only after all pre-existing-key checks passed.
     let fixture = Fixture { path, name: child };
     let mut parent = null_mut();
-    let status = unsafe {
+    // SAFETY: RegOpenKeyW reads a caller-owned subkey name and writes a caller-owned HKEY.
+    let status =
+        // SAFETY: `RegOpenKeyW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe {
         RegOpenKeyW(
             HKEY_CURRENT_USER,
             wide("Software\\Classes").as_ptr(),
@@ -67,13 +78,23 @@ fn verify(engine: &str) {
     };
     assert_eq!(status, 0, "shared Classes parent must already exist");
     let mut key = null_mut();
-    let status = unsafe { RegCreateKeyW(parent, fixture.name.as_ptr(), &mut key) };
-    let closed_parent = unsafe { RegCloseKey(parent) };
+    // SAFETY: `RegCreateKeyW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+    let status =
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
+        unsafe { RegCreateKeyW(parent, fixture.name.as_ptr(), &mut key) };
+    let closed_parent =
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
+        unsafe { RegCloseKey(parent) };
     assert_eq!(status, 0, "create only the unique HKCU fixture");
     assert_eq!(closed_parent, 0);
     let value = wide("RootText");
-    let status = unsafe { RegSetValueW(key, std::ptr::null(), 1, value.as_ptr(), 0) };
-    let closed = unsafe { RegCloseKey(key) };
+    // SAFETY: `RegSetValueW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+    let status =
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
+        unsafe { RegSetValueW(key, std::ptr::null(), 1, value.as_ptr(), 0) };
+    let closed =
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
+        unsafe { RegCloseKey(key) };
     assert_eq!(status, 0);
     assert_eq!(closed, 0);
     let program = directory.path().join("REGROOTS.EXE");

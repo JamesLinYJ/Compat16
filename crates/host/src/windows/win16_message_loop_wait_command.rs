@@ -6,11 +6,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError};
-use windows_sys::Win32::Foundation::{GetLastError, WAIT_ABANDONED_0, WAIT_FAILED, WAIT_OBJECT_0};
+use windows_sys::Win32::Foundation::{WAIT_ABANDONED_0, WAIT_FAILED, WAIT_OBJECT_0};
 use windows_sys::Win32::System::Threading::INFINITE;
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    MsgWaitForMultipleObjectsEx, QS_ALLINPUT,
-};
+use windows_sys::Win32::UI::WindowsAndMessaging::{MsgWaitForMultipleObjectsEx, QS_ALLINPUT};
 
 use super::{WorkerCommand, WorkerState};
 
@@ -28,24 +26,20 @@ pub(in crate::windows::win16_windows) fn wait_for_worker_command(
         }
         let event = Arc::clone(&state.borrow().wake_event);
         let handles = [event.as_raw_handle() as windows_sys::Win32::Foundation::HANDLE];
-        let result = unsafe {
-            MsgWaitForMultipleObjectsEx(
-                1,
-                handles.as_ptr(),
-                INFINITE,
-                QS_ALLINPUT,
-                0,
-            )
-        };
+        // SAFETY: `MsgWaitForMultipleObjectsEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+        let result =
+            unsafe { MsgWaitForMultipleObjectsEx(1, handles.as_ptr(), INFINITE, QS_ALLINPUT, 0) };
         if result == WAIT_OBJECT_0 {
             continue;
         }
         if result == WAIT_OBJECT_0 + 1 {
             continue;
         }
-        let code = unsafe { GetLastError() };
+        let code = crate::windows::win32_safe::last_error();
         let detail = match result {
-            WAIT_FAILED => format!("wait for a Win16 USER continuation failed with Windows error {code}"),
+            WAIT_FAILED => {
+                format!("wait for a Win16 USER continuation failed with Windows error {code}")
+            }
             WAIT_ABANDONED_0 => "Win16 USER continuation wait event was abandoned".to_owned(),
             _ => format!("wait for a Win16 USER continuation returned unexpected status {result}"),
         };

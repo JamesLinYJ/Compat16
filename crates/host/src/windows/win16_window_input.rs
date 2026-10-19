@@ -10,14 +10,14 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostActivationApp,
-    Win16HostControlColor, Win16HostParentNotification,
-    Win16HostParentNotificationData, Win16HostWindow, Win16WindowInputMessage};
+use runtime::{
+    DiagnosticKind as Kind, RuntimeError, Win16HostActivationApp, Win16HostControlColor,
+    Win16HostParentNotification, Win16HostParentNotificationData, Win16HostWindow,
+    Win16WindowInputMessage,
+};
 use windows_sys::Win32::Foundation::HWND;
-use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    IsIconic, IsWindow, WM_ACTIVATE, WM_KILLFOCUS, WM_MOUSEACTIVATE, WM_NCACTIVATE,
-    WM_SETCURSOR, WM_SETFOCUS,
+    WM_ACTIVATE, WM_KILLFOCUS, WM_MOUSEACTIVATE, WM_NCACTIVATE, WM_SETCURSOR, WM_SETFOCUS,
 };
 
 use super::win16_window_worker::{self as worker, WorkerState};
@@ -32,7 +32,7 @@ pub(super) fn decode_activation_app(
     let thread_id = u32::try_from(l_param).ok()?;
     let other_task_queue = if thread_id == 0 {
         None
-    } else if thread_id == unsafe { GetCurrentThreadId() } {
+    } else if thread_id == (crate::windows::win32_safe::current_thread_id()) {
         Some(super::win16_guest_notifications::require_bound_queue(
             super::win16_guest_notifications::current_queue(),
         )?)
@@ -52,7 +52,9 @@ pub(super) fn decode_parent_notification(
     w_param: usize,
     l_param: isize,
 ) -> Result<Option<Win16HostParentNotification>, RuntimeError> {
-    let Ok(packed_w_param) = u32::try_from(w_param) else { return Ok(None); };
+    let Ok(packed_w_param) = u32::try_from(w_param) else {
+        return Ok(None);
+    };
     let event = packed_w_param as u16;
     let data = if matches!(event, WM_CREATE | WM_DESTROY) {
         let Some(child) = token_for_optional_hwnd(state, l_param as HWND)? else {
@@ -65,9 +67,9 @@ pub(super) fn decode_parent_notification(
     } else if is_parent_mouse_event(event) {
         let coordinates = l_param as u32;
         let raw_l_param = l_param as i64;
-        let has_exact_packed_coordinates =
-            (raw_l_param >= 0 && raw_l_param as u64 == u64::from(coordinates))
-                || raw_l_param == i64::from(coordinates as i32);
+        let has_exact_packed_coordinates = (raw_l_param >= 0
+            && raw_l_param as u64 == u64::from(coordinates))
+            || raw_l_param == i64::from(coordinates as i32);
         if !has_exact_packed_coordinates {
             return Ok(None);
         }
@@ -85,28 +87,37 @@ pub(super) fn decode_control_color(
     w_param: usize,
     l_param: isize,
 ) -> Result<Option<Win16HostControlColor>, RuntimeError> {
-    let Some(kind) = control_color_kind(message) else { return Ok(None); };
+    let Some(kind) = control_color_kind(message) else {
+        return Ok(None);
+    };
     let Some(control) = token_for_optional_hwnd(state, l_param as HWND)? else {
         return Ok(None);
     };
     let dc = if w_param == 0 {
         None
     } else {
-        Some(worker::adopt_callback_dc(state, window, w_param)?.ok_or_else(||
-            RuntimeError::new(Kind::HostFailure,
-                "native control-color HDC could not be leased for its callback"))?)
+        Some(
+            worker::adopt_callback_dc(state, window, w_param)?.ok_or_else(|| {
+                RuntimeError::new(
+                    Kind::HostFailure,
+                    "native control-color HDC could not be leased for its callback",
+                )
+            })?,
+        )
     };
     Ok(Some(Win16HostControlColor { kind, dc, control }))
 }
 
-pub(super) fn encode_activation_app(
-    input: Win16HostActivationApp,
-) -> Option<(usize, isize)> {
+pub(super) fn encode_activation_app(input: Win16HostActivationApp) -> Option<(usize, isize)> {
     let thread_id = match input.other_task_queue {
         None => 0,
-        Some(queue) if super::win16_guest_notifications::require_bound_queue(
-            super::win16_guest_notifications::current_queue(),
-        ) == Some(queue) => unsafe { GetCurrentThreadId() },
+        Some(queue)
+            if super::win16_guest_notifications::require_bound_queue(
+                super::win16_guest_notifications::current_queue(),
+            ) == Some(queue) =>
+        {
+            crate::windows::win32_safe::current_thread_id()
+        }
         Some(_) => return None,
     };
     Some((usize::from(input.active != 0), thread_id as isize))
@@ -118,14 +129,21 @@ pub(super) fn encode_parent_notification(
 ) -> Result<Option<(usize, isize)>, RuntimeError> {
     match input.data {
         Win16HostParentNotificationData::Child { child, id }
-            if matches!(input.event, WM_CREATE | WM_DESTROY) => {
-            let Some(child) = resolve_optional_hwnd(state, child) else { return Ok(None); };
+            if matches!(input.event, WM_CREATE | WM_DESTROY) =>
+        {
+            let Some(child) = resolve_optional_hwnd(state, child) else {
+                return Ok(None);
+            };
             let w_param = usize::from(input.event) | (usize::from(id) << 16);
             Ok(Some((w_param, child as isize)))
         }
         Win16HostParentNotificationData::Mouse { coordinates }
-            if is_parent_mouse_event(input.event) => {
-            Ok(Some((usize::from(input.event), (coordinates as i32) as isize)))
+            if is_parent_mouse_event(input.event) =>
+        {
+            Ok(Some((
+                usize::from(input.event),
+                (coordinates as i32) as isize,
+            )))
         }
         _ => Ok(None),
     }
@@ -170,7 +188,10 @@ pub(super) fn decode_window_input(
             let Some(other) = token_for_optional_hwnd(state, w_param as HWND)? else {
                 return Ok(None);
             };
-            Win16WindowInputMessage::Focus { gained: message == WM_SETFOCUS, other }
+            Win16WindowInputMessage::Focus {
+                gained: message == WM_SETFOCUS,
+                other,
+            }
         }
         WM_ACTIVATE => {
             // Native Win32 uses LOWORD/HIWORD(WPARAM) for state and minimized
@@ -237,7 +258,11 @@ pub(super) fn decode_nonclient_activation(
     };
 
     let active = if w_param != 0 { 1 } else { 0 };
-    let minimized = if unsafe { IsIconic(receiver) } != 0 { 1 } else { 0 };
+    let minimized = if (crate::windows::win32_safe::is_iconic(receiver)) != 0 {
+        1
+    } else {
+        0
+    };
     Ok(Some(Win16WindowInputMessage::NonClientActivate {
         active,
         minimized,
@@ -259,7 +284,11 @@ pub(super) fn encode_window_input(
             };
             (message, other as usize, 0)
         }
-        Win16WindowInputMessage::Activate { state: activation, minimized, other } => {
+        Win16WindowInputMessage::Activate {
+            state: activation,
+            minimized,
+            other,
+        } => {
             let Some(other) = resolve_optional_hwnd(state, other) else {
                 return Ok(None);
             };
@@ -276,17 +305,33 @@ pub(super) fn encode_window_input(
             // the full HWND in LPARAM. Its native ABI has no minimized field.
             (message, usize::from(active), other as isize)
         }
-        Win16WindowInputMessage::SetCursor { target, hit_test, mouse_message } => {
+        Win16WindowInputMessage::SetCursor {
+            target,
+            hit_test,
+            mouse_message,
+        } => {
             let Some(target) = resolve_optional_hwnd(state, target) else {
                 return Ok(None);
             };
-            (message, target as usize, pack_words(hit_test, mouse_message))
+            (
+                message,
+                target as usize,
+                pack_words(hit_test, mouse_message),
+            )
         }
-        Win16WindowInputMessage::MouseActivate { parent, hit_test, mouse_message } => {
+        Win16WindowInputMessage::MouseActivate {
+            parent,
+            hit_test,
+            mouse_message,
+        } => {
             let Some(parent) = resolve_optional_hwnd(state, parent) else {
                 return Ok(None);
             };
-            (message, parent as usize, pack_words(hit_test, mouse_message))
+            (
+                message,
+                parent as usize,
+                pack_words(hit_test, mouse_message),
+            )
         }
     };
     Ok(Some(encoded))
@@ -299,12 +344,15 @@ fn token_for_optional_hwnd(
     if hwnd.is_null() {
         return Ok(Some(None));
     }
-    if unsafe { IsWindow(hwnd) } == 0 {
+    if (crate::windows::win32_safe::is_window(hwnd)) == 0 {
         return Ok(None);
     }
     match worker::token_for_native(state, hwnd) {
         Ok(token) => Ok(Some(Some(token))),
-        Err(error) if error.kind() == Kind::InvalidInput && unsafe { IsWindow(hwnd) } == 0 => {
+        Err(error)
+            if error.kind() == Kind::InvalidInput
+                && (crate::windows::win32_safe::is_window(hwnd)) == 0 =>
+        {
             // The HWND was valid before adoption but was destroyed during the
             // check. Treat only that race as an untranslated message; cookie
             // and identity-ledger failures remain fatal.

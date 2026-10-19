@@ -1,23 +1,23 @@
 //! Host-owned MCI identity, continuation, and notification queues.
 
-#[path = "win16_mci_worker.rs"]
-mod worker;
 #[path = "win16_mci_owner_ack.rs"]
 mod notification_ack;
 #[path = "win16_mci_owner_ledger.rs"]
 mod notification_ledger;
+#[path = "win16_mci_worker.rs"]
+mod worker;
 
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex, PoisonError};
 use std::sync::atomic::AtomicU64;
+use std::sync::{Arc, Mutex, PoisonError};
 
-use super::multimedia_wake::MultimediaWakeSender;
 use super::guest_text::GuestTextCodec;
+use super::multimedia_wake::MultimediaWakeSender;
 use notification_ledger::combine_failure_kind;
 use runtime::{
-    RuntimeError, Win16HostMciCall, Win16HostMciDevice, Win16HostMciNotification,
-    Win16HostMciNotificationId, Win16HostMciResume, Win16HostMciStep,
-    Win16GuestNotificationSource, Win16HostWindow,
+    RuntimeError, Win16GuestNotificationSource, Win16HostMciCall, Win16HostMciDevice,
+    Win16HostMciNotification, Win16HostMciNotificationId, Win16HostMciResume, Win16HostMciStep,
+    Win16HostWindow,
 };
 #[path = "win16_mci_owner_failure.rs"]
 mod failure;

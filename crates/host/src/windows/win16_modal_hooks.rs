@@ -4,12 +4,11 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError};
-use windows_sys::Win32::Foundation::{GetLastError, HWND};
-use windows_sys::Win32::System::Threading::{GetCurrentProcessId, GetCurrentThreadId};
+use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, GetClassNameW, GetWindowThreadProcessId, HC_ACTION, HCBT_ACTIVATE,
-    HCBT_DESTROYWND, HHOOK, MSG, PM_NOREMOVE, PM_REMOVE, PostMessageW, PostQuitMessage,
-    SetWindowsHookExW, UnhookWindowsHookEx, WH_CBT, WH_GETMESSAGE, WM_NULL,
+    HCBT_DESTROYWND, HHOOK, MSG, PM_NOREMOVE, PM_REMOVE, PostMessageW, SetWindowsHookExW, WH_CBT,
+    WH_GETMESSAGE, WM_NULL,
 };
 
 use super::{
@@ -29,7 +28,7 @@ impl ModalWorkerHooks {
     pub(in crate::windows) fn install(
         control: Arc<ModalWorkerControl>,
     ) -> Result<Self, RuntimeError> {
-        let thread_id = unsafe { GetCurrentThreadId() };
+        let thread_id = crate::windows::win32_safe::current_thread_id();
         control.bind_thread(thread_id)?;
         control.register_guest_work_message()?;
         let already_installed = super::WORKER_CONTROL.with(|slot| {
@@ -51,6 +50,7 @@ impl ModalWorkerHooks {
         }
 
         // hmod is null because both hooks target this process's current thread.
+        // SAFETY: `SetWindowsHookExW`, `Some` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let get_message = unsafe {
             SetWindowsHookExW(
                 WH_GETMESSAGE,
@@ -60,7 +60,7 @@ impl ModalWorkerHooks {
             )
         };
         if get_message.is_null() {
-            let error = unsafe { GetLastError() };
+            let error = crate::windows::win32_safe::last_error();
             clear_worker_control(&control);
             return Err(RuntimeError::with_source(
                 Kind::HostFailure,
@@ -68,6 +68,7 @@ impl ModalWorkerHooks {
                 std::io::Error::from_raw_os_error(error as i32),
             ));
         }
+        // SAFETY: `SetWindowsHookExW`, `Some` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let cbt = unsafe {
             SetWindowsHookExW(
                 WH_CBT,
@@ -77,15 +78,15 @@ impl ModalWorkerHooks {
             )
         };
         if cbt.is_null() {
-            let error = unsafe { GetLastError() };
+            let error = crate::windows::win32_safe::last_error();
             let failure = RuntimeError::with_source(
                 Kind::HostFailure,
                 "install the Win16 USER worker CBT hook",
                 std::io::Error::from_raw_os_error(error as i32),
             );
-            let removed = unsafe { UnhookWindowsHookEx(get_message) };
+            let removed = crate::windows::win32_safe::unhook_windows_hook(get_message);
             let rollback = if removed == 0 {
-                let error = unsafe { GetLastError() };
+                let error = crate::windows::win32_safe::last_error();
                 Some(RuntimeError::with_source(
                     Kind::HostFailure,
                     "remove the partially installed Win16 USER message hook",
@@ -123,8 +124,8 @@ impl ModalWorkerHooks {
             ));
         }
         let get_message_removed = self.get_message.take().is_some_and(|hook| {
-            if unsafe { UnhookWindowsHookEx(hook) } == 0 {
-                let error = unsafe { GetLastError() };
+            if (crate::windows::win32_safe::unhook_windows_hook(hook)) == 0 {
+                let error = crate::windows::win32_safe::last_error();
                 merge_failure(
                     &mut failure,
                     RuntimeError::with_source(
@@ -149,8 +150,8 @@ impl ModalWorkerHooks {
             }
         }
         if let Some(hook) = self.cbt.take() {
-            if unsafe { UnhookWindowsHookEx(hook) } == 0 {
-                let error = unsafe { GetLastError() };
+            if (crate::windows::win32_safe::unhook_windows_hook(hook)) == 0 {
+                let error = crate::windows::win32_safe::last_error();
                 merge_failure(
                     &mut failure,
                     RuntimeError::with_source(
@@ -178,8 +179,8 @@ impl Drop for ModalWorkerHooks {
             .into_iter()
             .flatten()
         {
-            if unsafe { UnhookWindowsHookEx(hook) } == 0 {
-                let error = unsafe { GetLastError() };
+            if (crate::windows::win32_safe::unhook_windows_hook(hook)) == 0 {
+                let error = crate::windows::win32_safe::last_error();
                 self.control
                     .record_callback_failure(RuntimeError::with_source(
                         Kind::HostFailure,
@@ -192,6 +193,7 @@ impl Drop for ModalWorkerHooks {
     }
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn modal_get_message_proc(
     code: i32,
     w_param: usize,
@@ -211,11 +213,12 @@ unsafe extern "system" fn modal_get_message_proc(
                     "Win16 owner-thread message hook panicked",
                 ));
                 if control.terminal_requested() {
-                    unsafe { PostQuitMessage(0) };
+                    (crate::windows::win32_safe::post_quit_message(0));
                 }
             }
         }
     }
+    // SAFETY: CallNextHookEx forwards the hook arguments Windows passed into this callback.
     unsafe { CallNextHookEx(std::ptr::null_mut(), code, w_param, l_param) }
 }
 
@@ -333,7 +336,7 @@ fn handle_worker_message(message: &mut MSG) {
     {
         // The terminal owner-thread quit unwinds nested system modal loops.
         // The worker ACK still waits for each native call and operation to return.
-        unsafe { PostQuitMessage(0) };
+        (crate::windows::win32_safe::post_quit_message(0));
         control
             .quit_posted
             .store(true, std::sync::atomic::Ordering::Release);
@@ -375,8 +378,9 @@ fn cancel_registered_modals(control: &Arc<ModalWorkerControl>) {
     };
     for (token, dialog) in actions {
         // No TLS borrow is held across PostMessageW, which can reenter USER.
+        // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
         if unsafe { PostMessageW(dialog, MODAL_WAKE_MESSAGE, token.0, 0) } == 0 {
-            let error = unsafe { GetLastError() };
+            let error = crate::windows::win32_safe::last_error();
             record_frame_failure(
                 control,
                 token,
@@ -466,6 +470,7 @@ fn record_frame_failure(control: &Arc<ModalWorkerControl>, token: ModalToken, er
     }
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn modal_cbt_proc(code: i32, w_param: usize, l_param: isize) -> isize {
     let result = catch_unwind(AssertUnwindSafe(|| {
         if code >= 0 {
@@ -484,6 +489,7 @@ unsafe extern "system" fn modal_cbt_proc(code: i32, w_param: usize, l_param: isi
             ));
         }
     }
+    // SAFETY: CallNextHookEx forwards the hook arguments Windows passed into this callback.
     unsafe { CallNextHookEx(std::ptr::null_mut(), code, w_param, l_param) }
 }
 
@@ -499,15 +505,17 @@ fn capture_message_box(dialog: HWND) {
     };
     let mut class_name = [0u16; 32];
     let class_length =
+        // SAFETY: GetClassNameW writes into a caller-owned UTF-16 buffer of the capacity passed with it.
         unsafe { GetClassNameW(dialog, class_name.as_mut_ptr(), class_name.len() as i32) };
     if class_length != 6 || class_name[..6] != (*b"#32770").map(u16::from) {
         return;
     }
     let mut owner_process = 0u32;
+    // SAFETY: GetWindowThreadProcessId optionally writes a caller-owned process id.
     let owner_thread = unsafe { GetWindowThreadProcessId(dialog, &mut owner_process) };
     if owner_thread == 0
         || owner_thread != control.thread_id.load(std::sync::atomic::Ordering::Acquire)
-        || owner_process != unsafe { GetCurrentProcessId() }
+        || owner_process != (crate::windows::win32_safe::current_process_id())
     {
         return;
     }
@@ -557,7 +565,7 @@ fn mark_window_closing(dialog: HWND) {
 }
 
 fn drain_private_wakes(control: &ModalWorkerControl) -> Result<(), RuntimeError> {
-    if unsafe { GetCurrentThreadId() }
+    if (crate::windows::win32_safe::current_thread_id())
         != control.thread_id.load(std::sync::atomic::Ordering::Acquire)
     {
         return Err(RuntimeError::new(
@@ -569,6 +577,7 @@ fn drain_private_wakes(control: &ModalWorkerControl) -> Result<(), RuntimeError>
         let mut message = MSG::default();
         // PeekMessage can return WM_QUIT regardless of the message filter, so
         // validate the actual id and thread-message HWND before removing it.
+        // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
         let found = unsafe {
             windows_sys::Win32::UI::WindowsAndMessaging::PeekMessageW(
                 &mut message,
@@ -586,6 +595,7 @@ fn drain_private_wakes(control: &ModalWorkerControl) -> Result<(), RuntimeError>
             return Ok(());
         }
         let expected_request = message.lParam;
+        // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
         let removed = unsafe {
             windows_sys::Win32::UI::WindowsAndMessaging::PeekMessageW(
                 &mut message,

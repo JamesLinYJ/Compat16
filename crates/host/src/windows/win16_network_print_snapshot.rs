@@ -8,33 +8,30 @@ use runtime::{
     Win16HostNetworkPrintQueueSnapshot, Win16HostSpoolJob, Win16HostTaskOwner,
 };
 use windows_sys::Win32::Foundation::{
-    ERROR_INSUFFICIENT_BUFFER, ERROR_INVALID_HANDLE,
-    ERROR_NOT_SUPPORTED, FILETIME, GetLastError,
+    ERROR_INSUFFICIENT_BUFFER, ERROR_INVALID_HANDLE, ERROR_NOT_SUPPORTED, FILETIME,
 };
 use windows_sys::Win32::Graphics::Gdi::{DEVMODEW, DM_COPIES};
 use windows_sys::Win32::Graphics::Printing::{
-    EnumJobsW, GetPrinterW, JOB_INFO_2W, JOB_STATUS_COMPLETE, JOB_STATUS_ERROR,
-    JOB_STATUS_OFFLINE, JOB_STATUS_PAPEROUT, JOB_STATUS_PAUSED, JOB_STATUS_PRINTED,
-    JOB_STATUS_PRINTING, JOB_STATUS_SPOOLING, JOB_STATUS_USER_INTERVENTION, OpenPrinterW,
-    PRINTER_HANDLE, PRINTER_INFO_2W,
-    PRINTER_STATUS_ERROR, PRINTER_STATUS_NOT_AVAILABLE, PRINTER_STATUS_OFFLINE,
+    EnumJobsW, GetPrinterW, JOB_INFO_2W, JOB_STATUS_COMPLETE, JOB_STATUS_ERROR, JOB_STATUS_OFFLINE,
+    JOB_STATUS_PAPEROUT, JOB_STATUS_PAUSED, JOB_STATUS_PRINTED, JOB_STATUS_PRINTING,
+    JOB_STATUS_SPOOLING, JOB_STATUS_USER_INTERVENTION, OpenPrinterW, PRINTER_HANDLE,
+    PRINTER_INFO_2W, PRINTER_STATUS_ERROR, PRINTER_STATUS_NOT_AVAILABLE, PRINTER_STATUS_OFFLINE,
     PRINTER_STATUS_PAPER_JAM, PRINTER_STATUS_PAPER_OUT, PRINTER_STATUS_PAPER_PROBLEM,
     PRINTER_STATUS_PAUSED, PRINTER_STATUS_SERVER_OFFLINE, PRINTER_STATUS_SERVER_UNKNOWN,
     PRINTER_STATUS_USER_INTERVENTION,
 };
 use windows_sys::Win32::System::Time::SystemTimeToFileTime;
 
-use runtime::network_print_abi::{
-    WNPRJ_DS_COMPLETE, WNPRJ_DS_DESTNOPAPER, WNPRJ_DS_DESTOFFLINE,
-    WNPRJ_DS_DESTPAUSED, WNPRJ_DS_ERROR, WNPRJ_DS_INTERV, WNPRJ_QS_PAUSED,
-    WNPRJ_QS_PRINTING, WNPRJ_QS_QUEUED, WNPRJ_QS_SPOOLING, WNPRQ_ACTIVE,
-    WNPRQ_ERROR, WNPRQ_PAUSE, WNPRQ_PROBLEM,
-};
-use super::{
-    GuestTextCodec, JOB_INFO_LEVEL, MAX_BUFFER_ATTEMPTS, PRINTER_INFO_LEVEL,
-    PrinterHandleGuard, Win16SpoolJobs,
-};
 use super::super::win16_spool_jobs::resolve_printer_name;
+use super::{
+    GuestTextCodec, JOB_INFO_LEVEL, MAX_BUFFER_ATTEMPTS, PRINTER_INFO_LEVEL, PrinterHandleGuard,
+    Win16SpoolJobs,
+};
+use runtime::network_print_abi::{
+    WNPRJ_DS_COMPLETE, WNPRJ_DS_DESTNOPAPER, WNPRJ_DS_DESTOFFLINE, WNPRJ_DS_DESTPAUSED,
+    WNPRJ_DS_ERROR, WNPRJ_DS_INTERV, WNPRJ_QS_PAUSED, WNPRJ_QS_PRINTING, WNPRJ_QS_QUEUED,
+    WNPRJ_QS_SPOOLING, WNPRQ_ACTIVE, WNPRQ_ERROR, WNPRQ_PAUSE, WNPRQ_PROBLEM,
+};
 
 struct PrinterInfo {
     name: Vec<u16>,
@@ -99,7 +96,10 @@ pub(super) struct SnapshotBuildFailure {
 
 impl From<RuntimeError> for SnapshotBuildFailure {
     fn from(error: RuntimeError) -> Self {
-        Self { error, cleanup_jobs: Vec::new() }
+        Self {
+            error,
+            cleanup_jobs: Vec::new(),
+        }
     }
 }
 
@@ -135,18 +135,24 @@ pub(super) fn build_snapshot(
     // handles. A conversion failure therefore cannot orphan partial snapshot
     // leases in the host spool registry.
     let mut fields = Vec::new();
-    fields.try_reserve_exact(jobs.len()).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted,
-        "allocate converted Win16 network print job records",
-        error,
-    ))?;
+    fields.try_reserve_exact(jobs.len()).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "allocate converted Win16 network print job records",
+            error,
+        )
+    })?;
     for job in jobs {
         fields.push(GuestJobSnapshotFields {
             id: job.id,
-            username: job.username.as_deref()
+            username: job
+                .username
+                .as_deref()
                 .map(|text| codec.from_wide(text).map(|encoding| encoding.bytes))
                 .transpose()?,
-            parameters: job.parameters.as_deref()
+            parameters: job
+                .parameters
+                .as_deref()
                 .map(|text| codec.from_wide(text).map(|encoding| encoding.bytes))
                 .transpose()?,
             position: job.position,
@@ -156,30 +162,48 @@ pub(super) fn build_snapshot(
             copies: job.copies,
             // JOB_INFO_2W exposes no verified field for WINNET.H's job
             // comment; keep it unknown rather than substituting another field.
-            comment: job.comment.as_deref()
+            comment: job
+                .comment
+                .as_deref()
                 .map(|text| codec.from_wide(text).map(|encoding| encoding.bytes))
                 .transpose()?,
         });
     }
 
     let mut guest_jobs = Vec::new();
-    guest_jobs.try_reserve_exact(fields.len()).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted,
-        "allocate Win16 network print job snapshot",
-        error,
-    ))?;
+    guest_jobs
+        .try_reserve_exact(fields.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "allocate Win16 network print job snapshot",
+                error,
+            )
+        })?;
     let mut registered_new_leases = Vec::new();
-    registered_new_leases.try_reserve_exact(fields.len()).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted,
-        "reserve partial queue snapshot rollback list",
-        error,
-    ))?;
+    registered_new_leases
+        .try_reserve_exact(fields.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve partial queue snapshot rollback list",
+                error,
+            )
+        })?;
     for fields in fields {
-        let (host_job, created) = match spool_jobs.register_existing_job(owner, &printer_name, fields.id) {
-            Ok(value) => value,
-            Err(error) => return Err(SnapshotBuildFailure { error, cleanup_jobs: registered_new_leases }),
-        };
-        if created { registered_new_leases.push(host_job); }
+        let (host_job, created) =
+            match spool_jobs.register_existing_job(owner, &printer_name, fields.id) {
+                Ok(value) => value,
+                Err(error) => {
+                    return Err(SnapshotBuildFailure {
+                        error,
+                        cleanup_jobs: registered_new_leases,
+                    });
+                }
+            };
+        if created {
+            registered_new_leases.push(host_job);
+        }
         guest_jobs.push(Win16HostNetworkPrintJobSnapshot {
             job: host_job,
             username: fields.username,
@@ -661,7 +685,7 @@ fn map_job_status(job_status: u32, printer_status: u32) -> u16 {
 
 pub(super) fn last_error_or_not_supported() -> u32 {
     // SAFETY: GetLastError reads the calling thread's Windows status value.
-    let error = unsafe { GetLastError() };
+    let error = crate::windows::win32_safe::last_error();
     if error == 0 {
         ERROR_NOT_SUPPORTED
     } else {

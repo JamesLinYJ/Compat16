@@ -7,27 +7,22 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use runtime::{
-    DiagnosticKind as Kind, RuntimeError, Win16HostGdiObject, Win16HostMenu,
-    Win16HostRect, Win16HostWindow, Win16MenuOperation, Win16MenuResult,
-    Win16MenuTemplate, Win16MenuTemplateItem,
+    DiagnosticKind as Kind, RuntimeError, Win16HostGdiObject, Win16HostMenu, Win16HostRect,
+    Win16HostWindow, Win16MenuOperation, Win16MenuResult, Win16MenuTemplate, Win16MenuTemplateItem,
 };
 use windows_sys::Win32::Foundation::{HWND, RECT};
 use windows_sys::Win32::Graphics::Gdi::HBITMAP;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    AppendMenuW, CheckMenuItem, CheckMenuRadioItem, CreateMenu, CreatePopupMenu,
-    DestroyMenu, DrawMenuBar, EnableMenuItem, EndMenu,
-    GetMenu, GetMenuCheckMarkDimensions, GetMenuItemCount, GetMenuItemID,
-    GetMenuItemInfoW, GetMenuItemRect, GetMenuState, GetSubMenu,
-    GetSystemMenu, HiliteMenuItem, IsMenu,
-    SetMenu, SetMenuItemBitmaps, TrackPopupMenu,
-    MENUITEMINFOW, MIIM_SUBMENU,
-    MF_BYPOSITION, MF_POPUP, MF_SEPARATOR,
-    TPM_RETURNCMD,
+    AppendMenuW, CheckMenuItem, CheckMenuRadioItem, CreateMenu, CreatePopupMenu, DrawMenuBar,
+    EnableMenuItem, EndMenu, GetMenuCheckMarkDimensions, GetMenuItemCount, GetMenuItemID,
+    GetMenuItemInfoW, GetMenuItemRect, GetMenuState, GetSubMenu, GetSystemMenu, HiliteMenuItem,
+    MENUITEMINFOW, MF_BYPOSITION, MF_POPUP, MF_SEPARATOR, MIIM_SUBMENU, SetMenu,
+    SetMenuItemBitmaps, TPM_RETURNCMD, TrackPopupMenu,
 };
 
 use super::win16_menu_attachment::mark_owned;
@@ -52,18 +47,27 @@ fn set_system_menu_native(
     window: HWND,
     menu: windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
 ) -> Option<bool> {
+    // SAFETY: `GetModuleHandleW`, `GetProcAddress`, `Some` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let resolved = SET_SYSTEM_MENU.get_or_init(|| unsafe {
-        let module = windows_sys::Win32::System::LibraryLoader::GetModuleHandleW(
-            windows_sys::w!("user32.dll"));
-        if module.is_null() { return None; }
+        let module = windows_sys::Win32::System::LibraryLoader::GetModuleHandleW(windows_sys::w!(
+            "user32.dll"
+        ));
+        if module.is_null() {
+            return None;
+        }
         let address = windows_sys::Win32::System::LibraryLoader::GetProcAddress(
-            module, b"SetSystemMenu\0".as_ptr())?;
+            module,
+            b"SetSystemMenu\0".as_ptr(),
+        )?;
         Some(std::mem::transmute::<
             unsafe extern "system" fn() -> isize,
             SetSystemMenuFn,
         >(address))
     });
-    let Some(function) = *resolved else { return None; };
+    let Some(function) = *resolved else {
+        return None;
+    };
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     Some(unsafe { function(window, menu) != 0 })
 }
 
@@ -79,16 +83,39 @@ pub(super) fn execute(
 
     match operation {
         Operation::Create { popup } => {
-            let id = NEXT_MENU_ID.try_update(Ordering::Relaxed, Ordering::Relaxed,
-                |value| value.checked_add(1)).map_err(|_| RuntimeError::new(
-                    Kind::ResourceExhausted, "native menu identity space exhausted"))?;
-            state.borrow_mut().menus_by_native.try_reserve(1).map_err(|error| {
-                RuntimeError::with_source(Kind::ResourceExhausted,
-                    "reserve fresh native menu-generation publication", error)
-            })?;
-            let native = unsafe { if popup { CreatePopupMenu() } else { CreateMenu() } };
+            let id = NEXT_MENU_ID
+                .try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+                    value.checked_add(1)
+                })
+                .map_err(|_| {
+                    RuntimeError::new(
+                        Kind::ResourceExhausted,
+                        "native menu identity space exhausted",
+                    )
+                })?;
+            state
+                .borrow_mut()
+                .menus_by_native
+                .try_reserve(1)
+                .map_err(|error| {
+                    RuntimeError::with_source(
+                        Kind::ResourceExhausted,
+                        "reserve fresh native menu-generation publication",
+                        error,
+                    )
+                })?;
+            // SAFETY: CreatePopupMenu creates a menu and takes no pointers. CreateMenu creates a menu and takes no pointers.
+            let native = unsafe {
+                if popup {
+                    CreatePopupMenu()
+                } else {
+                    CreateMenu()
+                }
+            };
             let (menu, invalidated) = super::win16_menu_attachment::publish_fresh_menu_generation(
-                state, native, Win16HostMenu(id),
+                state,
+                native,
+                Win16HostMenu(id),
             )?;
             if invalidated.is_empty() {
                 Ok(Win16MenuResult::Created(menu))
@@ -100,14 +127,26 @@ pub(super) fn execute(
             let owner_capacity = template_owner_capacity(&template)?;
             {
                 let mut worker = state.borrow_mut();
-                worker.retained_unmapped_menu_owners.try_reserve(owner_capacity).map_err(|error| {
-                    RuntimeError::with_source(Kind::ResourceExhausted,
-                        "reserve failed class-menu owner retention before native allocation", error)
-                })?;
-                worker.terminal_failures.try_reserve(owner_capacity).map_err(|error| {
-                    RuntimeError::with_source(Kind::ResourceExhausted,
-                        "reserve class-menu cleanup receipts before native allocation", error)
-                })?;
+                worker
+                    .retained_unmapped_menu_owners
+                    .try_reserve(owner_capacity)
+                    .map_err(|error| {
+                        RuntimeError::with_source(
+                            Kind::ResourceExhausted,
+                            "reserve failed class-menu owner retention before native allocation",
+                            error,
+                        )
+                    })?;
+                worker
+                    .terminal_failures
+                    .try_reserve(owner_capacity)
+                    .map_err(|error| {
+                        RuntimeError::with_source(
+                            Kind::ResourceExhausted,
+                            "reserve class-menu cleanup receipts before native allocation",
+                            error,
+                        )
+                    })?;
             }
             let Some((native, native_menus, edges)) = build_template(state, &template)? else {
                 return Ok(Win16MenuResult::Created(None));
@@ -125,67 +164,93 @@ pub(super) fn execute(
             };
             Ok(Win16MenuResult::Created(Some(root)))
         }
-        Operation::Destroy { menu } => {
-            mutations::destroy_menu(state, menu)
-        }
+        Operation::Destroy { menu } => mutations::destroy_menu(state, menu),
         Operation::CheckItem { menu, item, flags } => {
+            // SAFETY: CheckMenuItem takes a menu handle and integer parameters.
             let previous = native_menu(state, menu).map_or(u32::MAX, |native| unsafe {
                 CheckMenuItem(native, u32::from(item), u32::from(flags))
             });
             Ok(Win16MenuResult::ItemFlags(previous as u16))
         }
         Operation::EnableItem { menu, item, flags } => {
+            // SAFETY: EnableMenuItem takes a menu handle and integer parameters.
             let previous = native_menu(state, menu).map_or(-1_i32, |native| unsafe {
                 EnableMenuItem(native, u32::from(item), u32::from(flags))
             });
             Ok(Win16MenuResult::ItemFlags(previous as u16))
         }
-        Operation::HiliteItem { window, menu, item, flags } => {
+        Operation::HiliteItem {
+            window,
+            menu,
+            item,
+            flags,
+        } => {
             let hwnd = native_window(state, window);
             let hmenu = native_menu(state, menu);
             let succeeded = match (hwnd, hmenu) {
-                (Some(hwnd), Some(hmenu)) => (unsafe {
-                    HiliteMenuItem(hwnd, hmenu, u32::from(item), u32::from(flags))
-                }) != 0,
+                // SAFETY: HiliteMenuItem takes integer menu parameters.
+                (Some(hwnd), Some(hmenu)) => {
+                    (unsafe { HiliteMenuItem(hwnd, hmenu, u32::from(item), u32::from(flags)) }) != 0
+                }
                 _ => false,
             };
             Ok(boolean(succeeded))
         }
+        // SAFETY: `EndMenu` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         Operation::EndMenu => Ok(boolean(unsafe { EndMenu() } != 0)),
-        Operation::IsMenu { menu } => Ok(boolean(native_menu(state, menu)
-            .is_some_and(|native| unsafe { IsMenu(native) != 0 }))),
+        Operation::IsMenu { menu } => {
+            Ok(boolean(native_menu(state, menu).is_some_and(|native| {
+                crate::windows::win32_safe::is_menu(native) != 0
+            })))
+        }
         Operation::GetMenuItemId { menu, position } => {
+            // SAFETY: GetMenuItemID takes a menu handle and an index.
             let value = native_menu(state, menu).map_or(u32::MAX, |native| unsafe {
                 GetMenuItemID(native, i32::from(position))
             });
             Ok(Win16MenuResult::ItemId(value as u16))
         }
-        Operation::SetSystemMenu { window, menu } =>
-            mutations::set_system_menu(state, window, menu),
+        Operation::SetSystemMenu { window, menu } => {
+            mutations::set_system_menu(state, window, menu)
+        }
         Operation::SetMenuContextHelpId { menu, help_id } => {
+            // SAFETY: `SetMenuContextHelpId` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let succeeded = native_menu(state, menu).is_some_and(|native| unsafe {
-                windows_sys::Win32::UI::Shell::SetMenuContextHelpId(
-                    native, u32::from(help_id)) != 0
+                windows_sys::Win32::UI::Shell::SetMenuContextHelpId(native, u32::from(help_id)) != 0
             });
             Ok(boolean(succeeded))
         }
         Operation::GetMenuContextHelpId { menu } => {
+            // SAFETY: `GetMenuContextHelpId` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let value = native_menu(state, menu).map_or(0, |native| unsafe {
                 windows_sys::Win32::UI::Shell::GetMenuContextHelpId(native)
             });
             Ok(Win16MenuResult::ContextHelpId(value))
         }
-        Operation::GetMenuCheckMarkDimensions => Ok(
-            Win16MenuResult::CheckMarkDimensions(
-                unsafe { GetMenuCheckMarkDimensions() } as u32)),
+        Operation::GetMenuCheckMarkDimensions => Ok(Win16MenuResult::CheckMarkDimensions(
+            // SAFETY: `GetMenuCheckMarkDimensions` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+            unsafe { GetMenuCheckMarkDimensions() } as u32,
+        )),
         Operation::MakeMenuRToL { .. } => Err(RuntimeError::new(
             Kind::CompatibilityGap,
             "Win16 USER.485 MakeMenuRToL semantics have no verified Win32 equivalent",
         )),
-        Operation::CheckRadioItem { menu, first, last, check, by_position } => {
+        Operation::CheckRadioItem {
+            menu,
+            first,
+            last,
+            check,
+            by_position,
+        } => {
+            // SAFETY: `CheckMenuRadioItem` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let succeeded = native_menu(state, menu).is_some_and(|native| unsafe {
-                CheckMenuRadioItem(native, u32::from(first), u32::from(last),
-                    u32::from(check), if by_position { MF_BYPOSITION } else { 0 }) != 0
+                CheckMenuRadioItem(
+                    native,
+                    u32::from(first),
+                    u32::from(last),
+                    u32::from(check),
+                    if by_position { MF_BYPOSITION } else { 0 },
+                ) != 0
             });
             Ok(boolean(succeeded))
         }
@@ -194,7 +259,10 @@ pub(super) fn execute(
                 return Ok(menu_result(None, Vec::new()));
             };
             let previous = { state.borrow().system_menus.get(&window).copied() };
-            let identity_cookie = state.borrow().window_identity_cookies.get(&window)
+            let identity_cookie = state
+                .borrow()
+                .window_identity_cookies
+                .get(&window)
                 .filter(|binding| binding.hwnd == hwnd as usize)
                 .map(|binding| binding.value);
             if previous.is_some_and(|previous| {
@@ -208,38 +276,54 @@ pub(super) fn execute(
                         let Some(previous_native) = native_menu(state, previous) else {
                             return Ok(menu_result(None, Vec::new()));
                         };
-                        let Some(tree) = super::win16_menu_attachment::preflight_revert_system_menu(
-                            state, window, hwnd, previous, previous_native,
-                        )? else {
+                        let Some(tree) =
+                            super::win16_menu_attachment::preflight_revert_system_menu(
+                                state,
+                                window,
+                                hwnd,
+                                previous,
+                                previous_native,
+                            )?
+                        else {
                             return Ok(menu_result(None, Vec::new()));
                         };
                         Some(tree)
                     }
                     None => None,
                 }
-            } else { None };
+            } else {
+                None
+            };
             let roots = previous.into_iter().collect::<Vec<_>>();
-            let _menu_owners = super::win16_menu_attachment::retain_menu_call_owners(
-                state, &roots,
-            )?;
+            let _menu_owners =
+                super::win16_menu_attachment::retain_menu_call_owners(state, &roots)?;
             let _reservation = match previous_tree.as_ref() {
-                Some(tree) => Some(super::win16_menu_attachment::reserve_menu_retirement(state, tree)?),
+                Some(tree) => Some(super::win16_menu_attachment::reserve_menu_retirement(
+                    state, tree,
+                )?),
                 None => None,
             };
             let native = {
+                // SAFETY: GetSystemMenu returns the system menu of a window this thread owns.
                 unsafe { GetSystemMenu(hwnd, i32::from(revert)) }
             };
             drop(_reservation);
             drop(_menu_owners);
-            let same_window = super::win16_window_identity::resolve_user_window(
-                state, window,
-            ) == Some(hwnd) && state.borrow().window_identity_cookies.get(&window)
-                .filter(|binding| binding.hwnd == hwnd as usize)
-                .map(|binding| binding.value) == identity_cookie;
+            let same_window = super::win16_window_identity::resolve_user_window(state, window)
+                == Some(hwnd)
+                && state
+                    .borrow()
+                    .window_identity_cookies
+                    .get(&window)
+                    .filter(|binding| binding.hwnd == hwnd as usize)
+                    .map(|binding| binding.value)
+                    == identity_cookie;
             let same_ledger = state.borrow().system_menus.get(&window).copied() == previous;
             let invalidated = previous_tree.as_ref().map_or_else(Vec::new, |tree| {
                 super::win16_menu_attachment::invalidate_menu_identities(
-                    state, tree, revert && same_window && same_ledger,
+                    state,
+                    tree,
+                    revert && same_window && same_ledger,
                 )
             });
             if !same_window {
@@ -259,7 +343,7 @@ pub(super) fn execute(
             let Some(hwnd) = native_window(state, window) else {
                 return Ok(menu_result(None, Vec::new()));
             };
-            let native = unsafe { GetMenu(hwnd) };
+            let native = crate::windows::win32_safe::get_menu(hwnd);
             let token = intern_menu(state, native, false)?;
             super::win16_menu_attachment::record_requested_attachment(
                 state, window, hwnd, token, native,
@@ -273,12 +357,19 @@ pub(super) fn execute(
             let Some(root_native) = native_menu(state, menu) else {
                 return Ok(menu_result(None, Vec::new()));
             };
+            // SAFETY: GetSubMenu returns a submenu handle, or null.
             let native = unsafe { GetSubMenu(root_native, i32::from(position)) };
             let token = intern_menu(state, native, false)?;
-            super::win16_menu_attachment::refresh_menu_tree(state, menu)
-                .map_err(|error| RuntimeError::with_source(error.kind(),
-                    format!("GetSubMenu returned a native handle (null={}); reconcile its owner graph",
-                        native.is_null()), error))?;
+            super::win16_menu_attachment::refresh_menu_tree(state, menu).map_err(|error| {
+                RuntimeError::with_source(
+                    error.kind(),
+                    format!(
+                        "GetSubMenu returned a native handle (null={}); reconcile its owner graph",
+                        native.is_null()
+                    ),
+                    error,
+                )
+            })?;
             Ok(menu_result(token, Vec::new()))
         }
         Operation::SetMenu { window, menu } => {
@@ -296,7 +387,8 @@ pub(super) fn execute(
                 (Some(hwnd), Some(hmenu)) => {
                     let mut roots = menu.into_iter().collect::<Vec<_>>();
                     if let Some(previous) = super::win16_menu_attachment::token_for_native(
-                        state, unsafe { GetMenu(hwnd) },
+                        state,
+                        crate::windows::win32_safe::get_menu(hwnd),
                     ) {
                         if super::win16_menu_attachment::cached_menu_tree_is_retiring(
                             state, previous,
@@ -305,9 +397,9 @@ pub(super) fn execute(
                         }
                         roots.push(previous);
                     }
-                    let _menu_owners = super::win16_menu_attachment::retain_menu_call_owners(
-                        state, &roots,
-                    )?;
+                    let _menu_owners =
+                        super::win16_menu_attachment::retain_menu_call_owners(state, &roots)?;
+                    // SAFETY: SetMenu attaches a menu this process owns to a window.
                     unsafe { SetMenu(hwnd, hmenu) != 0 }
                 }
                 _ => false,
@@ -326,13 +418,17 @@ pub(super) fn execute(
             if let Some(hwnd) = native_window(state, window) {
                 let mut roots = {
                     let state = state.borrow();
-                    state.window_menus.get(&window).copied()
+                    state
+                        .window_menus
+                        .get(&window)
+                        .copied()
                         .into_iter()
                         .chain(state.system_menus.get(&window).copied())
                         .collect::<Vec<_>>()
                 };
                 if let Some(root) = super::win16_menu_attachment::token_for_native(
-                    state, unsafe { GetMenu(hwnd) },
+                    state,
+                    crate::windows::win32_safe::get_menu(hwnd),
                 ) {
                     roots.push(root);
                 }
@@ -341,26 +437,30 @@ pub(super) fn execute(
                 }) {
                     return Ok(Win16MenuResult::Drawn);
                 }
-                let _menu_owners = super::win16_menu_attachment::retain_menu_call_owners(
-                    state, &roots,
-                )?;
+                let _menu_owners =
+                    super::win16_menu_attachment::retain_menu_call_owners(state, &roots)?;
+                // SAFETY: DrawMenuBar redraws the menu of a window this thread owns.
                 let _ = unsafe { DrawMenuBar(hwnd) };
             }
             Ok(Win16MenuResult::Drawn)
         }
-        Operation::GetMenuString { menu, item, flags, capacity } => {
-            text::get_menu_string(state, menu, item, flags, capacity)
-        }
+        Operation::GetMenuString {
+            menu,
+            item,
+            flags,
+            capacity,
+        } => text::get_menu_string(state, menu, item, flags, capacity),
         Operation::GetMenuState { menu, item, flags } => {
+            // SAFETY: GetMenuState takes a menu handle and integer parameters.
             let value = native_menu(state, menu).map_or(u32::MAX, |native| unsafe {
                 GetMenuState(native, u32::from(item), u32::from(flags))
             });
             Ok(Win16MenuResult::ItemFlags(value as u16))
         }
         Operation::GetMenuItemCount { menu } => {
-            let count = native_menu(state, menu).map_or(-1, |native| unsafe {
-                GetMenuItemCount(native)
-            });
+            // SAFETY: GetMenuItemCount takes a menu handle and no pointers.
+            let count =
+                native_menu(state, menu).map_or(-1, |native| unsafe { GetMenuItemCount(native) });
             Ok(Win16MenuResult::ItemCount(count as i16))
         }
         Operation::GetMenuItemRect { window, menu, item } => {
@@ -371,29 +471,62 @@ pub(super) fn execute(
             let hmenu = native_menu(state, menu);
             let mut rect = RECT::default();
             let succeeded = match (hwnd, hmenu) {
-                (Some(hwnd), Some(hmenu)) => (unsafe {
-                    GetMenuItemRect(hwnd, hmenu, u32::from(item), &mut rect)
-                }) != 0,
+                // SAFETY: `GetMenuItemRect` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+                (Some(hwnd), Some(hmenu)) => {
+                    (unsafe { GetMenuItemRect(hwnd, hmenu, u32::from(item), &mut rect) }) != 0
+                }
                 _ => false,
             };
             let rect = succeeded.then_some(Win16HostRect {
-                left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom,
+                left: rect.left,
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom,
             });
             Ok(Win16MenuResult::MenuRect { succeeded, rect })
         }
-        Operation::InsertMenu { menu, position, flags, item } => {
-            mutations::execute(state, native_bitmaps,
-                Operation::InsertMenu { menu, position, flags, item })
-        }
-        Operation::AppendMenu { menu, flags, item } => {
-            mutations::execute(state, native_bitmaps,
-                Operation::AppendMenu { menu, flags, item })
-        }
-        Operation::ModifyMenu { menu, position, flags, item } => {
-            mutations::execute(state, native_bitmaps,
-                Operation::ModifyMenu { menu, position, flags, item })
-        }
-        Operation::SetMenuItemBitmaps { menu, position, flags, unchecked, checked } => {
+        Operation::InsertMenu {
+            menu,
+            position,
+            flags,
+            item,
+        } => mutations::execute(
+            state,
+            native_bitmaps,
+            Operation::InsertMenu {
+                menu,
+                position,
+                flags,
+                item,
+            },
+        ),
+        Operation::AppendMenu { menu, flags, item } => mutations::execute(
+            state,
+            native_bitmaps,
+            Operation::AppendMenu { menu, flags, item },
+        ),
+        Operation::ModifyMenu {
+            menu,
+            position,
+            flags,
+            item,
+        } => mutations::execute(
+            state,
+            native_bitmaps,
+            Operation::ModifyMenu {
+                menu,
+                position,
+                flags,
+                item,
+            },
+        ),
+        Operation::SetMenuItemBitmaps {
+            menu,
+            position,
+            flags,
+            unchecked,
+            checked,
+        } => {
             if super::win16_menu_attachment::cached_menu_tree_is_retiring(state, menu) {
                 return Ok(boolean(false));
             }
@@ -401,25 +534,44 @@ pub(super) fn execute(
             let unchecked = resolve_bitmap(native_bitmaps, unchecked);
             let checked = resolve_bitmap(native_bitmaps, checked);
             let succeeded = match (native, unchecked, checked) {
+                // SAFETY: `SetMenuItemBitmaps` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 (Some(native), Some(unchecked), Some(checked)) => unsafe {
-                    SetMenuItemBitmaps(native, u32::from(position), u32::from(flags),
-                        unchecked as HBITMAP, checked as HBITMAP) != 0
+                    SetMenuItemBitmaps(
+                        native,
+                        u32::from(position),
+                        u32::from(flags),
+                        unchecked as HBITMAP,
+                        checked as HBITMAP,
+                    ) != 0
                 },
                 _ => false,
             };
             Ok(boolean(succeeded))
         }
-        Operation::RemoveMenu { menu, item, flags } => {
-            mutations::execute(state, native_bitmaps,
-                Operation::RemoveMenu { menu, item, flags })
-        }
-        Operation::DeleteMenu { menu, item, flags } => {
-            mutations::execute(state, native_bitmaps,
-                Operation::DeleteMenu { menu, item, flags })
-        }
-        Operation::TrackPopupMenu { menu, flags, x, y, reserved, owner, rect } => {
+        Operation::RemoveMenu { menu, item, flags } => mutations::execute(
+            state,
+            native_bitmaps,
+            Operation::RemoveMenu { menu, item, flags },
+        ),
+        Operation::DeleteMenu { menu, item, flags } => mutations::execute(
+            state,
+            native_bitmaps,
+            Operation::DeleteMenu { menu, item, flags },
+        ),
+        Operation::TrackPopupMenu {
+            menu,
+            flags,
+            x,
+            y,
+            reserved,
+            owner,
+            rect,
+        } => {
             if super::win16_menu_attachment::cached_menu_tree_is_retiring(state, menu) {
-                return Ok(Win16MenuResult::Popup { value: 0, invalidated: Vec::new() });
+                return Ok(Win16MenuResult::Popup {
+                    value: 0,
+                    invalidated: Vec::new(),
+                });
             }
             let native = native_menu(state, menu);
             let hwnd = match owner {
@@ -427,25 +579,43 @@ pub(super) fn execute(
                 None => Some(std::ptr::null_mut()),
             };
             let native_rect = rect.map(|rect| RECT {
-                left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom,
+                left: rect.left,
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom,
             });
             let _menu_owners = if native.is_some() {
-                Some(super::win16_menu_attachment::retain_menu_call_owners(state, &[menu])?)
+                Some(super::win16_menu_attachment::retain_menu_call_owners(
+                    state,
+                    &[menu],
+                )?)
             } else {
                 None
             };
             let value = match (native, hwnd) {
+                // SAFETY: TrackPopupMenu displays a menu this process owns.
                 (Some(menu), Some(hwnd)) => unsafe {
-                    TrackPopupMenu(menu, u32::from(flags), i32::from(x), i32::from(y),
-                        i32::from(reserved), hwnd,
-                        native_rect.as_ref().map_or(std::ptr::null(), |rect| rect as *const RECT))
+                    TrackPopupMenu(
+                        menu,
+                        u32::from(flags),
+                        i32::from(x),
+                        i32::from(y),
+                        i32::from(reserved),
+                        hwnd,
+                        native_rect
+                            .as_ref()
+                            .map_or(std::ptr::null(), |rect| rect as *const RECT),
+                    )
                 },
                 _ => 0,
             };
             // With TPM_RETURNCMD native USER returns the selected command ID;
             // otherwise it returns BOOL. Both are preserved in the Win16 word.
             let _returning_command = flags & (TPM_RETURNCMD as u16) != 0;
-            Ok(Win16MenuResult::Popup { value: value as u16, invalidated: Vec::new() })
+            Ok(Win16MenuResult::Popup {
+                value: value as u16,
+                invalidated: Vec::new(),
+            })
         }
     }
 }
@@ -485,37 +655,70 @@ pub(super) fn intern_menu(
     native: windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
     owned: bool,
 ) -> Result<Option<Win16HostMenu>, RuntimeError> {
-    if native.is_null() { return Ok(None); }
+    if native.is_null() {
+        return Ok(None);
+    }
     let native_value = native as usize;
-    let existing = { state.borrow().menus_by_native.get(&(native as usize)).copied() };
+    let existing = {
+        state
+            .borrow()
+            .menus_by_native
+            .get(&(native as usize))
+            .copied()
+    };
     if let Some(token) = existing {
         let retiring = {
             let state = state.borrow();
-            state.retiring_menu_native_handles.contains(&(token, native_value))
-                || state.deferred_menu_retirements.contains(&(token, native_value))
+            state
+                .retiring_menu_native_handles
+                .contains(&(token, native_value))
+                || state
+                    .deferred_menu_retirements
+                    .contains(&(token, native_value))
         };
-        if retiring { return Ok(None); }
-        if state.borrow().menus.get(&token).copied() != Some(native) {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "native menu index points to a different token generation"));
+        if retiring {
+            return Ok(None);
         }
-        if owned { mark_owned(state, token); }
+        if state.borrow().menus.get(&token).copied() != Some(native) {
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "native menu index points to a different token generation",
+            ));
+        }
+        if owned {
+            mark_owned(state, token);
+        }
         return Ok(Some(token));
     }
-    if unsafe { IsMenu(native) } == 0 { return Ok(None); }
-    let id = NEXT_MENU_ID.try_update(Ordering::Relaxed, Ordering::Relaxed,
-        |value| value.checked_add(1)).map_err(|_| RuntimeError::new(
-            Kind::ResourceExhausted, "native menu identity space exhausted"))?;
+    if (crate::windows::win32_safe::is_menu(native)) == 0 {
+        return Ok(None);
+    }
+    let id = NEXT_MENU_ID
+        .try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+            value.checked_add(1)
+        })
+        .map_err(|_| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "native menu identity space exhausted",
+            )
+        })?;
     let token = Win16HostMenu(id);
     let mut state = state.borrow_mut();
     if let Some(existing) = state.menus_by_native.get(&(native as usize)).copied() {
         if state.menus.get(&existing).copied() != Some(native) {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "native menu index changed to a different token generation"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "native menu index changed to a different token generation",
+            ));
         }
         if owned {
             state.owned_menus.insert(existing);
-            if !state.menu_children.values().any(|children| children.contains(&existing)) {
+            if !state
+                .menu_children
+                .values()
+                .any(|children| children.contains(&existing))
+            {
                 state.owned_menu_roots.insert(existing);
             }
         }
@@ -536,15 +739,24 @@ fn query_submenu(
     item: u32,
     by_position: bool,
 ) -> Result<Option<Win16HostMenu>, RuntimeError> {
-    let mut info = MENUITEMINFOW { cbSize: std::mem::size_of::<MENUITEMINFOW>() as u32,
-        fMask: MIIM_SUBMENU, ..MENUITEMINFOW::default() };
+    let mut info = MENUITEMINFOW {
+        cbSize: std::mem::size_of::<MENUITEMINFOW>() as u32,
+        fMask: MIIM_SUBMENU,
+        ..MENUITEMINFOW::default()
+    };
+    // SAFETY: GetMenuItemInfoW reads and writes a caller-owned MENUITEMINFO.
     let succeeded = unsafe { GetMenuItemInfoW(menu, item, i32::from(by_position), &mut info) };
-    if succeeded == 0 || info.hSubMenu.is_null() { return Ok(None); }
+    if succeeded == 0 || info.hSubMenu.is_null() {
+        return Ok(None);
+    }
     intern_menu(state, info.hSubMenu, false)
 }
 
 fn boolean(succeeded: bool) -> Win16MenuResult {
-    Win16MenuResult::Boolean { succeeded, invalidated: Vec::new() }
+    Win16MenuResult::Boolean {
+        succeeded,
+        invalidated: Vec::new(),
+    }
 }
 
 fn menu_result(menu: Option<Win16HostMenu>, invalidated: Vec<Win16HostMenu>) -> Win16MenuResult {
@@ -552,17 +764,26 @@ fn menu_result(menu: Option<Win16HostMenu>, invalidated: Vec<Win16HostMenu>) -> 
 }
 
 fn template_owner_capacity(template: &Win16MenuTemplate) -> Result<usize, RuntimeError> {
-    fn count(template: &Win16MenuTemplate, depth: usize, total: &mut usize) -> Result<(), RuntimeError> {
+    fn count(
+        template: &Win16MenuTemplate,
+        depth: usize,
+        total: &mut usize,
+    ) -> Result<(), RuntimeError> {
         if depth > 32 {
-            return Err(RuntimeError::new(Kind::CompatibilityGap,
-                "native class-menu template exceeds supported nesting depth"));
+            return Err(RuntimeError::new(
+                Kind::CompatibilityGap,
+                "native class-menu template exceeds supported nesting depth",
+            ));
         }
         for item in &template.items {
-            *total = total.checked_add(1).ok_or_else(|| RuntimeError::new(
-                Kind::ResourceExhausted, "class-menu item count overflowed"))?;
+            *total = total.checked_add(1).ok_or_else(|| {
+                RuntimeError::new(Kind::ResourceExhausted, "class-menu item count overflowed")
+            })?;
             if *total > 4096 {
-                return Err(RuntimeError::new(Kind::CompatibilityGap,
-                    "native class-menu template exceeds the bounded item count"));
+                return Err(RuntimeError::new(
+                    Kind::CompatibilityGap,
+                    "native class-menu template exceeds the bounded item count",
+                ));
             }
             if let Win16MenuTemplateItem::Popup { submenu, .. } = item {
                 count(submenu, depth + 1, total)?;
@@ -572,18 +793,22 @@ fn template_owner_capacity(template: &Win16MenuTemplate) -> Result<usize, Runtim
     }
     let mut total = 0;
     count(template, 0, &mut total)?;
-    total.max(1).checked_mul(2).ok_or_else(|| RuntimeError::new(
-        Kind::ResourceExhausted, "class-menu retained-owner capacity overflowed"))
+    total.max(1).checked_mul(2).ok_or_else(|| {
+        RuntimeError::new(
+            Kind::ResourceExhausted,
+            "class-menu retained-owner capacity overflowed",
+        )
+    })
 }
 
 fn destroy_unpublished_menu(
     state: &Rc<RefCell<WorkerState>>,
     native: windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
 ) {
-    if native.is_null() || unsafe { DestroyMenu(native) != 0 } {
+    if native.is_null() || { crate::windows::win32_safe::destroy_menu(native) != 0 } {
         return;
     }
-    if unsafe { IsMenu(native) } == 0 {
+    if (crate::windows::win32_safe::is_menu(native)) == 0 {
         return;
     }
     let mut worker = state.borrow_mut();
@@ -599,24 +824,43 @@ fn destroy_unpublished_menu(
 fn build_template(
     state: &Rc<RefCell<WorkerState>>,
     template: &Win16MenuTemplate,
-) -> Result<Option<(
-    windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
-    Vec<windows_sys::Win32::UI::WindowsAndMessaging::HMENU>,
-    Vec<(windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
-        windows_sys::Win32::UI::WindowsAndMessaging::HMENU)>,
-)>, RuntimeError> {
+) -> Result<
+    Option<(
+        windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
+        Vec<windows_sys::Win32::UI::WindowsAndMessaging::HMENU>,
+        Vec<(
+            windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
+            windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
+        )>,
+    )>,
+    RuntimeError,
+> {
     fn build(
         state: &Rc<RefCell<WorkerState>>,
         template: &Win16MenuTemplate,
         popup: bool,
-    ) -> Result<Option<(
-        windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
-        Vec<windows_sys::Win32::UI::WindowsAndMessaging::HMENU>,
-        Vec<(windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
-            windows_sys::Win32::UI::WindowsAndMessaging::HMENU)>,
-    )>, RuntimeError> {
-        let root = unsafe { if popup { CreatePopupMenu() } else { CreateMenu() } };
-        if root.is_null() { return Ok(None); }
+    ) -> Result<
+        Option<(
+            windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
+            Vec<windows_sys::Win32::UI::WindowsAndMessaging::HMENU>,
+            Vec<(
+                windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
+                windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
+            )>,
+        )>,
+        RuntimeError,
+    > {
+        // SAFETY: CreatePopupMenu creates a menu and takes no pointers. CreateMenu creates a menu and takes no pointers.
+        let root = unsafe {
+            if popup {
+                CreatePopupMenu()
+            } else {
+                CreateMenu()
+            }
+        };
+        if root.is_null() {
+            return Ok(None);
+        }
         let mut menus = vec![root];
         let mut edges = Vec::new();
         for item in &template.items {
@@ -629,12 +873,25 @@ fn build_template(
                             return Err(error);
                         }
                     };
-                    unsafe { AppendMenuW(root, u32::from(*flags), usize::from(*id), text.as_ptr()) != 0 }
+                    // SAFETY: AppendMenuW reads an optional caller-owned string.
+                    unsafe {
+                        AppendMenuW(root, u32::from(*flags), usize::from(*id), text.as_ptr()) != 0
+                    }
                 }
+                // SAFETY: AppendMenuW reads an optional caller-owned string.
                 Win16MenuTemplateItem::Separator { flags, id } => unsafe {
-                    AppendMenuW(root, u32::from(*flags) | MF_SEPARATOR, usize::from(*id), std::ptr::null()) != 0
+                    AppendMenuW(
+                        root,
+                        u32::from(*flags) | MF_SEPARATOR,
+                        usize::from(*id),
+                        std::ptr::null(),
+                    ) != 0
                 },
-                Win16MenuTemplateItem::Popup { flags, text, submenu } => {
+                Win16MenuTemplateItem::Popup {
+                    flags,
+                    text,
+                    submenu,
+                } => {
                     let child_build = build(state, submenu, true);
                     let (child, child_menus, child_edges) = match child_build {
                         Ok(Some(child)) => child,
@@ -655,8 +912,16 @@ fn build_template(
                             return Err(error);
                         }
                     };
-                    if unsafe { AppendMenuW(root, u32::from(*flags) | MF_POPUP,
-                        child as usize, text.as_ptr()) } == 0 {
+                    // SAFETY: AppendMenuW reads an optional caller-owned string.
+                    if unsafe {
+                        AppendMenuW(
+                            root,
+                            u32::from(*flags) | MF_POPUP,
+                            child as usize,
+                            text.as_ptr(),
+                        )
+                    } == 0
+                    {
                         destroy_unpublished_menu(state, child);
                         destroy_unpublished_menu(state, root);
                         return Ok(None);
@@ -681,15 +946,22 @@ fn intern_template_tree(
     state: &Rc<RefCell<WorkerState>>,
     root: windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
     menus: Vec<windows_sys::Win32::UI::WindowsAndMessaging::HMENU>,
-    edges: Vec<(windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
-        windows_sys::Win32::UI::WindowsAndMessaging::HMENU)>,
+    edges: Vec<(
+        windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
+        windows_sys::Win32::UI::WindowsAndMessaging::HMENU,
+    )>,
 ) -> Result<Option<Win16HostMenu>, RuntimeError> {
     {
         let state = state.borrow();
         if menus.iter().any(|native| {
-            state.menus_by_native.get(&(*native as usize)).is_some_and(|token| {
-                state.retiring_menu_native_handles.contains(&(*token, *native as usize))
-            })
+            state
+                .menus_by_native
+                .get(&(*native as usize))
+                .is_some_and(|token| {
+                    state
+                        .retiring_menu_native_handles
+                        .contains(&(*token, *native as usize))
+                })
                 || state.menus_by_native.contains_key(&(*native as usize))
         }) {
             return Ok(None);
@@ -697,15 +969,22 @@ fn intern_template_tree(
     }
     let mut tokens = BTreeMap::new();
     for native in menus {
-        let id = match NEXT_MENU_ID.try_update(Ordering::Relaxed, Ordering::Relaxed,
-            |value| value.checked_add(1)) {
+        let id = match NEXT_MENU_ID.try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+            value.checked_add(1)
+        }) {
             Ok(id) => id,
-            Err(_) => return Err(RuntimeError::new(Kind::ResourceExhausted,
-                "native menu identity space exhausted")),
+            Err(_) => {
+                return Err(RuntimeError::new(
+                    Kind::ResourceExhausted,
+                    "native menu identity space exhausted",
+                ));
+            }
         };
         tokens.insert(native as usize, Win16HostMenu(id));
     }
-    let Some(root_token) = tokens.get(&(root as usize)).copied() else { return Ok(None); };
+    let Some(root_token) = tokens.get(&(root as usize)).copied() else {
+        return Ok(None);
+    };
     let mut state = state.borrow_mut();
     for (native, token) in &tokens {
         let native = *native as windows_sys::Win32::UI::WindowsAndMessaging::HMENU;
@@ -715,8 +994,15 @@ fn intern_template_tree(
     }
     state.owned_menu_roots.insert(root_token);
     for (parent, child) in edges {
-        if let (Some(parent), Some(child)) = (tokens.get(&(parent as usize)), tokens.get(&(child as usize))) {
-            state.menu_children.entry(*parent).or_default().insert(*child);
+        if let (Some(parent), Some(child)) = (
+            tokens.get(&(parent as usize)),
+            tokens.get(&(child as usize)),
+        ) {
+            state
+                .menu_children
+                .entry(*parent)
+                .or_default()
+                .insert(*child);
             state.owned_menu_roots.remove(child);
         }
     }

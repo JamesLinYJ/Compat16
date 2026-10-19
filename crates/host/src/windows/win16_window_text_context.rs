@@ -10,9 +10,7 @@ use std::rc::Rc;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostWindow};
 use windows_sys::Win32::Globalization::{CPINFO, GetCPInfo};
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    WM_GETTEXT, WM_GETTEXTLENGTH, WM_SETTEXT,
-};
+use windows_sys::Win32::UI::WindowsAndMessaging::{WM_GETTEXT, WM_GETTEXTLENGTH, WM_SETTEXT};
 
 use super::win16_window_worker::WorkerState;
 use crate::windows::guest_text::GuestTextBuffer;
@@ -73,17 +71,21 @@ pub(super) fn enter(
 ) -> Result<WindowTextContextGuard, RuntimeError> {
     let operation_id = state
         .try_borrow()
-        .map_err(|_| RuntimeError::new(
-            Kind::InternalInvariant,
-            "read the active operation for a Unicode USER text call",
-        ))?
+        .map_err(|_| {
+            RuntimeError::new(
+                Kind::InternalInvariant,
+                "read the active operation for a Unicode USER text call",
+            )
+        })?
         .active_operations
         .last()
         .map(|active| active.id)
-        .ok_or_else(|| RuntimeError::new(
-            Kind::InternalInvariant,
-            "Unicode USER text call has no active Win16 operation",
-        ))?;
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::InternalInvariant,
+                "Unicode USER text call has no active Win16 operation",
+            )
+        })?;
     let context = WindowTextContext {
         operation_id,
         window,
@@ -92,29 +94,42 @@ pub(super) fn enter(
         guest_text_length_result: None,
     };
     let shared_state = Rc::clone(state);
-    let mut state = state.try_borrow_mut().map_err(|_| RuntimeError::new(
-        Kind::InternalInvariant,
-        "reserve an exact Unicode USER text-call context",
-    ))?;
+    let mut state = state.try_borrow_mut().map_err(|_| {
+        RuntimeError::new(
+            Kind::InternalInvariant,
+            "reserve an exact Unicode USER text-call context",
+        )
+    })?;
     let stack = &mut state.window_text_contexts;
     let token = stack.next_token.checked_add(1).ok_or_else(|| {
-        RuntimeError::new(Kind::ResourceExhausted,
-            "Unicode USER text-call context identity is exhausted")
+        RuntimeError::new(
+            Kind::ResourceExhausted,
+            "Unicode USER text-call context identity is exhausted",
+        )
     })?;
-    stack.frames.try_reserve(1).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted,
-        "reserve a Unicode USER text-call context",
-        error,
-    ))?;
+    stack.frames.try_reserve(1).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "reserve a Unicode USER text-call context",
+            error,
+        )
+    })?;
     stack.next_token = token;
     stack.frames.push(WindowTextContextFrame { token, context });
-    Ok(WindowTextContextGuard { state: shared_state, token })
+    Ok(WindowTextContextGuard {
+        state: shared_state,
+        token,
+    })
 }
 
 impl Drop for WindowTextContextGuard {
     fn drop(&mut self) {
         let exact_top = self.state.try_borrow().ok().and_then(|state| {
-            state.window_text_contexts.frames.last().map(|frame| frame.token)
+            state
+                .window_text_contexts
+                .frames
+                .last()
+                .map(|frame| frame.token)
         }) == Some(self.token);
         if exact_top {
             if let Ok(mut state) = self.state.try_borrow_mut() {
@@ -128,8 +143,10 @@ impl Drop for WindowTextContextGuard {
         // that may be silently skipped or reused by another callback.
         super::win16_window_callbacks::fail_worker(
             &self.state,
-            RuntimeError::new(Kind::InternalInvariant,
-                "Unicode USER text-call contexts did not unwind in exact LIFO order"),
+            RuntimeError::new(
+                Kind::InternalInvariant,
+                "Unicode USER text-call contexts did not unwind in exact LIFO order",
+            ),
         );
     }
 }
@@ -160,11 +177,15 @@ pub(super) fn record_guest_text_length_result(
     hwnd: windows_sys::Win32::Foundation::HWND,
     result: isize,
 ) {
-    let Ok(mut state) = state.try_borrow_mut() else { return; };
+    let Ok(mut state) = state.try_borrow_mut() else {
+        return;
+    };
     let Some(operation_id) = state.active_operations.last().map(|active| active.id) else {
         return;
     };
-    let Some(frame) = state.window_text_contexts.frames.last_mut() else { return; };
+    let Some(frame) = state.window_text_contexts.frames.last_mut() else {
+        return;
+    };
     let context = &mut frame.context;
     if context.operation_id == operation_id
         && context.window == window
@@ -192,19 +213,21 @@ pub(super) fn guest_capacity(
     native_buffer_is_null: bool,
 ) -> Result<(u16, bool), RuntimeError> {
     if let Some(WindowTextContext {
-        call: WindowTextCall::GetText {
-            guest_capacity_bytes,
-            buffer_is_null,
-            native_capacity_units: expected_native_units,
-        },
+        call:
+            WindowTextCall::GetText {
+                guest_capacity_bytes,
+                buffer_is_null,
+                native_capacity_units: expected_native_units,
+            },
         ..
     }) = current(state, window, hwnd, message)
     {
-        if expected_native_units != native_capacity_units
-            || buffer_is_null != native_buffer_is_null
+        if expected_native_units != native_capacity_units || buffer_is_null != native_buffer_is_null
         {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "Unicode WM_GETTEXT callback changed its guest-origin capacity contract"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "Unicode WM_GETTEXT callback changed its guest-origin capacity contract",
+            ));
         }
         return Ok((guest_capacity_bytes, buffer_is_null));
     }
@@ -242,12 +265,17 @@ pub(super) fn maximum_guest_character_bytes(
     // SAFETY: GetCPInfo writes the fixed-size CPINFO record for this explicit
     // numeric guest code page; it retains no pointer.
     if unsafe { GetCPInfo(code_page, &mut info) } == 0 || info.MaxCharSize == 0 {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "Windows could not report the maximum byte width of the guest code page"));
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "Windows could not report the maximum byte width of the guest code page",
+        ));
     }
     usize::try_from(info.MaxCharSize).map_err(|error| {
-        RuntimeError::with_source(Kind::InternalInvariant,
-            "convert the guest code-page maximum character width", error)
+        RuntimeError::with_source(
+            Kind::InternalInvariant,
+            "convert the guest code-page maximum character width",
+            error,
+        )
     })
 }
 
@@ -270,8 +298,10 @@ pub(super) fn wide_z_from_guest(
     bytes: &[u8],
 ) -> Result<GuestTextBuffer, RuntimeError> {
     if bytes.contains(&0) {
-        return Err(RuntimeError::new(Kind::InvalidInput,
-            "owned Win16 window text contains an embedded NUL"));
+        return Err(RuntimeError::new(
+            Kind::InvalidInput,
+            "owned Win16 window text contains an embedded NUL",
+        ));
     }
     let codec = state.borrow().text_codec;
     let mut wide = GuestTextBuffer::acquire();
@@ -281,6 +311,7 @@ pub(super) fn wide_z_from_guest(
 
 /// Copy a USER-supplied UTF-16 C string during the synchronous native callback
 /// and convert it to the fixed guest code page before the pointer can escape.
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn copy_native_wide_z(
     state: &Rc<RefCell<WorkerState>>,
     pointer: *const u16,
@@ -307,8 +338,10 @@ pub(super) unsafe fn copy_native_wide_z(
         }
         length += 1;
     }
-    Err(RuntimeError::new(Kind::HostFailure,
-        "native UTF-16 window string exceeds the checked copy limit"))
+    Err(RuntimeError::new(
+        Kind::HostFailure,
+        "native UTF-16 window string exceeds the checked copy limit",
+    ))
 }
 
 /// Convert one validated guest NUL-terminated output and clip it at a native
@@ -318,11 +351,11 @@ pub(super) fn guest_z_to_native_prefix(
     guest_z: &[u8],
     native_capacity_units: usize,
 ) -> Result<(GuestTextBuffer, usize), RuntimeError> {
-    if guest_z.last() != Some(&0)
-        || guest_z[..guest_z.len().saturating_sub(1)].contains(&0)
-    {
-        return Err(RuntimeError::new(Kind::InvalidInput,
-            "Win16 window output is not a single terminated guest string"));
+    if guest_z.last() != Some(&0) || guest_z[..guest_z.len().saturating_sub(1)].contains(&0) {
+        return Err(RuntimeError::new(
+            Kind::InvalidInput,
+            "Win16 window output is not a single terminated guest string",
+        ));
     }
     if native_capacity_units == 0 {
         return Ok((GuestTextBuffer::acquire(), 0));
@@ -336,7 +369,9 @@ pub(super) fn guest_z_to_native_prefix(
         let mut visible = visible_limit;
         if visible > 0
             && (0xD800..=0xDBFF).contains(&wide[visible - 1])
-            && wide.get(visible).is_some_and(|unit| (0xDC00..=0xDFFF).contains(unit))
+            && wide
+                .get(visible)
+                .is_some_and(|unit| (0xDC00..=0xDFFF).contains(unit))
         {
             visible -= 1;
         }
@@ -371,9 +406,13 @@ pub(super) fn native_prefix_to_guest_in_buffer(
     let count = bounded.bytes.len();
     let used_default_char = bounded.used_default_char;
     let mut guest = bounded.bytes;
-    guest.try_reserve(1).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "terminate converted guest window text", error,
-    ))?;
+    guest.try_reserve(1).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "terminate converted guest window text",
+            error,
+        )
+    })?;
     guest.push(0);
     if used_default_char == Some(true) {
         super::win16_window_position::report_diagnostic(
@@ -403,11 +442,17 @@ pub(super) fn native_guest_character(
     }
     match encoding.bytes.as_slice() {
         [byte] => Some(u16::from(*byte)),
-        [lead, trail] if unsafe {
-            windows_sys::Win32::Globalization::IsDBCSLeadByteEx(
-                state.borrow().text_codec.code_page(), *lead,
-            )
-        } != 0 => Some(u16::from_le_bytes([*lead, *trail])),
+        // SAFETY: `IsDBCSLeadByteEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+        [lead, trail]
+            if unsafe {
+                windows_sys::Win32::Globalization::IsDBCSLeadByteEx(
+                    state.borrow().text_codec.code_page(),
+                    *lead,
+                )
+            } != 0 =>
+        {
+            Some(u16::from_le_bytes([*lead, *trail]))
+        }
         _ => None,
     }
 }

@@ -6,10 +6,10 @@ use super::*;
 mod completion;
 #[path = "win16_multimedia_buffers_sound_pcm_lifecycle.rs"]
 mod lifecycle;
+pub(super) use completion::retry_completed_headers;
 use completion::{
     complete_closed_session_playbacks, retire_completed_chunk, update_playback_completion,
 };
-pub(super) use completion::retry_completed_headers;
 pub(super) use lifecycle::{retire_playback, stop_playback, wait_playback};
 
 pub(super) fn consume_wave_event(
@@ -17,25 +17,25 @@ pub(super) fn consume_wave_event(
     event: &Win16HostWaveEvent,
 ) -> Result<bool, RuntimeError> {
     if let Win16HostWaveEventKind::Completed(completion) = &event.kind {
-        let playback_chunk = host
-            .sound
-            .playbacks
-            .iter()
-            .enumerate()
-            .find_map(|(playback_index, playback)| {
-                (playback.device == event.device)
-                    .then(|| {
-                        playback
-                            .chunks
-                            .iter()
-                            .position(|chunk| {
-                                chunk.buffer == completion.buffer
-                                    && chunk.submission == completion.submission
-                            })
-                            .map(|chunk_index| (playback_index, chunk_index))
-                    })
-                    .flatten()
-            });
+        let playback_chunk =
+            host.sound
+                .playbacks
+                .iter()
+                .enumerate()
+                .find_map(|(playback_index, playback)| {
+                    (playback.device == event.device)
+                        .then(|| {
+                            playback
+                                .chunks
+                                .iter()
+                                .position(|chunk| {
+                                    chunk.buffer == completion.buffer
+                                        && chunk.submission == completion.submission
+                                })
+                                .map(|chunk_index| (playback_index, chunk_index))
+                        })
+                        .flatten()
+                });
         if let Some((playback_index, chunk_index)) = playback_chunk {
             if !host.sound.playbacks[playback_index].chunks[chunk_index].retired {
                 let session = host.sound.playbacks[playback_index].session;
@@ -68,7 +68,9 @@ pub(super) fn consume_wave_event(
                 .close_sequence
                 .is_some_and(|sequence| sequence != event.sequence)
             {
-                return Err(wave_invariant("SOUND session received a different Close sequence"));
+                return Err(wave_invariant(
+                    "SOUND session received a different Close sequence",
+                ));
             }
             host.sound.sessions[session_index].closing = true;
             host.sound.sessions[session_index].close_sequence = Some(event.sequence);

@@ -11,17 +11,15 @@ use std::thread::{self, JoinHandle};
 
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16CreationId, Win16HostCallback, Win16HostClass,
-    Win16HostClassSpec, Win16HostCreationData, Win16HostDc, Win16HostGdiObject,
-    Win16HostTaskQueue, Win16HostWindow, Win16HostWindowCreationResult, Win16HostWindowLiveness,
+    Win16HostClassSpec, Win16HostCreationData, Win16HostDc, Win16HostGdiObject, Win16HostTaskQueue,
+    Win16HostWindow, Win16HostWindowCreationResult, Win16HostWindowLiveness,
     Win16HostWindowOperationId, Win16NativeWindowApiReturn, Win16RegisteredClass,
     Win16WindowCreationRejection, Win16WindowOperation, Win16WindowReply, Win16WindowResult,
     Win16WindowStep,
 };
-use windows_sys::Win32::Foundation::{GetLastError, HWND};
-use windows_sys::Win32::System::Threading::{CreateEventW, SetEvent};
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CW_USEDEFAULT, DestroyWindow, IsWindow, ShowWindow,
-};
+use windows_sys::Win32::Foundation::HWND;
+use windows_sys::Win32::System::Threading::CreateEventW;
+use windows_sys::Win32::UI::WindowsAndMessaging::CW_USEDEFAULT;
 
 use super::super::win16_gdi::Win16Dcs;
 use super::super::win16_gdi_objects::Win16RegionLease;
@@ -39,12 +37,12 @@ pub(in crate::windows) use modal::{ModalWakeDispatcher, yield_pending_modal_gues
 pub(super) use state::{
     ActiveClassicDdeOperation, ActiveOperation, ClipboardViewerRegistration,
     DialogControlCreationRoute, DialogRootCreationRoute, DialogRoute, DragListOrigin,
-    DragListSidecar, LiveCallback, NativeCallbackContext, NativeClass, NativeClassicDdeQuiescence,
-    NativeCreateCookie, NativeDropCallbackClaim, NativeDropCallbackResolution, NativeDropOwner,
-    NativeClassResource, NativeDropRetirementQueue, NativeDropRetirementQueueHandle,
-    NativeTimerRecord, NativeWindowIdentity, PendingCreation, PendingDialogRoute,
-    PendingWindowMenuRetirement,
-    TerminalProofSnapshot, Win16GuestTimerPost, WorkerState,
+    DragListSidecar, LiveCallback, NativeCallbackContext, NativeClass, NativeClassResource,
+    NativeClassicDdeQuiescence, NativeCreateCookie, NativeDropCallbackClaim,
+    NativeDropCallbackResolution, NativeDropOwner, NativeDropRetirementQueue,
+    NativeDropRetirementQueueHandle, NativeTimerRecord, NativeWindowIdentity, PendingCreation,
+    PendingDialogRoute, PendingWindowMenuRetirement, TerminalProofSnapshot, Win16GuestTimerPost,
+    WorkerState,
 };
 
 #[path = "win16_common_controls_worker_retention.rs"]
@@ -97,9 +95,9 @@ pub(super) use lifecycle::shutdown_all;
 pub(super) use user_services::{retire_clipboard_viewer, update_clipboard_viewer_chain};
 
 pub(super) use timer_registry::{
-    allocate_host_timer_id, allocate_native_callback_timer_id, guest_timer_post,
-    host_timer_proc_pointer, native_timer_record, post_guest_timer_message, register_native_timer,
-    retire_native_timer, timer_record_by_host_id, SYSTEM_TIMER_NATIVE_ID_BIT,
+    SYSTEM_TIMER_NATIVE_ID_BIT, allocate_host_timer_id, allocate_native_callback_timer_id,
+    guest_timer_post, host_timer_proc_pointer, native_timer_record, post_guest_timer_message,
+    register_native_timer, retire_native_timer, timer_record_by_host_id,
 };
 pub(super) use timers::remove_window_maps;
 
@@ -276,11 +274,13 @@ impl WindowWorker {
             super::win16_common_controls_bitmap_pins::allocate_worker_retirement_id()?;
         // Auto-reset event wakes the worker's interruptible USER queue wait.
         // The owned handle is shared only inside this trusted host adapter.
+        // SAFETY: CreateEventW reads an optional caller-owned name and returns a new event handle.
         let native_event = unsafe { CreateEventW(std::ptr::null(), 0, 0, std::ptr::null()) };
         if native_event.is_null() {
             return Err(last_error("create the Win16 USER worker wake event"));
         }
         let wake_event =
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             Arc::new(unsafe { OwnedHandle::from_raw_handle(native_event as RawHandle) });
         let multimedia_generation = Arc::new(AtomicU64::new(0));
         let worker_alive = Arc::new(AtomicBool::new(true));
@@ -438,7 +438,7 @@ impl WindowWorker {
         if result.is_ok() {
             // The event remains owned until after the worker joins, so this
             // valid process-local handle cannot be closed during SetEvent.
-            unsafe { SetEvent(self.wake_event.as_raw_handle() as _) };
+            (crate::windows::win32_safe::set_event(self.wake_event.as_raw_handle() as _));
         }
         result
     }
@@ -535,7 +535,7 @@ impl WindowWorker {
         } else {
             "wake the Win16 USER worker to process its queued terminal request"
         };
-        if unsafe { SetEvent(self.wake_event.as_raw_handle() as _) } == 0 {
+        if (crate::windows::win32_safe::set_event(self.wake_event.as_raw_handle() as _)) == 0 {
             return Err(last_error(operation));
         }
         Ok(())
@@ -546,7 +546,7 @@ impl WindowWorker {
             Ok(()) => {
                 // A rejected Begin returns its owned bitmap leases to the
                 // caller, which can retain them before this worker is joined.
-                unsafe { SetEvent(self.wake_event.as_raw_handle() as _) };
+                (crate::windows::win32_safe::set_event(self.wake_event.as_raw_handle() as _));
                 Ok(())
             }
             Err(error) => Err(error.0),
@@ -682,7 +682,10 @@ pub(super) fn receive_command(state: &Rc<RefCell<WorkerState>>) -> Option<Worker
 }
 
 pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerCommand) {
-    if matches!(&command, WorkerCommand::Abort { .. } | WorkerCommand::Shutdown { .. }) {
+    if matches!(
+        &command,
+        WorkerCommand::Abort { .. } | WorkerCommand::Shutdown { .. }
+    ) {
         if let Err(error) = super::win16_cursor_clip::cleanup_for_exit() {
             state.borrow_mut().terminal_failures.push(Arc::new(error));
         }
@@ -782,6 +785,7 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
         }
         WorkerCommand::GetKeyState { key, response } => {
             let state =
+                // SAFETY: GetKeyState takes a virtual-key integer.
                 unsafe { windows_sys::Win32::UI::Input::KeyboardAndMouse::GetKeyState(key) };
             let _ = response.send(state);
         }
@@ -798,7 +802,11 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
             let result = crate::windows::win16_keyboard::execute(call, ansi_codec, oem_page);
             let _ = response.send(result);
         }
-        WorkerCommand::ComShutdown { owner, operation, response } => {
+        WorkerCommand::ComShutdown {
+            owner,
+            operation,
+            response,
+        } => {
             let com = { Rc::clone(&state.borrow().com) };
             let _ = response.send(com.shutdown(owner, operation));
         }
@@ -1031,6 +1039,6 @@ fn last_error(operation: &str) -> RuntimeError {
     RuntimeError::with_source(
         Kind::HostFailure,
         operation,
-        std::io::Error::from_raw_os_error(unsafe { GetLastError() } as i32),
+        std::io::Error::from_raw_os_error((crate::windows::win32_safe::last_error()) as i32),
     )
 }

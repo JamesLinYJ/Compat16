@@ -12,10 +12,9 @@ use runtime::{
     Win16HostMdiChildCreation, Win16HostMdiCreate, Win16HostWindow,
 };
 use windows_sys::Win32::Foundation::{HWND, LPARAM};
-use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CREATESTRUCTW, GWL_EXSTYLE, GetDlgCtrlID, GetParent, GetWindowLongPtrW,
-    IsWindow, MDICREATESTRUCTW, WM_CREATE, WM_NCCREATE, WS_EX_MDICHILD,
+    CREATESTRUCTW, GWL_EXSTYLE, GetWindowLongPtrW, MDICREATESTRUCTW, WM_CREATE, WM_NCCREATE,
+    WS_EX_MDICHILD,
 };
 
 use super::win16_window_worker::{
@@ -108,7 +107,7 @@ impl PendingMdiCreationGuard {
             ));
         }
         let native_mdi_struct = mdi_struct as usize;
-        if unsafe { GetParent(client) } != frame {
+        if (crate::windows::win32_safe::get_parent(client)) != frame {
             return Err(mdi_route_error(
                 Kind::InvalidInput,
                 "WM_MDICREATE frame is not the exact native parent of its MDI client",
@@ -151,7 +150,7 @@ impl PendingMdiCreationGuard {
                         "WM_MDICREATE frame has no exact native window identity",
                     )
                 })?;
-            if unsafe { IsWindow(frame) } == 0 {
+            if (crate::windows::win32_safe::is_window(frame)) == 0 {
                 return Err(mdi_route_error(
                     Kind::HostFailure,
                     "WM_MDICREATE frame HWND is no longer live",
@@ -176,7 +175,7 @@ impl PendingMdiCreationGuard {
                         "read the native MDI client owner identity",
                     )
                 })?;
-            if owner_thread != unsafe { GetCurrentThreadId() } {
+            if owner_thread != (crate::windows::win32_safe::current_thread_id()) {
                 return Err(mdi_route_error(
                     Kind::InvalidInput,
                     "WM_MDICREATE is not running on its MDI client owner thread",
@@ -570,13 +569,17 @@ pub(in crate::windows::win16_windows) fn identify_mdi_child_creation(
                 "validate the top MDI invocation frame without a conflicting worker borrow",
             )
         })?;
-        if !borrowed.pending_mdi_creations.last().is_some_and(|current| {
-            current.native_mdi_struct == pending.native_mdi_struct
-                && current.creation == pending.creation
-                && current.operation == pending.operation
-                && current.client_window == pending.client_window
-                && current.frame_window == pending.frame_window
-        }) {
+        if !borrowed
+            .pending_mdi_creations
+            .last()
+            .is_some_and(|current| {
+                current.native_mdi_struct == pending.native_mdi_struct
+                    && current.creation == pending.creation
+                    && current.operation == pending.operation
+                    && current.client_window == pending.client_window
+                    && current.frame_window == pending.frame_window
+            })
+        {
             return Err(mdi_route_error(
                 Kind::InternalInvariant,
                 "MDI child callback did not arrive through the top synchronous invocation frame",
@@ -589,7 +592,7 @@ pub(in crate::windows::win16_windows) fn identify_mdi_child_creation(
         return Ok(None);
     }
     let callback_is_mdi_child = create.dwExStyle & WS_EX_MDICHILD != 0;
-    if unsafe { IsWindow(hwnd) } == 0 {
+    if (crate::windows::win32_safe::is_window(hwnd)) == 0 {
         return if callback_is_mdi_child {
             Err(mdi_route_error(
                 Kind::HostFailure,
@@ -600,6 +603,7 @@ pub(in crate::windows::win16_windows) fn identify_mdi_child_creation(
         };
     }
     let native_is_mdi_child =
+        // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
         unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32 } & WS_EX_MDICHILD != 0;
     if !callback_is_mdi_child && !native_is_mdi_child {
         return Ok(None);
@@ -622,7 +626,9 @@ pub(in crate::windows::win16_windows) fn identify_mdi_child_creation(
             "exact WM_MDICREATE callback HWND belongs to a different process or thread",
         ));
     }
-    if create.hwndParent != pending.client || unsafe { GetParent(hwnd) } != pending.client {
+    if create.hwndParent != pending.client || { crate::windows::win32_safe::get_parent(hwnd) }
+        != pending.client
+    {
         return Err(mdi_route_error(
             Kind::HostFailure,
             "exact WM_MDICREATE callback HWND has the wrong native client parent",
@@ -656,7 +662,7 @@ pub(in crate::windows::win16_windows) fn identify_mdi_child_creation(
 
     let identity = identity::bind_pending_mdi_child_identity(state, hwnd, &pending)?;
 
-    let child_id = unsafe { GetDlgCtrlID(hwnd) } as u16;
+    let child_id = (crate::windows::win32_safe::get_dlg_ctrl_id(hwnd)) as u16;
     let data = Win16HostCreationData {
         class: pending.class,
         guest_instance: pending.mdi.owner_instance,

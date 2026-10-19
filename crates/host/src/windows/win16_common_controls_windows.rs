@@ -1,8 +1,8 @@
 //! Status-window creation and ownership on the native USER worker.
 
 use std::cell::RefCell;
-use std::rc::Rc;
 use std::ptr;
+use std::rc::Rc;
 
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostCommonControlsResult as ResultValue,
@@ -10,7 +10,6 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::UI::Controls::{CreateStatusWindowW, InitCommonControls};
-use windows_sys::Win32::UI::WindowsAndMessaging::{DestroyWindow, GetParent};
 
 use super::super::win16_window_worker::WorkerState;
 
@@ -21,12 +20,17 @@ pub(super) fn create_status_window(
     parent: Option<Win16HostWindow>,
     id: u16,
 ) -> Result<ResultValue, RuntimeError> {
-    if text.contains(&0) {return Err(RuntimeError::new(Kind::InvalidInput,
-        "status-control text contains an embedded terminator"));}
+    if text.contains(&0) {
+        return Err(RuntimeError::new(
+            Kind::InvalidInput,
+            "status-control text contains an embedded terminator",
+        ));
+    }
     let text = state.borrow().text_codec.to_wide_z(text)?;
     let parent_hwnd = match parent {
         None => ptr::null_mut(),
-        Some(token) => match super::super::win16_window_identity::resolve_user_window(state, token) {
+        Some(token) => match super::super::win16_window_identity::resolve_user_window(state, token)
+        {
             Some(hwnd) => hwnd,
             None => return Ok(created_window(None, None)),
         },
@@ -37,9 +41,8 @@ pub(super) fn create_status_window(
     unsafe { InitCommonControls() };
     // SAFETY: `text` is UTF-16 NUL terminated and the optional parent is either NULL
     // or a mapped USER window. No RefCell borrow is active across this call.
-    let native = unsafe {
-        CreateStatusWindowW(style as i32, text.as_ptr(), parent_hwnd, u32::from(id))
-    };
+    let native =
+        unsafe { CreateStatusWindowW(style as i32, text.as_ptr(), parent_hwnd, u32::from(id)) };
     let Some(window) = register_owned_window(state, native)? else {
         return Ok(created_window(None, None));
     };
@@ -54,7 +57,7 @@ pub(super) fn create_status_window(
     }
     // SAFETY: The status control still resolves to this exact live HWND on the
     // worker thread. GetParent returns a native identity that is adopted below.
-    let actual_parent = unsafe { GetParent(native) };
+    let actual_parent = crate::windows::win32_safe::get_parent(native);
     let parent = if actual_parent.is_null() {
         None
     } else {
@@ -86,7 +89,11 @@ pub(super) fn register_owned_window(
         return Ok(None);
     }
     let previous_identity = {
-        state.borrow().windows_by_native.get(&(window as usize)).copied()
+        state
+            .borrow()
+            .windows_by_native
+            .get(&(window as usize))
+            .copied()
     };
     // A synchronous parent callback may already have adopted this new
     // control through GetDlgItem. Reuse that exact live identity instead of
@@ -95,19 +102,25 @@ pub(super) fn register_owned_window(
         Ok(token) => token,
         Err(error) => {
             let cleanup = cleanup_after_adopt_failure(state, window, previous_identity);
-            return Err(contextualize_cleanup(error, cleanup,
-                "adopt the newly created COMMCTRL status-control identity"));
+            return Err(contextualize_cleanup(
+                error,
+                cleanup,
+                "adopt the newly created COMMCTRL status-control identity",
+            ));
         }
     };
 
     let promoted = {
         let mut state = state.borrow_mut();
         let native = window as usize;
-        let has_cookie = state.window_identity_cookies.get(&token).is_some_and(|binding| {
-            binding.hwnd == native && binding.value != 0
-        });
+        let has_cookie = state
+            .window_identity_cookies
+            .get(&token)
+            .is_some_and(|binding| binding.hwnd == native && binding.value != 0);
         let exact_mapping = state.windows.get(&token).copied() == Some(window)
-            && state.windows_by_native.get(&native)
+            && state
+                .windows_by_native
+                .get(&native)
                 .is_some_and(|identity| identity.window == token);
         if has_cookie && exact_mapping {
             if let Some(identity) = state.windows_by_native.get_mut(&native) {
@@ -121,16 +134,20 @@ pub(super) fn register_owned_window(
         }
     };
     if !promoted {
-        let error = RuntimeError::new(Kind::HostFailure,
-            "COMMCTRL status-control identity could not be promoted to owned");
+        let error = RuntimeError::new(
+            Kind::HostFailure,
+            "COMMCTRL status-control identity could not be promoted to owned",
+        );
         let cleanup = cleanup_created_window(state, token, window);
-        return Err(contextualize_cleanup(error, cleanup,
-            "clean up the status control after identity promotion failed"));
+        return Err(contextualize_cleanup(
+            error,
+            cleanup,
+            "clean up the status control after identity promotion failed",
+        ));
     }
     if super::super::win16_window_identity::resolve(state, token) != Some(window) {
-        cleanup_created_window(state, token, window).map_err(|error| {
-            error.with_context("retire the stale status-control identity")
-        })?;
+        cleanup_created_window(state, token, window)
+            .map_err(|error| error.with_context("retire the stale status-control identity"))?;
         return Ok(None);
     }
     Ok(Some(token))
@@ -145,12 +162,14 @@ pub(super) fn cleanup_created_window(
         // SAFETY: The private cookie still proves this is the exact HWND
         // created and registered by this operation. The identity check and
         // native call are separate with no state borrow held across USER.
-        if unsafe { DestroyWindow(window) } == 0
+        if (crate::windows::win32_safe::destroy_window(window)) == 0
             && super::super::win16_window_identity::resolve(state, token) == Some(window)
         {
             // Keep the owned identity intact so the worker can retry cleanup.
-            return Err(RuntimeError::new(Kind::HostFailure,
-                "DestroyWindow failed while the status-control identity remained live"));
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "DestroyWindow failed while the status-control identity remained live",
+            ));
         }
     }
     retire_created_sidecar(state, token, window);
@@ -163,7 +182,11 @@ fn cleanup_after_adopt_failure(
     previous_identity: Option<super::super::win16_window_worker::NativeWindowIdentity>,
 ) -> Result<(), RuntimeError> {
     let current_identity = {
-        state.borrow().windows_by_native.get(&(window as usize)).copied()
+        state
+            .borrow()
+            .windows_by_native
+            .get(&(window as usize))
+            .copied()
     };
     if let Some(identity) = current_identity {
         if super::super::win16_window_identity::resolve(state, identity.window) != Some(window) {
@@ -184,22 +207,23 @@ fn cleanup_after_adopt_failure(
         // No token or prior native mapping exists, so this is still the
         // unregistered HWND returned by this synchronous CreateStatusWindowW.
         // This bridge has no safe native identity to retry with on failure.
-        if unsafe { DestroyWindow(window) } == 0 {
-            return Err(RuntimeError::new(Kind::HostFailure,
-                "DestroyWindow failed for an unregistered COMMCTRL status control"));
+        if (crate::windows::win32_safe::destroy_window(window)) == 0 {
+            return Err(RuntimeError::new(
+                Kind::HostFailure,
+                "DestroyWindow failed for an unregistered COMMCTRL status control",
+            ));
         }
     }
     Ok(())
 }
 
-fn retire_created_sidecar(
-    state: &Rc<RefCell<WorkerState>>,
-    token: Win16HostWindow,
-    window: HWND,
-) {
+fn retire_created_sidecar(state: &Rc<RefCell<WorkerState>>, token: Win16HostWindow, window: HWND) {
     let token_not_rebound = {
         let state = state.borrow();
-        state.windows.get(&token).is_none_or(|mapped| *mapped == window)
+        state
+            .windows
+            .get(&token)
+            .is_none_or(|mapped| *mapped == window)
     };
     if token_not_rebound {
         super::super::win16_window_worker::remove_window_maps(state, token, window);
@@ -228,6 +252,7 @@ fn contextualize_cleanup(
     match cleanup {
         Ok(()) => error.with_context(context),
         Err(cleanup_error) => error.with_context(format!(
-            "{context}; control cleanup also failed: {cleanup_error}")),
+            "{context}; control cleanup also failed: {cleanup_error}"
+        )),
     }
 }

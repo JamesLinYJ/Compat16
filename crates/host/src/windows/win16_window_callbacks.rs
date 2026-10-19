@@ -14,11 +14,11 @@ use runtime::{
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::UI::Shell::{DragQueryFileW, DragQueryPoint, HDROP};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CREATESTRUCTW, DefDlgProcW, DefWindowProcW, GetParent, IsWindow, MINMAXINFO, WINDOWPOS,
-    WM_CHANGECBCHAIN, WM_COMMAND, WM_CREATE, WM_DESTROY, WM_DROPFILES, WM_ERASEBKGND,
-    WM_GETDLGCODE, WM_GETMINMAXINFO, WM_GETTEXT, WM_GETTEXTLENGTH, WM_NCACTIVATE, WM_NCCALCSIZE,
-    WM_NCCREATE, WM_NCDESTROY, WM_NCPAINT, WM_PAINT, WM_SETFONT, WM_SETTEXT, WM_TIMER,
-    WM_WINDOWPOSCHANGED, WM_WINDOWPOSCHANGING,
+    CREATESTRUCTW, DefDlgProcW, DefWindowProcW, MINMAXINFO, WINDOWPOS, WM_CHANGECBCHAIN,
+    WM_COMMAND, WM_CREATE, WM_DESTROY, WM_DROPFILES, WM_ERASEBKGND, WM_GETDLGCODE,
+    WM_GETMINMAXINFO, WM_GETTEXT, WM_GETTEXTLENGTH, WM_NCACTIVATE, WM_NCCALCSIZE, WM_NCCREATE,
+    WM_NCDESTROY, WM_NCPAINT, WM_PAINT, WM_SETFONT, WM_SETTEXT, WM_TIMER, WM_WINDOWPOSCHANGED,
+    WM_WINDOWPOSCHANGING,
 };
 
 use super::win16_window_worker::{
@@ -59,6 +59,7 @@ pub(in crate::windows::win16_windows) use text_output::{
 const WM_ACTIVATEAPP: u32 = 0x001c;
 const WM_PARENTNOTIFY: u32 = 0x0210;
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 pub(super) unsafe extern "system" fn host_window_proc(
     hwnd: HWND,
     message: u32,
@@ -115,6 +116,7 @@ fn dispatch_window_proc(
             let _owner = NativeDropOwner::raw(w_param as usize, native_drop_consumed);
             return 0;
         }
+        // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
         return unsafe { DefWindowProcW(hwnd, message, w_param, l_param) };
     };
     let queued_drop_claim = if is_native_drop {
@@ -203,6 +205,7 @@ fn dispatch_window_proc(
         if is_native_drop {
             return 0;
         }
+        // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
         return unsafe { DefWindowProcW(hwnd, message, w_param, l_param) };
     }
     let identified = match worker_window::identify_window(&state, hwnd) {
@@ -227,21 +230,47 @@ fn dispatch_window_proc(
         }
         // A private WndProc can be reached before the worker has registered a
         // token only during teardown. Keep native handling safe and quiet.
+        // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
         return unsafe { DefWindowProcW(hwnd, message, w_param, l_param) };
     };
     // Native subclasses carry an explicit window owner, not a fabricated
     // guest class. The saved procedure is the fallback for native-only input.
     let native_subclass = super::win16_native_procedures::is_subclassed(&state, identity.window);
-    let host_class = if native_subclass { None } else { identity.class };
+    let host_class = if native_subclass {
+        None
+    } else {
+        identity.class
+    };
     if host_class.is_none() && !native_subclass {
-        if is_native_drop { return 0; }
+        if is_native_drop {
+            return 0;
+        }
         return canceled_native_result(hwnd, message, w_param, l_param);
     }
-    if native_subclass && let Some((guest_message, payload)) = super::win16_subclass_send::capture(
-        &state, identity.window, hwnd, message, w_param, l_param,
-    ) {
-        return dispatch_guest_callback(&state, hwnd, identity, None, u32::from(guest_message),
-            0, 0, 0, None, payload, None, None);
+    if native_subclass
+        && let Some((guest_message, payload)) = super::win16_subclass_send::capture(
+            &state,
+            identity.window,
+            hwnd,
+            message,
+            w_param,
+            l_param,
+        )
+    {
+        return dispatch_guest_callback(
+            &state,
+            hwnd,
+            identity,
+            None,
+            u32::from(guest_message),
+            0,
+            0,
+            0,
+            None,
+            payload,
+            None,
+            None,
+        );
     }
     if super::win16_guest_notifications::is_carrier_message(hwnd, message, w_param, l_param) {
         if worker_window::current_operation_id().is_none() {
@@ -408,6 +437,7 @@ fn dispatch_window_proc(
                 // its lpCreateParams is never a Win16 FAR and is not the dialog's
                 // init parameter. Dialog provenance was already matched against
                 // the exact pending template route by identify().
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 let native_create = unsafe { &*(l_param as *const CREATESTRUCTW) };
                 let dialog_route = creation_id.is_some() && pending_cookie == 0;
                 if !dialog_route {
@@ -417,6 +447,7 @@ fn dispatch_window_proc(
                     }
                     // Pointer equality above ties this address to the worker's
                     // live Box before its host-only fields are read.
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     let cookie = unsafe { &*(creation_cookie as *const NativeCreateCookie) };
                     if cookie.window != identity.window
                         || Some(cookie.class) != identity.class
@@ -569,9 +600,11 @@ fn dispatch_window_proc(
             WM_GETMINMAXINFO if l_param != 0 => {
                 // USER owns this synchronous structure; only copied coordinates
                 // cross to the runtime while the native call remains suspended.
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 let native = unsafe { &*(l_param as *const MINMAXINFO) };
                 Some(Win16HostMessage::MinMaxInfo(
-                    super::win16_window_sizing::minmax_for_guest(native)))
+                    super::win16_window_sizing::minmax_for_guest(native),
+                ))
             }
             // A WndProc receives WM_TIMER from synchronous SendMessage, where
             // LPARAM is just message data. For a queued WM_TIMER with a non-null
@@ -588,7 +621,7 @@ fn dispatch_window_proc(
                     (Some(None), None)
                 } else {
                     let native_control = l_param as HWND;
-                    if unsafe { IsWindow(native_control) } == 0 {
+                    if (crate::windows::win32_safe::is_window(native_control)) == 0 {
                         (None, None)
                     } else {
                         let control = match worker_window::token_for_native(&state, native_control)
@@ -599,7 +632,7 @@ fn dispatch_window_proc(
                                 return canceled_native_result(hwnd, message, w_param, l_param);
                             }
                         };
-                        let native_parent = unsafe { GetParent(native_control) };
+                        let native_parent = crate::windows::win32_safe::get_parent(native_control);
                         let control_parent = if native_parent.is_null() {
                             None
                         } else {
@@ -692,10 +725,15 @@ fn dispatch_window_proc(
             }
             _ => Win16ScalarMessage::from_raw(message as u16)
                 .filter(|_| message <= u32::from(u16::MAX))
-                .and_then(|kind| super::win16_character_messages::to_guest(&state,
-                    message, w_param).map(|guest_w| Win16HostMessage::Scalar {
-                        kind, w_param: guest_w, l_param: l_param as u32,
-                    })),
+                .and_then(|kind| {
+                    super::win16_character_messages::to_guest(&state, message, w_param).map(
+                        |guest_w| Win16HostMessage::Scalar {
+                            kind,
+                            w_param: guest_w,
+                            l_param: l_param as u32,
+                        },
+                    )
+                }),
         }
     };
     let Some(translated) = translated else {
@@ -738,6 +776,7 @@ pub(super) fn snapshot_native_drop_files(
                 "WM_DROPFILES carried a null HDROP",
             ));
         }
+        // SAFETY: DragQueryFileW writes into a caller-owned buffer of the capacity passed with it.
         let count = unsafe { DragQueryFileW(drop, u32::MAX, std::ptr::null_mut(), 0) };
         let count = usize::try_from(count).map_err(|error| {
             RuntimeError::with_source(
@@ -769,6 +808,7 @@ pub(super) fn snapshot_native_drop_files(
                     error,
                 )
             })?;
+            // SAFETY: DragQueryFileW writes into a caller-owned buffer of the capacity passed with it.
             let length = unsafe { DragQueryFileW(drop, index, std::ptr::null_mut(), 0) };
             if length == 0 || length > 32_767 {
                 return Err(RuntimeError::new(
@@ -788,6 +828,7 @@ pub(super) fn snapshot_native_drop_files(
                 )
             })?;
             wide.resize(capacity as usize, 0);
+            // SAFETY: DragQueryFileW writes into a caller-owned buffer of the capacity passed with it.
             let copied = unsafe { DragQueryFileW(drop, index, wide.as_mut_ptr(), capacity) };
             if copied != length || wide.get(length as usize) != Some(&0) {
                 return Err(RuntimeError::new(
@@ -830,6 +871,7 @@ pub(super) fn snapshot_native_drop_files(
             files.push(encoded.bytes);
         }
         let mut point = windows_sys::Win32::Foundation::POINT { x: 0, y: 0 };
+        // SAFETY: `DragQueryPoint` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let in_client_area = unsafe { DragQueryPoint(drop, &mut point) } != 0;
         Ok(Win16HostDropFiles {
             paths: files,
@@ -1102,17 +1144,27 @@ fn dispatch_guest_callback_with_mdi(
             .map(|(_, data)| data.clone())
     };
     let source = runtime::Win16NativeCallbackSource::WindowMessage {
-        window: identity.window, class: host_class, message,
+        window: identity.window,
+        class: host_class,
+        message,
     };
     let step = match host_class {
         Some(class) => Win16WindowStep::Callback {
             operation_id: runtime::Win16HostWindowOperationId(active.id),
-            callback, creation, creation_data, window: identity.window,
-            class, message: payload, source,
+            callback,
+            creation,
+            creation_data,
+            window: identity.window,
+            class,
+            message: payload,
+            source,
         },
         None => Win16WindowStep::NativeSubclassCallback {
             operation_id: runtime::Win16HostWindowOperationId(active.id),
-            callback, window: identity.window, message: payload, source,
+            callback,
+            window: identity.window,
+            message: payload,
+            source,
         },
     };
     crate::windows::win16_gdi::flush_thread_batch();

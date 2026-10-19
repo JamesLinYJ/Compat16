@@ -91,6 +91,7 @@ impl Drop for ResolverWorkLease {
     }
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn resolver_callback(
     _instance: windows_sys::Win32::System::Threading::PTP_CALLBACK_INSTANCE,
     context: *mut c_void,
@@ -133,7 +134,7 @@ unsafe extern "system" fn resolver_callback(
         // copies thread-local Winsock records before it returns.
         unsafe { query_native(&query) }.ok_or_else(|| {
             // SAFETY: this retrieves Winsock's last error from this worker thread.
-            unsafe { WSAGetLastError() }
+            crate::windows::win32_safe::wsa_last_error()
         })
     }));
     drop(query);

@@ -168,6 +168,7 @@ pub(super) fn query_value(
 
 /// The optional buffer is owned by query_value and writable for *byte_count
 /// bytes. No guest pointer reaches this function.
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 unsafe fn read_expandable(
     key: HKEY,
     subkey: &[u16],

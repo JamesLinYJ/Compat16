@@ -6,9 +6,7 @@ use std::rc::Rc;
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostWindow, Win16WindowCreationRejection,
 };
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    DestroyMenu, DrawMenuBar, GetMenu, IsMenu, IsWindow, SetMenu,
-};
+use windows_sys::Win32::UI::WindowsAndMessaging::{DrawMenuBar, SetMenu};
 
 use super::super::win16_window_worker::WorkerState;
 
@@ -23,9 +21,9 @@ pub(super) fn destroy_dialog_menu(
             "dialog menu token disappeared before rollback",
         ));
     };
-    if !super::super::win16_menu_attachment::menu_token_matches(state, token, native)
-        || unsafe { IsMenu(native) == 0 }
-    {
+    if !super::super::win16_menu_attachment::menu_token_matches(state, token, native) || {
+        crate::windows::win32_safe::is_menu(native) == 0
+    } {
         return Err(RuntimeError::new(
             Kind::HostFailure,
             "DestroyMenu could not retire a detached dialog menu",
@@ -41,14 +39,14 @@ pub(super) fn destroy_dialog_menu(
     };
     let _owners = super::super::win16_menu_attachment::retain_menu_call_owners(state, &[token])?;
     let _reservation = super::super::win16_menu_attachment::reserve_menu_retirement(state, &tree)?;
-    let destroyed = unsafe { DestroyMenu(native) != 0 };
+    let destroyed = crate::windows::win32_safe::destroy_menu(native) != 0;
     drop(_reservation);
     let _ =
         super::super::win16_menu_attachment::invalidate_menu_identities(state, &tree, destroyed);
     drop(_owners);
     if !destroyed
         && super::super::win16_menu_attachment::menu_token_matches(state, token, native)
-        && unsafe { IsMenu(native) != 0 }
+        && (crate::windows::win32_safe::is_menu(native) != 0)
     {
         return Err(RuntimeError::new(
             Kind::HostFailure,
@@ -139,7 +137,9 @@ fn detach_dialog_menu(
     let Some(hwnd) = super::super::win16_window_identity::resolve(state, root) else {
         return Ok(());
     };
-    if unsafe { IsWindow(hwnd) == 0 || GetMenu(hwnd) != native } {
+    if crate::windows::win32_safe::is_window(hwnd) == 0
+        || crate::windows::win32_safe::get_menu(hwnd) != native
+    {
         return Ok(());
     }
     if !super::super::win16_menu_attachment::dialog_attachment_is_current(
@@ -149,6 +149,7 @@ fn detach_dialog_menu(
     }
     let _menu_owners =
         super::super::win16_menu_attachment::retain_menu_call_owners(state, &[token])?;
+    // SAFETY: SetMenu attaches a menu this process owns to a window.
     let _detach_reported_success = unsafe { SetMenu(hwnd, std::ptr::null_mut()) } != 0;
     if !super::super::win16_menu_attachment::clear_dialog_attachment(
         state, root, hwnd, token, native,
@@ -163,6 +164,7 @@ fn detach_dialog_menu(
         }
         return Ok(());
     }
+    // SAFETY: DrawMenuBar redraws the menu of a window this thread owns.
     let redrawn = unsafe { DrawMenuBar(hwnd) } != 0;
     if super::super::win16_window_identity::resolve(state, root) != Some(hwnd) {
         return Ok(());
@@ -170,13 +172,13 @@ fn detach_dialog_menu(
     if !super::super::win16_menu_attachment::menu_token_matches(state, token, native) {
         return Ok(());
     }
-    if unsafe { GetMenu(hwnd) } == native {
+    if (crate::windows::win32_safe::get_menu(hwnd)) == native {
         return Err(RuntimeError::new(
             Kind::HostFailure,
             "guest code reattached the dialog menu during rollback",
         ));
     }
-    if !redrawn && unsafe { GetMenu(hwnd) }.is_null() {
+    if !redrawn && (crate::windows::win32_safe::get_menu(hwnd)).is_null() {
         return Err(RuntimeError::new(
             Kind::HostFailure,
             "DrawMenuBar could not update the dialog after menu rollback",
@@ -231,8 +233,9 @@ fn destroy_detached_dialog_menu(
             "refused to destroy a dialog menu still owned by a live HWND or USER call",
         ));
     }
-    if !super::super::win16_menu_attachment::menu_token_matches(state, token, native)
-        || unsafe { IsMenu(native) } == 0
+    if !super::super::win16_menu_attachment::menu_token_matches(state, token, native) || {
+        crate::windows::win32_safe::is_menu(native)
+    } == 0
     {
         return Ok(());
     }
@@ -246,14 +249,14 @@ fn destroy_detached_dialog_menu(
     };
     let _owners = super::super::win16_menu_attachment::retain_menu_call_owners(state, &[token])?;
     let _reservation = super::super::win16_menu_attachment::reserve_menu_retirement(state, &tree)?;
-    let destroyed = unsafe { DestroyMenu(native) != 0 };
+    let destroyed = crate::windows::win32_safe::destroy_menu(native) != 0;
     drop(_reservation);
     let _ =
         super::super::win16_menu_attachment::invalidate_menu_identities(state, &tree, destroyed);
     drop(_owners);
     if !destroyed
         && super::super::win16_menu_attachment::menu_token_matches(state, token, native)
-        && unsafe { IsMenu(native) != 0 }
+        && (crate::windows::win32_safe::is_menu(native) != 0)
     {
         return Err(RuntimeError::new(
             Kind::HostFailure,
@@ -271,7 +274,7 @@ fn retire_dialog_route_window(
         return Ok(());
     };
     if super::super::win16_window_identity::resolve(state, token) == Some(hwnd)
-        && unsafe { IsWindow(hwnd) } != 0
+        && (crate::windows::win32_safe::is_window(hwnd)) != 0
     {
         if !super::super::win16_window_worker::destroy_quiet(state, token) {
             return Err(RuntimeError::new(

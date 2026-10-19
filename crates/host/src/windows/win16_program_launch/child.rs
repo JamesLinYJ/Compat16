@@ -199,18 +199,21 @@ impl GuestChildLaunch {
 fn owned_file(value: usize, kind: u32) -> Result<File, RuntimeError> {
     let handle = value as HANDLE;
     // These are private inherited native handles, never Win16 handles.
+    // SAFETY: `GetFileType` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     if handle == INVALID_HANDLE_VALUE || unsafe { GetFileType(handle) } != kind {
         return Err(invalid(
             "child launch handle has an unexpected native object type",
         ));
     }
     // Retire inheritance before any guest library can launch another child.
+    // SAFETY: SetHandleInformation updates flags on a handle this process owns.
     if unsafe { SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0) } == 0 {
         return Err(failure(
             "retire child handle inheritance",
             std::io::Error::last_os_error(),
         ));
     }
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     Ok(unsafe { File::from_raw_handle(handle as RawHandle) })
 }
 

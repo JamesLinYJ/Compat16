@@ -3,9 +3,7 @@
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostDc, Win16HostGdiObject};
 use windows_sys::Win32::{
     Foundation::HWND,
-    Graphics::Gdi::{
-        CombineRgn, CreateRectRgn, DeleteObject, GetDCEx, HDC, HRGN, RGN_COPY, RGN_ERROR,
-    },
+    Graphics::Gdi::{CombineRgn, CreateRectRgn, GetDCEx, HDC, HRGN, RGN_COPY, RGN_ERROR},
 };
 
 use super::{
@@ -19,9 +17,7 @@ impl Drop for ClipCopy {
     fn drop(&mut self) {
         // SAFETY: This copy is uniquely owned until a successful GetDCEx
         // transfers it to USER, at which point the guard is forgotten.
-        unsafe {
-            DeleteObject(self.0.cast());
-        }
+        crate::windows::win32_safe::delete_object(self.0.cast());
     }
 }
 
@@ -32,6 +28,7 @@ pub(super) fn acquire_native(window: HWND, region: Option<&Win16RegionLease>, fl
             // separate unique copy: it deletes hrgnClip after successful
             // DCX_INTERSECTRGN/DCX_EXCLUDERGN acquisition (GetDCEx contract).
             // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getdcex
+            // SAFETY: CreateRectRgn takes integer bounds and returns a region this process must delete.
             let native = unsafe { CreateRectRgn(0, 0, 0, 0) };
             if native.is_null() {
                 return std::ptr::null_mut();

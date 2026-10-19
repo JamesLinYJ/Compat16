@@ -7,10 +7,12 @@ use windows_sys::Win32::Graphics::Gdi::{GetObjectW, GetRgnBox};
 // its type bits do not prove that an object remains queryable. Check real
 // object data, or region geometry for HRGN (which GetObjectW does not support).
 fn metafile_object_is_live(handle: HGDIOBJ) -> Result<bool, RuntimeError> {
-    if unsafe { GetObjectType(handle) } == OBJ_REGION as u32 {
+    if (crate::windows::win32_safe::get_object_type(handle)) == OBJ_REGION as u32 {
         let mut rect = windows_sys::Win32::Foundation::RECT::default();
+        // SAFETY: `GetRgnBox` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         return Ok(unsafe { GetRgnBox(handle.cast(), &mut rect) } != 0);
     }
+    // SAFETY: GetObjectW writes into a caller-owned buffer of the byte count passed with it.
     let count = unsafe { GetObjectW(handle, 0, std::ptr::null_mut()) };
     if count <= 0 {
         return Ok(false);
@@ -20,6 +22,7 @@ fn metafile_object_is_live(handle: HGDIOBJ) -> Result<bool, RuntimeError> {
     // the stack; variable EXTLOGPEN data gets an aligned, fallible buffer.
     let mut fixed = [0u64; 16];
     if count as usize <= std::mem::size_of_val(&fixed) {
+        // SAFETY: GetObjectW writes into a caller-owned buffer of the byte count passed with it.
         return Ok(unsafe { GetObjectW(handle, count, fixed.as_mut_ptr().cast()) } != 0);
     }
     let words = (count as usize).div_ceil(8);
@@ -28,6 +31,7 @@ fn metafile_object_is_live(handle: HGDIOBJ) -> Result<bool, RuntimeError> {
         RuntimeError::with_source(Kind::ResourceExhausted, "query WMF object lifetime", error)
     })?;
     data.resize(words, 0);
+    // SAFETY: GetObjectW writes into a caller-owned buffer of the byte count passed with it.
     Ok(unsafe { GetObjectW(handle, count, data.as_mut_ptr().cast()) } != 0)
 }
 

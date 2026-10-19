@@ -3,7 +3,7 @@
 use super::data::copy_transaction_data;
 use super::*;
 use crate::windows::guest_text::GuestTextCodec;
-use windows_sys::Win32::Foundation::{ERROR_NO_UNICODE_TRANSLATION, GetLastError};
+use windows_sys::Win32::Foundation::ERROR_NO_UNICODE_TRANSLATION;
 
 pub(super) enum DataCopyCreation {
     Created(HDDEDATA),
@@ -78,6 +78,7 @@ pub(super) fn client_transaction(
         if let Some((token, _, _, source_format, _, source_item)) = input_data {
             let item_matches = match (source_item.is_null(), native_item.is_null()) {
                 (true, true) => true,
+                // SAFETY: `DdeCmpStringHandles` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 (false, false) => (unsafe { DdeCmpStringHandles(source_item, native_item) }) == 0,
                 _ => false,
             };
@@ -328,6 +329,7 @@ pub(super) fn client_transaction(
                 bytes.as_ptr()
             }
         });
+        // SAFETY: DdeClientTransaction reads a caller-owned data span.
         unsafe {
             DdeClientTransaction(
                 pointer,
@@ -341,6 +343,7 @@ pub(super) fn client_transaction(
             )
         }
     } else if !transaction_uses_input_data {
+        // SAFETY: DdeClientTransaction reads a caller-owned data span.
         unsafe {
             DdeClientTransaction(
                 ptr::null(),
@@ -355,6 +358,7 @@ pub(super) fn client_transaction(
         }
     } else {
         match &data {
+            // SAFETY: DdeClientTransaction reads a caller-owned data span.
             Win16HostDdeTransactionData::None => unsafe {
                 DdeClientTransaction(
                     ptr::null(),
@@ -379,6 +383,7 @@ pub(super) fn client_transaction(
                 } else {
                     bytes.as_ptr()
                 };
+                // SAFETY: DdeClientTransaction reads a caller-owned data span.
                 unsafe {
                     DdeClientTransaction(
                         pointer,
@@ -393,6 +398,7 @@ pub(super) fn client_transaction(
                 }
             }
             Win16HostDdeTransactionData::Data(_) => {
+                // SAFETY: DdeClientTransaction reads a caller-owned data span.
                 let result = unsafe {
                     DdeClientTransaction(
                         native_data_pointer,
@@ -430,6 +436,7 @@ pub(super) fn client_transaction(
         ) {
             Ok(data) => data,
             Err(error) => {
+                // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
                 if unsafe { DdeFreeDataHandle(native_result) } == 0 {
                     return Err(RuntimeError::with_source(
                         Kind::HostFailure,
@@ -503,6 +510,7 @@ pub(super) fn client_transaction(
         && returned_data.is_none()
         && timeout != TIMEOUT_ASYNC
         && transaction_base == transaction_type::base(XTYP_REQUEST)
+        // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
         && unsafe { DdeFreeDataHandle(native_result) } == 0
     {
         return Err(RuntimeError::new(
@@ -560,7 +568,7 @@ fn guest_execute_payload(codec: GuestTextCodec, bytes: &[u8]) -> Result<Vec<u8>,
 fn is_guest_text_error(error: &RuntimeError) -> bool {
     error.kind() == Kind::InvalidInput
         || (error.kind() == Kind::HostFailure
-            && unsafe { GetLastError() } == ERROR_NO_UNICODE_TRANSLATION)
+            && (crate::windows::win32_safe::last_error()) == ERROR_NO_UNICODE_TRANSLATION)
 }
 
 fn client_transaction_not_passed(
@@ -589,8 +597,9 @@ fn release_prepared_copy(
     let Some(native) = *prepared else {
         return Ok(());
     };
+    // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
     if unsafe { DdeFreeDataHandle(native) } == 0 {
-        let error = unsafe { DdeGetLastError(native_instance) } as u16;
+        let error = (crate::windows::win32_safe::dde_last_error(native_instance)) as u16;
         return Err(RuntimeError::new(
             Kind::HostFailure,
             format!(

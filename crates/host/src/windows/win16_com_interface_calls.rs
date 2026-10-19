@@ -18,13 +18,13 @@ use runtime::{
 use windows_core::{HRESULT, Interface, PCWSTR};
 
 use super::com_bindings::generated::{
-    CoTaskMemFree, GlobalLock, GlobalSize, DEVMODEW, IDataObject, IEnumFORMATETC,
-    IMoniker, IOleClientSite, IOleObject, IPersistFile, IPersistStorage, IStorage, IStream,
-    ReleaseStgMedium, CLIPFORMAT, DVTARGETDEVICE, FORMATETC, HWND, RECT, SIZE, STGMEDIUM,
+    CLIPFORMAT, CoTaskMemFree, DEVMODEW, DVTARGETDEVICE, FORMATETC, GlobalLock, GlobalSize, HWND,
+    IDataObject, IEnumFORMATETC, IMoniker, IOleClientSite, IOleObject, IPersistFile,
+    IPersistStorage, IStorage, IStream, RECT, ReleaseStgMedium, SIZE, STGMEDIUM,
 };
-use windows_sys::Win32::Foundation::HWND as RawHwnd;
 use super::win16_com_callback_copy::{read_file_medium_contents, unlock_medium};
 use super::win16_com_objects::{NativeComError, Win16ComObjects};
+use windows_sys::Win32::Foundation::HWND as RawHwnd;
 
 const E_INVALIDARG: HRESULT = HRESULT(0x8007_0057u32 as i32);
 const TYMED_HGLOBAL_VALUE: u32 = 1;
@@ -49,6 +49,7 @@ pub(super) fn execute(
     let (status, value) = match call {
         Win16ComHostInterfaceCall::OleSetClientSite { site } => {
             let result = with_object::<IOleObject, _>(objects, object, |native| {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 with_optional::<IOleClientSite, _>(objects, site, |site| unsafe {
                     (native.vtable().SetClientSite)(
                         native.as_raw(),
@@ -58,10 +59,15 @@ pub(super) fn execute(
             })??;
             (result, Win16OleHostValue::None)
         }
-        Win16ComHostInterfaceCall::OleSetHostNames { application, document } => {
-            let (Some(application), Some(document)) = (wide_z(&application), wide_z(&document)) else {
+        Win16ComHostInterfaceCall::OleSetHostNames {
+            application,
+            document,
+        } => {
+            let (Some(application), Some(document)) = (wide_z(&application), wide_z(&document))
+            else {
                 return Ok(reply(E_INVALIDARG, Win16OleHostValue::None));
             };
+            // SAFETY: `PCWSTR` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let result = with_object::<IOleObject, _>(objects, object, |native| unsafe {
                 (native.vtable().SetHostNames)(
                     native.as_raw(),
@@ -73,6 +79,7 @@ pub(super) fn execute(
         }
         Win16ComHostInterfaceCall::OleSetMoniker { assign, moniker } => {
             let result = with_object::<IOleObject, _>(objects, object, |native| {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 with_object::<IMoniker, _>(objects, moniker, |moniker| unsafe {
                     (native.vtable().SetMoniker)(native.as_raw(), assign, moniker.as_raw())
                 })
@@ -85,6 +92,7 @@ pub(super) fn execute(
                 let result = with_object::<super::com_bindings::generated::IAdviseSink, _>(
                     objects,
                     sink,
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     |sink| unsafe {
                         (native.vtable().Advise)(native.as_raw(), sink.as_raw(), &mut cookie)
                     },
@@ -94,6 +102,7 @@ pub(super) fn execute(
             (result?, Win16OleHostValue::Scalar(cookie))
         }
         Win16ComHostInterfaceCall::OleUnadvise { cookie } => {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let result = with_object::<IOleObject, _>(objects, object, |native| unsafe {
                 (native.vtable().Unadvise)(native.as_raw(), cookie)
             })?;
@@ -102,24 +111,40 @@ pub(super) fn execute(
         Win16ComHostInterfaceCall::OleGetExtent { aspect } => {
             let (result, size) = with_object::<IOleObject, _>(objects, object, |native| {
                 let mut size = SIZE::default();
-                let result = unsafe {
-                    (native.vtable().GetExtent)(native.as_raw(), aspect, &mut size)
-                };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+                let result =
+                    unsafe { (native.vtable().GetExtent)(native.as_raw(), aspect, &mut size) };
                 (result, size)
             })?;
             (
                 result,
-                Win16OleHostValue::Extent { width: size.cx, height: size.cy },
+                Win16OleHostValue::Extent {
+                    width: size.cx,
+                    height: size.cy,
+                },
             )
         }
-        Win16ComHostInterfaceCall::OleSetExtent { aspect, width, height } => {
-            let size = SIZE { cx: width, cy: height };
+        Win16ComHostInterfaceCall::OleSetExtent {
+            aspect,
+            width,
+            height,
+        } => {
+            let size = SIZE {
+                cx: width,
+                cy: height,
+            };
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let result = with_object::<IOleObject, _>(objects, object, |native| unsafe {
                 (native.vtable().SetExtent)(native.as_raw(), aspect, &size)
             })?;
             (result, Win16OleHostValue::None)
         }
-        Win16ComHostInterfaceCall::OleDoVerb { verb, site, window, position } => {
+        Win16ComHostInterfaceCall::OleDoVerb {
+            verb,
+            site,
+            window,
+            position,
+        } => {
             let hwnd = match window {
                 Some(window) => match resolve_window(window) {
                     Some(hwnd) => HWND(hwnd),
@@ -128,8 +153,11 @@ pub(super) fn execute(
                 None => HWND(ptr::null_mut()),
             };
             let rect = position.map(native_rect);
-            let rect_pointer = rect.as_ref().map_or(ptr::null(), |rect| rect as *const RECT);
+            let rect_pointer = rect
+                .as_ref()
+                .map_or(ptr::null(), |rect| rect as *const RECT);
             let result = with_object::<IOleObject, _>(objects, object, |native| {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 with_optional::<IOleClientSite, _>(objects, site, |site| unsafe {
                     (native.vtable().DoVerb)(
                         native.as_raw(),
@@ -145,12 +173,14 @@ pub(super) fn execute(
             (result, Win16OleHostValue::None)
         }
         Win16ComHostInterfaceCall::OleClose { save_option } => {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let result = with_object::<IOleObject, _>(objects, object, |native| unsafe {
                 (native.vtable().Close)(native.as_raw(), save_option)
             })?;
             (result, Win16OleHostValue::None)
         }
         Win16ComHostInterfaceCall::OleUpdate => {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let result = with_object::<IOleObject, _>(objects, object, |native| unsafe {
                 (native.vtable().Update)(native.as_raw())
             })?;
@@ -158,6 +188,7 @@ pub(super) fn execute(
         }
         Win16ComHostInterfaceCall::PersistStorageInitNew { storage } => {
             let result = with_object::<IPersistStorage, _>(objects, object, |persist| {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 with_object::<IStorage, _>(objects, storage, |storage| unsafe {
                     (persist.vtable().InitNew)(persist.as_raw(), storage.as_raw())
                 })
@@ -166,26 +197,28 @@ pub(super) fn execute(
         }
         Win16ComHostInterfaceCall::PersistStorageLoad { storage } => {
             let result = with_object::<IPersistStorage, _>(objects, object, |persist| {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 with_object::<IStorage, _>(objects, storage, |storage| unsafe {
                     (persist.vtable().Load)(persist.as_raw(), storage.as_raw())
                 })
             })??;
             (result, Win16OleHostValue::None)
         }
-        Win16ComHostInterfaceCall::PersistStorageSave { storage, same_as_load } => {
+        Win16ComHostInterfaceCall::PersistStorageSave {
+            storage,
+            same_as_load,
+        } => {
             let result = with_object::<IPersistStorage, _>(objects, object, |persist| {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 with_object::<IStorage, _>(objects, storage, |storage| unsafe {
-                    (persist.vtable().Save)(
-                        persist.as_raw(),
-                        storage.as_raw(),
-                        same_as_load.into(),
-                    )
+                    (persist.vtable().Save)(persist.as_raw(), storage.as_raw(), same_as_load.into())
                 })
             })??;
             (result, Win16OleHostValue::None)
         }
         Win16ComHostInterfaceCall::PersistStorageSaveCompleted { storage } => {
             let result = with_object::<IPersistStorage, _>(objects, object, |persist| {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 with_optional::<IStorage, _>(objects, storage, |storage| unsafe {
                     (persist.vtable().SaveCompleted)(
                         persist.as_raw(),
@@ -196,6 +229,7 @@ pub(super) fn execute(
             (result, Win16OleHostValue::None)
         }
         Win16ComHostInterfaceCall::PersistStorageHandsOff => {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let result = with_object::<IPersistStorage, _>(objects, object, |persist| unsafe {
                 (persist.vtable().HandsOffStorage)(persist.as_raw())
             })?;
@@ -205,6 +239,7 @@ pub(super) fn execute(
             let Some(path) = wide_z(&path) else {
                 return Ok(reply(E_INVALIDARG, Win16OleHostValue::None));
             };
+            // SAFETY: `PCWSTR` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let result = with_object::<IPersistFile, _>(objects, object, |persist| unsafe {
                 (persist.vtable().Load)(persist.as_raw(), PCWSTR(path.as_ptr()), mode)
             })?;
@@ -214,17 +249,15 @@ pub(super) fn execute(
             let Some(path) = wide_z(&path) else {
                 return Ok(reply(E_INVALIDARG, Win16OleHostValue::None));
             };
+            // SAFETY: `PCWSTR` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let result = with_object::<IPersistFile, _>(objects, object, |persist| unsafe {
-                (persist.vtable().Save)(
-                    persist.as_raw(),
-                    PCWSTR(path.as_ptr()),
-                    remember.into(),
-                )
+                (persist.vtable().Save)(persist.as_raw(), PCWSTR(path.as_ptr()), remember.into())
             })?;
             (result, Win16OleHostValue::None)
         }
         Win16ComHostInterfaceCall::DataObjectQueryGetData { format } => {
             let Some(result) = with_format(&format, |native_format| {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 with_object::<IDataObject, _>(objects, object, |data| unsafe {
                     (data.vtable().QueryGetData)(data.as_raw(), &native_format)
                 })
@@ -237,6 +270,7 @@ pub(super) fn execute(
             let Some(result) = with_format(&format, |native_format| {
                 with_object::<IDataObject, _>(objects, object, |data| {
                     let mut medium = STGMEDIUM::default();
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     let result = unsafe {
                         (data.vtable().GetData)(data.as_raw(), &native_format, &mut medium)
                     };
@@ -256,9 +290,9 @@ pub(super) fn execute(
         Win16ComHostInterfaceCall::DataObjectEnumFormatEtc { direction } => {
             let (result, output) = with_object::<IDataObject, _>(objects, object, |data| {
                 let mut output = ptr::null_mut();
-                let result = unsafe {
-                    (data.vtable().EnumFormatEtc)(data.as_raw(), direction, &mut output)
-                };
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+                let result =
+                    unsafe { (data.vtable().EnumFormatEtc)(data.as_raw(), direction, &mut output) };
                 (result, output)
             })?;
             adopt_output::<IEnumFORMATETC>(
@@ -272,28 +306,37 @@ pub(super) fn execute(
             if count == 0 || count > MAX_FORMAT_COUNT {
                 return Ok(reply(E_INVALIDARG, Win16OleHostValue::None));
             }
-            let (result, formats) = with_object::<IEnumFORMATETC, _>(objects, enumerator, |native| {
-                let mut formats = vec![FORMATETC::default(); count as usize];
-                let mut fetched = 0;
-                let result = unsafe {
-                    (native.vtable().Next)(native.as_raw(), count, formats.as_mut_ptr(), &mut fetched)
-                };
-                if fetched > count {
-                    fetched = count;
-                }
-                formats.truncate(fetched as usize);
-                (result, formats)
-            })?;
+            let (result, formats) =
+                with_object::<IEnumFORMATETC, _>(objects, enumerator, |native| {
+                    let mut formats = vec![FORMATETC::default(); count as usize];
+                    let mut fetched = 0;
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+                    let result = unsafe {
+                        (native.vtable().Next)(
+                            native.as_raw(),
+                            count,
+                            formats.as_mut_ptr(),
+                            &mut fetched,
+                        )
+                    };
+                    if fetched > count {
+                        fetched = count;
+                    }
+                    formats.truncate(fetched as usize);
+                    (result, formats)
+                })?;
             let copied = take_formats(formats)?;
             (result, Win16OleHostValue::Formats(copied))
         }
         Win16ComHostInterfaceCall::EnumFormatEtcReset { enumerator } => {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let result = with_object::<IEnumFORMATETC, _>(objects, enumerator, |native| unsafe {
                 (native.vtable().Reset)(native.as_raw())
             })?;
             (result, Win16OleHostValue::None)
         }
         Win16ComHostInterfaceCall::EnumFormatEtcSkip { enumerator, count } => {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let result = with_object::<IEnumFORMATETC, _>(objects, enumerator, |native| unsafe {
                 (native.vtable().Skip)(native.as_raw(), count)
             })?;
@@ -339,7 +382,10 @@ fn com_error(error: NativeComError) -> RuntimeError {
 }
 
 fn reply(status: HRESULT, value: Win16OleHostValue) -> Win16OleHostReply {
-    Win16OleHostReply { status: status.0 as u32, value }
+    Win16OleHostReply {
+        status: status.0 as u32,
+        value,
+    }
 }
 
 fn wide_z(text: &[u16]) -> Option<Vec<u16>> {
@@ -351,13 +397,15 @@ fn wide_z(text: &[u16]) -> Option<Vec<u16>> {
 }
 
 fn native_rect(rect: Win16HostRect) -> RECT {
-    RECT { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
+    RECT {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+    }
 }
 
-fn with_format<R>(
-    format: &Win16ComHostFormatEtc,
-    call: impl FnOnce(FORMATETC) -> R,
-) -> Option<R> {
+fn with_format<R>(format: &Win16ComHostFormatEtc, call: impl FnOnce(FORMATETC) -> R) -> Option<R> {
     if format
         .target_device
         .as_deref()
@@ -369,12 +417,9 @@ fn with_format<R>(
         let mut words = vec![0u32; bytes.len().div_ceil(mem::size_of::<u32>())];
         // DVTARGETDEVICE is a variable-size SDK byte record. Keep its complete
         // owned bytes aligned while the native call borrows the generated type.
+        // SAFETY: The source and destination are non-overlapping, and both spans were checked to cover the copied length.
         unsafe {
-            ptr::copy_nonoverlapping(
-                bytes.as_ptr(),
-                words.as_mut_ptr().cast::<u8>(),
-                bytes.len(),
-            );
+            ptr::copy_nonoverlapping(bytes.as_ptr(), words.as_mut_ptr().cast::<u8>(), bytes.len());
         }
         words
     });
@@ -394,8 +439,11 @@ fn with_format<R>(
 
 pub(super) fn valid_target_device(bytes: &[u8]) -> bool {
     if !(12..=MAX_TARGET_DEVICE_BYTES).contains(&bytes.len())
-        || u32::from_le_bytes(bytes[0..4].try_into().expect("checked target-device header"))
-            as usize
+        || u32::from_le_bytes(
+            bytes[0..4]
+                .try_into()
+                .expect("checked target-device header"),
+        ) as usize
             != bytes.len()
     {
         return false;
@@ -407,9 +455,7 @@ pub(super) fn valid_target_device(bytes: &[u8]) -> bool {
             || (value >= 12
                 && value < bytes.len()
                 && value % 2 == 0
-                && bytes[value..]
-                    .chunks_exact(2)
-                    .any(|unit| unit == [0, 0]))
+                && bytes[value..].chunks_exact(2).any(|unit| unit == [0, 0]))
     }) && valid_host_devmode(bytes, offset(10))
 }
 
@@ -465,6 +511,7 @@ fn take_format(format: &mut FORMATETC) -> Result<Win16ComHostFormatEtc, RuntimeE
         None
     } else {
         // IEnumFORMATETC transfers each ptd task allocation to its caller.
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let size = unsafe { (*format.ptd).tdSize as usize };
         if !(12..=MAX_TARGET_DEVICE_BYTES).contains(&size) {
             free_target_device(format);
@@ -473,6 +520,7 @@ fn take_format(format: &mut FORMATETC) -> Result<Win16ComHostFormatEtc, RuntimeE
                 "IEnumFORMATETC returned an invalid target-device size",
             ));
         }
+        // SAFETY: The pointer and length were checked against the owning allocation, and the bytes stay live for this copy.
         let bytes = unsafe { std::slice::from_raw_parts(format.ptd.cast::<u8>(), size) }.to_vec();
         free_target_device(format);
         if !valid_target_device(&bytes) {
@@ -495,6 +543,7 @@ fn take_format(format: &mut FORMATETC) -> Result<Win16ComHostFormatEtc, RuntimeE
 fn free_target_device(format: &mut FORMATETC) {
     if !format.ptd.is_null() {
         // CoTaskMemFree is the allocator paired with IEnumFORMATETC::Next.
+        // SAFETY: CoTaskMemFree releases a COM allocation this owner holds, or null.
         unsafe { CoTaskMemFree(format.ptd.cast()) };
         format.ptd = ptr::null_mut();
     }
@@ -556,6 +605,7 @@ fn copy_storage_medium(
             } else if size == 0 {
                 Ok(Win16ComHostStorageMedium::HGlobal(Vec::new()))
             } else {
+                // SAFETY: GlobalLock locks an HGLOBAL this owner holds and returns a pointer valid until GlobalUnlock.
                 let locked = unsafe { GlobalLock(handle) };
                 if locked.is_null() {
                     Err(RuntimeError::new(
@@ -563,8 +613,10 @@ fn copy_storage_medium(
                         "GlobalLock failed for IDataObject HGLOBAL medium",
                     ))
                 } else {
-                    let bytes = unsafe { std::slice::from_raw_parts(locked.cast::<u8>(), size) }
-                        .to_vec();
+                    // SAFETY: The pointer and length were checked against the owning allocation, and the bytes stay live for this copy.
+                    let bytes =
+                        unsafe { std::slice::from_raw_parts(locked.cast::<u8>(), size) }.to_vec();
+                    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                     unsafe { unlock_medium(handle) }.map_err(|error| {
                         RuntimeError::with_source(
                             DiagnosticKind::HostFailure,
@@ -585,6 +637,7 @@ fn copy_storage_medium(
                     "IDataObject returned a null TYMED_FILE path",
                 ))
             } else {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 let contents = unsafe { read_file_medium_contents(path) }.map_err(|error| {
                     RuntimeError::with_source(
                         DiagnosticKind::HostFailure,
@@ -600,6 +653,7 @@ fn copy_storage_medium(
             // inside ManuallyDrop. Borrow its existing reference, clone it
             // through windows-core (AddRef), then ReleaseStgMedium below.
             if medium.tymed == TYMED_ISTREAM_VALUE {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 let slot = unsafe {
                     <std::mem::ManuallyDrop<Option<IStream>> as std::ops::Deref>::deref(
                         &medium.Anonymous.pstm,
@@ -617,6 +671,7 @@ fn copy_storage_medium(
                     disposition: ReferenceDisposition::Owned,
                 }))
             } else {
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 let slot = unsafe {
                     <std::mem::ManuallyDrop<Option<IStorage>> as std::ops::Deref>::deref(
                         &medium.Anonymous.pstg,
@@ -646,7 +701,10 @@ fn copy_storage_medium(
         }
         _ => Err(RuntimeError::new(
             DiagnosticKind::HostFailure,
-            format!("IDataObject returned unsupported STGMEDIUM type {}", medium.tymed),
+            format!(
+                "IDataObject returned unsupported STGMEDIUM type {}",
+                medium.tymed
+            ),
         )),
     })();
     // STGMEDIUM uses an SDK cleanup function because pUnkForRelease may own

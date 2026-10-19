@@ -7,18 +7,17 @@
 use std::ptr;
 
 use runtime::{
-    DiagnosticKind as Kind, RuntimeError, Win16GdiObjectOperation as Operation,
-    Win16DrawingPoint, Win16DrawingRect, Win16HostGdiObject,
-};
-use windows_sys::Win32::Graphics::Gdi::{
-    BITMAP, BS_DIBPATTERN, BS_PATTERN, CreateBitmap, CreateBitmapIndirect,
-    CreateBrushIndirect, CreateCompatibleBitmap, CreateDIBitmap, CreateDIBPatternBrushPt,
-    CreateEllipticRgn, CreateEllipticRgnIndirect, CreatePolygonRgn,
-    CreatePolyPolygonRgn, CreateRectRgn, CreateRectRgnIndirect, CreateRoundRectRgn,
-    CreateFontW, CreateFontIndirectW, CreatePen, CreatePenIndirect, BITMAPINFO,
-    BITMAPINFOHEADER, HGDIOBJ, LOGBRUSH, LOGFONTW, LOGPEN, LoadBitmapW,
+    DiagnosticKind as Kind, RuntimeError, Win16DrawingPoint, Win16DrawingRect,
+    Win16GdiObjectOperation as Operation, Win16HostGdiObject,
 };
 use windows_sys::Win32::Foundation::{POINT, RECT};
+use windows_sys::Win32::Graphics::Gdi::{
+    BITMAP, BITMAPINFO, BITMAPINFOHEADER, BS_DIBPATTERN, BS_PATTERN, CreateBitmap,
+    CreateBitmapIndirect, CreateBrushIndirect, CreateCompatibleBitmap, CreateDIBPatternBrushPt,
+    CreateDIBitmap, CreateEllipticRgn, CreateEllipticRgnIndirect, CreateFontIndirectW, CreateFontW,
+    CreatePen, CreatePenIndirect, CreatePolyPolygonRgn, CreatePolygonRgn, CreateRectRgn,
+    CreateRectRgnIndirect, CreateRoundRectRgn, HGDIOBJ, LOGBRUSH, LOGFONTW, LOGPEN, LoadBitmapW,
+};
 
 use super::win16_gdi::Win16Dcs;
 use super::win16_gdi::fonts::{create_face_name_wide, create_logfont_face_wide};
@@ -29,7 +28,11 @@ use super::win16_gdi_objects::Win16Objects;
 pub(super) enum Win16RegionCreate<'a> {
     Ellipse(Win16DrawingRect),
     EllipseIndirect(Option<Win16DrawingRect>),
-    Polygon { points: &'a [Win16DrawingPoint], count: i16, fill_mode: i16 },
+    Polygon {
+        points: &'a [Win16DrawingPoint],
+        count: i16,
+        fill_mode: i16,
+    },
     Rectangle(Win16DrawingRect),
     RectangleIndirect(Option<Win16DrawingRect>),
     RoundRectangle {
@@ -60,10 +63,16 @@ pub(super) fn create(
             // MAKEINTRESOURCE encodes a numeric resource, not a guest pointer.
             // LoadBitmap returns an owned object requiring DeleteObject:
             // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-loadbitmapw
-            let bitmap = unsafe { LoadBitmapW(ptr::null_mut(), usize::from(resource_id) as *const u16) };
+            // SAFETY: `LoadBitmapW` receives a host pointer formed in this function. The pointer is non-null when dereferenced, stays live for this synchronous call, and is not a guest address.
+            let bitmap =
+                unsafe { LoadBitmapW(ptr::null_mut(), usize::from(resource_id) as *const u16) };
             adopt(objects, bitmap.cast())
         }
-        Operation::CreatePen { style, width, color } => {
+        Operation::CreatePen {
+            style,
+            width,
+            color,
+        } => {
             // SAFETY: Arguments are scalars. GDI owns the returned pen after
             // the common object table adopts it.
             let pen = unsafe { CreatePen(i32::from(style), i32::from(width), color) };
@@ -106,7 +115,9 @@ pub(super) fn create(
                 },
                 None => None,
             };
-            let face_pointer = face_name.as_ref().map_or(ptr::null(), |value| value.as_ptr());
+            let face_pointer = face_name
+                .as_ref()
+                .map_or(ptr::null(), |value| value.as_ptr());
             // SAFETY: The optional UTF-16 string is retained through this
             // synchronous native call; all other arguments are scalar values.
             let font = unsafe {
@@ -154,7 +165,13 @@ pub(super) fn create(
             let font = unsafe { CreateFontIndirectW(&native) };
             adopt(objects, font.cast())
         }
-        Operation::CreateBitmap { width, height, planes, bits_per_pixel, bits } => {
+        Operation::CreateBitmap {
+            width,
+            height,
+            planes,
+            bits_per_pixel,
+            bits,
+        } => {
             let bits_pointer = bits
                 .as_ref()
                 .map_or(ptr::null(), |bytes| bytes.as_ptr().cast());
@@ -191,25 +208,33 @@ pub(super) fn create(
             let handle = unsafe { CreateBitmapIndirect(&native) };
             adopt(objects, handle.cast())
         }
-        Operation::CreateBrushIndirect { logbrush, pattern_bitmap, dib_pattern } => {
+        Operation::CreateBrushIndirect {
+            logbrush,
+            pattern_bitmap,
+            dib_pattern,
+        } => {
             let style = u32::from(logbrush.style);
             let hatch = if style == BS_PATTERN {
-                    let Some(token) = pattern_bitmap else { return Ok(None); };
-                    let Some(bitmap) = objects.native_bitmap(token) else { return Ok(None); };
-                    bitmap as usize
-                } else if style == BS_DIBPATTERN {
-                    let Some(dib) = dib_pattern.as_ref() else { return Ok(None); };
-                    let usage = u32::from(logbrush.color as u16);
-                    let Some(native_dib) = aligned_dib_words(&dib.info, &dib.bits)? else {
-                        return Ok(None);
-                    };
-                    // SAFETY: Runtime validated the complete packed DIB. This
-                    // aligned owned buffer remains live for the synchronous
-                    // call, which copies the brush pattern before returning.
-                    let brush = unsafe {
-                        CreateDIBPatternBrushPt(native_dib.as_ptr().cast(), usage)
-                    };
-                    return adopt(objects, brush.cast());
+                let Some(token) = pattern_bitmap else {
+                    return Ok(None);
+                };
+                let Some(bitmap) = objects.native_bitmap(token) else {
+                    return Ok(None);
+                };
+                bitmap as usize
+            } else if style == BS_DIBPATTERN {
+                let Some(dib) = dib_pattern.as_ref() else {
+                    return Ok(None);
+                };
+                let usage = u32::from(logbrush.color as u16);
+                let Some(native_dib) = aligned_dib_words(&dib.info, &dib.bits)? else {
+                    return Ok(None);
+                };
+                // SAFETY: Runtime validated the complete packed DIB. This
+                // aligned owned buffer remains live for the synchronous
+                // call, which copies the brush pattern before returning.
+                let brush = unsafe { CreateDIBPatternBrushPt(native_dib.as_ptr().cast(), usage) };
+                return adopt(objects, brush.cast());
             } else {
                 logbrush.hatch as isize as usize
             };
@@ -224,7 +249,9 @@ pub(super) fn create(
             adopt(objects, brush.cast())
         }
         Operation::CreateCompatibleBitmap { dc, width, height } => {
-            let Some(dc_use) = dcs.lease_dc(dc)? else { return Ok(None); };
+            let Some(dc_use) = dcs.lease_dc(dc)? else {
+                return Ok(None);
+            };
             // SAFETY: The HDC lease remains live through the native call;
             // GDI receives scalar dimensions and owns the returned bitmap.
             let bitmap = unsafe {
@@ -241,16 +268,21 @@ pub(super) fn create(
             info,
             color_usage,
         } => {
-            let Some(dc_use) = dcs.lease_dc(dc)? else { return Ok(None); };
+            let Some(dc_use) = dcs.lease_dc(dc)? else {
+                return Ok(None);
+            };
             let header = aligned_optional_bytes(header.as_deref())?;
             let bits = aligned_optional_bytes(bits.as_deref())?;
             let info = aligned_optional_bytes(info.as_deref())?;
-            let header_pointer = header.as_ref().map_or(ptr::null(), |bytes|
-                bytes.as_ptr().cast::<BITMAPINFOHEADER>());
-            let bits_pointer = bits.as_ref().map_or(ptr::null(), |bytes|
-                bytes.as_ptr().cast());
-            let info_pointer = info.as_ref().map_or(ptr::null(), |bytes|
-                bytes.as_ptr().cast::<BITMAPINFO>());
+            let header_pointer = header.as_ref().map_or(ptr::null(), |bytes| {
+                bytes.as_ptr().cast::<BITMAPINFOHEADER>()
+            });
+            let bits_pointer = bits
+                .as_ref()
+                .map_or(ptr::null(), |bytes| bytes.as_ptr().cast());
+            let info_pointer = info
+                .as_ref()
+                .map_or(ptr::null(), |bytes| bytes.as_ptr().cast::<BITMAPINFO>());
             // SAFETY: The HDC lease remains live through the native call. Each
             // non-null pointer refers to an owned, DWORD-aligned snapshot;
             // nullness mirrors the original Win16 pointers.
@@ -267,15 +299,17 @@ pub(super) fn create(
             drop(dc_use);
             adopt(objects, bitmap.cast())
         }
-        Operation::CreateEllipticRgn { rect } => create_region(
-            objects,
-            Win16RegionCreate::Ellipse(rect),
-        ),
-        Operation::CreateEllipticRgnIndirect { rect } => create_region(
-            objects,
-            Win16RegionCreate::EllipseIndirect(rect),
-        ),
-        Operation::CreatePolygonRgn { points, count, fill_mode } => create_region(
+        Operation::CreateEllipticRgn { rect } => {
+            create_region(objects, Win16RegionCreate::Ellipse(rect))
+        }
+        Operation::CreateEllipticRgnIndirect { rect } => {
+            create_region(objects, Win16RegionCreate::EllipseIndirect(rect))
+        }
+        Operation::CreatePolygonRgn {
+            points,
+            count,
+            fill_mode,
+        } => create_region(
             objects,
             Win16RegionCreate::Polygon {
                 points: &points,
@@ -283,20 +317,30 @@ pub(super) fn create(
                 fill_mode,
             },
         ),
-        Operation::CreateRectRgn { rect } => create_region(
+        Operation::CreateRectRgn { rect } => {
+            create_region(objects, Win16RegionCreate::Rectangle(rect))
+        }
+        Operation::CreateRectRgnIndirect { rect } => {
+            create_region(objects, Win16RegionCreate::RectangleIndirect(rect))
+        }
+        Operation::CreateRoundRectRgn {
+            rect,
+            ellipse_width,
+            ellipse_height,
+        } => create_region(
             objects,
-            Win16RegionCreate::Rectangle(rect),
-        ),
-        Operation::CreateRectRgnIndirect { rect } => create_region(
-            objects,
-            Win16RegionCreate::RectangleIndirect(rect),
-        ),
-        Operation::CreateRoundRectRgn { rect, ellipse_width, ellipse_height } => create_region(
-            objects,
-            Win16RegionCreate::RoundRectangle { rect, ellipse_width, ellipse_height },
+            Win16RegionCreate::RoundRectangle {
+                rect,
+                ellipse_width,
+                ellipse_height,
+            },
         ),
         Operation::CreatePolyPolygonRgn {
-            points, polygon_counts, polygon_count, fill_mode, valid,
+            points,
+            polygon_counts,
+            polygon_count,
+            fill_mode,
+            valid,
         } => create_region(
             objects,
             Win16RegionCreate::PolyPolygon {
@@ -324,19 +368,30 @@ pub(super) fn create_region(
     shape: Win16RegionCreate<'_>,
 ) -> Result<Option<Win16HostGdiObject>, RuntimeError> {
     let native = match shape {
+        // SAFETY: `CreateEllipticRgn` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         Win16RegionCreate::Ellipse(rect) => unsafe {
             CreateEllipticRgn(rect.left, rect.top, rect.right, rect.bottom)
         },
         Win16RegionCreate::EllipseIndirect(rect) => {
-            let Some(rect) = rect else { return Ok(None); };
+            let Some(rect) = rect else {
+                return Ok(None);
+            };
             let native_rect = native_rect(rect);
             // SAFETY: `native_rect` is a complete host RECT retained through
             // the synchronous call.
             unsafe { CreateEllipticRgnIndirect(&native_rect) }
         }
-        Win16RegionCreate::Polygon { points, count, fill_mode } => {
-            let Ok(expected_count) = usize::try_from(count) else { return Ok(None); };
-            if points.len() != expected_count { return Ok(None); }
+        Win16RegionCreate::Polygon {
+            points,
+            count,
+            fill_mode,
+        } => {
+            let Ok(expected_count) = usize::try_from(count) else {
+                return Ok(None);
+            };
+            if points.len() != expected_count {
+                return Ok(None);
+            }
             let native_points = native_points(points)?;
             let sentinel = POINT { x: 0, y: 0 };
             let points_pointer: *const POINT = if native_points.is_empty() {
@@ -344,46 +399,73 @@ pub(super) fn create_region(
             } else {
                 native_points.as_ptr()
             };
+            // SAFETY: `CreatePolygonRgn` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe { CreatePolygonRgn(points_pointer, i32::from(count), i32::from(fill_mode)) }
         }
+        // SAFETY: CreateRectRgn takes integer bounds and returns a region this process must delete.
         Win16RegionCreate::Rectangle(rect) => unsafe {
             CreateRectRgn(rect.left, rect.top, rect.right, rect.bottom)
         },
         Win16RegionCreate::RectangleIndirect(rect) => {
-            let Some(rect) = rect else { return Ok(None); };
+            let Some(rect) = rect else {
+                return Ok(None);
+            };
             let native_rect = native_rect(rect);
             // SAFETY: `native_rect` is a complete host RECT retained through
             // the synchronous call.
             unsafe { CreateRectRgnIndirect(&native_rect) }
         }
-        Win16RegionCreate::RoundRectangle { rect, ellipse_width, ellipse_height } => unsafe {
+        Win16RegionCreate::RoundRectangle {
+            rect,
+            ellipse_width,
+            ellipse_height,
+        } => unsafe {
             CreateRoundRectRgn(
-                rect.left, rect.top, rect.right, rect.bottom,
-                i32::from(ellipse_width), i32::from(ellipse_height),
+                rect.left,
+                rect.top,
+                rect.right,
+                rect.bottom,
+                i32::from(ellipse_width),
+                i32::from(ellipse_height),
             )
         },
         Win16RegionCreate::PolyPolygon {
-            points, polygon_counts, polygon_count, fill_mode, valid,
+            points,
+            polygon_counts,
+            polygon_count,
+            fill_mode,
+            valid,
         } => {
-            if !valid { return Ok(None); }
+            if !valid {
+                return Ok(None);
+            }
             let Ok(expected_polygon_count) = usize::try_from(polygon_count) else {
                 return Ok(None);
             };
-            if polygon_counts.len() != expected_polygon_count { return Ok(None); }
+            if polygon_counts.len() != expected_polygon_count {
+                return Ok(None);
+            }
             let Some(expected_points) = polygon_counts.iter().try_fold(0_usize, |total, count| {
-                usize::try_from(*count).ok().and_then(|count| total.checked_add(count))
+                usize::try_from(*count)
+                    .ok()
+                    .and_then(|count| total.checked_add(count))
             }) else {
                 return Ok(None);
             };
-            if points.len() != expected_points { return Ok(None); }
+            if points.len() != expected_points {
+                return Ok(None);
+            }
             let native_points = native_points(points)?;
             let mut native_counts = Vec::new();
-            native_counts.try_reserve_exact(polygon_counts.len()).map_err(|error|
-                RuntimeError::with_source(
-                    Kind::ResourceExhausted,
-                    "allocate native Win16 polygon-count array",
-                    error,
-                ))?;
+            native_counts
+                .try_reserve_exact(polygon_counts.len())
+                .map_err(|error| {
+                    RuntimeError::with_source(
+                        Kind::ResourceExhausted,
+                        "allocate native Win16 polygon-count array",
+                        error,
+                    )
+                })?;
             native_counts.extend(polygon_counts.iter().copied().map(i32::from));
             let point_sentinel = POINT { x: 0, y: 0 };
             let count_sentinel = 0_i32;
@@ -397,6 +479,7 @@ pub(super) fn create_region(
             } else {
                 native_counts.as_ptr()
             };
+            // SAFETY: `CreatePolyPolygonRgn` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe {
                 CreatePolyPolygonRgn(
                     points_pointer,
@@ -411,14 +494,27 @@ pub(super) fn create_region(
 }
 
 fn native_rect(rect: Win16DrawingRect) -> RECT {
-    RECT { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
+    RECT {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+    }
 }
 
 fn native_points(points: &[Win16DrawingPoint]) -> Result<Vec<POINT>, RuntimeError> {
     let mut result = Vec::new();
-    result.try_reserve_exact(points.len()).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "allocate native Win16 region points", error))?;
-    result.extend(points.iter().map(|point| POINT { x: point.x, y: point.y }));
+    result.try_reserve_exact(points.len()).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "allocate native Win16 region points",
+            error,
+        )
+    })?;
+    result.extend(points.iter().map(|point| POINT {
+        x: point.x,
+        y: point.y,
+    }));
     Ok(result)
 }
 
@@ -426,15 +522,30 @@ fn native_points(points: &[Win16DrawingPoint]) -> Result<Vec<POINT>, RuntimeErro
 /// preserves byte order on Windows; the final partial word is zero-padded,
 /// outside the parser-validated minimum DIB extent.
 fn aligned_dib_words(info: &[u8], bits: &[u8]) -> Result<Option<Vec<u32>>, RuntimeError> {
-    let byte_len = info.len().checked_add(bits.len()).ok_or_else(|| RuntimeError::new(
-        Kind::ResourceExhausted, "Win16 packed DIB length overflowed"))?;
-    if byte_len == 0 { return Ok(None); }
-    let padded_len = byte_len.checked_add(3).ok_or_else(|| RuntimeError::new(
-        Kind::ResourceExhausted, "Win16 packed DIB aligned length overflowed"))?;
+    let byte_len = info.len().checked_add(bits.len()).ok_or_else(|| {
+        RuntimeError::new(
+            Kind::ResourceExhausted,
+            "Win16 packed DIB length overflowed",
+        )
+    })?;
+    if byte_len == 0 {
+        return Ok(None);
+    }
+    let padded_len = byte_len.checked_add(3).ok_or_else(|| {
+        RuntimeError::new(
+            Kind::ResourceExhausted,
+            "Win16 packed DIB aligned length overflowed",
+        )
+    })?;
     let word_count = padded_len / 4;
     let mut words = Vec::new();
-    words.try_reserve_exact(word_count).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "allocate aligned native Win16 packed DIB", error))?;
+    words.try_reserve_exact(word_count).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "allocate aligned native Win16 packed DIB",
+            error,
+        )
+    })?;
     for start in (0..padded_len).step_by(4) {
         let mut word = [0_u8; 4];
         for (index, destination) in word.iter_mut().enumerate() {
@@ -453,13 +564,24 @@ fn aligned_dib_words(info: &[u8], bits: &[u8]) -> Result<Option<Vec<u32>>, Runti
 /// Copies an optional guest DIB buffer to DWORD-aligned owned storage. Empty
 /// but present buffers get a one-word sentinel to preserve non-nullness.
 fn aligned_optional_bytes(bytes: Option<&[u8]>) -> Result<Option<Vec<u32>>, RuntimeError> {
-    let Some(bytes) = bytes else { return Ok(None); };
-    let padded_len = bytes.len().checked_add(3).ok_or_else(|| RuntimeError::new(
-        Kind::ResourceExhausted, "Win16 DIB aligned length overflowed"))?;
+    let Some(bytes) = bytes else {
+        return Ok(None);
+    };
+    let padded_len = bytes.len().checked_add(3).ok_or_else(|| {
+        RuntimeError::new(
+            Kind::ResourceExhausted,
+            "Win16 DIB aligned length overflowed",
+        )
+    })?;
     let word_count = (padded_len / 4).max(1);
     let mut words = Vec::new();
-    words.try_reserve_exact(word_count).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "allocate aligned native Win16 DIB buffer", error))?;
+    words.try_reserve_exact(word_count).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "allocate aligned native Win16 DIB buffer",
+            error,
+        )
+    })?;
     for chunk in bytes.chunks(4) {
         let mut word = [0_u8; 4];
         word[..chunk.len()].copy_from_slice(chunk);

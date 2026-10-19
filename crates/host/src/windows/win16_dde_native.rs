@@ -370,6 +370,7 @@ impl NativeState {
             if let (Some(existing), Some(incoming)) = (record.item, item) {
                 let existing = self.native_string(instance, existing)?;
                 let incoming = self.native_string(instance, incoming)?;
+                // SAFETY: `DdeCmpStringHandles` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 if unsafe { DdeCmpStringHandles(existing, incoming) } != 0 {
                     return Err(protocol_error(
                         "native DDE data handle was observed with a different item name",
@@ -431,6 +432,7 @@ impl NativeState {
             )
         })?;
         let native_instance = self.native_instance(instance)?;
+        // SAFETY: `DdeKeepStringHandle` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe { DdeKeepStringHandle(native_instance, string.native) } == 0 {
             return Err(RuntimeError::new(
                 Kind::HostFailure,
@@ -591,6 +593,7 @@ impl NativeState {
             return Ok(());
         }
         if record.native_owned {
+            // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
             if unsafe { DdeFreeDataHandle(record.native) } == 0 {
                 return Err(RuntimeError::new(
                     Kind::HostFailure,
@@ -613,6 +616,7 @@ impl NativeState {
                     protocol_error("DDE data item HSZ reference accounting is inconsistent")
                 })?;
             let native_instance = self.native_instance(record.instance)?;
+            // SAFETY: DdeFreeStringHandle releases a string handle this instance created.
             if unsafe { DdeFreeStringHandle(native_instance, string.native) } == 0 {
                 return Err(RuntimeError::new(
                     Kind::HostFailure,

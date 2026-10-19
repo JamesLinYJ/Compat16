@@ -13,20 +13,26 @@ pub(super) fn publish_inline_terminal(
     let raw = super::raw_snapshot(owner, function_return);
     match super::snapshot(owner, function_return) {
         Ok(projected) => {
-            if !super::send_worker_start(owner, Ok(WorkerStart::InlineTerminal {
-                raw,
-                projected: Some(projected),
-            })) {
+            if !super::send_worker_start(
+                owner,
+                Ok(WorkerStart::InlineTerminal {
+                    raw,
+                    projected: Some(projected),
+                }),
+            ) {
                 super::close_after_terminal(owner);
                 return;
             }
             super::await_exact_ack(owner, commands, None, wake_status);
         }
         Err(error) => {
-            if !super::send_worker_start(owner, Ok(WorkerStart::InlineTerminal {
-                raw,
-                projected: None,
-            })) {
+            if !super::send_worker_start(
+                owner,
+                Ok(WorkerStart::InlineTerminal {
+                    raw,
+                    projected: None,
+                }),
+            ) {
                 super::close_after_terminal(owner);
                 return;
             }
@@ -49,13 +55,7 @@ pub(super) fn finish_accepted_async_request(
     multimedia_wake: &MultimediaWakeSender,
     wake_status: &SharedWakeStatus,
 ) {
-    if !super::wait_for_terminal(
-        owner,
-        commands,
-        completions,
-        multimedia_wake,
-        wake_status,
-    ) {
+    if !super::wait_for_terminal(owner, commands, completions, multimedia_wake, wake_status) {
         if owner.terminal {
             if owner.teardown_reason.is_some() {
                 super::finish_native_teardown(owner, commands, wake_status);
@@ -103,9 +103,12 @@ pub(super) fn report_wait_failure(
 ) -> bool {
     let cause = std::sync::Arc::new(error);
     super::mark_native_wait_failed(wake_status, Some(std::sync::Arc::clone(&cause)));
-    if completions.send(WorkerCompletion::NativeWaitFailure(
-        std::sync::Arc::clone(&cause),
-    )).is_err() {
+    if completions
+        .send(WorkerCompletion::NativeWaitFailure(std::sync::Arc::clone(
+            &cause,
+        )))
+        .is_err()
+    {
         return false;
     }
     if publish_wake {
@@ -148,8 +151,14 @@ pub(super) fn service_native_owner_after_wait_failure(
                 }
                 super::clear_native_probe_pending(wake_status);
             }
-            Ok(WorkerCommand::Teardown { reason, issue_cancel }) => {
-                if owner.teardown_reason.is_some_and(|previous| previous != reason) {
+            Ok(WorkerCommand::Teardown {
+                reason,
+                issue_cancel,
+            }) => {
+                if owner
+                    .teardown_reason
+                    .is_some_and(|previous| previous != reason)
+                {
                     super::clear_native_probe_pending(wake_status);
                     continue;
                 }
@@ -172,10 +181,8 @@ pub(super) fn service_native_owner_after_wait_failure(
     }
 }
 
-fn poll_native_terminal(
-    owner: &mut NativeNcbOwner,
-    wake_status: &SharedWakeStatus,
-) -> bool {
+fn poll_native_terminal(owner: &mut NativeNcbOwner, wake_status: &SharedWakeStatus) -> bool {
+    // SAFETY: WaitForSingleObject waits on a handle this process owns.
     match unsafe { WaitForSingleObject(owner.event, 0) } {
         WAIT_OBJECT_0 => {
             owner.terminal = true;
@@ -193,10 +200,7 @@ fn poll_native_terminal(
                     format!("terminal NetBIOS probe returned unexpected wait status {result}"),
                 )
             };
-            super::mark_native_wait_failed(
-                wake_status,
-                Some(std::sync::Arc::new(cause)),
-            );
+            super::mark_native_wait_failed(wake_status, Some(std::sync::Arc::new(cause)));
             false
         }
     }

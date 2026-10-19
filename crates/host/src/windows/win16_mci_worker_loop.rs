@@ -1,24 +1,24 @@
 //! Owner-thread event pump, notification window, and nested yield continuations.
 
 use super::super::combine_failure_kind;
-use super::cleanup::{close_failure_result, MciCloseFailure};
+use super::cleanup::{MciCloseFailure, close_failure_result};
 use super::*;
 
-#[path = "win16_mci_worker_quiesce.rs"]
-mod quiesce;
 #[path = "win16_mci_worker_producer_quiesce.rs"]
 mod producer_quiesce;
-#[path = "win16_mci_worker_yield.rs"]
-mod yield_callback;
+#[path = "win16_mci_worker_quiesce.rs"]
+mod quiesce;
 #[path = "win16_mci_worker_shutdown.rs"]
 mod shutdown;
 #[path = "win16_mci_worker_wait_failure.rs"]
 mod wait_failure;
+#[path = "win16_mci_worker_yield.rs"]
+mod yield_callback;
 use wait_failure::{MciWorkerWaitPhase, retain_wait_failure, retry_worker_wait_wake};
 #[path = "win16_mci_worker_loop_window.rs"]
 mod notification_window;
 use notification_window::{
-    create_notify_window, retire_notification_window, retire_registered_class, MciStartupFailure,
+    MciStartupFailure, create_notify_window, retire_notification_window, retire_registered_class,
 };
 pub(super) use yield_callback::mci_yield_proc;
 
@@ -32,7 +32,7 @@ pub(super) fn worker_main(
     shutdown_progress: Arc<Mutex<Option<MciWorkerShutdownReceipt>>>,
     text_codec: GuestTextCodec,
 ) {
-    let thread_id = unsafe { GetCurrentThreadId() };
+    let thread_id = crate::windows::win32_safe::current_thread_id();
     let mut resolved_causes = Vec::new();
     if let Err(error) = resolved_causes.try_reserve_exact(4) {
         let _ = ready.send(Err(RuntimeError::with_source(
@@ -43,6 +43,7 @@ pub(super) fn worker_main(
         return;
     }
     let mut first_message = MSG::default();
+    // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
     unsafe {
         PeekMessageW(&mut first_message, ptr::null_mut(), 0, 0, PM_REMOVE);
     }
@@ -93,17 +94,28 @@ pub(super) fn worker_main(
         sink,
     });
     if ready.send(Ok(thread_id)).is_err() {
-        let _ = retire_notification_window(sink, &class_name, instance, &notify_context, &mut resolved_causes);
+        let _ = retire_notification_window(
+            sink,
+            &class_name,
+            instance,
+            &notify_context,
+            &mut resolved_causes,
+        );
         return;
     }
     worker_loop(Arc::clone(&state));
     let (notification_window_destroyed, notification_class_unregistered) =
-        retire_notification_window(sink, &class_name, instance, &notify_context, &mut resolved_causes);
+        retire_notification_window(
+            sink,
+            &class_name,
+            instance,
+            &notify_context,
+            &mut resolved_causes,
+        );
     if let Some(cause) = state.shutdown_failure.borrow_mut().take() {
         resolved_causes.push(cause);
     }
-    let disabled_yield_sources =
-        std::mem::take(&mut *state.yield_source_evidence.borrow_mut());
+    let disabled_yield_sources = std::mem::take(&mut *state.yield_source_evidence.borrow_mut());
     let devices = state.devices.lock().unwrap_or_else(PoisonError::into_inner);
     let mut closed_devices = Vec::new();
     let mut first_snapshot_failure = None;
@@ -134,14 +146,16 @@ pub(super) fn worker_main(
         .retired_yield_registrations
         .iter()
         .all(|retired_owner| {
-            disabled_yield_sources.iter().any(|evidence| matches!(
-                evidence,
-                Win16HostMciQuiescenceEvidence::YieldSourceDisabled {
-                    owner,
-                    observed_installed: false,
-                    ..
-                } if owner == retired_owner
-            ))
+            disabled_yield_sources.iter().any(|evidence| {
+                matches!(
+                    evidence,
+                    Win16HostMciQuiescenceEvidence::YieldSourceDisabled {
+                        owner,
+                        observed_installed: false,
+                        ..
+                    } if owner == retired_owner
+                )
+            })
         });
     let device_registry_drained = yield_source_history_complete
         && state
@@ -243,7 +257,8 @@ fn drain_commands(state: &Arc<WorkerThreadState>) {
                     )));
                     continue;
                 }
-                if let Err(error) = ACTIVE_YIELDS.with(|active| active.borrow_mut().try_reserve(1)) {
+                if let Err(error) = ACTIVE_YIELDS.with(|active| active.borrow_mut().try_reserve(1))
+                {
                     let _ = response.send(Err(RuntimeError::with_source(
                         Kind::ResourceExhausted,
                         "reserve native MCI operation owner before call",
@@ -342,11 +357,7 @@ fn drain_commands(state: &Arc<WorkerThreadState>) {
     }
 }
 
-fn wait_for_input(
-    state: &WorkerThreadState,
-    timeout: Duration,
-    phase: MciWorkerWaitPhase,
-) {
+fn wait_for_input(state: &WorkerThreadState, timeout: Duration, phase: MciWorkerWaitPhase) {
     retry_worker_wait_wake(state);
     let retry_pending = state
         .notifications
@@ -360,15 +371,13 @@ fn wait_for_input(
     };
     let millis = u32::try_from(timeout.as_millis()).unwrap_or(u32::MAX - 1);
     let handle = state.wake_event.as_raw_handle() as HANDLE;
+    // SAFETY: MsgWaitForMultipleObjects reads a caller-owned handle span.
     let result = unsafe { MsgWaitForMultipleObjects(1, &handle, 0, millis, QS_ALLINPUT) };
     if result == WAIT_FAILED {
-        let last_error = unsafe { GetLastError() };
+        let last_error = crate::windows::win32_safe::last_error();
         retain_wait_failure(state, phase, result, Some(last_error));
         thread::sleep(RETIRE_RETRY);
-    } else if result != WAIT_OBJECT_0
-        && result != WAIT_OBJECT_0 + 1
-        && result != WAIT_TIMEOUT
-    {
+    } else if result != WAIT_OBJECT_0 && result != WAIT_OBJECT_0 + 1 && result != WAIT_TIMEOUT {
         retain_wait_failure(state, phase, result, None);
         thread::sleep(RETIRE_RETRY);
     }
@@ -379,12 +388,14 @@ fn wait_for_input(
 fn pump_messages() {
     loop {
         let mut message = MSG::default();
+        // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
         if unsafe { PeekMessageW(&mut message, ptr::null_mut(), 0, 0, PM_REMOVE) } == 0 {
             break;
         }
         if message.message == 0x0012 {
             continue;
         }
+        // SAFETY: TranslateMessage reads a caller-owned MSG for this call only. DispatchMessageW reads a caller-owned MSG for this call only.
         unsafe {
             TranslateMessage(&message);
             DispatchMessageW(&message);
@@ -392,7 +403,7 @@ fn pump_messages() {
     }
 }
 
-
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn mci_notification_window_proc(
     window: HWND,
     message: u32,
@@ -404,22 +415,26 @@ unsafe extern "system" fn mci_notification_window_proc(
         if create.is_null() {
             return 0;
         }
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let context = unsafe { (*create).lpCreateParams };
         if context.is_null() {
             return 0;
         }
+        // SAFETY: SetWindowLongPtrW writes one window-long slot owned by this window.
         unsafe {
-            SetLastError(0);
+            crate::windows::win32_safe::set_last_error(0);
             SetWindowLongPtrW(window, GWLP_USERDATA, context as isize);
-            if GetLastError() != 0 {
+            if crate::windows::win32_safe::last_error() != 0 {
                 return 0;
             }
         }
     }
     if message == MM_MCINOTIFY {
         let context =
+            // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
             unsafe { GetWindowLongPtrW(window, GWLP_USERDATA) } as *const NotifyWindowContext;
         if !context.is_null() {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let context = unsafe { &*context };
             let native_id = l_param as u32;
             let dispatch = match context
@@ -587,10 +602,12 @@ unsafe extern "system" fn mci_notification_window_proc(
         }
     }
     if message == WM_NCDESTROY {
+        // SAFETY: SetWindowLongPtrW writes one window-long slot owned by this window.
         unsafe {
             SetWindowLongPtrW(window, GWLP_USERDATA, 0);
         }
     }
+    // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
     unsafe { DefWindowProcW(window, message, w_param, l_param) }
 }
 
@@ -616,7 +633,7 @@ fn retain_callback_failure(
 }
 
 pub(super) fn last_error(context: &'static str) -> RuntimeError {
-    let code = unsafe { GetLastError() };
+    let code = crate::windows::win32_safe::last_error();
     RuntimeError::with_source(
         Kind::HostFailure,
         context,

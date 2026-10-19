@@ -9,9 +9,7 @@ use windows_sys::Win32::Foundation::{
     ERROR_DUP_NAME, ERROR_FILE_NOT_FOUND, ERROR_NO_MORE_ITEMS, ERROR_NO_UNICODE_TRANSLATION,
     ERROR_SUCCESS,
 };
-use windows_sys::Win32::System::Registry::{
-    HKEY, KEY_ENUMERATE_SUB_KEYS, RegCloseKey, RegOpenKeyExW,
-};
+use windows_sys::Win32::System::Registry::{HKEY, KEY_ENUMERATE_SUB_KEYS, RegOpenKeyExW};
 
 use super::{GuestTextCodec, TextConversionError, enum_native_name, wide_z};
 
@@ -90,7 +88,9 @@ fn resolve_alias(
     parent: HKEY,
     token: &[u16],
 ) -> Result<Vec<u16>, TextConversionError> {
-    super::scan::run(parent, move |parent| resolve_alias_on_scan_thread(codec, parent, token))
+    super::scan::run(parent, move |parent| {
+        resolve_alias_on_scan_thread(codec, parent, token)
+    })
 }
 
 fn resolve_alias_on_scan_thread(
@@ -153,7 +153,7 @@ struct ParentKey(HKEY);
 impl Drop for ParentKey {
     fn drop(&mut self) {
         // SAFETY: only a successful RegOpenKeyExW enters this temporary owner.
-        let _ = unsafe { RegCloseKey(self.0) };
+        let _ = crate::windows::win32_safe::reg_close_key(self.0);
     }
 }
 

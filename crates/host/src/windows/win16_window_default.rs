@@ -12,7 +12,7 @@ use runtime::{
 use windows_sys::Win32::Foundation::{HWND, POINT};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CREATESTRUCTW, DefDlgProcW, DefFrameProcW, DefMDIChildProcW, DefWindowProcW, DispatchMessageW,
-    GetDlgCtrlID, GetParent, MINMAXINFO, SWP_NOSIZE, SendMessageW, WM_CHANGECBCHAIN, WM_CLOSE, WM_COMMAND,
+    GetParent, MINMAXINFO, SWP_NOSIZE, SendMessageW, WM_CHANGECBCHAIN, WM_CLOSE, WM_COMMAND,
     WM_CREATE, WM_DESTROY, WM_DROPFILES, WM_ERASEBKGND, WM_GETDLGCODE, WM_GETMINMAXINFO,
     WM_GETTEXT, WM_GETTEXTLENGTH, WM_INITDIALOG, WM_NCACTIVATE, WM_NCCALCSIZE, WM_NCCREATE,
     WM_NCPAINT, WM_PAINT, WM_SETFONT, WM_SETTEXT, WM_SYSCOMMAND, WM_WINDOWPOSCHANGED,
@@ -153,7 +153,12 @@ pub(super) fn send_message(
     message: Win16HostMessage,
     control_color_return: Option<&super::ControlColorReturnSlot>,
 ) -> Result<Option<Win16HostMessageResult>, RuntimeError> {
-    if let Win16HostMessage::GuestOpaque { message, w_param, l_param } = &message {
+    if let Win16HostMessage::GuestOpaque {
+        message,
+        w_param,
+        l_param,
+    } = &message
+    {
         return super::win16_subclass_send::send(state, window, *message, *w_param, *l_param);
     }
     if !matches!(
@@ -297,7 +302,7 @@ fn message_with_invocation(
         };
         hwnd
     };
-    if unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(hwnd) } == 0 {
+    if (crate::windows::win32_safe::is_window(hwnd)) == 0 {
         return Ok(None);
     }
     if matches!(
@@ -373,10 +378,10 @@ fn message_with_invocation(
             }
             let frame = match invocation {
                 MessageInvocation::FrameDefault { .. } => hwnd,
-                _ if matches!(&message, runtime::Win16HostMdiMessage::ActivateChild { .. }) => unsafe {
-                    GetParent(GetParent(client))
-                },
-                _ => unsafe { GetParent(client) },
+                _ if matches!(&message, runtime::Win16HostMdiMessage::ActivateChild { .. }) =>
+                // SAFETY: GetParent returns null when the HWND has no parent. The value is a host window handle, not a guest address.
+                unsafe { crate::windows::win32_safe::get_parent(GetParent(client)) },
+                _ => crate::windows::win32_safe::get_parent(client),
             };
             let (requested_frame, requested_window) = match &message {
                 runtime::Win16HostMdiMessage::SetMenu {
@@ -471,8 +476,9 @@ fn message_with_invocation(
                 return Ok(None);
             };
             if list_hwnd as usize != native_l_param.0
-                || unsafe { GetParent(list_hwnd) } != hwnd
-                || unsafe { GetDlgCtrlID(list_hwnd) as u16 } != notification.control_id
+                || { crate::windows::win32_safe::get_parent(list_hwnd) } != hwnd
+                || { crate::windows::win32_safe::get_dlg_ctrl_id(list_hwnd) as u16 }
+                    != notification.control_id
             {
                 return Ok(None);
             }
@@ -537,8 +543,11 @@ fn message_with_invocation(
             w_param,
             l_param,
         } => {
-            let Some(native_w) = super::win16_character_messages::to_native(state,
-                u32::from(kind as u16), w_param)? else { return Ok(None); };
+            let Some(native_w) =
+                super::win16_character_messages::to_native(state, u32::from(kind as u16), w_param)?
+            else {
+                return Ok(None);
+            };
             let native_l = (l_param as i32) as isize;
             let native_message = u32::from(kind as u16);
             // This variant carries only scalar message fields. Messages with
@@ -955,15 +964,20 @@ fn message_with_invocation(
             }
         }
         Win16HostMessage::NonClientCalcSize { w_param, data } => {
-            let frame = matches!(invocation, MessageInvocation::Default
-                | MessageInvocation::FrameDefault { .. } | MessageInvocation::MdiChildDefault
-                | MessageInvocation::DialogDefault)
-                .then(|| super::win16_frame_geometry::CaptionFrame::for_window(state, window, hwnd))
-                .flatten();
-            let (data, frame) = match frame.and_then(|frame| frame.prepare(data).map(|data| (data, frame))) {
-                Some((data, frame)) => (data, Some(frame)),
-                None => (data, None),
-            };
+            let frame = matches!(
+                invocation,
+                MessageInvocation::Default
+                    | MessageInvocation::FrameDefault { .. }
+                    | MessageInvocation::MdiChildDefault
+                    | MessageInvocation::DialogDefault
+            )
+            .then(|| super::win16_frame_geometry::CaptionFrame::for_window(state, window, hwnd))
+            .flatten();
+            let (data, frame) =
+                match frame.and_then(|frame| frame.prepare(data).map(|data| (data, frame))) {
+                    Some((data, frame)) => (data, Some(frame)),
+                    None => (data, None),
+                };
             let mut native =
                 match super::win16_window_callbacks::NativeNonClientCalcSize::from_owned(
                     state, w_param, data,
@@ -997,8 +1011,12 @@ fn message_with_invocation(
                 return Ok(None);
             };
             let output = match frame {
-                Some(frame) => frame.finish(output).ok_or_else(|| RuntimeError::new(
-                    Kind::InvalidInput, "legacy nonclient result exceeds native coordinate range"))?,
+                Some(frame) => frame.finish(output).ok_or_else(|| {
+                    RuntimeError::new(
+                        Kind::InvalidInput,
+                        "legacy nonclient result exceeds native coordinate range",
+                    )
+                })?,
                 None => output,
             };
             Win16HostMessageResult {
@@ -1012,14 +1030,21 @@ fn message_with_invocation(
             w_param,
             data,
         } => {
-            let sizing = if changing && u32::from(data.flags) & SWP_NOSIZE == 0
-                && matches!(invocation, MessageInvocation::Default
-                    | MessageInvocation::FrameDefault { .. }
-                    | MessageInvocation::MdiChildDefault | MessageInvocation::DialogDefault)
-                && unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsIconic(hwnd) } != 0
+            let sizing = if changing
+                && u32::from(data.flags) & SWP_NOSIZE == 0
+                && matches!(
+                    invocation,
+                    MessageInvocation::Default
+                        | MessageInvocation::FrameDefault { .. }
+                        | MessageInvocation::MdiChildDefault
+                        | MessageInvocation::DialogDefault
+                )
+                && (crate::windows::win32_safe::is_iconic(hwnd)) != 0
             {
                 super::win16_window_sizing::MinimizedDefault::enter(state, window, hwnd)?
-            } else { None };
+            } else {
+                None
+            };
             let Some(mut native) = NativeWindowPosition::from_owned(state, data)? else {
                 return Ok(None);
             };
@@ -1049,7 +1074,9 @@ fn message_with_invocation(
             let output = if changing {
                 match native.owned_output(state)? {
                     Some(mut output) => {
-                        if let Some(sizing) = sizing.as_ref() { sizing.adjust(data, &mut output)?; }
+                        if let Some(sizing) = sizing.as_ref() {
+                            sizing.adjust(data, &mut output)?;
+                        }
                         Output::WindowPosition(output)
                     }
                     None => {
@@ -1086,9 +1113,15 @@ fn message_with_invocation(
                 && frame.message == WM_INITDIALOG
             {
                 dialog_init::DefaultInitScope::begin(
-                    state, hwnd, window, frame.creation, frame.operation,
+                    state,
+                    hwnd,
+                    window,
+                    frame.creation,
+                    frame.operation,
                 )?
-            } else { None };
+            } else {
+                None
+            };
             invoke_message(
                 invocation,
                 hwnd,
@@ -1300,6 +1333,7 @@ fn may_destroy_window_tree(message: u32, w_param: usize) -> bool {
 // back to CallWindowProcW. Keep that value integer-shaped to avoid fabricating
 // an invalid Rust function pointer merely to satisfy the wrapper's signature.
 #[link(name = "user32")]
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" {
     #[link_name = "CallWindowProcW"]
     pub(super) fn call_window_proc_w_opaque(

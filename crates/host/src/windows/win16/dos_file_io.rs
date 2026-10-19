@@ -5,7 +5,7 @@ use super::{Win16Files, file_error};
 use crate::windows::invalid;
 use dos_kernel::{DosErrorCode, DosFileAccess, DosHostError, DosSeekOrigin};
 use runtime::Win16HostFile;
-use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE, GetLastError};
+use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE};
 use windows_sys::Win32::Storage::FileSystem::{
     BY_HANDLE_FILE_INFORMATION, FILE_BEGIN, FILE_CURRENT, FILE_TYPE_CHAR, FILE_TYPE_DISK,
     GetFileInformationByHandle, GetFileType, ReadFile, SetEndOfFile, SetFilePointerEx, WriteFile,
@@ -53,7 +53,7 @@ impl Win16Files {
             )
         } == 0
         {
-            return Err(file_error(unsafe { GetLastError() }));
+            return Err(file_error(crate::windows::win32_safe::last_error()));
         }
         Ok(read as usize)
     }
@@ -76,8 +76,9 @@ impl Win16Files {
                 // DOS DWORD range. Match DOS's checked current-position
                 // query before changing EOF, without reopening the file.
                 self.dos_seek(file, 0, DosSeekOrigin::Current)?;
+                // SAFETY: `SetEndOfFile` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 if unsafe { SetEndOfFile(handle) } == 0 {
-                    return Err(file_error(unsafe { GetLastError() }));
+                    return Err(file_error(crate::windows::win32_safe::last_error()));
                 }
                 self.mark_written(file);
                 return Ok(0);
@@ -94,9 +95,11 @@ impl Win16Files {
         // SAFETY: The table retains this synchronous HANDLE; input is an
         // immutable host copy, including a live local byte for an empty write.
         if unsafe { WriteFile(handle, pointer, count, &mut written, std::ptr::null_mut()) } == 0 {
-            return Err(file_error(unsafe { GetLastError() }));
+            return Err(file_error(crate::windows::win32_safe::last_error()));
         }
-        if written != 0 { self.mark_written(file); }
+        if written != 0 {
+            self.mark_written(file);
+        }
         Ok(written as usize)
     }
 
@@ -123,16 +126,18 @@ impl Win16Files {
             DosSeekOrigin::Current => {
                 let mut position = 0i64;
                 // Querying FILE_CURRENT with zero displacement preserves it.
+                // SAFETY: `SetFilePointerEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 if unsafe { SetFilePointerEx(handle, 0, &mut position, FILE_CURRENT) } == 0 {
-                    return Err(file_error(unsafe { GetLastError() }));
+                    return Err(file_error(crate::windows::win32_safe::last_error()));
                 }
                 i128::from(position)
             }
             DosSeekOrigin::End => {
                 let mut info = BY_HANDLE_FILE_INFORMATION::default();
                 // Query the open object without temporarily seeking to EOF.
+                // SAFETY: `GetFileInformationByHandle` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 if unsafe { GetFileInformationByHandle(handle, &mut info) } == 0 {
-                    return Err(file_error(unsafe { GetLastError() }));
+                    return Err(file_error(crate::windows::win32_safe::last_error()));
                 }
                 i128::from((u64::from(info.nFileSizeHigh) << 32) | u64::from(info.nFileSizeLow))
             }
@@ -148,8 +153,9 @@ impl Win16Files {
         let mut position = 0i64;
         // All DOS range checks precede the only cursor-changing operation.
         // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfilepointerex
+        // SAFETY: `SetFilePointerEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe { SetFilePointerEx(handle, target as i64, &mut position, FILE_BEGIN) } == 0 {
-            return Err(file_error(unsafe { GetLastError() }));
+            return Err(file_error(crate::windows::win32_safe::last_error()));
         }
         u32::try_from(position).map_err(|_| invalid(DosErrorCode::InvalidData))
     }

@@ -4,15 +4,15 @@ use runtime::{
     Win16HostSessionApiFailure as ApiFailure, Win16HostSessionApiPhase as ApiPhase,
     Win16HostSessionResult as SessionResult,
 };
-use windows_sys::Win32::Foundation::GetLastError;
 use windows_sys::Win32::System::Shutdown::{EWX_LOGOFF, ExitWindowsEx};
 
 pub(super) fn exit_windows(reserved: u32, code: u16) -> SessionResult {
     exit_windows_with(reserved, code, |flags, reason| {
+        // SAFETY: `ExitWindowsEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe { ExitWindowsEx(flags, reason) } != 0 {
             Ok(())
         } else {
-            Err(unsafe { GetLastError() })
+            Err(crate::windows::win32_safe::last_error())
         }
     })
 }

@@ -17,10 +17,9 @@ use win16_window_worker::{ActiveOperation, LiveCallback};
 use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
 use windows_sys::Win32::Graphics::Gdi::ClientToScreen;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    AppendMenuW, CreateMenu, DefWindowProcW, DestroyMenu, GetClientRect, GetMenuItemRect,
-    GetSystemMetrics, GetWindowRect, HMENU, IsIconic, IsWindowVisible, MF_STRING, MoveWindow,
-    SM_CXBORDER, SM_CXMINTRACK, SM_CYBORDER, SM_CYCAPTION, SM_CYMINTRACK, SW_RESTORE,
-    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SetMenu, SetWindowPos, ShowWindow,
+    AppendMenuW, CreateMenu, DefWindowProcW, GetClientRect, GetMenuItemRect, GetWindowRect, HMENU,
+    MF_STRING, MoveWindow, SM_CXBORDER, SM_CXMINTRACK, SM_CYBORDER, SM_CYCAPTION, SM_CYMINTRACK,
+    SW_RESTORE, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SetMenu, SetWindowPos,
     WM_GETMINMAXINFO, WM_NCCALCSIZE, WM_WINDOWPOSCHANGING, WS_CAPTION, WS_MINIMIZE, WS_MINIMIZEBOX,
     WS_SYSMENU,
 };
@@ -32,12 +31,14 @@ thread_local! {
     static FAILURE: RefCell<Option<Box<dyn Any + Send>>> = const { RefCell::new(None) };
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn probe(hwnd: HWND, message: u32, w: usize, l: isize) -> isize {
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let window = TARGET.with(Cell::get)?;
         let state = win16_window_worker::worker_context()?;
         if message == WM_GETMINMAXINFO {
             let native =
+                // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
                 unsafe { &*(l as *const windows_sys::Win32::UI::WindowsAndMessaging::MINMAXINFO) };
             let mut info = win16_window_sizing::minmax_for_guest(native);
             if let Some(maximum) = MAXIMUM.with(Cell::get) {
@@ -154,9 +155,11 @@ unsafe extern "system" fn probe(hwnd: HWND, message: u32, w: usize, l: isize) ->
     }));
     match result {
         Ok(Some(value)) => value,
+        // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
         Ok(None) => unsafe { DefWindowProcW(hwnd, message, w, l) },
         Err(error) => {
             FAILURE.with(|slot| *slot.borrow_mut() = Some(error));
+            // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
             unsafe { DefWindowProcW(hwnd, message, w, l) }
         }
     }
@@ -194,14 +197,15 @@ fn exercise(
         154,
         240,
     );
-    assert_ne!(unsafe { IsIconic(hwnd) }, 0);
+    assert_ne!((crate::windows::win32_safe::is_iconic(hwnd)), 0);
     TARGET.with(|slot| slot.set(Some(window)));
     POSITION.with(|slot| slot.set(None));
     FAILURE.with(|slot| *slot.borrow_mut() = None);
     MAXIMUM.with(|slot| slot.set(maximum));
     if restore {
-        let visible = unsafe { IsWindowVisible(hwnd) };
+        let visible = crate::windows::win32_safe::is_window_visible(hwnd);
         let mut info: runtime::Win16HostMinMaxInfo =
+            // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
             unsafe { win16_window_sizing::minmax_for_guest(&std::mem::zeroed()) };
         info.max_size = Win16HostPoint {
             x: i32::MAX,
@@ -218,9 +222,13 @@ fn exercise(
             info,
         )
         .unwrap();
-        assert_eq!(unsafe { IsWindowVisible(hwnd) }, visible);
-        assert_ne!(unsafe { IsIconic(hwnd) }, 0);
+        assert_eq!(
+            (crate::windows::win32_safe::is_window_visible(hwnd)),
+            visible
+        );
+        assert_ne!((crate::windows::win32_safe::is_iconic(hwnd)), 0);
     }
+    // SAFETY: MoveWindow takes no caller pointer. The HWND is a window on this thread.
     assert_ne!(unsafe { MoveWindow(hwnd, 78, 35, 154, 240, 1) }, 0);
     if let Some(failure) = FAILURE.with(|slot| slot.borrow_mut().take()) {
         std::panic::resume_unwind(failure);
@@ -228,18 +236,22 @@ fn exercise(
     assert_eq!(POSITION.with(Cell::get), Some(expected));
     assert!(state.borrow().window_sizing_contexts.is_empty());
     if restore {
-        unsafe { ShowWindow(hwnd, SW_RESTORE) };
-        assert_eq!(unsafe { IsIconic(hwnd) }, 0);
+        (crate::windows::win32_safe::show_window(hwnd, SW_RESTORE));
+        assert_eq!((crate::windows::win32_safe::is_iconic(hwnd)), 0);
         if let Some(failure) = FAILURE.with(|slot| slot.borrow_mut().take()) {
             std::panic::resume_unwind(failure);
         }
+        // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
         let mut rect: RECT = unsafe { std::mem::zeroed() };
+        // SAFETY: GetWindowRect writes into a caller-owned RECT that outlives the call.
         assert_ne!(unsafe { GetWindowRect(hwnd, &mut rect) }, 0);
         assert_eq!((rect.right - rect.left, rect.bottom - rect.top), expected);
-        let border_x = unsafe { GetSystemMetrics(SM_CXBORDER) };
-        let border_y = unsafe { GetSystemMetrics(SM_CYBORDER) };
+        let border_x = crate::windows::win32_safe::system_metrics(SM_CXBORDER);
+        let border_y = crate::windows::win32_safe::system_metrics(SM_CYBORDER);
         let caption = crate::windows::win16_common::get_system_metrics(SM_CYCAPTION);
+        // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
         let mut client: RECT = unsafe { std::mem::zeroed() };
+        // SAFETY: GetClientRect writes into a caller-owned RECT that outlives the call.
         assert_ne!(unsafe { GetClientRect(hwnd, &mut client) }, 0);
         assert_eq!(
             (client.right, client.bottom),
@@ -301,34 +313,38 @@ fn exercise(
             SM_CXFRAME, SM_CYDLGFRAME, SM_CYEDGE, SM_CYFRAME, SWP_FRAMECHANGED, SendMessageW,
             SetWindowLongPtrW, WM_NCHITTEST, WS_EX_CLIENTEDGE, WS_EX_DLGMODALFRAME, WS_THICKFRAME,
         };
+        // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
         let original_style = unsafe { GetWindowLongPtrW(hwnd, GWL_STYLE) } as u32;
+        // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
         let original_ex = unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) } as u32;
         for (extra, ex, bx, by) in [
             (
                 WS_THICKFRAME,
                 0,
-                unsafe { GetSystemMetrics(SM_CXFRAME) },
-                unsafe { GetSystemMetrics(SM_CYFRAME) },
+                (crate::windows::win32_safe::system_metrics(SM_CXFRAME)),
+                (crate::windows::win32_safe::system_metrics(SM_CYFRAME)),
             ),
             (
                 0,
                 WS_EX_DLGMODALFRAME,
-                unsafe { GetSystemMetrics(SM_CXDLGFRAME) },
-                unsafe { GetSystemMetrics(SM_CYDLGFRAME) },
+                (crate::windows::win32_safe::system_metrics(SM_CXDLGFRAME)),
+                (crate::windows::win32_safe::system_metrics(SM_CYDLGFRAME)),
             ),
             (
                 0,
                 WS_EX_CLIENTEDGE,
-                border_x + unsafe { GetSystemMetrics(SM_CXEDGE) },
-                border_y + unsafe { GetSystemMetrics(SM_CYEDGE) },
+                border_x + (crate::windows::win32_safe::system_metrics(SM_CXEDGE)),
+                border_y + (crate::windows::win32_safe::system_metrics(SM_CYEDGE)),
             ),
             (0, 0, border_x, border_y),
         ] {
+            // SAFETY: SetWindowLongPtrW writes one window-long slot owned by this window.
             unsafe {
                 SetWindowLongPtrW(hwnd, GWL_STYLE, (original_style | extra) as isize);
                 SetWindowLongPtrW(hwnd, GWL_EXSTYLE, (original_ex | ex) as isize);
             }
             assert_ne!(
+                // SAFETY: SetWindowPos takes no caller pointer. The HWND is a window on this thread.
                 unsafe {
                     SetWindowPos(
                         hwnd,
@@ -342,6 +358,7 @@ fn exercise(
                 },
                 0
             );
+            // SAFETY: GetClientRect writes into a caller-owned RECT that outlives the call.
             assert_ne!(unsafe { GetClientRect(hwnd, &mut rect) }, 0);
             assert_eq!(
                 (rect.right, rect.bottom),
@@ -349,9 +366,11 @@ fn exercise(
                 "caption metrics must match each frame style"
             );
             let mut origin = POINT { x: 1, y: 1 };
+            // SAFETY: ClientToScreen writes a caller-owned POINT.
             assert_ne!(unsafe { ClientToScreen(hwnd, &mut origin) }, 0);
             let point = i32::from(origin.x as u16) | (i32::from(origin.y as u16) << 16);
             assert_eq!(
+                // SAFETY: SendMessageW runs synchronously on the window thread. Pointer arguments are caller-owned records that stay live for the call and are not guest addresses.
                 unsafe { SendMessageW(hwnd, WM_NCHITTEST, 0, point as isize) },
                 HTCLIENT as isize,
                 "native hit testing must recognize the projected client edge"
@@ -362,34 +381,43 @@ fn exercise(
         impl Drop for UnattachedMenu {
             fn drop(&mut self) {
                 if !self.0.is_null() {
-                    unsafe { DestroyMenu(self.0) };
+                    (crate::windows::win32_safe::destroy_menu(self.0));
                 }
             }
         }
+        // SAFETY: CreateMenu creates a menu and takes no pointers.
         let mut owned = UnattachedMenu(unsafe { CreateMenu() });
         assert!(!owned.0.is_null());
         assert_ne!(
+            // SAFETY: AppendMenuW reads an optional caller-owned string.
             unsafe { AppendMenuW(owned.0, MF_STRING, 1, windows_sys::core::w!("File")) },
             0
         );
         let menu = owned.0;
+        // SAFETY: SetMenu attaches a menu this process owns to a window.
         assert_ne!(unsafe { SetMenu(hwnd, menu) }, 0);
         owned.0 = std::ptr::null_mut(); // DestroyWindow now owns the menu.
+        // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
         let mut item: RECT = unsafe { std::mem::zeroed() };
+        // SAFETY: `GetMenuItemRect` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         assert_ne!(unsafe { GetMenuItemRect(hwnd, menu, 0, &mut item) }, 0);
         let mut origin = POINT { x: 0, y: 0 };
+        // SAFETY: ClientToScreen writes a caller-owned POINT.
         assert_ne!(unsafe { ClientToScreen(hwnd, &mut origin) }, 0);
         assert!(
             item.bottom <= origin.y,
             "native menu is overlapped by the legacy client"
         );
         // Normal tracking and SWP_NOSIZE must retain modern native rules.
+        // SAFETY: MoveWindow takes no caller pointer. The HWND is a window on this thread.
         assert_ne!(unsafe { MoveWindow(hwnd, 0, 0, 1, 1, 1) }, 0);
-        let normal = (unsafe { GetSystemMetrics(SM_CXMINTRACK) }, unsafe {
-            GetSystemMetrics(SM_CYMINTRACK)
-        });
+        let normal = (
+            (crate::windows::win32_safe::system_metrics(SM_CXMINTRACK)),
+            (crate::windows::win32_safe::system_metrics(SM_CYMINTRACK)),
+        );
         assert_eq!(POSITION.with(Cell::get), Some(normal));
         assert_ne!(
+            // SAFETY: SetWindowPos takes no caller pointer. The HWND is a window on this thread.
             unsafe {
                 SetWindowPos(
                     hwnd,
@@ -403,6 +431,7 @@ fn exercise(
             },
             0
         );
+        // SAFETY: GetWindowRect writes into a caller-owned RECT that outlives the call.
         assert_ne!(unsafe { GetWindowRect(hwnd, &mut rect) }, 0);
         assert_eq!((rect.right - rect.left, rect.bottom - rect.top), normal);
     }

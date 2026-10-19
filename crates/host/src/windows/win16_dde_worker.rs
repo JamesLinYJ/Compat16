@@ -110,8 +110,10 @@ pub(super) fn run(
     worker_generation: u64,
     guest_ansi_codec: GuestTextCodec,
 ) {
-    let thread_id = unsafe { windows_sys::Win32::System::Threading::GetCurrentThreadId() };
+    let thread_id = { crate::windows::win32_safe::current_thread_id() };
+    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     let mut initial_message = unsafe { std::mem::zeroed::<MSG>() };
+    // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
     unsafe {
         PeekMessageW(
             &mut initial_message,
@@ -173,7 +175,9 @@ pub(super) fn run(
         if context.stopping.get() {
             break;
         }
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let mut message = unsafe { std::mem::zeroed::<MSG>() };
+        // SAFETY: GetMessageW writes into a caller-owned MSG that outlives the call.
         let status = unsafe { GetMessageW(&mut message, std::ptr::null_mut(), 0, 0) };
         if status == -1 {
             context.stopping.set(true);
@@ -197,6 +201,7 @@ pub(super) fn run(
             );
             break;
         }
+        // SAFETY: TranslateMessage reads a caller-owned MSG for this call only. DispatchMessageW reads a caller-owned MSG for this call only.
         unsafe {
             TranslateMessage(&message);
             DispatchMessageW(&message);

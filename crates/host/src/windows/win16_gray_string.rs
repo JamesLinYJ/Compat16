@@ -17,8 +17,7 @@ use std::{
 use windows_sys::Win32::{
     Foundation::{LPARAM, SIZE},
     Graphics::Gdi::{
-        CreateCompatibleDC, DeleteDC, GetTextExtentPoint32W, GrayStringW, HBRUSH, HDC, HGDIOBJ,
-        SelectObject,
+        CreateCompatibleDC, GetTextExtentPoint32W, GrayStringW, HBRUSH, HDC, HGDIOBJ, SelectObject,
     },
 };
 
@@ -41,9 +40,7 @@ impl BrushLease {
         // SAFETY: brush was type-checked by the host object table; this DC is private.
         let previous = unsafe { SelectObject(dc, brush) };
         if previous.is_null() || previous as isize == -1 {
-            unsafe {
-                DeleteDC(dc);
-            }
+            crate::windows::win32_safe::delete_dc(dc);
             return None;
         }
         Some(Self {
@@ -59,7 +56,7 @@ impl Drop for BrushLease {
         // restored before deletion. The input brush belongs to Win16Objects.
         unsafe {
             SelectObject(self.dc as HDC, self.previous as HGDIOBJ);
-            DeleteDC(self.dc as HDC);
+            crate::windows::win32_safe::delete_dc(self.dc as HDC);
         }
     }
 }
@@ -191,6 +188,7 @@ pub(super) fn execute(
     }
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn draw_callback(dc: HDC, parameter: LPARAM, _native_count: i32) -> i32 {
     // SAFETY: Only execute installs this callback and passes its live context.
     let context = unsafe { &*(parameter as *const CallbackContext) };

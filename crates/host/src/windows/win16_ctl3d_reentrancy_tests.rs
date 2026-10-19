@@ -14,11 +14,9 @@ use std::time::Duration;
 
 use runtime::{RuntimeError, Win16HostCtl3dFrameFacts, Win16HostWindow};
 use windows_sys::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM};
-use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, GWL_STYLE, IsWindowVisible, RegisterClassW,
-    SendMessageW, SetWindowLongPtrW, UnregisterClassW, WM_NCPAINT, WNDCLASSW, WS_CHILD, WS_POPUP,
-    WS_VISIBLE,
+    CreateWindowExW, DefWindowProcW, GWL_STYLE, RegisterClassW, SendMessageW, SetWindowLongPtrW,
+    UnregisterClassW, WM_NCPAINT, WNDCLASSW, WS_CHILD, WS_POPUP, WS_VISIBLE,
 };
 
 use super::Win16Windows;
@@ -160,14 +158,16 @@ fn create_hidden_frame(state: &Rc<RefCell<WorkerState>>) {
     .encode_utf16()
     .chain(Some(0))
     .collect::<Vec<_>>();
-    let instance = unsafe { GetModuleHandleW(ptr::null()) };
+    let instance = crate::windows::win32_safe::current_module();
     let class = WNDCLASSW {
         lpfnWndProc: Some(frame_proc),
         hInstance: instance,
         lpszClassName: class_name.as_ptr(),
+        // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
         ..unsafe { std::mem::zeroed() }
     };
     assert_ne!(
+        // SAFETY: RegisterClassW reads a caller-owned WNDCLASSW whose string pointers stay live for the call.
         unsafe { RegisterClassW(&class) },
         0,
         "register hidden frame class"
@@ -177,6 +177,7 @@ fn create_hidden_frame(state: &Rc<RefCell<WorkerState>>) {
     let class_name = CLASS_NAME.with(|slot| slot.borrow().as_ptr());
     // The parent stays hidden. The child carries the dialog-frame bits,
     // including WS_VISIBLE, and remains hidden because its parent is hidden.
+    // SAFETY: CreateWindowExW receives caller-owned class and title strings that stay live for the call. The creation parameter is null or a live record.
     let parent = unsafe {
         CreateWindowExW(
             0,
@@ -195,6 +196,7 @@ fn create_hidden_frame(state: &Rc<RefCell<WorkerState>>) {
     };
     assert!(!parent.is_null(), "create hidden parent");
     PARENT.with(|slot| slot.set(parent as usize));
+    // SAFETY: CreateWindowExW receives caller-owned class and title strings that stay live for the call. The creation parameter is null or a live record.
     let child = unsafe {
         CreateWindowExW(
             0,
@@ -214,9 +216,10 @@ fn create_hidden_frame(state: &Rc<RefCell<WorkerState>>) {
     assert!(!child.is_null(), "create hidden dialog frame");
     CHILD.with(|slot| slot.set(child as usize));
     let style = WS_CHILD | DIALOG_FRAME_STYLE;
+    // SAFETY: SetWindowLongPtrW writes one window-long slot owned by this window.
     unsafe { SetWindowLongPtrW(child, GWL_STYLE, style as _) };
-    assert_eq!(unsafe { IsWindowVisible(parent) }, 0);
-    assert_eq!(unsafe { IsWindowVisible(child) }, 0);
+    assert_eq!((crate::windows::win32_safe::is_window_visible(parent)), 0);
+    assert_eq!((crate::windows::win32_safe::is_window_visible(child)), 0);
     let token = adopt_created_owned(state, child).expect("adopt hidden dialog frame");
     TOKEN.store(token.0, Ordering::Release);
 }
@@ -235,6 +238,7 @@ fn reenter_from_wndproc(state: &Rc<RefCell<WorkerState>>) {
     // This SendMessage is synchronous. The worker is still inside
     // TestWindowData, so it cannot process a queued Ctl3dFrame command.
     // `ctl3d_frame` returns only when it reads the facts on this thread.
+    // SAFETY: SendMessageW runs synchronously on the window thread. Pointer arguments are caller-owned records that stay live for the call and are not guest addresses.
     unsafe { SendMessageW(child, WM_NCPAINT, 0, 0) };
     ARMED.with(|armed| armed.set(false));
     if let Some(panic) = PANIC.with(|slot| slot.borrow_mut().take()) {
@@ -258,19 +262,21 @@ fn retire_hidden_frame(state: &Rc<RefCell<WorkerState>>) {
     let parent = PARENT.with(|slot| slot.replace(0)) as HWND;
     let token = Win16HostWindow(TOKEN.swap(0, Ordering::AcqRel));
     if !child.is_null() {
-        unsafe { DestroyWindow(child) };
+        (crate::windows::win32_safe::destroy_window(child));
         remove_window_maps(state, token, child);
     }
     if !parent.is_null() {
-        unsafe { DestroyWindow(parent) };
+        (crate::windows::win32_safe::destroy_window(parent));
     }
     let name = CLASS_NAME.with(|slot| std::mem::take(&mut *slot.borrow_mut()));
     if !name.is_empty() {
         let instance = INSTANCE.with(Cell::get) as HINSTANCE;
+        // SAFETY: UnregisterClassW receives the class name and instance that registered the class.
         unsafe { UnregisterClassW(name.as_ptr(), instance) };
     }
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn frame_proc(
     hwnd: HWND,
     message: u32,
@@ -288,6 +294,7 @@ unsafe extern "system" fn frame_proc(
             // The client thread is blocked waiting for this callback and does
             // not borrow `Win16Windows` mutably. The nested path does not
             // write the client; it uses the worker thread-local.
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
             let windows = unsafe { &*client };
             let token = Win16HostWindow(TOKEN.load(Ordering::Acquire));
             let facts = windows.ctl3d_frame(token);
@@ -306,5 +313,6 @@ unsafe extern "system" fn frame_proc(
             });
         }
     }
+    // SAFETY: DefWindowProcW receives the window-procedure arguments for this message. Pointer parameters stay live for the call.
     unsafe { DefWindowProcW(hwnd, message, w_param, l_param) }
 }

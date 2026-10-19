@@ -99,6 +99,7 @@ fn add_connection(
 
     // Every pointer refers to a terminated Vec<u16> retained for this call.
     let status =
+        // SAFETY: `WNetAddConnectionW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { WNetAddConnectionW(remote_name.as_ptr(), password_pointer, local_pointer) };
     Ok((status, Value::None))
 }
@@ -113,6 +114,7 @@ fn cancel_connection(
         Err(status) => return Ok(status),
     };
     // `local_name` is terminated and remains live for the synchronous API call.
+    // SAFETY: `WNetCancelConnectionW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     Ok(unsafe { WNetCancelConnectionW(local_name.as_ptr(), i32::from(force)) })
 }
 
@@ -126,6 +128,7 @@ fn get_connection(
     };
     query_text(codec, |buffer, length| {
         // The local name and writable buffer remain owned for the call.
+        // SAFETY: `WNetGetConnectionW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { WNetGetConnectionW(local_name.as_ptr(), buffer, length) }
     })
 }
@@ -133,6 +136,7 @@ fn get_connection(
 fn get_user(codec: &GuestTextCodec) -> Result<(u32, Option<Vec<u8>>), RuntimeError> {
     query_text(codec, |buffer, length| {
         // A null name requests the current user; output storage is owned here.
+        // SAFETY: `WNetGetUserW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { WNetGetUserW(std::ptr::null(), buffer, length) }
     })
 }
@@ -182,6 +186,7 @@ fn get_last_error(codec: &GuestTextCodec) -> Result<(u32, Option<(u32, Vec<u8>)>
     let mut provider = allocated_wide(INITIAL_TEXT_CAPACITY, "allocate WNet provider name")?;
     loop {
         let mut code = 0_u32;
+        // SAFETY: `WNetGetLastErrorW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let status = unsafe {
             WNetGetLastErrorW(
                 &mut code,

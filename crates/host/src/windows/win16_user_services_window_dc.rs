@@ -8,13 +8,11 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use runtime::{
-    DiagnosticKind as Kind, RuntimeError, Win16DrawingRect, Win16HostDc,
-    Win16HostPaintInfo, Win16HostRect, Win16HostWindow,
+    DiagnosticKind as Kind, RuntimeError, Win16DrawingRect, Win16HostDc, Win16HostPaintInfo,
+    Win16HostRect, Win16HostWindow,
 };
 use windows_sys::Win32::Foundation::{HWND, RECT};
-use windows_sys::Win32::Graphics::Gdi::{
-    BeginPaint, EndPaint, GetDC, GetWindowDC, ReleaseDC, PAINTSTRUCT,
-};
+use windows_sys::Win32::Graphics::Gdi::{BeginPaint, EndPaint, GetDC, GetWindowDC, PAINTSTRUCT};
 
 use super::super::win16_gdi::{Win16Dcs, Win16NativePaintInfo, WindowDcLease};
 use super::win16_window_worker::WorkerState;
@@ -66,12 +64,16 @@ pub(super) fn begin_paint(
     state: &Rc<RefCell<WorkerState>>,
     window: Win16HostWindow,
 ) -> Result<Option<(Win16HostDc, Win16HostPaintInfo)>, RuntimeError> {
-    let Some((dcs, hwnd)) = window_context(state, window) else { return Ok(None); };
+    let Some((dcs, hwnd)) = window_context(state, window) else {
+        return Ok(None);
+    };
     let mut paint = PAINTSTRUCT::default();
     // SAFETY: `hwnd` is a live native window from this worker's HWND map and
     // `paint` is writable for the duration of the synchronous native call.
     let hdc = unsafe { BeginPaint(hwnd, &mut paint) };
-    if hdc.is_null() { return Ok(None); }
+    if hdc.is_null() {
+        return Ok(None);
+    }
     // BeginPaint can synchronously enter the guest, which may destroy this
     // HWND. Do not publish its borrowed HDC under a retired owner, or issue
     // EndPaint against a different window that reused the same HWND bits.
@@ -85,13 +87,17 @@ pub(super) fn begin_paint(
         Ok(None) => {
             // SAFETY: This is the exact PAINTSTRUCT produced by BeginPaint,
             // and cleanup runs immediately on the same owning worker thread.
-            unsafe { EndPaint(hwnd, &paint); }
+            unsafe {
+                EndPaint(hwnd, &paint);
+            }
             return Ok(None);
         }
         Err(error) => {
             // SAFETY: This is the exact PAINTSTRUCT produced by BeginPaint,
             // and cleanup runs immediately on the same owning worker thread.
-            unsafe { EndPaint(hwnd, &paint); }
+            unsafe {
+                EndPaint(hwnd, &paint);
+            }
             return Err(error);
         }
     };
@@ -107,7 +113,9 @@ pub(super) fn end_paint(
     dc: Win16HostDc,
     info: Win16HostPaintInfo,
 ) -> Result<bool, RuntimeError> {
-    let Some((dcs, hwnd)) = window_context(state, window) else { return Ok(false); };
+    let Some((dcs, hwnd)) = window_context(state, window) else {
+        return Ok(false);
+    };
     let Some(hdc) = dcs.window_dc_native(dc, window, WindowDcLease::Paint) else {
         return Ok(false);
     };
@@ -145,8 +153,10 @@ pub(super) fn end_paint(
         return Ok(false);
     }
     if !dcs.forget_window_dc(dc, window, WindowDcLease::Paint) {
-        return Err(RuntimeError::new(Kind::InternalInvariant,
-            "Win16 EndPaint succeeded but its host DC token changed"));
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "Win16 EndPaint succeeded but its host DC token changed",
+        ));
     }
     Ok(true)
 }
@@ -158,11 +168,17 @@ pub(super) fn acquire_window_dc(
     window: Win16HostWindow,
     whole_window: bool,
 ) -> Result<Option<Win16HostDc>, RuntimeError> {
-    let Some((dcs, hwnd)) = window_context(state, window) else { return Ok(None); };
+    let Some((dcs, hwnd)) = window_context(state, window) else {
+        return Ok(None);
+    };
     // SAFETY: `hwnd` is a valid native window owned by this worker; these
     // APIs return a borrowed DC that is recorded in the shared table below.
     let hdc = unsafe {
-        if whole_window { GetWindowDC(hwnd) } else { GetDC(hwnd) }
+        if whole_window {
+            GetWindowDC(hwnd)
+        } else {
+            GetDC(hwnd)
+        }
     };
     record_window_dc(state, window, whole_window, dcs, hwnd, hdc)
 }
@@ -173,7 +189,9 @@ pub(super) fn acquire_window_dc_ex(
     region: Option<&super::super::win16_gdi_objects::Win16RegionLease>,
     flags: u32,
 ) -> Result<Option<Win16HostDc>, RuntimeError> {
-    let Some((dcs, hwnd)) = window_context(state, window) else { return Ok(None); };
+    let Some((dcs, hwnd)) = window_context(state, window) else {
+        return Ok(None);
+    };
     let hdc = super::super::win16_get_dc_ex::acquire_native(hwnd, region, flags);
     record_window_dc(state, window, flags & 1 != 0, dcs, hwnd, hdc)
 }
@@ -186,7 +204,9 @@ fn record_window_dc(
     hwnd: HWND,
     hdc: windows_sys::Win32::Graphics::Gdi::HDC,
 ) -> Result<Option<Win16HostDc>, RuntimeError> {
-    if hdc.is_null() { return Ok(None); }
+    if hdc.is_null() {
+        return Ok(None);
+    }
     // A synchronous callback may retire or replace the owner. USER owns this
     // borrowed DC; cleanup against recycled HWND bits would affect a different
     // window, so only a still-matching owner permits registration or release.
@@ -198,13 +218,13 @@ fn record_window_dc(
         Ok(None) => {
             // SAFETY: `hdc` was just acquired for this exact HWND and the
             // release remains on the window-owning worker thread.
-            unsafe { ReleaseDC(hwnd, hdc); }
+            crate::windows::win32_safe::release_dc(hwnd, hdc);
             Ok(None)
         }
         Err(error) => {
             // SAFETY: `hdc` was just acquired for this exact HWND and the
             // release remains on the window-owning worker thread.
-            unsafe { ReleaseDC(hwnd, hdc); }
+            crate::windows::win32_safe::release_dc(hwnd, hdc);
             Err(error)
         }
     }
@@ -217,18 +237,24 @@ pub(super) fn release_window_dc(
     window: Win16HostWindow,
     dc: Win16HostDc,
 ) -> Result<bool, RuntimeError> {
-    let Some((dcs, hwnd)) = window_context(state, window) else { return Ok(false); };
+    let Some((dcs, hwnd)) = window_context(state, window) else {
+        return Ok(false);
+    };
     for lease in [WindowDcLease::Client, WindowDcLease::WholeWindow] {
-        let Some(hdc) = dcs.window_dc_native(dc, window, lease) else { continue; };
+        let Some(hdc) = dcs.window_dc_native(dc, window, lease) else {
+            continue;
+        };
         // SAFETY: The common HDC table verified this borrowed lease belongs
         // to `window`; both acquisition and release use this worker thread.
-        if unsafe { ReleaseDC(hwnd, hdc) } == 0 {
+        if (crate::windows::win32_safe::release_dc(hwnd, hdc)) == 0 {
             dcs.cancel_window_dc_release(dc, window, lease);
             return Ok(false);
         }
         if !dcs.forget_window_dc(dc, window, lease) {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "Win16 ReleaseDC succeeded but its host DC token changed"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "Win16 ReleaseDC succeeded but its host DC token changed",
+            ));
         }
         return Ok(true);
     }

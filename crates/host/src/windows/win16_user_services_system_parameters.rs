@@ -19,6 +19,7 @@ pub(super) fn execute(
     let result = match request {
         Request::GetBool(action) => {
             let mut value = 0_i32;
+            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
             let succeeded = unsafe {
                 SystemParametersInfoW(u32::from(action), 0, (&mut value as *mut i32).cast(), 0)
             } != 0;
@@ -29,6 +30,7 @@ pub(super) fn execute(
             value,
             flags,
         } => {
+            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     u32::from(action),
@@ -41,6 +43,7 @@ pub(super) fn execute(
         }
         Request::GetWord(action) => {
             let mut value = 0_u32;
+            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
             let succeeded = unsafe {
                 SystemParametersInfoW(u32::from(action), 0, (&mut value as *mut u32).cast(), 0)
             } != 0;
@@ -51,6 +54,7 @@ pub(super) fn execute(
             value,
             flags,
         } => {
+            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     u32::from(action),
@@ -64,12 +68,14 @@ pub(super) fn execute(
         Request::GetMouse => {
             let mut values = [0_i32; 3];
             let succeeded =
+                // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
                 unsafe { SystemParametersInfoW(SPI_GETMOUSE, 0, values.as_mut_ptr().cast(), 0) }
                     != 0;
             make_result(succeeded, Value::Mouse(values.map(|value| value as i16)))
         }
         Request::SetMouse { values, flags } => {
             let mut native = values.map(i32::from);
+            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     SPI_SETMOUSE,
@@ -91,6 +97,7 @@ pub(super) fn execute(
                 return Ok(make_result(false, Value::None));
             }
             let mut path_z = codec.to_wide_z(&path)?;
+            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     SPI_SETDESKWALLPAPER,
@@ -102,6 +109,7 @@ pub(super) fn execute(
             make_result(succeeded, Value::None)
         }
         Request::SetDesktopPattern { flags } => {
+            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     SPI_SETDESKPATTERN,
@@ -114,6 +122,7 @@ pub(super) fn execute(
         }
         Request::GetIconTitleLogFont => {
             let mut native = LOGFONTW::default();
+            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     SPI_GETICONTITLELOGFONT,
@@ -131,6 +140,7 @@ pub(super) fn execute(
             let Some(mut native) = logfont_to_native(codec, font)? else {
                 return Ok(make_result(false, Value::None));
             };
+            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     SPI_SETICONTITLELOGFONT,

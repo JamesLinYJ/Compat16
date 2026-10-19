@@ -12,10 +12,9 @@ use runtime::{
     Win16NativeWindowApiReturn, Win16WindowCreationRejection, Win16WindowInputMessage,
 };
 use windows_sys::Win32::Foundation::{HWND, LPARAM, POINT, WPARAM};
-use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateDialogIndirectParamW, DLGPROC, DLGTEMPLATE, DialogBoxIndirectParamW, EndDialog,
-    GetDialogBaseUnits, IsDialogMessageW, IsWindow, MSG,
+    GetDialogBaseUnits, IsDialogMessageW, MSG,
 };
 
 use super::win16_window_worker::WorkerState;
@@ -98,7 +97,10 @@ pub(super) fn create(
         }
     };
     if !super::win16_dialog_icon_controls::eligible(&template) {
-        return Ok(create_failure(modal, Win16WindowCreationRejection::NativeTemplateUnavailable));
+        return Ok(create_failure(
+            modal,
+            Win16WindowCreationRejection::NativeTemplateUnavailable,
+        ));
     }
     let Some(encoded) = template::encode_native_template(state, &template, creation)? else {
         return Ok(create_failure(
@@ -160,7 +162,7 @@ pub(super) fn create(
     };
     // The template is an owned memory block in this process, and custom
     // native classes were registered against this same module instance.
-    let native_instance = unsafe { GetModuleHandleW(std::ptr::null()) };
+    let native_instance = crate::windows::win32_safe::current_module();
     if native_instance.is_null() {
         let primary = RuntimeError::new(
             Kind::HostFailure,
@@ -182,8 +184,16 @@ pub(super) fn create(
     if let Err(error) = route_reservation {
         return Err(cleanup_menu_after_error(state, menu, error));
     }
-    let icon_count = template.items.iter().filter(|item| item.initial_icon.is_some()).count();
-    let Some(identity_count) = controls.len().checked_add(icon_count).and_then(|count| count.checked_add(1)) else {
+    let icon_count = template
+        .items
+        .iter()
+        .filter(|item| item.initial_icon.is_some())
+        .count();
+    let Some(identity_count) = controls
+        .len()
+        .checked_add(icon_count)
+        .and_then(|count| count.checked_add(1))
+    else {
         let primary = RuntimeError::new(
             Kind::ResourceExhausted,
             "Win16 dialog identity count overflowed",
@@ -215,12 +225,19 @@ pub(super) fn create(
     }
     let template_pointer = encoded.words.as_ptr().cast();
     let icon_scope = super::win16_dialog_icon_controls::prepare(
-        state, &template, &encoded.control_offsets, template_base, operation, creation, modal,
+        state,
+        &template,
+        &encoded.control_offsets,
+        template_base,
+        operation,
+        creation,
+        modal,
     );
     let native_result = match icon_scope {
         Err(error) => Err(error),
         Ok(icon_scope) => {
             let native_result = if modal {
+                // SAFETY: DialogBoxIndirectParamW reads a caller-owned dialog template that stays live for the call.
                 let result = unsafe {
                     DialogBoxIndirectParamW(
                         native_instance,
@@ -248,11 +265,17 @@ pub(super) fn create(
                 (Ok(result), Ok(())) => Ok(result),
                 (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
                 (Err(primary), Err(cleanup)) => Err(combine_dialog_cleanup_failure(
-                    primary, cleanup, "dialog call and icon observer both failed")),
+                    primary,
+                    cleanup,
+                    "dialog call and icon observer both failed",
+                )),
             }
         }
     };
-    let root_token = state.borrow().pending_dialog_routes.iter()
+    let root_token = state
+        .borrow()
+        .pending_dialog_routes
+        .iter()
         .find(|pending| pending.operation == operation && pending.creation == creation)
         .map_or(root_token, |pending| pending.root_token);
     let retain_modeless = !modal
@@ -262,7 +285,7 @@ pub(super) fn create(
                 if creation.live_window == Some(root_token)
         )
         && super::win16_window_identity::resolve(state, root_token)
-            .is_some_and(|hwnd| unsafe { IsWindow(hwnd) } != 0);
+            .is_some_and(|hwnd| { crate::windows::win32_safe::is_window(hwnd) } != 0);
     let route_pop = pop_creation_route(state, operation, creation);
     let (result, mut failure) = match native_result {
         Ok(result) => (Some(result), None),
@@ -317,6 +340,7 @@ fn create_modeless(
     creation: runtime::Win16CreationId,
     dialog_proc: DLGPROC,
 ) -> Result<Win16HostDialogResult, RuntimeError> {
+    // SAFETY: CreateDialogIndirectParamW reads a caller-owned dialog template that stays live for the call.
     let native = unsafe {
         CreateDialogIndirectParamW(
             native_instance,
@@ -331,7 +355,7 @@ fn create_modeless(
     } else {
         Win16NativeWindowApiReturn::ReturnedWindow
     };
-    if native.is_null() || unsafe { IsWindow(native) } == 0 {
+    if native.is_null() || { crate::windows::win32_safe::is_window(native) } == 0 {
         return Ok(Win16HostDialogResult::Created {
             creation: Win16HostWindowCreationResult {
                 native_api_return,
@@ -341,12 +365,23 @@ fn create_modeless(
             menu: None,
         });
     }
-    let root_token = state.borrow().pending_dialog_routes.iter().find(|pending|
-        pending.operation == operation && pending.creation == creation
-            && pending.cookie == cookie && pending.init_published)
+    let root_token = state
+        .borrow()
+        .pending_dialog_routes
+        .iter()
+        .find(|pending| {
+            pending.operation == operation
+                && pending.creation == creation
+                && pending.cookie == cookie
+                && pending.init_published
+        })
         .map(|pending| pending.root_token)
-        .ok_or_else(|| RuntimeError::new(Kind::HostFailure,
-            "live modeless dialog returned before its INIT route was published"))?;
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::HostFailure,
+                "live modeless dialog returned before its INIT route was published",
+            )
+        })?;
     let token = match super::win16_window_identity::resolve(state, root_token) {
         Some(hwnd) if hwnd == native => root_token,
         _ => {
@@ -416,21 +451,63 @@ fn reserve_dialog_identity_storage(
     let mut state = state.borrow_mut();
     // Nested creation must reserve for suspended outer templates too: their
     // not-yet-bound identities do not appear in windows.len().
-    let pending_dialogs = state.pending_dialog_routes.iter().try_fold(0usize, |count, pending| {
-        let controls = pending.controls.iter().filter(|control| !state.windows.contains_key(&control.window_token)).count();
-        count.checked_add(controls)?.checked_add(usize::from(pending.root_window.is_none()))
-    }).ok_or_else(|| RuntimeError::new(Kind::ResourceExhausted, "pending dialog identity count overflow"))?;
-    let count = count.checked_add(pending_dialogs)
+    let pending_dialogs = state
+        .pending_dialog_routes
+        .iter()
+        .try_fold(0usize, |count, pending| {
+            let controls = pending
+                .controls
+                .iter()
+                .filter(|control| !state.windows.contains_key(&control.window_token))
+                .count();
+            count
+                .checked_add(controls)?
+                .checked_add(usize::from(pending.root_window.is_none()))
+        })
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "pending dialog identity count overflow",
+            )
+        })?;
+    let count = count
+        .checked_add(pending_dialogs)
         .and_then(|count| count.checked_add(state.dialog_icon_sidecars.unbound_count()))
-        .ok_or_else(|| RuntimeError::new(Kind::ResourceExhausted, "dialog identity reservation overflow"))?;
-    let retirements = state.windows.len().checked_add(count)
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "dialog identity reservation overflow",
+            )
+        })?;
+    let retirements = state
+        .windows
+        .len()
+        .checked_add(count)
         .and_then(|count| count.checked_add(state.pending_creations.len()))
         .and_then(|count| count.checked_add(state.pending_mdi_creations.len()))
-        .ok_or_else(|| RuntimeError::new(Kind::ResourceExhausted, "dialog retirement reservation overflow"))?;
-    state.windows.try_reserve(count).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "reserve dialog window identities", error))?;
-    state.retired_window_tokens.try_reserve(retirements).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "reserve dialog identity retirement receipts", error))?;
+        .ok_or_else(|| {
+            RuntimeError::new(
+                Kind::ResourceExhausted,
+                "dialog retirement reservation overflow",
+            )
+        })?;
+    state.windows.try_reserve(count).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "reserve dialog window identities",
+            error,
+        )
+    })?;
+    state
+        .retired_window_tokens
+        .try_reserve(retirements)
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve dialog identity retirement receipts",
+                error,
+            )
+        })?;
     state
         .windows_by_native
         .try_reserve(count)
@@ -746,6 +823,7 @@ pub(super) fn end(
     result: i16,
 ) -> Win16HostDialogResult {
     let succeeded = resolve_window(state, Some(dialog))
+        // SAFETY: EndDialog ends a dialog this thread is running.
         .is_some_and(|dialog| unsafe { EndDialog(dialog, isize::from(result)) != 0 });
     Win16HostDialogResult::Ended(succeeded)
 }
@@ -829,6 +907,7 @@ pub(super) fn is_message(
             y: message.point.y,
         },
     };
+    // SAFETY: `IsDialogMessageW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     Ok(Win16HostDialogResult::MessageHandled(unsafe {
         IsDialogMessageW(dialog, &mut native) != 0
     }))
@@ -849,6 +928,7 @@ fn validate_window_input_tag(message: Win16HostQueuedMessage) -> Result<(), Runt
 }
 
 pub(super) fn base_units() -> Win16HostDialogResult {
+    // SAFETY: `GetDialogBaseUnits` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     Win16HostDialogResult::BaseUnits(unsafe { GetDialogBaseUnits() as u32 })
 }
 
@@ -858,7 +938,7 @@ fn resolve_window(
 ) -> Option<HWND> {
     let token = window?;
     let hwnd = super::win16_window_identity::resolve_user_window(state, token)?;
-    (unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsWindow(hwnd) } != 0).then_some(hwnd)
+    ((crate::windows::win32_safe::is_window(hwnd)) != 0).then_some(hwnd)
 }
 
 fn create_failure(modal: bool, rejection: Win16WindowCreationRejection) -> Win16HostDialogResult {

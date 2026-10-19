@@ -298,9 +298,11 @@ fn reply_message_cross_thread_result_precedes_receiver_return_and_keeps_all_32_b
         let (done, returned) = mpsc::channel();
         let hwnd = host.hwnd;
         let sender = std::thread::spawn(move || {
+            // SAFETY: SendMessageW runs synchronously on the window thread. Pointer arguments are caller-owned records that stay live for the call and are not guest addresses.
             let value = unsafe { SendMessageW(hwnd as _, u32::from(OUTER), 0, 0) };
             done.send(value).unwrap();
             assert_ne!(
+                // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
                 unsafe { PostMessageW(hwnd as _, u32::from(MARKER), 0, 0) },
                 0
             );
@@ -355,9 +357,11 @@ fn reply_message_nested_same_thread_send_keeps_the_outer_cross_thread_context() 
     let (done, returned) = mpsc::channel();
     let hwnd = host.hwnd;
     let sender = std::thread::spawn(move || {
+        // SAFETY: SendMessageW runs synchronously on the window thread. Pointer arguments are caller-owned records that stay live for the call and are not guest addresses.
         done.send(unsafe { SendMessageW(hwnd as _, u32::from(OUTER), 0, 0) })
             .unwrap();
         assert_ne!(
+            // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
             unsafe { PostMessageW(hwnd as _, u32::from(MARKER), 0, 0) },
             0
         );
@@ -394,6 +398,7 @@ fn reply_message_text_uses_native_early_reply_copyback_semantics() {
         let hwnd = host.hwnd;
         let sender = std::thread::spawn(move || {
             let mut text = [0_u16; 64];
+            // SAFETY: SendMessageW runs synchronously on the window thread. Pointer arguments are caller-owned records that stay live for the call and are not guest addresses.
             let count = unsafe {
                 SendMessageW(
                     hwnd as _,
@@ -409,6 +414,7 @@ fn reply_message_text_uses_native_early_reply_copyback_semantics() {
             done.send((count, early)).unwrap();
             released.recv_timeout(TIMEOUT).unwrap();
             assert_ne!(
+                // SAFETY: PostMessageW queues scalar message parameters. Any pointer in lParam stays valid until the receiving window procedure returns.
                 unsafe { PostMessageW(hwnd as _, u32::from(MARKER), 0, 0) },
                 0
             );

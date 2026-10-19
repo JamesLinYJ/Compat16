@@ -1,7 +1,7 @@
 //! Copy bounded per-user DEVMODE data out of the native level-9 record.
 use super::*;
 use std::mem::offset_of;
-use windows_sys::Win32::{Foundation::GetLastError, Graphics::Printing::GetPrinterW};
+use windows_sys::Win32::Graphics::Printing::GetPrinterW;
 
 pub(super) fn read(printer: PRINTER_HANDLE) -> Result<Option<Vec<u8>>, RuntimeError> {
     let mut required = 0;
@@ -46,7 +46,7 @@ pub(super) fn read(printer: PRINTER_HANDLE) -> Result<Option<Vec<u8>>, RuntimeEr
                 continue;
             }
             // SAFETY: Read the error immediately after this failed API.
-            let error = unsafe { GetLastError() };
+            let error = crate::windows::win32_safe::last_error();
             return Err(RuntimeError::new(
                 Kind::HostFailure,
                 format!("GetPrinterW level 9 failed with error {error}"),

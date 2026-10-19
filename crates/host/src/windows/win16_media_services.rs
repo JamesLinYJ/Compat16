@@ -482,7 +482,9 @@ impl Drop for Win16MediaServicesHost {
 fn read_time_value(native: &MMTIME) -> Win16HostMediaTimeValue {
     // MMTIME is packed and contains a C union. Copy only the active arm into
     // owned bytes; no native field reference or pointer crosses this adapter.
+    // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
     let kind = unsafe { ptr::read_unaligned(ptr::addr_of!(native.wType)) };
+    // SAFETY: `Milliseconds`, `read_unaligned`, `Samples` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     unsafe {
         match kind {
             TIME_MS => Win16HostMediaTimeValue::Milliseconds(ptr::read_unaligned(ptr::addr_of!(
@@ -612,6 +614,7 @@ fn native_chunk(info: runtime::Win16HostMmckInfo) -> MMCKINFO {
 
 fn host_chunk(info: &MMCKINFO) -> runtime::Win16HostMmckInfo {
     // The windows-sys structure is packed; each field is copied unaligned.
+    // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
     unsafe {
         runtime::Win16HostMmckInfo {
             chunk_id: ptr::read_unaligned(ptr::addr_of!(info.ckid)),

@@ -7,13 +7,10 @@ use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostSpoolJob, Win16HostSpoolOperation as Operation,
     Win16HostSpoolResult as ResultValue, Win16HostTaskOwner,
 };
-use windows_sys::Win32::Foundation::{
-    ERROR_INVALID_HANDLE, ERROR_NOT_SUPPORTED, GetLastError,
-};
+use windows_sys::Win32::Foundation::{ERROR_INVALID_HANDLE, ERROR_NOT_SUPPORTED};
 use windows_sys::Win32::Graphics::Printing::{
-    AbortPrinter, ClosePrinter, EndPagePrinter,
-    OpenPrinterW, PRINTER_HANDLE,
-    StartDocPrinterW, StartPagePrinter, WritePrinter,
+    AbortPrinter, ClosePrinter, EndPagePrinter, OpenPrinterW, PRINTER_HANDLE, StartDocPrinterW,
+    StartPagePrinter, WritePrinter,
 };
 
 use super::guest_text::GuestTextCodec;
@@ -187,8 +184,11 @@ impl Win16SpoolJobs {
                 error,
             )
         })?;
-        jobs.extend(self.jobs.iter().filter_map(|(token, native)|
-            (native.network_owner == Some(owner)).then_some(*token)));
+        jobs.extend(
+            self.jobs.iter().filter_map(|(token, native)| {
+                (native.network_owner == Some(owner)).then_some(*token)
+            }),
+        );
         jobs.sort_unstable();
         jobs.dedup();
 
@@ -196,17 +196,26 @@ impl Win16SpoolJobs {
         let mut first_native_error = None;
         for job in jobs {
             match self.release_network_job(job)? {
-                ResultValue::Status { succeeded: true, .. } => {}
-                ResultValue::Status { succeeded: false, native_error } => {
+                ResultValue::Status {
+                    succeeded: true, ..
+                } => {}
+                ResultValue::Status {
+                    succeeded: false,
+                    native_error,
+                } => {
                     succeeded = false;
                     first_native_error = first_native_error.or(Some(
-                        native_error.filter(|code| *code != 0).unwrap_or(ERROR_NOT_SUPPORTED),
+                        native_error
+                            .filter(|code| *code != 0)
+                            .unwrap_or(ERROR_NOT_SUPPORTED),
                     ));
                 }
-                _ => return Err(RuntimeError::new(
-                    Kind::InternalInvariant,
-                    "task-owned WNet cleanup returned a different spool result",
-                )),
+                _ => {
+                    return Err(RuntimeError::new(
+                        Kind::InternalInvariant,
+                        "task-owned WNet cleanup returned a different spool result",
+                    ));
+                }
             }
         }
         let mut index = 0;
@@ -328,6 +337,7 @@ impl Win16SpoolJobs {
         });
         if job_id == 0 {
             let error = last_error();
+            // SAFETY: ClosePrinter closes a printer handle this owner opened.
             if unsafe { ClosePrinter(printer) } == 0 {
                 self.orphaned_printers.push((task_owner, printer));
             }
@@ -349,7 +359,12 @@ impl Win16SpoolJobs {
         );
         if index_network_job && let Some(owner) = task_owner {
             self.network_job_index.insert(
-                (owner, indexed_printer_name, job_id, NetworkJobIndexKind::OwnedDocument),
+                (
+                    owner,
+                    indexed_printer_name,
+                    job_id,
+                    NetworkJobIndexKind::OwnedDocument,
+                ),
                 token,
             );
         }
@@ -490,6 +505,7 @@ impl Drop for Win16SpoolJobs {
         for (_, native) in self.jobs.drain() {
             // Shutdown owns these jobs. Abort the active document, then close
             // the native printer handle; no guest handle outlives this owner.
+            // SAFETY: `AbortPrinter`, `ClosePrinter` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe {
                 if native.document_open {
                     AbortPrinter(native.printer);
@@ -498,6 +514,7 @@ impl Drop for Win16SpoolJobs {
             }
         }
         for (_, printer) in self.orphaned_printers.drain(..) {
+            // SAFETY: ClosePrinter closes a printer handle this owner opened.
             unsafe { ClosePrinter(printer) };
         }
     }
@@ -533,7 +550,7 @@ fn status_result(succeeded: bool) -> Result<ResultValue, RuntimeError> {
 
 fn last_error() -> u32 {
     // SAFETY: GetLastError reads the calling thread's Windows status value.
-    unsafe { GetLastError() }
+    crate::windows::win32_safe::last_error()
 }
 
 fn copy_wide_units(source: &[u16], context: &'static str) -> Result<Vec<u16>, RuntimeError> {

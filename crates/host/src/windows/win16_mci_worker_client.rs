@@ -1,15 +1,15 @@
 //! Public-side MCI owner client and retained worker receipts.
 
-#[path = "win16_mci_worker_client_quiesce.rs"]
-mod quiesce;
 #[path = "win16_mci_worker_client_producer_quiesce.rs"]
 mod producer_quiesce;
+#[path = "win16_mci_worker_client_quiesce.rs"]
+mod quiesce;
 #[path = "win16_mci_worker_client_receipts.rs"]
 mod receipts;
-#[path = "win16_mci_worker_client_resume.rs"]
-mod resume;
 #[path = "win16_mci_worker_client_reconcile.rs"]
 mod reconcile;
+#[path = "win16_mci_worker_client_resume.rs"]
+mod resume;
 
 use std::sync::{Arc, OnceLock};
 
@@ -81,10 +81,7 @@ fn reap_loop_returned_mci_workers() {
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner);
             slots.iter_mut().enumerate().find_map(|(index, slot)| {
-                if slot.worker_loop_returned
-                    && !slot.worker_thread_joined
-                    && slot.owner.is_some()
-                {
+                if slot.worker_loop_returned && !slot.worker_thread_joined && slot.owner.is_some() {
                     slot.reserved = true;
                     slot.owner.take().map(|owner| (index, owner))
                 } else {
@@ -95,7 +92,10 @@ fn reap_loop_returned_mci_workers() {
         let Some((index, mut owner)) = candidate else {
             return;
         };
-        let joined = owner.thread.take().is_some_and(|thread| thread.join().is_ok());
+        let joined = owner
+            .thread
+            .take()
+            .is_some_and(|thread| thread.join().is_ok());
         if joined {
             let mut progress = owner
                 .shutdown_progress
@@ -305,12 +305,14 @@ impl Win16MciWorker {
                     error,
                 )
             })?;
+        // SAFETY: CreateEventW reads an optional caller-owned name and returns a new event handle.
         let raw_event = unsafe { CreateEventW(ptr::null(), 0, 0, ptr::null()) };
         if raw_event.is_null() {
             return Err(super::worker_loop::last_error(
                 "create native MCI worker event",
             ));
         }
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let wake_event = Arc::new(unsafe { OwnedHandle::from_raw_handle(raw_event as RawHandle) });
         let worker_event = Arc::clone(&wake_event);
         let quarantine_notifications = Arc::clone(&notifications);
@@ -459,7 +461,6 @@ impl Win16MciWorker {
         self.receive_step(operation, receive)
     }
 
-
     fn receive_step(
         &mut self,
         operation: Win16HostMciOperationId,
@@ -509,7 +510,8 @@ impl Win16MciWorker {
                     "native MCI Begin response channel was disconnected; the enqueued operation remains retained",
                     runtime::Win16HostMciBeginFailure {
                         operation,
-                        phase: runtime::Win16HostMciBeginFailurePhase::EnqueuedAwaitingOriginalResult,
+                        phase:
+                            runtime::Win16HostMciBeginFailurePhase::EnqueuedAwaitingOriginalResult,
                         cause: error,
                     },
                 ));
@@ -572,8 +574,8 @@ impl Win16MciWorker {
                         source_frame: None,
                         outcome: UnclaimedMciOutcome::UnexpectedBeginStep {
                             actual: MciWorkerStep {
-                            step: Win16HostMciStep::Yield(event),
-                            returned_yield: None,
+                                step: Win16HostMciStep::Yield(event),
+                                returned_yield: None,
                             },
                             error: Arc::clone(&cause),
                         },
@@ -629,11 +631,11 @@ impl Win16MciWorker {
         Ok(())
     }
 
-
     pub(super) fn wake_owner(&self) -> Result<(), RuntimeError> {
-        if unsafe { SetEvent(self.wake_event.as_raw_handle() as HANDLE) } == 0 {
+        if (crate::windows::win32_safe::set_event(self.wake_event.as_raw_handle() as HANDLE)) == 0 {
             // A thread message is an independent wake path if the owned event
             // was externally invalidated; the queued command remains owned.
+            // SAFETY: PostThreadMessageW queues scalar parameters to a thread id.
             let posted = unsafe {
                 windows_sys::Win32::UI::WindowsAndMessaging::PostThreadMessageW(
                     self.thread_id,

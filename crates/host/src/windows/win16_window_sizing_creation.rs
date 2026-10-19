@@ -3,8 +3,8 @@
 use super::*;
 use runtime::{Win16CreationId, Win16HostCreationData};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetWindowPlacement, IsIconic, IsWindowVisible, SW_HIDE, SW_SHOWMINNOACTIVE, SetWindowPlacement,
-    WINDOWPLACEMENT, WS_MINIMIZE,
+    GetWindowPlacement, SW_HIDE, SW_SHOWMINNOACTIVE, SetWindowPlacement, WINDOWPLACEMENT,
+    WS_MINIMIZE,
 };
 
 pub(super) struct CreationFrame {
@@ -126,10 +126,13 @@ pub(in crate::windows::win16_windows) fn repair_restore_size(
     requested: Win16HostPoint,
     info: Win16HostMinMaxInfo,
 ) -> Result<(), RuntimeError> {
-    if win16_window_identity::resolve(state, window) != Some(hwnd) || unsafe { IsIconic(hwnd) } == 0
+    if win16_window_identity::resolve(state, window) != Some(hwnd) || {
+        crate::windows::win32_safe::is_iconic(hwnd)
+    } == 0
     {
         return Ok(());
     }
+    // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
     let style = unsafe { GetWindowLongPtrW(hwnd, GWL_STYLE) } as u32;
     if style & WS_MINIMIZEBOX == 0 {
         return Ok(());
@@ -137,8 +140,10 @@ pub(in crate::windows::win16_windows) fn repair_restore_size(
     let Some(legacy) = legacy_minimized_size() else {
         return Ok(());
     };
+    // SAFETY: The type is a C struct of integers and raw pointers, so the all-zero bit pattern is a valid value.
     let mut placement: WINDOWPLACEMENT = unsafe { std::mem::zeroed() };
     placement.length = std::mem::size_of::<WINDOWPLACEMENT>() as u32;
+    // SAFETY: `GetWindowPlacement` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     if unsafe { GetWindowPlacement(hwnd, &mut placement) } == 0 {
         return Err(RuntimeError::new(
             Kind::HostFailure,
@@ -155,14 +160,14 @@ pub(in crate::windows::win16_windows) fn repair_restore_size(
     let width = restore_axis(
         requested.x,
         actual_width,
-        unsafe { GetSystemMetrics(SM_CXMINIMIZED) },
+        crate::windows::win32_safe::system_metrics(SM_CXMINIMIZED),
         legacy.x,
         info.max_size.x,
     );
     let height = restore_axis(
         requested.y,
         actual_height,
-        unsafe { GetSystemMetrics(SM_CYMINIMIZED) },
+        crate::windows::win32_safe::system_metrics(SM_CYMINIMIZED),
         legacy.y,
         info.max_size.y,
     );
@@ -179,7 +184,7 @@ pub(in crate::windows::win16_windows) fn repair_restore_size(
     placement.rcNormalPosition.bottom = bottom;
     // SetWindowPlacement otherwise shows an initially hidden minimized window
     // or activates a visible one. Keep visibility and avoid activation.
-    placement.showCmd = if unsafe { IsWindowVisible(hwnd) } == 0 {
+    placement.showCmd = if (crate::windows::win32_safe::is_window_visible(hwnd)) == 0 {
         SW_HIDE as u32
     } else {
         SW_SHOWMINNOACTIVE as u32
@@ -187,6 +192,7 @@ pub(in crate::windows::win16_windows) fn repair_restore_size(
     // Keep native flags and minimized position. Only the untouched
     // restore axes enlarged by the modern minimized default are projected.
     if win16_window_identity::resolve(state, window) == Some(hwnd)
+        // SAFETY: `SetWindowPlacement` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         && unsafe { SetWindowPlacement(hwnd, &placement) } == 0
     {
         return Err(RuntimeError::new(

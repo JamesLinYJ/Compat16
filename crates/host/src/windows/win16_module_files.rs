@@ -10,9 +10,7 @@ use std::path::Path;
 
 use super::guest_text::GuestTextCodec;
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16ModuleImage};
-use windows_sys::Win32::Foundation::{
-    CloseHandle, GENERIC_READ, GetLastError, HANDLE, INVALID_HANDLE_VALUE, SetLastError,
-};
+use windows_sys::Win32::Foundation::{GENERIC_READ, HANDLE, INVALID_HANDLE_VALUE};
 use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL, FILE_FLAG_SEQUENTIAL_SCAN,
     FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_TYPE_DISK, FILE_TYPE_UNKNOWN,
@@ -45,7 +43,7 @@ impl Drop for NativeFile {
     fn drop(&mut self) {
         // SAFETY: This RAII wrapper owns a successful native file-open handle
         // until this drop.
-        unsafe { CloseHandle(self.0) };
+        (crate::windows::win32_safe::close_handle(self.0));
     }
 }
 
@@ -266,20 +264,21 @@ fn search_path_components(
     path: &OsStr,
     file_name: &[u16],
 ) -> Result<Option<Result<Win16ModuleImage, u16>>, RuntimeError> {
-    search_path_with(path, |directory| try_search_directory(codec, directory, file_name))
+    search_path_with(path, |directory| {
+        try_search_directory(codec, directory, file_name)
+    })
 }
 
-fn search_path_with(path: &OsStr, mut search: impl FnMut(&[u16])
-    -> Result<Option<Result<Win16ModuleImage, u16>>, RuntimeError>)
-    -> Result<Option<Result<Win16ModuleImage, u16>>, RuntimeError> {
+fn search_path_with(
+    path: &OsStr,
+    mut search: impl FnMut(&[u16]) -> Result<Option<Result<Win16ModuleImage, u16>>, RuntimeError>,
+) -> Result<Option<Result<Win16ModuleImage, u16>>, RuntimeError> {
     let mut component = Vec::new();
     let mut component_too_long = false;
     for unit in path.encode_wide().chain(std::iter::once(b';' as u16)) {
         if unit == b';' as u16 {
             if !component_too_long {
-                if let Some(result) =
-                    search(trim_path_quotes(&component))?
-                {
+                if let Some(result) = search(trim_path_quotes(&component))? {
                     return Ok(Some(result));
                 }
             }
@@ -380,6 +379,7 @@ fn wide_directory(api: DirectoryApi, operation: &'static str) -> Result<Vec<u16>
                 error,
             )
         })?;
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let length = unsafe { api(buffer.as_mut_ptr(), capacity_u32) } as usize;
         if length == 0 {
             return Err(last_os_error(operation));
@@ -419,6 +419,7 @@ fn resolve_wide_path(path: &[u16]) -> Result<Vec<u16>, CandidateError> {
         let mut buffer = zeroed_wide_buffer(capacity, "allocate resolved Win16 DLL path")
             .map_err(|_| CandidateError::Load(8))?;
         let capacity_u32 = u32::try_from(capacity).map_err(|_| CandidateError::Load(3))?;
+        // SAFETY: GetFullPathNameW reads a caller-owned path and writes into a caller-owned buffer.
         let length = unsafe {
             GetFullPathNameW(
                 terminated.as_ptr(),
@@ -429,7 +430,7 @@ fn resolve_wide_path(path: &[u16]) -> Result<Vec<u16>, CandidateError> {
         } as usize;
         if length == 0 {
             return Err(classify_candidate_path_error(
-                unsafe { GetLastError() },
+                crate::windows::win32_safe::last_error(),
                 "resolve Win16 DLL path",
             ));
         }
@@ -446,10 +447,11 @@ fn resolve_wide_path(path: &[u16]) -> Result<Vec<u16>, CandidateError> {
 fn read_candidate(codec: GuestTextCodec, path: &[u16]) -> Result<Win16ModuleImage, CandidateError> {
     let resolved = resolve_wide_path(path)?;
     let terminated = nul_terminated_wide(&resolved).map_err(|_| CandidateError::Load(8))?;
+    // SAFETY: GetFileAttributesW reads a caller-owned path that stays live for the call.
     let attributes = unsafe { GetFileAttributesW(terminated.as_ptr()) };
     if attributes == INVALID_FILE_ATTRIBUTES {
         return Err(classify_candidate_path_error(
-            unsafe { GetLastError() },
+            crate::windows::win32_safe::last_error(),
             "inspect Win16 DLL file",
         ));
     }
@@ -472,7 +474,7 @@ fn read_candidate(codec: GuestTextCodec, path: &[u16]) -> Result<Win16ModuleImag
     };
     if handle == INVALID_HANDLE_VALUE {
         return Err(classify_candidate_path_error(
-            unsafe { GetLastError() },
+            crate::windows::win32_safe::last_error(),
             "open Win16 DLL file",
         ));
     }
@@ -481,12 +483,16 @@ fn read_candidate(codec: GuestTextCodec, path: &[u16]) -> Result<Win16ModuleImag
 
 // Native search and capability-rooted task search share the same ordinary
 // disk-file checks, bounded copy and exact guest path projection.
-fn read_owned_candidate(codec: GuestTextCodec, resolved: &[u16], file: NativeFile)
-    -> Result<Win16ModuleImage, CandidateError> {
-    unsafe { SetLastError(0) };
+fn read_owned_candidate(
+    codec: GuestTextCodec,
+    resolved: &[u16],
+    file: NativeFile,
+) -> Result<Win16ModuleImage, CandidateError> {
+    (crate::windows::win32_safe::set_last_error(0));
+    // SAFETY: `GetFileType` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let file_type = unsafe { GetFileType(file.0) };
     if file_type != FILE_TYPE_DISK {
-        let error = unsafe { GetLastError() };
+        let error = crate::windows::win32_safe::last_error();
         if file_type == FILE_TYPE_UNKNOWN && error != 0 {
             return Err(classify_candidate_error(
                 error,
@@ -500,9 +506,10 @@ fn read_owned_candidate(codec: GuestTextCodec, resolved: &[u16], file: NativeFil
     }
 
     let mut file_size = 0_i64;
+    // SAFETY: `GetFileSizeEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     if unsafe { GetFileSizeEx(file.0, &mut file_size) } == 0 {
         return Err(classify_candidate_error(
-            unsafe { GetLastError() },
+            crate::windows::win32_safe::last_error(),
             "get Win16 DLL file size",
         ));
     }
@@ -527,6 +534,7 @@ fn read_owned_candidate(codec: GuestTextCodec, resolved: &[u16], file: NativeFil
     while total_read < capacity {
         let requested = (capacity - total_read).min(READ_CHUNK_BYTES) as u32;
         let mut bytes_read = 0_u32;
+        // SAFETY: ReadFile writes into a caller-owned buffer of the length passed with it.
         let succeeded = unsafe {
             ReadFile(
                 file.0,
@@ -537,7 +545,7 @@ fn read_owned_candidate(codec: GuestTextCodec, resolved: &[u16], file: NativeFil
             )
         };
         if succeeded == 0 {
-            let error = unsafe { GetLastError() };
+            let error = crate::windows::win32_safe::last_error();
             if error == windows_sys::Win32::Foundation::ERROR_HANDLE_EOF {
                 break;
             }
@@ -623,7 +631,7 @@ fn nul_terminated_wide(units: &[u16]) -> Result<Vec<u16>, RuntimeError> {
 }
 
 fn last_os_error(operation: &'static str) -> RuntimeError {
-    let code = unsafe { GetLastError() };
+    let code = crate::windows::win32_safe::last_error();
     last_os_error_with_code(operation, code)
 }
 

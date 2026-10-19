@@ -1,7 +1,7 @@
 //! Native DDEML callback argument projection and host-handle staging.
 
 use super::*;
-use windows_sys::Win32::Foundation::{ERROR_NO_UNICODE_TRANSLATION, GetLastError};
+use windows_sys::Win32::Foundation::ERROR_NO_UNICODE_TRANSLATION;
 use windows_sys::Win32::System::DataExchange::{XCLASS_NOTIFICATION, XTYPF_NOBLOCK};
 
 // windows-sys omits XTYP_ERROR although the target SDK defines it as
@@ -36,6 +36,7 @@ pub(super) fn callback_call(
         == transaction_type::base(XTYP_CONNECT)
         || base == transaction_type::base(XTYP_WILDCONNECT);
     let conversation_context = if is_context_transaction && data_1 != 0 {
+        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let native_context = unsafe { &*(data_1 as *const CONVCONTEXT) };
         Some(from_native_context(native_context)?)
     } else {
@@ -327,6 +328,7 @@ fn intern_callback_handles(
                                 "DDE callback projection and data rollback both failed",
                             );
                         }
+                    // SAFETY: DdeFreeDataHandle releases a data handle this instance owns.
                     } else if native_owned && unsafe { DdeFreeDataHandle(native) } == 0 {
                         failure = super::super::super::errors::combine_cleanup_errors(
                             failure,
@@ -430,6 +432,7 @@ fn translated_execute_data(
     })?;
     guest_bytes.push(0);
     let native_instance = context.state.borrow().native_instance(instance)?;
+    // SAFETY: DdeCreateDataHandle reads a caller-owned byte span.
     let native = unsafe {
         DdeCreateDataHandle(
             native_instance,
@@ -460,5 +463,5 @@ fn translated_execute_data(
 fn is_guest_text_error(error: &RuntimeError) -> bool {
     error.kind() == Kind::InvalidInput
         || (error.kind() == Kind::HostFailure
-            && unsafe { GetLastError() } == ERROR_NO_UNICODE_TRANSLATION)
+            && (crate::windows::win32_safe::last_error()) == ERROR_NO_UNICODE_TRANSLATION)
 }

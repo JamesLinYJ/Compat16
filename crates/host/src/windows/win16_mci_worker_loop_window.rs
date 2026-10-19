@@ -34,7 +34,7 @@ pub(super) fn create_notify_window(
     let start = prefix.len();
     class_name[start..start + digits.len()].copy_from_slice(&digits);
     class_name[start + digits.len()] = 0;
-    let instance = unsafe { GetModuleHandleW(ptr::null()) };
+    let instance = crate::windows::win32_safe::current_module();
     if instance.is_null() {
         return Err(MciNotifyWindowCreateFailure {
             primary: last_error("get MCI owner module handle"),
@@ -48,6 +48,7 @@ pub(super) fn create_notify_window(
         lpszClassName: class_name.as_ptr(),
         ..Default::default()
     };
+    // SAFETY: RegisterClassW reads a caller-owned WNDCLASSW whose string pointers stay live for the call.
     if unsafe { RegisterClassW(&class) } == 0 {
         return Err(MciNotifyWindowCreateFailure {
             primary: last_error("register hidden MCI notification class"),
@@ -56,6 +57,7 @@ pub(super) fn create_notify_window(
         });
     }
     let context_pointer = (context as *const NotifyWindowContext).cast::<core::ffi::c_void>();
+    // SAFETY: CreateWindowExW receives caller-owned class and title strings that stay live for the call. The creation parameter is null or a live record.
     let window = unsafe {
         CreateWindowExW(
             0,
@@ -75,6 +77,7 @@ pub(super) fn create_notify_window(
     if window.is_null() {
         // Capture GetLastError before the cleanup API can overwrite it.
         let primary = last_error("create hidden MCI notification window");
+        // SAFETY: UnregisterClassW receives the class name and instance that registered the class.
         let unregistered = unsafe { UnregisterClassW(class_name.as_ptr(), instance) } != 0;
         return Err(MciNotifyWindowCreateFailure {
             primary,
@@ -135,12 +138,12 @@ pub(super) fn retire_notification_window(
 ) -> (bool, bool) {
     let _keep_callback_context_alive = context;
     let mut first_failure = None;
-    while unsafe { IsWindow(sink) } != 0 {
-        if unsafe { DestroyWindow(sink) } != 0 {
+    while { crate::windows::win32_safe::is_window(sink) } != 0 {
+        if { crate::windows::win32_safe::destroy_window(sink) } != 0 {
             continue;
         }
         let error = last_error("destroy hidden MCI notification window");
-        if unsafe { IsWindow(sink) } == 0 {
+        if { crate::windows::win32_safe::is_window(sink) } == 0 {
             first_failure.get_or_insert(error);
             break;
         }
@@ -162,7 +165,7 @@ pub(super) fn retire_notification_window(
     }
     // The loop exits only after IsWindow reports absence, and the class helper
     // returns only after UnregisterClassW reports success.
-    (unsafe { IsWindow(sink) } == 0, true)
+    ({ crate::windows::win32_safe::is_window(sink) } == 0, true)
 }
 
 pub(super) fn retire_registered_class(class: RegisteredMciClass, context: &NotifyWindowContext) {
@@ -180,6 +183,7 @@ fn retire_registered_class_with_failure(
 ) {
     let _keep_callback_context_alive = context;
     loop {
+        // SAFETY: UnregisterClassW receives the class name and instance that registered the class.
         if unsafe { UnregisterClassW(class.name.as_ptr(), class.instance) } != 0 {
             return;
         }

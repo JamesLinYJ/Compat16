@@ -4,8 +4,8 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
-use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle, RawHandle};
 use std::ops::{Deref, DerefMut};
+use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle, RawHandle};
 use std::ptr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender, TryRecvError};
@@ -13,53 +13,45 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use super::super::multimedia_wake::MultimediaWakeSender;
 use super::super::guest_text::GuestTextCodec;
+use super::super::multimedia_wake::MultimediaWakeSender;
 use super::super::win16_windows::allocate_shared_identity;
 use super::MciNotificationLedger;
 use runtime::{
-    DiagnosticKind as Kind, RuntimeError, Win16HostMciCall, Win16HostMciDevice,
-    Win16HostMciNotificationId, Win16HostMciOperationId, Win16HostMciResume,
-    Win16HostMciResumeReceipt, Win16HostMciStep,
-    Win16HostMciQuiesceRequest, Win16HostMciQuiescenceEvidence,
-    Win16HostMciQuiescenceFailure, Win16HostMciQuiescenceReceipt,
-    Win16HostMciQuiescenceStatus,
-    Win16HostMciProducerQuiescenceRequest, Win16HostMciProducerQuiescenceReceipt,
-    Win16HostMciActiveYield, Win16HostMciRetainedOwner, Win16HostMciYieldEvent,
-    Win16HostMciYieldFrame,
-    Win16HostMciYieldRegistration,
-    Win16HostMciYieldRegistrationId,
-    Win16HostMciYieldReturn, Win16HostMciOperationCompletion,
+    DiagnosticKind as Kind, RuntimeError, Win16HostMciActiveYield, Win16HostMciCall,
+    Win16HostMciDevice, Win16HostMciNotificationId, Win16HostMciOperationCompletion,
+    Win16HostMciOperationId, Win16HostMciProducerQuiescenceReceipt,
+    Win16HostMciProducerQuiescenceRequest, Win16HostMciQuiesceRequest,
+    Win16HostMciQuiescenceEvidence, Win16HostMciQuiescenceFailure, Win16HostMciQuiescenceReceipt,
+    Win16HostMciQuiescenceStatus, Win16HostMciResume, Win16HostMciResumeReceipt,
+    Win16HostMciRetainedOwner, Win16HostMciStep, Win16HostMciYieldEvent, Win16HostMciYieldFrame,
+    Win16HostMciYieldRegistration, Win16HostMciYieldRegistrationId, Win16HostMciYieldReturn,
 };
 use windows_sys::Win32::Foundation::{
-    GetLastError, HANDLE, HINSTANCE, HWND, LPARAM, SetLastError, WAIT_FAILED, WAIT_OBJECT_0,
-    WAIT_TIMEOUT,
+    HANDLE, HINSTANCE, HWND, LPARAM, WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT,
 };
-use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
-use windows_sys::Win32::System::Threading::{
-    CreateEventW, GetCurrentThreadId, SetEvent,
-};
+use windows_sys::Win32::System::Threading::CreateEventW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CREATESTRUCTW, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GWLP_USERDATA,
-    GetWindowLongPtrW, HWND_MESSAGE, IsWindow, MSG, MsgWaitForMultipleObjects, PM_REMOVE,
-    PeekMessageW, QS_ALLINPUT, RegisterClassW, SetWindowLongPtrW, TranslateMessage,
-    UnregisterClassW, WM_NCCREATE, WM_NCDESTROY, WNDCLASSW,
+    CREATESTRUCTW, CreateWindowExW, DefWindowProcW, DispatchMessageW, GWLP_USERDATA,
+    GetWindowLongPtrW, HWND_MESSAGE, MSG, MsgWaitForMultipleObjects, PM_REMOVE, PeekMessageW,
+    QS_ALLINPUT, RegisterClassW, SetWindowLongPtrW, TranslateMessage, UnregisterClassW,
+    WM_NCCREATE, WM_NCDESTROY, WNDCLASSW,
 };
 
-#[path = "win16_mci_worker_context.rs"]
-mod context;
-#[path = "win16_mci_native.rs"]
-mod native;
+#[path = "win16_mci_worker_cleanup.rs"]
+mod cleanup;
 #[path = "win16_mci_worker_client.rs"]
 mod client;
+#[path = "win16_mci_worker_context.rs"]
+mod context;
 #[path = "win16_mci_worker_error.rs"]
 mod error;
+#[path = "win16_mci_native.rs"]
+mod native;
 #[path = "win16_mci_worker_quarantine.rs"]
 mod quarantine;
 #[path = "win16_mci_worker_receipt.rs"]
 mod receipt;
-#[path = "win16_mci_worker_cleanup.rs"]
-mod cleanup;
 #[path = "win16_mci_worker_registry.rs"]
 mod registry;
 // Registry types are shared only inside the worker family, never by its owner.
@@ -180,7 +172,9 @@ struct UnclaimedMciOperation {
 }
 
 enum UnclaimedMciOutcome {
-    AwaitingYieldResult { expected: Win16HostMciYieldReturn },
+    AwaitingYieldResult {
+        expected: Win16HostMciYieldReturn,
+    },
     Step(MciWorkerStep),
     UnexpectedBeginStep {
         actual: MciWorkerStep,
@@ -334,14 +328,15 @@ impl fmt::Display for MciEnteredYieldFailure {
         };
         let (cause, detail) = match &self.cause {
             MciEnteredYieldFailureCause::NativeDeviceUnowned => ("native device is unowned", None),
-            MciEnteredYieldFailureCause::RegistrationMissing => ("yield registration is missing", None),
+            MciEnteredYieldFailureCause::RegistrationMissing => {
+                ("yield registration is missing", None)
+            }
             MciEnteredYieldFailureCause::FrameIdentityExhausted => {
                 ("yield frame identity space is exhausted", None)
             }
-            MciEnteredYieldFailureCause::ReturnReceiptAllocation(error) => (
-                "return receipt allocation failed",
-                Some(error.as_ref()),
-            ),
+            MciEnteredYieldFailureCause::ReturnReceiptAllocation(error) => {
+                ("return receipt allocation failed", Some(error.as_ref()))
+            }
             MciEnteredYieldFailureCause::YieldResponseDisconnected(error) => (
                 "yield response channel is disconnected",
                 Some(error.as_ref()),
@@ -353,7 +348,11 @@ impl fmt::Display for MciEnteredYieldFailure {
             self.operation.0, self.native_device, phase, cause
         )?;
         if let Some(device) = self.device {
-            write!(formatter, "; host device token {} generation {}", device.token, device.generation)?;
+            write!(
+                formatter,
+                "; host device token {} generation {}",
+                device.token, device.generation
+            )?;
         }
         if let Some(registration) = self.registration {
             write!(formatter, "; yield registration {}", registration.0)?;
@@ -380,9 +379,7 @@ impl Error for MciEnteredYieldFailure {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match &self.cause {
             MciEnteredYieldFailureCause::ReturnReceiptAllocation(error)
-            | MciEnteredYieldFailureCause::YieldResponseDisconnected(error) => {
-                Some(error.as_ref())
-            }
+            | MciEnteredYieldFailureCause::YieldResponseDisconnected(error) => Some(error.as_ref()),
             _ => None,
         }
     }
@@ -500,10 +497,7 @@ impl WorkerThreadState {
         })
     }
 
-    pub(super) fn record_yield_source_evidence(
-        &self,
-        evidence: Win16HostMciQuiescenceEvidence,
-    ) {
+    pub(super) fn record_yield_source_evidence(&self, evidence: Win16HostMciQuiescenceEvidence) {
         self.yield_source_evidence.borrow_mut().push(evidence);
     }
 

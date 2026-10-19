@@ -50,7 +50,9 @@ pub(super) fn is_home_invocation() -> bool {
     let executable = wide(executable.as_os_str());
     // argv0 from a substituted legacy image is not the public launcher. Compare
     // canonical host paths using Windows' ordinal, case-insensitive semantics.
-    if unsafe {
+    if
+    // SAFETY: `CompareStringOrdinal` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+    unsafe {
         CompareStringOrdinal(
             first.as_ptr(),
             (first.len() - 1) as i32,
@@ -62,19 +64,27 @@ pub(super) fn is_home_invocation() -> bool {
     {
         return false;
     }
-    let raw = unsafe { GetCommandLineW() };
+    let raw =
+        // SAFETY: GetCommandLineW returns this process's command line, or null when the process has none.
+        unsafe { GetCommandLineW() };
     if raw.is_null() {
         return false;
     }
     let mut length = 0;
     // CreateProcess bounds command lines to 32,767 UTF-16 units.
-    while length < 32_767 && unsafe { *raw.add(length) } != 0 {
+    while length < 32_767 &&
+        // SAFETY: the index stays below the 32,767-unit command-line bound and this read stops at the first NUL.
+        unsafe { *raw.add(length) } != 0
+    {
         length += 1;
     }
     if length == 32_767 {
         return false;
     }
-    only_executable(unsafe { std::slice::from_raw_parts(raw, length) })
+    only_executable(
+        // SAFETY: the length is the counted prefix before the terminating NUL and does not include that NUL.
+        unsafe { std::slice::from_raw_parts(raw, length) },
+    )
 }
 
 fn resolve_invocation(first: &OsStr) -> std::io::Result<PathBuf> {
@@ -82,7 +92,9 @@ fn resolve_invocation(first: &OsStr) -> std::io::Result<PathBuf> {
         return Ok(path);
     }
     let mut buffer = vec![0_u16; 32_768];
-    let length = unsafe {
+    let length =
+        // SAFETY: `SearchPathW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe {
         windows_sys::Win32::Storage::FileSystem::SearchPathW(
             null(),
             wide(first).as_ptr(),
@@ -132,6 +144,7 @@ impl State {
     fn status(&mut self, message: &str, error: bool) {
         self.error = error;
         set_text(self.controls.status, message);
+        // SAFETY: `InvalidateRect` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             InvalidateRect(self.controls.status, null(), 1);
         }
@@ -151,6 +164,7 @@ impl State {
             }
             message.drain(..start);
         }
+        // SAFETY: `GetWindowTextLengthW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             let length = GetWindowTextLengthW(window).max(0) as usize;
             if length + message.len() > 64 * 1024 {
@@ -185,6 +199,7 @@ struct ComApartment(bool);
 impl Drop for ComApartment {
     fn drop(&mut self) {
         if self.0 {
+            // SAFETY: `CoUninitialize` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
             unsafe {
                 CoUninitialize();
             }
@@ -195,33 +210,48 @@ impl Drop for ComApartment {
 pub(super) fn run() -> Result<(), String> {
     // These process-wide changes occur only on the home path. Guest execution
     // and installed system launches never inherit the UI's DPI context.
+    // SAFETY: `FreeConsole` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe {
         FreeConsole();
         SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     }
-    let _com =
-        ComApartment(unsafe { CoInitializeEx(null(), COINIT_APARTMENTTHREADED as u32) } >= 0);
+    let _com = ComApartment(
+        // SAFETY: `CoInitializeEx` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { CoInitializeEx(null(), COINIT_APARTMENTTHREADED as u32) } >= 0,
+    );
     let _theme = theme::Theme::activate()?;
-    let instance = unsafe { GetModuleHandleW(null()) };
+    let instance =
+        // SAFETY: `GetModuleHandleW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { GetModuleHandleW(null()) };
     let class = wide(CLASS);
-    let icon = unsafe { LoadIconW(instance, 101_usize as *const u16) };
+    let icon =
+        // SAFETY: `LoadIconW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { LoadIconW(instance, 101_usize as *const u16) };
     let descriptor = WNDCLASSW {
         style: CS_HREDRAW | CS_VREDRAW,
         lpfnWndProc: Some(window_proc),
         hInstance: instance,
         hIcon: icon,
-        hCursor: unsafe { LoadCursorW(null_mut(), IDC_ARROW) },
-        hbrBackground: unsafe { GetStockObject(WHITE_BRUSH) }.cast(),
+        hCursor:
+            // SAFETY: `LoadCursorW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { LoadCursorW(null_mut(), IDC_ARROW) },
+        hbrBackground:
+            // SAFETY: `GetStockObject` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { GetStockObject(WHITE_BRUSH) }.cast(),
         lpszClassName: class.as_ptr(),
         ..Default::default()
     };
-    if unsafe { RegisterClassW(&descriptor) } == 0 {
+    if
+    // SAFETY: `RegisterClassW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+    unsafe { RegisterClassW(&descriptor) } == 0 {
         return Err(format!(
             "无法注册启动窗口：{}",
             std::io::Error::last_os_error()
         ));
     }
-    let window = unsafe {
+    let window =
+        // SAFETY: `CreateWindowExW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe {
         CreateWindowExW(
             WS_EX_ACCEPTFILES | WS_EX_CONTROLPARENT,
             class.as_ptr(),
@@ -244,11 +274,15 @@ pub(super) fn run() -> Result<(), String> {
         ));
     }
     let result = run_window(window);
-    if unsafe { IsWindow(window) } != 0 {
+    if
+    // SAFETY: `IsWindow` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+    unsafe { IsWindow(window) } != 0 {
+        // SAFETY: `DestroyWindow` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             DestroyWindow(window);
         }
     }
+    // SAFETY: `UnregisterClassW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe {
         UnregisterClassW(class.as_ptr(), instance);
     }
@@ -266,7 +300,9 @@ fn run_window(window: HWND) -> Result<(), String> {
         .parent()
         .ok_or("无法确定运行时目录。")?
         .to_path_buf();
-    let dpi = unsafe { GetDpiForWindow(window) }.max(96);
+    let dpi =
+        // SAFETY: `GetDpiForWindow` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { GetDpiForWindow(window) }.max(96);
     let fonts = controls::Fonts::new(dpi)?;
     let controls = controls::Controls::new(window, &fonts, &settings)?;
     let (sender, events) = mpsc::channel();
@@ -287,6 +323,7 @@ fn run_window(window: HWND) -> Result<(), String> {
         scroll: 0,
         logs: Default::default(),
     }));
+    // SAFETY: `SetWindowLongPtrW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe {
         SetWindowLongPtrW(
             window,
@@ -298,6 +335,7 @@ fn run_window(window: HWND) -> Result<(), String> {
     if let Some(warning) = warning {
         state.borrow_mut().status(&warning, true);
     }
+    // SAFETY: `DragAcceptFiles` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe {
         DragAcceptFiles(window, 1);
         SetTimer(window, TIMER, 150, None);
@@ -307,7 +345,9 @@ fn run_window(window: HWND) -> Result<(), String> {
     }
     let mut message = MSG::default();
     let result = loop {
-        let result = unsafe { GetMessageW(&mut message, null_mut(), 0, 0) };
+        let result =
+            // SAFETY: `GetMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+            unsafe { GetMessageW(&mut message, null_mut(), 0, 0) };
         if result == -1 {
             break Err(format!(
                 "窗口消息读取失败：{}",
@@ -321,7 +361,10 @@ fn run_window(window: HWND) -> Result<(), String> {
                 Err("启动窗口发生内部错误。".into())
             };
         }
-        if unsafe { IsDialogMessageW(window, &message) } == 0 {
+        if
+        // SAFETY: `IsDialogMessageW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { IsDialogMessageW(window, &message) } == 0 {
+            // SAFETY: `TranslateMessage` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
             unsafe {
                 TranslateMessage(&message);
                 DispatchMessageW(&message);
@@ -330,7 +373,10 @@ fn run_window(window: HWND) -> Result<(), String> {
     };
     // HWND_USERDATA must never outlive the boxed RefCell, including GetMessage
     // failure and panic paths. Window teardown may still synchronously reenter.
-    if unsafe { IsWindow(window) } != 0 {
+    if
+    // SAFETY: `IsWindow` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+    unsafe { IsWindow(window) } != 0 {
+        // SAFETY: `DestroyWindow` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             DestroyWindow(window);
         }
@@ -339,13 +385,22 @@ fn run_window(window: HWND) -> Result<(), String> {
     result
 }
 
+/// # Safety
+///
+/// Windows calls this with the HWND registered on this thread. For messages
+/// that carry a structure, `lp` is either null or a pointer to that structure
+/// for the duration of the call.
 unsafe extern "system" fn window_proc(
     window: HWND,
     message: u32,
     wp: WPARAM,
     lp: LPARAM,
 ) -> LRESULT {
-    std::panic::catch_unwind(|| unsafe { dispatch(window, message, wp, lp) }).unwrap_or_else(|_| {
+    std::panic::catch_unwind(||
+        // SAFETY: `PostQuitMessage` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { dispatch(window, message, wp, lp) })
+    .unwrap_or_else(|_| {
+        // SAFETY: `PostQuitMessage` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             PostQuitMessage(125);
         }
@@ -353,14 +408,21 @@ unsafe extern "system" fn window_proc(
     })
 }
 
+/// # Safety
+///
+/// `window` is the HWND Windows passed to this thread's window procedure.
+/// `lp` for `WM_DRAWITEM` and `WM_DPICHANGED` is either null or a pointer to
+/// the structure Windows allocated for that message.
 unsafe fn dispatch(window: HWND, message: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     if message == WM_CLOSE {
+        // SAFETY: `DestroyWindow` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             DestroyWindow(window);
         }
         return 0;
     }
     if message == WM_DESTROY {
+        // SAFETY: `KillTimer` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             KillTimer(window, TIMER);
             PostQuitMessage(0);
@@ -368,20 +430,34 @@ unsafe fn dispatch(window: HWND, message: u32, wp: WPARAM, lp: LPARAM) -> LRESUL
         return 0;
     }
     if message == WM_NCDESTROY {
+        // SAFETY: `SetWindowLongPtrW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe {
             SetWindowLongPtrW(window, GWLP_USERDATA, 0);
         }
     }
-    let pointer = unsafe { GetWindowLongPtrW(window, GWLP_USERDATA) } as *const RefCell<State>;
+    let pointer =
+        // SAFETY: `GetWindowLongPtrW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { GetWindowLongPtrW(window, GWLP_USERDATA) } as *const RefCell<State>;
     if !pointer.is_null() {
         // The UI thread owns the box until after DestroyWindow and the loop.
         // Native controls can reenter; nested messages use DefWindowProc.
-        if let Ok(mut state) = unsafe { &*pointer }.try_borrow_mut() {
+        if let Ok(mut state) =
+            // SAFETY: GWLP_USERDATA holds this thread's State box until DestroyWindow returns, and the pointer was checked non-null.
+            unsafe { &*pointer }.try_borrow_mut()
+        {
             match message {
                 WM_DRAWITEM if wp == usize::from(controls::RUN) => {
-                    state.draw_run(unsafe {
-                        &*(lp as *const windows_sys::Win32::UI::Controls::DRAWITEMSTRUCT)
-                    });
+                    if lp == 0 {
+                        return 0;
+                    }
+                    // SAFETY: a non-zero WM_DRAWITEM lParam is a DRAWITEMSTRUCT
+                    // that stays live for this call and is not retained.
+                    state.draw_run(
+                        // SAFETY: a non-zero WM_DRAWITEM lParam is a DRAWITEMSTRUCT that stays live for this call and is not retained.
+                        unsafe {
+                            &*(lp as *const windows_sys::Win32::UI::Controls::DRAWITEMSTRUCT)
+                        },
+                    );
                     return 1;
                 }
                 WM_COMMAND => {
@@ -410,7 +486,16 @@ unsafe fn dispatch(window: HWND, message: u32, wp: WPARAM, lp: LPARAM) -> LRESUL
                         state.controls.fonts(&fonts);
                         state.fonts = fonts;
                         state.dpi = dpi;
-                        let rect = unsafe { &*(lp as *const RECT) };
+                        if lp == 0 {
+                            state.layout(true);
+                            return 0;
+                        }
+                        // SAFETY: a non-zero WM_DPICHANGED lParam is a suggested
+                        // RECT that stays live for this call and is not retained.
+                        let rect =
+                            // SAFETY: a non-zero WM_DPICHANGED lParam is a RECT that stays live for this call and is not retained.
+                            unsafe { &*(lp as *const RECT) };
+                        // SAFETY: `SetWindowPos` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
                         unsafe {
                             SetWindowPos(
                                 window,
@@ -428,6 +513,7 @@ unsafe fn dispatch(window: HWND, message: u32, wp: WPARAM, lp: LPARAM) -> LRESUL
                 }
                 WM_CTLCOLORSTATIC => {
                     let dc = wp as HDC;
+                    // SAFETY: `SetBkColor` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
                     unsafe {
                         SetBkColor(dc, 0x00ff_ffff);
                         SetTextColor(
@@ -447,10 +533,12 @@ unsafe fn dispatch(window: HWND, message: u32, wp: WPARAM, lp: LPARAM) -> LRESUL
             }
         }
     }
+    // SAFETY: `DefWindowProcW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe { DefWindowProcW(window, message, wp, lp) }
 }
 
 pub(super) fn show_error(message: &str) {
+    // SAFETY: `MessageBoxW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe {
         MessageBoxW(
             null_mut(),
@@ -465,14 +553,18 @@ fn wide(text: impl AsRef<OsStr>) -> Vec<u16> {
     text.as_ref().encode_wide().chain(Some(0)).collect()
 }
 fn set_text(window: HWND, text: &str) {
+    // SAFETY: `SetWindowTextW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
     unsafe {
         SetWindowTextW(window, wide(text).as_ptr());
     }
 }
 fn text(window: HWND) -> String {
-    let length = unsafe { GetWindowTextLengthW(window) }.max(0) as usize;
+    let length =
+        // SAFETY: `GetWindowTextLengthW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe { GetWindowTextLengthW(window) }.max(0) as usize;
     let mut buffer = vec![0; length + 1];
     let copied =
+        // SAFETY: `GetWindowTextW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
         unsafe { GetWindowTextW(window, buffer.as_mut_ptr(), buffer.len() as i32) }.max(0) as usize;
     String::from_utf16_lossy(&buffer[..copied])
 }

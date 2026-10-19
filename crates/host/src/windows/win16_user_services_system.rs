@@ -1,6 +1,6 @@
 //! Native Windows system-color, timing and input adapters.
 
-use windows_sys::Win32::Graphics::Gdi::{GetSysColor, SetSysColors};
+use windows_sys::Win32::Graphics::Gdi::SetSysColors;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     GetDoubleClickTime, SetDoubleClickTime, SwapMouseButton,
 };
@@ -31,10 +31,13 @@ pub(super) fn set_caret_blink_time(milliseconds: u32) -> bool {
 pub(super) fn get_sys_color(index: i32) -> u32 {
     // SAFETY: The native API consumes a scalar system-color index and returns
     // the documented 32-bit RGB value; invalid indices return zero.
-    unsafe { GetSysColor(index) }
+    crate::windows::win32_safe::system_color(index)
 }
 
-pub(super) fn set_sys_colors(indices: &[i32], colors: &[u32]) -> Result<bool, runtime::RuntimeError> {
+pub(super) fn set_sys_colors(
+    indices: &[i32],
+    colors: &[u32],
+) -> Result<bool, runtime::RuntimeError> {
     // The USER worker establishes the callback operation before invoking this
     // adapter. No worker RefCell borrow may survive the synchronous native call.
     // SAFETY: the helper validates matching lengths and retains both arrays,
@@ -45,15 +48,22 @@ pub(super) fn set_sys_colors(indices: &[i32], colors: &[u32]) -> Result<bool, ru
 }
 
 fn set_sys_colors_with(
-    indices: &[i32], colors: &[u32],
+    indices: &[i32],
+    colors: &[u32],
     apply: impl FnOnce(i32, *const i32, *const u32) -> i32,
 ) -> Result<bool, runtime::RuntimeError> {
     if indices.len() != colors.len() {
-        return Err(runtime::RuntimeError::new(runtime::DiagnosticKind::InternalInvariant,
-            "native system-color arrays have different lengths"));
+        return Err(runtime::RuntimeError::new(
+            runtime::DiagnosticKind::InternalInvariant,
+            "native system-color arrays have different lengths",
+        ));
     }
-    let count = i32::try_from(indices.len()).map_err(|_| runtime::RuntimeError::new(
-        runtime::DiagnosticKind::InternalInvariant, "native system-color count exceeds INT"))?;
+    let count = i32::try_from(indices.len()).map_err(|_| {
+        runtime::RuntimeError::new(
+            runtime::DiagnosticKind::InternalInvariant,
+            "native system-color count exceeds INT",
+        )
+    })?;
     let empty_index = 0_i32;
     let empty_color = 0_u32;
     let indices_ptr = indices.first().unwrap_or(&empty_index);

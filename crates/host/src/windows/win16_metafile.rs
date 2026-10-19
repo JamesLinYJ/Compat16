@@ -2,14 +2,16 @@
 
 use std::io::{Read, Write};
 
-use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostFileSystemPath,
-    Win16HostMetafileOperation as Operation, Win16HostMetafileResult as ResultValue};
+use runtime::{
+    DiagnosticKind as Kind, RuntimeError, Win16HostFileSystemPath,
+    Win16HostMetafileOperation as Operation, Win16HostMetafileResult as ResultValue,
+};
 use windows_sys::Win32::Graphics::Gdi::{
-    CreateMetaFileW, CopyMetaFileW, GetMetaFileBitsEx, PlayMetaFile, SetMetaFileBitsEx,
+    CopyMetaFileW, CreateMetaFileW, GetMetaFileBitsEx, PlayMetaFile, SetMetaFileBitsEx,
 };
 
-use crate::filesystem::Filesystem;
 use super::win16_gdi::{Win16Dcs, metafile::NativeMetafile};
+use crate::filesystem::Filesystem;
 
 #[path = "win16_metafile_format.rs"]
 mod format;
@@ -23,26 +25,41 @@ impl NativeMetafile {
         // SAFETY: fixed framing was checked against the complete owned slice.
         // Native GDI owns all record interpretation and copies this input.
         let native = unsafe { SetMetaFileBitsEx(count, bits.as_ptr()) };
-        if native.is_null() { None } else { Some(Self(native)) }
+        if native.is_null() {
+            None
+        } else {
+            Some(Self(native))
+        }
     }
 
     fn copy(&self) -> Option<Self> {
         // NULL requests an independent in-memory object; filename IO remains
         // under the existing capability filesystem, never native path reopen.
+        // SAFETY: `CopyMetaFileW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let native = unsafe { CopyMetaFileW(self.0, std::ptr::null()) };
-        if native.is_null() { None } else { Some(Self(native)) }
+        if native.is_null() {
+            None
+        } else {
+            Some(Self(native))
+        }
     }
 
     fn bits(&self, maximum_bytes: u32) -> Option<Vec<u8>> {
+        // SAFETY: GetMetaFileBitsEx writes into a caller-owned buffer of the byte count passed with it.
         let count = unsafe { GetMetaFileBitsEx(self.0, 0, std::ptr::null_mut()) };
-        if count == 0 || count > maximum_bytes { return None; }
+        if count == 0 || count > maximum_bytes {
+            return None;
+        }
         let mut bytes = Vec::new();
         bytes.try_reserve_exact(count as usize).ok()?;
         bytes.resize(count as usize, 0);
+        // SAFETY: GetMetaFileBitsEx writes into a caller-owned buffer of the byte count passed with it.
         if unsafe { GetMetaFileBitsEx(self.0, count, bytes.as_mut_ptr().cast()) } != count {
             return None;
         }
-        if format::validate(&bytes)?.bytes.len() != bytes.len() { return None; }
+        if format::validate(&bytes)?.bytes.len() != bytes.len() {
+            return None;
+        }
         // The disk representation is a complete memory-format WMF stream.
         // A native file-backed object's private descriptor is never exported.
         bytes[..2].copy_from_slice(&1u16.to_le_bytes());
@@ -51,19 +68,35 @@ impl NativeMetafile {
 }
 
 pub(super) fn execute(
-    dcs: &Win16Dcs, objects: &mut super::win16_gdi_objects::Win16Objects, filesystem: &mut Filesystem, operation: Operation,
+    dcs: &Win16Dcs,
+    objects: &mut super::win16_gdi_objects::Win16Objects,
+    filesystem: &mut Filesystem,
+    operation: Operation,
 ) -> Result<ResultValue, RuntimeError> {
     match operation {
-        Operation::PlayRecord { dc, record, objects: table, .. } => record::play(dcs, objects, dc, record, table),
-        Operation::CallbackTable { .. } | Operation::CommitCallbackTable { .. } => Err(RuntimeError::new(
-            Kind::InternalInvariant, "WMF callback table reached the synchronous playback adapter")),
+        Operation::PlayRecord {
+            dc,
+            record,
+            objects: table,
+            ..
+        } => record::play(dcs, objects, dc, record, table),
+        Operation::CallbackTable { .. } | Operation::CommitCallbackTable { .. } => {
+            Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "WMF callback table reached the synchronous playback adapter",
+            ))
+        }
         Operation::Create { path } => {
             let output = match path {
                 Some(path) => {
-                    let Some(path) = confined_path(filesystem, path, true) else { return Ok(ResultValue::Created(None)); };
+                    let Some(path) = confined_path(filesystem, path, true) else {
+                        return Ok(ResultValue::Created(None));
+                    };
                     let mut options = cap_std::fs::OpenOptions::new();
                     options.write(true).create(true).truncate(true);
-                    let Ok(file) = filesystem.root.open_with(path, &options) else { return Ok(ResultValue::Created(None)); };
+                    let Ok(file) = filesystem.root.open_with(path, &options) else {
+                        return Ok(ResultValue::Created(None));
+                    };
                     Some(file)
                 }
                 None => None,
@@ -71,25 +104,46 @@ pub(super) fn execute(
             // Record with native GDI, but retain any already-open capability
             // destination. Guest paths never reach a native filename reopen;
             // the finalized stream is written through this exact file handle.
+            // SAFETY: `CreateMetaFileW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let native = unsafe { CreateMetaFileW(std::ptr::null()) };
             Ok(ResultValue::Created(dcs.adopt_metafile(native, output)?))
         }
         Operation::Close { dc, maximum_bytes } => {
             let closed = dcs.close_metafile(dc);
-            if !closed.consumed { return Ok(ResultValue::Closed { consumed: false, bits: None }); }
-            let bits = closed.metafile.and_then(|metafile| metafile.bits(
-                if closed.output.is_some() { u32::MAX } else { maximum_bytes }
-            ));
+            if !closed.consumed {
+                return Ok(ResultValue::Closed {
+                    consumed: false,
+                    bits: None,
+                });
+            }
+            let bits = closed.metafile.and_then(|metafile| {
+                metafile.bits(if closed.output.is_some() {
+                    u32::MAX
+                } else {
+                    maximum_bytes
+                })
+            });
             let bits = match (closed.output, bits) {
                 (Some(mut file), Some(bits)) => {
-                    if file.write_all(&bits).is_err() { None } else { Some(bits) }
+                    if file.write_all(&bits).is_err() {
+                        None
+                    } else {
+                        Some(bits)
+                    }
                 }
                 (_, bits) => bits,
-            }.filter(|bits| bits.len() <= maximum_bytes as usize);
-            Ok(ResultValue::Closed { consumed: true, bits })
+            }
+            .filter(|bits| bits.len() <= maximum_bytes as usize);
+            Ok(ResultValue::Closed {
+                consumed: true,
+                bits,
+            })
         }
 
-        Operation::Get { path, maximum_bytes } => {
+        Operation::Get {
+            path,
+            maximum_bytes,
+        } => {
             let Some(path) = confined_path(filesystem, path, false) else {
                 return Ok(ResultValue::Bits(None));
             };
@@ -103,11 +157,17 @@ pub(super) fn execute(
                 .and_then(|metafile| metafile.bits(maximum_bytes));
             Ok(ResultValue::Bits(bits))
         }
-        Operation::CopyToFile { bits, path, maximum_bytes } => {
+        Operation::CopyToFile {
+            bits,
+            path,
+            maximum_bytes,
+        } => {
             let copied = NativeMetafile::from_bits(&bits)
                 .and_then(|metafile| metafile.copy())
                 .and_then(|metafile| metafile.bits(maximum_bytes));
-            let Some(copied) = copied else { return Ok(ResultValue::Bits(None)); };
+            let Some(copied) = copied else {
+                return Ok(ResultValue::Bits(None));
+            };
             let Some(path) = confined_path(filesystem, path, true) else {
                 return Ok(ResultValue::Bits(None));
             };
@@ -131,8 +191,10 @@ pub(super) fn execute(
                 // passing record bytes to native Escape would bypass the
                 // existing bounded printer Escape bridge. Comments can also
                 // contain an embedded enhanced metafile with its own escapes.
-                return Err(RuntimeError::new(Kind::CompatibilityGap,
-                    "WMF Escape records require a typed native payload translation"));
+                return Err(RuntimeError::new(
+                    Kind::CompatibilityGap,
+                    "WMF Escape records require a typed native payload translation",
+                ));
             }
             let Some(native) = NativeMetafile::from_bits(framed.bytes) else {
                 return Ok(ResultValue::Played(false));
@@ -143,15 +205,22 @@ pub(super) fn execute(
             // The exact HDC remains pinned with no table mutex held. No guest
             // abort procedure is registered: SetAbortProc currently reports
             // its unsupported callback contract at its existing entrypoint.
-            Ok(ResultValue::Played(unsafe { PlayMetaFile(dc_use.native(), native.0) != 0 }))
+            // SAFETY: PlayMetaFile plays a metafile this process owns into a live DC.
+            Ok(ResultValue::Played(unsafe {
+                PlayMetaFile(dc_use.native(), native.0) != 0
+            }))
         }
     }
 }
 
 fn confined_path(
-    filesystem: &mut Filesystem, path: runtime::Win16GuestPath, allow_missing: bool,
+    filesystem: &mut Filesystem,
+    path: runtime::Win16GuestPath,
+    allow_missing: bool,
 ) -> Option<std::path::PathBuf> {
-    let path = filesystem.resolve_win16_host_path(&Win16HostFileSystemPath::Guest(path)).ok()?;
+    let path = filesystem
+        .resolve_win16_host_path(&Win16HostFileSystemPath::Guest(path))
+        .ok()?;
     filesystem.confined_path(&path, true, allow_missing).ok()
 }
 
@@ -165,7 +234,9 @@ fn read_metafile(reader: &mut impl Read, maximum_bytes: u32) -> Option<Vec<u8>> 
         reader.read_exact(&mut header).ok()?;
     }
     let length = format::byte_length(&header)?;
-    if length > maximum_bytes as usize { return None; }
+    if length > maximum_bytes as usize {
+        return None;
+    }
     let mut bytes = Vec::new();
     bytes.try_reserve_exact(length).ok()?;
     bytes.extend_from_slice(&header);

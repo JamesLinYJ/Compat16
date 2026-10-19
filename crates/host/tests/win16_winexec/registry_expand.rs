@@ -12,19 +12,25 @@ fn wide(text: &str) -> Vec<u16> {
 struct Key(HKEY);
 impl Drop for Key {
     fn drop(&mut self) {
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
         unsafe { RegCloseKey(self.0) };
     }
 }
 struct Fixture(Vec<u16>);
 impl Drop for Fixture {
     fn drop(&mut self) {
+        // SAFETY: RegDeleteTreeW reads a caller-owned subkey name, or null for the key itself.
         unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, self.0.as_ptr()) };
     }
 }
 fn absent(name: &[u16]) {
     let mut key = null_mut();
-    let status = unsafe { RegOpenKeyW(HKEY_CURRENT_USER, name.as_ptr(), &mut key) };
+    // SAFETY: RegOpenKeyW reads a caller-owned subkey name and writes a caller-owned HKEY.
+    let status =
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
+        unsafe { RegOpenKeyW(HKEY_CURRENT_USER, name.as_ptr(), &mut key) };
     if status == 0 {
+        // SAFETY: this HKEY is owned by the guard and is closed only here.
         unsafe { RegCloseKey(key) };
     }
     assert_eq!(status, 2, "unique test key must be absent");
@@ -32,7 +38,10 @@ fn absent(name: &[u16]) {
 fn open(parent: HKEY, name: &str, create: bool) -> Key {
     let mut key = null_mut();
     let name = wide(name);
-    let status = unsafe {
+    // SAFETY: `RegCreateKeyW`, `RegOpenKeyW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+    let status =
+        // SAFETY: `RegCreateKeyW` uses caller-owned host memory that stays live for this synchronous call. An invalid handle returns the API failure code, and no guest address is passed.
+        unsafe {
         if create {
             RegCreateKeyW(parent, name.as_ptr(), &mut key)
         } else {
@@ -73,12 +82,14 @@ fn verify(engine: &str, module: u16) {
             .flat_map(u16::to_le_bytes)
             .collect::<Vec<_>>();
         assert_eq!(
+            // SAFETY: RegSetValueExW reads a caller-owned value that stays live for the call.
             unsafe { RegSetValueExW(key.0, null(), 0, kind, bytes.as_ptr(), bytes.len() as u32) },
             0
         );
         if kind == 2 {
             let mut count = 0;
             assert_eq!(
+                // SAFETY: `RegQueryValueW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 unsafe { RegQueryValueW(key.0, null(), null_mut(), &mut count) },
                 13
             );
@@ -89,6 +100,7 @@ fn verify(engine: &str, module: u16) {
         let mut stored_count = stored.len() as u32;
         let mut stored_kind = 0;
         assert_eq!(
+            // SAFETY: RegQueryValueExW writes into caller-owned buffers of the capacities passed with them.
             unsafe {
                 RegQueryValueExW(
                     key.0,
@@ -117,6 +129,7 @@ fn verify(engine: &str, module: u16) {
         let mut count = actual.len() as u32;
         let mut actual_kind = 0;
         assert_eq!(
+            // SAFETY: RegQueryValueExW writes into caller-owned buffers of the capacities passed with them.
             unsafe {
                 RegQueryValueExW(
                     key.0,
@@ -134,6 +147,7 @@ fn verify(engine: &str, module: u16) {
     }
     drop(parent);
     assert_eq!(
+        // SAFETY: RegDeleteTreeW reads a caller-owned subkey name, or null for the key itself.
         unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, fixture.0.as_ptr()) },
         0
     );

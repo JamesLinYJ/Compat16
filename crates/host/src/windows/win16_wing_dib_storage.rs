@@ -9,23 +9,22 @@ use std::{
 };
 
 use super::win16_wing_dib_format::{WinGDibFormat, validate_win_g_dib};
-use super::win16_wing_dib_header::{BitmapInfoHeaderWire, BITMAPINFOHEADER_SIZE};
+use super::win16_wing_dib_header::{BITMAPINFOHEADER_SIZE, BitmapInfoHeaderWire};
 
 use guest_core::{MemoryError, memory::MemoryMappedDevice};
 use runtime::{DiagnosticKind as Kind, RuntimeError};
 use windows_sys::Win32::{
-    Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE},
+    Foundation::{HANDLE, INVALID_HANDLE_VALUE},
     Graphics::Gdi::{
-        BITMAPINFO, BITMAPINFOHEADER, CreateDIBSection, DIBSECTION, DIB_RGB_COLORS,
-        GdiFlush, GetObjectW, HBITMAP, HDC,
+        BITMAPINFO, BITMAPINFOHEADER, CreateDIBSection, DIB_RGB_COLORS, DIBSECTION, GdiFlush,
+        GetObjectW, HBITMAP, HDC,
     },
     System::{
         Diagnostics::Debug::{ReadProcessMemory, WriteProcessMemory},
         Memory::{
-            CreateFileMappingW, FILE_MAP_ALL_ACCESS, MapViewOfFile, MEMORY_MAPPED_VIEW_ADDRESS,
+            CreateFileMappingW, FILE_MAP_ALL_ACCESS, MEMORY_MAPPED_VIEW_ADDRESS, MapViewOfFile,
             PAGE_READWRITE, UnmapViewOfFile,
         },
-        Threading::GetCurrentProcess,
     },
 };
 
@@ -44,7 +43,7 @@ struct AccessState {
     native_pins: usize,
 }
 
-    /// Owns a file-mapping view shared by GDI and the guest memory device.
+/// Owns a file-mapping view shared by GDI and the guest memory device.
 /// Pointer values stay private to this Windows adapter.
 pub(super) struct Win16DibSectionOwner {
     section: usize,
@@ -73,10 +72,15 @@ impl Win16DibSectionOwner {
         info: &[u8],
         image_bytes: u32,
     ) -> Result<Option<CreatedDibSection>, RuntimeError> {
-        let Some(format) = validate_win_g_dib(info, image_bytes) else { return Ok(None); };
-        let Ok(map_length) = usize::try_from(image_bytes) else { return Ok(None); };
+        let Some(format) = validate_win_g_dib(info, image_bytes) else {
+            return Ok(None);
+        };
+        let Ok(map_length) = usize::try_from(image_bytes) else {
+            return Ok(None);
+        };
         let mut aligned_info = aligned_bitmap_info(info)?;
 
+        // SAFETY: `CreateFileMappingW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let section = unsafe {
             CreateFileMappingW(
                 INVALID_HANDLE_VALUE,
@@ -91,15 +95,8 @@ impl Win16DibSectionOwner {
             return Ok(None);
         }
 
-        let view = unsafe {
-            MapViewOfFile(
-                section,
-                FILE_MAP_ALL_ACCESS,
-                0,
-                0,
-                map_length,
-            )
-        };
+        // SAFETY: `MapViewOfFile` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+        let view = unsafe { MapViewOfFile(section, FILE_MAP_ALL_ACCESS, 0, 0, map_length) };
         if view.Value.is_null() {
             let primary = last_error("map WinG DIB shared section");
             return match close_section(section) {
@@ -113,6 +110,7 @@ impl Win16DibSectionOwner {
         }
 
         let mut dib_bits = std::ptr::null_mut();
+        // SAFETY: `CreateDIBSection` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         let bitmap = unsafe {
             CreateDIBSection(
                 dc,
@@ -154,7 +152,10 @@ impl Win16DibSectionOwner {
                 Kind::InternalInvariant,
                 "CreateDIBSection returned a bitmap without pixel storage",
             );
-            return Err(combine_cleanup(primary, delete_unpublished_bitmap(bitmap, &owner)));
+            return Err(combine_cleanup(
+                primary,
+                delete_unpublished_bitmap(bitmap, &owner),
+            ));
         }
 
         let header = match read_dib_section(bitmap, dib_bits, format) {
@@ -164,10 +165,16 @@ impl Win16DibSectionOwner {
                     Kind::HostFailure,
                     "GetObjectW did not return a matching WinG DIBSECTION",
                 );
-                return Err(combine_cleanup(primary, delete_unpublished_bitmap(bitmap, &owner)));
+                return Err(combine_cleanup(
+                    primary,
+                    delete_unpublished_bitmap(bitmap, &owner),
+                ));
             }
             Err(primary) => {
-                return Err(combine_cleanup(primary, delete_unpublished_bitmap(bitmap, &owner)));
+                return Err(combine_cleanup(
+                    primary,
+                    delete_unpublished_bitmap(bitmap, &owner),
+                ));
             }
         };
 
@@ -190,18 +197,26 @@ impl Win16DibSectionOwner {
                 ));
             }
             state.native_pins = state.native_pins.checked_add(1).ok_or_else(|| {
-                RuntimeError::new(Kind::ResourceExhausted, "WinG DIB native-use pins exhausted")
+                RuntimeError::new(
+                    Kind::ResourceExhausted,
+                    "WinG DIB native-use pins exhausted",
+                )
             })?;
         }
+        // SAFETY: `GdiFlush` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe { GdiFlush() } == 0 {
-            let guard = Win16DibNativeUse { owner: Arc::clone(self) };
+            let guard = Win16DibNativeUse {
+                owner: Arc::clone(self),
+            };
             drop(guard);
             return Err(RuntimeError::new(
                 Kind::HostFailure,
                 "GdiFlush failed on the WinG DIB owner thread before native use",
             ));
         }
-        Ok(Win16DibNativeUse { owner: Arc::clone(self) })
+        Ok(Win16DibNativeUse {
+            owner: Arc::clone(self),
+        })
     }
 
     pub(super) fn begin_delete(
@@ -217,6 +232,7 @@ impl Win16DibSectionOwner {
         }
         // GdiFlush only drains the calling thread's batch. DIB access is
         // intentionally restricted to the creating GDI thread above.
+        // SAFETY: `GdiFlush` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe { GdiFlush() } == 0 {
             self.restore_live()?;
             return Err(RuntimeError::new(
@@ -224,7 +240,10 @@ impl Win16DibSectionOwner {
                 "GdiFlush failed on the WinG DIB owner thread before deletion",
             ));
         }
-        Ok(Some(Win16DibDeleteLease { owner: Arc::clone(self), active: true }))
+        Ok(Some(Win16DibDeleteLease {
+            owner: Arc::clone(self),
+            active: true,
+        }))
     }
 
     /// A checked WMF deletion receipt arrived from native GDI. Existing
@@ -234,8 +253,10 @@ impl Win16DibSectionOwner {
         self.check_owner_thread()?;
         let mut state = self.lock_state()?;
         if state.phase == Phase::Retiring || state.view_pins != 0 {
-            return Err(RuntimeError::new(Kind::InternalInvariant,
-                "external WinG bitmap deletion crossed an active storage transaction"));
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "external WinG bitmap deletion crossed an active storage transaction",
+            ));
         }
         state.phase = Phase::Retired;
         Ok(())
@@ -259,13 +280,17 @@ impl Win16DibSectionOwner {
         self.native_bitmap == bitmap as usize
     }
 
-    pub(super) fn extent(&self) -> u32 { self.length }
+    pub(super) fn extent(&self) -> u32 {
+        self.length
+    }
 
     fn lock_state(&self) -> Result<MutexGuard<'_, AccessState>, RuntimeError> {
-        self.state.lock().map_err(|_| RuntimeError::new(
-            Kind::InternalInvariant,
-            "WinG DIB lifetime gate mutex is poisoned",
-        ))
+        self.state.lock().map_err(|_| {
+            RuntimeError::new(
+                Kind::InternalInvariant,
+                "WinG DIB lifetime gate mutex is poisoned",
+            )
+        })
     }
 
     fn restore_live(&self) -> Result<(), RuntimeError> {
@@ -274,9 +299,14 @@ impl Win16DibSectionOwner {
     }
 
     fn validate_range(&self, offset: u32, length: u32, write: bool) -> Result<(), MemoryError> {
-        let end = offset.checked_add(length).ok_or(MemoryError::AddressOverflow)?;
+        let end = offset
+            .checked_add(length)
+            .ok_or(MemoryError::AddressOverflow)?;
         if end > self.length {
-            return Err(MemoryError::OutOfBounds { address: offset, length: length as usize });
+            return Err(MemoryError::OutOfBounds {
+                address: offset,
+                length: length as usize,
+            });
         }
         // Runtime::run_machine executes guest CPU accesses and synchronous
         // RuntimeHost GDI calls on one thread. Memory and this device use Rc,
@@ -287,7 +317,10 @@ impl Win16DibSectionOwner {
         if thread::current().id() != self.owner_thread {
             return Err(storage_error(offset, length, write, None));
         }
-        let state = self.state.lock().map_err(|_| storage_error(offset, length, write, None))?;
+        let state = self
+            .state
+            .lock()
+            .map_err(|_| storage_error(offset, length, write, None))?;
         if state.phase != Phase::Live {
             return Err(storage_error(offset, length, write, None));
         }
@@ -303,18 +336,28 @@ impl Win16DibSectionOwner {
         let length32 = u32::try_from(length).map_err(|_| MemoryError::AddressOverflow)?;
         self.validate_range(offset, length32, write)?;
         {
-            let mut state = self.state.lock().map_err(|_| storage_error(offset, length32, write, None))?;
+            let mut state = self
+                .state
+                .lock()
+                .map_err(|_| storage_error(offset, length32, write, None))?;
             if state.phase != Phase::Live {
                 return Err(storage_error(offset, length32, write, None));
             }
-            state.view_pins = state.view_pins.checked_add(1)
+            state.view_pins = state
+                .view_pins
+                .checked_add(1)
                 .ok_or_else(|| storage_error(offset, length32, write, None))?;
         }
+        // SAFETY: `GdiFlush` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         if unsafe { GdiFlush() } == 0 {
-            drop(ViewLease { owner: Arc::clone(self) });
+            drop(ViewLease {
+                owner: Arc::clone(self),
+            });
             return Err(storage_error(offset, length32, write, None));
         }
-        Ok(ViewLease { owner: Arc::clone(self) })
+        Ok(ViewLease {
+            owner: Arc::clone(self),
+        })
     }
 
     fn transfer(
@@ -324,11 +367,17 @@ impl Win16DibSectionOwner {
         length: usize,
         write: bool,
     ) -> Result<(), MemoryError> {
-        if length == 0 { return Ok(()); }
-        let base = self.view.checked_add(offset as usize).ok_or(MemoryError::AddressOverflow)?;
+        if length == 0 {
+            return Ok(());
+        }
+        let base = self
+            .view
+            .checked_add(offset as usize)
+            .ok_or(MemoryError::AddressOverflow)?;
         let mut transferred = 0_usize;
-        let process = unsafe { GetCurrentProcess() };
+        let process = crate::windows::win32_safe::current_process();
         let succeeded = if write {
+            // SAFETY: WriteProcessMemory copies from an independent buffer into a checked address inside the owned reservation.
             unsafe {
                 WriteProcessMemory(
                     process,
@@ -339,6 +388,7 @@ impl Win16DibSectionOwner {
                 )
             }
         } else {
+            // SAFETY: ReadProcessMemory copies from a checked address inside the owned reservation into an independent buffer.
             unsafe {
                 ReadProcessMemory(
                     process,
@@ -350,8 +400,11 @@ impl Win16DibSectionOwner {
             }
         };
         if succeeded == 0 || transferred != length {
-            let os_error = if succeeded == 0 { Some(unsafe { windows_sys::Win32::Foundation::GetLastError() } as i32) }
-                else { None };
+            let os_error = if succeeded == 0 {
+                Some((crate::windows::win32_safe::last_error()) as i32)
+            } else {
+                None
+            };
             return Err(MemoryError::StorageAccess {
                 address: offset,
                 length,
@@ -364,32 +417,44 @@ impl Win16DibSectionOwner {
     }
 
     fn decrement_view_pin(&self) {
-        let mut state = self.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         debug_assert!(state.view_pins > 0, "WinG DIB view pin underflow");
         state.view_pins = state.view_pins.saturating_sub(1);
     }
 
     fn decrement_native_pin(&self) {
-        let mut state = self.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         debug_assert!(state.native_pins > 0, "WinG DIB native pin underflow");
         state.native_pins = state.native_pins.saturating_sub(1);
     }
-
 }
 
 impl Drop for Win16DibSectionOwner {
     fn drop(&mut self) {
-        let retired = self.state.lock().map(|state| state.phase == Phase::Retired).unwrap_or(false);
+        let retired = self
+            .state
+            .lock()
+            .map(|state| state.phase == Phase::Retired)
+            .unwrap_or(false);
         if !retired {
             // A native bitmap may still refer to this section. Leaking the OS
             // view/handle on an unrecoverable teardown error is safer than
             // detaching storage still owned by GDI; process exit reclaims it.
             return;
         }
-        let view = MEMORY_MAPPED_VIEW_ADDRESS { Value: self.view as *mut std::ffi::c_void };
+        let view = MEMORY_MAPPED_VIEW_ADDRESS {
+            Value: self.view as *mut std::ffi::c_void,
+        };
+        // SAFETY: `UnmapViewOfFile` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe {
             let _unmapped = UnmapViewOfFile(view);
-            let _closed = CloseHandle(self.section as HANDLE);
+            let _closed = crate::windows::win32_safe::close_handle(self.section as HANDLE);
         }
     }
 }
@@ -409,12 +474,14 @@ impl MemoryMappedDevice for DibMemoryDevice {
 
     fn read(&self, offset: u32, output: &mut [u8]) -> Result<(), MemoryError> {
         let _lease = self.owner.begin_view(offset, output.len(), false)?;
-        self.owner.transfer(offset, output.as_mut_ptr().cast(), output.len(), false)
+        self.owner
+            .transfer(offset, output.as_mut_ptr().cast(), output.len(), false)
     }
 
     fn write(&self, offset: u32, input: &[u8]) -> Result<(), MemoryError> {
         let _lease = self.owner.begin_view(offset, input.len(), true)?;
-        self.owner.transfer(offset, input.as_ptr().cast_mut().cast(), input.len(), true)
+        self.owner
+            .transfer(offset, input.as_ptr().cast_mut().cast(), input.len(), true)
     }
 }
 
@@ -423,7 +490,9 @@ pub(super) struct Win16DibNativeUse {
 }
 
 impl Drop for Win16DibNativeUse {
-    fn drop(&mut self) { self.owner.decrement_native_pin(); }
+    fn drop(&mut self) {
+        self.owner.decrement_native_pin();
+    }
 }
 
 struct ViewLease {
@@ -431,7 +500,9 @@ struct ViewLease {
 }
 
 impl Drop for ViewLease {
-    fn drop(&mut self) { self.owner.decrement_view_pin(); }
+    fn drop(&mut self) {
+        self.owner.decrement_view_pin();
+    }
 }
 
 pub(super) struct Win16DibDeleteLease {
@@ -464,16 +535,24 @@ impl Drop for Win16DibDeleteLease {
 
 fn aligned_bitmap_info(bytes: &[u8]) -> Result<Vec<u32>, RuntimeError> {
     let Some(padded_length) = bytes.len().checked_add(3) else {
-        return Err(RuntimeError::new(Kind::ResourceExhausted, "WinG BITMAPINFO length overflowed"));
+        return Err(RuntimeError::new(
+            Kind::ResourceExhausted,
+            "WinG BITMAPINFO length overflowed",
+        ));
     };
     let word_count = padded_length / 4;
     let mut aligned = Vec::new();
-    aligned.try_reserve_exact(word_count).map_err(|error| RuntimeError::with_source(
-        Kind::ResourceExhausted, "allocate aligned WinG BITMAPINFO", error,
-    ))?;
+    aligned.try_reserve_exact(word_count).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "allocate aligned WinG BITMAPINFO",
+            error,
+        )
+    })?;
     aligned.resize(word_count, 0);
     // Vec<u8> has no DWORD alignment guarantee. The native API requires a
     // stable aligned BITMAPINFO for the duration of CreateDIBSection.
+    // SAFETY: The source and destination are non-overlapping, and both spans were checked to cover the copied length.
     unsafe {
         std::ptr::copy_nonoverlapping(
             bytes.as_ptr(),
@@ -490,22 +569,31 @@ fn read_dib_section(
     format: WinGDibFormat,
 ) -> Result<Option<[u8; DIB_HEADER_BYTES]>, RuntimeError> {
     let mut section = std::mem::MaybeUninit::<DIBSECTION>::zeroed();
+    // SAFETY: GetObjectW writes into a caller-owned buffer of the byte count passed with it.
     let written = unsafe {
-        GetObjectW(bitmap.cast(), std::mem::size_of::<DIBSECTION>() as i32,
-            section.as_mut_ptr().cast())
+        GetObjectW(
+            bitmap.cast(),
+            std::mem::size_of::<DIBSECTION>() as i32,
+            section.as_mut_ptr().cast(),
+        )
     };
-    if written != std::mem::size_of::<DIBSECTION>() as i32 { return Ok(None); }
+    if written != std::mem::size_of::<DIBSECTION>() as i32 {
+        return Ok(None);
+    }
+    // SAFETY: The preceding successful call initialized every field of this value.
     let section = unsafe { section.assume_init() };
     let header: BITMAPINFOHEADER = section.dsBmih;
     let expected_height = i32::try_from(format.height.unsigned_abs()).ok();
-    let actual_extent = u64::try_from(section.dsBm.bmWidthBytes).ok()
+    let actual_extent = u64::try_from(section.dsBm.bmWidthBytes)
+        .ok()
         .and_then(|stride| stride.checked_mul(u64::from(format.height.unsigned_abs())));
     if section.dsBm.bmBits != dib_bits
         || section.dsBm.bmWidth != format.width
         || Some(section.dsBm.bmHeight) != expected_height
         || section.dsBm.bmWidthBytes < 0
-        || u32::try_from(section.dsBm.bmWidthBytes).ok().is_none_or(|stride|
-            stride < format.row_bytes)
+        || u32::try_from(section.dsBm.bmWidthBytes)
+            .ok()
+            .is_none_or(|stride| stride < format.row_bytes)
         || actual_extent.is_none_or(|extent| extent > u64::from(format.image_extent))
         || header.biWidth != format.width
         || header.biHeight != format.height
@@ -523,10 +611,13 @@ fn delete_unpublished_bitmap(
     bitmap: HBITMAP,
     owner: &Arc<Win16DibSectionOwner>,
 ) -> Result<(), RuntimeError> {
-    let lease = owner.begin_delete()?.ok_or_else(|| RuntimeError::new(
-        Kind::InternalInvariant, "unpublished WinG bitmap acquired an unexpected active lease",
-    ))?;
-    let deleted = unsafe { windows_sys::Win32::Graphics::Gdi::DeleteObject(bitmap.cast()) } != 0;
+    let lease = owner.begin_delete()?.ok_or_else(|| {
+        RuntimeError::new(
+            Kind::InternalInvariant,
+            "unpublished WinG bitmap acquired an unexpected active lease",
+        )
+    })?;
+    let deleted = (crate::windows::win32_safe::delete_object(bitmap.cast())) != 0;
     lease.finish(deleted)?;
     if !deleted {
         return Err(RuntimeError::new(
@@ -541,9 +632,10 @@ fn release_view_and_section(
     view: MEMORY_MAPPED_VIEW_ADDRESS,
     section: HANDLE,
 ) -> Result<(), RuntimeError> {
+    // SAFETY: `UnmapViewOfFile` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let unmapped = unsafe { UnmapViewOfFile(view) } != 0;
     let unmap_error = (!unmapped).then(|| last_error("unmap failed WinG DIB view"));
-    let closed = unsafe { CloseHandle(section) } != 0;
+    let closed = (crate::windows::win32_safe::close_handle(section)) != 0;
     let close_error = (!closed).then(|| last_error("close failed WinG DIB section"));
     match (unmap_error, close_error) {
         (None, None) => Ok(()),
@@ -557,8 +649,11 @@ fn release_view_and_section(
 }
 
 fn close_section(section: HANDLE) -> Result<(), RuntimeError> {
-    if unsafe { CloseHandle(section) } != 0 { Ok(()) }
-    else { Err(last_error("close WinG DIB section after mapping failure")) }
+    if (crate::windows::win32_safe::close_handle(section)) != 0 {
+        Ok(())
+    } else {
+        Err(last_error("close WinG DIB section after mapping failure"))
+    }
 }
 
 fn last_error(action: &'static str) -> RuntimeError {
@@ -584,7 +679,11 @@ struct DibCleanupFailure {
 
 impl std::fmt::Display for DibCleanupFailure {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "{}; cleanup also failed: {}", self.primary, self.cleanup)
+        write!(
+            formatter,
+            "{}; cleanup also failed: {}",
+            self.primary, self.cleanup
+        )
     }
 }
 

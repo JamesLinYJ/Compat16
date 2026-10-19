@@ -17,8 +17,7 @@ use std::sync::{
 use std::time::Duration;
 use windows_sys::Win32::UI::Shell::{DefSubclassProc, SetWindowSubclass};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DestroyWindow, IsWindowVisible, WM_CREATE, WM_INITDIALOG, WM_PARENTNOTIFY,
-    WS_CHILD, WS_POPUP,
+    CreateWindowExW, WM_CREATE, WM_INITDIALOG, WM_PARENTNOTIFY, WS_CHILD, WS_POPUP,
 };
 
 thread_local! {
@@ -59,6 +58,7 @@ fn check_panic() {
         std::panic::resume_unwind(error);
     }
 }
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn parent_proc(
     hwnd: HWND,
     message: u32,
@@ -85,8 +85,10 @@ unsafe extern "system" fn parent_proc(
             });
         });
     }
+    // SAFETY: DefSubclassProc forwards this subclass message. Pointer parameters stay live for the call.
     unsafe { DefSubclassProc(hwnd, message, w, l) }
 }
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, _w: usize, l: isize) -> isize {
     capture(|| {
         let state = worker::worker_context().unwrap();
@@ -97,7 +99,7 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, _w: usize, l: is
             let route = route.expect("INIT publishes exact dialog route");
             assert_eq!(Some(route.window), EARLY.with(Cell::get));
             assert_eq!(identity::resolve(&state, route.window), Some(hwnd));
-            assert_eq!(unsafe { IsWindowVisible(hwnd) }, 0);
+            assert_eq!((crate::windows::win32_safe::is_window_visible(hwnd)), 0);
             INIT.with(|count| count.set(count.get() + 1));
         }
     });
@@ -105,6 +107,7 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, _w: usize, l: is
 }
 fn hidden_window() -> HWND {
     let class: Vec<u16> = "STATIC".encode_utf16().chain([0]).collect();
+    // SAFETY: CreateWindowExW receives caller-owned class and title strings that stay live for the call. The creation parameter is null or a live record.
     let hwnd = unsafe {
         CreateWindowExW(
             0,
@@ -122,7 +125,7 @@ fn hidden_window() -> HWND {
         )
     };
     assert!(!hwnd.is_null());
-    assert_eq!(unsafe { IsWindowVisible(hwnd) }, 0);
+    assert_eq!((crate::windows::win32_safe::is_window_visible(hwnd)), 0);
     hwnd
 }
 fn push_operation(state: &Rc<RefCell<WorkerState>>) -> (u64, Win16CreationId) {
@@ -145,6 +148,7 @@ fn child_dialog(state: &Rc<RefCell<WorkerState>>, with_icon: bool) {
     let parent = hidden_window();
     let parent_token = identity::adopt_created_owned(state, parent).unwrap();
     assert_ne!(
+        // SAFETY: `SetWindowSubclass`, `Some` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         unsafe { SetWindowSubclass(parent, Some(parent_proc), 0xc160, 0) },
         0
     );
@@ -221,10 +225,10 @@ fn child_dialog(state: &Rc<RefCell<WorkerState>>, with_icon: bool) {
         Some(creation)
     );
     assert!(state.borrow().windows_by_native[&(hwnd as usize)].owned);
-    assert_ne!(unsafe { DestroyWindow(hwnd) }, 0);
+    assert_ne!((crate::windows::win32_safe::destroy_window(hwnd)), 0);
     worker::remove_window_maps(state, token, hwnd);
     super::super::win16_dialog_icon_controls::retire_after_call(state);
-    assert_ne!(unsafe { DestroyWindow(parent) }, 0);
+    assert_ne!((crate::windows::win32_safe::destroy_window(parent)), 0);
     worker::remove_window_maps(state, parent_token, parent);
     if let Some(icon) = icon {
         images.release_icon(icon).unwrap();
@@ -307,7 +311,7 @@ fn provisional(state: &Rc<RefCell<WorkerState>>, mode: u8) {
     );
     state.borrow_mut().pending_dialog_routes.pop();
     state.borrow_mut().active_operations.pop();
-    assert_ne!(unsafe { DestroyWindow(hwnd) }, 0);
+    assert_ne!((crate::windows::win32_safe::destroy_window(hwnd)), 0);
     worker::remove_window_maps(state, alias, hwnd);
 }
 

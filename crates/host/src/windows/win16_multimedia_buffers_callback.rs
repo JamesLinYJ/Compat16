@@ -359,6 +359,7 @@ fn dispatch_callback(
     }
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 pub(super) unsafe extern "system" fn wave_out_callback(
     _handle: HWAVEOUT,
     message: u32,
@@ -374,6 +375,7 @@ pub(super) unsafe extern "system" fn wave_out_callback(
     );
 }
 
+// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
 pub(super) unsafe extern "system" fn wave_in_callback(
     _handle: HWAVEIN,
     message: u32,
@@ -384,6 +386,7 @@ pub(super) unsafe extern "system" fn wave_in_callback(
     dispatch_callback(instance, Win16HostWaveDirection::Input, message, parameter1);
 }
 
+// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
 pub(super) unsafe fn header_state(header: *const WAVEHDR) -> Win16HostWaveHeaderState {
     // SAFETY: `header` points to a live WinMM WAVEHDR and fields are copied
     // unaligned because windows-sys models the SDK packed declaration.

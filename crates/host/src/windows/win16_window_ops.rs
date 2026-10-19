@@ -8,28 +8,23 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use runtime::{
-    RuntimeError, Win16ArrangeChild, Win16ChildArrangeMode, Win16HostPoint, Win16HostRect,
-    Win16HostWindow, Win16WindowCall, Win16WindowCallResult, Win16WindowInsertAfter,
-    Win16WindowSearchClass, Win16WindowTarget, Win16WindowPlacement,
-    MDITILE_HORIZONTAL, MDITILE_SKIPDISABLED,
+    MDITILE_HORIZONTAL, MDITILE_SKIPDISABLED, RuntimeError, Win16ArrangeChild,
+    Win16ChildArrangeMode, Win16HostPoint, Win16HostRect, Win16HostWindow, Win16WindowCall,
+    Win16WindowCallResult, Win16WindowInsertAfter, Win16WindowPlacement, Win16WindowSearchClass,
+    Win16WindowTarget,
 };
-use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND, POINT, RECT};
-use windows_sys::Win32::Graphics::Gdi::{ClientToScreen, MapWindowPoints, ScreenToClient, WindowFromDC};
+use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
+use windows_sys::Win32::Graphics::Gdi::{
+    ClientToScreen, MapWindowPoints, ScreenToClient, WindowFromDC,
+};
 use windows_sys::Win32::System::WindowsProgramming::{WINNLSEnableIME, WINNLSGetEnableStatus};
-use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-    EnableWindow, GetActiveWindow, IsWindowEnabled, SetActiveWindow,
-};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    ArrangeIconicWindows, CascadeWindows, CloseWindow, FlashWindow, GetWindowLongW, GWL_STYLE,
-    MDITILE_ZORDER, TileWindows, WS_CHILD, WS_POPUP,
-    BringWindowToTop, ChildWindowFromPoint, ChildWindowFromPointEx, FindWindowW,
-    GetClientRect, GetClassNameW,
-    GetClipCursor, GetCursorPos, GetDesktopWindow, GetDlgCtrlID, GetLastActivePopup, GetParent, GetTopWindow,
-    GetWindow,
-    GetWindowRect, IsChild, IsIconic, IsWindow, IsWindowVisible, IsZoomed, MoveWindow, OpenIcon,
-    SetWindowPos, ShowOwnedPopups, WindowFromPoint, GetWindowPlacement, SetWindowPlacement,
-    SetCursorPos,
-    HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST, SWP_NOZORDER, WINDOWPLACEMENT,
+    ArrangeIconicWindows, CascadeWindows, ChildWindowFromPoint, ChildWindowFromPointEx,
+    FindWindowW, FlashWindow, GWL_STYLE, GetClassNameW, GetClientRect, GetClipCursor, GetCursorPos,
+    GetLastActivePopup, GetTopWindow, GetWindowLongW, GetWindowPlacement, GetWindowRect,
+    HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST, MDITILE_ZORDER, MoveWindow, SWP_NOZORDER,
+    SetCursorPos, SetWindowPlacement, SetWindowPos, ShowOwnedPopups, TileWindows, WINDOWPLACEMENT,
+    WS_CHILD, WS_POPUP, WindowFromPoint,
 };
 
 use super::win16_window_worker::{self as worker, WorkerState};
@@ -57,23 +52,28 @@ pub(super) fn execute(
         Call::SetSysColors { indices, colors } => ResultValue::Boolean(
             crate::windows::win16_user_services_system::set_sys_colors(&indices, &colors)?,
         ),
-        Call::EndDeferWindowPos { positions } => ResultValue::Boolean(
-            defer::execute(state, positions),
-        ),
-        call @ (Call::CreateCaret { .. } | Call::DestroyCaret | Call::SetCaretPos { .. }
-            | Call::HideCaret { .. } | Call::ShowCaret { .. } | Call::GetCaretPos) => {
-                super::win16_window_caret::execute(state, call)?
-            }
+        Call::EndDeferWindowPos { positions } => {
+            ResultValue::Boolean(defer::execute(state, positions))
+        }
+        call @ (Call::CreateCaret { .. }
+        | Call::DestroyCaret
+        | Call::SetCaretPos { .. }
+        | Call::HideCaret { .. }
+        | Call::ShowCaret { .. }
+        | Call::GetCaretPos) => super::win16_window_caret::execute(state, call)?,
         Call::GetWindowPlacement { window } => {
             let mut placement = WINDOWPLACEMENT {
                 length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
                 ..Default::default()
             };
             let success = hwnd(state, window)
+                // SAFETY: `GetWindowPlacement` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 .is_some_and(|native| unsafe { GetWindowPlacement(native, &mut placement) != 0 });
             ResultValue::Placement(success.then(|| Win16WindowPlacement {
-                flags: placement.flags, show_command: placement.showCmd,
-                minimum: host_point(placement.ptMinPosition), maximum: host_point(placement.ptMaxPosition),
+                flags: placement.flags,
+                show_command: placement.showCmd,
+                minimum: host_point(placement.ptMinPosition),
+                maximum: host_point(placement.ptMaxPosition),
                 normal: host_rect(placement.rcNormalPosition),
             }))
         }
@@ -82,107 +82,162 @@ pub(super) fn execute(
             // show-state rules. Only the guest/native field widths differ.
             let placement = WINDOWPLACEMENT {
                 length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
-                flags: placement.flags, showCmd: placement.show_command,
-                ptMinPosition: native_point(placement.minimum), ptMaxPosition: native_point(placement.maximum),
+                flags: placement.flags,
+                showCmd: placement.show_command,
+                ptMinPosition: native_point(placement.minimum),
+                ptMaxPosition: native_point(placement.maximum),
                 rcNormalPosition: RECT {
-                    left: placement.normal.left, top: placement.normal.top,
-                    right: placement.normal.right, bottom: placement.normal.bottom,
+                    left: placement.normal.left,
+                    top: placement.normal.top,
+                    right: placement.normal.right,
+                    bottom: placement.normal.bottom,
                 },
             };
-            ResultValue::Boolean(hwnd(state, window)
-                .is_some_and(|native| unsafe { SetWindowPlacement(native, &placement) != 0 }))
+            ResultValue::Boolean(
+                hwnd(state, window)
+                    // SAFETY: `SetWindowPlacement` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+                    .is_some_and(|native| unsafe { SetWindowPlacement(native, &placement) != 0 }),
+            )
         }
         Call::GetClipCursor => {
             // Read only. Access can fail (including WINSTA_READATTRIBUTES);
             // never substitute screen bounds or alter the global clip region.
+            // SAFETY: GetClipCursor writes into a caller-owned RECT.
             get_clip_cursor_with(|rect| unsafe { GetClipCursor(rect) != 0 })
         }
-        Call::SetCursorPos { x, y } => ResultValue::Boolean(unsafe {
-            SetCursorPos(i32::from(x), i32::from(y)) != 0
-        }),
+        // SAFETY: SetCursorPos takes integer coordinates.
+        Call::SetCursorPos { x, y } => {
+            ResultValue::Boolean(unsafe { SetCursorPos(i32::from(x), i32::from(y)) != 0 })
+        }
         Call::ClipCursor { rect } => ResultValue::Boolean(super::win16_cursor_clip::set(rect)?),
         Call::GetCursorPos => {
             let mut point = POINT::default();
+            // SAFETY: GetCursorPos writes into a caller-owned POINT.
             let success = unsafe { GetCursorPos(&mut point) != 0 };
             ResultValue::Point(success.then_some(host_point(point)))
         }
-        call @ (Call::SetWindowProperty { .. } | Call::GetWindowProperty { .. }
-            | Call::RemoveWindowProperty { .. } | Call::EnumWindowProperties { .. }) => {
-                super::win16_window_properties::execute(state, call)?
-            }
-        Call::WindowData(call) => ResultValue::WindowData(
-            super::win16_window_data::execute(state, call)?),
+        call @ (Call::SetWindowProperty { .. }
+        | Call::GetWindowProperty { .. }
+        | Call::RemoveWindowProperty { .. }
+        | Call::EnumWindowProperties { .. }) => {
+            super::win16_window_properties::execute(state, call)?
+        }
+        Call::WindowData(call) => {
+            ResultValue::WindowData(super::win16_window_data::execute(state, call)?)
+        }
         // Win16 CloseWindow has no effect on popup or child windows. Resolve
         // the exact identity and drop worker borrows before native callbacks.
         // Native BOOL stays internal; the guest ABI is void, not Win32 BOOL.
-        Call::CloseWindow { window } => ResultValue::Boolean(hwnd(state, window)
-            .filter(|native| !native.is_null())
-            .is_some_and(|native| unsafe {
-                let style = GetWindowLongW(native, GWL_STYLE) as u32;
-                style & (WS_POPUP | WS_CHILD) == 0 && CloseWindow(native) != 0
-            })),
+        Call::CloseWindow { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                .filter(|native| !native.is_null())
+                // SAFETY: `GetWindowLongW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+                .is_some_and(|native| unsafe {
+                    let style = GetWindowLongW(native, GWL_STYLE) as u32;
+                    style & (WS_POPUP | WS_CHILD) == 0
+                        && crate::windows::win32_safe::close_window(native) != 0
+                }),
+        ),
         Call::ArrangeIconicWindows { window } => ResultValue::Integer(
-            arrange_iconic_windows_with(state, window, |native| unsafe { ArrangeIconicWindows(native) }) as i32,
+            // SAFETY: `ArrangeIconicWindows` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+            arrange_iconic_windows_with(state, window, |native| unsafe {
+                ArrangeIconicWindows(native)
+            }) as i32,
         ),
-        Call::ArrangeChildWindows { parent, children, flags, mode } => ResultValue::Integer(
-            arrange_child_windows(state, parent, &children, flags, mode),
-        ),
+        Call::ArrangeChildWindows {
+            parent,
+            children,
+            flags,
+            mode,
+        } => ResultValue::Integer(arrange_child_windows(state, parent, &children, flags, mode)),
         // OpenIcon owns WM_QUERYOPEN, restoration and activation, and returns
         // success rather than ShowWindow's previous visibility. Resolve exact
         // identity before the call and retain no worker borrow over reentry.
-        Call::OpenIcon { window } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { OpenIcon(native) != 0 })),
-        Call::FlashWindow { window, invert } => ResultValue::Boolean(
-            flash_window_with(state, window, invert, |native| unsafe { IsIconic(native) != 0 },
-                |native, invert| unsafe { FlashWindow(native, i32::from(invert)) != 0 }),
+        Call::OpenIcon { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                .is_some_and(|native| crate::windows::win32_safe::open_icon(native) != 0),
         ),
-        Call::IsIconic { window } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { IsIconic(native) != 0 })),
+        Call::FlashWindow { window, invert } => ResultValue::Boolean(flash_window_with(
+            state,
+            window,
+            invert,
+            |native| crate::windows::win32_safe::is_iconic(native) != 0,
+            // SAFETY: `FlashWindow` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+            |native, invert| unsafe { FlashWindow(native, i32::from(invert)) != 0 },
+        )),
+        Call::IsIconic { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                .is_some_and(|native| crate::windows::win32_safe::is_iconic(native) != 0),
+        ),
         Call::GetWindowRect { window } => {
             let mut rect = RECT::default();
             let success = hwnd(state, window)
+                // SAFETY: GetWindowRect writes into a caller-owned RECT that outlives the call.
                 .is_some_and(|native| unsafe { GetWindowRect(native, &mut rect) != 0 });
             ResultValue::Rect(success.then_some(host_rect(rect)))
         }
         Call::GetClientRect { window } => {
             let mut rect = RECT::default();
             let success = hwnd(state, window)
+                // SAFETY: GetClientRect writes into a caller-owned RECT that outlives the call.
                 .is_some_and(|native| unsafe { GetClientRect(native, &mut rect) != 0 });
             ResultValue::Rect(success.then_some(host_rect(rect)))
         }
-        Call::EnableWindow { window, enable } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { EnableWindow(native, i32::from(enable)) != 0 })),
-        Call::IsWindowEnabled { window } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { IsWindowEnabled(native) != 0 })),
+        Call::EnableWindow { window, enable } => {
+            ResultValue::Boolean(hwnd(state, window).is_some_and(|native| {
+                crate::windows::win32_safe::enable_window(native, i32::from(enable)) != 0
+            }))
+        }
+        Call::IsWindowEnabled { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                .is_some_and(|native| crate::windows::win32_safe::is_window_enabled(native) != 0),
+        ),
         // Keep the previous enabled state verbatim; FALSE is a valid value.
         // Resolution drops worker borrows before native IME can reenter a
         // guest WndProc through this operation's callback continuation.
-        Call::EnableIme { window, enable } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { WINNLSEnableIME(native, i32::from(enable)) != 0 })),
-        Call::GetImeEnableStatus { window } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { WINNLSGetEnableStatus(native) != 0 })),
-        Call::BringWindowToTop { window } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { BringWindowToTop(native) != 0 })),
+        Call::EnableIme { window, enable } => ResultValue::Boolean(
+            hwnd(state, window)
+                // SAFETY: `WINNLSEnableIME` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+                .is_some_and(|native| unsafe { WINNLSEnableIME(native, i32::from(enable)) != 0 }),
+        ),
+        Call::GetImeEnableStatus { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                // SAFETY: `WINNLSGetEnableStatus` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+                .is_some_and(|native| unsafe { WINNLSGetEnableStatus(native) != 0 }),
+        ),
+        Call::BringWindowToTop { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                .is_some_and(|native| crate::windows::win32_safe::bring_window_to_top(native) != 0),
+        ),
         Call::GetParent { window } => {
-            let native = hwnd(state, window).map(|native| unsafe { GetParent(native) });
+            let native =
+                hwnd(state, window).map(|native| crate::windows::win32_safe::get_parent(native));
             ResultValue::Window(match native {
                 Some(native) => token_for_native(state, native)?,
                 None => None,
             })
         }
-        Call::IsChild { parent, child } => ResultValue::Boolean(
-            match (hwnd(state, parent), hwnd(state, child)) {
-                (Some(parent), Some(child)) => unsafe { IsChild(parent, child) != 0 },
+        Call::IsChild { parent, child } => {
+            ResultValue::Boolean(match (hwnd(state, parent), hwnd(state, child)) {
+                (Some(parent), Some(child)) => {
+                    crate::windows::win32_safe::is_child(parent, child) != 0
+                }
                 _ => false,
-            },
+            })
+        }
+        Call::IsWindow { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                .is_some_and(|native| crate::windows::win32_safe::is_window(native) != 0),
         ),
-        Call::IsWindow { window } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { IsWindow(native) != 0 })),
-        Call::IsWindowVisible { window } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { IsWindowVisible(native) != 0 })),
+        Call::IsWindowVisible { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                .is_some_and(|native| crate::windows::win32_safe::is_window_visible(native) != 0),
+        ),
         Call::FindWindow { class, title } => {
-            let title = title.as_deref().map(|bytes|
-                super::win16_window_text_context::wide_z_from_guest(state, bytes)).transpose()?;
+            let title = title
+                .as_deref()
+                .map(|bytes| super::win16_window_text_context::wide_z_from_guest(state, bytes))
+                .transpose()?;
             let class = match class {
                 Some(Win16WindowSearchClass::Name(name)) => Some(
                     super::win16_window_text_context::wide_z_from_guest(state, &name)?,
@@ -192,35 +247,50 @@ pub(super) fn execute(
                         return Ok(ResultValue::Window(None));
                     };
                     Some(super::win16_window_text_context::wide_z_from_guest(
-                        state, &class.name[..class.name.len().saturating_sub(1)],
+                        state,
+                        &class.name[..class.name.len().saturating_sub(1)],
                     )?)
                 }
                 None => None,
             };
+            // SAFETY: `FindWindowW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let native = unsafe {
                 FindWindowW(
-                    class.as_ref().map_or(std::ptr::null(), |value| value.as_ptr()),
-                    title.as_ref().map_or(std::ptr::null(), |value| value.as_ptr()),
+                    class
+                        .as_ref()
+                        .map_or(std::ptr::null(), |value| value.as_ptr()),
+                    title
+                        .as_ref()
+                        .map_or(std::ptr::null(), |value| value.as_ptr()),
                 )
             };
             ResultValue::Window(token_for_native(state, native)?)
         }
         Call::DestroyWindow { window } => {
             let (succeeded, retirements) = match window {
-                Win16WindowTarget::Mapped(token) =>
-                    worker::destroy_window_operation(state, token),
-                Win16WindowTarget::Null | Win16WindowTarget::Invalid => (false,
+                Win16WindowTarget::Mapped(token) => worker::destroy_window_operation(state, token),
+                Win16WindowTarget::Null | Win16WindowTarget::Invalid => (
+                    false,
                     runtime::Win16HostWindowRetirementBatch {
-                        receipts: Vec::new(), invalidated_menus: Vec::new(),
-                    }),
+                        receipts: Vec::new(),
+                        invalidated_menus: Vec::new(),
+                    },
+                ),
             };
-            ResultValue::Destroyed { succeeded, retirements }
+            ResultValue::Destroyed {
+                succeeded,
+                retirements,
+            }
         }
         Call::GetClassName { window, capacity } => {
             let mut wide = vec![0xFFFF_u16; usize::from(capacity).max(1)];
             let native = hwnd(state, window);
-            let valid_window = native.is_some_and(|native| unsafe { IsWindow(native) != 0 });
-            let native_count = if capacity == 0 { 0 } else if let Some(native) = native {
+            let valid_window =
+                native.is_some_and(|native| crate::windows::win32_safe::is_window(native) != 0);
+            let native_count = if capacity == 0 {
+                0
+            } else if let Some(native) = native {
+                // SAFETY: GetClassNameW writes into a caller-owned UTF-16 buffer of the capacity passed with it.
                 unsafe { GetClassNameW(native, wide.as_mut_ptr(), i32::from(capacity)) }
             } else {
                 0
@@ -228,12 +298,15 @@ pub(super) fn execute(
             let (count, bytes) = if native_count > 0 {
                 let units = native_count as usize;
                 if units >= wide.len() || wide[units] != 0 || wide[..units].contains(&0) {
-                    return Err(RuntimeError::new(runtime::DiagnosticKind::HostFailure,
-                        "GetClassNameW returned an invalid terminated UTF-16 prefix"));
+                    return Err(RuntimeError::new(
+                        runtime::DiagnosticKind::HostFailure,
+                        "GetClassNameW returned an invalid terminated UTF-16 prefix",
+                    ));
                 }
-                let encoded = state.borrow().text_codec.from_wide_bounded(
-                    &wide[..units], usize::from(capacity).saturating_sub(1),
-                )?;
+                let encoded = state
+                    .borrow()
+                    .text_codec
+                    .from_wide_bounded(&wide[..units], usize::from(capacity).saturating_sub(1))?;
                 if encoded.used_default_char == Some(true) {
                     super::win16_window_position::report_diagnostic(
                         state,
@@ -243,11 +316,13 @@ pub(super) fn execute(
                 }
                 let count = i32::try_from(encoded.bytes.len()).unwrap_or(i32::MAX);
                 let mut bytes = encoded.bytes;
-                bytes.try_reserve(1).map_err(|error| RuntimeError::with_source(
-                    runtime::DiagnosticKind::ResourceExhausted,
-                    "terminate copied Win16 class name",
-                    error,
-                ))?;
+                bytes.try_reserve(1).map_err(|error| {
+                    RuntimeError::with_source(
+                        runtime::DiagnosticKind::ResourceExhausted,
+                        "terminate copied Win16 class name",
+                        error,
+                    )
+                })?;
                 bytes.push(0);
                 (count, bytes)
             } else if capacity == 1 && valid_window {
@@ -260,48 +335,61 @@ pub(super) fn execute(
             } else {
                 None
             };
-            ResultValue::ClassName { count, bytes, registered_class: class }
+            ResultValue::ClassName {
+                count,
+                bytes,
+                registered_class: class,
+            }
         }
         Call::SetActiveWindow { window } => {
-            let native = hwnd(state, window).map(|native| unsafe { SetActiveWindow(native) });
+            let native = hwnd(state, window)
+                .map(|native| crate::windows::win32_safe::set_active_window(native));
             ResultValue::Window(match native {
                 Some(native) => token_for_native(state, native)?,
                 None => None,
             })
         }
         Call::GetActiveWindow => {
-            let native = unsafe { GetActiveWindow() };
+            let native = crate::windows::win32_safe::active_window();
             ResultValue::Window(token_for_native(state, native)?)
         }
         Call::GetWindow { window, command } => {
             let native = hwnd(state, window)
-                .map(|native| unsafe { GetWindow(native, u32::from(command)) });
+                .map(|native| crate::windows::win32_safe::get_window(native, u32::from(command)));
             ResultValue::Window(match native {
                 Some(native) => token_for_native(state, native)?,
                 None => None,
             })
         }
         Call::GetTopWindow { window } => {
+            // SAFETY: GetTopWindow returns the top child, or null.
             let native = hwnd(state, window).map(|native| unsafe { GetTopWindow(native) });
             ResultValue::Window(match native {
                 Some(native) => token_for_native(state, native)?,
                 None => None,
             })
         }
-        Call::ShowOwnedPopups { window, show } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { ShowOwnedPopups(native, i32::from(show)) != 0 })),
-        Call::IsZoomed { window } => ResultValue::Boolean(hwnd(state, window)
-            .is_some_and(|native| unsafe { IsZoomed(native) != 0 })),
+        Call::ShowOwnedPopups { window, show } => ResultValue::Boolean(
+            hwnd(state, window)
+                // SAFETY: `ShowOwnedPopups` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+                .is_some_and(|native| unsafe { ShowOwnedPopups(native, i32::from(show)) != 0 }),
+        ),
+        Call::IsZoomed { window } => ResultValue::Boolean(
+            hwnd(state, window)
+                .is_some_and(|native| crate::windows::win32_safe::is_zoomed(native) != 0),
+        ),
         Call::GetDlgCtrlId { window } => {
-            ResultValue::Integer(hwnd(state, window)
-                .map_or(0, |native| unsafe { GetDlgCtrlID(native) }))
+            ResultValue::Integer(hwnd(state, window).map_or(0, |native| {
+                crate::windows::win32_safe::get_dlg_ctrl_id(native)
+            }))
         }
         Call::GetDesktopWindow => {
-            let native = unsafe { GetDesktopWindow() };
+            let native = crate::windows::win32_safe::desktop_window();
             ResultValue::Window(token_for_native(state, native)?)
         }
         Call::GetLastActivePopup { window } => {
             let native = hwnd(state, window)
+                // SAFETY: `GetLastActivePopup` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 .map(|native| unsafe { GetLastActivePopup(native) });
             ResultValue::Window(match native {
                 Some(native) => token_for_native(state, native)?,
@@ -311,16 +399,22 @@ pub(super) fn execute(
         Call::ClientToScreen { window, point } => {
             let mut point = native_point(point);
             let success = hwnd(state, window)
+                // SAFETY: ClientToScreen writes a caller-owned POINT.
                 .is_some_and(|native| unsafe { ClientToScreen(native, &mut point) != 0 });
             ResultValue::Point(success.then_some(host_point(point)))
         }
         Call::ScreenToClient { window, point } => {
             let mut point = native_point(point);
             let success = hwnd(state, window)
+                // SAFETY: ScreenToClient writes a caller-owned POINT.
                 .is_some_and(|native| unsafe { ScreenToClient(native, &mut point) != 0 });
             ResultValue::Point(success.then_some(host_point(point)))
         }
-        Call::MapWindowPoints { from, to, mut points } => {
+        Call::MapWindowPoints {
+            from,
+            to,
+            mut points,
+        } => {
             let (Some(from), Some(to)) = (hwnd(state, from), hwnd(state, to)) else {
                 return Ok(ResultValue::Points(None));
             };
@@ -332,9 +426,10 @@ pub(super) fn execute(
                 // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-mapwindowpoints
                 // Zero displacement is successful, so distinguish it from an
                 // error via last-error, never by testing the packed offset alone.
-                unsafe { SetLastError(0); }
+                crate::windows::win32_safe::set_last_error(0);
+                // SAFETY: MapWindowPoints converts a caller-owned POINT slice.
                 let displacement = unsafe { MapWindowPoints(from, to, &mut native, 1) };
-                if displacement == 0 && unsafe { GetLastError() } != 0 {
+                if displacement == 0 && (crate::windows::win32_safe::last_error()) != 0 {
                     return Ok(ResultValue::Points(None));
                 }
                 *point = host_point(native);
@@ -343,28 +438,38 @@ pub(super) fn execute(
         }
         Call::WindowFromDc { dc } => {
             let dcs = { state.borrow().dcs.clone() };
-            let Some(dc_use) = dcs.lease_dc(dc)? else { return Ok(ResultValue::Window(None)); };
+            let Some(dc_use) = dcs.lease_dc(dc)? else {
+                return Ok(ResultValue::Window(None));
+            };
             // Cleanup ownership is not window association: a callback may
             // supply a memory DC. Ask USER using the exact live native HDC.
+            // SAFETY: `WindowFromDC` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let native = unsafe { WindowFromDC(dc_use.native()) };
             ResultValue::Window(token_for_native(state, native)?)
         }
         Call::WindowFromPoint { point } => {
+            // SAFETY: `WindowFromPoint` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let native = unsafe { WindowFromPoint(native_point(point)) };
             ResultValue::Window(token_for_native(state, native)?)
         }
         Call::ChildWindowFromPoint { parent, point } => {
             let native = hwnd(state, parent)
+                // SAFETY: `ChildWindowFromPoint` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
                 .map(|parent| unsafe { ChildWindowFromPoint(parent, native_point(point)) });
             ResultValue::Window(match native {
                 Some(native) => token_for_native(state, native)?,
                 None => None,
             })
         }
-        Call::ChildWindowFromPointEx { parent, point, flags } => {
+        Call::ChildWindowFromPointEx {
+            parent,
+            point,
+            flags,
+        } => {
             // USER owns immediate-child z-order, client-relative hit testing,
             // and the CWP_SKIP* rules. Resolve both input and result through
             // the existing opaque token/incarnation boundary.
+            // SAFETY: `ChildWindowFromPointEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let native = hwnd(state, parent).map(|parent| unsafe {
                 ChildWindowFromPointEx(parent, native_point(point), u32::from(flags))
             });
@@ -373,13 +478,35 @@ pub(super) fn execute(
                 None => None,
             })
         }
-        Call::MoveWindow { window, x, y, width, height, repaint } => {
+        Call::MoveWindow {
+            window,
+            x,
+            y,
+            width,
+            height,
+            repaint,
+        } => {
+            // SAFETY: MoveWindow takes no caller pointer. The HWND is a window on this thread.
             ResultValue::Boolean(hwnd(state, window).is_some_and(|native| unsafe {
-                MoveWindow(native, i32::from(x), i32::from(y),
-                    i32::from(width), i32::from(height), i32::from(repaint)) != 0
+                MoveWindow(
+                    native,
+                    i32::from(x),
+                    i32::from(y),
+                    i32::from(width),
+                    i32::from(height),
+                    i32::from(repaint),
+                ) != 0
             }))
         }
-        Call::SetWindowPos { window, insert_after, x, y, width, height, flags } => {
+        Call::SetWindowPos {
+            window,
+            insert_after,
+            x,
+            y,
+            width,
+            height,
+            flags,
+        } => {
             let insert_after = if u32::from(flags) & SWP_NOZORDER != 0 {
                 // The ignored token need not exist or identify a live window.
                 Some(HWND_TOP)
@@ -389,18 +516,26 @@ pub(super) fn execute(
                     Win16WindowInsertAfter::Bottom => Some(HWND_BOTTOM),
                     Win16WindowInsertAfter::Topmost => Some(HWND_TOPMOST),
                     Win16WindowInsertAfter::NotTopmost => Some(HWND_NOTOPMOST),
-                    Win16WindowInsertAfter::Window(token) =>
-                        super::win16_window_identity::resolve_user_window(state, token),
+                    Win16WindowInsertAfter::Window(token) => {
+                        super::win16_window_identity::resolve_user_window(state, token)
+                    }
                 }
             };
             // Both operands use the worker's normal USER identity checks. No
             // state borrow crosses USER's synchronous window callbacks, and
             // no saved HWND is adopted or dereferenced after native return.
             ResultValue::Boolean(match (hwnd(state, window), insert_after) {
+                // SAFETY: SetWindowPos takes no caller pointer. The HWND is a window on this thread.
                 (Some(native), Some(insert_after)) => unsafe {
-                    SetWindowPos(native, insert_after,
-                        i32::from(x), i32::from(y), i32::from(width), i32::from(height),
-                        u32::from(flags)) != 0
+                    SetWindowPos(
+                        native,
+                        insert_after,
+                        i32::from(x),
+                        i32::from(y),
+                        i32::from(width),
+                        i32::from(height),
+                        u32::from(flags),
+                    ) != 0
                 },
                 _ => false,
             })
@@ -413,8 +548,9 @@ fn hwnd(state: &SharedWorker, target: Win16WindowTarget) -> Option<HWND> {
     match target {
         Win16WindowTarget::Null => Some(std::ptr::null_mut()),
         Win16WindowTarget::Invalid => None,
-        Win16WindowTarget::Mapped(token) =>
-            super::win16_window_identity::resolve_user_window(state, token),
+        Win16WindowTarget::Mapped(token) => {
+            super::win16_window_identity::resolve_user_window(state, token)
+        }
     }
 }
 
@@ -429,11 +565,17 @@ pub(super) fn flash_window_with(
     is_iconic: impl FnOnce(HWND) -> bool,
     flash: impl FnOnce(HWND, bool) -> bool,
 ) -> bool {
-    let Win16WindowTarget::Mapped(token) = target else { return false; };
+    let Win16WindowTarget::Mapped(token) = target else {
+        return false;
+    };
     let resolve = || super::win16_window_identity::resolve_user_window(state, token);
-    let Some(native) = resolve() else { return false; };
+    let Some(native) = resolve() else {
+        return false;
+    };
     let iconic = is_iconic(native);
-    if resolve() != Some(native) { return false; }
+    if resolve() != Some(native) {
+        return false;
+    }
     // Resolution retains no worker borrow across native window procedures.
     let previously_active = flash(native, iconic || invert);
     previously_active || (iconic && resolve() == Some(native))
@@ -443,7 +585,9 @@ fn token_for_native(
     state: &SharedWorker,
     native: HWND,
 ) -> Result<Option<Win16HostWindow>, RuntimeError> {
-    if native.is_null() { return Ok(None); }
+    if native.is_null() {
+        return Ok(None);
+    }
     worker::token_for_native(state, native).map(Some)
 }
 
@@ -457,11 +601,17 @@ fn host_rect(rect: RECT) -> Win16HostRect {
 }
 
 fn native_point(point: Win16HostPoint) -> POINT {
-    POINT { x: point.x, y: point.y }
+    POINT {
+        x: point.x,
+        y: point.y,
+    }
 }
 
 fn host_point(point: POINT) -> Win16HostPoint {
-    Win16HostPoint { x: point.x, y: point.y }
+    Win16HostPoint {
+        x: point.x,
+        y: point.y,
+    }
 }
 
 // NULL has special meanings in several USER APIs. This API requires an exact
@@ -478,15 +628,16 @@ fn arrange_child_windows(
 ) -> i32 {
     let mut hwnds = Vec::new();
     for &child in children {
-        let Some(hwnd) = super::win16_window_identity::resolve_user_window(state, child)
-            else { continue; };
+        let Some(hwnd) = super::win16_window_identity::resolve_user_window(state, child) else {
+            continue;
+        };
         // IsIconic, IsWindowEnabled, and IsWindowVisible do not enter a guest
         // procedure. Drop each resolution before the next query.
         let child_state = Win16ArrangeChild {
             window: child,
-            iconic: unsafe { IsIconic(hwnd) != 0 },
-            enabled: unsafe { IsWindowEnabled(hwnd) != 0 },
-            visible: unsafe { IsWindowVisible(hwnd) != 0 },
+            iconic: (crate::windows::win32_safe::is_iconic(hwnd) != 0),
+            enabled: (crate::windows::win32_safe::is_window_enabled(hwnd) != 0),
+            visible: (crate::windows::win32_safe::is_window_visible(hwnd) != 0),
         };
         if child_state.participates(flags) {
             hwnds.push(hwnd);
@@ -495,8 +646,9 @@ fn arrange_child_windows(
     if hwnds.is_empty() {
         return 0;
     }
-    let Some(parent_hwnd) = super::win16_window_identity::resolve_user_window(state, parent)
-        else { return 0; };
+    let Some(parent_hwnd) = super::win16_window_identity::resolve_user_window(state, parent) else {
+        return 0;
+    };
     // MDITILE_ZORDER asks native USER for stacking order. The guest flag word
     // only contributes the Windows 3.1 horizontal and skip-disabled bits.
     let how = match mode {
@@ -505,13 +657,22 @@ fn arrange_child_windows(
             u32::from(flags & (MDITILE_HORIZONTAL | MDITILE_SKIPDISABLED)) | MDITILE_ZORDER
         }
     };
+    // SAFETY: `CascadeWindows`, `TileWindows` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let count = unsafe {
         match mode {
             Win16ChildArrangeMode::Cascade => CascadeWindows(
-                parent_hwnd, how, std::ptr::null(), hwnds.len() as u32, hwnds.as_ptr(),
+                parent_hwnd,
+                how,
+                std::ptr::null(),
+                hwnds.len() as u32,
+                hwnds.as_ptr(),
             ),
             Win16ChildArrangeMode::Tile => TileWindows(
-                parent_hwnd, how, std::ptr::null(), hwnds.len() as u32, hwnds.as_ptr(),
+                parent_hwnd,
+                how,
+                std::ptr::null(),
+                hwnds.len() as u32,
+                hwnds.as_ptr(),
             ),
         }
     };
@@ -523,9 +684,12 @@ pub(super) fn arrange_iconic_windows_with(
     target: Win16WindowTarget,
     native_call: impl FnOnce(HWND) -> u32,
 ) -> u32 {
-    let Win16WindowTarget::Mapped(token) = target else { return 0; };
-    let Some(native) = super::win16_window_identity::resolve_user_window(state, token)
-        else { return 0; };
+    let Win16WindowTarget::Mapped(token) = target else {
+        return 0;
+    };
+    let Some(native) = super::win16_window_identity::resolve_user_window(state, token) else {
+        return 0;
+    };
     native_call(native)
 }
 

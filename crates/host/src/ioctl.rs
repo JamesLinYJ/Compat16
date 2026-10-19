@@ -1,11 +1,11 @@
 //! Native standard-stream inspection; DOS owns the returned bit layout.
 
-use windows_sys::Win32::Foundation::{GetLastError, HANDLE, SetLastError};
+use dos_kernel::{DosErrorCode, DosHostError, DosIoctlObjectInfo, DosIoctlStream};
+use windows_sys::Win32::Foundation::HANDLE;
 use windows_sys::Win32::Storage::FileSystem::{
     FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE, FILE_TYPE_UNKNOWN, GetFileType,
 };
 use windows_sys::Win32::System::Console::{GetConsoleMode, GetStdHandle};
-use dos_kernel::{DosErrorCode, DosHostError, DosIoctlObjectInfo, DosIoctlStream};
 
 /// Validate types supported by the byte-read fallback. Non-console character
 /// devices (including NUL) can support ReadFile too. The read itself still
@@ -18,9 +18,9 @@ pub(crate) fn validate_redirected_input(input: HANDLE) -> Result<(), DosHostErro
     // SAFETY: These calls only inspect the OS-owned handle and thread-local
     // error state. Clearing the error distinguishes unknown types from errors.
     let (file_type, error) = unsafe {
-        SetLastError(0);
+        crate::windows::win32_safe::set_last_error(0);
         let file_type = GetFileType(input);
-        (file_type, GetLastError())
+        (file_type, crate::windows::win32_safe::last_error())
     };
     match file_type {
         FILE_TYPE_DISK | FILE_TYPE_PIPE | FILE_TYPE_CHAR => Ok(()),
@@ -31,7 +31,10 @@ pub(crate) fn validate_redirected_input(input: HANDLE) -> Result<(), DosHostErro
     }
 }
 
-pub(crate) fn standard_info(input: HANDLE, stream: DosIoctlStream) -> Result<DosIoctlObjectInfo, DosHostError> {
+pub(crate) fn standard_info(
+    input: HANDLE,
+    stream: DosIoctlStream,
+) -> Result<DosIoctlObjectInfo, DosHostError> {
     let handle = match stream {
         DosIoctlStream::Input => input,
         // SAFETY: This retrieves an OS-owned standard handle without borrowing memory.

@@ -33,20 +33,26 @@ pub(super) fn quiesce_requested(
             .saturating_add(request.returned_yields.len())
             .saturating_add(request.completed_operations.len())
             .saturating_add(2);
-        receipt.retained.try_reserve_exact(owner_capacity).map_err(|error| {
-            RuntimeError::with_source(
-                Kind::ResourceExhausted,
-                "reserve retained owners for pending MCI Begin reconciliation",
-                error,
-            )
-        })?;
-        receipt.causes.try_reserve_exact(request.pending_begins.len()).map_err(|error| {
-            RuntimeError::with_source(
-                Kind::ResourceExhausted,
-                "reserve pending MCI Begin reconciliation causes",
-                error,
-            )
-        })?;
+        receipt
+            .retained
+            .try_reserve_exact(owner_capacity)
+            .map_err(|error| {
+                RuntimeError::with_source(
+                    Kind::ResourceExhausted,
+                    "reserve retained owners for pending MCI Begin reconciliation",
+                    error,
+                )
+            })?;
+        receipt
+            .causes
+            .try_reserve_exact(request.pending_begins.len())
+            .map_err(|error| {
+                RuntimeError::with_source(
+                    Kind::ResourceExhausted,
+                    "reserve pending MCI Begin reconciliation causes",
+                    error,
+                )
+            })?;
         receipt
             .resolved_causes
             .try_reserve_exact(request.resolved_causes.len())
@@ -60,9 +66,13 @@ pub(super) fn quiesce_requested(
         receipt
             .resolved_causes
             .extend(request.resolved_causes.iter().cloned());
-        receipt
-            .retained
-            .extend(request.devices.iter().copied().map(Win16HostMciRetainedOwner::Device));
+        receipt.retained.extend(
+            request
+                .devices
+                .iter()
+                .copied()
+                .map(Win16HostMciRetainedOwner::Device),
+        );
         receipt.retained.extend(
             request
                 .registrations
@@ -115,8 +125,12 @@ pub(super) fn quiesce_requested(
                     .push(Win16HostMciRetainedOwner::Operation(owner.operation));
             }
         }
-        receipt.retained.push(Win16HostMciRetainedOwner::OwnerThread);
-        receipt.retained.push(Win16HostMciRetainedOwner::NotificationSink);
+        receipt
+            .retained
+            .push(Win16HostMciRetainedOwner::OwnerThread);
+        receipt
+            .retained
+            .push(Win16HostMciRetainedOwner::NotificationSink);
         receipt.causes.extend(request.pending_begins.iter().map(|operation| {
             Arc::new(RuntimeError::new(
                 Kind::CompatibilityGap,
@@ -155,20 +169,24 @@ pub(super) fn quiesce_requested(
     let mut returned_yield_tombstones = Vec::new();
     returned_yield_tombstones
         .try_reserve_exact(state.returned_yields.borrow().len())
-        .map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "snapshot exact returned MCI yield ACK tombstones before quiescence",
-            error,
-        ))?;
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "snapshot exact returned MCI yield ACK tombstones before quiescence",
+                error,
+            )
+        })?;
     returned_yield_tombstones.extend_from_slice(state.returned_yields.borrow().as_slice());
     let mut completed_operation_tombstones = Vec::new();
     completed_operation_tombstones
         .try_reserve_exact(state.completed_operations.borrow().len())
-        .map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "snapshot exact MCI completion tombstones before quiescence",
-            error,
-        ))?;
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "snapshot exact MCI completion tombstones before quiescence",
+                error,
+            )
+        })?;
     completed_operation_tombstones
         .extend_from_slice(state.completed_operations.borrow().as_slice());
     let active_invocation_count = ACTIVE_YIELDS.with(|active| {
@@ -181,11 +199,13 @@ pub(super) fn quiesce_requested(
     let mut live_active_yields = Vec::new();
     live_active_yields
         .try_reserve_exact(active_invocation_count)
-        .map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "snapshot exact live native MCI yield owners before quiescence",
-            error,
-        ))?;
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "snapshot exact live native MCI yield owners before quiescence",
+                error,
+            )
+        })?;
     ACTIVE_YIELDS.with(|active| {
         live_active_yields.extend(
             active
@@ -205,11 +225,13 @@ pub(super) fn quiesce_requested(
     let mut unrequested_live_devices = Vec::new();
     unrequested_live_devices
         .try_reserve_exact(unrequested_live_device_count)
-        .map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve exact host-discovered MCI device blockers before quiescence",
-            error,
-        ))?;
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve exact host-discovered MCI device blockers before quiescence",
+                error,
+            )
+        })?;
     unrequested_live_devices.extend(
         host_devices
             .iter()
@@ -219,11 +241,13 @@ pub(super) fn quiesce_requested(
     let mut unrequested_registrations = Vec::new();
     unrequested_registrations
         .try_reserve_exact(host_devices.len())
-        .map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve host-discovered MCI registration blockers before quiescence",
-            error,
-        ))?;
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve host-discovered MCI registration blockers before quiescence",
+                error,
+            )
+        })?;
     for (device, _) in &host_devices {
         if let Some(registration) = state.current_yield_registration(*device) {
             let owner = Win16HostMciYieldRegistration {
@@ -262,39 +286,51 @@ pub(super) fn quiesce_requested(
         .saturating_add(unrequested_live_devices.len())
         .saturating_add(usize::from(unmapped_owner_count != 0))
         .saturating_add(usize::from(!notification_ledger_drained));
-    receipt.confirmed.try_reserve_exact(evidence_capacity).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve MCI native quiescence evidence before disabling sources",
-            error,
+    receipt
+        .confirmed
+        .try_reserve_exact(evidence_capacity)
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve MCI native quiescence evidence before disabling sources",
+                error,
+            )
+        })?;
+    receipt
+        .retained
+        .try_reserve_exact(retained_capacity)
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve exact MCI native owner identities before quiescence",
+                error,
+            )
+        })?;
+    receipt
+        .causes
+        .try_reserve_exact(retained_capacity)
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve MCI native quiescence failure causes before side effects",
+                error,
+            )
+        })?;
+    receipt
+        .resolved_causes
+        .try_reserve_exact(
+            request
+                .registrations
+                .len()
+                .saturating_add(request.resolved_causes.len()),
         )
-    })?;
-    receipt.retained.try_reserve_exact(retained_capacity).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve exact MCI native owner identities before quiescence",
-            error,
-        )
-    })?;
-    receipt.causes.try_reserve_exact(retained_capacity).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve MCI native quiescence failure causes before side effects",
-            error,
-        )
-    })?;
-    receipt.resolved_causes.try_reserve_exact(
-        request
-            .registrations
-            .len()
-            .saturating_add(request.resolved_causes.len()),
-    ).map_err(|error| {
-        RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "reserve resolved MCI source-disable and prior retry causes before side effects",
-            error,
-        )
-    })?;
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "reserve resolved MCI source-disable and prior retry causes before side effects",
+                error,
+            )
+        })?;
     receipt
         .resolved_causes
         .extend(request.resolved_causes.iter().cloned());
@@ -456,11 +492,9 @@ pub(super) fn quiesce_requested(
                     returned.owner.operation,
                 ))
         {
-            receipt
-                .retained
-                .push(Win16HostMciRetainedOwner::Operation(
-                    returned.owner.operation,
-                ));
+            receipt.retained.push(Win16HostMciRetainedOwner::Operation(
+                returned.owner.operation,
+            ));
             receipt.causes.push(Arc::new(RuntimeError::new(
                 Kind::CompatibilityGap,
                 format!(
@@ -488,11 +522,13 @@ pub(super) fn quiesce_requested(
     state.reserve_yield_source_evidence_batch(&request.registrations)?;
     for owner in &request.registrations {
         match native::disable_yield_registration(state, *owner) {
-            Ok(evidence @ Win16HostMciQuiescenceEvidence::YieldSourceDisabled {
-                set_result,
-                observed_installed,
-                ..
-            }) => {
+            Ok(
+                evidence @ Win16HostMciQuiescenceEvidence::YieldSourceDisabled {
+                    set_result,
+                    observed_installed,
+                    ..
+                },
+            ) => {
                 if !observed_installed {
                     if set_result == 0 {
                         receipt.resolved_causes.push(Arc::new(RuntimeError::new(
@@ -505,7 +541,9 @@ pub(super) fn quiesce_requested(
                     }
                     receipt.confirmed.push(evidence);
                 } else {
-                    receipt.retained.push(Win16HostMciRetainedOwner::Registration(*owner));
+                    receipt
+                        .retained
+                        .push(Win16HostMciRetainedOwner::Registration(*owner));
                     receipt.causes.push(Arc::new(RuntimeError::new(
                         Kind::HostFailure,
                         format!(
@@ -516,14 +554,18 @@ pub(super) fn quiesce_requested(
                 }
             }
             Ok(_) => {
-                receipt.retained.push(Win16HostMciRetainedOwner::Registration(*owner));
+                receipt
+                    .retained
+                    .push(Win16HostMciRetainedOwner::Registration(*owner));
                 receipt.causes.push(Arc::new(RuntimeError::new(
                     Kind::InternalInvariant,
                     "native MCI source-disable operation returned evidence for a different phase",
                 )));
             }
             Err(error) => {
-                receipt.retained.push(Win16HostMciRetainedOwner::Registration(*owner));
+                receipt
+                    .retained
+                    .push(Win16HostMciRetainedOwner::Registration(*owner));
                 receipt.causes.push(Arc::new(error));
             }
         }
@@ -534,7 +576,9 @@ pub(super) fn quiesce_requested(
             expected.owner == *owner && returned_yield_tombstones.contains(expected)
         });
         if !return_confirmed {
-            receipt.retained.push(Win16HostMciRetainedOwner::ActiveYield(*owner));
+            receipt
+                .retained
+                .push(Win16HostMciRetainedOwner::ActiveYield(*owner));
             receipt.causes.push(Arc::new(RuntimeError::new(
                 Kind::CompatibilityGap,
                 format!(
@@ -565,9 +609,10 @@ pub(super) fn quiesce_requested(
         }
     }
 
-    let completion_proofs_missing = request.completed_operations.iter().any(|expected| {
-        !completed_operation_tombstones.contains(expected)
-    });
+    let completion_proofs_missing = request
+        .completed_operations
+        .iter()
+        .any(|expected| !completed_operation_tombstones.contains(expected));
     for device in &request.devices {
         let active = live_active_yields
             .iter()
@@ -577,11 +622,10 @@ pub(super) fn quiesce_requested(
                     && (!request.returned_yields.iter().any(|expected| {
                         expected.owner == *yield_owner
                             && returned_yield_tombstones.contains(expected)
-                    })
-                        || !request.completed_operations.iter().any(|expected| {
-                            expected.operation == yield_owner.operation
-                                && completed_operation_tombstones.contains(expected)
-                        }))
+                    }) || !request.completed_operations.iter().any(|expected| {
+                        expected.operation == yield_owner.operation
+                            && completed_operation_tombstones.contains(expected)
+                    }))
             })
             || request.returned_yields.iter().any(|returned| {
                 returned.owner.device == *device
@@ -603,7 +647,9 @@ pub(super) fn quiesce_requested(
             .any(|registration| registration.device == *device)
             || !notification_ledger_drained;
         if active || source_retained {
-            receipt.retained.push(Win16HostMciRetainedOwner::Device(*device));
+            receipt
+                .retained
+                .push(Win16HostMciRetainedOwner::Device(*device));
             continue;
         }
         let (resolved, retired) = {
@@ -612,12 +658,16 @@ pub(super) fn quiesce_requested(
         };
         let Some((native_id, _)) = resolved else {
             if retired {
-                receipt.confirmed.push(Win16HostMciQuiescenceEvidence::DeviceClosed {
-                    device: *device,
-                    native_result: 0,
-                });
+                receipt
+                    .confirmed
+                    .push(Win16HostMciQuiescenceEvidence::DeviceClosed {
+                        device: *device,
+                        native_result: 0,
+                    });
             } else {
-                receipt.retained.push(Win16HostMciRetainedOwner::Device(*device));
+                receipt
+                    .retained
+                    .push(Win16HostMciRetainedOwner::Device(*device));
                 receipt.causes.push(Arc::new(RuntimeError::new(
                     Kind::InvalidInput,
                     format!(
@@ -629,19 +679,25 @@ pub(super) fn quiesce_requested(
             continue;
         };
         let native_result = native::close_native_device(native_id, state.sink);
-        receipt.confirmed.push(Win16HostMciQuiescenceEvidence::DeviceClosed {
-            device: *device,
-            native_result,
-        });
+        receipt
+            .confirmed
+            .push(Win16HostMciQuiescenceEvidence::DeviceClosed {
+                device: *device,
+                native_result,
+            });
         if native_result == 0 {
             if let Err(error) = state.retire_device(*device) {
                 // Native close already happened; report retained bookkeeping evidence instead
                 // of returning Err, which the client may safely retry only before side effects.
-                receipt.retained.push(Win16HostMciRetainedOwner::Device(*device));
+                receipt
+                    .retained
+                    .push(Win16HostMciRetainedOwner::Device(*device));
                 receipt.causes.push(Arc::new(error));
             }
         } else {
-            receipt.retained.push(Win16HostMciRetainedOwner::Device(*device));
+            receipt
+                .retained
+                .push(Win16HostMciRetainedOwner::Device(*device));
             receipt.causes.push(Arc::new(RuntimeError::new(
                 Kind::HostFailure,
                 format!(
@@ -662,12 +718,24 @@ fn try_clone_quiesce_request(
     request: &Win16HostMciQuiesceRequest,
 ) -> Result<Win16HostMciQuiesceRequest, RuntimeError> {
     let mut copy = Win16HostMciQuiesceRequest::default();
-    copy.devices.try_reserve_exact(request.devices.len()).map_err(|error| {
-        RuntimeError::with_source(Kind::ResourceExhausted, "copy MCI quiescence device identities", error)
-    })?;
-    copy.registrations.try_reserve_exact(request.registrations.len()).map_err(|error| {
-        RuntimeError::with_source(Kind::ResourceExhausted, "copy MCI quiescence registration identities", error)
-    })?;
+    copy.devices
+        .try_reserve_exact(request.devices.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "copy MCI quiescence device identities",
+                error,
+            )
+        })?;
+    copy.registrations
+        .try_reserve_exact(request.registrations.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "copy MCI quiescence registration identities",
+                error,
+            )
+        })?;
     copy.pending_begins
         .try_reserve_exact(request.pending_begins.len())
         .map_err(|error| {
@@ -677,35 +745,49 @@ fn try_clone_quiesce_request(
                 error,
             )
         })?;
-    copy.active_yields.try_reserve_exact(request.active_yields.len()).map_err(|error| {
-        RuntimeError::with_source(Kind::ResourceExhausted, "copy MCI active yield identities", error)
-    })?;
+    copy.active_yields
+        .try_reserve_exact(request.active_yields.len())
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "copy MCI active yield identities",
+                error,
+            )
+        })?;
     copy.returned_yields
         .try_reserve_exact(request.returned_yields.len())
-        .map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "copy MCI returned-yield ACK proofs",
-            error,
-        ))?;
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "copy MCI returned-yield ACK proofs",
+                error,
+            )
+        })?;
     copy.completed_operations
         .try_reserve_exact(request.completed_operations.len())
-        .map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "copy MCI completed-operation proofs",
-            error,
-        ))?;
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "copy MCI completed-operation proofs",
+                error,
+            )
+        })?;
     copy.resolved_causes
         .try_reserve_exact(request.resolved_causes.len())
-        .map_err(|error| RuntimeError::with_source(
-            Kind::ResourceExhausted,
-            "copy cumulative MCI typed causes",
-            error,
-        ))?;
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "copy cumulative MCI typed causes",
+                error,
+            )
+        })?;
     copy.devices.extend_from_slice(&request.devices);
     copy.registrations.extend_from_slice(&request.registrations);
-    copy.pending_begins.extend_from_slice(&request.pending_begins);
+    copy.pending_begins
+        .extend_from_slice(&request.pending_begins);
     copy.active_yields.extend_from_slice(&request.active_yields);
-    copy.returned_yields.extend_from_slice(&request.returned_yields);
+    copy.returned_yields
+        .extend_from_slice(&request.returned_yields);
     copy.completed_operations
         .extend_from_slice(&request.completed_operations);
     copy.resolved_causes

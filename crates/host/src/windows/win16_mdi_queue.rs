@@ -16,9 +16,9 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{HWND, LPARAM, WPARAM};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GWL_EXSTYLE, GetParent, GetWindowLongPtrW, IsWindow, WM_MDIACTIVATE, WM_MDICASCADE,
-    WM_MDICREATE, WM_MDIDESTROY, WM_MDIGETACTIVE, WM_MDIICONARRANGE, WM_MDIMAXIMIZE, WM_MDINEXT,
-    WM_MDIREFRESHMENU, WM_MDIRESTORE, WM_MDISETMENU, WM_MDITILE, WS_EX_MDICHILD,
+    GWL_EXSTYLE, GetWindowLongPtrW, WM_MDIACTIVATE, WM_MDICASCADE, WM_MDICREATE, WM_MDIDESTROY,
+    WM_MDIGETACTIVE, WM_MDIICONARRANGE, WM_MDIMAXIMIZE, WM_MDINEXT, WM_MDIREFRESHMENU,
+    WM_MDIRESTORE, WM_MDISETMENU, WM_MDITILE, WS_EX_MDICHILD,
 };
 
 use super::super::win16_window_worker::WorkerState;
@@ -373,11 +373,12 @@ fn verified_endpoint(state: &Rc<RefCell<WorkerState>>, hwnd: HWND) -> Option<Ver
             client: hwnd,
         });
     }
+    // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
     let extended_style = unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32 };
     if extended_style & WS_EX_MDICHILD == 0 {
         return None;
     }
-    let client = unsafe { GetParent(hwnd) };
+    let client = crate::windows::win32_safe::get_parent(hwnd);
     if client.is_null()
         || mapped_native_identity(state, client).map_or(true, |(_, kind)| {
             kind != Some(Win16HostSystemClass::MdiClient)
@@ -396,7 +397,7 @@ fn mapped_native_identity(
     state: &Rc<RefCell<WorkerState>>,
     hwnd: HWND,
 ) -> Option<(Win16HostWindow, Option<Win16HostSystemClass>)> {
-    if hwnd.is_null() || unsafe { IsWindow(hwnd) } == 0 {
+    if hwnd.is_null() || { crate::windows::win32_safe::is_window(hwnd) } == 0 {
         return None;
     }
     let state = state.borrow();
@@ -420,11 +421,14 @@ fn resolve_mdi_child(
         return Some(std::ptr::null_mut());
     };
     let hwnd = super::super::win16_window_identity::resolve_user_window(state, token)?;
-    if hwnd.is_null() || unsafe { IsWindow(hwnd) } == 0 {
+    if hwnd.is_null() || { crate::windows::win32_safe::is_window(hwnd) } == 0 {
         return None;
     }
+    // SAFETY: GetWindowLongPtrW reads one window-long slot. The HWND is a window this thread created or was given by Windows.
     let extended_style = unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32 };
-    (extended_style & WS_EX_MDICHILD != 0 && unsafe { GetParent(hwnd) } == client).then_some(hwnd)
+    (extended_style & WS_EX_MDICHILD != 0
+        && (crate::windows::win32_safe::get_parent(hwnd)) == client)
+        .then_some(hwnd)
 }
 
 fn payload_references_live_children(

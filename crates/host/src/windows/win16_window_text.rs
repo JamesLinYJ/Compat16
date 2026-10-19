@@ -35,6 +35,7 @@ pub(super) fn set_text(
     )?;
     // No state borrow spans USER: WM_SETTEXT can enter a guest WndProc and
     // synchronously reenter this worker before SetWindowTextW returns.
+    // SAFETY: SetWindowTextW reads a caller-owned NUL-terminated UTF-16 string that stays live for the call.
     let value = unsafe {
         SetWindowTextW(
             hwnd,
@@ -96,9 +97,8 @@ pub(super) fn get_text(
     // USER owns truncation and the UTF-16 character-count result. The exact
     // guest byte capacity remains in the synchronous sidecar for reentrant
     // WndProc callbacks.
-    let native_count = unsafe {
-        GetWindowTextW(hwnd, native_text.as_mut_ptr(), native_capacity)
-    };
+    // SAFETY: GetWindowTextW writes into a caller-owned UTF-16 buffer of the capacity passed with it.
+    let native_count = unsafe { GetWindowTextW(hwnd, native_text.as_mut_ptr(), native_capacity) };
     if native_count < 0 {
         buffer.clear();
         return Ok(Win16WindowResult::WindowText {
@@ -107,9 +107,7 @@ pub(super) fn get_text(
         });
     }
     let count = native_count as usize;
-    if (buffer.is_empty() && count != 0)
-        || (!buffer.is_empty() && count >= native_text.len())
-    {
+    if (buffer.is_empty() && count != 0) || (!buffer.is_empty() && count >= native_text.len()) {
         return Err(RuntimeError::new(
             Kind::HostFailure,
             "GetWindowTextW returned a character count outside its output buffer",
@@ -119,7 +117,10 @@ pub(super) fn get_text(
         if native_text.first() == Some(&0) {
             let (guest_text, guest_count) =
                 super::win16_window_text_context::native_prefix_to_guest_in_buffer(
-                    state, &[], 0, buffer,
+                    state,
+                    &[],
+                    0,
+                    buffer,
                 )?;
             buffer = guest_text;
             return Ok(Win16WindowResult::WindowText {
@@ -137,12 +138,13 @@ pub(super) fn get_text(
         ));
     }
     let output_capacity = buffer.len().saturating_sub(1);
-    let (guest_text, guest_count) = super::win16_window_text_context::native_prefix_to_guest_in_buffer(
-        state,
-        &native_text[..count],
-        output_capacity,
-        buffer,
-    )?;
+    let (guest_text, guest_count) =
+        super::win16_window_text_context::native_prefix_to_guest_in_buffer(
+            state,
+            &native_text[..count],
+            output_capacity,
+            buffer,
+        )?;
     buffer = guest_text;
     Ok(Win16WindowResult::WindowText {
         value: guest_count as i32,
@@ -163,14 +165,15 @@ pub(super) fn text_length(
         hwnd,
         super::win16_window_text_context::WindowTextCall::GetTextLength,
     )?;
+    // SAFETY: `GetWindowTextLengthW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let native_length = unsafe { GetWindowTextLengthW(hwnd) };
     let guest_length = match super::win16_window_text_context::recorded_guest_text_length_result(
         state, window, hwnd,
     ) {
         Some(length) => length as i32,
-        None => super::win16_window_text_context::native_text_length_upper_bound(
-            state, native_length,
-        )?,
+        None => {
+            super::win16_window_text_context::native_text_length_upper_bound(state, native_length)?
+        }
     };
     Ok(Win16WindowResult::WindowTextLength(guest_length))
 }

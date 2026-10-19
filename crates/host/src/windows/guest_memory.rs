@@ -10,17 +10,14 @@ use std::io;
 use std::ptr::NonNull;
 use std::rc::Rc;
 
-use guest_core::memory::MemoryStorage;
 use guest_core::MemoryError;
+use guest_core::memory::MemoryStorage;
 use runtime::{DiagnosticKind as Kind, RuntimeError};
-use windows_sys::Win32::Foundation::{GetLastError, HANDLE};
-use windows_sys::Win32::System::Diagnostics::Debug::{
-    ReadProcessMemory, WriteProcessMemory,
-};
+use windows_sys::Win32::Foundation::HANDLE;
+use windows_sys::Win32::System::Diagnostics::Debug::{ReadProcessMemory, WriteProcessMemory};
 use windows_sys::Win32::System::Memory::{
     MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE, VirtualAlloc, VirtualFree,
 };
-use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
 /// Owns a fixed-size Windows-backed guest-memory region.
 ///
@@ -69,7 +66,7 @@ impl WindowsGuestMemory {
         let Some(base) = NonNull::new(allocation) else {
             // SAFETY: GetLastError reports the failure from the preceding
             // VirtualAlloc call on this thread.
-            let error = unsafe { GetLastError() };
+            let error = crate::windows::win32_safe::last_error();
             return Err(RuntimeError::with_source(
                 Kind::ResourceExhausted,
                 "reserve guest process memory",
@@ -78,10 +75,7 @@ impl WindowsGuestMemory {
         };
 
         Ok(Self {
-            region: Rc::new(OwnedRegion {
-                base,
-                length: size,
-            }),
+            region: Rc::new(OwnedRegion { base, length: size }),
         })
     }
 
@@ -111,7 +105,9 @@ impl OwnedRegion {
     fn native_address(&self, offset: u32) -> Result<*const c_void, MemoryError> {
         let base = self.base.as_ptr() as usize;
         let offset = usize::try_from(offset).map_err(|_| MemoryError::AddressOverflow)?;
-        let address = base.checked_add(offset).ok_or(MemoryError::AddressOverflow)?;
+        let address = base
+            .checked_add(offset)
+            .ok_or(MemoryError::AddressOverflow)?;
         Ok(address as *const c_void)
     }
 }
@@ -138,10 +134,15 @@ impl MemoryStorage for GuestMemoryStorage {
         self.read(offset, output)?;
         Ok(true)
     }
-    fn read_plain_data(&self, offset: u32, output: &mut [u8], _writable: bool) -> Result<bool, MemoryError> {
+    fn read_plain_data(
+        &self,
+        offset: u32,
+        output: &mut [u8],
+        _writable: bool,
+    ) -> Result<bool, MemoryError> {
         // The private reservation has no write observers and cannot be
         // mutated by another Rust thread or reentrant callback in a quantum.
-        self.read_plain_code(offset,output)
+        self.read_plain_code(offset, output)
     }
 
     fn read(&self, offset: u32, output: &mut [u8]) -> Result<(), MemoryError> {
@@ -165,7 +166,7 @@ impl MemoryStorage for GuestMemoryStorage {
         };
         let os_error = if succeeded == 0 {
             // SAFETY: ReadProcessMemory just reported failure on this thread.
-            Some(unsafe { GetLastError() } as i32)
+            Some((crate::windows::win32_safe::last_error()) as i32)
         } else {
             None
         };
@@ -202,7 +203,7 @@ impl MemoryStorage for GuestMemoryStorage {
         };
         let os_error = if succeeded == 0 {
             // SAFETY: WriteProcessMemory just reported failure on this thread.
-            Some(unsafe { GetLastError() } as i32)
+            Some((crate::windows::win32_safe::last_error()) as i32)
         } else {
             None
         };
@@ -221,5 +222,5 @@ impl MemoryStorage for GuestMemoryStorage {
 
 fn current_process() -> HANDLE {
     // SAFETY: GetCurrentProcess returns a pseudo-handle for the calling process.
-    unsafe { GetCurrentProcess() }
+    crate::windows::win32_safe::current_process()
 }

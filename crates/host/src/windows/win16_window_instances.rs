@@ -5,7 +5,7 @@ use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostWindow};
 use std::{cell::RefCell, rc::Rc};
 use windows_sys::Win32::{
     Foundation::HWND,
-    UI::WindowsAndMessaging::{GW_CHILD, GW_HWNDNEXT, GetWindow},
+    UI::WindowsAndMessaging::{GW_CHILD, GW_HWNDNEXT},
 };
 
 pub(super) fn query(state: &Rc<RefCell<WorkerState>>, window: Win16HostWindow) -> Option<u16> {
@@ -49,11 +49,11 @@ pub(super) fn capture_dialog(
                 .entry(token)
                 .or_insert(instance);
         }
-        let mut child = unsafe { GetWindow(parent, GW_CHILD) };
+        let mut child = crate::windows::win32_safe::get_window(parent, GW_CHILD);
         while !child.is_null() {
             parents.try_reserve(1).map_err(capacity_error)?;
             parents.push(child);
-            child = unsafe { GetWindow(child, GW_HWNDNEXT) };
+            child = crate::windows::win32_safe::get_window(child, GW_HWNDNEXT);
         }
     }
     Ok(())

@@ -8,7 +8,7 @@ use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostMessage, Win16HostMessageResult,
     Win16HostProcedure, Win16HostStaticIconOperation, Win16HostStaticIconResult, Win16HostWindow,
 };
-use windows_sys::Win32::Foundation::{FreeLibrary, GetLastError, HMODULE, HWND, SetLastError};
+use windows_sys::Win32::Foundation::{FreeLibrary, HMODULE, HWND};
 use windows_sys::Win32::System::LibraryLoader::{
     GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GetModuleHandleExW,
 };
@@ -139,10 +139,14 @@ impl Drop for ModuleLease {
 
 impl NativeProcedures {
     fn implementation(&self, procedure: Win16HostProcedure) -> Option<(isize, isize)> {
-        self.class_entries.get(&procedure)
+        self.class_entries
+            .get(&procedure)
             .map(|entry| (entry.native_procedure, entry.provider_procedure))
-            .or_else(|| self.entries.get(&procedure)
-                .map(|entry| (entry.key.native_procedure, entry.key.provider_procedure)))
+            .or_else(|| {
+                self.entries
+                    .get(&procedure)
+                    .map(|entry| (entry.key.native_procedure, entry.key.provider_procedure))
+            })
     }
 
     fn allocate_token(&mut self) -> Option<Win16HostProcedure> {
@@ -264,10 +268,12 @@ pub(super) fn call(
     let guarded_base = if nc_destroy {
         let mut state = state.borrow_mut();
         let registry = &mut state.native_procedures;
-        let binding = registry.bases.get(&window).copied().filter(|binding|
-            binding.hwnd == key.hwnd && binding.cookie == key.cookie
+        let binding = registry.bases.get(&window).copied().filter(|binding| {
+            binding.hwnd == key.hwnd
+                && binding.cookie == key.cookie
                 && registry.implementation(binding.procedure)
-                    == Some((key.native_procedure, key.provider_procedure)));
+                    == Some((key.native_procedure, key.provider_procedure))
+        });
         if let Some(binding) = binding {
             if binding.destroy_entered {
                 return Ok(Some(Win16HostMessageResult {
@@ -279,7 +285,9 @@ pub(super) fn call(
             registry.bases.get_mut(&window).unwrap().destroy_entered = true;
         }
         binding
-    } else { None };
+    } else {
+        None
+    };
     let result = win16_window_default::procedure_message(
         state,
         window,
@@ -295,7 +303,8 @@ pub(super) fn call(
         && let Some(guarded) = guarded_base
         && let Some(binding) = state.borrow_mut().native_procedures.bases.get_mut(&window)
         && binding.procedure == guarded.procedure
-        && binding.hwnd == guarded.hwnd && binding.cookie == guarded.cookie
+        && binding.hwnd == guarded.hwnd
+        && binding.cookie == guarded.cookie
         && binding.subclass_generation == guarded.subclass_generation
     {
         binding.destroy_entered = false;
@@ -399,23 +408,32 @@ fn resolve_call_target(
         return Ok(None);
     };
     if key.window == window {
-        return Ok((key.hwnd == identity.hwnd && key.cookie == identity.value)
-            .then_some((key, hwnd)));
+        return Ok(
+            (key.hwnd == identity.hwnd && key.cookie == identity.value).then_some((key, hwnd))
+        );
     }
     let same_base = {
         let state = state.borrow();
         let registry = &state.native_procedures;
-        registry.bases.get(&window).is_some_and(|binding|
-            binding.hwnd == identity.hwnd && binding.cookie == identity.value
+        registry.bases.get(&window).is_some_and(|binding| {
+            binding.hwnd == identity.hwnd
+                && binding.cookie == identity.value
                 && registry.implementation(binding.procedure)
-                    == Some((key.native_procedure, key.provider_procedure)))
+                    == Some((key.native_procedure, key.provider_procedure))
+        })
     };
     if !same_base && get_window_procedure(hwnd) != Some(key.native_procedure) {
         return Ok(None);
     }
-    Ok(Some((ProcedureKey {
-        window, hwnd: identity.hwnd, cookie: identity.value, ..key
-    }, hwnd)))
+    Ok(Some((
+        ProcedureKey {
+            window,
+            hwnd: identity.hwnd,
+            cookie: identity.value,
+            ..key
+        },
+        hwnd,
+    )))
 }
 
 fn prepare_class_call(
@@ -595,10 +613,18 @@ pub(super) fn base_fallback(
     let (binding, procedure) = {
         let state = state.borrow();
         let binding = *state.native_procedures.bases.get(&window)?;
-        let procedure = state.native_procedures.class_entries.get(&binding.procedure)
+        let procedure = state
+            .native_procedures
+            .class_entries
+            .get(&binding.procedure)
             .map(|entry| entry.native_procedure)
-            .or_else(|| state.native_procedures.entries.get(&binding.procedure)
-                .map(|entry| entry.key.native_procedure))?;
+            .or_else(|| {
+                state
+                    .native_procedures
+                    .entries
+                    .get(&binding.procedure)
+                    .map(|entry| entry.key.native_procedure)
+            })?;
         (binding, procedure)
     };
     if binding.hwnd != identity.hwnd || binding.cookie != identity.value {
@@ -763,11 +789,11 @@ fn get_window_procedure(hwnd: HWND) -> Option<isize> {
     // to unsupported/no native procedure rather than a fabricated callback.
     // SAFETY: hwnd is live on the worker thread and GWLP_WNDPROC is the index.
     unsafe {
-        SetLastError(0);
+        crate::windows::win32_safe::set_last_error(0);
         let value = GetWindowLongPtrW(hwnd, GWLP_WNDPROC);
         // x86 uses the GetWindowLongW i32 alias; widen only to this
         // host's pointer-sized integer, never to a guest procedure value.
-        if value == 0 && GetLastError() != 0 {
+        if value == 0 && crate::windows::win32_safe::last_error() != 0 {
             None
         } else {
             Some(value as isize)
@@ -799,7 +825,7 @@ fn pin_provider(address: isize) -> Option<ModuleLease> {
 
 #[path = "win16_native_subclass.rs"]
 mod subclass;
-pub(super) use subclass::{is_subclassed, set_procedure, restore_subclasses};
+pub(super) use subclass::{is_subclassed, restore_subclasses, set_procedure};
 
 #[cfg(test)]
 #[path = "win16_native_procedure_tests.rs"]

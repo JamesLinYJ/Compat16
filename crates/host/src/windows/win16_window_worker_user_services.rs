@@ -7,13 +7,12 @@ use super::super::super::win16_modal::NativeModalOperationOutcome;
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostClipboardOperation as ClipboardOperation,
     Win16HostClipboardResult as ClipboardResult, Win16HostDialogOperation as DialogOperation,
-    Win16HostDialogResult, Win16HostUserServiceOperation as UserServiceOperation,
-    Win16HostSessionOperation as SessionOperation, Win16HostSessionResult,
+    Win16HostDialogResult, Win16HostSessionOperation as SessionOperation, Win16HostSessionResult,
+    Win16HostUserServiceOperation as UserServiceOperation,
     Win16HostUserServiceResult as UserServiceResult, Win16WindowResult,
 };
 use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::System::DataExchange::ChangeClipboardChain;
-use windows_sys::Win32::UI::WindowsAndMessaging::IsWindow;
 
 use super::{ClipboardViewerRegistration, WorkerState};
 
@@ -103,7 +102,11 @@ fn execute_regular(
             callback,
             message,
         }) => super::super::win16_user_services_dialog::default_procedure(
-            state, dialog, callback, &message, control_color_return,
+            state,
+            dialog,
+            callback,
+            &message,
+            control_color_return,
         )
         .map(dialog_result),
         UserServiceOperation::DialogControl(operation) => {
@@ -120,9 +123,8 @@ fn execute_regular(
                 },
             )
         }
-        UserServiceOperation::Session(operation) => execute_session(operation).map(|result| {
-            Win16WindowResult::UserService(UserServiceResult::Session(result))
-        }),
+        UserServiceOperation::Session(operation) => execute_session(operation)
+            .map(|result| Win16WindowResult::UserService(UserServiceResult::Session(result))),
         _ => Err(RuntimeError::new(
             Kind::CompatibilityGap,
             "Win16 USER worker service has no connected native adapter",
@@ -132,9 +134,10 @@ fn execute_regular(
 
 fn execute_session(operation: SessionOperation) -> Result<Win16HostSessionResult, RuntimeError> {
     match operation {
-        SessionOperation::ExitWindows { return_code, reserved } => {
-            Ok(exit_windows::exit_windows(return_code, reserved))
-        }
+        SessionOperation::ExitWindows {
+            return_code,
+            reserved,
+        } => Ok(exit_windows::exit_windows(return_code, reserved)),
         SessionOperation::RunAfterWin16Restart { .. } => Err(RuntimeError::new(
             Kind::CompatibilityGap,
             "legacy ExitWindowsExec requires the Windows-to-DOS-to-Windows launcher protocol, which has no connected host implementation",
@@ -175,7 +178,9 @@ fn create_dialog(
     if let Win16HostDialogResult::Created { mut creation, menu } = result {
         if let Some(window) = creation.live_window {
             let native = state.borrow().windows.get(&window).copied();
-            if !native.is_some_and(|hwnd| !hwnd.is_null() && unsafe { IsWindow(hwnd) } != 0) {
+            if !native.is_some_and(|hwnd| {
+                !hwnd.is_null() && (crate::windows::win32_safe::is_window(hwnd)) != 0
+            }) {
                 if let Some(native) = native {
                     super::remove_window_maps(state, window, native);
                 }
@@ -252,7 +257,10 @@ fn execute_clipboard(
                 let next_native = next.and_then(|next| state.windows.get(&next).copied());
                 (native, next_native)
             };
-            if let Some(native) = native.filter(|hwnd| unsafe { IsWindow(*hwnd) } != 0) {
+            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+            if let Some(native) =
+                native.filter(|hwnd| { crate::windows::win32_safe::is_window(*hwnd) } != 0)
+            {
                 state.borrow_mut().clipboard_viewers.insert(
                     *window,
                     ClipboardViewerRegistration {
@@ -298,7 +306,8 @@ pub(in super::super) fn retire_clipboard_viewer(
         return;
     };
     let hwnd = registration.window as HWND;
-    let removed = unsafe { IsWindow(hwnd) } == 0
+    let removed = (crate::windows::win32_safe::is_window(hwnd)) == 0
+        // SAFETY: `ChangeClipboardChain` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         || unsafe { ChangeClipboardChain(hwnd, registration.next_viewer as HWND) != 0 };
     if removed {
         let mut state = state.borrow_mut();

@@ -7,6 +7,7 @@ pub(super) fn local_date_time() -> DosLocalDateTime {
     let mut time = SYSTEMTIME::default();
     // GetLocalTime writes a caller-owned fixed structure and has no failure
     // return. Native calendar conversion remains with Windows.
+    // SAFETY: GetLocalTime writes into a caller-owned SYSTEMTIME.
     unsafe { GetLocalTime(&mut time) };
     DosLocalDateTime {
         year: time.wYear,

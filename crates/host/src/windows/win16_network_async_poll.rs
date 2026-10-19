@@ -2,13 +2,16 @@
 
 use std::collections::BTreeMap;
 
-use runtime::{DiagnosticKind, RuntimeError, Win16GuestNotificationSource, Win16HostNetworkEvent, Win16HostSocket};
+use runtime::{
+    DiagnosticKind, RuntimeError, Win16GuestNotificationSource, Win16HostNetworkEvent,
+    Win16HostSocket,
+};
 use windows_sys::Win32::Networking::WinSock::*;
 
-use super::{CachedConnectTerminal, NetworkAsyncState, NativeSocketState};
-use super::helpers::{network_invariant, socket_error, socket_peek_status};
-use super::{FD_ACCEPT_16, FD_CLOSE_16, FD_CONNECT_16, FD_OOB_16, FD_READ_16, FD_WRITE_16};
 use super::helpers::SocketProbeError;
+use super::helpers::{network_invariant, socket_error, socket_peek_status};
+use super::{CachedConnectTerminal, NativeSocketState, NetworkAsyncState};
+use super::{FD_ACCEPT_16, FD_CLOSE_16, FD_CONNECT_16, FD_OOB_16, FD_READ_16, FD_WRITE_16};
 
 impl NetworkAsyncState {
     /// WinSock SO_ERROR is destructive. This single per-socket cache owns the
@@ -19,28 +22,47 @@ impl NetworkAsyncState {
         socket: Win16HostSocket,
         raw: SOCKET,
     ) -> Result<(i32, runtime::Win16HostSocketErrorReadToken), i32> {
-        let Some(snapshot) = self.sockets.get(&socket).copied() else { return Err(WSAENOTSOCK); };
+        let Some(snapshot) = self.sockets.get(&socket).copied() else {
+            return Err(WSAENOTSOCK);
+        };
         if let Some(read) = snapshot.socket_error_read {
-            return Ok((read.error, socket_error_token(socket, read.generation, read.connect_attempt)));
+            return Ok((
+                read.error,
+                socket_error_token(socket, read.generation, read.connect_attempt),
+            ));
         }
         if let Some(terminal) = snapshot.connect_result
             && terminal.guest_error_pending
         {
-            return Ok((terminal.error, socket_error_token(
-                socket, terminal.read_generation, Some(terminal.attempt_id))));
+            return Ok((
+                terminal.error,
+                socket_error_token(socket, terminal.read_generation, Some(terminal.attempt_id)),
+            ));
         }
 
         let attempt = snapshot.connect_attempt;
         let was_connect_pending = snapshot.connect_pending;
-        if was_connect_pending && attempt.is_none() { return Err(WSAEINVAL); }
-        let ready = if was_connect_pending { connect_ready(raw)? } else { false };
+        if was_connect_pending && attempt.is_none() {
+            return Err(WSAEINVAL);
+        }
+        let ready = if was_connect_pending {
+            connect_ready(raw)?
+        } else {
+            false
+        };
         let notice = if was_connect_pending {
             if let Some(route) = self.registrations.get(&socket).copied() {
                 let attempt_id = attempt.ok_or(WSAEINVAL)?;
-                self.reserve_connect_completion(route, attempt_id).map_err(|_| WSAENOBUFS)?
-            } else { None }
-        } else { None };
-        let generation = reserve_socket_error_generation(self.sockets.get_mut(&socket).ok_or(WSAENOTSOCK)?)?;
+                self.reserve_connect_completion(route, attempt_id)
+                    .map_err(|_| WSAENOBUFS)?
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        let generation =
+            reserve_socket_error_generation(self.sockets.get_mut(&socket).ok_or(WSAENOTSOCK)?)?;
         if let Some(notice) = notice {
             if let Some(state) = self.sockets.get_mut(&socket) {
                 state.connect_notice = Some(notice);
@@ -69,7 +91,8 @@ impl NetworkAsyncState {
                 state.connect_result = Some(terminal);
             }
             if let Some(notice) = notice {
-                self.publish_cached_connect(notice.route, terminal).map_err(|_| WSAENOBUFS)?;
+                self.publish_cached_connect(notice.route, terminal)
+                    .map_err(|_| WSAENOBUFS)?;
             }
         } else if let Some(state) = self.sockets.get_mut(&socket) {
             state.socket_error_read = Some(super::CachedSocketErrorRead {
@@ -92,7 +115,9 @@ impl NetworkAsyncState {
         let Some(state) = self.sockets.get_mut(&token.socket) else {
             return super::fail(WSAENOTSOCK, super::signed_error());
         };
-        if token.generation == 0 { return super::fail(WSAEINVAL, super::signed_error()); }
+        if token.generation == 0 {
+            return super::fail(WSAEINVAL, super::signed_error());
+        }
         if state.last_socket_error_ack_generation == token.generation
             && state.last_socket_error_ack_connect_attempt == token.connect_attempt
         {
@@ -123,7 +148,9 @@ impl NetworkAsyncState {
         state.last_socket_error_ack_connect_attempt = token.connect_attempt;
         let retry_poll = state.connect_pending || retired_terminal;
         self.sync_poll_demand();
-        if retry_poll { self.wake.request_poll(); }
+        if retry_poll {
+            self.wake.request_poll();
+        }
         super::ok(runtime::Win16HostNetworkValue::Signed(0))
     }
 
@@ -131,33 +158,61 @@ impl NetworkAsyncState {
         &mut self,
         sockets: &BTreeMap<Win16HostSocket, SOCKET>,
     ) -> Result<(), RuntimeError> {
-        if let Some((route, terminal)) = self.sockets.values().filter_map(|state| {
-            state.connect_result.filter(|terminal| terminal.event_pending)
-                .and_then(|terminal| terminal.notice.map(|notice| (notice.route, terminal)))
-        }).min_by_key(|(_, terminal)| terminal.attempt_id) {
-            let source = terminal.notice.map(super::ConnectNotificationReservation::source)
-                .ok_or_else(|| network_invariant("cached connect event lost its reserved source"))?;
-            if !self.events.iter().any(|event| super::helpers::event_source(event) == source) {
+        if let Some((route, terminal)) = self
+            .sockets
+            .values()
+            .filter_map(|state| {
+                state
+                    .connect_result
+                    .filter(|terminal| terminal.event_pending)
+                    .and_then(|terminal| terminal.notice.map(|notice| (notice.route, terminal)))
+            })
+            .min_by_key(|(_, terminal)| terminal.attempt_id)
+        {
+            let source = terminal
+                .notice
+                .map(super::ConnectNotificationReservation::source)
+                .ok_or_else(|| {
+                    network_invariant("cached connect event lost its reserved source")
+                })?;
+            if !self
+                .events
+                .iter()
+                .any(|event| super::helpers::event_source(event) == source)
+            {
                 self.publish_cached_connect(route, terminal)?;
             }
             return Ok(());
         }
-        if !self.events.is_empty() { return Ok(()); }
+        if !self.events.is_empty() {
+            return Ok(());
+        }
         let mut routes = Vec::new();
-        routes.try_reserve_exact(self.registrations.len()).map_err(|error|
-            RuntimeError::with_source(DiagnosticKind::ResourceExhausted,
-                "reserve WinSock async socket poll order", error))?;
+        routes
+            .try_reserve_exact(self.registrations.len())
+            .map_err(|error| {
+                RuntimeError::with_source(
+                    DiagnosticKind::ResourceExhausted,
+                    "reserve WinSock async socket poll order",
+                    error,
+                )
+            })?;
         routes.extend(self.registrations.values().copied().filter(|route| {
             let state = self.sockets.get(&route.socket).copied().unwrap_or_default();
             pollable_events(route.armed, state) != 0
         }));
         routes.sort_by_key(|route| route.socket);
         let route = match self.poll_cursor {
-            Some(cursor) => routes.iter().copied().find(|route| route.socket > cursor)
+            Some(cursor) => routes
+                .iter()
+                .copied()
+                .find(|route| route.socket > cursor)
                 .or_else(|| routes.first().copied()),
             None => routes.first().copied(),
         };
-        let Some(route) = route else { return Ok(()); };
+        let Some(route) = route else {
+            return Ok(());
+        };
         self.poll_cursor = Some(route.socket);
         let Some(raw) = sockets.get(&route.socket).copied() else {
             self.registrations.remove(&route.socket);
@@ -167,7 +222,9 @@ impl NetworkAsyncState {
 
         let mut socket_state = self.sockets.get(&route.socket).copied().unwrap_or_default();
         if let Some(terminal) = socket_state.connect_result {
-            if terminal.event_pending { return Ok(()); }
+            if terminal.event_pending {
+                return Ok(());
+            }
         }
         if socket_state.connect_pending && socket_state.socket_error_read.is_some() {
             return Ok(());
@@ -182,19 +239,31 @@ impl NetworkAsyncState {
         write_set.fd_count = 1;
         except_set.fd_array[0] = raw;
         except_set.fd_count = 1;
-        let mut timeout = TIMEVAL { tv_sec: 0, tv_usec: 0 };
+        let mut timeout = TIMEVAL {
+            tv_sec: 0,
+            tv_usec: 0,
+        };
+        // SAFETY: select reads and writes caller-owned fd sets that stay live for the call.
         let result = unsafe {
-            select(0, &mut read_set, &mut write_set, &mut except_set, &mut timeout)
+            select(
+                0,
+                &mut read_set,
+                &mut write_set,
+                &mut except_set,
+                &mut timeout,
+            )
         };
         if result == SOCKET_ERROR {
-            let code = unsafe { WSAGetLastError() };
+            let code = crate::windows::win32_safe::wsa_last_error();
             if code == WSAENOTSOCK {
                 self.registrations.remove(&route.socket);
                 self.sync_poll_demand();
                 return Ok(());
             }
-            return Err(RuntimeError::new(DiagnosticKind::HostFailure,
-                format!("poll WinSock async socket readiness failed with WSA error {code}")));
+            return Err(RuntimeError::new(
+                DiagnosticKind::HostFailure,
+                format!("poll WinSock async socket readiness failed with WSA error {code}"),
+            ));
         }
         let is_readable = read_set.fd_count != 0;
         let is_writable = write_set.fd_count != 0;
@@ -212,24 +281,38 @@ impl NetworkAsyncState {
         // published before any later select and remains owned on reserve or
         // sequence failure until the exact source can be created.
         if socket_state.connect_pending && (is_writable || is_exceptional) {
-            let attempt_id = socket_state.connect_attempt.ok_or_else(|| network_invariant(
-                "pending WinSock connect has no reserved attempt identity"))?;
+            let attempt_id = socket_state.connect_attempt.ok_or_else(|| {
+                network_invariant("pending WinSock connect has no reserved attempt identity")
+            })?;
             // Reserve the exact FD_CONNECT source before SO_ERROR consumes its
             // native terminal result, including when the route was registered
             // after connect began.
             let notice = self.reserve_connect_completion(route, attempt_id)?;
-            let read_generation = reserve_socket_error_generation(self.sockets.get_mut(&route.socket)
-                .ok_or_else(|| network_invariant("pending connect lost its socket owner"))?)
-                .map_err(|_| RuntimeError::new(DiagnosticKind::ResourceExhausted,
-                    "WinSock SO_ERROR read generation space is exhausted"))?;
-            let error = socket_error(raw).map_err(|code| RuntimeError::with_source(
-                DiagnosticKind::HostFailure,
-                "read the completed WinSock connect SO_ERROR",
-                SocketProbeError(code),
-            ))?;
+            let read_generation = reserve_socket_error_generation(
+                self.sockets
+                    .get_mut(&route.socket)
+                    .ok_or_else(|| network_invariant("pending connect lost its socket owner"))?,
+            )
+            .map_err(|_| {
+                RuntimeError::new(
+                    DiagnosticKind::ResourceExhausted,
+                    "WinSock SO_ERROR read generation space is exhausted",
+                )
+            })?;
+            let error = socket_error(raw).map_err(|code| {
+                RuntimeError::with_source(
+                    DiagnosticKind::HostFailure,
+                    "read the completed WinSock connect SO_ERROR",
+                    SocketProbeError(code),
+                )
+            })?;
             let terminal = CachedConnectTerminal {
-                attempt_id, error, notice, read_generation,
-                guest_error_pending: true, event_pending: notice.is_some(),
+                attempt_id,
+                error,
+                notice,
+                read_generation,
+                guest_error_pending: true,
+                event_pending: notice.is_some(),
             };
             if let Some(state) = self.sockets.get_mut(&route.socket) {
                 state.connect_pending = false;
@@ -246,11 +329,13 @@ impl NetworkAsyncState {
 
         let active_mask = pollable_events(route.armed, socket_state);
         let mut ready: Vec<(u16, u16)> = Vec::new();
-        ready.try_reserve_exact(4).map_err(|error| RuntimeError::with_source(
-            DiagnosticKind::ResourceExhausted,
-            "reserve WinSock readiness result slots before inspecting socket status",
-            error,
-        ))?;
+        ready.try_reserve_exact(4).map_err(|error| {
+            RuntimeError::with_source(
+                DiagnosticKind::ResourceExhausted,
+                "reserve WinSock readiness result slots before inspecting socket status",
+                error,
+            )
+        })?;
         if socket_state.listening && is_readable && active_mask & FD_ACCEPT_16 != 0 {
             ready.push((FD_ACCEPT_16 as u16, 0));
         } else if !socket_state.listening && is_readable {
@@ -274,8 +359,8 @@ impl NetworkAsyncState {
                     Ok(Some(count)) if count > 0 && active_mask & FD_READ_16 != 0 => {
                         ready.push((FD_READ_16 as u16, 0));
                     }
-                    Err(error) if active_mask & FD_CLOSE_16 != 0
-                        && !socket_state.close_event_queued =>
+                    Err(error)
+                        if active_mask & FD_CLOSE_16 != 0 && !socket_state.close_event_queued =>
                     {
                         ready.push((FD_CLOSE_16 as u16, error as u16));
                     }
@@ -283,12 +368,12 @@ impl NetworkAsyncState {
                 }
             }
         }
-        if socket_state.socket_type == SOCK_STREAM && is_exceptional
-            && active_mask & FD_OOB_16 != 0
+        if socket_state.socket_type == SOCK_STREAM && is_exceptional && active_mask & FD_OOB_16 != 0
         {
             ready.push((FD_OOB_16 as u16, 0));
         }
-        if is_writable && !socket_state.local_send_shutdown
+        if is_writable
+            && !socket_state.local_send_shutdown
             && (socket_state.connected || socket_state.socket_type == SOCK_DGRAM)
             && active_mask & FD_WRITE_16 != 0
         {
@@ -298,31 +383,50 @@ impl NetworkAsyncState {
             self.sync_poll_demand();
             return Ok(());
         }
-        self.events.try_reserve(ready.len()).map_err(|error| RuntimeError::with_source(
-            DiagnosticKind::ResourceExhausted, "reserve WinSock socket event sources", error))?;
-        let event_count = ready.iter().filter(|(event, _)| {
-            route.armed & u32::from(*event) != 0
-        }).count();
-        let Some(next_sequence) = route.next_sequence.checked_add(event_count as u64)
-            .filter(|next| *next != 0) else {
-            return Err(RuntimeError::new(DiagnosticKind::ResourceExhausted,
-                "WinSock notification source sequence space is exhausted"));
+        self.events.try_reserve(ready.len()).map_err(|error| {
+            RuntimeError::with_source(
+                DiagnosticKind::ResourceExhausted,
+                "reserve WinSock socket event sources",
+                error,
+            )
+        })?;
+        let event_count = ready
+            .iter()
+            .filter(|(event, _)| route.armed & u32::from(*event) != 0)
+            .count();
+        let Some(next_sequence) = route
+            .next_sequence
+            .checked_add(event_count as u64)
+            .filter(|next| *next != 0)
+        else {
+            return Err(RuntimeError::new(
+                DiagnosticKind::ResourceExhausted,
+                "WinSock notification source sequence space is exhausted",
+            ));
         };
         if route.next_sequence == u64::MAX {
-            return Err(RuntimeError::new(DiagnosticKind::ResourceExhausted,
-                "WinSock notification source sequence space is exhausted"));
+            return Err(RuntimeError::new(
+                DiagnosticKind::ResourceExhausted,
+                "WinSock notification source sequence space is exhausted",
+            ));
         }
         let mut sequence = route.next_sequence;
-        let current = self.registrations.get_mut(&route.socket).ok_or_else(|| network_invariant(
-            "WinSock async route disappeared during readiness poll"))?;
-        if current.source_id != route.source_id || current.generation != route.generation
+        let current = self.registrations.get_mut(&route.socket).ok_or_else(|| {
+            network_invariant("WinSock async route disappeared during readiness poll")
+        })?;
+        if current.source_id != route.source_id
+            || current.generation != route.generation
             || current.next_sequence != route.next_sequence
         {
-            return Err(network_invariant("WinSock route identity changed during readiness poll"));
+            return Err(network_invariant(
+                "WinSock route identity changed during readiness poll",
+            ));
         }
         for (event, error) in ready {
             let event_mask = u32::from(event);
-            if current.armed & event_mask == 0 { continue; }
+            if current.armed & event_mask == 0 {
+                continue;
+            }
             self.events.push_back(Win16HostNetworkEvent::SocketReady {
                 source: Win16GuestNotificationSource {
                     id: current.source_id,
@@ -356,33 +460,55 @@ impl NetworkAsyncState {
         route: super::AsyncSocketRegistration,
         terminal: CachedConnectTerminal,
     ) -> Result<(), RuntimeError> {
-        let state = self.sockets.get(&route.socket).copied().ok_or_else(|| network_invariant(
-            "cached WinSock connect result lost its socket owner"))?;
-        if state.connect_pending || state.connect_attempt != Some(terminal.attempt_id)
+        let state = self.sockets.get(&route.socket).copied().ok_or_else(|| {
+            network_invariant("cached WinSock connect result lost its socket owner")
+        })?;
+        if state.connect_pending
+            || state.connect_attempt != Some(terminal.attempt_id)
             || !terminal.event_pending
             || state.connect_result != Some(terminal)
         {
-            return Err(network_invariant("cached WinSock SO_ERROR no longer matches its connect attempt"));
+            return Err(network_invariant(
+                "cached WinSock SO_ERROR no longer matches its connect attempt",
+            ));
         }
-        let notice = terminal.notice.ok_or_else(|| network_invariant(
-            "cached WinSock connect notification lost its reserved source"))?;
-        let current = self.registrations.get(&route.socket).copied().ok_or_else(|| network_invariant(
-            "cached WinSock connect result lost its notification route"))?;
-        if current != route || current != notice.route
-            || current.source_id != route.source_id || current.generation != route.generation
+        let notice = terminal.notice.ok_or_else(|| {
+            network_invariant("cached WinSock connect notification lost its reserved source")
+        })?;
+        let current = self
+            .registrations
+            .get(&route.socket)
+            .copied()
+            .ok_or_else(|| {
+                network_invariant("cached WinSock connect result lost its notification route")
+            })?;
+        if current != route
+            || current != notice.route
+            || current.source_id != route.source_id
+            || current.generation != route.generation
             || current.next_sequence != notice.sequence
             || current.armed & FD_CONNECT_16 == 0
         {
-            return Err(network_invariant("cached WinSock connect result changed route before publication"));
+            return Err(network_invariant(
+                "cached WinSock connect result changed route before publication",
+            ));
         }
         let Some(next_sequence) = notice.sequence.checked_add(1).filter(|value| *value != 0) else {
-            return Err(RuntimeError::new(DiagnosticKind::ResourceExhausted,
-                "WinSock connect notification sequence space is exhausted"));
+            return Err(RuntimeError::new(
+                DiagnosticKind::ResourceExhausted,
+                "WinSock connect notification sequence space is exhausted",
+            ));
         };
-        self.events.try_reserve(1).map_err(|error| RuntimeError::with_source(
-            DiagnosticKind::ResourceExhausted, "reserve cached WinSock connect source", error))?;
-        let error = u16::try_from(terminal.error).map_err(|_| network_invariant(
-            "WinSock SO_ERROR does not fit the Win16 FD_CONNECT error word"))?;
+        self.events.try_reserve(1).map_err(|error| {
+            RuntimeError::with_source(
+                DiagnosticKind::ResourceExhausted,
+                "reserve cached WinSock connect source",
+                error,
+            )
+        })?;
+        let error = u16::try_from(terminal.error).map_err(|_| {
+            network_invariant("WinSock SO_ERROR does not fit the Win16 FD_CONNECT error word")
+        })?;
         self.events.push_back(Win16HostNetworkEvent::SocketReady {
             source: Win16GuestNotificationSource {
                 id: current.source_id,
@@ -417,43 +543,79 @@ impl NetworkAsyncState {
         route: super::AsyncSocketRegistration,
         attempt_id: u64,
     ) -> Result<Option<super::ConnectNotificationReservation>, RuntimeError> {
-        if let Some(notice) = self.sockets.get(&route.socket)
+        if let Some(notice) = self
+            .sockets
+            .get(&route.socket)
             .and_then(|state| state.connect_notice)
         {
             if notice.attempt_id != attempt_id {
-                return Err(network_invariant("reserved WinSock connect notification belongs to another attempt"));
+                return Err(network_invariant(
+                    "reserved WinSock connect notification belongs to another attempt",
+                ));
             }
-            let current = self.registrations.get(&route.socket).copied().ok_or_else(|| network_invariant(
-                "reserved WinSock connect route disappeared before SO_ERROR"))?;
+            let current = self
+                .registrations
+                .get(&route.socket)
+                .copied()
+                .ok_or_else(|| {
+                    network_invariant("reserved WinSock connect route disappeared before SO_ERROR")
+                })?;
             if current != route || current != notice.route {
-                return Err(network_invariant("reserved WinSock connect route changed before SO_ERROR"));
+                return Err(network_invariant(
+                    "reserved WinSock connect route changed before SO_ERROR",
+                ));
             }
-            self.events.try_reserve(1).map_err(|error| RuntimeError::with_source(
-                DiagnosticKind::ResourceExhausted,
-                "preserve reserved WinSock connect event before reading SO_ERROR",
-                error,
-            ))?;
+            self.events.try_reserve(1).map_err(|error| {
+                RuntimeError::with_source(
+                    DiagnosticKind::ResourceExhausted,
+                    "preserve reserved WinSock connect event before reading SO_ERROR",
+                    error,
+                )
+            })?;
             return Ok(Some(notice));
         }
-        if route.armed & FD_CONNECT_16 == 0 { return Ok(None); }
-        let current = self.registrations.get(&route.socket).copied().ok_or_else(|| network_invariant(
-            "FD_CONNECT route disappeared before SO_ERROR reservation"))?;
-        if current != route || current.source_id != route.source_id
-            || current.generation != route.generation || current.armed & FD_CONNECT_16 == 0
-        {
-            return Err(network_invariant("FD_CONNECT route changed before SO_ERROR reservation"));
+        if route.armed & FD_CONNECT_16 == 0 {
+            return Ok(None);
         }
-        let Some(next) = route.next_sequence.checked_add(1).filter(|value| *value != 0) else {
-            return Err(RuntimeError::new(DiagnosticKind::ResourceExhausted,
-                "WinSock connect notification sequence space is exhausted"));
+        let current = self
+            .registrations
+            .get(&route.socket)
+            .copied()
+            .ok_or_else(|| {
+                network_invariant("FD_CONNECT route disappeared before SO_ERROR reservation")
+            })?;
+        if current != route
+            || current.source_id != route.source_id
+            || current.generation != route.generation
+            || current.armed & FD_CONNECT_16 == 0
+        {
+            return Err(network_invariant(
+                "FD_CONNECT route changed before SO_ERROR reservation",
+            ));
+        }
+        let Some(next) = route
+            .next_sequence
+            .checked_add(1)
+            .filter(|value| *value != 0)
+        else {
+            return Err(RuntimeError::new(
+                DiagnosticKind::ResourceExhausted,
+                "WinSock connect notification sequence space is exhausted",
+            ));
         };
         let _ = next;
-        self.events.try_reserve(1).map_err(|error| RuntimeError::with_source(
-            DiagnosticKind::ResourceExhausted,
-            "reserve WinSock connect event before reading SO_ERROR",
-            error,
-        ))?;
-        Ok(Some(super::ConnectNotificationReservation { route, sequence: route.next_sequence, attempt_id }))
+        self.events.try_reserve(1).map_err(|error| {
+            RuntimeError::with_source(
+                DiagnosticKind::ResourceExhausted,
+                "reserve WinSock connect event before reading SO_ERROR",
+                error,
+            )
+        })?;
+        Ok(Some(super::ConnectNotificationReservation {
+            route,
+            sequence: route.next_sequence,
+            attempt_id,
+        }))
     }
 }
 
@@ -462,7 +624,11 @@ fn socket_error_token(
     generation: u64,
     connect_attempt: Option<u64>,
 ) -> runtime::Win16HostSocketErrorReadToken {
-    runtime::Win16HostSocketErrorReadToken { socket, generation, connect_attempt }
+    runtime::Win16HostSocketErrorReadToken {
+        socket,
+        generation,
+        connect_attempt,
+    }
 }
 
 fn reserve_socket_error_generation(state: &mut NativeSocketState) -> Result<u64, i32> {
@@ -481,9 +647,23 @@ fn connect_ready(raw: SOCKET) -> Result<bool, i32> {
     writable.fd_count = 1;
     exceptional.fd_array[0] = raw;
     exceptional.fd_count = 1;
-    let mut timeout = TIMEVAL { tv_sec: 0, tv_usec: 0 };
-    let result = unsafe { select(0, std::ptr::null_mut(), &mut writable, &mut exceptional, &mut timeout) };
-    if result == SOCKET_ERROR { return Err(unsafe { WSAGetLastError() }); }
+    let mut timeout = TIMEVAL {
+        tv_sec: 0,
+        tv_usec: 0,
+    };
+    // SAFETY: select reads and writes caller-owned fd sets that stay live for the call.
+    let result = unsafe {
+        select(
+            0,
+            std::ptr::null_mut(),
+            &mut writable,
+            &mut exceptional,
+            &mut timeout,
+        )
+    };
+    if result == SOCKET_ERROR {
+        return Err(crate::windows::win32_safe::wsa_last_error());
+    }
     Ok(writable.fd_count != 0 || exceptional.fd_count != 0)
 }
 
@@ -496,19 +676,34 @@ pub(super) fn pollable_events(armed: u32, state: NativeSocketState) -> u32 {
         // SO_ERROR is consumed. If FD_CONNECT was not requested, other
         // interests still drive the readiness probe and are evaluated only
         // after the connect attempt becomes terminal.
-        if armed & FD_CONNECT_16 != 0 { armed & FD_CONNECT_16 }
-        else { armed & !FD_ACCEPT_16 }
+        if armed & FD_CONNECT_16 != 0 {
+            armed & FD_CONNECT_16
+        } else {
+            armed & !FD_ACCEPT_16
+        }
     } else if state.socket_type == SOCK_DGRAM && (state.connected || state.bound) {
-        let mut events = armed & (FD_READ_16 | if state.local_send_shutdown { 0 } else { FD_WRITE_16 });
-        if state.local_receive_shutdown { events &= !FD_READ_16; }
+        let mut events = armed
+            & (FD_READ_16
+                | if state.local_send_shutdown {
+                    0
+                } else {
+                    FD_WRITE_16
+                });
+        if state.local_receive_shutdown {
+            events &= !FD_READ_16;
+        }
         events
     } else if state.connected {
         let mut events = armed & !(FD_CONNECT_16 | FD_ACCEPT_16);
         if state.receive_eof || state.local_receive_shutdown {
             events &= !(FD_READ_16 | FD_OOB_16);
         }
-        if state.local_send_shutdown { events &= !FD_WRITE_16; }
-        if state.close_event_queued { events &= !FD_CLOSE_16; }
+        if state.local_send_shutdown {
+            events &= !FD_WRITE_16;
+        }
+        if state.close_event_queued {
+            events &= !FD_CLOSE_16;
+        }
         events
     } else {
         0

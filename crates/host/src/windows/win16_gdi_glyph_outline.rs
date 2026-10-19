@@ -130,6 +130,7 @@ fn glyph_character(dc: HDC, guest_code_page: u32, code: u16) -> Option<u16> {
         && charset != i32::from(DEFAULT_CHARSET)
         // TCI_SRCCHARSET takes a numeric charset in lpSrc, not an address.
         // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-translatecharsetinfo
+        // SAFETY: `TranslateCharsetInfo` receives a host pointer formed in this function. The pointer is non-null when dereferenced, stays live for this synchronous call, and is not a guest address.
         && unsafe {
             TranslateCharsetInfo(charset as usize as *mut u32, &mut info, TCI_SRCCHARSET)
         } != 0
@@ -141,6 +142,7 @@ fn glyph_character(dc: HDC, guest_code_page: u32, code: u16) -> Option<u16> {
         guest_code_page
     };
     let encoded = code.to_be_bytes();
+    // SAFETY: `IsDBCSLeadByteEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
     let bytes = if unsafe { IsDBCSLeadByteEx(code_page, encoded[0]) } != 0 {
         &encoded[..]
     } else {
