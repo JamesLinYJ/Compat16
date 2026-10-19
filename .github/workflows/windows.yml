@@ -102,6 +102,8 @@ jobs:
             '-p dos-kernel',
             '-p runtime --lib multiplex::tests::',
             '-p host-services --lib filesystem::tests::seek::',
+            '-p host-services --lib filesystem::aliases::tests::',
+            '-p host-services --lib filesystem::tests::oem_short_names::',
             '-p formats',
             '-p graphics',
             '-p devices',
@@ -273,11 +275,13 @@ jobs:
             '-p host-services --lib oem_bitmap_native_ -- --ignored --test-threads=1' = 2
             '-p win16-abi --lib registry_' = 14
             '-p host-services --lib dialog_root_native_ -- --ignored --test-threads=1' = 4
-            '-p host-services --lib diagnostics_tests::' = 5
+            '-p host-services --lib diagnostics_tests::' = 9
+            '-p host-services --lib filesystem::aliases::tests::' = 2
+            '-p host-services --lib filesystem::tests::oem_short_names::' = 1
             '-p runtime --lib temp_drive::tests::' = 6
             '-p runtime --lib get_temp_drive_tests::' = 6
             '-p runtime --lib files::open_file_tests::' = 7
-            '-p host-services --lib windows::win16_open_file::tests::' = 14
+            '-p host-services --lib windows::win16_open_file::tests::' = 18
             '-p host-services --lib windows::win16_gdi_services::dbcs_tests::' = 5
             '-p runtime --lib gdi_services::wire_tests::' = 2
             '-p runtime --lib win16_runtime::task_state::tests::' = 7
@@ -304,7 +308,7 @@ jobs:
             '-p runtime --lib win16_runtime::gdi_services::scalable_font_tests::' = 5
             '-p runtime --lib win16_runtime::joystick::tests::' = 10
             '-p runtime --lib win16_runtime::kernel_path_info::short_path_profile_struct_tests::' = 9
-            '-p runtime --lib win16_runtime::kernel_task::tests::' = 5
+            '-p runtime --lib win16_runtime::kernel_task::tests::' = 6
             '-p runtime --lib win16_runtime::media_time::timer_tests::' = 7
             '-p runtime --lib win16_runtime::mixer_tests::' = 4
             '-p runtime --lib win16_host_mixer::session_tests::' = 1
@@ -365,7 +369,10 @@ jobs:
               $testExitCode = $LASTEXITCODE
               $suiteOutput | ForEach-Object { Write-Host $_ }
               $expected = $expectedPassCounts[$suite]
-              if (($suiteOutput -join "`n") -notmatch "test result: ok\. $expected passed; 0 failed; 0 ignored;") {
+              # The broad OEM bitmap filter also selects two native fixtures,
+              # which are executed explicitly by the following ignored suite.
+              $expectedIgnored = if ($suite -eq '-p host-services --lib oem_bitmap_') { 2 } else { 0 }
+              if (($suiteOutput -join "`n") -notmatch "test result: ok\. $expected passed; 0 failed; $expectedIgnored ignored;") {
                 $failedSuites += "$suite (expected $expected executed tests)"
               }
             } else {
