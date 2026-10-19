@@ -14,10 +14,13 @@ pub use cells::{decode_text_row, CellRole, DecodedCell};
 pub use characters::{encoded_characters, EncodedCharacter, EncodedCharacters};
 pub use codepage::{CodePage, TextError};
 pub use convert::{decode, encode};
-pub use detection::{detect_ansi_code_page, TextEncodingConflict, TextEncodingEvidence, TextEncodingSelection};
+pub use detection::{detect_ansi_code_page, detect_program_ansi_code_page, TextEncodingConflict, TextEncodingEvidence, TextEncodingSelection};
 pub use dos_tables::{DosCodePageTables, dos_code_page_tables};
 pub use name::uppercase_oem_name;
 pub use stream::StreamDecoder;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod detection_tests;

@@ -139,6 +139,9 @@ fn resource_table_parses_numeric_type_and_resource_ids() {
     assert_eq!((resource.file_offset, resource.byte_length), (0x160, 1));
 }
 
+#[path = "ne_parser/text_profile.rs"]
+mod text_profile;
+
 fn minimal_ne() -> Vec<u8> {
     let mut bytes = vec![0_u8; 0x180];
     bytes[0..2].copy_from_slice(b"MZ");

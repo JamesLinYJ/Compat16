@@ -1,8 +1,9 @@
 //! Generic selection policy for an ANSI code page from resource metadata and
 //! already-extracted text samples.
 //!
-//! This is the legacy Win16 ANSI profile: declarations, language and font
-//! charset metadata take precedence over statistical detection. Statistical
+//! For metadata describing the sampled text, declarations, language and font
+//! charset metadata take precedence over statistical detection. Program-level
+//! selection separately scopes version-info hints and actual UI evidence. Statistical
 //! detection never selects UTF-8 or UTF-16. UTF-8 may still be selected when
 //! supplied as a unique declaration or explicit override; UTF-16 declarations
 //! are ignored because resource translation code page 1200/1201 can describe
@@ -127,6 +128,42 @@ pub fn detect_ansi_code_page(
         evidence: TextEncodingEvidence::LocaleFallback,
         conflicts,
     }
+}
+
+/// Select a program's ANSI profile without treating version-info translation
+/// tags as declarations for unrelated UI resources. Localized UI strings may
+/// coexist with unchanged publisher/version strings in another language.
+///
+/// An explicit override wins, then UI font metadata, visible menu text,
+/// string-table text, version-info hints and the locale fallback. Keep menus
+/// separate: applications can also use string tables for character maps and
+/// other lookup data which must not outweigh actual interface labels.
+/// Metadata conflicts from both scopes are retained, in version/font order.
+pub fn detect_program_ansi_code_page(
+    version_code_pages: &[u32],
+    version_language_code_pages: &[u32],
+    ui_charset_code_pages: &[u32],
+    menu_samples: &[Vec<u8>],
+    string_samples: &[Vec<u8>],
+    fallback: u32,
+    explicit: Option<u32>,
+) -> TextEncodingSelection {
+    let mut version = detect_ansi_code_page(
+        version_code_pages, version_language_code_pages, &[], &[], fallback, None,
+    );
+    let strings = detect_ansi_code_page(
+        &[], &[], &[], string_samples, version.code_page, None,
+    );
+    let mut ui = detect_ansi_code_page(
+        &[], &[], ui_charset_code_pages, menu_samples, strings.code_page, explicit,
+    );
+    let mut conflicts = core::mem::take(&mut version.conflicts);
+    conflicts.append(&mut ui.conflicts);
+    let mut selection = if ui.evidence != TextEncodingEvidence::LocaleFallback { ui }
+        else if strings.evidence != TextEncodingEvidence::LocaleFallback { strings }
+        else { version };
+    selection.conflicts = conflicts;
+    selection
 }
 
 fn metadata_candidates(code_pages: &[u32]) -> Vec<u32> {
