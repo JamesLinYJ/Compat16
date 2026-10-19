@@ -90,18 +90,21 @@ fn wait_message_parks_without_spinning_or_resubmitting_and_finishes_original_wai
     assert!(!runtime.win16.as_mut().unwrap().service_pending_window_guest_work(
         &mut runtime.cpu, &mut runtime.memory, &mut runtime.dos, &mut host, false).unwrap());
     assert_eq!((host.calls, host.wait_resumes, host.consumed), (1, 0, 0));
+    // The independent DDE poll owns admission and completion turns. USER
+    // remains parked, with the original CPU frame and no duplicate wait.
+    for _ in 0..2 {
+        assert!(runtime.win16.as_mut().unwrap().service_pending_window_guest_work(
+            &mut runtime.cpu, &mut runtime.memory, &mut runtime.dos, &mut host, true).unwrap());
+        assert_eq!(runtime.cpu.regs, before);
+        assert_eq!((host.calls, host.wait_resumes, host.consumed), (1, 0, 0));
+    }
     runtime.win16.as_mut().unwrap().service_pending_window_guest_work(
         &mut runtime.cpu, &mut runtime.memory, &mut runtime.dos, &mut host, true).unwrap();
     assert_return(&runtime, return_to);
     assert_eq!((host.calls, host.wait_resumes, host.consumed), (1, 1, 1));
     assert_eq!(host.zero_arg_calls, [112]);
     assert_eq!(bytes(&runtime), [0xa7; 258]);
-    // Finish the separate safe-point poll; it cannot consume or replay USER.
-    for _ in 0..2 {
-        runtime.win16.as_mut().unwrap().service_classic_dde_safe_point(
-            &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut host).unwrap();
-    }
-    assert_eq!((host.calls, host.wait_resumes, host.consumed), (1, 1, 1));
+    // Exact DDE source consumption precedes the one original USER resume.
     assert_eq!(host.dde_polls, 1);
     assert_return(&runtime, return_to);
 }

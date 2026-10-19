@@ -222,6 +222,13 @@ impl Runtime {
                 .is_some_and(crate::process::ProcessFrame::is_win16_dos_child)
                 && state.dde_guest_contexts.is_empty() && !state.pe32_dispatch.has_active_call();
             if guest_dispatch_allowed
+                && state.service_pending_classic_dde_work(
+                    &mut self.cpu, &mut self.dos, &mut self.memory, host,
+                )?
+            {
+                continue;
+            }
+            if guest_dispatch_allowed
                 && state.retry_mci_callback_progress(&mut self.cpu, &mut self.memory, host)?
             {
                 continue;

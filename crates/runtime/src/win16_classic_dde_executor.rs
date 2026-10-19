@@ -54,6 +54,30 @@ mod callback_teardown;
 mod guest_finish;
 
 impl Win16State {
+    /// A Started source is still a synchronous owner, even before it yields
+    /// a callback. Drain its exact terminal and source ACK before ordinary
+    /// guest execution can enter an unrelated USER/OLESVR call. Checked guest
+    /// callbacks remain runnable while their enclosing source is suspended.
+    pub(super) fn service_pending_classic_dde_work(
+        &mut self,
+        cpu: &mut Cpu,
+        dos: &mut DosKernel,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<bool, RuntimeError> {
+        let returned_callback = self.classic_dde.callbacks.last().is_some_and(|frame|
+            frame.returned_value.is_some());
+        if !returned_callback
+            && (self.classic_dde.operations.is_empty() || !self.callback_kinds.is_empty())
+        {
+            return Ok(false);
+        }
+        self.service_classic_dde_safe_point(cpu, dos, memory, host)?;
+        // This was a pump turn, including Started -> Complete and source
+        // retirement. Do not charge or execute a guest instruction for it.
+        Ok(true)
+    }
+
     /// Run one bounded classic-DDE safe-point action. A true result means a
     /// checked guest callback or an exact synchronous DDE source now owns the
     /// runtime; callers must not start an unrelated guest callback this turn.
@@ -67,7 +91,8 @@ impl Win16State {
         if self.classic_dde.callbacks.last().is_some_and(|frame|
             frame.returned_value.is_some())
         {
-            return self.retry_returned_classic_dde_guest_callback(cpu, dos, memory, host);
+            let owned = self.retry_returned_classic_dde_guest_callback(cpu, dos, memory, host)?;
+            return Ok(owned || !self.classic_dde.operations.is_empty());
         }
         // Classic WM_DDE has its own USER worker and ownership ledger. The
         // DDEML `dde_runtime_quiesced` bit must not strand its callbacks or
@@ -75,6 +100,17 @@ impl Win16State {
         if !self.callback_kinds.is_empty() {
             return Ok(false);
         }
+        let owned = self.service_classic_dde_sources(cpu, dos, memory, host)?;
+        Ok(owned || !self.classic_dde.operations.is_empty())
+    }
+
+    fn service_classic_dde_sources(
+        &mut self,
+        cpu: &mut Cpu,
+        dos: &mut DosKernel,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<bool, RuntimeError> {
         if self.classic_dde_top_operation_detail().is_some() {
             return self.service_classic_dde_operation(cpu, dos, memory, host);
         }

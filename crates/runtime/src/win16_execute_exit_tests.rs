@@ -25,6 +25,7 @@ struct ExitHost {
     terminal_dos_calls: usize,
     callback_markers: Vec<u16>,
     markers_at_exit: Vec<Vec<u16>>,
+    marker_requires_idle_dde: bool,
 }
 
 impl DosHost for ExitHost {
@@ -64,6 +65,13 @@ impl RuntimeHost for ExitHost {
     fn read_bios_key(&mut self) -> Result<KeyStroke, RuntimeError> { panic!("unexpected host call") }
     fn render_text(&mut self, _screen: &ConsoleSnapshot) -> Result<(), RuntimeError> { panic!("unexpected host call") }
     fn win16_get_tick_count(&mut self) -> Result<u32, RuntimeError> { Ok(0) }
+
+    fn win16_take_guest_callback(&mut self) -> Result<Option<Win16GuestCallbackEvent>, RuntimeError> {
+        if self.marker_requires_idle_dde {
+            assert!(self.active.is_none(), "unrelated callback admission overtook a live DDE poll");
+        }
+        Ok(None)
+    }
 
     fn win16_classic_dde_begin(
         &mut self, call: Win16HostClassicDdeCall,
@@ -133,6 +141,9 @@ impl RuntimeHost for ExitHost {
         before: &guest_core::Registers, _after: &guest_core::Registers,
     ) {
         if before.ah() == 0x30 {
+            if self.marker_requires_idle_dde {
+                assert!(self.active.is_none(), "guest instruction overtook a live DDE poll");
+            }
             self.callback_markers.push(before.bx());
         }
         if before.ah() == 0x4c {
@@ -210,6 +221,47 @@ fn terminal_int21_at_segment_end_waits_for_classic_dde_without_iret() {
         assert!(state.classic_dde_task_exit_quiesced(owner));
         assert!(!state.classic_dde_task_exit_needs_pump());
     }
+}
+
+#[test]
+fn guest_service_waits_for_started_classic_dde_poll_retirement() {
+    for engine in [ExecutionEngine::Interpreter, ExecutionEngine::Jit] {
+        let (mut runtime, _) = fixture(0x3000);
+        runtime.set_execution_engine(engine);
+        let mut host = ExitHost { marker_requires_idle_dde: true, ..ExitHost::default() };
+        // The first MOV reaches the real scheduler, which starts a poll. The
+        // following INT must wait across Started, Complete and source ACK;
+        // its deliberate segment-end IRET fault then ends this observation.
+        let error = runtime.run_win16_inner(&mut host, 20).unwrap_err();
+        assert_eq!(error.kind(), Kind::GuestFault, "{engine:?}: {error}");
+        assert_eq!(runtime.instructions, 2);
+        assert_eq!(host.callback_markers.len(), 1);
+        assert!(host.resumes >= 2);
+        assert_eq!(host.retired as u64, host.begins);
+        assert!(host.active.is_none());
+    }
+}
+
+#[test]
+fn started_classic_dde_poll_owns_each_turn_until_exact_source_consumption() {
+    let (mut runtime, _) = fixture(0x3000);
+    let mut host = ExitHost::default();
+    let state = runtime.win16.as_mut().unwrap();
+    // Admission, delayed progress, and a terminal still awaiting its source
+    // ACK all exclude unrelated callbacks. Only consumption releases the turn.
+    for _ in 0..3 {
+        assert!(state.service_classic_dde_safe_point(
+            &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut host,
+        ).unwrap());
+        assert!(host.active.is_some());
+        assert_eq!(host.retired, 0);
+    }
+    assert!(!state.service_classic_dde_safe_point(
+        &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut host,
+    ).unwrap());
+    assert_eq!(host.begins, 1);
+    assert_eq!(host.retired, 1);
+    assert!(host.active.is_none());
 }
 
 #[test]
