@@ -1,9 +1,11 @@
 //! Stack decoding for driver and deferred-device exports.
 //!
-//! Binding ids `5000000`–`5999999` and `7000000`–`7999999` belong to COMM,
-//! DISPLAY, KEYBOARD, MOUSE, SOUND, SYSTEM, TIMER, WINSPOOL, PENWIN, STRESS,
-//! MSVIDEO, DISPDIB, and AVIFILE. The second block is the follow-up for
-//! signatures that were still declaration-only.
+//! Binding ids `5000000`–`5999999`, `7000000`–`7999999`, and
+//! `9000000`–`9099999` belong to COMM, DISPLAY, KEYBOARD, MOUSE, SOUND,
+//! SYSTEM, TIMER, WINSPOOL, PENWIN, STRESS, MSVIDEO, DISPDIB, and AVIFILE.
+//! The second block is the follow-up for signatures that were still
+//! declaration-only. The third block is the public-SDK recovery of the
+//! rows that remained.
 
 use super::super::request::{Win16DriverArg as Arg, Win16DriverCall as Call};
 use super::super::{Win16ExportDescriptor, Win16ParameterType};
@@ -15,10 +17,14 @@ pub(super) const DRIVER_ID_LAST: u32 = 5_000_305;
 /// Follow-up bindings for driver signatures resolved after that pass.
 pub(super) const DRIVER_FOLLOWUP_FIRST: u32 = 7_000_000;
 pub(super) const DRIVER_FOLLOWUP_LAST: u32 = 7_999_999;
+/// Public SDK signatures for the rows left declaration-only after that pass.
+pub(super) const DRIVER_RECOVERY_FIRST: u32 = 9_000_000;
+pub(super) const DRIVER_RECOVERY_LAST: u32 = 9_099_999;
 
 fn in_driver_block(id: u32) -> bool {
     (DRIVER_ID_FIRST..=DRIVER_ID_LAST).contains(&id)
         || (DRIVER_FOLLOWUP_FIRST..=DRIVER_FOLLOWUP_LAST).contains(&id)
+        || (DRIVER_RECOVERY_FIRST..=DRIVER_RECOVERY_LAST).contains(&id)
 }
 
 const MODULES: &[&str] = &[
@@ -95,7 +101,6 @@ mod tests {
             ("SOUND", 17),
             ("SYSTEM", 13),
             ("WINSPOOL", 92),
-            ("MSVIDEO", 115),
             ("AVIFILE", 4),
         ] {
             let resolved = crate::exports::resolve_export(
@@ -239,6 +244,10 @@ mod tests {
         assert_eq!(vector.parameters.len(), 0);
         assert_eq!(vector.return_kind, Win16ReturnKind::Word);
         assert_eq!(cleanup(b"MOUSE", 4), (0, 0));
+        let stretch = lookup_export(b"MSVIDEO", ExportLookupTarget::Ordinal(115)).unwrap();
+        assert_eq!(stretch.parameters.len(), 12);
+        assert_eq!(stretch.return_kind, Win16ReturnKind::Void);
+        assert_eq!(cleanup(b"MSVIDEO", 115), (32, 0));
         let save = lookup_export(b"AVIFILE", ExportLookupTarget::Ordinal(120)).unwrap();
         assert_eq!(
             save.calling_convention,
