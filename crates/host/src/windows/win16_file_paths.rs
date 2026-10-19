@@ -40,6 +40,6 @@ pub(super) fn open(
     // The open itself stays beneath the capability root, including any
     // reparse-point changes between resolution and the native open.
     let Ok(file) = filesystem.root.open_with(path, &options) else { return Ok(None); };
-    files.retain_native_with_access(
-        Win16NativeFile::NativeHandle(file.into_std().into_raw_handle()), access)
+    files.retain_mapped_file(
+        Win16NativeFile::NativeHandle(file.into_std().into_raw_handle()), access, filesystem.drive)
 }

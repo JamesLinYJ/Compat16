@@ -107,7 +107,7 @@ fn createfile_handles_bridge_through_lzinit_copy_and_close() {
             Some(0)
         );
 
-        let copied = copy(&files, stream, destination)
+        let copied = copy(&mut files, stream, destination)
             .expect("LZCopy bridge")
             .expect("native copy result");
         assert!(copied >= 0, "LZCopy failed with {copied}");

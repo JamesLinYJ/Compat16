@@ -1,5 +1,5 @@
 use crate::{
-    DosAction, DosError, DosErrorCode, DosHost, DosHostError, DosIoctlObjectInfo, DosIoctlStream,
+    DosAction, DosError, DosErrorCode, DosHost, DosHostError, DosIoctlStream,
 };
 use guest_core::Registers;
 
@@ -50,29 +50,9 @@ impl DosKernel {
             }
         };
 
-        let word = match info {
-            DosIoctlObjectInfo::File { drive, written } => {
-                if drive > 25 {
-                    return Err(DosError::HostContractViolation(
-                        "host returned a drive number outside the DOS drive-letter range",
-                    ));
-                }
-                u16::from(drive) | (u16::from(!written) << 6)
-            }
-            DosIoctlObjectInfo::CharacterDevice {
-                input_eof,
-                raw_mode,
-                standard_input,
-                standard_output,
-            } => {
-                // MS-DOS uses a clear bit 6 to signal EOF on a character device.
-                (1 << 7)
-                    | (u16::from(!input_eof) << 6)
-                    | (u16::from(raw_mode) << 5)
-                    | u16::from(standard_input)
-                    | (u16::from(standard_output) << 1)
-            }
-        };
+        let word = info.device_information_word().ok_or(DosError::HostContractViolation(
+            "host returned a drive number outside the DOS drive-letter range",
+        ))?;
 
         regs.set_dx(word);
         Self::success(regs);

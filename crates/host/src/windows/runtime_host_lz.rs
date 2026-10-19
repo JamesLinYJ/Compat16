@@ -62,11 +62,11 @@ pub(super) fn close(
 }
 
 pub(super) fn copy(
-    host: &WindowsHost,
+    host: &mut WindowsHost,
     source: runtime::Win16HostFile,
     destination: runtime::Win16HostFile,
 ) -> Result<Option<i32>, RuntimeError> {
-    super::win16_compat_calls_lzexpand::copy(&host.win16_files, source, destination)
+    super::win16_compat_calls_lzexpand::copy(&mut host.win16_files, source, destination)
 }
 
 pub(super) fn expanded_name(

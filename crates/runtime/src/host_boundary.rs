@@ -1519,6 +1519,14 @@ pub trait RuntimeHost:
             "host Win16 file closing forwarding is unavailable",
         ))
     }
+    /// Query DOS IOCTL facts on the retained KERNEL open object. Backends
+    /// must establish its mapped drive/device type without moving its cursor.
+    fn win16_file_ioctl_info(
+        &mut self,
+        _file: Win16HostFile,
+    ) -> Result<dos_kernel::DosIoctlObjectInfo, dos_kernel::DosHostError> {
+        Err(dos_kernel::DosHostError::new(dos_kernel::DosErrorCode::InvalidFunction))
+    }
     /// Commit the same owned open object without moving its cursor or
     /// changing access/sharing. A proven read-only disk open has no writes
     /// to commit; a backend must never reopen a pathname to obtain rights.

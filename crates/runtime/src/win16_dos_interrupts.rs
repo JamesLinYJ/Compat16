@@ -472,6 +472,10 @@ mod dos_timestamp_tests;
 mod commit_tests;
 
 #[cfg(test)]
+#[path = "win16_dos_ioctl_tests.rs"]
+mod file_ioctl_tests;
+
+#[cfg(test)]
 #[path = "win16_dos_extended_open_tests.rs"]
 mod dos_extended_open_tests;
 

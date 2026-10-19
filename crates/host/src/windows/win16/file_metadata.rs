@@ -50,7 +50,7 @@ impl Win16Files {
     }
 
     pub(in crate::windows) fn set_write_time(
-        &self,
+        &mut self,
         file: Win16HostFile,
         time: u16,
         date: u16,
@@ -73,6 +73,7 @@ impl Win16Files {
         if unsafe { SetFileTime(handle, std::ptr::null(), std::ptr::null(), &last_write) } == 0 {
             return Err(file_error(unsafe { GetLastError() }));
         }
+        self.mark_written(file);
         Ok(())
     }
 }

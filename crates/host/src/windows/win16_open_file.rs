@@ -216,8 +216,8 @@ fn finish_open(
         // file as missing; no guest HFILE remains owned after this operation.
         return Ok(Win16HostOpenFile { result: 1, file: None, ofstruct });
     }
-    let file = files.retain_native_with_access(
-        Win16NativeFile::NativeHandle(handle.into_raw_handle()), access)?;
+    let file = files.retain_mapped_file(
+        Win16NativeFile::NativeHandle(handle.into_raw_handle()), access, filesystem.drive)?;
     Ok(Win16HostOpenFile { result: 0, file, ofstruct })
 }
 

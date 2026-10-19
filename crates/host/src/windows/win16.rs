@@ -2,6 +2,7 @@
 
 pub(super) mod file_metadata;
 mod dos_file_io;
+mod file_ioctl;
 
 use super::bindings::{LZClose, LZRead, LZSeek};
 #[cfg(test)]
@@ -56,6 +57,8 @@ struct RetainedFile {
     // None marks LZ wrappers or imported handles whose access was not
     // supplied. Never infer read-only rights from a failed native flush.
     access: Option<u32>,
+    dos_drive: Option<u8>,
+    written: bool,
 }
 
 impl Win16Files {
@@ -70,7 +73,7 @@ impl Win16Files {
         &mut self,
         native: Win16NativeFile,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
-        self.retain_file(native, None)
+        self.retain_file(native, None, None)
     }
 
     pub(super) fn retain_native_with_access(
@@ -78,13 +81,24 @@ impl Win16Files {
         native: Win16NativeFile,
         access: u32,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
-        self.retain_file(native, Some(access))
+        self.retain_file(native, Some(access), None)
+    }
+
+    pub(super) fn retain_mapped_file(
+        &mut self, native: Win16NativeFile, access: u32, drive: u8,
+    ) -> Result<Option<Win16HostFile>, RuntimeError> {
+        if drive > 25 {
+            close_native(native);
+            return Err(RuntimeError::new(Kind::InternalInvariant, "invalid mapped DOS drive"));
+        }
+        self.retain_file(native, Some(access), Some(drive))
     }
 
     fn retain_file(
         &mut self,
         native: Win16NativeFile,
         access: Option<u32>,
+        dos_drive: Option<u8>,
     ) -> Result<Option<Win16HostFile>, RuntimeError> {
         let Some(next_id) = self.next_id.checked_add(1) else {
             close_native(native);
@@ -95,12 +109,18 @@ impl Win16Files {
         };
         let token = Win16HostFile(self.next_id);
         self.next_id = next_id;
-        self.files.insert(token, RetainedFile { native, access });
+        self.files.insert(token, RetainedFile { native, access, dos_drive, written: false });
         Ok(Some(token))
     }
 
     pub(super) fn native_file(&self, file: Win16HostFile) -> Option<Win16NativeFile> {
         self.files.get(&file).map(|entry| entry.native)
+    }
+
+    pub(super) fn mark_written(&mut self, file: Win16HostFile) {
+        if let Some(entry) = self.files.get_mut(&file) {
+            entry.written = true;
+        }
     }
 
     fn ordinary_handle(
@@ -336,7 +356,9 @@ impl Win16Files {
                 // position. WriteFile(0) alone is a no-op, so use the native
                 // equivalent SetEndOfFile primitive explicitly.
                 // SAFETY: `handle` is an owned synchronous file HANDLE.
-                Ok((unsafe { SetEndOfFile(handle) } != 0).then_some(0))
+                if unsafe { SetEndOfFile(handle) } == 0 { return Ok(None); }
+                self.mark_written(file);
+                Ok(Some(0))
             }
             Win16NativeFile::NativeHandle(handle) => {
                 let mut bytes_written = 0_u32;
@@ -360,6 +382,7 @@ impl Win16Files {
                         "Win16 native write exceeded its input buffer",
                     ));
                 }
+                if bytes_written != 0 { self.mark_written(file); }
                 Ok(Some(bytes_written))
             }
         }
