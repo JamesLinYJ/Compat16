@@ -5,91 +5,203 @@ ordinal = 1
 name = "INICOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm1INICOM", id_value = 7000000, constant = "DRIVER_COMM_1" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dcb", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 2
 name = "SETCOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm2SETCOM", id_value = 7000001, constant = "DRIVER_COMM_2" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dcb", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 3
 name = "SETQUE"
 kind = "stub"
 
+binding = { rust_id = "DriverComm3SETQUE", id_value = 7000002, constant = "DRIVER_COMM_3" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+  { name = "queue", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 4
 name = "RECCOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm4RECCOM", id_value = 7000003, constant = "DRIVER_COMM_4" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+]
 [[exports]]
 ordinal = 5
 name = "SNDCOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm5SNDCOM", id_value = 7000004, constant = "DRIVER_COMM_5" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+  { name = "character", type = "I16" },
+]
 [[exports]]
 ordinal = 6
 name = "CTX"
 kind = "stub"
 
+binding = { rust_id = "DriverComm6CTX", id_value = 7000005, constant = "DRIVER_COMM_6" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+  { name = "character", type = "I16" },
+]
 [[exports]]
 ordinal = 7
 name = "TRMCOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm7TRMCOM", id_value = 7000006, constant = "DRIVER_COMM_7" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+]
 [[exports]]
 ordinal = 8
 name = "STACOM"
 kind = "stub"
 
+binding = { rust_id = "DriverComm8STACOM", id_value = 7000007, constant = "DRIVER_COMM_8" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+  { name = "status", type = "FarOutputBuffer" },
+]
 [[exports]]
 ordinal = 9
 name = "CEXTFCN"
 kind = "stub"
 
+binding = { rust_id = "DriverComm9CEXTFCN", id_value = 7000008, constant = "DRIVER_COMM_9" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "cid", type = "I16" },
+  { name = "function", type = "I16" },
+]
 [[exports]]
 ordinal = 10
 name = "CFLUSH"
 kind = "stub"
 
+binding = { rust_id = "DriverComm10CFLUSH", id_value = 7000009, constant = "DRIVER_COMM_10" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+  { name = "queue", type = "I16" },
+]
 [[exports]]
 ordinal = 11
 name = "CEVT"
 kind = "stub"
 
+binding = { rust_id = "DriverComm11CEVT", id_value = 7000010, constant = "DRIVER_COMM_11" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "cid", type = "I16" },
+  { name = "mask", type = "I16" },
+]
 [[exports]]
 ordinal = 12
 name = "CEVTGET"
 kind = "stub"
 
+binding = { rust_id = "DriverComm12CEVTGET", id_value = 7000011, constant = "DRIVER_COMM_12" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+  { name = "mask", type = "I16" },
+]
 [[exports]]
 ordinal = 13
 name = "CSETBRK"
 kind = "stub"
 
+binding = { rust_id = "DriverComm13CSETBRK", id_value = 7000012, constant = "DRIVER_COMM_13" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+]
 [[exports]]
 ordinal = 14
 name = "CCLRBRK"
 kind = "stub"
 
+binding = { rust_id = "DriverComm14CCLRBRK", id_value = 7000013, constant = "DRIVER_COMM_14" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+]
 [[exports]]
 ordinal = 15
 name = "GETDCB"
 kind = "stub"
 
+binding = { rust_id = "DriverComm15GETDCB", id_value = 7000014, constant = "DRIVER_COMM_15" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "cid", type = "I16" },
+]
 [[exports]]
 ordinal = 17
 name = "SUSPENDOPENCOMMPORTS"
 kind = "stub"
 
+binding = { rust_id = "DriverComm17SUSPENDOPENCOMMPORTS", id_value = 7000015, constant = "DRIVER_COMM_17" }
+[exports.call]
+returns = "void"
 [[exports]]
 ordinal = 18
 name = "REACTIVATEOPENCOMMPORTS"
 kind = "stub"
 
+binding = { rust_id = "DriverComm18REACTIVATEOPENCOMMPORTS", id_value = 7000016, constant = "DRIVER_COMM_18" }
+[exports.call]
+returns = "void"
 [[exports]]
 ordinal = 19
 name = "COMMWRITESTRING"
 kind = "stub"
 
+binding = { rust_id = "DriverComm19COMMWRITESTRING", id_value = 7000017, constant = "DRIVER_COMM_19" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+  { name = "buffer", type = "FarBuffer" },
+  { name = "size", type = "I16" },
+]
 [[exports]]
 ordinal = 20
 name = "READCOMMSTRING"
@@ -100,7 +212,23 @@ ordinal = 100
 name = "ENABLENOTIFICATION"
 kind = "stub"
 
+binding = { rust_id = "DriverComm100ENABLENOTIFICATION", id_value = 7000018, constant = "DRIVER_COMM_100" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "cid", type = "I16" },
+  { name = "window", type = "U16" },
+  { name = "in_trigger", type = "U16" },
+  { name = "out_trigger", type = "U16" },
+]
 [[exports]]
 ordinal = 101
 name = "ordinal_only__win31"
 kind = "stub"
+
+binding = { rust_id = "DriverComm101Wep", id_value = 7000019, constant = "DRIVER_COMM_101" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "exit_type", type = "U16" },
+]

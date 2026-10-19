@@ -5,96 +5,302 @@ ordinal = 1
 name = "BitBlt"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay1BitBlt", id_value = 7000020, constant = "DRIVER_DISPLAY_1" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "dest_x", type = "U16" },
+  { name = "dest_y", type = "U16" },
+  { name = "source", type = "FarPointer" },
+  { name = "source_x", type = "U16" },
+  { name = "source_y", type = "U16" },
+  { name = "width", type = "U16" },
+  { name = "height", type = "U16" },
+  { name = "rop3", type = "U32" },
+  { name = "brush", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 2
 name = "ColorInfo"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay2ColorInfo", id_value = 7000021, constant = "DRIVER_DISPLAY_2" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "color", type = "U32" },
+  { name = "physical", type = "FarOutputBuffer" },
+]
 [[exports]]
 ordinal = 3
 name = "Control"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay3Control", id_value = 7000022, constant = "DRIVER_DISPLAY_3" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "function", type = "U16" },
+  { name = "input", type = "FarPointer" },
+  { name = "output", type = "FarOutputBuffer" },
+]
 [[exports]]
 ordinal = 4
 name = "Disable"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay4Disable", id_value = 7000023, constant = "DRIVER_DISPLAY_4" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "dest", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 5
 name = "Enable"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay5Enable", id_value = 7000024, constant = "DRIVER_DISPLAY_5" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "style", type = "U16" },
+  { name = "device_type", type = "NullableFarString" },
+  { name = "output_file", type = "NullableFarString" },
+  { name = "data", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 6
 name = "EnumFonts"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay6EnumFonts", id_value = 7000025, constant = "DRIVER_DISPLAY_6" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "face", type = "NullableFarString" },
+  { name = "callback", type = "FarPointer" },
+  { name = "client", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 7
 name = "EnumObj"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay7EnumObj", id_value = 7000026, constant = "DRIVER_DISPLAY_7" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "style", type = "U16" },
+  { name = "callback", type = "FarPointer" },
+  { name = "client", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 8
 name = "Output"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay8Output", id_value = 7000027, constant = "DRIVER_DISPLAY_8" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "style", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "points", type = "FarPointer" },
+  { name = "pen", type = "FarPointer" },
+  { name = "brush", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "clip", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 9
 name = "Pixel"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay9Pixel", id_value = 7000028, constant = "DRIVER_DISPLAY_9" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "physical_color", type = "U32" },
+  { name = "draw_mode", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 10
 name = "RealizeObject"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay10RealizeObject", id_value = 7000029, constant = "DRIVER_DISPLAY_10" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "style", type = "U16" },
+  { name = "input", type = "FarPointer" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "text_xform", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 11
 name = "StrBlt"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay11StrBlt", id_value = 7000030, constant = "DRIVER_DISPLAY_11" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "clip", type = "FarPointer" },
+  { name = "text", type = "FarString" },
+  { name = "count", type = "I16" },
+  { name = "font", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "text_xform", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 12
 name = "ScanLR"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay12ScanLR", id_value = 7000031, constant = "DRIVER_DISPLAY_12" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "physical_color", type = "U32" },
+  { name = "style", type = "U16" },
+]
 [[exports]]
 ordinal = 13
 name = "DeviceMode"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay13DeviceMode", id_value = 7000032, constant = "DRIVER_DISPLAY_13" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "window", type = "U16" },
+  { name = "instance", type = "U16" },
+  { name = "device_type", type = "FarString" },
+  { name = "output_file", type = "FarString" },
+]
 [[exports]]
 ordinal = 14
 name = "ExtTextOut"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay14ExtTextOut", id_value = 7000033, constant = "DRIVER_DISPLAY_14" }
+[exports.call]
+returns = "dword"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "clip", type = "FarPointer" },
+  { name = "text", type = "FarString" },
+  { name = "count", type = "I16" },
+  { name = "font", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "text_xform", type = "FarPointer" },
+  { name = "widths", type = "FarPointer" },
+  { name = "opaque", type = "FarPointer" },
+  { name = "options", type = "U16" },
+]
 [[exports]]
 ordinal = 15
 name = "GetCharWidth"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay15GetCharWidth", id_value = 7000034, constant = "DRIVER_DISPLAY_15" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "buffer", type = "FarOutputBuffer" },
+  { name = "first", type = "U16" },
+  { name = "last", type = "U16" },
+  { name = "font", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "text_xform", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 16
 name = "DeviceBitmap"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay16DeviceBitmap", id_value = 7000035, constant = "DRIVER_DISPLAY_16" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "command", type = "U16" },
+  { name = "bitmap", type = "FarPointer" },
+  { name = "bits", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 17
 name = "FastBorder"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay17FastBorder", id_value = 7000036, constant = "DRIVER_DISPLAY_17" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "rect", type = "FarPointer" },
+  { name = "horizontal", type = "U16" },
+  { name = "vertical", type = "U16" },
+  { name = "rop", type = "U32" },
+  { name = "dest", type = "FarPointer" },
+  { name = "brush", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "clip", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 18
 name = "SetAttribute"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay18SetAttribute", id_value = 7000037, constant = "DRIVER_DISPLAY_18" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "state", type = "U16" },
+  { name = "index", type = "U16" },
+  { name = "attribute", type = "U16" },
+]
 [[exports]]
 ordinal = 19
 name = "DeviceBitmapBits"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay19DeviceBitmapBits", id_value = 7000038, constant = "DRIVER_DISPLAY_19" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "bitmap", type = "FarPointer" },
+  { name = "get", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "scans", type = "U16" },
+  { name = "bits", type = "FarPointer" },
+  { name = "info", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "translate", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 20
 name = "CreateBitmap"
@@ -110,11 +316,27 @@ ordinal = 22
 name = "SetPalette"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay22SetPalette", id_value = 7000039, constant = "DRIVER_DISPLAY_22" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "start", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "palette", type = "FarBuffer" },
+]
 [[exports]]
 ordinal = 23
 name = "GetPalette"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay23GetPalette", id_value = 7000040, constant = "DRIVER_DISPLAY_23" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "start", type = "U16" },
+  { name = "count", type = "U16" },
+  { name = "palette", type = "FarOutputBuffer" },
+]
 [[exports]]
 ordinal = 24
 name = "SetPaletteTranslate"
@@ -132,31 +354,106 @@ ordinal = 25
 name = "GetPaletteTranslate"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay25GetPaletteTranslate", id_value = 7000041, constant = "DRIVER_DISPLAY_25" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "indexes", type = "FarOutputBuffer" },
+]
 [[exports]]
 ordinal = 26
 name = "UpdateColors"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay26UpdateColors", id_value = 7000042, constant = "DRIVER_DISPLAY_26" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "width", type = "U16" },
+  { name = "height", type = "U16" },
+  { name = "translate", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 27
 name = "StretchBlt"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay27StretchBlt", id_value = 7000043, constant = "DRIVER_DISPLAY_27" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "dest_x", type = "U16" },
+  { name = "dest_y", type = "U16" },
+  { name = "dest_width", type = "U16" },
+  { name = "dest_height", type = "U16" },
+  { name = "source", type = "FarPointer" },
+  { name = "source_x", type = "U16" },
+  { name = "source_y", type = "U16" },
+  { name = "source_width", type = "U16" },
+  { name = "source_height", type = "U16" },
+  { name = "rop3", type = "U32" },
+  { name = "brush", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "clip", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 28
 name = "StretchDIBits"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay28StretchDIBits", id_value = 7000044, constant = "DRIVER_DISPLAY_28" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "FarPointer" },
+  { name = "get", type = "U16" },
+  { name = "dest_x", type = "U16" },
+  { name = "dest_y", type = "U16" },
+  { name = "dest_width", type = "U16" },
+  { name = "dest_height", type = "U16" },
+  { name = "source_x", type = "U16" },
+  { name = "source_y", type = "U16" },
+  { name = "source_width", type = "U16" },
+  { name = "source_height", type = "U16" },
+  { name = "bits", type = "FarPointer" },
+  { name = "info", type = "FarPointer" },
+  { name = "translate", type = "FarPointer" },
+  { name = "rop", type = "U32" },
+  { name = "brush", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "clip", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 29
 name = "SelectBitmap"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay29SelectBitmap", id_value = 7000045, constant = "DRIVER_DISPLAY_29" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "FarPointer" },
+  { name = "previous", type = "FarPointer" },
+  { name = "bitmap", type = "FarPointer" },
+  { name = "flags", type = "U32" },
+]
 [[exports]]
 ordinal = 30
 name = "BitmapBits"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay30BitmapBits", id_value = 7000046, constant = "DRIVER_DISPLAY_30" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "FarPointer" },
+  { name = "flags", type = "U32" },
+  { name = "count", type = "U32" },
+  { name = "bits", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 31
 name = "ReEnable"
@@ -172,11 +469,29 @@ ordinal = 40
 name = "CreateDIBitmap"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay40CreateDIBitmap", id_value = 7000047, constant = "DRIVER_DISPLAY_40" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 41
 name = "DIBToDevice"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay41DIBToDevice", id_value = 7000048, constant = "DRIVER_DISPLAY_41" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "dest", type = "FarPointer" },
+  { name = "x", type = "U16" },
+  { name = "y", type = "U16" },
+  { name = "start", type = "U16" },
+  { name = "scans", type = "U16" },
+  { name = "clip", type = "FarPointer" },
+  { name = "draw_mode", type = "FarPointer" },
+  { name = "bits", type = "FarPointer" },
+  { name = "info", type = "FarPointer" },
+  { name = "translate", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 90
 name = "Do_Polylines"
@@ -192,6 +507,13 @@ ordinal = 92
 name = "SaveScreenBitmap"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay92SaveScreenBitmap", id_value = 7000049, constant = "DRIVER_DISPLAY_92" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "rect", type = "FarPointer" },
+  { name = "command", type = "U16" },
+]
 [[exports]]
 ordinal = 101
 name = "Inquire"
@@ -292,7 +614,17 @@ ordinal = 600
 name = "InkReady"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay600InkReady", id_value = 7000050, constant = "DRIVER_DISPLAY_600" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "callback", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 601
 name = "GetLPDevice"
 kind = "stub"
+
+binding = { rust_id = "DriverDisplay601GetLPDevice", id_value = 7000051, constant = "DRIVER_DISPLAY_601" }
+[exports.call]
+returns = "far_pointer"

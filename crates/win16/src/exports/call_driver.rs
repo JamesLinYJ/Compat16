@@ -1,15 +1,25 @@
 //! Stack decoding for driver and deferred-device exports.
 //!
-//! Binding ids `5000000`–`5999999` belong to COMM, DISPLAY, KEYBOARD, MOUSE,
-//! SOUND, SYSTEM, TIMER, WINSPOOL, PENWIN, STRESS, MSVIDEO, DISPDIB, and AVIFILE.
+//! Binding ids `5000000`–`5999999` and `7000000`–`7999999` belong to COMM,
+//! DISPLAY, KEYBOARD, MOUSE, SOUND, SYSTEM, TIMER, WINSPOOL, PENWIN, STRESS,
+//! MSVIDEO, DISPDIB, and AVIFILE. The second block is the follow-up for
+//! signatures that were still declaration-only.
 
 use super::super::request::{Win16DriverArg as Arg, Win16DriverCall as Call};
 use super::super::{Win16ExportDescriptor, Win16ParameterType};
 use crate::{Win16Argument, Win16Error};
 
-/// Inclusive binding block claimed for these driver ordinals.
+/// Inclusive binding block claimed for the first driver pass.
 pub(super) const DRIVER_ID_FIRST: u32 = 5_000_000;
 pub(super) const DRIVER_ID_LAST: u32 = 5_000_305;
+/// Follow-up bindings for driver signatures resolved after that pass.
+pub(super) const DRIVER_FOLLOWUP_FIRST: u32 = 7_000_000;
+pub(super) const DRIVER_FOLLOWUP_LAST: u32 = 7_999_999;
+
+fn in_driver_block(id: u32) -> bool {
+    (DRIVER_ID_FIRST..=DRIVER_ID_LAST).contains(&id)
+        || (DRIVER_FOLLOWUP_FIRST..=DRIVER_FOLLOWUP_LAST).contains(&id)
+}
 
 const MODULES: &[&str] = &[
     "COMM", "DISPLAY", "KEYBOARD", "MOUSE", "SOUND", "SYSTEM", "TIMER", "WINSPOOL", "PENWIN",
@@ -21,7 +31,7 @@ pub(super) fn decode(
     arguments: &[Win16Argument],
 ) -> Result<Option<Call>, Win16Error> {
     let id = descriptor.id as u32;
-    if !(DRIVER_ID_FIRST..=DRIVER_ID_LAST).contains(&id) {
+    if !in_driver_block(id) {
         return Ok(None);
     }
     if !MODULES
@@ -78,14 +88,14 @@ mod tests {
     #[test]
     fn unknown_driver_frames_are_not_callable_and_avi_guids_remain_data() {
         for (module, ordinal) in [
-            ("COMM", 1),
-            ("DISPLAY", 1),
+            ("COMM", 20),
+            ("DISPLAY", 20),
             ("KEYBOARD", 9),
-            ("MOUSE", 4),
+            ("MOUSE", 5),
             ("SOUND", 17),
             ("SYSTEM", 13),
-            ("WINSPOOL", 1000),
-            ("MSVIDEO", 240),
+            ("WINSPOOL", 92),
+            ("MSVIDEO", 115),
             ("AVIFILE", 4),
         ] {
             let resolved = crate::exports::resolve_export(
@@ -206,5 +216,35 @@ mod tests {
             assert_eq!(request.arguments, arguments);
             assert_eq!(decoded.stack_cleanup.callee_pop_bytes, pop);
         }
+    }
+
+    #[test]
+    fn resolved_driver_signatures_pop_their_documented_frames() {
+        fn cleanup(module: &[u8], ordinal: u16) -> (u16, u16) {
+            let descriptor = lookup_export(module, ExportLookupTarget::Ordinal(ordinal)).unwrap();
+            let crate::exports::Win16ExportStackCleanup::Fixed(cleanup) = descriptor.stack_cleanup
+            else {
+                panic!("{ordinal} is not a fixed frame");
+            };
+            (cleanup.callee_pop_bytes, cleanup.caller_pop_bytes)
+        }
+        let bitblt = lookup_export(b"DISPLAY", ExportLookupTarget::Ordinal(1)).unwrap();
+        assert_eq!(bitblt.parameters.len(), 11);
+        assert_eq!(cleanup(b"DISPLAY", 1), (32, 0));
+        let created = lookup_export(b"DISPLAY", ExportLookupTarget::Ordinal(40)).unwrap();
+        assert_eq!(created.parameters.len(), 0);
+        assert_eq!(created.return_kind, Win16ReturnKind::Word);
+        assert_eq!(cleanup(b"DISPLAY", 40), (0, 0));
+        let vector = lookup_export(b"MOUSE", ExportLookupTarget::Ordinal(4)).unwrap();
+        assert_eq!(vector.parameters.len(), 0);
+        assert_eq!(vector.return_kind, Win16ReturnKind::Word);
+        assert_eq!(cleanup(b"MOUSE", 4), (0, 0));
+        let save = lookup_export(b"AVIFILE", ExportLookupTarget::Ordinal(120)).unwrap();
+        assert_eq!(
+            save.calling_convention,
+            crate::exports::ExportCallingConvention::Cdecl
+        );
+        assert_eq!(save.parameters.len(), 4);
+        assert_eq!(cleanup(b"AVIFILE", 120), (0, 14));
     }
 }

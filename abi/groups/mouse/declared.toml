@@ -34,8 +34,10 @@ returns = "word"
 ordinal = 4
 name = "MOUSEGETINTVECT"
 kind = "stub"
-decl = { attributes = [] }
 
+binding = { rust_id = "DriverMouse4MOUSEGETINTVECT", id_value = 7000055, constant = "DRIVER_MOUSE_4" }
+[exports.call]
+returns = "word"
 [[exports]]
 ordinal = 5
 name = "GETSETMOUSEDATA"

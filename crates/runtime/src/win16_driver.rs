@@ -107,10 +107,57 @@ fn value(module: &str, ordinal: u16) -> u32 {
     if module.eq_ignore_ascii_case("WINSPOOL") && ordinal == 90 {
         return ICERR_UNSUPPORTED;
     }
+    if module.eq_ignore_ascii_case("COMM") {
+        return comm_value(ordinal);
+    }
+    if module.eq_ignore_ascii_case("DISPLAY") || module.eq_ignore_ascii_case("WINSPOOL") {
+        return graphics_value(ordinal);
+    }
+    if module.eq_ignore_ascii_case("KEYBOARD") && ordinal == 11 {
+        // `VkKeyScanEx` returns -1 when the character has no translation.
+        return 0xFFFF;
+    }
+    if module.eq_ignore_ascii_case("MOUSE") && ordinal == 4 {
+        // `MouseGetIntVect` returns -1 when no mouse interrupt vector exists.
+        return 0xFFFF;
+    }
     if module.eq_ignore_ascii_case("PENWIN") {
         return pen_value(ordinal);
     }
     0
+}
+
+fn comm_value(ordinal: u16) -> u32 {
+    // Windows 3.1 `WINDOWS.H` defines `IE_HARDWARE` as -10.
+    const IE_HARDWARE: i16 = -10;
+    match ordinal {
+        // Success for these entries is zero. A missing UART returns
+        // `IE_HARDWARE` in AX.
+        1 | 2 | 3 | 5 | 6 | 7 => u32::from(IE_HARDWARE as u16),
+        // `reccom`, `csetbrk`, and `cclrbrk` document -1 as the error.
+        4 | 13 | 14 => 0xFFFF,
+        // `stacom` and `cflush` return the most recent error. `CE_MODE` means
+        // the requested mode is not supported.
+        8 | 10 => 0x8000,
+        // `cextfcn` returns a negative long. The same error is sign-extended.
+        9 => i32::from(IE_HARDWARE) as u32,
+        // `WEP` returns 1 so the already-loaded builtin may be released.
+        101 => 1,
+        _ => 0,
+    }
+}
+
+fn graphics_value(ordinal: u16) -> u32 {
+    match ordinal {
+        // `EnumDFonts` and `EnumObj` return 1 when no object of that kind exists.
+        // The callback is not called.
+        6 | 7 => 1,
+        // `Pixel` returns `0x80000000` when the pixel cannot be read or set.
+        9 => 0x8000_0000,
+        // `ScanLR` returns -1 when no qualifying pixel is found.
+        12 => 0xFFFF,
+        _ => 0,
+    }
 }
 
 fn msvideo_value(ordinal: u16) -> u32 {
@@ -128,8 +175,9 @@ fn msvideo_value(ordinal: u16) -> u32 {
 fn avifile_value(ordinal: u16) -> u32 {
     match ordinal {
         2 => CLASS_E_CLASSNOTAVAILABLE,
-        102 | 103 | 104 | 105 | 106 | 107 | 123 | 142 | 143 | 144 | 146 | 147 | 148 | 162 | 164
-        | 165 | 166 | 167 | 168 | 169 => AVIERR_UNSUPPORTED,
+        102 | 103 | 104 | 105 | 106 | 107 | 120 | 121 | 123 | 142 | 143 | 144 | 146 | 147 | 148
+        | 162 | 164 | 165 | 166 | 167 | 168 | 169 | 180 | 181 | 182 | 184 | 185 | 187 | 188
+        | 190 | 191 | 192 | 200 | 201 => AVIERR_UNSUPPORTED,
         // Unknown stream positions are not sample 0.
         130 | 131 | 132 | 133 | 163 => ICERR_UNSUPPORTED,
         _ => 0,
@@ -148,6 +196,9 @@ fn detail(module: &str, ordinal: u16) -> Option<&'static str> {
     if module.eq_ignore_ascii_case("MSVIDEO") && ordinal == 3 {
         return None;
     }
+    if module.eq_ignore_ascii_case("COMM") && ordinal == 101 {
+        return None;
+    }
     if module.eq_ignore_ascii_case("AVIFILE") && matches!(ordinal, 100 | 101) {
         return None;
     }
@@ -155,13 +206,13 @@ fn detail(module: &str, ordinal: u16) -> Option<&'static str> {
         return Some("returns zero; no Video for Windows capture device is published");
     }
     Some(if module.eq_ignore_ascii_case("COMM") {
-        "returns zero; COMM.DRV is not a host serial port"
+        "returns the communications failure and writes no DCB, queue, or status"
     } else if module.eq_ignore_ascii_case("DISPLAY") {
-        "returns zero; there is no 16-bit display driver"
+        "returns the display-driver failure or empty result and writes no surface"
     } else if module.eq_ignore_ascii_case("KEYBOARD") {
-        "returns zero; the keyboard driver entry is not installed"
+        "returns the keyboard-driver failure and writes no translation"
     } else if module.eq_ignore_ascii_case("MOUSE") {
-        "returns zero; the mouse driver entry is not installed"
+        "returns the mouse-driver failure"
     } else if module.eq_ignore_ascii_case("SOUND") {
         "returns zero; this SOUND.DRV stub is not playback"
     } else if module.eq_ignore_ascii_case("SYSTEM") {
@@ -217,5 +268,19 @@ mod tests {
             assert_ne!(result.value & 0x8000_0000, 0, "HRESULT must fail");
             assert!(result.detail.is_some());
         }
+        assert_eq!(value("COMM", 1), 0xFFF6);
+        assert_eq!(value("COMM", 4), 0xFFFF);
+        assert_eq!(value("COMM", 9), 0xFFFF_FFF6);
+        assert_eq!(value("COMM", 101), 1);
+        assert!(answer("COMM", 101).unwrap().detail.is_none());
+        assert_eq!(value("DISPLAY", 6), 1);
+        assert_eq!(value("DISPLAY", 9), 0x8000_0000);
+        assert_eq!(value("DISPLAY", 12), 0xFFFF);
+        assert_eq!(value("WINSPOOL", 9), 0x8000_0000);
+        assert_eq!(value("KEYBOARD", 11), 0xFFFF);
+        assert_eq!(value("MOUSE", 4), 0xFFFF);
+        assert_eq!(value("AVIFILE", 120), AVIERR_UNSUPPORTED);
+        assert_eq!(value("AVIFILE", 122), 0);
+        assert_eq!(value("AVIFILE", 188), AVIERR_UNSUPPORTED);
     }
 }

@@ -427,6 +427,15 @@ ordinal = 111
 name = "DRAWDIBCHANGEPALETTE"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo111DRAWDIBCHANGEPALETTE", id_value = 7000076, constant = "DRIVER_MSVIDEO_111" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "hdd", type = "U16" },
+  { name = "start", type = "I16" },
+  { name = "length", type = "I16" },
+  { name = "entries", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 112
 name = "DrawDibRealize"
@@ -445,6 +454,13 @@ ordinal = 113
 name = "DRAWDIBTIME"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo113DRAWDIBTIME", id_value = 7000077, constant = "DRIVER_MSVIDEO_113" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "hdd", type = "U16" },
+  { name = "time", type = "FarOutputBuffer" },
+]
 [[exports]]
 ordinal = 114
 name = "DrawDibProfileDisplay"
@@ -489,6 +505,15 @@ ordinal = 120
 name = "DRAWDIBGETBUFFER"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo120DRAWDIBGETBUFFER", id_value = 7000078, constant = "DRIVER_MSVIDEO_120" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "hdd", type = "U16" },
+  { name = "info", type = "FarPointer" },
+  { name = "size", type = "U32" },
+  { name = "flags", type = "U32" },
+]
 [[exports]]
 ordinal = 200
 name = "ICInfo"
@@ -725,36 +750,98 @@ ordinal = 240
 name = "ICIMAGECOMPRESS"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo240ICIMAGECOMPRESS", id_value = 7000079, constant = "DRIVER_MSVIDEO_240" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "hic", type = "U16" },
+  { name = "flags", type = "U16" },
+  { name = "input_info", type = "FarPointer" },
+  { name = "bits", type = "FarPointer" },
+  { name = "output_info", type = "FarPointer" },
+  { name = "quality", type = "U32" },
+  { name = "size", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 241
 name = "ICIMAGEDECOMPRESS"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo241ICIMAGEDECOMPRESS", id_value = 7000080, constant = "DRIVER_MSVIDEO_241" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "hic", type = "U16" },
+  { name = "flags", type = "U16" },
+  { name = "input_info", type = "FarPointer" },
+  { name = "bits", type = "FarPointer" },
+  { name = "output_info", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 242
 name = "ICCOMPRESSORCHOOSE"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo242ICCOMPRESSORCHOOSE", id_value = 7000081, constant = "DRIVER_MSVIDEO_242" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "window", type = "U16" },
+  { name = "flags", type = "U16" },
+  { name = "input", type = "FarPointer" },
+  { name = "data", type = "FarPointer" },
+  { name = "vars", type = "FarPointer" },
+  { name = "title", type = "FarString" },
+]
 [[exports]]
 ordinal = 243
 name = "ICCOMPRESSORFREE"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo243ICCOMPRESSORFREE", id_value = 7000082, constant = "DRIVER_MSVIDEO_243" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "vars", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 244
 name = "ICSEQCOMPRESSFRAMESTART"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo244ICSEQCOMPRESSFRAMESTART", id_value = 7000083, constant = "DRIVER_MSVIDEO_244" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "vars", type = "FarPointer" },
+  { name = "info", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 245
 name = "ICSEQCOMPRESSFRAMEEND"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo245ICSEQCOMPRESSFRAMEEND", id_value = 7000084, constant = "DRIVER_MSVIDEO_245" }
+[exports.call]
+returns = "void"
+params = [
+  { name = "vars", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 246
 name = "ICSEQCOMPRESSFRAME"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo246ICSEQCOMPRESSFRAME", id_value = 7000085, constant = "DRIVER_MSVIDEO_246" }
+[exports.call]
+returns = "far_pointer"
+params = [
+  { name = "vars", type = "FarPointer" },
+  { name = "flags", type = "U16" },
+  { name = "bits", type = "FarPointer" },
+  { name = "key", type = "FarPointer" },
+  { name = "size", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 250
 name = "_MCIWndCreate"
@@ -782,7 +869,20 @@ ordinal = 252
 name = "GETOPENFILENAMEPREVIEW"
 kind = "stub"
 
+binding = { rust_id = "DriverMsvideo252GETOPENFILENAMEPREVIEW", id_value = 7000086, constant = "DRIVER_MSVIDEO_252" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "filename", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 253
 name = "GETSAVEFILENAMEPREVIEW"
 kind = "stub"
+
+binding = { rust_id = "DriverMsvideo253GETSAVEFILENAMEPREVIEW", id_value = 7000087, constant = "DRIVER_MSVIDEO_253" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "filename", type = "FarPointer" },
+]
