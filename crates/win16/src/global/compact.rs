@@ -1,9 +1,18 @@
 use guest_core::{GuestMemory, PhysAddr};
 
 use super::{
-    align_up, allocate_bytes, GlobalHeap, RawGuestHandle, SelectorRef,
+    align_up, allocate_bytes, GlobalHandle, GlobalHeap, RawGuestHandle, SelectorRef,
     SelectorTable, Win16Error, GMEM_NOCOMPACT, GMEM_NODISCARD,
 };
+
+/// A candidate is still resident. The runtime may suspend for its owning
+/// task's GlobalNotify callback before committing the discard. Its exact
+/// allocation generation must be revalidated after guest reentry.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GlobalCompactStep {
+    Complete(u32),
+    DiscardCandidate(GlobalHandle),
+}
 
 impl GlobalHeap {
     /// Run a real allocator compaction pass: move unlocked movable blocks
@@ -19,42 +28,56 @@ impl GlobalHeap {
         selectors: &mut SelectorTable,
         selector_updates: &mut Vec<(SelectorRef, SelectorRef)>,
     ) -> Result<u32, Win16Error> {
+        let mut skipped = Vec::new();
+        skipped.try_reserve_exact(self.lru.len()).map_err(|_| Win16Error::OutOfMemory)?;
+        loop {
+            match self.compact_step(minimum_free, &skipped, true, true,
+                memory, selectors, selector_updates)? {
+                GlobalCompactStep::Complete(largest) => return Ok(largest),
+                GlobalCompactStep::DiscardCandidate(identity) => {
+                    skipped.push(identity);
+                    selector_updates.try_reserve(selectors.slot_capacity())
+                        .map_err(|_| Win16Error::OutOfMemory)?;
+                    match self.discard(identity, selectors) {
+                        Ok(replacements) => selector_updates.extend(replacements),
+                        Err(Win16Error::SelectorBlockInterior | Win16Error::OutOfMemory
+                            | Win16Error::Locked) => {},
+                        Err(error) => return Err(error),
+                    }
+                }
+            }
+        }
+    }
+
+    /// Re-pack once, then select at most one discard without changing its
+    /// residency. `skipped` contains full identities, so a reused raw handle
+    /// is never mistaken for a candidate vetoed before a guest callback.
+    pub fn compact_step(
+        &mut self, minimum_free: u32, skipped: &[GlobalHandle],
+        allow_move: bool, allow_discard: bool,
+        memory: &mut impl GuestMemory, selectors: &mut SelectorTable,
+        selector_updates: &mut Vec<(SelectorRef, SelectorRef)>,
+    ) -> Result<GlobalCompactStep, Win16Error> {
         self.validate_memory(memory)?;
         selector_updates.try_reserve(selectors.slot_capacity())
             .map_err(|_| Win16Error::OutOfMemory)?;
-        self.compact_movable_blocks(memory, selectors, selector_updates)?;
-        let mut largest = self.maximum_available()?;
-        if largest < minimum_free {
-            let mut candidates = Vec::new();
-            candidates.try_reserve_exact(self.lru.len())
-                .map_err(|_| Win16Error::OutOfMemory)?;
-            for &raw in &self.lru {
-                let block = self.blocks_by_handle.get(&raw).ok_or(Win16Error::InvalidHandle)?;
-                if !block.discarded && block.flags.movable && !block.is_pinned() && block.discardable()
-                    && block.allocation_flags & GMEM_NODISCARD == 0
-                {
-                    candidates.push(raw);
-                }
-            }
-            for raw in candidates {
+        if allow_move { self.compact_movable_blocks(memory, selectors, selector_updates)?; }
+        let largest = self.maximum_available()?;
+        if largest >= minimum_free || !allow_discard {
+            return Ok(GlobalCompactStep::Complete(largest));
+        }
+        for &raw in &self.lru {
+            let block = self.blocks_by_handle.get(&raw).ok_or(Win16Error::InvalidHandle)?;
+            if !block.discarded && block.flags.movable && !block.is_pinned() && block.discardable()
+                && block.allocation_flags & GMEM_NODISCARD == 0
+            {
                 let identity = self.resolve_handle(RawGuestHandle(raw))?;
-                selector_updates.try_reserve(selectors.slot_capacity())
-                    .map_err(|_| Win16Error::OutOfMemory)?;
-                match self.discard(identity, selectors) {
-                    Ok(replacements) => selector_updates.extend(replacements),
-                    Err(Win16Error::SelectorBlockInterior | Win16Error::OutOfMemory
-                        | Win16Error::Locked) => continue,
-                    Err(error) => return Err(error),
+                if !skipped.contains(&identity) {
+                    return Ok(GlobalCompactStep::DiscardCandidate(identity));
                 }
-                // Re-pack the newly opened range before deciding whether more
-                // resources need to be discarded. This can meet the requested
-                // maximum while preserving additional cached resources.
-                self.compact_movable_blocks(memory, selectors, selector_updates)?;
-                largest = self.maximum_available()?;
-                if largest >= minimum_free { break; }
             }
         }
-        self.maximum_available()
+        Ok(GlobalCompactStep::Complete(largest))
     }
 
     /// Largest single allocation that fits the current free ranges, without

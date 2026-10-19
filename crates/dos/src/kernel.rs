@@ -1,6 +1,7 @@
 mod block_lease;
 mod block_view;
 mod caller_address_space;
+mod canonical_name;
 mod console;
 mod time;
 mod temporary_file;
@@ -10,12 +11,23 @@ mod disk;
 mod dispatch;
 mod exec;
 mod extended_open;
+mod extended_error;
 mod files;
+mod fcb_parse;
+mod fcb_search;
+mod fcb;
+mod fcb_mutation;
+#[cfg(test)]
+mod fcb_parse_tests;
 mod file_commit;
 mod file_time;
 mod ioctl;
 mod memory;
+mod message_addresses;
 mod nls;
+mod dbcs;
+#[cfg(test)]
+mod dbcs_tests;
 mod protected_scalar;
 mod sft;
 mod handle_capacity;
@@ -23,10 +35,15 @@ mod state;
 mod system;
 mod vectors;
 mod version;
+pub use version::DEFAULT_DOS_REPORTED_VERSION;
+
+#[cfg(test)]
+mod version_tests;
 
 pub use block_lease::DosBlockLease;
 pub use block_view::DosBlockExtent;
 pub use nls::{collating_table, upper_case_table};
+pub use dbcs::dbcs_lead_byte_table;
 pub use state::{DosChildProcessFailure, DosKernel};
 pub use system::{SYSTEM_BYTES, SYSTEM_SEGMENT};
 
@@ -41,6 +58,8 @@ mod nls_tests;
 
 #[cfg(test)]
 mod nls_country_tests;
+#[cfg(test)]
+mod nls_prc_tests;
 
 #[cfg(test)]
 mod device_tests;
@@ -51,3 +70,9 @@ mod system_tests;
 
 #[cfg(test)]
 mod handle_capacity_tests;
+
+#[cfg(test)]
+mod message_addresses_tests;
+
+#[cfg(test)]
+mod extended_error_tests;

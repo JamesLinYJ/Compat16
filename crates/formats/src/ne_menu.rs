@@ -170,7 +170,7 @@ fn try_clone_resource_id(id: &NeResourceId) -> Result<NeResourceId, FormatError>
     }
 }
 
-fn resource_ids_match(left: &NeResourceId, right: &NeResourceId) -> bool {
+pub(super) fn resource_ids_match(left: &NeResourceId, right: &NeResourceId) -> bool {
     match (left, right) {
         (NeResourceId::Numeric(left), NeResourceId::Numeric(right)) => left == right,
         (NeResourceId::Name(left), NeResourceId::Name(right)) => {

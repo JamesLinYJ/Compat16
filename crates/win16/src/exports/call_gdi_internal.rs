@@ -81,6 +81,7 @@ fn read_ansi(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::exports::{ExportEntryKind, ExportImplementationState, ExportSignatureKind};
     use crate::{
         AccessRights, ExportLookupTarget, ReturnAddressWidth, SegmentedPointer, SelectorTable,
         Win16CallFrame, Win16ReturnKind, decode_export_call, lookup_export,
@@ -88,7 +89,7 @@ mod tests {
     use guest_core::{GuestMemory, PhysAddr, memory::Memory};
 
     #[test]
-    fn every_cataloged_gdi_export_resolves_to_a_call() {
+    fn gdi_exports_keep_unknown_frames_declaration_only() {
         let mut exports = 0;
         for group in crate::exports::WIN16_EXPORTS {
             for entry in *group {
@@ -101,9 +102,18 @@ mod tests {
                     ExportLookupTarget::Ordinal(entry.ordinal),
                 )
                 .unwrap_or_else(|| panic!("GDI.{} missing", entry.ordinal));
+                let unknown_frame = entry.kind == ExportEntryKind::Stub
+                    && entry.abi.is_some_and(|abi| {
+                        abi.signature == ExportSignatureKind::Unknown && abi.arguments.is_empty()
+                    });
+                let expected = if unknown_frame {
+                    ExportImplementationState::DeclaredOnly
+                } else {
+                    ExportImplementationState::BoundToRequest
+                };
                 assert_eq!(
                     resolved.state,
-                    crate::exports::ExportImplementationState::BoundToRequest,
+                    expected,
                     "GDI.{} {}",
                     entry.ordinal,
                     entry.name.unwrap_or("")
@@ -114,7 +124,7 @@ mod tests {
     }
 
     #[test]
-    fn set_rel_abs_frame_is_far_pascal_and_bitmapbits_pops_nothing() {
+    fn set_rel_abs_frame_is_far_pascal_and_bitmapbits_has_no_descriptor() {
         let set_rel_abs = lookup_export(b"GDI", ExportLookupTarget::Ordinal(5)).unwrap();
         assert_eq!(set_rel_abs.return_kind, Win16ReturnKind::Word);
         assert_eq!(set_rel_abs.parameters.len(), 2);
@@ -139,29 +149,13 @@ mod tests {
             panic!("SetRelAbs request");
         };
         assert_eq!(request.ordinal, 5);
-        assert_eq!(
-            request.arguments,
-            vec![Arg::Word(0x0100), Arg::Word(2)]
-        );
+        assert_eq!(request.arguments, vec![Arg::Word(0x0100), Arg::Word(2)]);
         assert_eq!(decoded.stack_cleanup.callee_pop_bytes, 4);
 
-        let bits = lookup_export(b"GDI", ExportLookupTarget::Ordinal(46)).unwrap();
-        assert_eq!(bits.parameters.len(), 0);
-        assert_eq!(bits.return_kind, Win16ReturnKind::Dword);
-        let stack = selectors
-            .alloc_block(PhysAddr(0x2000), 4, AccessRights::read_write(), &memory)
-            .unwrap();
-        memory
-            .write(PhysAddr(0x2000), &[0x34, 0x12, 0x78, 0x56])
-            .unwrap();
-        let decoded = decode_export_call(
-            bits,
-            Win16CallFrame::new(SegmentedPointer::new(stack, 0), ReturnAddressWidth::Far),
-            &selectors,
-            &memory,
-        )
-        .unwrap();
-        assert_eq!(decoded.stack_cleanup.callee_pop_bytes, 0);
+        let bits = crate::exports::resolve_export(b"GDI", ExportLookupTarget::Ordinal(46)).unwrap();
+        assert_eq!(bits.state, ExportImplementationState::DeclaredOnly);
+        assert!(bits.descriptor.is_none());
+        assert!(lookup_export(b"GDI", ExportLookupTarget::Ordinal(46)).is_none());
         let entry = lookup_export(b"GDI", ExportLookupTarget::Ordinal(5000)).unwrap();
         assert_eq!(entry.return_kind, Win16ReturnKind::Dword);
         assert_eq!(entry.parameters.len(), 6);

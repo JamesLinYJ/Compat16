@@ -6,7 +6,7 @@ use host_services::windows::text_encoding_metadata::{
     legacy_locale_ansi_code_page,
 };
 use runtime::{Diagnostic, DiagnosticKind as Kind, RuntimeHost};
-use text_codec::{TextEncodingEvidence, TextEncodingSelection, detect_ansi_code_page};
+use text_codec::{TextEncodingEvidence, TextEncodingSelection, detect_ansi_code_page, detect_program_ansi_code_page};
 use zerocopy::{
     FromBytes, Immutable, KnownLayout, Unaligned,
     byteorder::{LittleEndian, U16},
@@ -22,13 +22,14 @@ struct Translation {
 pub(super) struct ProgramEncoding {
     pub selection: TextEncodingSelection,
     unavailable_statistical_page: Option<u32>,
+    conflicting_version_hint: Option<u32>,
 }
 
 pub(super) fn resolve(bytes: &[u8], explicit: Option<u32>) -> Option<ProgramEncoding> {
     let image = formats::parse_ne(bytes).ok()?;
     let profile = formats::collect_ne_text_profile(bytes, &image);
-    let mut declared = Vec::new();
-    let mut languages = Vec::new();
+    let mut version_pages = Vec::new();
+    let mut version_languages = Vec::new();
     for range in profile.version_resource_ranges {
         let Some(block) = bytes.get(range) else {
             continue;
@@ -53,10 +54,10 @@ pub(super) fn resolve(bytes: &[u8], explicit: Option<u32>) -> Option<ProgramEnco
             };
             let page = u32::from(pair.code_page.get());
             if is_supported_ansi_code_page(page) {
-                declared.push(page);
+                version_pages.push(page);
             }
             if let Some(page) = ansi_code_page_for_language(pair.language.get()) {
-                languages.push(page);
+                version_languages.push(page);
             }
         }
     }
@@ -68,10 +69,15 @@ pub(super) fn resolve(bytes: &[u8], explicit: Option<u32>) -> Option<ProgramEnco
     // 1252 is the conventional Western Win16 fallback when the native locale
     // does not provide a legacy ANSI page; it is not a detected encoding.
     let fallback = legacy_locale_ansi_code_page().unwrap_or(1252);
-    let mut selection = detect_ansi_code_page(
-        &declared,
-        &languages,
+    // Translation describes version strings, not the encoding of RT_STRING.
+    // Localized UI resources can retain an untranslated publisher/version block.
+    // https://learn.microsoft.com/windows/win32/menurc/stringtable
+    let version_hint = detect_ansi_code_page(&version_pages, &version_languages, &[], &[], fallback, None);
+    let mut selection = detect_program_ansi_code_page(
+        &version_pages,
+        &version_languages,
         &fonts,
+        &profile.menu_strings,
         &profile.strings,
         fallback,
         explicit,
@@ -84,9 +90,13 @@ pub(super) fn resolve(bytes: &[u8], explicit: Option<u32>) -> Option<ProgramEnco
         selection.code_page = fallback;
         selection.evidence = TextEncodingEvidence::LocaleFallback;
     }
+    let conflicting_version_hint = (matches!(version_hint.evidence,
+        TextEncodingEvidence::DeclaredCodePage | TextEncodingEvidence::Language)
+        && version_hint.code_page != selection.code_page).then_some(version_hint.code_page);
     Some(ProgramEncoding {
         selection,
         unavailable_statistical_page,
+        conflicting_version_hint,
     })
 }
 
@@ -108,6 +118,12 @@ pub(super) fn report(host: &mut host_services::windows::WindowsHost, profile: &P
                 selection.code_page
             ),
         ));
+    }
+    if let Some(page) = profile.conflicting_version_hint {
+        host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap, format!(
+            "version-info code page hint {page} differs from the selected UI ANSI code page {}; version translation tags describe version strings",
+            selection.code_page,
+        )));
     }
     if selection.evidence == TextEncodingEvidence::Statistical && selection.code_page == 20932 {
         host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
@@ -133,8 +149,8 @@ pub(super) fn report(host: &mut host_services::windows::WindowsHost, profile: &P
 
 pub(super) fn evidence_name(value: TextEncodingEvidence) -> &'static str {
     match value {
-        TextEncodingEvidence::DeclaredCodePage => "resource code-page declaration",
-        TextEncodingEvidence::Language => "resource language",
+        TextEncodingEvidence::DeclaredCodePage => "version-resource code-page hint",
+        TextEncodingEvidence::Language => "version-resource language hint",
         TextEncodingEvidence::FontCharset => "font character set",
         TextEncodingEvidence::Statistical => "resource text statistics",
         TextEncodingEvidence::LocaleFallback => "legacy locale fallback",

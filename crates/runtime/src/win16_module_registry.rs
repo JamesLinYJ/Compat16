@@ -153,8 +153,10 @@ impl ModuleRegistry {
         })
     }
 
-    /// Resolves resident module names and file basenames without decoding the
-    /// guest's original byte strings as host paths or UTF-8.
+    /// GetModuleHandle searches resident names before complete file basenames.
+    /// A bare module name must not alias an unrelated EXE with the same stem:
+    /// its imports can require a separate DLL. Only builtin aliases discard
+    /// their conventional suffix; real file comparisons keep the extension.
     pub(super) fn by_name(&self, name: &[u8]) -> Option<u16> {
         let query = basename(name);
         if query.is_empty() {
@@ -162,33 +164,49 @@ impl ModuleRegistry {
         }
 
         let mut data_only_provider = None;
-        for (&handle, record) in &self.records {
-            if record.external_application.is_some() { continue; }
-            if record.state == ModuleState::Retired { continue; }
-            let resident_name = record.definition.as_ref().and_then(|definition| {
-                definition
-                    .resident_names
-                    .iter()
-                    .find(|entry| entry.ordinal == 0)
-                    .map(|entry| entry.name.as_slice())
-            });
-            let source_module_name = record.builtin && WIN16_EXPORTS.iter()
-                .flat_map(|entries| entries.iter())
-                .any(|entry| entry.module.as_bytes().eq_ignore_ascii_case(&record.name)
-                    && module_name_matches(query, entry.source_module.as_bytes()));
-            let path_name = basename(&record.path);
-            let matches = module_name_matches(query, &record.name)
-                || resident_name.is_some_and(|resident| module_name_matches(query, resident))
-                || source_module_name
-                || module_name_matches(query, path_name);
-            if !matches { continue; }
-            if is_data_only_builtin(record) {
-                data_only_provider.get_or_insert(handle);
-            } else {
-                return Some(handle);
+        for file_lookup in [false, true] {
+            for (&handle, record) in &self.records {
+                if record.external_application.is_some() { continue; }
+                if record.state == ModuleState::Retired { continue; }
+                let resident_name = record.definition.as_ref().and_then(|definition| {
+                    definition.resident_names.iter().find(|entry| entry.ordinal == 0)
+                        .map(|entry| entry.name.as_slice())
+                });
+                let source_module_name = record.builtin && WIN16_EXPORTS.iter()
+                    .flat_map(|entries| entries.iter())
+                    .any(|entry| entry.module.as_bytes().eq_ignore_ascii_case(&record.name)
+                        && module_name_matches(query, entry.source_module.as_bytes()));
+                let matches = if file_lookup {
+                    query.eq_ignore_ascii_case(basename(&record.path))
+                } else {
+                    query.eq_ignore_ascii_case(&record.name)
+                        || resident_name.is_some_and(|resident| query.eq_ignore_ascii_case(resident))
+                        || (record.builtin && module_name_matches(query, &record.name))
+                        || source_module_name
+                };
+                if !matches { continue; }
+                if is_data_only_builtin(record) {
+                    data_only_provider.get_or_insert(handle);
+                } else {
+                    return Some(handle);
+                }
             }
         }
         data_only_provider
+    }
+
+    /// LoadModule additionally tries the resident name without the supplied
+    /// file extension, after its complete filename lookup (ALFindModule).
+    pub(super) fn by_load_name(&self, name: &[u8]) -> Option<u16> {
+        let query = basename(name);
+        self.records.iter().find_map(|(&handle, record)| {
+            (!record.builtin && record.external_application.is_none()
+                && record.state != ModuleState::Retired
+                && query.eq_ignore_ascii_case(basename(&record.path))).then_some(handle)
+        }).or_else(|| self.by_name(name)).or_else(|| {
+            let dot = query.iter().rposition(|&byte| byte == b'.')?;
+            (dot != 0).then(|| self.by_name(&query[..dot])).flatten()
+        })
     }
 
     /// Reports explicit references plus incoming dependency edges. Pinned
@@ -333,3 +351,7 @@ fn has_extension(name: &[u8]) -> bool {
         .rposition(|byte| *byte == b'.')
         .is_some_and(|position| position != 0)
 }
+
+#[cfg(test)]
+#[path = "win16_module_lookup_tests.rs"]
+mod tests;

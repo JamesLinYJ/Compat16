@@ -187,7 +187,7 @@ pub(super) fn close(
 }
 
 pub(super) fn copy(
-    files: &Win16Files,
+    files: &mut Win16Files,
     source: Win16HostFile,
     destination: Win16HostFile,
 ) -> Result<Option<i32>, RuntimeError> {
@@ -230,6 +230,7 @@ pub(super) fn copy(
     // entering that API and the RAII wrapper keeps the destination alive.
     let destination_handle = destination_temporary.handle;
     let result = unsafe { LZCopy(source_handle, destination_handle) };
+    if result > 0 { files.mark_written(destination); }
     Ok(Some(result))
 }
 

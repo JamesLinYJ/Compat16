@@ -27,6 +27,8 @@ impl DosKernel {
             0x0b => self.input_status(regs, host),
             0x0c => self.flush_and_input(regs, memory, host),
             0x0e => self.select_drive(regs, host),
+            0x11 | 0x12 => self.fcb_search(regs, memory, host),
+            0x13 | 0x17 => self.fcb_mutation(regs, memory, host),
             0x19 => {
                 let drive = host.current_drive();
                 if drive > 25 {
@@ -47,8 +49,9 @@ impl DosKernel {
                 regs.set_bx(offset);
                 Ok(DosAction::Continue)
             }
-            0x2a | 0x2c => Self::get_date_time(regs, host),
-            0x30 => Ok(Self::dos_version(regs)),
+            0x2a | 0x2c => self.get_date_time(regs, host),
+            0x29 => self.parse_fcb_name(regs, memory, host),
+            0x30 => self.dos_version(regs, memory),
             0x33 => Ok(self.extended_version(regs)),
             0x25 => self.set_interrupt_vector(regs, memory),
             0x35 => self.get_interrupt_vector(regs, memory),
@@ -69,6 +72,7 @@ impl DosKernel {
             0x43 => self.file_attributes(regs, memory, host),
             0x44 => self.ioctl(regs, host),
             0x65 => self.extended_country_information(regs, memory, host),
+            0x63 => self.extended_code_system(regs, memory, host),
             0x47 => self.get_current_directory(regs, memory, host),
             0x4e => self.find_first(regs, memory, host),
             0x4f => self.find_next(regs, memory, host),
@@ -81,6 +85,8 @@ impl DosKernel {
             0x4c => Ok(DosAction::Exit(regs.al())),
             0x56 => self.rename_file(regs, memory, host),
             0x57 => self.file_date_time(regs, host),
+            0x59 => Ok(self.get_extended_error(regs)),
+            0x60 => self.canonical_name(regs, memory, host),
             0x68 => self.commit_file(regs, host),
             0x4d => {
                 regs.set_ax(u16::from(self.last_exit_code));
@@ -97,7 +103,7 @@ impl DosKernel {
             }
             0x52 => self.list_of_lists(regs, memory, host),
             _ => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
                 Ok(DosAction::Continue)
             }
         }

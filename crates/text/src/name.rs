@@ -20,7 +20,19 @@ pub fn uppercase_oem_name(bytes: &[u8], code_page: CodePage) -> Result<Vec<u8>, 
         .map_err(|_| TextError::AllocationFailed)?;
 
     if let Some(tables) = crate::dos_code_page_tables(code_page) {
-        output.extend(bytes.iter().map(|&byte| tables.uppercase_byte(byte)));
+        if code_page.dbcs_lead_byte_ranges().is_empty() {
+            output.extend(bytes.iter().map(|&byte| tables.uppercase_byte(byte)));
+        } else {
+            for item in encoded_characters(bytes, code_page) {
+                let item = item?;
+                let source = &bytes[item.byte_range];
+                if source.len() == 1 {
+                    output.push(tables.uppercase_byte(source[0]));
+                } else {
+                    output.extend_from_slice(source);
+                }
+            }
+        }
         return Ok(output);
     }
 

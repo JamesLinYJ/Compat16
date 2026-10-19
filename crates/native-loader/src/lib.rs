@@ -49,3 +49,7 @@ pub fn run_engine() -> Result<i32, EngineLoadError> {
     #[cfg(not(windows))]
     { Err(EngineLoadError::UnsupportedHost) }
 }
+
+/// Original Windows command text, before argv parsing removes guest quotes.
+#[cfg(windows)]
+pub fn command_line() -> io::Result<Vec<u16>> { windows::command_line() }

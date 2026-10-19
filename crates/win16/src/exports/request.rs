@@ -92,10 +92,10 @@ pub(crate) use request_modules::{
     MultiKeyHelp16HeaderWire,
 };
 pub(super) use request_modules::{
-    dde, decode_destroy_image, decode_device_capabilities, decode_kernel_memory,
+    dde, decode_destroy_image, decode_device_capabilities, decode_ext_device_mode, decode_kernel_memory,
     decode_kernel_module, decode_kernel_string, decode_kernel_task, decode_keyboard_export,
     decode_shell_drop_export, decode_shell_drive_type, decode_shell_execution_export,
-    decode_shell_icon_export, decode_shell_registry_export,
+    decode_shell_icon_export,
     decode_system, decode_toolhelp, decode_toolhelp_stack, decode_wifeman_dbcs_lead_byte, network,
 };
 pub use request_modules::{class_data, gdi_device, window_data, window_properties};

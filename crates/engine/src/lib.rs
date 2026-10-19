@@ -2,6 +2,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 mod entry;
+mod launch_options;
 #[cfg(windows)]
 mod program_encoding;
 #[cfg(windows)]

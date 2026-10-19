@@ -387,12 +387,6 @@ impl Filesystem {
         })
     }
 
-    pub(crate) fn file_delete(&mut self, path: &[u8]) -> Result<(), DosHostError> {
-        let path = self.resolve_path(path, false)?;
-        let path = self.confined_path(&path, false, false)?;
-        self.root.remove_file(&path).map_err(os_error)
-    }
-
     pub(crate) fn file_get_attributes(&mut self, path: &[u8]) -> Result<u8, DosHostError> {
         let path = self.resolve_path(path, false)?;
         let path = self.confined_path(&path, true, false)?;

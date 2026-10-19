@@ -14,16 +14,13 @@ use runtime::{
     Win16PrinterCapabilityData,
 };
 use windows_sys::Win32::Foundation::POINT;
-use windows_sys::Win32::Graphics::Gdi::{
-    DM_COLOR, DM_COPIES, DM_DEFAULTSOURCE, DM_DUPLEX,
-    DM_ORIENTATION, DM_PAPERLENGTH, DM_PAPERSIZE, DM_PAPERWIDTH,
-    DM_PRINTQUALITY, DM_SCALE, DM_TTOPTION, DM_YRESOLUTION,
-};
+use windows_sys::Win32::Graphics::Gdi::DEVMODEW;
+
 use windows_sys::Win32::Storage::Xps::DeviceCapabilitiesW;
 use zerocopy::{FromBytes, Immutable, KnownLayout};
 
 use super::guest_text::GuestTextCodec;
-use super::win16_gdi::{native_devmode, NativeDevMode};
+use super::win16_gdi::NativeDevMode;
 
 const DC_FIELDS: u16 = 1;
 const DC_PAPERS: u16 = 2;
@@ -46,23 +43,6 @@ const DC_COPIES: u16 = 18;
 
 const WIN16_DEVMODE_SIZE: u32 = 68;
 const WIN16_DM_SPECVERSION: u32 = 0x030a;
-
-// PRINT.H's supported Windows 3.1 DEVMODE bits are listed explicitly. Later
-// host-only DEVMODE fields must not leak through DC_FIELDS or a guest input.
-const WIN16_DEVMODE_FIELDS: [(u32, u32); 12] = [
-    (DM_ORIENTATION, 0x0000_0001),
-    (DM_PAPERSIZE, 0x0000_0002),
-    (DM_PAPERLENGTH, 0x0000_0004),
-    (DM_PAPERWIDTH, 0x0000_0008),
-    (DM_SCALE, 0x0000_0010),
-    (DM_COPIES, 0x0000_0100),
-    (DM_DEFAULTSOURCE, 0x0000_0200),
-    (DM_PRINTQUALITY, 0x0000_0400),
-    (DM_COLOR, 0x0000_0800),
-    (DM_DUPLEX, 0x0000_1000),
-    (DM_YRESOLUTION, 0x0000_2000),
-    (DM_TTOPTION, 0x0000_4000),
-];
 
 // windows-sys exposes POINT without zerocopy's FromBytes guarantee. This
 // private readback record is checked against that binding and is never used
@@ -105,6 +85,11 @@ pub(super) fn capabilities_in_worker(
     let codec = GuestTextCodec::new(code_page)?;
     let inputs = NativeInputs::from_request(&request, codec)?;
     if !request.collect_output || is_scalar_capability(request.index) {
+        if request.index == DC_EXTRA
+            && inputs.query(DC_SIZE, ptr::null_mut()) != size_of::<DEVMODEW>() as i32
+        {
+            return Ok(value_result(request.index, -1));
+        }
         let native_value = inputs.query(request.index, ptr::null_mut());
         return Ok(value_result(request.index, native_value));
     }
@@ -185,7 +170,7 @@ impl NativeInputs {
         let device = wide_input(codec, request.device.as_deref(), "device")?;
         let port = wide_input(codec, request.port.as_deref(), "port")?;
         let devmode = request.devmode.as_ref()
-            .map(|value| native_input_devmode(value, codec)).transpose()?;
+            .map(|value| super::win16_devmode::printer_input(value, codec)).transpose()?;
         Ok(Self { device, port, devmode })
     }
 
@@ -198,28 +183,6 @@ impl NativeInputs {
         // capabilities_in_worker and ends at its inaccessible guard page.
         unsafe { DeviceCapabilitiesW(device, port, index, output.cast(), devmode) }
     }
-}
-
-fn native_input_devmode(
-    value: &runtime::Win16HostDevMode,
-    codec: GuestTextCodec,
-) -> Result<NativeDevMode, RuntimeError> {
-    if !value.public_extension.is_empty() {
-        return Err(RuntimeError::new(Kind::CompatibilityGap,
-            "Win16 DeviceCapabilities cannot translate DEVMODE public-extension bytes"));
-    }
-    if !value.driver_extra.is_empty() {
-        return Err(RuntimeError::new(Kind::CompatibilityGap,
-            "Win16 DeviceCapabilities cannot consume host printer-driver private DEVMODE bytes"));
-    }
-    let supported = WIN16_DEVMODE_FIELDS.iter().fold(0, |mask, (native, _)| mask | *native);
-    if value.fields & !supported != 0 {
-        return Err(RuntimeError::new(Kind::CompatibilityGap,
-            "Win16 DeviceCapabilities cannot translate unknown DEVMODE field bits"));
-    }
-    // Reuse the GDI adapter's native DEVMODEW conversion and owned lifetime;
-    // the checks above prevent its opaque private-tail path from being used.
-    native_devmode(value, codec)
 }
 
 fn wide_input(
@@ -349,21 +312,40 @@ fn array_result(
 fn project_value(index: u16, native_value: i32) -> u32 {
     if native_value == -1 { return u32::MAX; }
     match index {
-        DC_FIELDS => project_devmode_fields(native_value as u32),
-        DC_SIZE if native_value > 0 => WIN16_DEVMODE_SIZE,
-        DC_VERSION if native_value > 0 => WIN16_DM_SPECVERSION,
-        DC_EXTRA => {
-            // Preserve the native driver's reported private-byte count. No
-            // private bytes are converted or claimed portable; such a tail is
-            // rejected if a later Win16 request supplies it as DEVMODE input.
-            native_value as u32
-        }
+        // The WOW extension now preserves every native field bit and value.
+        DC_FIELDS => native_value as u32,
+        DC_SIZE if native_value == size_of::<DEVMODEW>() as i32 => WIN16_DEVMODE_SIZE,
+        DC_SIZE => u32::MAX,
+        DC_VERSION if native_value > 0 => (native_value as u32).min(WIN16_DM_SPECVERSION),
+        DC_EXTRA => u32::try_from(native_value).ok()
+            .and_then(|value| value.checked_add(super::win16_devmode::WOW_EXTRA_OVERHEAD as u32))
+            .filter(|value| *value <= 65536 - WIN16_DEVMODE_SIZE)
+            .unwrap_or(u32::MAX),
         _ => native_value as u32,
     }
 }
 
-fn project_devmode_fields(native_fields: u32) -> u32 {
-    WIN16_DEVMODE_FIELDS.iter().fold(0, |guest, (native, target)| {
-        if native_fields & *native != 0 { guest | *target } else { guest }
-    })
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wow_devmode_capability_sizes_account_for_preserved_public_fields_and_trailer() {
+        assert_eq!(project_value(DC_SIZE, size_of::<DEVMODEW>() as i32), 68);
+        assert_eq!(project_value(DC_SIZE, 219), u32::MAX);
+        assert_eq!(project_value(DC_EXTRA, 0), 100);
+        assert_eq!(project_value(DC_EXTRA, 37), 137);
+        assert_eq!(project_value(DC_EXTRA, 65536 - 68 - 100), 65536 - 68);
+        assert_eq!(project_value(DC_EXTRA, 65536 - 68 - 99), u32::MAX);
+        assert_eq!(project_value(DC_EXTRA, -1), u32::MAX);
+        assert_eq!(project_value(DC_VERSION, 0x0401), 0x030a);
+        assert_eq!(project_value(DC_VERSION, 0x0300), 0x0300);
+    }
+
+    #[test]
+    fn wow_devmode_capability_field_bits_are_preserved() {
+        assert_eq!(project_value(DC_FIELDS, 0x0681_ffff), 0x0681_ffff);
+        assert_eq!(project_value(DC_FIELDS, -1), u32::MAX);
+        assert_eq!(project_value(DC_FIELDS, i32::MIN), 0x8000_0000);
+    }
 }

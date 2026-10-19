@@ -23,16 +23,16 @@ impl DosKernel {
         let request = match extended_open_request(regs) {
             Ok(request) => request,
             Err(code) => {
-                Self::failure(regs, DosHostError::new(code));
+                self.failure(regs, DosHostError::new(code));
                 return Ok(DosAction::Continue);
             }
         };
         let Some(handle) = self.first_free_handle() else {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         };
         if !self.file_table.has_free_slot() {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         // Unlike AH=3Dh/5Bh, the filename is DS:SI. Resolve it through the
@@ -40,26 +40,26 @@ impl DosKernel {
         let path = match read_dos_c_string(memory, regs.ds, regs.si()) {
             Ok(path) => path,
             Err(DosError::MalformedGuestInput(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
         };
         if let Err(error) = self.reserve_file_cleanup_slot() {
-            Self::failure(regs, error);
+            self.failure(regs, error);
             return Ok(DosAction::Continue);
         }
         // Retain the full mode, including the SFT's no-inherit bit. Both
         // identities must be reserved before a host operation can create.
         if self.file_table.register_open(handle, regs.bx()).is_none() {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         let opened = match host.file_extended_open(&path, request) {
             Ok(opened) => opened,
             Err(error) => {
                 self.file_table.remove_handle(handle);
-                Self::failure(regs, error);
+                self.failure(regs, error);
                 return Ok(DosAction::Continue);
             }
         };
@@ -129,7 +129,15 @@ fn extended_open_request(regs: &Registers) -> Result<DosFileOpenRequest, DosErro
     }
     // Bit 13 requests returned critical errors. Both settings currently use
     // the runtime's existing returned-error policy; INT 24h is not emulated.
-    let disposition = match regs.dx() {
+    let action = regs.dx();
+    // DOS 4 FILEMODE.INC permits bit 8 (no_code_page_check); FILE.ASM
+    // validates FE00h, then selects the disposition from DL. The Unicode
+    // host has no disk code-page check in either mode. This flag does not
+    // bypass guest-byte decoding, pathname checks, or native access rights.
+    if action & 0xfe00 != 0 {
+        return Err(DosErrorCode::InvalidFunction);
+    }
+    let disposition = match action & 0xff {
         0x0001 => DosFileDisposition::OpenExisting,
         0x0010 => DosFileDisposition::CreateNew,
         0x0011 => DosFileDisposition::OpenOrCreate,

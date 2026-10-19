@@ -20,6 +20,7 @@ path = "src/windowed.rs"
 
 [dependencies]
 native-loader = { path = "../native-loader" }
+launcher-ui = { path = "../launcher-ui" }
 
 [lints]
 workspace = true

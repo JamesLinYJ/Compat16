@@ -34,7 +34,6 @@ pub(in crate::win16_runtime) use send_message::{
 };
 
 const WM_COMMAND: u16 = 0x0111;
-const WM_TIMER: u16 = 0x0113;
 const WM_ACTIVATEAPP: u16 = 0x001c;
 const WM_PARENTNOTIFY: u16 = 0x0210;
 const WM_CTLCOLOR: u16 = 0x0019;
@@ -575,9 +574,9 @@ impl Win16State {
             host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
                 "Win16 PostMessage WM_CTLCOLOR cannot retain its HDC lease until dequeue"));
             return Ok(None);
-        } else if message == WM_TIMER && !send {
-            // The host queues this through an opaque WPARAM token with a null
-            // native LPARAM, then restores these guest bits on retrieval.
+        } else if Win16ScalarMessage::is_timer_message(message) && !send {
+            // The host queues this through an opaque WPARAM token and its
+            // own native thunk, then restores the guest message ID and bits.
             // In particular, native DispatchMessage never sees a TIMERPROC FAR.
             Win16MessageParam::GuestBits(l_param)
         } else if Win16ScalarMessage::from_raw(message).is_some() {

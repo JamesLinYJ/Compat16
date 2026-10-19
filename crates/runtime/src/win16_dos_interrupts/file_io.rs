@@ -74,7 +74,7 @@ pub(super) fn dispatch(
             if state.invalidate_file_close(file, closed) {
                 regs.set_carry(false);
             } else {
-                failure(regs, DosErrorCode::InvalidHandle);
+                dos.complete_service_failure(regs, DosErrorCode::InvalidHandle as u16);
             }
         }
         Ok(Outcome::Transfer(count)) => {
@@ -86,16 +86,11 @@ pub(super) fn dispatch(
             regs.set_dx((position >> 16) as u16);
             regs.set_carry(false);
         }
-        Err(error) => failure(regs, error.code),
+        Err(error) => dos.complete_service_failure(regs, error.code as u16),
     }
     dos.finish_external_int21(memory, host)
         .map_err(runtime_error)?;
     Ok(true)
-}
-
-fn failure(regs: &mut Registers, error: DosErrorCode) {
-    regs.set_ax(error as u16);
-    regs.set_carry(true);
 }
 
 fn transfer(

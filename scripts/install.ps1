@@ -170,6 +170,7 @@ $receipt = [pscustomobject]@{
     architecture = $architecture; installPath = $installRoot; files = @($files)
     registryValues = @($registryValues); registryViews = @($viewStates)
     systemLauncher = $systemLauncher
+    comShellCommand = (Get-ComShellCommand $installRoot)
 }
 
 Write-Phase 2 'Review files and NtVdm64 registration'
@@ -177,6 +178,7 @@ Write-Host "  Target: $target"
 Write-Host "  Files:  $($packageFiles.Count) SHA-256-verified payload files plus restore tools"
 Write-Host '  Keys:   HKLM NtVdm64\Compat16 in Registry64 and Registry32'
 Write-Host '  Global .exe associations: unchanged'
+Write-Host '  COM shell open: format-aware dispatch; previous command saved for uninstall'
 foreach ($provider in $wildcards) { Write-Host "  Existing wildcard provider: $($provider.product) [$($provider.key), $($provider.view)]" -ForegroundColor Yellow }
 if ($wildcards.Count) { Write-Host '  Provider priority is host-defined and is not verified; existing providers will not be removed.' -ForegroundColor Yellow }
 if ($architecture -eq 'arm64') {
@@ -220,6 +222,7 @@ try {
             } finally { if ($key) { $key.Close() } }
         } finally { $base.Close() }
     }
+    Set-ComShellCommand $receipt.comShellCommand $installRoot
 } catch {
     Write-Host "Install stopped: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "Receipt retained: $receiptPath" -ForegroundColor Yellow

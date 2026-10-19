@@ -209,6 +209,7 @@ impl ActiveOperation {
 
 #[derive(Clone, Copy)]
 pub(in crate::windows::win16_windows) struct Win16GuestTimerPost {
+    pub(in crate::windows::win16_windows) guest_message: u16,
     pub(in crate::windows::win16_windows) guest_w_param: u16,
     pub(in crate::windows::win16_windows) guest_l_param: u32,
 }
@@ -312,8 +313,8 @@ pub(in crate::windows::win16_windows) struct PendingDialogRoute {
     pub(in crate::windows::win16_windows) cookie: usize,
     pub(in crate::windows::win16_windows) guest_instance: u16,
     pub(in crate::windows::win16_windows) init_parameter: u32,
-    /// Identity reserved before entering USER so synchronous child/root
-    /// callbacks cannot allocate or adopt a different dialog generation.
+    /// Reserved before USER entry. An exact root proof can retain an earlier
+    /// borrowed alias exposed by parent notify, preserving its generation.
     pub(in crate::windows::win16_windows) root_token: Win16HostWindow,
     pub(in crate::windows::win16_windows) owner: HWND,
     pub(in crate::windows::win16_windows) root: Option<DialogRootCreationRoute>,
@@ -345,6 +346,8 @@ pub(in crate::windows::win16_windows) struct DialogRoute {
     /// Exact nested USER phase used while routing private-class initialization.
     pub(in crate::windows::win16_windows) class_init_in_progress: bool,
     pub(in crate::windows::win16_windows) class_init_default_called: bool,
+    /// Scoped to the exact live DefDlgProc invocation inside class initialization.
+    pub(in crate::windows::win16_windows) class_init_default_operation: Option<u64>,
 }
 
 #[derive(Clone, Copy)]
@@ -367,6 +370,8 @@ pub(in crate::windows) struct WorkerState {
     pub(in crate::windows) oem_text_codec: crate::windows::guest_text::GuestTextCodec,
     pub(in crate::windows::win16_windows) window_text_contexts:
         super::super::win16_window_text_context::WindowTextContextStack,
+    pub(in crate::windows::win16_windows) window_sizing_contexts:
+        super::super::win16_window_sizing::SizingContexts,
     pub(in crate::windows::win16_windows) shutdown_storage: Arc<Mutex<Vec<ShutdownStorageGuard>>>,
     pub(in crate::windows::win16_windows) worker_retirement_id: u64,
     pub(in crate::windows::win16_windows) toolbar_bitmap_retention:
@@ -493,7 +498,7 @@ pub(in crate::windows) struct WorkerState {
     pub(in crate::windows::win16_windows) timer_by_native: BTreeMap<(usize, usize), u64>,
     pub(in crate::windows::win16_windows) next_host_timer_id: u64,
     pub(in crate::windows::win16_windows) next_native_callback_timer_id: usize,
-    /// Sidecars for guest PostMessage(WM_TIMER). Native LPARAM is our trusted
+    /// Sidecars for guest WM_TIMER/WM_SYSTIMER posts. Native LPARAM is our trusted
     /// TIMERPROC thunk, never the guest FARPROC value.
     pub(in crate::windows::win16_windows) guest_timer_posts:
         BTreeMap<(usize, usize), Win16GuestTimerPost>,

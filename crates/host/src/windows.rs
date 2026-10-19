@@ -41,6 +41,8 @@ mod win16_common;
 mod win16_injected_input;
 mod win16_drawing;
 mod win16_gdi;
+mod win16_devmode;
+mod win16_printer_mode;
 mod win16_get_dc_ex;
 mod win16_metafile;
 mod win16_gdi_bitmap_transfer;
@@ -50,6 +52,7 @@ mod win16_network_redirector;
 mod win16_spool_jobs;
 mod win16_network_print_queues;
 mod win16_gdi_object_factories;
+mod win16_gdi_oem_bitmaps;
 mod win16_gdi_objects;
 mod win16_io_trace;
 mod win16_mci_owner;
@@ -189,6 +192,18 @@ pub fn encode(text: &str, code_page: u32) -> Result<Vec<u8>, DosHostError> {
     CodePage::try_from(code_page)
         .and_then(|page| page.encode(text))
         .map_err(|error| DosHostError::with_source(DosErrorCode::InvalidData, error))
+}
+
+/// Encode a Win16 command using its concrete Windows ANSI profile, separately
+/// from DOS country/OEM conversion. Reject replacement instead of losing text.
+pub fn encode_ansi(text: &str, code_page: u32) -> Result<Vec<u8>, RuntimeError> {
+    let encoded = guest_text::GuestTextCodec::new(code_page)?
+        .from_wide(&text.encode_utf16().collect::<Vec<_>>())?;
+    if encoded.used_default_char == Some(true) {
+        return Err(RuntimeError::new(Kind::InvalidInput,
+            "command text is not representable in the selected Win16 ANSI code page"));
+    }
+    Ok(encoded.bytes)
 }
 
 /// Whether host initialization may create a console for guest DOS input.
@@ -900,6 +915,12 @@ impl DosHost for WindowsHost {
         output: &mut [u8],
     ) -> Result<usize, DosHostError> {
         self.filesystem.directory_get_current(drive, output)
+    }
+    fn file_short_name(&mut self, parent: &[u8], name: &[u8]) -> Result<Option<Vec<u8>>, DosHostError> {
+        self.filesystem.project_short_component(parent, name)
+    }
+    fn file_delete_fcb(&mut self,path:&[u8],ignore_read_only:bool)->Result<(),DosHostError> {
+        self.filesystem.file_delete_fcb(path,ignore_read_only)
     }
     fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError> {
         self.filesystem.file_rename(old_path, new_path)

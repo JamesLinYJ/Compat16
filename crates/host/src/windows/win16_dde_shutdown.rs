@@ -117,15 +117,9 @@ impl Win16DdeHost {
 
         let deadline = Instant::now() + ABORT_POLL_WINDOW;
         loop {
-            self.poll_abort_events(&mut receipt);
-            self.poll_shutdown_report(&mut receipt);
-            self.join_completed_worker(&mut receipt);
-            if receipt.quiescence_evidence_ready() {
-                receipt.owner_status = Win16DdeAbortOwnerStatus::Quiesced;
-                if receipt.is_quiesced() {
-                    self.abort_receipt = Some(receipt.clone());
-                    return receipt;
-                }
+            if self.poll_abort_completion(&mut receipt) {
+                self.abort_receipt = Some(receipt.clone());
+                return receipt;
             }
             if Instant::now() >= deadline {
                 break;
@@ -133,12 +127,24 @@ impl Win16DdeHost {
             thread::sleep(Duration::from_millis(2));
         }
 
-        self.poll_abort_events(&mut receipt);
-        self.poll_shutdown_report(&mut receipt);
-        self.join_completed_worker(&mut receipt);
-        receipt.owner_status = Win16DdeAbortOwnerStatus::Retained;
+        // The worker may finish between the deadline check and this final
+        // poll. Publish its exact proof using the same rules as every earlier
+        // poll; a completed join must not be overwritten with Retained.
+        self.poll_abort_completion(&mut receipt);
         self.abort_receipt = Some(receipt.clone());
         receipt
+    }
+
+    fn poll_abort_completion(&mut self, receipt: &mut Win16DdeAbortReceipt) -> bool {
+        self.poll_abort_events(receipt);
+        self.poll_shutdown_report(receipt);
+        self.join_completed_worker(receipt);
+        receipt.owner_status = if receipt.quiescence_evidence_ready() {
+            Win16DdeAbortOwnerStatus::Quiesced
+        } else {
+            Win16DdeAbortOwnerStatus::Retained
+        };
+        receipt.is_quiesced()
     }
 
     pub fn shutdown(&mut self) -> Result<(), RuntimeError> {

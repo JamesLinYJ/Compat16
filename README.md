@@ -53,6 +53,18 @@ The output is placed in `dist/arm64` or `dist/x64`. Keep the four runtime files 
 
 Supply the legacy application and its companion files yourself. Use the console launcher's `--help` option for available settings.
 
+Open `compat16w.exe` without arguments for the native Windows launcher. Choose or drop a program, supply optional arguments and a working directory, then select **Run**. The built-in log pane streams runtime messages and exit status; it keeps recent output while the complete log remains on disk. Recent programs and advanced settings are saved under `%LOCALAPPDATA%\Compat16`. The window remains available after a launch or error, and closing it leaves launched programs running. `compat16.exe` also opens this window without arguments; it retains its console behavior when arguments are supplied.
+
+Installed legacy-image launches, explicit program paths and internal child launches go directly to the engine. The launcher window is written in Rust using Win32 controls and starts each application in a separate runtime process. Its DPI and control theme apply only to that UI process.
+
+For scripts, `--command-tail TEXT` preserves quotes and spacing in the guest argument text. Use it before `PROGRAM`, without additional positional arguments. `--working-directory PATH` selects the initial directory; the default remains the program's folder. Win16 command text uses the selected Windows ANSI encoding, while DOS command text uses the DOS code page.
+
+`--code-page 437` selects the built-in US/437 DOS country profile; `--code-page 936` selects PRC/936. Their country records, collation and uppercase tables do not depend on the host locale. CP936 filenames preserve double-byte character boundaries. Other country/code-page pairs and runtime country changes remain unsupported.
+
+`--dos-version 7.00` selects the initial program's reported DOS compatibility version (default 5.00). INT 21h/AH=30h reads the live version word at PSP:40h, including later guest changes. This does not change the true 5.50 identity from AX=3306h or add another DOS release's internal services; child programs start with their normal default version.
+
+Win3.1 SHELL registry queries present `REG_EXPAND_SZ` default values as their original text, preserving environment references such as `%SystemRoot%`. This string view reads the Windows key without changing its stored type or value. KERNEL's Win32 registry thunks retain native query behavior.
+
 ### Optional profile guided optimization
 
 PGO uses the pinned Rust 1.99.0 profiler runtime, its bundled COFF linker, and the `llvm-tools-preview` component. Install that optional component into the same Rust installation used by the build script. For the project-local toolchain:
@@ -92,6 +104,8 @@ After building, run from an **administrator PowerShell**:
 ```
 
 Installation copies the native runtime and adds its own Windows legacy application launch entry. Uninstallation removes unchanged files and settings recorded by this installation, retaining other software's settings and additional files.
+
+The COM shell open command dispatches files by their image format: DOS COM/MZ and Win16 programs enter Compat16, while native PE files named `.com` run through Windows. The previous COM command is recorded and restored during uninstall if it still belongs to this installation. Global `.exe` associations stay unchanged.
 
 The ARM64 package includes `system/ntvdm64.dll`, a system launch component built with the runtime. The installer adds it only when the system module is absent and records its hash for removal. Its filename and export follow the Windows launch interface; it is part of Compat16.
 
@@ -159,6 +173,18 @@ Compat16 在进程内执行旧程序的 x86 指令，并把 DOS / Win16 接口�
 
 旧程序及其配套文件由使用者自行提供。控制台入口支持 `--help`。
 
+不带参数打开 `compat16w.exe` 会显示原生 Windows 启动窗口。选择或拖入程序，填写可选的参数、工作目录，再点击“运行”。内嵌日志窗格实时显示运行消息和退出状态，保留最近输出，完整日志仍存储在文件中。最近使用的程序和高级设置保存在 `%LOCALAPPDATA%\Compat16`。程序启动或出错后，窗口保持打开；关闭窗口不会结束已经启动的程序。`compat16.exe` 无参数时也显示此窗口，带参数时保留控制台行为。
+
+安装系统接管后双击旧程序、显式传入程序路径以及内部子进程启动，均直接进入执行引擎。界面用 Rust 调用 Win32 原生控件实现，每个旧程序在独立运行时进程中执行；界面的 DPI 和控件主题只应用于界面自身。
+
+脚本可以在 `PROGRAM` 前使用 `--command-tail TEXT` 保留旧程序参数中的引号和空格，此时不能再附加位置参数。`--working-directory PATH` 指定初始工作目录，默认仍为程序所在文件夹。Win16 命令文本使用所选的 Windows ANSI 编码，DOS 命令文本使用 DOS 代码页。
+
+`--code-page 437` 使用内置的美国/437 DOS 国家配置，`--code-page 936` 使用中国/936 配置。国家信息、排序表和大小写表不依赖宿主区域设置，CP936 文件名转换保留双字节字符边界。其他国家与代码页组合及运行时国家切换仍未实现。
+
+`--dos-version 7.00` 选择初始程序看到的 DOS 兼容版本，默认仍为 5.00。INT 21h/AH=30h 读取 PSP:40h 的实时版本字，也反映客体随后写入的值。此选项不改变 AX=3306h 的真实 5.50 标识，也不会增加其他 DOS 版本的内部服务；子程序从其正常默认版本开始。
+
+Win3.1 SHELL 注册表查询将 `REG_EXPAND_SZ` 默认值按原文字符串呈现，保留 `%SystemRoot%` 等环境引用。此视图读取 Windows 原键，不改变存储的类型和值。KERNEL 的 Win32 注册表接口保留原生查询行为。
+
 ### 可选的 PGO 优化
 
 PGO 使用固定的 Rust 1.99.0，需要对应 Windows 架构的分析运行库及同一工具链中的 `llvm-tools-preview`；项目本地工具链的安装命令和完整流程见上方 [PGO 说明](#optional-profile-guided-optimization)。使用 `build.ps1 -Pgo generate` 生成四个插桩文件，再通过 `pgo.ps1 -Action Collect` 运行实际 DOS / Win16 工作负载，正常退出后执行 `-Action Merge`，最后使用 `build.ps1 -Pgo use` 构建。
@@ -176,6 +202,8 @@ ARM64 与 AMD64 的数据分别收集。脚本检查源码、编译设置、工�
 ```
 
 安装脚本复制当前架构的运行时，并添加自己的 Windows 旧程序启动入口。卸载时只撤销安装记录中未被修改的文件和设置，保留其他软件的设置及额外文件：
+
+COM 的 Shell 打开命令按文件格式分派：DOS COM/MZ 和 Win16 程序交给 Compat16，使用 `.com` 扩展名的原生 PE 程序仍交给 Windows 执行。旧的 COM 打开命令会记录在安装凭据中；卸载时若仍属于该安装，则恢复原值。全局 `.exe` 关联保持原样。
 
 ```powershell
 .\scripts\uninstall.ps1

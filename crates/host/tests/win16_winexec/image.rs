@@ -2,6 +2,90 @@
 
 pub const ENVIRONMENT: &[u8; 20] = b"C16=guest\0PATH=BIN\0\0";
 
+#[path = "image/country.rs"]
+mod country;
+pub use country::{country_com, country_filename, country_program};
+
+#[path = "image/dbcs.rs"]
+mod dbcs;
+pub use dbcs::{dbcs_com, dbcs_program};
+
+#[path = "image/stdin.rs"]
+mod stdin;
+pub use stdin::stdin_com;
+
+#[path = "image/extended_error.rs"]
+mod extended_error;
+pub use extended_error::{extended_error_com, extended_error_program};
+
+#[path = "image/extended_open.rs"]
+mod extended_open;
+pub use extended_open::{extended_open_filename, extended_open_program};
+
+#[path = "image/dos_message.rs"]
+mod dos_message;
+pub use dos_message::dos_message_com;
+
+#[path = "image/dos_version.rs"]
+mod dos_version;
+pub use dos_version::{dos_version_com, dos_version_program};
+
+#[path = "image/fcb_parse.rs"]
+mod fcb_parse;
+pub use fcb_parse::fcb_parse_program;
+
+#[path = "image/fcb_search.rs"]
+mod fcb_search;
+pub use fcb_search::{fcb_search_filename, fcb_search_program};
+#[path = "image/fcb_mutation.rs"]
+mod fcb_mutation;
+pub use fcb_mutation::fcb_mutation_program;
+#[path = "image/canonical_name.rs"]
+mod canonical_name;
+pub use canonical_name::canonical_name_program;
+
+#[path = "image/child_dialog.rs"]
+mod child_dialog;
+pub use child_dialog::child_dialog_program;
+
+#[path = "image/dialog_init.rs"]
+mod dialog_init;
+pub use dialog_init::private_dialog_init_program;
+
+#[path = "image/registry.rs"]
+mod registry;
+pub use registry::{
+    registry_cursor_program,
+    registry_expand_program,
+    registry_aliases_program,
+    registry_buffer_program, registry_optional_length_program, registry_program,
+    registry_query_program, registry_roots_program,
+};
+
+#[path = "image/oem_bitmap.rs"]
+mod oem_bitmap;
+pub use oem_bitmap::oem_bitmap_program;
+
+#[path = "image/current_directory.rs"]
+mod current_directory;
+pub use current_directory::{current_directory_com, current_directory_program};
+
+#[path = "image/launch_options.rs"]
+mod launch_options;
+pub use launch_options::command_tail_com;
+
+#[path = "image/global_notify.rs"]
+mod global_notify;
+pub use global_notify::global_notify_program;
+
+#[path = "image/dialog_icon.rs"]
+mod dialog_icon;
+pub use dialog_icon::{named_class_dialog_icon_program, named_dialog_icon_program};
+
+#[path = "image/printer.rs"]
+mod printer;
+pub use printer::{default_printer_round_trip_program, ext_device_mode_round_trip_program};
+
 #[path = "image/load_module.rs"]
 mod load_module;
 pub use load_module::{
@@ -190,7 +274,10 @@ fn ne_with_exports(
 ) -> Vec<u8> {
     // Microsoft NE layout: two segment records, counted resident/module
     // strings, and eight-byte additive imported-ordinal relocation records.
-    let mut bytes = vec![0_u8; 0x600 + data.len()];
+    let code_end = 0x200 + code.bytes.len()
+        + if code.imports.is_empty() { 0 } else { 2 + code.imports.len() * 8 };
+    let data_offset = code_end.next_multiple_of(16).max(0x600);
+    let mut bytes = vec![0_u8; data_offset + data.len()];
     bytes[..2].copy_from_slice(b"MZ");
     put(&mut bytes, 8, 4);
     bytes[0x3c..0x40].copy_from_slice(&0x40_u32.to_le_bytes());
@@ -266,7 +353,7 @@ fn ne_with_exports(
         if code.imports.is_empty() { 0 } else { 0x100 },
     );
     put(&mut bytes, 0x86, 0x1000);
-    put(&mut bytes, 0x88, 0x60);
+    put(&mut bytes, 0x88, u16::try_from(data_offset / 16).unwrap());
     put(&mut bytes, 0x8a, data.len() as u16);
     put(&mut bytes, 0x8c, 1);
     put(&mut bytes, 0x8e, 0x1000);
@@ -284,7 +371,7 @@ fn ne_with_exports(
             fixup += 8;
         }
     }
-    assert!(fixup <= 0x600);
-    bytes[0x600..].copy_from_slice(data);
+    assert!(fixup <= data_offset);
+    bytes[data_offset..].copy_from_slice(data);
     bytes
 }

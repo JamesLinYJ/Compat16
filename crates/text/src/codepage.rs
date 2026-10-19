@@ -13,6 +13,15 @@ impl CodePage {
     pub const CP437: Self = Self::Cp437;
     pub const CP936: Self = Self::Cp936;
 
+    /// Inclusive DBCS lead-byte ranges for this explicit codec. Empty for
+    /// SBCS pages; this classifies lead bytes, not complete valid characters.
+    pub const fn dbcs_lead_byte_ranges(self) -> &'static [(u8, u8)] {
+        match self {
+            Self::Cp437 => &[],
+            Self::Cp936 => &[(0x81, 0xfe)],
+        }
+    }
+
     /// Return the numeric Windows code-page identifier.
     pub const fn number(self) -> u16 {
         match self {

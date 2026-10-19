@@ -238,7 +238,8 @@ pub(super) fn create(
                     template_pointer,
                     owner_window,
                     cookie,
-                    root_token,
+                    operation,
+                    creation,
                     dialog_proc,
                 )
             };
@@ -251,6 +252,9 @@ pub(super) fn create(
             }
         }
     };
+    let root_token = state.borrow().pending_dialog_routes.iter()
+        .find(|pending| pending.operation == operation && pending.creation == creation)
+        .map_or(root_token, |pending| pending.root_token);
     let retain_modeless = !modal
         && matches!(
             &native_result,
@@ -309,7 +313,8 @@ fn create_modeless(
     template: *const DLGTEMPLATE,
     owner: HWND,
     cookie: usize,
-    root_token: runtime::Win16HostWindow,
+    operation: u64,
+    creation: runtime::Win16CreationId,
     dialog_proc: DLGPROC,
 ) -> Result<Win16HostDialogResult, RuntimeError> {
     let native = unsafe {
@@ -336,23 +341,23 @@ fn create_modeless(
             menu: None,
         });
     }
-    if !state.borrow().pending_dialog_routes.iter().any(|pending|
-        pending.root_token == root_token && pending.init_published)
-    {
-        return Err(RuntimeError::new(Kind::HostFailure,
-            "live modeless dialog returned before its INIT route was published"));
-    }
+    let root_token = state.borrow().pending_dialog_routes.iter().find(|pending|
+        pending.operation == operation && pending.creation == creation
+            && pending.cookie == cookie && pending.init_published)
+        .map(|pending| pending.root_token)
+        .ok_or_else(|| RuntimeError::new(Kind::HostFailure,
+            "live modeless dialog returned before its INIT route was published"))?;
     let token = match super::win16_window_identity::resolve(state, root_token) {
         Some(hwnd) if hwnd == native => root_token,
         _ => {
             // A recycled HWND can remain live after the original dialog was
-            // destroyed in WM_INITDIALOG. Without the reserved token's exact
+            // destroyed in WM_INITDIALOG. Without the creation token's exact
             // USER property, DestroyWindow could hit that unrelated window.
             // The post-return route rollback retires only identities still
             // bound to this creation token.
             return Err(RuntimeError::new(
                 Kind::HostFailure,
-                "modeless dialog returned an HWND without its reserved identity; recycled HWND cleanup was withheld",
+                "modeless dialog returned an HWND without its creation identity; recycled HWND cleanup was withheld",
             ));
         }
     };

@@ -194,20 +194,25 @@ pub(super) fn create_window(
         coordinate(data.width),
         coordinate(data.height),
     ];
-    let creation_hook = super::super::win16_window_creation_hook::NativeCreateCallScope::enter(
-        state,
-        creation,
-        token,
-        data.class,
-        creation_owner.identity(),
-        &title,
-        coordinates,
-        parent,
-        menu,
-        native_parameter,
-        &data,
-    );
-    let creation_hook = match creation_hook {
+    let creation_hook = (|| {
+        let sizing = super::super::win16_window_sizing::MinimizedCreation::enter(
+            state, creation, token, &data)?;
+        let hook = super::super::win16_window_creation_hook::NativeCreateCallScope::enter(
+            state,
+            creation,
+            token,
+            data.class,
+            creation_owner.identity(),
+            &title,
+            coordinates,
+            parent,
+            menu,
+            native_parameter,
+            &data,
+        )?;
+        Ok((hook, sizing))
+    })();
+    let (creation_hook, sizing) = match creation_hook {
         Ok(scope) => scope,
         Err(error) => {
             if cookie.is_some() {
@@ -410,10 +415,25 @@ pub(super) fn create_window(
             )),
         };
     }
+    if let Some(sizing) = sizing {
+        if let Err(error) = sizing.finish(hwnd) {
+            return match destroy_native_quiet(state, token, hwnd) {
+                Ok(()) => Err(error),
+                Err(cleanup) => Err(error.with_cleanup("destroy after minimized sizing failed", cleanup)),
+            };
+        }
+    }
+    // Updating restore bounds may synchronously reenter application code.
+    // Publish only the same still-live creation after that final native call.
+    if state.borrow().aborted {
+        destroy_native_quiet(state, token, hwnd)?;
+    }
+    let live_window = (super::super::win16_window_identity::resolve(state, token) == Some(hwnd))
+        .then_some(token);
     Ok(Win16HostWindowCreationResult {
         native_api_return,
         preflight_rejection: None,
-        live_window: Some(token),
+        live_window,
     })
 }
 

@@ -25,6 +25,7 @@ struct ExitHost {
     terminal_dos_calls: usize,
     callback_markers: Vec<u16>,
     markers_at_exit: Vec<Vec<u16>>,
+    marker_requires_idle_dde: bool,
 }
 
 impl DosHost for ExitHost {
@@ -64,6 +65,13 @@ impl RuntimeHost for ExitHost {
     fn read_bios_key(&mut self) -> Result<KeyStroke, RuntimeError> { panic!("unexpected host call") }
     fn render_text(&mut self, _screen: &ConsoleSnapshot) -> Result<(), RuntimeError> { panic!("unexpected host call") }
     fn win16_get_tick_count(&mut self) -> Result<u32, RuntimeError> { Ok(0) }
+
+    fn win16_take_guest_callback(&mut self) -> Result<Option<Win16GuestCallbackEvent>, RuntimeError> {
+        if self.marker_requires_idle_dde {
+            assert!(self.active.is_none(), "unrelated callback admission overtook a live DDE poll");
+        }
+        Ok(None)
+    }
 
     fn win16_classic_dde_begin(
         &mut self, call: Win16HostClassicDdeCall,
@@ -133,6 +141,9 @@ impl RuntimeHost for ExitHost {
         before: &guest_core::Registers, _after: &guest_core::Registers,
     ) {
         if before.ah() == 0x30 {
+            if self.marker_requires_idle_dde {
+                assert!(self.active.is_none(), "guest instruction overtook a live DDE poll");
+            }
             self.callback_markers.push(before.bx());
         }
         if before.ah() == 0x4c {
@@ -213,6 +224,47 @@ fn terminal_int21_at_segment_end_waits_for_classic_dde_without_iret() {
 }
 
 #[test]
+fn guest_service_waits_for_started_classic_dde_poll_retirement() {
+    for engine in [ExecutionEngine::Interpreter, ExecutionEngine::Jit] {
+        let (mut runtime, _) = fixture(0x3000);
+        runtime.set_execution_engine(engine);
+        let mut host = ExitHost { marker_requires_idle_dde: true, ..ExitHost::default() };
+        // The first MOV reaches the real scheduler, which starts a poll. The
+        // following INT must wait across Started, Complete and source ACK;
+        // its deliberate segment-end IRET fault then ends this observation.
+        let error = runtime.run_win16_inner(&mut host, 20).unwrap_err();
+        assert_eq!(error.kind(), Kind::GuestFault, "{engine:?}: {error}");
+        assert_eq!(runtime.instructions, 2);
+        assert_eq!(host.callback_markers.len(), 1);
+        assert!(host.resumes >= 2);
+        assert_eq!(host.retired as u64, host.begins);
+        assert!(host.active.is_none());
+    }
+}
+
+#[test]
+fn started_classic_dde_poll_owns_each_turn_until_exact_source_consumption() {
+    let (mut runtime, _) = fixture(0x3000);
+    let mut host = ExitHost::default();
+    let state = runtime.win16.as_mut().unwrap();
+    // Admission, delayed progress, and a terminal still awaiting its source
+    // ACK all exclude unrelated callbacks. Only consumption releases the turn.
+    for _ in 0..3 {
+        assert!(state.service_classic_dde_safe_point(
+            &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut host,
+        ).unwrap());
+        assert!(host.active.is_some());
+        assert_eq!(host.retired, 0);
+    }
+    assert!(!state.service_classic_dde_safe_point(
+        &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut host,
+    ).unwrap());
+    assert_eq!(host.begins, 1);
+    assert_eq!(host.retired, 1);
+    assert!(host.active.is_none());
+}
+
+#[test]
 fn nonterminal_int21_at_segment_end_still_faults_on_iret() {
     let (mut runtime, _) = fixture(0x3000);
     let mut host = ExitHost::default();
@@ -250,4 +302,41 @@ fn terminal_int21_still_respects_outer_instruction_budget() {
     assert_eq!(host.quiesces, 0);
     assert!(host.exits.is_empty());
     assert!(!runtime.win16.as_ref().unwrap().classic_dde_task_exit_needs_pump());
+}
+
+#[test]
+fn session_exit_old_exit_windows_terminates_guest_after_native_sources_drain() {
+    use guest_core::Selector;
+    use win16_abi::{ExportLookupTarget, lookup_export};
+    use super::super::ImportBinding;
+
+    // If USER.2 returns without requesting termination, the guest would run
+    // INT 21h/4C07h and exit with 7 instead. The service must end it with 0.
+    let (mut runtime, owner) = fixture(0x4c07);
+    let mut host = ExitHost::default();
+    let descriptor = lookup_export(b"USER", ExportLookupTarget::Ordinal(2)).unwrap();
+    let state = runtime.win16.as_mut().unwrap();
+    let return_cs = runtime.cpu.regs.cs;
+    let mut frame = 0_u16.to_le_bytes().to_vec();
+    frame.extend_from_slice(&return_cs.to_le_bytes());
+    let stack = state.selectors.pointer_from_raw(
+        Selector(runtime.cpu.regs.ss), runtime.cpu.regs.sp(),
+    ).unwrap();
+    state.selectors.write(&mut runtime.memory, stack, &frame).unwrap();
+    let slot = state.bindings.len();
+    state.bindings.push(ImportBinding::Supported(descriptor));
+    runtime.cpu.regs.cs = state.gate_selector.0;
+    runtime.cpu.regs.set_ip((slot * 2) as u16);
+
+    assert_eq!(state.dispatch(&mut runtime.cpu, &mut runtime.memory,
+        &mut runtime.dos, &mut host, 0).unwrap(), None);
+    assert!(state.classic_dde_task_exit_needs_pump());
+    assert!(host.exits.is_empty());
+    assert_eq!(runtime.run_win16_inner(&mut host, 20).unwrap(), 0);
+    assert_eq!(runtime.instructions, 0, "no caller instruction may run after USER.2");
+    assert_eq!(host.terminal_dos_calls, 0);
+    assert_eq!(host.exits, [0]);
+    assert!(host.quiesces > 0);
+    assert!(host.resumes >= 2);
+    assert!(runtime.win16.as_ref().unwrap().classic_dde_task_exit_quiesced(owner));
 }

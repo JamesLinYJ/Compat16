@@ -102,17 +102,11 @@ returns = "word"
 ordinal = 43
 name = "IsScreenGrab"
 kind = "stub"
-binding = { rust_id = "KernelIsScreenGrab", id_value = 1000007, constant = "KERNEL_ISSCREENGRAB" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 44
 name = "BuildPDB"
 kind = "stub"
-binding = { rust_id = "KernelBuildPDB", id_value = 1000008, constant = "KERNEL_BUILDPDB" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 45
@@ -139,9 +133,6 @@ params = [{ name = "module", type = "U16" }]
 ordinal = 53
 name = "CallProcInstance"
 kind = "stub"
-binding = { rust_id = "KernelCallProcInstance", id_value = 1000009, constant = "KERNEL_CALLPROCINSTANCE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 55
@@ -243,9 +234,6 @@ returns = "void"
 ordinal = 101
 name = "NoHookDosCall"
 kind = "stub"
-binding = { rust_id = "KernelNoHookDosCall", id_value = 1000016, constant = "KERNEL_NOHOOKDOSCALL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 102
@@ -333,17 +321,11 @@ value = 8
 ordinal = 116
 name = "InitLib"
 kind = "stub"
-binding = { rust_id = "KernelInitLib", id_value = 1000019, constant = "KERNEL_INITLIB" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 120
 name = "UndefDynLink"
 kind = "stub"
-binding = { rust_id = "KernelUndefDynLink", id_value = 1000020, constant = "KERNEL_UNDEFDYNLINK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 121
@@ -384,10 +366,13 @@ returns = "word"
 [[exports]]
 ordinal = 126
 name = "MemoryFreed"
-kind = "stub"
+decl = { args = ["word"] }
 binding = { rust_id = "KernelMemoryFreed", id_value = 1000024, constant = "KERNEL_MEMORYFREED" }
 [exports.call]
 returns = "dword"
+params = [
+  { name = "paragraphs_freed", type = "U16" },
+]
 
 [[exports]]
 ordinal = 131
@@ -418,9 +403,6 @@ params = [
 ordinal = 139
 name = "DoSignal"
 kind = "stub"
-binding = { rust_id = "KernelDoSignal", id_value = 1000026, constant = "KERNEL_DOSIGNAL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 140
@@ -441,17 +423,11 @@ params = [
 ordinal = 141
 name = "InitTask1"
 kind = "stub"
-binding = { rust_id = "KernelInitTask1", id_value = 1000028, constant = "KERNEL_INITTASK1" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 151
 name = "WinOldApCall"
 kind = "stub"
-binding = { rust_id = "KernelWinOldApCall", id_value = 1000029, constant = "KERNEL_WINOLDAPCALL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 152
@@ -478,7 +454,7 @@ name = "GetTaskDS"
 decl = { attributes = ["ret16"] }
 binding = { rust_id = "KernelGetTaskDs", id_value = 95, constant = "KERNEL_GET_TASK_DS" }
 [exports.call]
-returns = "word"
+returns = "dword"
 
 [[exports]]
 ordinal = 156
@@ -517,9 +493,6 @@ params = [
 ordinal = 160
 name = "EMSCopy"
 kind = "stub"
-binding = { rust_id = "KernelEMSCopy", id_value = 1000034, constant = "KERNEL_EMSCOPY" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 161
@@ -639,33 +612,21 @@ returns = "word"
 ordinal = 201
 name = "ReplaceInst"
 kind = "stub"
-binding = { rust_id = "KernelReplaceInst", id_value = 1000038, constant = "KERNEL_REPLACEINST" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 202
 name = "RegisterPtrace"
 kind = "stub"
-binding = { rust_id = "KernelRegisterPtrace", id_value = 1000039, constant = "KERNEL_REGISTERPTRACE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 204
 name = "SwapRecording"
 kind = "stub"
-binding = { rust_id = "KernelSwapRecording", id_value = 1000040, constant = "KERNEL_SWAPRECORDING" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 205
 name = "CVWBreak"
 kind = "stub"
-binding = { rust_id = "KernelCVWBreak", id_value = 1000041, constant = "KERNEL_CVWBREAK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 208
@@ -991,17 +952,11 @@ params = [
 ordinal = 235
 name = "InvalidateNlsCache"
 kind = "stub"
-binding = { rust_id = "KernelInvalidateNlsCache", id_value = 1000066, constant = "KERNEL_INVALIDATENLSCACHE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 236
 name = "GetProductName"
 kind = "stub"
-binding = { rust_id = "KernelGetProductName", id_value = 1000067, constant = "KERNEL_GETPRODUCTNAME" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 237
@@ -1015,25 +970,16 @@ returns = "word"
 ordinal = 262
 name = "WOWWaitForMsgAndEvent"
 kind = "stub"
-binding = { rust_id = "KernelWOWWaitForMsgAndEvent", id_value = 1000069, constant = "KERNEL_WOWWAITFORMSGANDEVENT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 263
 name = "WOWMsgBox"
 kind = "stub"
-binding = { rust_id = "KernelWOWMsgBox", id_value = 1000070, constant = "KERNEL_WOWMSGBOX" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 273
 name = "K273"
 kind = "stub"
-binding = { rust_id = "KernelK273", id_value = 1000071, constant = "KERNEL_K273" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 311
@@ -1050,9 +996,6 @@ params = [
 ordinal = 314
 name = "DebugDefineSegment"
 kind = "stub"
-binding = { rust_id = "KernelDebugDefineSegment", id_value = 1000073, constant = "KERNEL_DEBUGDEFINESEGMENT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 315
@@ -1073,17 +1016,11 @@ returns = "dword"
 ordinal = 318
 name = "FatalExitHook"
 kind = "stub"
-binding = { rust_id = "KernelFatalExitHook", id_value = 1000076, constant = "KERNEL_FATALEXITHOOK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 319
 name = "FlushCachedFileHandle"
 kind = "stub"
-binding = { rust_id = "KernelFlushCachedFileHandle", id_value = 1000077, constant = "KERNEL_FLUSHCACHEDFILEHANDLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 323
@@ -1224,17 +1161,11 @@ values = [0, 0]
 ordinal = 343
 name = "RegisterWinOldApHook"
 kind = "stub"
-binding = { rust_id = "KernelRegisterWinOldApHook", id_value = 1000089, constant = "KERNEL_REGISTERWINOLDAPHOOK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 344
 name = "GetWinOldApHooks"
 kind = "stub"
-binding = { rust_id = "KernelGetWinOldApHooks", id_value = 1000090, constant = "KERNEL_GETWINOLDAPHOOKS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 351
@@ -1303,33 +1234,21 @@ returns = "word"
 ordinal = 362
 name = "ThunkTerminateProcess"
 kind = "stub"
-binding = { rust_id = "KernelThunkTerminateProcess", id_value = 1000097, constant = "KERNEL_THUNKTERMINATEPROCESS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 408
 name = "KERNEL_408"
 kind = "stub"
-binding = { rust_id = "KernelKernel408", id_value = 1000098, constant = "KERNEL_KERNEL_408" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 409
 name = "KERNEL_409"
 kind = "stub"
-binding = { rust_id = "KernelKernel409", id_value = 1000099, constant = "KERNEL_KERNEL_409" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 410
 name = "CreateProcessFromWinExec"
 kind = "stub"
-binding = { rust_id = "KernelCreateProcessFromWinExec", id_value = 1000100, constant = "KERNEL_CREATEPROCESSFROMWINEXEC" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 423
@@ -1383,9 +1302,6 @@ params = [
 ordinal = 435
 name = "GetTaskFlags"
 kind = "stub"
-binding = { rust_id = "KernelGetTaskFlags", id_value = 1000105, constant = "KERNEL_GETTASKFLAGS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 436
@@ -1524,9 +1440,6 @@ returns = "word"
 ordinal = 448
 name = "KERNEL_448"
 kind = "stub"
-binding = { rust_id = "KernelKernel448", id_value = 1000118, constant = "KERNEL_KERNEL_448" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 449
@@ -1686,41 +1599,26 @@ params = [
 ordinal = 465
 name = "NukeProcess"
 kind = "stub"
-binding = { rust_id = "KernelNukeProcess", id_value = 1000132, constant = "KERNEL_NUKEPROCESS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 467
 name = "WOACreateConsole"
 kind = "stub"
-binding = { rust_id = "KernelWOACreateConsole", id_value = 1000133, constant = "KERNEL_WOACREATECONSOLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 468
 name = "WOASpawnConApp"
 kind = "stub"
-binding = { rust_id = "KernelWOASpawnConApp", id_value = 1000134, constant = "KERNEL_WOASPAWNCONAPP" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 469
 name = "WOAGimmeTitle"
 kind = "stub"
-binding = { rust_id = "KernelWOAGimmeTitle", id_value = 1000135, constant = "KERNEL_WOAGIMMETITLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 470
 name = "WOADestroyConsole"
 kind = "stub"
-binding = { rust_id = "KernelWOADestroyConsole", id_value = 1000136, constant = "KERNEL_WOADESTROYCONSOLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 471
@@ -1781,17 +1679,11 @@ params = [
 ordinal = 477
 name = "WOAFullScreen"
 kind = "stub"
-binding = { rust_id = "KernelWOAFullScreen", id_value = 1000143, constant = "KERNEL_WOAFULLSCREEN" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 478
 name = "WOATerminateProcess"
 kind = "stub"
-binding = { rust_id = "KernelWOATerminateProcess", id_value = 1000144, constant = "KERNEL_WOATERMINATEPROCESS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 479
@@ -1906,9 +1798,6 @@ params = [
 ordinal = 489
 name = "KERNEL_489"
 kind = "stub"
-binding = { rust_id = "KernelKernel489", id_value = 1000155, constant = "KERNEL_KERNEL_489" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 490
@@ -1937,9 +1826,6 @@ params = [
 ordinal = 492
 name = "WOAAbort"
 kind = "stub"
-binding = { rust_id = "KernelWOAAbort", id_value = 1000158, constant = "KERNEL_WOAABORT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 493
@@ -1959,9 +1845,6 @@ params = [
 ordinal = 494
 name = "KERNEL_494"
 kind = "stub"
-binding = { rust_id = "KernelKernel494", id_value = 1000160, constant = "KERNEL_KERNEL_494" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 495
@@ -1997,89 +1880,56 @@ params = [
 ordinal = 501
 name = "KDDBGOUT"
 kind = "stub"
-binding = { rust_id = "KernelKddbgout", id_value = 1000163, constant = "KERNEL_KDDBGOUT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 502
 name = "WOWGETNEXTVDMCOMMAND"
 kind = "stub"
-binding = { rust_id = "KernelWowgetnextvdmcommand", id_value = 1000164, constant = "KERNEL_WOWGETNEXTVDMCOMMAND" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 503
 name = "WOWREGISTERSHELLWINDOWHANDLE"
 kind = "stub"
-binding = { rust_id = "KernelWowregistershellwindowhandle", id_value = 1000165, constant = "KERNEL_WOWREGISTERSHELLWINDOWHANDLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 504
 name = "WOWLOADMODULE"
 kind = "stub"
-binding = { rust_id = "KernelWowloadmodule", id_value = 1000166, constant = "KERNEL_WOWLOADMODULE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 505
 name = "WOWQUERYPERFORMANCECOUNTER"
 kind = "stub"
-binding = { rust_id = "KernelWowqueryperformancecounter", id_value = 1000167, constant = "KERNEL_WOWQUERYPERFORMANCECOUNTER" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 506
 name = "WOWCURSORICONOP"
 kind = "stub"
-binding = { rust_id = "KernelWowcursoriconop", id_value = 1000168, constant = "KERNEL_WOWCURSORICONOP" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 507
 name = "WOWFAILEDEXEC"
 kind = "stub"
-binding = { rust_id = "KernelWowfailedexec", id_value = 1000169, constant = "KERNEL_WOWFAILEDEXEC" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 508
 name = "WOWCLOSECOMPORT"
 kind = "stub"
-binding = { rust_id = "KernelWowclosecomport", id_value = 1000170, constant = "KERNEL_WOWCLOSECOMPORT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 511
 name = "WOWKILLREMOTETASK"
 kind = "stub"
-binding = { rust_id = "KernelWowkillremotetask", id_value = 1000171, constant = "KERNEL_WOWKILLREMOTETASK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 512
 name = "WOWQUERYDEBUG"
 kind = "stub"
-binding = { rust_id = "KernelWowquerydebug", id_value = 1000172, constant = "KERNEL_WOWQUERYDEBUG" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 519
 name = "EXITKERNELTHUNK"
 kind = "stub"
-binding = { rust_id = "KernelExitkernelthunk", id_value = 1000173, constant = "KERNEL_EXITKERNELTHUNK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 520
@@ -2163,17 +2013,11 @@ value = 4213
 ordinal = 533
 name = "ConvertDDEHandleLS"
 kind = "stub"
-binding = { rust_id = "KernelConvertDDEHandleLS", id_value = 1000174, constant = "KERNEL_CONVERTDDEHANDLELS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 534
 name = "ConvertDDEHandleSL"
 kind = "stub"
-binding = { rust_id = "KernelConvertDDEHandleSL", id_value = 1000175, constant = "KERNEL_CONVERTDDEHANDLESL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 535
@@ -2203,57 +2047,36 @@ params = [
 ordinal = 537
 name = "KERNEL_537"
 kind = "stub"
-binding = { rust_id = "KernelKernel537", id_value = 1000178, constant = "KERNEL_KERNEL_537" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 538
 name = "ThunkTheTemplateHandle"
 kind = "stub"
-binding = { rust_id = "KernelThunkTheTemplateHandle", id_value = 1000179, constant = "KERNEL_THUNKTHETEMPLATEHANDLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 540
 name = "KERNEL_540"
 kind = "stub"
-binding = { rust_id = "KernelKernel540", id_value = 1000180, constant = "KERNEL_KERNEL_540" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 541
 name = "WOWSETEXITONLASTAPP"
 kind = "stub"
-binding = { rust_id = "KernelWowsetexitonlastapp", id_value = 1000181, constant = "KERNEL_WOWSETEXITONLASTAPP" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 542
 name = "KERNEL_542"
 kind = "stub"
-binding = { rust_id = "KernelKernel542", id_value = 1000182, constant = "KERNEL_KERNEL_542" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 543
 name = "KERNEL_543"
 kind = "stub"
-binding = { rust_id = "KernelKernel543", id_value = 1000183, constant = "KERNEL_KERNEL_543" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 544
 name = "WOWSETCOMPATHANDLE"
 kind = "stub"
-binding = { rust_id = "KernelWowsetcompathandle", id_value = 1000184, constant = "KERNEL_WOWSETCOMPATHANDLE" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 560
@@ -2319,9 +2142,6 @@ params = [
 ordinal = 566
 name = "KERNEL_566"
 kind = "stub"
-binding = { rust_id = "KernelKernel566", id_value = 1000190, constant = "KERNEL_KERNEL_566" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 567
@@ -2353,17 +2173,11 @@ params = [
 ordinal = 600
 name = "AllocCodeAlias"
 kind = "stub"
-binding = { rust_id = "KernelAllocCodeAlias", id_value = 1000193, constant = "KERNEL_ALLOCCODEALIAS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 601
 name = "FreeCodeAlias"
 kind = "stub"
-binding = { rust_id = "KernelFreeCodeAlias", id_value = 1000194, constant = "KERNEL_FREECODEALIAS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 602
@@ -2377,9 +2191,6 @@ returns = "word"
 ordinal = 603
 name = "KERNEL_603"
 kind = "stub"
-binding = { rust_id = "KernelKernel603", id_value = 1000196, constant = "KERNEL_KERNEL_603" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 604
@@ -2491,17 +2302,11 @@ params = [
 ordinal = 613
 name = "HugeMapLS"
 kind = "stub"
-binding = { rust_id = "KernelHugeMapLS", id_value = 1000206, constant = "KERNEL_HUGEMAPLS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 614
 name = "HugeUnMapLS"
 kind = "stub"
-binding = { rust_id = "KernelHugeUnMapLS", id_value = 1000207, constant = "KERNEL_HUGEUNMAPLS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 615
@@ -2629,9 +2434,6 @@ returns = "dword"
 ordinal = 626
 name = "SmashEnvironment"
 kind = "stub"
-binding = { rust_id = "KernelSmashEnvironment", id_value = 1000219, constant = "KERNEL_SMASHENVIRONMENT" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 627
@@ -2696,9 +2498,6 @@ params = [
 ordinal = 653
 name = "OkWithKernelToChangeUsers"
 kind = "stub"
-binding = { rust_id = "KernelOkWithKernelToChangeUsers", id_value = 1000225, constant = "KERNEL_OKWITHKERNELTOCHANGEUSERS" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 666
@@ -2766,25 +2565,16 @@ returns = "dword"
 ordinal = 701
 name = "SSOnBigStack"
 kind = "stub"
-binding = { rust_id = "KernelSSOnBigStack", id_value = 1000231, constant = "KERNEL_SSONBIGSTACK" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 702
 name = "SSCall"
 kind = "stub"
-binding = { rust_id = "KernelSSCall", id_value = 1000232, constant = "KERNEL_SSCALL" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 703
 name = "CallProc32WFix"
 kind = "stub"
-binding = { rust_id = "KernelCallProc32WFix", id_value = 1000233, constant = "KERNEL_CALLPROC32WFIX" }
-[exports.call]
-returns = "dword"
 
 [[exports]]
 ordinal = 704

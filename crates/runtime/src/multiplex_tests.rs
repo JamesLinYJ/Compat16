@@ -28,7 +28,11 @@ fn unknown_and_uninstalled_multiplex_ids_preserve_every_register() {
         let mut regs = registers_with_ax(ax);
         let before = regs.clone();
 
-        assert_eq!(dispatch(&mut regs), MultiplexOutcome::Unclaimed, "AX={ax:04X}");
+        assert_eq!(
+            dispatch(&mut regs),
+            MultiplexOutcome::Unclaimed,
+            "AX={ax:04X}"
+        );
         assert_eq!(regs, before, "unclaimed AX={ax:04X} changed guest state");
     }
 }
@@ -59,12 +63,21 @@ fn xms_entry_query_is_claimed_and_returns_the_registered_rom_entry() {
 
 #[test]
 fn dos_owned_services_are_not_silently_treated_as_absent_providers() {
-    for ax in [0x1200, 0x122e, 0x12ff] {
+    for ax in [0x122e, 0x12ff] {
         let mut regs = registers_with_ax(ax);
         let before = regs.clone();
         assert_eq!(dispatch(&mut regs), MultiplexOutcome::MissingDosService);
         assert_eq!(regs, before);
     }
+}
+
+#[test]
+fn installed_dos_check_only_updates_al() {
+    let mut regs = registers_with_ax(0x1200);
+    let mut expected = regs.clone();
+    expected.set_al(0xff);
+    assert_eq!(dispatch(&mut regs), MultiplexOutcome::Handled);
+    assert_eq!(regs, expected);
 }
 
 #[test]

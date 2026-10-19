@@ -146,6 +146,13 @@ foreach ($plan in $plans) {
 if ($conflicts.Count) { Write-Host 'Registry conflicts were preserved; runtime files and receipt remain for recovery.' -ForegroundColor Yellow }
 
 Write-Phase 4 'Remove unchanged files only when registry cleanup is conflict-free'
+if ($receipt.comShellCommand) {
+    try {
+        if (-not (Restore-ComShellCommand $receipt.comShellCommand $installRoot)) {
+            $conflicts += 'COM open command was changed; runtime and receipt retained'
+        }
+    } catch { $errors += "COM open command restore: $($_.Exception.Message)" }
+}
 if ($conflicts.Count -or $errors.Count) {
     foreach ($message in $conflicts) { Write-Host "  PRESERVED: $message" -ForegroundColor Yellow }
     foreach ($message in $errors) { Write-Host "  ERROR: $message" -ForegroundColor Red }

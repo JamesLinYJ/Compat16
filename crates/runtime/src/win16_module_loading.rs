@@ -98,7 +98,7 @@ impl Win16State {
     pub(super) fn discover_library_image(&mut self, name: &[u8], image: Option<crate::Win16ModuleImage>,
         memory: &mut Memory, host: &mut impl RuntimeHost, created: &mut Vec<u16>, depth: usize)
         -> Result<Result<u16, u16>, RuntimeError> {
-        let existing = self.modules.by_name(name);
+        let existing = self.modules.by_load_name(name);
         let data_only_builtin = existing.filter(|&handle| module_registry::is_data_only_builtin(
             &self.modules.records[&handle],
         ));
@@ -131,7 +131,7 @@ impl Win16State {
                 return Ok(Err(error));
             }
         };
-        if let Some(handle) = self.modules.by_name(&file.path) {
+        if let Some(handle) = self.modules.by_load_name(&file.path) {
             if !module_registry::is_data_only_builtin(&self.modules.records[&handle]) {
                 return Ok(Ok(handle));
             }
@@ -448,8 +448,11 @@ impl Win16State {
                     Ok(Some(value)) => value,
                     Ok(None) => {
                         host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
-                            format!("Win16 library import from {} is absent; returning bad-format load failure",
-                                String::from_utf8_lossy(&dependency.name))));
+                            format!("Win16 library import {}!{} is absent; returning bad-format load failure",
+                                String::from_utf8_lossy(&dependency.name), match &target {
+                                    Win16ProcReference::Ordinal(ordinal) => format!("#{ordinal}"),
+                                    Win16ProcReference::Name(name) => String::from_utf8_lossy(name).into_owned(),
+                                })));
                         return Ok(Err(11));
                     }
                     Err(error @ FormatError::NeDataImportFailure { .. }) => {

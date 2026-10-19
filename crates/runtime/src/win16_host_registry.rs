@@ -19,16 +19,12 @@ pub enum Win16RegistryRoot {
     DynamicData,
 }
 
-// Win16 SHELL root-key encodings, retained separately from native HKEY bits.
-const WIN16_DEFAULT_ROOT: u32 = 0;
-const WIN16_CLASSES_ROOT: u32 = 1;
-
 impl Win16RegistryRoot {
-    /// Map known predefined roots and Win16 compatibility encodings. Other DWORD values
-    /// must be runtime-issued guest aliases for opened keys.
+    /// Map documented native predefined roots. SHELL's legacy 0/1 encodings
+    /// are interpreted by its API translator, not by Win32 KERNEL thunks.
     pub const fn from_guest_handle(handle: u32) -> Option<Self> {
         match handle {
-            WIN16_DEFAULT_ROOT | WIN16_CLASSES_ROOT | 0x8000_0000 => Some(Self::ClassesRoot),
+            0x8000_0000 => Some(Self::ClassesRoot),
             0x8000_0001 => Some(Self::CurrentUser),
             0x8000_0002 => Some(Self::LocalMachine),
             0x8000_0003 => Some(Self::Users),
@@ -45,6 +41,29 @@ impl Win16RegistryRoot {
 pub enum Win16RegistryKeyRef {
     Predefined(Win16RegistryRoot),
     Opened(Win16HostRegistryKey),
+}
+
+/// Owned-data policy for a native registry read; no guest pointers cross here.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16RegistryQueryOutput {
+    SizeOnly,
+    Bounded(u32),
+    /// Return the complete converted value for runtime-side Win3.1 truncation.
+    Complete,
+    /// Preserve the native API's optional-length validation and key lookup.
+    WithoutLength {
+        data_present: bool,
+    },
+}
+
+/// Value semantics are independent of buffer and truncation policy.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16RegistryQueryView {
+    /// Preserve RegQueryValue's native supported types and error results.
+    Native,
+    /// Present REG_EXPAND_SZ as its original text to Win3.1 string-only APIs.
+    /// Environment references and the stored native value remain unchanged.
+    Win31Strings,
 }
 
 /// One operation on the process registry namespace.
@@ -69,13 +88,15 @@ pub enum Win16HostRegistryOperation {
         key: Win16RegistryKeyRef,
         subkey: Vec<u8>,
         value_type: u32,
+        /// Checked ANSI string bytes, excluding the terminator. The Win16
+        /// API's cbData parameter is ignored before this host boundary.
         value: Vec<u8>,
-        declared_byte_count: u32,
     },
     QueryValue {
         key: Win16RegistryKeyRef,
         subkey: Vec<u8>,
-        capacity: u32,
+        output: Win16RegistryQueryOutput,
+        view: Win16RegistryQueryView,
     },
     EnumKey {
         key: Win16RegistryKeyRef,
@@ -86,8 +107,8 @@ pub enum Win16HostRegistryOperation {
 
 /// The result variant identifies the operation that produced it. Registry
 /// status values are native Win32 error codes and remain ordinary guest return
-/// values; `required_bytes` is the native required size while `bytes` contains
-/// only the copied result bytes actually returned to runtime.
+/// values; lengths and copied strings use the guest code page after conversion
+/// from the Unicode native registry.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16HostRegistryResult {
     OpenKey {
@@ -110,9 +131,9 @@ pub enum Win16HostRegistryResult {
     QueryValue {
         status: u32,
         value_type: u32,
-        /// Native required size in bytes, with any REG_SZ NUL included.
+        /// Required guest-encoded size in bytes, with any REG_SZ NUL included.
         required_bytes: u32,
-        /// Actual native value bytes copied; preserves the native terminator.
+        /// Guest-encoded value bytes copied; preserves the native terminator.
         bytes: Vec<u8>,
     },
     EnumKey {

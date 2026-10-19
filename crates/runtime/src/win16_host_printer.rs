@@ -3,6 +3,25 @@
 use crate::{Win16DrawingPoint, Win16HostDevMode};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Win16HostPrinterMode {
+    pub owner: Option<crate::Win16HostWindow>,
+    pub device: Option<Vec<u8>>,
+    pub port: Option<Vec<u8>>,
+    pub input: Option<Win16HostDevMode>,
+    pub profile: Option<Vec<u8>>,
+    pub mode: u16,
+    /// None preserves WOW's size-query behavior for DM_COPY with a NULL output.
+    pub output_capacity: Option<usize>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Win16HostPrinterModeResult {
+    pub value: i32,
+    /// Present only for IDOK with a requested output buffer.
+    pub output: Option<Win16HostDevMode>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Win16PrinterCapabilities {
     pub device: Option<Vec<u8>>,
     pub port: Option<Vec<u8>>,

@@ -20,7 +20,7 @@ impl Win16State {
                 let Some(mode) = self.decode_guest_devmode(devmode_far, memory)? else {
                     return Ok(0);
                 };
-                if mode.fields & !DEVMODE16_SUPPORTED_FIELDS != 0 {
+                if !mode.has_mapped_fields() {
                     host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
                     "Win16 ResetDC selects fields without a verified native value conversion")
                     .with_context("Win16 GDI ResetDC"));

@@ -118,6 +118,26 @@ impl Win16State {
         let (return_selector, return_offset, return_sp) =
             self.far_return(registers, memory, decoded.stack_cleanup.callee_pop_bytes)?;
         let return_to = (return_selector, return_offset, return_sp);
+        let heap_operation = match &decoded.request {
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::GlobalMemory(
+                win16_abi::Win16KernelGlobalMemoryRequest::GlobalAlloc { flags, size },
+            )) => Some(super::global_notify::GlobalHeapOperation::Allocate {
+                flags: *flags, size: *size, caller: return_selector,
+            }),
+            Win16ApiRequest::KernelGlobalHeap(
+                win16_abi::Win16KernelGlobalHeapRequest::GlobalCompact { minimum_free },
+            ) => Some(super::global_notify::GlobalHeapOperation::Compact { minimum_free: *minimum_free }),
+            Win16ApiRequest::KernelGlobalHeap(
+                win16_abi::Win16KernelGlobalHeapRequest::GlobalReAlloc { handle, size, flags },
+            ) => Some(super::global_notify::GlobalHeapOperation::Reallocate {
+                handle: *handle, identity: self.global_handles.get(handle).copied(),
+                size: *size, flags: *flags, caller: return_selector,
+            }),
+            _ => None,
+        };
+        if let Some(operation) = heap_operation {
+            return self.begin_global_heap_operation(operation, cpu, dos, memory, host, return_to);
+        }
         if let Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
             win16_abi::Win16KernelRuntimeRequest::WaitEvent { task_handle },
         )) = &decoded.request {
@@ -207,6 +227,7 @@ impl Win16State {
                 win16_abi::Win16GdiObjectsRequest::EnumMetaFile { .. }))
             || matches!(&request, Win16ApiRequest::Dde(_)
                 | Win16ApiRequest::Commdlg(_)
+                | Win16ApiRequest::Printer(win16_abi::Win16PrinterRequest::ExtDeviceMode { .. })
                 | Win16ApiRequest::Commctrl(_)
                 | Win16ApiRequest::ShellExecution(_)
                 | Win16ApiRequest::ShellDrop(_)

@@ -52,6 +52,14 @@ Test-Case 'visible-frame-and-two-exact-guest-round-trips' {
     Assert-That $e.accepted 'Completed owned/native/guest evidence was rejected.'
     Assert-That ($e.guestNullRoundTrips -eq 2) 'Both guest callback returns are required.'
 }
+Test-Case 'optional-monotonic-timing-preserves-exact-complete-row-evidence' {
+    $timed = [regex]::Replace($baseServices, '\r?\n', " elapsed-us=123`n")
+    Assert-That (Get-Evidence $timed).accepted 'Timed complete events lost their identities.'
+    Assert-That (-not (Get-Evidence $timed.TrimEnd()).accepted) 'An unterminated timed return was accepted.'
+    foreach ($bad in @('-1','invalid','123 extra')) {
+        Assert-That (-not (Get-Evidence ($timed.Replace('elapsed-us=123',"elapsed-us=$bad"))).accepted) 'Malformed timing made incomplete event evidence acceptable.'
+    }
+}
 Test-Case 'native-only-response-is-not-guest-readiness' {
     $text = ($baseServices -split "`n" | Where-Object { $_ -notmatch 'window-callback' }) -join "`n"
     Assert-That (-not (Get-Evidence ($text+"`n")).accepted) 'Native-only replies must not pass.'

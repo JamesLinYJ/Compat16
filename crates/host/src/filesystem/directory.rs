@@ -7,11 +7,14 @@ use std::path::{Path, PathBuf};
 use cap_std::fs::{OpenOptions, OpenOptionsExt};
 use dos_kernel::{DosDirectoryEntry, DosErrorCode, DosHostError, DosHostSearch};
 use runtime::Win16CanonicalPath;
-use windows_sys::Win32::Foundation::HANDLE;
+use windows_sys::Wdk::Storage::FileSystem::{
+    FILE_RENAME_INFORMATION, FileRenameInformation, NtSetInformationFile,
+};
+use windows_sys::Win32::Foundation::{HANDLE, RtlNtStatusToDosError};
 use windows_sys::Win32::Storage::FileSystem::{
     DELETE, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_READ_ATTRIBUTES,
-    FILE_RENAME_INFO, FileRenameInfo, SetFileInformationByHandle,
 };
+use windows_sys::Win32::System::IO::IO_STATUS_BLOCK;
 
 use crate::windows::{encode, invalid, os_error};
 
@@ -182,17 +185,18 @@ impl Filesystem {
             .len()
             .checked_mul(size_of::<u16>())
             .ok_or_else(|| invalid(DosErrorCode::InvalidData))?;
-        let name_offset = offset_of!(FILE_RENAME_INFO, FileName);
+        let name_offset = offset_of!(FILE_RENAME_INFORMATION, FileName);
         let buffer_len = name_offset
             .checked_add(file_name_bytes)
-            .ok_or_else(|| invalid(DosErrorCode::InvalidData))?;
+            .ok_or_else(|| invalid(DosErrorCode::InvalidData))?
+            .max(size_of::<FILE_RENAME_INFORMATION>());
         let word_size = size_of::<usize>();
         let word_count = buffer_len
             .checked_add(word_size - 1)
             .ok_or_else(|| invalid(DosErrorCode::InvalidData))?
             / word_size;
         let mut buffer = vec![0usize; word_count];
-        let info = buffer.as_mut_ptr().cast::<FILE_RENAME_INFO>();
+        let info = buffer.as_mut_ptr().cast::<FILE_RENAME_INFORMATION>();
         let buffer_len_u32 =
             u32::try_from(buffer_len).map_err(|_| invalid(DosErrorCode::InvalidData))?;
         let file_name_bytes_u32 =
@@ -206,18 +210,27 @@ impl Filesystem {
             let file_name = std::ptr::addr_of_mut!((*info).FileName).cast::<u16>();
             std::ptr::copy_nonoverlapping(wide_name.as_ptr(), file_name, wide_name.len());
         }
-        // SAFETY: `info` points to the initialized buffer of exactly this size;
-        // `FileRenameInfo` interprets the name relative to RootDirectory.
-        if unsafe {
-            SetFileInformationByHandle(
+        // Win32's FileRenameInfo wrapper rejects RootDirectory plus a relative
+        // name on supported hosts (ERROR_INVALID_PARAMETER).
+        // Use the documented NT service so the destination remains relative
+        // to our capability-opened directory, without an ambient-path retry.
+        let mut status_block = IO_STATUS_BLOCK::default();
+        // SAFETY: Both native handles are live; the source was opened for
+        // synchronous I/O. The initialized buffer and status block remain
+        // owned and valid until this synchronous operation returns.
+        let status = unsafe {
+            NtSetInformationFile(
                 source.as_raw_handle() as HANDLE,
-                FileRenameInfo,
+                &mut status_block,
                 info.cast(),
                 buffer_len_u32,
+                FileRenameInformation,
             )
-        } == 0
-        {
-            return Err(os_error(io::Error::last_os_error()));
+        };
+        if status < 0 {
+            // SAFETY: This is the returned NT status, not a guest value.
+            let code = unsafe { RtlNtStatusToDosError(status) };
+            return Err(os_error(io::Error::from_raw_os_error(code as i32)));
         }
 
         if let Some(suffix) = current_suffix {

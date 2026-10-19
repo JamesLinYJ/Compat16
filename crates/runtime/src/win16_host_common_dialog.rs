@@ -75,12 +75,14 @@ pub enum Win16HostCommonDialogOperation {
     ChooseColor(Win16HostChooseColorDialog),
     ChooseFont(Win16HostChooseFontDialog),
     Print(Win16HostPrintDialog),
+    PrinterMode(crate::Win16HostPrinterMode),
     GetFileTitle { file_name: Vec<u8>, capacity: u16, title_is_null: bool },
     ExtendedError,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16HostCommonDialogResult {
+    PrinterMode(crate::Win16HostPrinterModeResult),
     File {
         accepted: bool,
         extended_error: u32,

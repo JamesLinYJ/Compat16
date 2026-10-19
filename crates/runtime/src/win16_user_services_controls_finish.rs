@@ -65,7 +65,8 @@ impl Win16State {
         let Some(definition) = record.definition.as_ref() else { return Ok(false); };
         let strings = formats::NeStringTable::from_module(&record.image, definition)
             .map_err(crate::runtime_error)?;
-        // This first image route deliberately excludes guest class callbacks:
+        // The caller resolves class identities before interpreting titles.
+        // This image route deliberately excludes guest class callbacks:
         // their child creation can invalidate the bounded native install plan.
         let icon_route = matches!(&template.class,
             crate::Win16HostDialogAtom::None | crate::Win16HostDialogAtom::Ordinal(0x8002))
@@ -88,26 +89,34 @@ impl Win16State {
             if static_class && item.style & 0x1f == 0x03
                 && !matches!(&item.title, crate::Win16HostDialogAtom::None)
                 && (!icon_route || !item.creation_data.is_empty()
-                    || !matches!(&item.title, crate::Win16HostDialogAtom::Ordinal(_)))
+                    || !matches!(&item.title, crate::Win16HostDialogAtom::Ordinal(_)
+                        | crate::Win16HostDialogAtom::String(_)))
             {
                 return Ok(false);
             }
         }
         for item in &mut template.items {
-            let crate::Win16HostDialogAtom::Ordinal(id) = &item.title else { continue; };
             if matches!(&item.class, crate::Win16HostDialogAtom::Ordinal(0x82))
                 && item.style & 0x1f == 0x03
             {
+                let name = match &item.title {
+                    crate::Win16HostDialogAtom::None => continue,
+                    crate::Win16HostDialogAtom::Ordinal(id) => win16_abi::Win16ResourceName::Id(*id),
+                    crate::Win16HostDialogAtom::String(name) => win16_abi::Win16ResourceName::Name(name.clone()),
+                    crate::Win16HostDialogAtom::GuestClass(_) => return Ok(false),
+                };
                 if !icon_route || !item.creation_data.is_empty() { return Ok(false); }
-                // SS_ICON ordinals name RT_GROUP_ICON, never RT_STRING and
-                // never a resource in the host executable. Reuse LoadIcon's
+                // SS_ICON names and ordinals identify RT_GROUP_ICON, never
+                // RT_STRING or a resource in the host executable. Keep ANSI
+                // names in the guest resource namespace and reuse LoadIcon's
                 // validated guest group/image selection and cache ownership.
-                let handle = self.load_icon(instance, win16_abi::Win16ResourceName::Id(*id), host)?;
+                let handle = self.load_icon(instance, name, host)?;
                 let Some(icon) = self.guest_images.icon(handle) else { return Ok(false); };
                 item.initial_icon = Some(icon);
                 item.title = crate::Win16HostDialogAtom::None;
                 continue;
             }
+            let crate::Win16HostDialogAtom::Ordinal(id) = &item.title else { continue; };
             let Some(bytes) = strings.get(*id).map_err(crate::runtime_error)? else {
                 return Ok(false);
             };
@@ -152,34 +161,8 @@ impl Win16State {
             }
             (Completion::Session, ResultValue::Session(result)) => {
                 // Preserve the guest BOOL result; host API failures are warnings with typed causes.
-                if result.cleanup.owner_retained {
-                    let message = if result.request_attempted {
-                        format!(
-                            "shutdown-token cleanup remains pending after the Win16 USER session request (restore pending: {}, token close pending: {}, previous privilege state saved: {}, unreported failure receipt: {})",
-                            result.cleanup.restore_pending,
-                            result.cleanup.token_close_pending,
-                            result.cleanup.previous_privilege_state_saved,
-                            result.cleanup.failure_receipt_unreported,
-                        )
-                    } else {
-                        format!(
-                            "Win16 USER session request was not issued because shutdown-token cleanup remains pending (restore pending: {}, token close pending: {}, previous privilege state saved: {}, unreported failure receipt: {})",
-                            result.cleanup.restore_pending,
-                            result.cleanup.token_close_pending,
-                            result.cleanup.previous_privilege_state_saved,
-                            result.cleanup.failure_receipt_unreported,
-                        )
-                    };
-                    host.report_diagnostic(&crate::Diagnostic::warning(Kind::HostFailure, message));
-                }
                 if let Some(failure) = result.operation_failure {
                     report_session_api_failure(host, "session operation", failure);
-                }
-                if let Some(failure) = result.privilege_restore_failure {
-                    report_session_api_failure(host, "restore the host shutdown privilege", failure);
-                }
-                if let Some(failure) = result.token_close_failure {
-                    report_session_api_failure(host, "close the host process token", failure);
                 }
                 u32::from(result.accepted)
             }

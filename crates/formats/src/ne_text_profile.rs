@@ -5,10 +5,11 @@
 //! the runtime can query them with the shared Win16 ANSI version codec; this
 //! crate must not depend on `compat`.
 
-use crate::{NeModule, NeResourceId, NeStringTable};
+use crate::{NeMenuResourceTable, NeModule, NeResourceId, NeStringTable, Win16Menu, Win16MenuItem};
 use std::ops::Range;
 
 const RT_STRING: u16 = 6;
+const RT_MENU: u16 = 4;
 const RT_FONT: u16 = 8;
 const RT_VERSION: u16 = 16;
 const STRING_SLOTS_PER_BLOCK: u16 = 16;
@@ -29,9 +30,11 @@ const FNT_FIXED_HEADER_LENGTH: usize = FNT_CHARSET_OFFSET + 1;
 pub struct NeTextProfile {
     pub version_resource_ranges: Vec<Range<usize>>,
     pub font_charsets: Vec<u8>,
-    /// Nonempty raw ANSI payloads from parsed RT_STRING slots, without length
-    /// prefixes. No code page has been selected or applied to these bytes.
+    /// Nonempty raw ANSI payloads from parsed RT_STRING slots. Applications
+    /// may also store lookup data here, so these are weaker evidence than menus.
     pub strings: Vec<Vec<u8>>,
+    /// Raw visible labels from parsed menus, without prefixes or terminators.
+    pub menu_strings: Vec<Vec<u8>>,
 }
 
 /// Collect bounded text-encoding evidence from a parsed NE module.
@@ -44,7 +47,45 @@ pub fn collect_ne_text_profile(bytes: &[u8], image: &NeModule) -> NeTextProfile 
     collect_version_ranges(bytes, image, &mut profile);
     collect_font_charsets(bytes, image, &mut profile);
     collect_string_samples(bytes, image, &mut profile);
+    collect_menu_samples(bytes, image, &mut profile);
     profile
+}
+
+fn collect_menu_samples(bytes: &[u8], image: &NeModule, profile: &mut NeTextProfile) {
+    let Ok(menus) = NeMenuResourceTable::from_module(bytes, image) else { return; };
+    let mut visited = Vec::<&NeResourceId>::new();
+    for resource_type in &image.resource_types {
+        if resource_type.id != NeResourceId::Numeric(RT_MENU) { continue; }
+        for resource in &resource_type.resources {
+            if visited.iter().any(|id| crate::ne_menu::resource_ids_match(id, &resource.id)) {
+                continue;
+            }
+            if visited.try_reserve(1).is_err() { return; }
+            visited.push(&resource.id);
+            // Use exactly the menu loader's first-ID, version and bounds rules.
+            // Menu parsing already limits bytes, item count and popup depth.
+            if let Ok(Some(menu)) = menus.get(&resource.id) {
+                if !collect_menu_labels(&menu, &mut profile.menu_strings) { return; }
+            }
+        }
+    }
+}
+
+fn collect_menu_labels(menu: &Win16Menu, samples: &mut Vec<Vec<u8>>) -> bool {
+    for item in &menu.items {
+        match item {
+            Win16MenuItem::Item { text, .. } => {
+                if !text.is_empty() && !push_sample(samples, text) { return false; }
+            }
+            Win16MenuItem::Popup { text, menu, .. } => {
+                if (!text.is_empty() && !push_sample(samples, text)) || !collect_menu_labels(menu, samples) {
+                    return false;
+                }
+            }
+            Win16MenuItem::Separator { .. } => {}
+        }
+    }
+    true
 }
 
 fn collect_version_ranges(bytes: &[u8], image: &NeModule, profile: &mut NeTextProfile) {

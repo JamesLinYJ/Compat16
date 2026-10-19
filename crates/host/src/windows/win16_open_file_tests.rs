@@ -93,6 +93,9 @@ impl Drop for TestFile {
 
 fn codec() -> GuestTextCodec { GuestTextCodec::new(65001).unwrap() }
 
+#[path = "win16_file_ioctl_tests.rs"]
+mod file_ioctl_tests;
+
 fn expected_stamp() -> [u8; 4] {
     // This oracle checks the OFSTRUCT field order under the existing DOS
     // conversion policy, not equivalence to historical WOW rounding/DST.

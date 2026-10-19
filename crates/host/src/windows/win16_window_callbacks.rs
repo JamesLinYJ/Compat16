@@ -5,7 +5,6 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::rc::Rc;
 use std::sync::Arc;
 
-use super::win16_window_geometry::copy_minmax;
 use crate::windows::guest_text::GuestTextCodec;
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16CreationId, Win16HostCallback, Win16HostDropFiles,
@@ -571,7 +570,8 @@ fn dispatch_window_proc(
                 // USER owns this synchronous structure; only copied coordinates
                 // cross to the runtime while the native call remains suspended.
                 let native = unsafe { &*(l_param as *const MINMAXINFO) };
-                Some(Win16HostMessage::MinMaxInfo(copy_minmax(native)))
+                Some(Win16HostMessage::MinMaxInfo(
+                    super::win16_window_sizing::minmax_for_guest(native)))
             }
             // A WndProc receives WM_TIMER from synchronous SendMessage, where
             // LPARAM is just message data. For a queued WM_TIMER with a non-null

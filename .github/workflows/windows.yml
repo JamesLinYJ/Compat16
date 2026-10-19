@@ -100,7 +100,11 @@ jobs:
             '-p x86-cpu',
             '-p text-codec',
             '-p dos-kernel',
+            '-p runtime --lib multiplex::tests::',
+            '-p runtime --lib service_segment_tests::',
             '-p host-services --lib filesystem::tests::seek::',
+            '-p host-services --lib filesystem::aliases::tests::',
+            '-p host-services --lib filesystem::tests::oem_short_names::',
             '-p formats',
             '-p graphics',
             '-p devices',
@@ -109,6 +113,10 @@ jobs:
             '-p host-services --lib system_colors_adapter_tests',
             '-p host-services --lib spool_document_tests',
             '-p host-services --lib spool_close_tests',
+            '-p host-services --lib devmode',
+            '-p host-services --lib ext_device_mode',
+            '-p runtime --lib ext_device_mode',
+            '-p runtime --lib wow_devmode',
             '-p host-services --lib dialog_icon_',
             '-p runtime --lib dialog_icon_title_',
             '-p runtime --lib arrange_iconic_windows',
@@ -118,6 +126,17 @@ jobs:
             '-p win16-abi --lib',
             '-p runtime --lib driver_contract_',
             '-p runtime --lib ole_remainder_contract_',
+            '-p runtime --lib session_exit_',
+            '-p runtime --lib callback_instance_',
+            '-p runtime --lib module_lookup_',
+            '-p runtime --lib global_notify_',
+            '-p host-services --lib session_exit_',
+            '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1',
+            '-p host-services --lib host_timer_native_ -- --ignored --test-threads=1',
+            '-p host-services --lib oem_bitmap_',
+            '-p host-services --lib oem_bitmap_native_ -- --ignored --test-threads=1',
+            '-p win16-abi --lib registry_',
+            '-p host-services --lib dialog_root_native_ -- --ignored --test-threads=1',
             '-p runtime --lib rectangle_exports',
             '-p runtime --lib safe_array_ptr_of_index',
             '-p runtime --lib is_equal_guid',
@@ -151,6 +170,8 @@ jobs:
             '-p runtime --lib dos_temporary_file_tests',
             '-p host-services --lib input_status',
             '-p runtime --lib dos_interrupts::commit_tests',
+            '-p runtime --lib dos_interrupts::file_ioctl_tests',
+            '-p host-services --lib file_ioctl_native_',
             '-p host-services --lib file_commit',
             '-p host-services --lib file_set_write_time_',
             '-p runtime --lib set_window_pos_tests',
@@ -200,6 +221,8 @@ jobs:
             '-p runtime --lib gdi_services::wire_tests::',
             '-p runtime --lib win16_runtime::task_state::tests::',
             '-p runtime --lib get_window_task_'
+            '-p runtime --lib edit_scroll_'
+            '-p runtime --lib task_ds_'
             '-p runtime --lib metafile::tests'
             '-p host-services --lib metafile_native_ -- --ignored --test-threads=1'
             '-p runtime --lib flash_window_'
@@ -212,6 +235,7 @@ jobs:
             '-p runtime --lib win16_dde_callback::retirement::tests::'
             '-p host-services --lib dde_normal_tombstone_shutdown_'
             '-p host-services --lib dde_shutdown_'
+            '-p runtime --lib ole1_registry_'
             '-p runtime --lib win16_runtime::aux_tests::'
             '-p runtime --lib win16_runtime::comm::tests::'
             '-p runtime --lib win16_runtime::commdlg::hook_tests::'
@@ -236,11 +260,30 @@ jobs:
           # Keep focused additions visible: a renamed filter must not silently
           # succeed after selecting zero tests.
           $expectedPassCounts = @{
-            '-p host-services --lib diagnostics_tests::' = 5
+            '-p runtime --lib service_segment_tests::' = 1
+            '-p runtime --lib dos_interrupts::file_ioctl_tests' = 6
+            '-p host-services --lib file_ioctl_native_' = 4
+            '-p runtime --lib session_exit_' = 2
+            '-p runtime --lib edit_scroll_' = 1
+            '-p runtime --lib task_ds_' = 1
+            '-p runtime --lib callback_instance_' = 1
+            '-p runtime --lib module_lookup_' = 6
+            '-p runtime --lib global_notify_' = 12
+            '-p runtime --lib dialog_icon_title_' = 14
+            '-p host-services --lib session_exit_' = 2
+            '-p host-services --lib system_timer_native_ -- --ignored --test-threads=1' = 2
+            '-p host-services --lib host_timer_native_ -- --ignored --test-threads=1' = 8
+            '-p host-services --lib oem_bitmap_' = 2
+            '-p host-services --lib oem_bitmap_native_ -- --ignored --test-threads=1' = 2
+            '-p win16-abi --lib registry_' = 14
+            '-p host-services --lib dialog_root_native_ -- --ignored --test-threads=1' = 4
+            '-p host-services --lib diagnostics_tests::' = 9
+            '-p host-services --lib filesystem::aliases::tests::' = 2
+            '-p host-services --lib filesystem::tests::oem_short_names::' = 1
             '-p runtime --lib temp_drive::tests::' = 6
             '-p runtime --lib get_temp_drive_tests::' = 6
             '-p runtime --lib files::open_file_tests::' = 7
-            '-p host-services --lib windows::win16_open_file::tests::' = 14
+            '-p host-services --lib windows::win16_open_file::tests::' = 18
             '-p host-services --lib windows::win16_gdi_services::dbcs_tests::' = 5
             '-p runtime --lib gdi_services::wire_tests::' = 2
             '-p runtime --lib win16_runtime::task_state::tests::' = 7
@@ -256,7 +299,8 @@ jobs:
             '-p runtime --lib win16_runtime_dde::transfer::tests::' = 16
             '-p runtime --lib win16_dde_callback::retirement::tests::' = 1
             '-p host-services --lib dde_normal_tombstone_shutdown_' = 2
-            '-p host-services --lib dde_shutdown_' = 4
+            '-p host-services --lib dde_shutdown_' = 6
+            '-p runtime --lib ole1_registry_' = 3
             '-p runtime --lib win16_runtime::aux_tests::' = 6
             '-p runtime --lib win16_runtime::comm::tests::' = 7
             '-p runtime --lib win16_runtime::commdlg::hook_tests::' = 5
@@ -266,14 +310,14 @@ jobs:
             '-p runtime --lib win16_runtime::gdi_services::scalable_font_tests::' = 5
             '-p runtime --lib win16_runtime::joystick::tests::' = 10
             '-p runtime --lib win16_runtime::kernel_path_info::short_path_profile_struct_tests::' = 9
-            '-p runtime --lib win16_runtime::kernel_task::tests::' = 5
+            '-p runtime --lib win16_runtime::kernel_task::tests::' = 6
             '-p runtime --lib win16_runtime::media_time::timer_tests::' = 7
             '-p runtime --lib win16_runtime::mixer_tests::' = 4
             '-p runtime --lib win16_host_mixer::session_tests::' = 1
             '-p runtime --lib win16_runtime::user_drag::drag_tests::' = 8
             '-p runtime --lib win16_runtime::winmem32::tests::' = 4
             '-p runtime --lib win16_runtime::media_io::buffer_tests::' = 10
-            '-p runtime --lib win16_runtime::message_calls::timers::tests::' = 2
+            '-p runtime --lib win16_runtime::message_calls::timers::tests::' = 3
             '-p runtime --lib win16_runtime::dispatch::input_event_tests::' = 2
             '-p runtime --lib win16_runtime::ole1::tests::' = 8
             '-p host-services --lib windows::win16_media_services::timer::tests::' = 3
@@ -327,7 +371,10 @@ jobs:
               $testExitCode = $LASTEXITCODE
               $suiteOutput | ForEach-Object { Write-Host $_ }
               $expected = $expectedPassCounts[$suite]
-              if (($suiteOutput -join "`n") -notmatch "test result: ok\. $expected passed; 0 failed; 0 ignored;") {
+              # The broad OEM bitmap filter also selects two native fixtures,
+              # which are executed explicitly by the following ignored suite.
+              $expectedIgnored = if ($suite -eq '-p host-services --lib oem_bitmap_') { 2 } else { 0 }
+              if (($suiteOutput -join "`n") -notmatch "test result: ok\. $expected passed; 0 failed; $expectedIgnored ignored;") {
                 $failedSuites += "$suite (expected $expected executed tests)"
               }
             } else {
@@ -982,3 +1029,21 @@ jobs:
         if: ${{ !cancelled() && steps.toolchain.outcome == 'success' }}
         timeout-minutes: 25
         run: .\scripts\build.ps1 -Architecture $env:BUILD_ARCHITECTURE -NonInteractive
+
+      - name: Exercise COM and NE directory, DLL, heap, and dialog contracts
+        if: ${{ !cancelled() && steps.native_release.outcome == 'success' }}
+        timeout-minutes: 15
+        run: |
+          $env:COMPAT16_TEST_PACKAGE_DIR = Join-Path $env:GITHUB_WORKSPACE "dist/$env:BUILD_ARCHITECTURE"
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installations = @(& $vswhere -latest -products '*' -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $installations.Count -eq 0) { throw 'Visual Studio C++ tools unavailable.' }
+          $vsDevCmd = Join-Path ([string]$installations[0]).Trim() 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $vsDevCmd -PathType Leaf)) { throw 'Visual Studio developer command script unavailable.' }
+          $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
+          $command = 'call "{0}" -arch={1} -host_arch={1} && "{2}" test --locked --target {3} -p host-services --test win16_winexec -- same_stem_executable dll_references_initialize global_notify_native_ named_dialog_icon_native_ dialog_class_names_native_ current_directory_native_ oem_bitmap_native_ registry_native_ child_dialog_native_ private_dialog_native_ extended_open_native_ canonical_name_native_ fcb_search_native_ fcb_mutation_native_ fcb_parse_native_ dos_version_native_ dos_message_native_ extended_error_native_ stdin_native_ dbcs_native_ country_native_ --test-threads=1 --nocapture' -f $vsDevCmd, $env:VS_ARCHITECTURE, $cargo, $env:RUST_TARGET
+          & $env:ComSpec /d /c $command 2>&1 | Tee-Object -Variable probeOutput
+          if ($LASTEXITCODE -ne 0) { throw 'COM/NE directory, DLL, heap, or dialog integration failed.' }
+          if (($probeOutput -join "`n") -notmatch 'test result: ok\. 118 passed; 0 failed; 0 ignored;') {
+            throw 'Expected COM/NE country profiles, NLS tables/callbacks, DBCS filenames, redirected stdin, extended errors, message providers, directory results, registry strings/statuses/sizing/truncation/roots/Unicode aliases/independent scans/expandable text, OEM bitmaps, DLL lifetime, heap callbacks, child dialog identities, private dialog initialization, per-process DOS versions, FCB filename parsing/enumeration/deletion/rename, extended-open code-page flags, native directory path errors, and class icon fixtures in both engines.'
+          }

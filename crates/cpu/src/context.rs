@@ -6,6 +6,17 @@ use super::{
     x87_state,
 };
 use crate::CpuArchitecturalStateError;
+use crate::registers::SegmentRegister;
+
+/// Explicit machine-owned data-segment loads at a real-address ABI boundary.
+/// Omitted registers retain their hidden caches, including unreal-mode limits.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct RealModeDataSegmentOutputs {
+    pub ds: Option<u16>,
+    pub es: Option<u16>,
+    pub fs: Option<u16>,
+    pub gs: Option<u16>,
+}
 
 /// A snapshot can only be restored into the immutable CPU profile that
 /// captured it. The snapshot remains owned by the caller when this is returned.
@@ -76,6 +87,38 @@ pub struct CpuContext {
 }
 
 impl Cpu {
+    /// Publish real-address data-segment outputs with the same cache reload as
+    /// a guest segment load. Equal visible values still reload an output;
+    /// unrelated CS/SS/data caches remain intact. Reject protected/VM86 or
+    /// uninitialized contexts before changing any state.
+    pub fn set_real_mode_data_segment_outputs(
+        &mut self,
+        outputs: RealModeDataSegmentOutputs,
+    ) -> Result<(), CpuArchitecturalStateError> {
+        if !self.has_architectural_context()
+            || self.architectural_execution_mode() != Some(super::CpuExecutionMode::RealAddress)
+        {
+            return Err(CpuArchitecturalStateError::InvalidControlRegister);
+        }
+        for (register, value) in [
+            (SegmentRegister::Ds, outputs.ds), (SegmentRegister::Es, outputs.es),
+            (SegmentRegister::Fs, outputs.fs), (SegmentRegister::Gs, outputs.gs),
+        ] {
+            if let Some(value) = value {
+                match register {
+                    SegmentRegister::Ds => self.regs.ds = value,
+                    SegmentRegister::Es => self.regs.es = value,
+                    SegmentRegister::Fs => self.regs.fs = value,
+                    SegmentRegister::Gs => self.regs.gs = value,
+                    _ => unreachable!("only data registers are accepted"),
+                }
+                self.system.load_real_segment(register, value);
+            }
+        }
+        self.control_transfer = None;
+        self.invalidate_control_transfer_provenance();
+        Ok(())
+    }
     /// Import machine-owned architectural mode and hidden state at an explicit
     /// execution boundary. The visible selectors in `regs` must match the
     /// supplied caches. Real-address imports preserve supplied hidden caches,
@@ -204,3 +247,7 @@ impl Cpu {
         self.maskable_interrupt_shadow
     }
 }
+
+#[cfg(test)]
+#[path = "context/output_tests.rs"]
+mod output_tests;

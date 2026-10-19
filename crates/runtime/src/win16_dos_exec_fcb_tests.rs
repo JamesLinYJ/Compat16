@@ -10,6 +10,8 @@ use dos_kernel::{
 };
 use guest_core::{GuestMemory, PhysAddr, Registers, real_address};
 use win16_abi::{AccessRights, SelectorTable};
+#[path = "win16_dos_canonical_name_tests.rs"]
+mod canonical_name_tests;
 
 const PATH: &[u8] = b"CHILD.COM\0";
 const FCB_INPUTS: [[u8; 16]; 2] = [
@@ -23,6 +25,12 @@ struct ExecHost {
     opens: usize,
     closes: usize,
     cursor: usize,
+    search_entries: Vec<DosDirectoryEntry>,
+    search_position: usize,
+    search_opens: usize,
+    search_closes: usize,
+    deleted: Vec<Vec<u8>>,
+    renamed: Vec<(Vec<u8>, Vec<u8>)>,
 }
 
 impl DosHost for ExecHost {
@@ -61,19 +69,28 @@ impl DosHost for ExecHost {
     fn file_write(&mut self, _file: DosHostFile, _input: &[u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
     fn file_seek(&mut self, _file: DosHostFile, _offset: i32, _origin: DosSeekOrigin) -> Result<u32, DosHostError> { panic!("unexpected host call") }
     fn file_set_len(&mut self, _file: DosHostFile, _length: u32) -> Result<(), DosHostError> { panic!("unexpected host call") }
-    fn file_delete(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn file_delete(&mut self, path: &[u8]) -> Result<(), DosHostError> { self.deleted.push(path.to_vec()); Ok(()) }
     fn directory_create(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn directory_remove(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn directory_set_current(&mut self, _path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
-    fn directory_get_current(&mut self, _drive: u8, _output: &mut [u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
-    fn file_rename(&mut self, _old_path: &[u8], _new_path: &[u8]) -> Result<(), DosHostError> { panic!("unexpected host call") }
+    fn directory_get_current(&mut self, drive: u8, output: &mut [u8]) -> Result<usize, DosHostError> {
+        assert_eq!(drive,2); output[..4].copy_from_slice(b"WORK"); Ok(4)
+    }
+    fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError> { self.renamed.push((old_path.to_vec(), new_path.to_vec())); Ok(()) }
     fn file_get_attributes(&mut self, _path: &[u8]) -> Result<u8, DosHostError> { panic!("unexpected host call") }
     fn file_set_attributes(&mut self, _path: &[u8], _attributes: u8) -> Result<(), DosHostError> { panic!("unexpected host call") }
-    fn directory_search_open(&mut self, _directory: &[u8]) -> Result<DosHostSearch, DosHostError> { panic!("unexpected host call") }
-    fn directory_search_next(&mut self, _search: DosHostSearch) -> Result<Option<DosDirectoryEntry>, DosHostError> { panic!("unexpected host call") }
-    fn directory_search_close(&mut self, _search: DosHostSearch) -> Result<(), DosHostError> { panic!("unexpected host call") }
-    fn guest_code_page(&self) -> text_codec::CodePage { panic!("unexpected host call") }
-    fn current_drive(&self) -> u8 { panic!("unexpected host call") }
+    fn directory_search_open(&mut self, directory: &[u8]) -> Result<DosHostSearch, DosHostError> {
+        assert!(directory.is_empty()); self.search_position = 0; self.search_opens += 1; Ok(DosHostSearch(1))
+    }
+    fn directory_search_next(&mut self, search: DosHostSearch) -> Result<Option<DosDirectoryEntry>, DosHostError> {
+        assert_eq!(search, DosHostSearch(1)); let result = self.search_entries.get(self.search_position).cloned();
+        if result.is_some() { self.search_position += 1; } Ok(result)
+    }
+    fn directory_search_close(&mut self, search: DosHostSearch) -> Result<(), DosHostError> {
+        assert_eq!(search, DosHostSearch(1)); self.search_closes += 1; Ok(())
+    }
+    fn guest_code_page(&self) -> text_codec::CodePage { text_codec::CodePage::Cp437 }
+    fn current_drive(&self) -> u8 { 2 }
     fn select_drive(&mut self, _drive: u8) -> Result<(), DosHostError> { panic!("unexpected host call") }
     fn logical_drive_count(&self) -> u8 { 3 }
 }
@@ -91,6 +108,15 @@ impl crate::RuntimeDdeHost for ExecHost {
 impl crate::RuntimeMciHost for ExecHost {}
 impl crate::RuntimeMidiHost for ExecHost {}
 impl crate::RuntimeNetbiosHost for ExecHost {}
+
+#[path = "win16_dos_fcb_parse_tests.rs"]
+mod parse_tests;
+
+#[path = "win16_dos_fcb_search_tests.rs"]
+mod search_tests;
+
+#[path = "win16_dos_fcb_mutation_tests.rs"]
+mod mutation_tests;
 
 
 fn fixture() -> (Runtime, ExecHost) {

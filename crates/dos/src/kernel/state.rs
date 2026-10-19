@@ -24,7 +24,15 @@ pub(super) struct Mcb {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(super) enum SearchKind {
+    Dta,
+    FcbScan,
+    FcbMutation,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(super) struct SearchKey {
+    pub(super) kind: SearchKind,
     pub(super) psp_segment: u16,
     pub(super) caller: DosCallerId,
     pub(super) dta_segment: u16,
@@ -88,6 +96,8 @@ pub struct DosKernel {
     pub(super) mcb_head: Option<u16>,
     pub(super) block_leases: super::block_lease::DosBlockLeases,
     pub(super) system_tables: Option<super::system::SystemTables>,
+    pub(super) message_addresses: super::message_addresses::DosMessageAddresses,
+    pub(super) extended_error: super::extended_error::ExtendedErrorState,
     pub(super) file_table: super::sft::FileTable,
     /// Handle ownership does not follow AH=50's selected PSP. Switching a
     /// complete DOS file context is separate from selecting a scalar PSP word.
@@ -103,12 +113,15 @@ pub struct DosKernel {
     /// rollback. They remain owned until a later checked process cleanup.
     pub(super) orphan_file_handles: Vec<DosHostFile>,
     pub(super) searches: BTreeMap<SearchKey, SearchState>,
+    pub(super) fcb_searches: super::fcb_search::Continuations,
     /// Guest far pointers to ROM-backed collation tables, keyed by code page.
     pub(super) collating_table_addresses: BTreeMap<u16, (u16, u16)>,
     /// Guest far pointers to ROM-backed extended uppercase tables, keyed by code page.
     pub(super) uppercase_table_addresses: BTreeMap<u16, (u16, u16)>,
     /// Guest far pointers to ROM-backed country case-map callbacks, keyed by code page.
     pub(super) case_map_addresses: BTreeMap<u16, (u16, u16)>,
+    /// Guest far pointers to ROM-backed DBCS lead-byte tables, keyed by code page.
+    pub(super) dbcs_table_addresses: BTreeMap<u16, (u16, u16)>,
     pub(super) next_search_identity: u32,
     pub(super) next_temporary_name: u32,
     /// DOS INT 21h/AH=33 Ctrl-Break checking state (default: disabled).
@@ -158,6 +171,8 @@ impl DosKernel {
             mcb_head: None,
             block_leases: super::block_lease::DosBlockLeases::new(),
             system_tables: None,
+            message_addresses: super::message_addresses::DosMessageAddresses::default(),
+            extended_error: super::extended_error::ExtendedErrorState::default(),
             file_table: super::sft::FileTable::new(),
             jft_owner_psp: psp_segment,
             jft_capacity: super::sft::DEFAULT_JFT_LEN,
@@ -167,9 +182,11 @@ impl DosKernel {
             handles,
             orphan_file_handles: Vec::new(),
             searches: BTreeMap::new(),
+            fcb_searches: super::fcb_search::Continuations::default(),
             collating_table_addresses: BTreeMap::new(),
             uppercase_table_addresses: BTreeMap::new(),
             case_map_addresses: BTreeMap::new(),
+            dbcs_table_addresses: BTreeMap::new(),
             next_search_identity: 0,
             next_temporary_name: 0,
             break_check_enabled: false,
@@ -206,10 +223,13 @@ impl DosKernel {
         child.mcb_head = parent.mcb_head;
         child.block_leases = parent.block_leases.clone();
         child.system_tables = parent.system_tables;
+        child.message_addresses = parent.message_addresses.clone();
+        child.extended_error = parent.extended_error.clone();
         child.device_requests = parent.device_requests;
         child.collating_table_addresses = parent.collating_table_addresses.clone();
         child.uppercase_table_addresses = parent.uppercase_table_addresses.clone();
         child.case_map_addresses = parent.case_map_addresses.clone();
+        child.dbcs_table_addresses = parent.dbcs_table_addresses.clone();
         child.next_search_identity = parent.next_search_identity;
         child.break_check_enabled = parent.break_check_enabled;
         child
@@ -453,8 +473,8 @@ impl DosKernel {
 
     /// Complete the DOS return state for an EXEC request rejected by runtime
     /// image or memory handling after DOS decoded the request.
-    pub fn complete_exec_failure(regs: &mut Registers, code: DosErrorCode) {
-        Self::failure(regs, DosHostError::new(code));
+    pub fn complete_exec_failure(&mut self, regs: &mut Registers, code: DosErrorCode) {
+        self.failure(regs, DosHostError::new(code));
     }
 
     /// Complete the successful return state for INT 21h/AH=4Bh.
@@ -521,6 +541,7 @@ impl DosKernel {
                 }
             }
         }
+        self.fcb_searches.release_psp(psp_segment);
     }
 
     /// Close owned searches without dropping a failed host identity. This is
@@ -539,7 +560,10 @@ impl DosKernel {
                 .keys()
                 .find(|key| key.psp_segment == psp_segment)
                 .copied();
-            let Some(key) = key else { return Ok(()) };
+            let Some(key) = key else {
+                self.fcb_searches.release_psp(psp_segment);
+                return Ok(());
+            };
             let Some(state) = self.searches.get(&key).copied() else {
                 return Err(DosHostError::new(DosErrorCode::InvalidHandle));
             };
@@ -564,6 +588,7 @@ impl DosKernel {
                 .first_key_value()
                 .map(|(key, state)| (*key, *state))
             else {
+                self.fcb_searches.clear();
                 return Ok(());
             };
             host.directory_search_close(state.host_search)?;
@@ -637,6 +662,7 @@ impl DosKernel {
         parent
             .case_map_addresses
             .clone_from(&self.case_map_addresses);
+        parent.dbcs_table_addresses.clone_from(&self.dbcs_table_addresses);
         parent.next_search_identity = self.next_search_identity;
         parent.break_check_enabled = self.break_check_enabled;
         if parent.pending_input.is_none() {

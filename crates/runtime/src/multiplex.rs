@@ -19,6 +19,12 @@ pub(crate) enum MultiplexOutcome {
 /// providers. Unimplemented DPMI, VxD, and other Windows services remain
 /// unclaimed.
 pub(crate) fn dispatch(regs: &mut Registers) -> MultiplexOutcome {
+    // DOS is installed. This scalar installation check is also safe for a
+    // protected caller; message-provider far pointers use the real-mode bridge.
+    if regs.ax() == 0x1200 {
+        regs.set_al(0xff);
+        return MultiplexOutcome::Handled;
+    }
     // DOS itself owns AH=12h. Its internal services cannot be mistaken for
     // an absent optional provider; missing implementations remain explicit.
     if regs.ah() == 0x12 { return MultiplexOutcome::MissingDosService; }

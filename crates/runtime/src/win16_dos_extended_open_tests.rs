@@ -390,3 +390,31 @@ fn extended_open_routes_check_invalid_freed_and_recycled_path_selectors() {
         }
     }
 }
+
+#[test]
+fn extended_open_routes_accept_disk_code_page_flag_and_preserve_host_errors() {
+    for route in ROUTES {
+        let (mut runtime, mut host) = fixture();
+        for (action, outcome) in [(0x101, Err(2)), (0x110, Ok((3, 2))), (0x101, Ok((4, 1))), (0x110, Err(80))] {
+            let mut expected = prepare(&mut runtime, route, OwnerId(1), action);
+            match outcome {
+                Ok((handle, result)) => {
+                    expected.set_ax(handle);
+                    expected.set_cx(result);
+                    expected.set_carry(false);
+                }
+                Err(error) => {
+                    runtime.cpu.regs.set_carry(false);
+                    expected.set_ax(error);
+                    expected.set_carry(true);
+                }
+            }
+            call(&mut runtime, &mut host, route).unwrap();
+            assert_eq!(runtime.cpu.regs, expected, "{route:?} action={action:04x}");
+        }
+        assert_eq!(host.calls.len(), 4);
+        assert_eq!(host.files.len(), 1);
+        runtime.dos.close_all_handles_checked(&mut host).unwrap();
+        assert!(host.handles.is_empty());
+    }
+}

@@ -12,26 +12,20 @@ pub(super) fn prepare(
     use Win16UserFamilyPreparation as Prepared;
 
     let operation = match request {
-        Win16UserSessionRequest::OldExitWindows => SessionOperation::LegacyOldExitWindows,
-        Win16UserSessionRequest::ExitWindows { return_code, reserved } => {
-            if reserved != 0 || return_code >> 16 != 0 {
-                return Ok(Prepared::immediate(0, return_kind));
-            }
-            // The modern ExitWindows compatibility macro maps (0, 0) to
-            // ExitWindowsEx(EWX_LOGOFF, 0); legacy nonzero codes are handled
-            // only where the Win16 contract supplies a verified mapping.
-            match return_code as u16 {
-                0 => SessionOperation::RequestLogoff,
-                // Windows 3.1 SDK Programmer's Reference, Volume 2 documents
-                // 42h as restart Windows and 43h as reboot the system.
-                0x0042 => SessionOperation::RestartWin16Session,
-                0x0043 => SessionOperation::RequestReboot,
-                code => SessionOperation::UnsupportedLegacyExitCode {
-                    code: u32::from(code),
-                },
-            }
+        Win16UserSessionRequest::OldExitWindows => {
+            return Ok(Prepared::TerminateTask { status: 0 });
         }
-        Win16UserSessionRequest::ExitWindowsExec { program, parameters } => {
+        Win16UserSessionRequest::ExitWindows {
+            return_code,
+            reserved,
+        } => SessionOperation::ExitWindows {
+            return_code,
+            reserved,
+        },
+        Win16UserSessionRequest::ExitWindowsExec {
+            program,
+            parameters,
+        } => {
             let Some(program) = program else {
                 return Ok(Prepared::immediate(0, return_kind));
             };
@@ -43,7 +37,10 @@ pub(super) fn prepare(
             {
                 return Ok(Prepared::immediate(0, return_kind));
             }
-            SessionOperation::RunAfterWin16Restart { program, parameters }
+            SessionOperation::RunAfterWin16Restart {
+                program,
+                parameters,
+            }
         }
     };
 
@@ -52,4 +49,41 @@ pub(super) fn prepare(
         return_kind,
         FamilyCompletion::Session,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn session_exit_wow_bridge_preserves_both_original_arguments() {
+        for (return_code, reserved) in [
+            (0, 0),
+            (0x0042, 0),
+            (0x0043, 0),
+            (0x1234_5678, 0x9abc),
+            (u32::MAX, u16::MAX),
+        ] {
+            let prepared = prepare(
+                Win16UserSessionRequest::ExitWindows {
+                    return_code,
+                    reserved,
+                },
+                Win16ReturnKind::Word,
+            )
+            .unwrap();
+            assert!(matches!(
+                prepared,
+                Win16UserFamilyPreparation::WindowService {
+                    operation: Win16HostUserServiceOperation::Session(
+                        SessionOperation::ExitWindows {
+                            return_code: forwarded_dword,
+                            reserved: forwarded_word,
+                        }
+                    ),
+                    ..
+                } if forwarded_dword == return_code && forwarded_word == reserved
+            ));
+        }
+    }
 }

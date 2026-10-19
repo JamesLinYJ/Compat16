@@ -9,9 +9,9 @@ use super::{
 };
 use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost};
 use dos_kernel::{
-    DosAction, DosCallAddressSpace, DosError, DosErrorCode, DosPointerAccess, DosSpanPolicy,
+    DosAction, DosCallAddressSpace, DosError, DosErrorCode, DosKernel, DosPointerAccess, DosSpanPolicy,
 };
-use owner::{dos_failure, guest_api_failure, invariant};
+use owner::{guest_api_failure, invariant};
 
 #[path = "win16_kernel_file_system_dto.rs"]
 mod dto;
@@ -59,6 +59,7 @@ impl Win16State {
     /// current TDB. Other DOS operations continue through DosKernel.
     pub(super) fn dispatch_dos_directory_service(
         &mut self,
+        dos: &mut DosKernel,
         regs: &mut Registers,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
@@ -103,7 +104,7 @@ impl Win16State {
                                             crate::runtime_error(DosError::HostOperation(rollback)),
                                         ));
                                     }
-                                    dos_failure(regs, error_code);
+                                    dos.complete_service_failure(regs, error_code);
                                     return Ok(Some(DosAction::Continue));
                                 }
                             };
@@ -128,7 +129,7 @@ impl Win16State {
                                         crate::runtime_error(DosError::HostOperation(rollback)),
                                     ));
                                 }
-                                dos_failure(regs, DosErrorCode::PathNotFound as u16);
+                                dos.complete_service_failure(regs, DosErrorCode::PathNotFound as u16);
                                 return Ok(Some(DosAction::Continue));
                             };
                             self.kernel_file_system
@@ -138,7 +139,7 @@ impl Win16State {
                             .record_dos_current_drive(owner, regs.dl())?;
                         regs.set_al(count);
                     }
-                    Err(error) => dos_failure(regs, error.code as u16),
+                    Err(error) => dos.complete_service_failure(regs, error.code as u16),
                 }
                 DosAction::Continue
             }
@@ -146,8 +147,8 @@ impl Win16State {
                 regs.set_al(self.kernel_file_system.current_drive(owner)?);
                 DosAction::Continue
             }
-            0x3b => self.dos_change_current_directory(owner, regs, memory, host)?,
-            0x47 => self.dos_get_current_directory(owner, regs, memory, host)?,
+            0x3b => self.dos_change_current_directory(dos, owner, regs, memory, host)?,
+            0x47 => self.dos_get_current_directory(dos, owner, regs, memory, host)?,
             _ => unreachable!("directory service set was checked above"),
         };
         Ok(Some(action))
@@ -157,6 +158,7 @@ impl Win16State {
     /// cwd. Check every retained TDB drive state before it reaches DOS.
     pub(super) fn block_dos_remove_of_virtual_current_directory(
         &mut self,
+        dos: &mut DosKernel,
         regs: &mut Registers,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
@@ -194,7 +196,7 @@ impl Win16State {
             .kernel_file_system
             .would_remove_current_directory(&path)
         {
-            dos_failure(regs, DosErrorCode::CannotRemoveCurrentDirectory as u16);
+            dos.complete_service_failure(regs, DosErrorCode::CannotRemoveCurrentDirectory as u16);
             Ok(true)
         } else {
             Ok(false)
@@ -364,6 +366,7 @@ impl Win16State {
 
     fn dos_change_current_directory(
         &mut self,
+        dos: &mut DosKernel,
         owner: OwnerId,
         regs: &mut Registers,
         memory: &mut Memory,
@@ -381,7 +384,7 @@ impl Win16State {
         let path = match path {
             Ok(path) if path.len() <= 64 => path,
             Ok(_) | Err(DosError::MalformedGuestInput(_)) => {
-                dos_failure(regs, DosErrorCode::PathNotFound as u16);
+                dos.complete_service_failure(regs, DosErrorCode::PathNotFound as u16);
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(crate::runtime_error(error)),
@@ -390,7 +393,7 @@ impl Win16State {
         let path = match host.guest_code_page().decode(&path) {
             Ok(path) => path,
             Err(_) => {
-                dos_failure(regs, DosErrorCode::PathNotFound as u16);
+                dos.complete_service_failure(regs, DosErrorCode::PathNotFound as u16);
                 return Ok(DosAction::Continue);
             }
         };
@@ -403,13 +406,14 @@ impl Win16State {
         )? {
             regs.set_carry(false);
         } else {
-            dos_failure(regs, DosErrorCode::PathNotFound as u16);
+            dos.complete_service_failure(regs, DosErrorCode::PathNotFound as u16);
         }
         Ok(DosAction::Continue)
     }
 
     fn dos_get_current_directory(
         &mut self,
+        dos: &mut DosKernel,
         owner: OwnerId,
         regs: &mut Registers,
         memory: &mut Memory,
@@ -439,7 +443,7 @@ impl Win16State {
             0 => self.kernel_file_system.current_drive(owner)?,
             1..=26 => regs.dl() - 1,
             _ => {
-                dos_failure(regs, DosErrorCode::UnknownUnit as u16);
+                dos.complete_service_failure(regs, DosErrorCode::UnknownUnit as u16);
                 return Ok(DosAction::Continue);
             }
         };
@@ -455,20 +459,20 @@ impl Win16State {
                         ));
                     }
                     Err(error) => {
-                        dos_failure(regs, error.code as u16);
+                        dos.complete_service_failure(regs, error.code as u16);
                         return Ok(DosAction::Continue);
                     }
                 };
                 let relative = match host.guest_code_page().decode(&path[..count]) {
                     Ok(path) => path,
                     Err(_) => {
-                        dos_failure(regs, DosErrorCode::InvalidData as u16);
+                        dos.complete_service_failure(regs, DosErrorCode::InvalidData as u16);
                         return Ok(DosAction::Continue);
                     }
                 };
                 let Some(directory) = normalize_drive_directory(owner, drive, &relative, host)?
                 else {
-                    dos_failure(regs, DosErrorCode::InvalidData as u16);
+                    dos.complete_service_failure(regs, DosErrorCode::InvalidData as u16);
                     return Ok(DosAction::Continue);
                 };
                 self.kernel_file_system
@@ -479,12 +483,12 @@ impl Win16State {
         let relative = match host.win16_dos_current_directory(owner, &directory)? {
             Some(relative) => relative,
             None => {
-                dos_failure(regs, DosErrorCode::InvalidData as u16);
+                dos.complete_service_failure(regs, DosErrorCode::InvalidData as u16);
                 return Ok(DosAction::Continue);
             }
         };
         if relative.len() > 63 {
-            dos_failure(regs, DosErrorCode::InvalidData as u16);
+            dos.complete_service_failure(regs, DosErrorCode::InvalidData as u16);
             return Ok(DosAction::Continue);
         }
 
@@ -496,6 +500,9 @@ impl Win16State {
         address_space
             .write_caller_range(pointer, 0, &terminated, DosSpanPolicy::Linear)
             .map_err(crate::runtime_error)?;
+        // Match the DOS kernel's AH=47h success result. Win16 pathname
+        // routines also rely on AL=0 when scanning the returned ASCIIZ path.
+        regs.set_ax(0x0100);
         regs.set_carry(false);
         Ok(DosAction::Continue)
     }

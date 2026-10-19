@@ -11,7 +11,7 @@ use zerocopy::byteorder::little_endian::{U16, U32};
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
 const FRAME_MAGIC: [u8; 4] = *b"W16P";
-const PROTOCOL_VERSION: u16 = 2;
+const PROTOCOL_VERSION: u16 = 3;
 const OP_DEVICE_CAPABILITIES: u16 = 1;
 /// Per-direction IPC resource budget, independent of the Win16 segment limit.
 pub(super) const MAX_FRAME_BYTES: usize = 8 * 1024 * 1024;
@@ -47,6 +47,7 @@ struct RequestBody {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DevModeWire {
+    public_size: u16,
     device_name: [u8; 32],
     spec_version: u16,
     driver_version: u16,
@@ -260,6 +261,7 @@ pub(super) fn read_response(
 
 fn devmode_to_wire(value: &Win16HostDevMode) -> DevModeWire {
     DevModeWire {
+        public_size: value.public_size,
         device_name: value.device_name,
         spec_version: value.spec_version,
         driver_version: value.driver_version,
@@ -272,6 +274,7 @@ fn devmode_to_wire(value: &Win16HostDevMode) -> DevModeWire {
 
 fn devmode_from_wire(value: DevModeWire) -> Win16HostDevMode {
     Win16HostDevMode {
+        public_size: value.public_size,
         device_name: value.device_name,
         spec_version: value.spec_version,
         driver_version: value.driver_version,
@@ -543,3 +546,29 @@ const _: () = {
     assert!(core::mem::offset_of!(FrameHeader, version) == 4);
     assert!(core::mem::offset_of!(FrameHeader, payload_len) == 6);
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wow_devmode_worker_frame_retains_original_public_size_and_private_bytes() {
+        let value = Win16HostDevMode {
+            public_size: 64, device_name: [0; 32], spec_version: 0x030a,
+            driver_version: 17, fields: 0x0010, settings: [7; 12],
+            public_extension: vec![], driver_extra: vec![0, 0xff, 9],
+        };
+        let request = Win16PrinterCapabilities {
+            device: Some(b"Printer".to_vec()), port: None, index: 1,
+            collect_output: false, devmode: Some(value.clone()),
+        };
+        let mut bytes = Vec::new();
+        write_request(&mut bytes, &request, 936).unwrap();
+        let (decoded, page) = read_request(&mut bytes.as_slice()).unwrap();
+        assert_eq!(decoded.devmode, Some(value));
+        assert_eq!(page, 936);
+        // Older workers must fail before interpreting the changed schema.
+        bytes[4..6].copy_from_slice(&2_u16.to_le_bytes());
+        assert!(read_request(&mut bytes.as_slice()).is_err());
+    }
+}

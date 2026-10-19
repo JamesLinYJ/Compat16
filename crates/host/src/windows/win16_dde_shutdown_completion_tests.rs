@@ -58,6 +58,78 @@ fn joined_receipt(host: &Win16DdeHost) -> Win16DdeAbortReceipt {
     }
 }
 
+fn idle_host() -> Win16DdeHost {
+    let (mut host, _) = Win16DdeHost::completed_operation_fixture(
+        OPERATION, completed_result(Win16HostDdeDataTransferOutcome::NotPassed),
+    );
+    host.pending_operations.clear();
+    host.pending_operation_instances.clear();
+    host
+}
+
+#[test]
+fn dde_shutdown_final_poll_publishes_queued_native_proof_after_worker_join() {
+    let mut host = idle_host();
+    let expected = joined_receipt(&host);
+    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+    sender.send(WorkerShutdownReport {
+        native_owner_receipt: expected.native_owner_receipt.unwrap(),
+        native_instances: expected.native_instances.clone(),
+        native_transfer_guards: Vec::new(), native_replies: Vec::new(),
+        cleanup_failures: Vec::new(), terminal_error: None,
+    }).unwrap();
+    host.shutdown_receiver = Some(receiver);
+    // No native worker or window: only a completed Rust thread and an owned
+    // channel report. This deterministically exercises the final poll without
+    // relying on a scheduler delay at the 250 ms deadline.
+    let worker = thread::spawn(|| {});
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !worker.is_finished() {
+        assert!(Instant::now() < deadline, "fixture thread did not finish");
+        thread::yield_now();
+    }
+    host.worker = Some(worker);
+    let mut receipt = expected.clone();
+    receipt.native_owner_receipt = None;
+    receipt.native_instances.clear();
+    receipt.worker_status = Win16DdeAbortWorkerStatus::Running;
+    receipt.owner_status = Win16DdeAbortOwnerStatus::Retained;
+    assert!(!receipt.is_quiesced());
+    assert!(host.poll_abort_completion(&mut receipt));
+    assert!(host.worker.is_none());
+    assert!(same_abort_receipt(&expected, &receipt));
+    assert!(host.poll_abort_completion(&mut receipt));
+    assert!(same_abort_receipt(&expected, &receipt));
+    host.cache_abort_receipt_fixture(receipt.clone());
+    host.verify_abort_receipt(&receipt).unwrap();
+}
+
+#[test]
+fn dde_shutdown_final_poll_retains_missing_foreign_and_unresolved_proofs() {
+    for case in 0..8 {
+        let mut host = idle_host();
+        let mut receipt = joined_receipt(&host);
+        receipt.owner_status = Win16DdeAbortOwnerStatus::Active;
+        match case {
+            0 => receipt.native_owner_receipt = None,
+            1 => receipt.worker_status = Win16DdeAbortWorkerStatus::Running,
+            2 => receipt.native_owner_receipt.as_mut().unwrap().owner.0 += 1,
+            3 => receipt.native_owner_receipt.as_mut().unwrap().worker_generation += 1,
+            4 => receipt.native_owner_receipt.as_mut().unwrap().request_id += 1,
+            5 => receipt.native_owner_receipt.as_mut().unwrap().all_native_callbacks_returned = false,
+            6 => receipt.native_instances[0].status = Win16DdeCleanupStatus::Retained,
+            _ => receipt.cleanup_failures.push(Win16DdeCleanupFailure {
+                phase: Win16DdeAbortPhase::JoinWorker, frame: None, operation: None,
+                instance: None, status: Win16DdeCleanupStatus::Unresolved,
+                cause: Arc::new(RuntimeError::new(Kind::HostFailure, "unresolved fixture")),
+            }),
+        }
+        assert!(!host.poll_abort_completion(&mut receipt), "case {case}");
+        assert_eq!(receipt.owner_status, Win16DdeAbortOwnerStatus::Retained);
+        assert!(!receipt.is_quiesced());
+    }
+}
+
 #[test]
 fn dde_shutdown_recovers_exact_completed_transfer_dispositions_and_ack() {
     for outcome in [

@@ -30,6 +30,7 @@ fn compile_resource(file_type: &str) -> Result<PathBuf, Box<dyn Error>> {
     let icon = assets.join("icon.ico");
     println!("cargo:rerun-if-changed={}", resource_script.display());
     println!("cargo:rerun-if-changed={}", icon.display());
+    println!("cargo:rerun-if-changed={}", assets.join("launcher.manifest").display());
     if !resource_script.is_file() {
         return Err(format!("resource script is missing: {}", resource_script.display()).into());
     }

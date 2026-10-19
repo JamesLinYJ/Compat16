@@ -7,6 +7,7 @@ use crate::{next_object_id, Win16Error};
 use guest_core::{GuestHandle as RawGuestHandle, GuestMemory, OwnerId, PhysAddr};
 
 mod compact;
+pub use compact::GlobalCompactStep;
 mod allocation;
 mod lru;
 mod owner;
@@ -23,6 +24,8 @@ pub const GMEM_ZEROINIT: u16 = 0x0040;
 pub const GMEM_MODIFY: u16 = 0x0080;
 pub const GMEM_DISCARDABLE: u16 = 0x0100;
 pub const GMEM_DDESHARE: u16 = 0x2000;
+// Input allocation policy; the same bit is GMEM_DISCARDED in GlobalFlags.
+pub const GMEM_NOTIFY: u16 = 0x4000;
 pub const GMEM_DISCARDED: u16 = 0x4000;
 pub const GMEM_INVALID_HANDLE: u16 = 0x8000;
 pub const GMEM_LOCKCOUNT_MASK: u16 = 0x00ff;
@@ -86,6 +89,7 @@ pub struct GlobalBlockInfo {
     /// Transient `GMEM_MODIFY` and returned-state bits are never stored here.
     pub allocation_flags: u16,
     pub discardable: bool,
+    pub notify_on_discard: bool,
     pub discarded: bool,
 }
 
@@ -135,6 +139,7 @@ struct Block {
     runtime_primary: Option<SelectorRef>,
     selector: Option<SelectorRef>,
     allocation_flags: u16,
+    notify_on_discard: bool,
     discarded: bool,
 }
 
@@ -563,6 +568,7 @@ impl GlobalHeap {
             page_lock_count: block.page_lock_count,
             allocation_flags: block.allocation_flags,
             discardable: block.discardable(),
+            notify_on_discard: block.notify_on_discard,
             discarded: block.discarded,
         })
     }

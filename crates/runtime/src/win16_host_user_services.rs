@@ -281,38 +281,22 @@ pub struct Win16HostSystemParametersResult {
 /// Generic session operations issued by Win16 USER through the native worker.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16HostSessionOperation {
-    RequestLogoff,
-    RequestReboot,
-    LegacyOldExitWindows,
-    RestartWin16Session,
+    /// Original DWORD/WORD arguments, forwarded by position as NT WOW does.
+    /// These are ExitWindows arguments, not ExitWindowsEx flags/reason.
+    ExitWindows { return_code: u32, reserved: u16 },
     RunAfterWin16Restart { program: Vec<u8>, parameters: Option<Vec<u8>> },
-    UnsupportedLegacyExitCode { code: u32 },
 }
 
-/// Structured outcome for one Win16 USER session request.
-/// `accepted` means the native API accepted/started the request; it does not
-/// mean that an asynchronous logoff or reboot has completed.
+/// Native API that rejected a Win16 USER session request.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16HostSessionApiPhase {
-    SessionReservation,
-    OpenProcessToken,
-    LookupPrivilegeValue,
-    AdjustTokenPrivileges,
     ExitWindowsEx,
-    RestoreShutdownPrivilege,
-    CloseToken,
 }
 
 impl Win16HostSessionApiPhase {
     pub const fn description(self) -> &'static str {
         match self {
-            Self::SessionReservation => "reserve the process session operation",
-            Self::OpenProcessToken => "open the process token",
-            Self::LookupPrivilegeValue => "look up the shutdown privilege",
-            Self::AdjustTokenPrivileges => "enable the shutdown privilege",
             Self::ExitWindowsEx => "request the Windows session change",
-            Self::RestoreShutdownPrivilege => "restore the prior shutdown privilege state",
-            Self::CloseToken => "close the process token",
         }
     }
 }
@@ -323,27 +307,11 @@ pub struct Win16HostSessionApiFailure {
     pub error_code: u32,
 }
 
-/// Evidence retained with a session result when native token cleanup needs a
-/// later retry. This contains status only; the host adapter owns the HANDLE.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct Win16HostSessionCleanupReceipt {
-    pub owner_retained: bool,
-    pub restore_pending: bool,
-    pub token_close_pending: bool,
-    pub previous_privilege_state_saved: bool,
-    pub failure_receipt_unreported: bool,
-}
-
+/// Native acceptance is not evidence that asynchronous logoff has completed.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Win16HostSessionResult {
     pub accepted: bool,
     pub operation_failure: Option<Win16HostSessionApiFailure>,
-    pub privilege_restore_failure: Option<Win16HostSessionApiFailure>,
-    pub token_close_failure: Option<Win16HostSessionApiFailure>,
-    /// False when retained cleanup or another active session operation kept
-    /// the native session API from being called.
-    pub request_attempted: bool,
-    pub cleanup: Win16HostSessionCleanupReceipt,
 }
 
 /// Aggregate operation and result used as one nested USER worker variant.

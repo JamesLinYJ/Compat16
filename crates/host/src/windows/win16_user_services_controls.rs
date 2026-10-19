@@ -423,6 +423,10 @@ pub(super) fn execute(
             let mut native = native_rect(rect);
             let succeeded =
                 unsafe { AdjustWindowRectEx(&mut native, style, i32::from(menu), ex_style) != 0 };
+            if succeeded && let Some(frame) = super::win16_frame_geometry::CaptionFrame::query(style, ex_style) {
+                let Some(projected) = frame.adjust_outer(native) else { return Ok(Result::Rect(None)); };
+                native = projected;
+            }
             Result::Rect(succeeded.then(|| host_rect(native)))
         }
         Call::MapDialogRect { dialog, rect } => {

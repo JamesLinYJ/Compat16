@@ -111,16 +111,16 @@ decl = { args = ["word", "word", "pointer", "string", "string", "pointer", "stri
 
 binding = { rust_id = "DriverWinspool90Extdevicemode", id_value = 5000119, constant = "DRIVER_WINSPOOL_90" }
 [exports.call]
-returns = "dword"
+returns = "word"
 params = [
-  { name = "a0", type = "U16" },
-  { name = "a1", type = "U16" },
-  { name = "a2", type = "FarBuffer" },
-  { name = "a3", type = "FarString" },
-  { name = "a4", type = "FarString" },
-  { name = "a5", type = "FarBuffer" },
-  { name = "a6", type = "FarString" },
-  { name = "a7", type = "U16" },
+  { name = "owner", type = "U16" },
+  { name = "driver_instance", type = "U16" },
+  { name = "output", type = "FarOutputBuffer" },
+  { name = "device", type = "NullableFarString" },
+  { name = "port", type = "NullableFarString" },
+  { name = "input", type = "FarBuffer" },
+  { name = "profile", type = "NullableFarString" },
+  { name = "mode", type = "U16" },
 ]
 [[exports]]
 ordinal = 92

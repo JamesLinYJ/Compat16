@@ -32,6 +32,18 @@ impl ProcInstances {
 }
 
 impl Win16State {
+    /// Window/dialog callback prologs consume a data selector in AX. A movable
+    /// NE instance handle is selector - 1 and cannot be loaded into DS as-is.
+    /// Keep caller-visible instance handles intact; normalize only the entry
+    /// register through the existing owned NE segment-handle mapping. Values
+    /// already supplied as selectors retain their established entry behavior.
+    pub(super) fn callback_instance_selector(&self, instance: u16) -> u16 {
+        self.loaded_segment_handles
+            .iter()
+            .find_map(|(&selector, &handle)| (handle == instance).then_some(selector))
+            .unwrap_or(instance)
+    }
+
     pub(super) fn make_proc_instance(
         &mut self,
         procedure: u32,

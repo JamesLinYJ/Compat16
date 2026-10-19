@@ -17,14 +17,14 @@ impl DosKernel {
         memory: &mut impl DosCallAddressSpace,
     ) -> Result<DosAction, DosError> {
         if regs.al() != 0 {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
             return Ok(DosAction::Continue);
         }
 
         let program_path = match read_asciiz(memory, regs.ds, regs.dx()) {
             Ok(path) if !path.is_empty() => path,
             Ok(_) | Err(DosError::MalformedGuestInput(_) | DosError::Memory(_)) => {
-                Self::failure(regs, DosHostError::new(DosErrorCode::InvalidData));
+                self.failure(regs, DosHostError::new(DosErrorCode::InvalidData));
                 return Ok(DosAction::Continue);
             }
             Err(error) => return Err(error),
@@ -33,7 +33,7 @@ impl DosKernel {
         let mut parameter_block = [0; EXEC_PARAMETER_BLOCK_BYTES];
         let parameter_pointer = match memory.resolve_caller_pointer(regs.es, regs.bx()) {
             Ok(pointer) => pointer,
-            Err(error) => return invalid_exec_input(regs, error),
+            Err(error) => return invalid_exec_input(self, regs, error),
         };
         if let Err(error) = memory.read_caller_range(
             parameter_pointer,
@@ -41,7 +41,7 @@ impl DosKernel {
             &mut parameter_block,
             DosSpanPolicy::OffsetWrap,
         ) {
-            return invalid_exec_input(regs, error);
+            return invalid_exec_input(self, regs, error);
         }
 
         let environment_segment = read_word(&parameter_block, 0);
@@ -51,15 +51,15 @@ impl DosKernel {
 
         let command_tail = match read_command_tail(memory, command_tail_pointer) {
             Ok(tail) => tail,
-            Err(error) => return invalid_exec_input(regs, error),
+            Err(error) => return invalid_exec_input(self, regs, error),
         };
         let first_fcb = match read_optional_fcb(memory, first_fcb_pointer) {
             Ok(fcb) => fcb,
-            Err(error) => return invalid_exec_input(regs, error),
+            Err(error) => return invalid_exec_input(self, regs, error),
         };
         let second_fcb = match read_optional_fcb(memory, second_fcb_pointer) {
             Ok(fcb) => fcb,
-            Err(error) => return invalid_exec_input(regs, error),
+            Err(error) => return invalid_exec_input(self, regs, error),
         };
 
         Self::success(regs);
@@ -73,10 +73,10 @@ impl DosKernel {
     }
 }
 
-fn invalid_exec_input(regs: &mut Registers, error: DosError) -> Result<DosAction, DosError> {
+fn invalid_exec_input(dos: &mut DosKernel, regs: &mut Registers, error: DosError) -> Result<DosAction, DosError> {
     match error {
         DosError::MalformedGuestInput(_) | DosError::Memory(_) => {
-            DosKernel::complete_exec_failure(regs, DosErrorCode::InvalidData);
+            dos.complete_exec_failure(regs, DosErrorCode::InvalidData);
             // The DOS ABI reports malformed pointers and buffers as an
             // ordinary service error instead of terminating the runtime.
             Ok(DosAction::Continue)

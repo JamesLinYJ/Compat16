@@ -346,6 +346,30 @@ fn assert_dos_untouched(host: &SpoolHost) {
 }
 
 #[test]
+fn spool_routes_write_failure_is_available_through_extended_error_without_replaying_io() {
+    for route in ROUTES {
+        let (mut runtime, mut host, _) = fixture();
+        let handle = open_spool(&mut runtime, &mut host);
+        host.next_spool_error = Some(5);
+        let mut expected = prepare(&mut runtime, route, 0x40, handle, DATA.len() as u16);
+        expected.set_ax(5);
+        expected.set_carry(true);
+        call(&mut runtime, &mut host, route, expected);
+        let operations = host.spool_calls.len();
+        let mut query = runtime.cpu.regs.clone();
+        query.set_ax(0x5900);
+        assert_eq!(dispatch_int21(runtime.win16.as_mut().unwrap(), &mut runtime.dos,
+            &mut query, &mut runtime.memory, &mut host).unwrap(), DosAction::Continue);
+        assert_eq!((query.ax(), query.bx(), query.ch(), query.es, query.di()),
+            (5, 0x0303, 1, 0, 0));
+        assert!(!query.carry());
+        assert_eq!(host.spool_calls.len(), operations);
+        assert!(runtime.win16.as_ref().unwrap().network_print_hfile_is_owned(OwnerId(1), handle));
+        assert_dos_untouched(&host);
+    }
+}
+
+#[test]
 fn spool_routes_use_wnet_hfile_and_preserve_full_register_return() {
     for route in ROUTES {
         let (mut runtime, mut host, _) = fixture();

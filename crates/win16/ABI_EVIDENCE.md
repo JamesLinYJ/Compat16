@@ -925,12 +925,222 @@ beyond that prefix are left unchanged. A null or empty port on
 stopping at NUL). `GetEnvironment` does not read its output buffer to invent
 that key, so a null port on get returns 0.
 
-## Unimplemented OLE and driver call contracts
+## Callback and session contracts
+
+### Instance registers at USER callbacks
+
+The Windows prolog adaptation in `formats::ne_prologs` preserves the instance
+data selector supplied in AX for multi-instance entries. An NE movable data
+segment's HINSTANCE is selector minus one; that handle is not the selector
+consumed by `MOV DS,AX`. USER window, dialog, timer and guest-dispatch callback
+entries resolve owned NE segment handles before loading AX, while leaving
+guest-visible instance handles unchanged. MakeProcInstance already resolves
+the instance data selector in its generated guest thunk. Selector permissions,
+limits and callback-owner validation remain enforced.
+
+KERNEL.155 `GetTaskDS` also returns a selector. The NT 3.5
+[`KERNEL31/3GINTERF.ASM`](https://github.com/Hengle/windows_nt_3_5_source_code/blob/d2894c9125ff1c14028435ed1b21164f6b2b871a/windows_nt_3_5_source_code/NT-782/PRIVATE/MVDM/WOW16/KERNEL31/3GINTERF.ASM#L1460)
+documents and implements the same task data selector in both AX and DX.
+The runtime call result is now DWORD-width and repeats the selector in both
+words, preserving the caller's DS. The historical `ret16` declaration hint
+is retained independently of this corrected physical return contract.
+
+### ExitWindows follows the NT WOW thunk
+
+USER.7 retains its DWORD/WORD Pascal frame. NT 3.5
+[`WU32ExitWindows`](https://github.com/Hengle/windows_nt_3_5_source_code/blob/d2894c9125ff1c14028435ed1b21164f6b2b871a/windows_nt_3_5_source_code/NT-782/PRIVATE/MVDM/WOW32/WUMAN.C#L34)
+and the XP
+[`WU32ExitWindows`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow32/wuman.c#L30)
+both forward the original arguments positionally to Win32 `ExitWindows` and
+return its BOOL. The NT 3.5 `MVDM/INC/WOWUSR.H` packed `EXITWINDOWS16` structure
+contains the stack-top WORD followed by the DWORD, matching this Pascal frame.
+The DWORD and WORD remain intact through the runtime-to-host request; there
+is no truncation, code-specific restart dispatch, or replacement Shell dialog.
+
+The NT 3.5 SDK
+[`WINUSER.H`](https://github.com/Hengle/windows_nt_3_5_source_code/blob/d2894c9125ff1c14028435ed1b21164f6b2b871a/windows_nt_3_5_source_code/NT-782/PUBLIC/SDK/INC/WINUSER.H#L1506)
+and the current SDK define `ExitWindows` as a macro invoking
+`ExitWindowsEx(EWX_LOGOFF, 0xFFFFFFFF)`. This macro ignores both old arguments;
+they are not `ExitWindowsEx` flags and a reason. The native adapter follows
+that macro and reports the actual native BOOL and last-error result. Thus
+this WOW route requests host logoff, including for the normal `(0, 0)` call.
+No shutdown privilege is needed or acquired; the unused token-cleanup state
+and diagnostics are removed. Tests inject the native callee
+and do not perform a real session change.
+
+USER.2 `OldExitWindows` has a separate, local contract. The NT 3.5
+[`USER.ASM`](https://github.com/Hengle/windows_nt_3_5_source_code/blob/d2894c9125ff1c14028435ed1b21164f6b2b871a/windows_nt_3_5_source_code/NT-782/PRIVATE/MVDM/WOW16/USER/USER.ASM#L425)
+identifies the entry as the Windows 3.1 final implementation and terminates
+the application through DOS INT 21h/AX=4C00h. Runtime routes it to the existing
+guest task-exit continuation, preserving ToolHelp notification and native
+source-drain ordering; it never submits a native session operation.
+The `ExitWindowsExec` launcher protocol remains an implementation gap.
+
+### Windows 3.1 EDIT scrolling
+
+The Windows 3.1 `WINDOWS.H` EDIT family uses `WM_USER+5` for `EM_SCROLL`
+and `WM_USER+14` for `EM_GETTHUMB`. NT WOW's `WCTLM32.C` treats both as
+scalar control messages. They now have typed runtime requests and use the
+native EDIT message IDs, with unused LPARAM set to zero. `EM_SCROLL` keeps
+the original command WORD and packed result (success in the high WORD,
+scrolled line count in the low WORD); invalid commands remain native failures.
+`EM_GETTHUMB` returns the native scroll position. These operations reuse the
+existing checked control-family and procedure identity routing. Their ignored
+guest fields are never interpreted as host or guest pointers. See Microsoft's
+[`EM_SCROLL`](https://learn.microsoft.com/en-us/windows/win32/controls/em-scroll)
+and [`EM_GETTHUMB`](https://learn.microsoft.com/en-us/windows/win32/controls/em-getthumb)
+contracts. EDIT HLOCAL and word-break callback messages remain unsupported.
+
+### Native system-timer queue messages
+
+XP's [`DispatchMessageWorker`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/windows/core/ntuser/client/clmsg.c#L2358)
+distinguishes `WM_SYSTIMER` with nonzero LPARAM from a guest TIMERPROC:
+Windows dispatches it in its server context. On a 64-bit host, truncating that
+native value to MSG16 and treating it as a guest FARPROC loses its provenance.
+Only callback-free, WORD-sized native timer parameters take the scalar queue
+route. Other native system-timer messages retain their complete native MSG and
+use the existing private native dispatch path, including checked removal when
+encountered by a non-removing peek. No selector validation is relaxed.
+
+Guest `SetSystemTimer` retains its existing registration/generation route.
+Guest `WM_TIMER` and `WM_SYSTIMER` posts with a callback value both use owned
+sidecars and the worker's native thunk; retrieval restores the guest message
+identifier, WORD WPARAM and DWORD LPARAM. Non-removing guest peeks retain that
+sidecar until removal. These guest addresses never become native TIMERPROC
+values. Native queue filters still need a separate projection for a filter
+containing only `WM_SYSTIMER`, because registered/carrier timers use native
+`WM_TIMER`; this change does not claim complete timer-filter equivalence.
+
+### KERNEL module names and complete filenames
+
+KERNEL31 [`IGetModuleHandle`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/kernel31/ldaux.asm#L413)
+searches the resident module namespace before its filename fallback.
+[`FindExeInfo` and `ResidentFindExeFile`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/kernel31/ldutil.asm#L850)
+compare resident names and complete basenames respectively; a filename's EXE,
+DLL or DRV extension remains part of its identity. An executable whose resident
+name differs from its file stem must not satisfy a bare import of a separate
+DLL merely because both files share that stem.
+
+The loader's [`ALFindModule`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/kernel31/ld.asm#L1296)
+first checks the complete filename, then the resident name without a supplied
+extension. The runtime keeps this loader fallback separate from the public
+module-handle lookup, retains builtin source-module/suffix aliases, and continues
+to exclude retired and external-application identities. Resolving a missing
+import still fails the load and now identifies the exact symbol in diagnostics.
+
+### KERNEL global-discard notifications
+
+XP's Win16 [`WINDOWS.H`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/inc/windows.h#L717)
+declares `GlobalNotify` as void and its callback as a Pascal BOOL taking one
+HGLOBAL word. [`IGlobalNotify` and `gnotify`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/kernel31/3gmoreme.asm#L480)
+retain the task's registration and ask its callback before discarding a
+task-owned allocation marked GMEM_NOTIFY. A zero callback result vetoes that
+discard. Module-owned objects and unmarked allocations do not use this task
+callback. The runtime keeps the input NOTIFY policy separate from the output
+DISCARDED state: both use bit 0x4000 in their different Win16 API contexts.
+
+The callback enters the checked FAR-call path with AX, DS and ES set to SS,
+as in gnotify; MakeProcInstance retains its own subsequent instance projection.
+Guest execution may free, resize or pin the candidate. A discard after its
+return rechecks the complete allocation generation and current pin state,
+so a reused WORD handle cannot authorize discarding a replacement object.
+Compaction retains vetoed identities, continues in LRU order, and returns the
+allocator's actual largest free range. Public GlobalAlloc/GlobalReAlloc can
+retry after memory-pressure compaction; an ordinary successful resize remains
+on the immediate path without adding CPU-root pins to the caller's data block.
+Active decisions use the shared callback LIFO, retain their caller/parked CPU
+owners, and cancel without committing an unreturned vote after task execution
+ends. Registered code participates in module roots until task retirement.
+
+KERNEL.126 `MemoryFreed` regains its original binding ID 1000024 with a verified
+two-byte argument frame. [`MemoryFreed`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/base/mvdm/wow16/kernel31/2gmoreme.asm#L753)
+takes a WORD count of freed paragraphs, supports a zero-count budget query,
+and returns zero outside an active notification. Its low-word subtraction
+wraps, its high return word is zero, and reaching the reported budget stops
+the current discard pass. This is not a host-memory counter or an assertion
+that the reported free space physically exists; GlobalCompact still measures
+its actual result. Heap-backed internal service helpers retain their existing
+synchronous allocation contracts; this does not claim general cross-task
+execution or complete parity of every historical allocator policy. Huge
+reallocation can still fail when an adjacent stable HGLOBAL prevents expanding
+the original contiguous selector run; it must preserve the original data and
+report failure even if a notification has released another block.
+
+## USER named dialog icon resources
+
+For a dialog STATIC with `SS_ICON`, its title identifies an icon resource,
+including a resource name encoded in the original guest ANSI bytes. The
+[static-control contract](https://learn.microsoft.com/en-us/windows/win32/controls/static-control-styles)
+and XP
+[`xxxStaticLoadImage`](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/windows/core/ntuser/client/statctl.c#L243)
+resolve that name through the control's owning module. The title is neither
+an RT_STRING ID nor a host executable resource name. The 3.x path loads an
+icon; XP's cursor fallback is explicitly limited to 4.0-compatible windows.
+
+Dialog preparation now passes both named and numeric titles through the
+existing guest LoadIcon resource/group decoder and module cache. Named titles
+keep their ANSI/DBCS bytes through resource selection. After obtaining the
+typed icon token, preparation clears the native template title and uses the
+same retained icon sidecar, installation ordering, and teardown as numeric
+icons. Resource, HGLOBAL, and FAR-address templates share this preparation for
+modal and modeless dialogs. Missing resources still return the existing
+preflight failure without substituting a string, ordinal, system image, or
+host resource. This does not add custom-class/creation-data icon routes or
+change their existing preflight restrictions. The installation route still
+requires resolved stock control class atoms throughout the template;
+guest-registered classes remain outside that image-installation route.
+
+Class lookup precedes control-title interpretation. The
+[class search order](https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-classes)
+uses application-local registrations, application-global registrations, then
+predefined controls, including controls created by the dialog manager. XP
+[dialog child creation](https://github.com/killvxk/winxpscodes/blob/a2f6d7c93aa4f11efc51147566d5961c59a8ef89/Source/XPSP1/NT/windows/core/ntuser/client/dlgbegin.c#L1244)
+passes a control's class and title into native window creation. It does not
+interpret a custom class's style bits as predefined STATIC behavior.
+
+The runtime resolves string-encoded standard control names through its
+existing class namespace before preparing typed images. An unshadowed
+STATIC becomes a stock class atom and can use numeric or named icon titles.
+A registered class named STATIC keeps its exact guest class token, callback
+route and ordinary title; no icon is loaded merely because its style has the
+same low bits as SS_ICON. A missing class reports GuestClassUnavailable before
+image preparation or native creation. This also preserves the six standard
+control names encoded as strings alongside an icon control, without treating
+unregistered names or custom-class callbacks as stock controls.
+
+The NE integration fixture creates a hidden modeless stock dialog using a
+DBCS-named RT_GROUP_ICON, reads a nonzero guest HICON through Win16
+SendDlgItemMessage/STM_GETICON, and destroys the dialog. It requires real
+native USER creation and executes in both guest engines; it supplies no
+keyboard, mouse, menu, or visible-window interaction.
+An additional fixture uses mixed-case STATIC and BUTTON class strings for
+the same hidden icon readback and destruction protocol.
+
+## Unimplemented call contracts
+
+### Unknown parameter frames
 
 An unknown historical stub signature is not a zero-argument Pascal call.
 Driver stubs without verified parameter frames stay declaration-only, including
 register-based display and COMM driver entries. Existing binding IDs are not
 renumbered when an unsafe provisional binding is removed.
+
+The same rule applies to KERNEL, USER and GDI. Their declaration groups retain
+71, 63 and 100 additional stub rows respectively without runtime call bindings.
+These rows supply neither a parameter list nor independent zero-argument ABI
+evidence. Treating an omitted signature as an empty Pascal frame would return
+with an unverified stack cleanup and return shape. Import names and ordinals
+remain available to diagnostics; execution reports a compatibility gap through
+the existing declaration-only path. Known frames and surviving binding IDs are
+unchanged. This does not implement those deferred interfaces.
+
+KERNEL.99 `GetLPErrMode` is retained separately. The
+[Wine implementation proposal](https://www.winehq.org/pipermail/wine-devel/2021-December/202312.html)
+describes a Windows 3.1 experiment and a no-argument pointer-to-16-bit-value
+prototype. This supplies limited independent frame and return-width evidence,
+not evidence for this runtime's task-error-mode storage semantics. Its original
+stub declaration metadata is preserved; the existing call contract and behavior
+are unchanged by the removal of unknown frames.
 
 The Win16 Video for Windows `AVIFILE.H` declarations give
 `AVIMakeCompressedStream` four far pointers (16 argument bytes),

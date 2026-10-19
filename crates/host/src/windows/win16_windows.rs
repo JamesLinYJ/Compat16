@@ -57,6 +57,8 @@ mod win16_window_default;
 mod win16_window_dialog_creation;
 #[path = "win16_window_identity.rs"]
 mod win16_window_identity;
+#[path = "win16_dialog_root_identity.rs"]
+mod win16_dialog_root_identity;
 #[path = "win16_window_input.rs"]
 mod win16_window_input;
 #[path = "win16_ctl3d_worker.rs"]
@@ -114,6 +116,11 @@ mod win16_window_data;
 mod win16_window_enumeration;
 #[path = "win16_window_geometry.rs"]
 mod win16_window_geometry;
+#[path = "win16_window_sizing.rs"]
+mod win16_window_sizing;
+#[path = "win16_frame_geometry.rs"]
+mod win16_frame_geometry;
+pub(super) use win16_frame_geometry::caption_height;
 #[path = "win16_window_ops.rs"]
 mod win16_window_ops;
 #[path = "win16_window_caret.rs"]

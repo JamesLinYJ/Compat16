@@ -44,6 +44,9 @@ fn finish_result(
 ) -> Result<u32, RuntimeError> {
     let guest_failure_value = continuation.guest_failure_value;
     match (continuation.output, result) {
+        (Win16CommonDialogOutput::PrinterMode { output },
+            Win16HostCommonDialogResult::PrinterMode(result)) =>
+            super::printer::finish(state, memory, output, result),
         (Win16CommonDialogOutput::File {
             structure, file, file_far, file_capacity,
             file_title, file_title_far, file_title_capacity,

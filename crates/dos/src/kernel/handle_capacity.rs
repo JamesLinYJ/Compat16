@@ -39,7 +39,7 @@ impl DosKernel {
             || self.psp_segment != self.jft_owner_psp
             || regs.bx() > MAX_JFT_LEN
         {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
+            self.failure(regs, DosHostError::new(DosErrorCode::InvalidFunction));
             return Ok(DosAction::Continue);
         }
         self.validate_jft_metadata(memory)?;
@@ -56,7 +56,7 @@ impl DosKernel {
             return Ok(DosAction::Continue);
         }
         if self.handles.keys().any(|handle| *handle >= count) {
-            Self::failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
+            self.failure(regs, DosHostError::new(DosErrorCode::TooManyOpenFiles));
             return Ok(DosAction::Continue);
         }
         self.validate_system_tables(memory)?;
@@ -68,7 +68,7 @@ impl DosKernel {
         if entries.try_reserve_exact(usize::from(count)).is_err()
             || self.retired_jft_storage.try_reserve(1).is_err()
         {
-            Self::failure(regs, DosHostError::new(DosErrorCode::InsufficientMemory));
+            self.failure(regs, DosHostError::new(DosErrorCode::InsufficientMemory));
             return Ok(DosAction::Continue);
         }
         entries.resize(usize::from(count), 0xff);
@@ -93,7 +93,7 @@ impl DosKernel {
             let lease = match self.allocate_pinned_block(memory, self.jft_owner_psp, paragraphs) {
                 Ok(lease) => lease,
                 Err(DosError::HostOperation(error)) if error.code == DosErrorCode::InsufficientMemory => {
-                    Self::failure(regs, error);
+                    self.failure(regs, error);
                     return Ok(DosAction::Continue);
                 }
                 Err(error) => return Err(error),

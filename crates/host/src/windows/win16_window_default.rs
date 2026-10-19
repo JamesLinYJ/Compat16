@@ -12,7 +12,7 @@ use runtime::{
 use windows_sys::Win32::Foundation::{HWND, POINT};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CREATESTRUCTW, DefDlgProcW, DefFrameProcW, DefMDIChildProcW, DefWindowProcW, DispatchMessageW,
-    GetDlgCtrlID, GetParent, MINMAXINFO, SendMessageW, WM_CHANGECBCHAIN, WM_CLOSE, WM_COMMAND,
+    GetDlgCtrlID, GetParent, MINMAXINFO, SWP_NOSIZE, SendMessageW, WM_CHANGECBCHAIN, WM_CLOSE, WM_COMMAND,
     WM_CREATE, WM_DESTROY, WM_DROPFILES, WM_ERASEBKGND, WM_GETDLGCODE, WM_GETMINMAXINFO,
     WM_GETTEXT, WM_GETTEXTLENGTH, WM_INITDIALOG, WM_NCACTIVATE, WM_NCCALCSIZE, WM_NCCREATE,
     WM_NCPAINT, WM_PAINT, WM_SETFONT, WM_SETTEXT, WM_SYSCOMMAND, WM_WINDOWPOSCHANGED,
@@ -25,6 +25,9 @@ use super::win16_window_worker::{NativeCallbackContext, NativeWindowIdentity, Wo
 
 #[path = "win16_message_mdi.rs"]
 pub(super) mod mdi;
+
+#[path = "win16_window_dialog_default_init.rs"]
+mod dialog_init;
 
 /// Apply DefWindowProcW using either a validated live native callback frame or
 /// entirely host-owned buffers reconstructed from the typed operation.
@@ -952,6 +955,15 @@ fn message_with_invocation(
             }
         }
         Win16HostMessage::NonClientCalcSize { w_param, data } => {
+            let frame = matches!(invocation, MessageInvocation::Default
+                | MessageInvocation::FrameDefault { .. } | MessageInvocation::MdiChildDefault
+                | MessageInvocation::DialogDefault)
+                .then(|| super::win16_frame_geometry::CaptionFrame::for_window(state, window, hwnd))
+                .flatten();
+            let (data, frame) = match frame.and_then(|frame| frame.prepare(data).map(|data| (data, frame))) {
+                Some((data, frame)) => (data, Some(frame)),
+                None => (data, None),
+            };
             let mut native =
                 match super::win16_window_callbacks::NativeNonClientCalcSize::from_owned(
                     state, w_param, data,
@@ -984,6 +996,11 @@ fn message_with_invocation(
             let Some(output) = native.owned_output(state)? else {
                 return Ok(None);
             };
+            let output = match frame {
+                Some(frame) => frame.finish(output).ok_or_else(|| RuntimeError::new(
+                    Kind::InvalidInput, "legacy nonclient result exceeds native coordinate range"))?,
+                None => output,
+            };
             Win16HostMessageResult {
                 dialog_result: None,
                 value: result.value,
@@ -995,6 +1012,14 @@ fn message_with_invocation(
             w_param,
             data,
         } => {
+            let sizing = if changing && u32::from(data.flags) & SWP_NOSIZE == 0
+                && matches!(invocation, MessageInvocation::Default
+                    | MessageInvocation::FrameDefault { .. }
+                    | MessageInvocation::MdiChildDefault | MessageInvocation::DialogDefault)
+                && unsafe { windows_sys::Win32::UI::WindowsAndMessaging::IsIconic(hwnd) } != 0
+            {
+                super::win16_window_sizing::MinimizedDefault::enter(state, window, hwnd)?
+            } else { None };
             let Some(mut native) = NativeWindowPosition::from_owned(state, data)? else {
                 return Ok(None);
             };
@@ -1023,7 +1048,10 @@ fn message_with_invocation(
             }
             let output = if changing {
                 match native.owned_output(state)? {
-                    Some(output) => Output::WindowPosition(output),
+                    Some(mut output) => {
+                        if let Some(sizing) = sizing.as_ref() { sizing.adjust(data, &mut output)?; }
+                        Output::WindowPosition(output)
+                    }
                     None => {
                         super::win16_window_position::report_diagnostic(
                             state,
@@ -1051,6 +1079,16 @@ fn message_with_invocation(
             let Some(frame) = live else {
                 return Ok(None);
             };
+            // DefDlgProc is a nested USER operation. Authorize only this
+            // exact live initialization callback to reenter its creation's
+            // DLGPROC; merely finding an ancestor operation is insufficient.
+            let _dialog_init = if matches!(invocation, MessageInvocation::DialogDefault)
+                && frame.message == WM_INITDIALOG
+            {
+                dialog_init::DefaultInitScope::begin(
+                    state, hwnd, window, frame.creation, frame.operation,
+                )?
+            } else { None };
             invoke_message(
                 invocation,
                 hwnd,

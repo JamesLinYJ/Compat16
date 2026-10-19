@@ -3,6 +3,12 @@ use crate::{DosFileDisposition, DosFileOpenOutcome, DosFileOpenRequest, DosFileO
 use super::directory::{dos_path_drive, parse_search_spec, search_attribute_matches};
 use super::state::Handle;
 use super::directory::{dos_field_matches, short_name_fields};
+#[path = "fcb_search_tests.rs"]
+mod fcb_search_tests;
+#[path = "canonical_name_tests.rs"]
+mod canonical_name_tests;
+#[path = "fcb_mutation_tests.rs"]
+mod fcb_mutation_tests;
 use std::collections::{BTreeMap, VecDeque};
 use guest_core::{GuestMemory, MemoryError, PhysAddr, Registers};
 
@@ -64,6 +70,13 @@ pub(super) struct TestHost {
     search_open_error: Option<DosErrorCode>,
     search_next_error: Option<DosErrorCode>,
     search_close_error: Option<DosErrorCode>,
+    search_entries_override: Option<Vec<DosDirectoryEntry>>,
+    short_names: BTreeMap<(Vec<u8>, Vec<u8>), Vec<u8>>,
+    short_name_queries: Vec<(Vec<u8>, Vec<u8>)>,
+    fcb_delete_calls: Vec<(Vec<u8>,bool)>,
+    fcb_delete_errors: BTreeMap<Vec<u8>,DosErrorCode>,
+    rename_calls: Vec<(Vec<u8>,Vec<u8>)>,
+    rename_errors: BTreeMap<Vec<u8>,DosErrorCode>,
     next_id: u64,
     next_search_id: u64,
     drive: u8,
@@ -88,7 +101,7 @@ pub(super) struct TestHost {
     file_write_calls: Vec<(DosHostFile, Vec<u8>)>,
     file_seek_calls: Vec<(DosHostFile, i32, DosSeekOrigin)>,
     file_set_len_calls: Vec<(DosHostFile, u32)>,
-    code_page: Option<text_codec::CodePage>,
+    pub(super) code_page: Option<text_codec::CodePage>,
     redirected_standard_streams: bool,
     standard_info_override: Option<DosIoctlObjectInfo>,
     input_eof: bool,
@@ -226,7 +239,11 @@ impl DosHost for TestHost {
         }
         let outcome = match (request.disposition, exists) {
             (DosFileDisposition::CreateNew, true) => return Err(DosHostError::new(DosErrorCode::FileExists)),
-            (DosFileDisposition::OpenExisting, false) => return Err(DosHostError::new(DosErrorCode::FileNotFound)),
+            (DosFileDisposition::OpenExisting | DosFileDisposition::ReplaceExisting, false) => return Err(DosHostError::new(DosErrorCode::FileNotFound)),
+            (DosFileDisposition::ReplaceExisting | DosFileDisposition::ReplaceOrCreate, true) => {
+                self.attributes.insert(path.to_vec(), request.attributes);
+                DosFileOpenOutcome::Replaced
+            }
             (_, true) => DosFileOpenOutcome::Opened,
             (_, false) => {
                 if request.access == DosFileAccess::ReadOnly {
@@ -237,7 +254,7 @@ impl DosHost for TestHost {
             }
         };
         self.last_open_access = Some(request.access);
-        Ok(DosFileOpenResult { file: self.open_new(path, false), outcome })
+        Ok(DosFileOpenResult { file: self.open_new(path, outcome == DosFileOpenOutcome::Replaced), outcome })
     }
     fn file_open_with_sharing(&mut self, path: &[u8], access: DosFileAccess, _sharing: DosFileSharing) -> Result<DosHostFile, DosHostError> {
         self.file_open(path, access)
@@ -383,6 +400,14 @@ impl DosHost for TestHost {
         self.handles.retain(|_, file_id| *file_id != id);
         Ok(())
     }
+    fn file_delete_fcb(&mut self,path:&[u8],ignore_read_only:bool)->Result<(),DosHostError> {
+        self.fcb_delete_calls.push((path.to_vec(),ignore_read_only));
+        if let Some(&code)=self.fcb_delete_errors.get(path){return Err(DosHostError::new(code));}
+        let id=self.paths.get(path).copied().ok_or(DosHostError::new(DosErrorCode::FileNotFound))?;
+        if self.handles.values().any(|&open|open==id){return Err(DosHostError::new(DosErrorCode::SharingViolation));}
+        if !ignore_read_only && self.attributes.get(path).is_some_and(|attrs|attrs&1!=0){return Err(DosHostError::new(DosErrorCode::AccessDenied));}
+        self.file_delete(path)
+    }
 
     fn directory_create(&mut self, path: &[u8]) -> Result<(), DosHostError> {
         if path.is_empty() || self.paths.contains_key(path) || self.directories.contains_key(path) {
@@ -429,7 +454,14 @@ impl DosHost for TestHost {
         Ok(relative.len())
     }
 
+    fn file_short_name(&mut self, parent: &[u8], name: &[u8]) -> Result<Option<Vec<u8>>, DosHostError> {
+        let key = (parent.to_vec(), name.to_vec());
+        self.short_name_queries.push(key.clone());
+        Ok(self.short_names.get(&key).cloned())
+    }
     fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError> {
+        self.rename_calls.push((old_path.to_vec(),new_path.to_vec()));
+        if let Some(&code)=self.rename_errors.get(old_path){return Err(DosHostError::new(code));}
         if self.paths.contains_key(new_path) || self.directories.contains_key(new_path) {
             return Err(DosHostError::new(DosErrorCode::AccessDenied));
         }
@@ -482,6 +514,7 @@ impl DosHost for TestHost {
                 size: 0,
             });
         }
+        if let Some(override_entries) = &self.search_entries_override { entries = override_entries.clone(); }
         self.next_search_id += 1;
         let token = DosHostSearch(self.next_search_id);
         self.searches.insert(token, TestDirectorySearch { entries, next: 0 });
@@ -866,7 +899,7 @@ fn psp_dta_drive_exit_and_unsupported_calls_are_explicit() {
     assert_eq!(host.current_drive(), 4);
     assert_eq!(regs.al(), 3);
 
-    set_ah(&mut regs, 0x60);
+    set_ah(&mut regs, 0x61); // AH=60h now has the canonical-name buffer contract.
     assert_eq!(dos.interrupt(0x21, &mut regs, &mut memory, &mut host).unwrap(), DosAction::Continue);
     assert_eq!(regs.ax(), DosErrorCode::InvalidFunction as u16);
     assert!(regs.carry());
@@ -1402,3 +1435,6 @@ mod file_read_access_tests;
 
 #[path = "file_write_access_tests.rs"]
 mod file_write_access_tests;
+
+#[path = "current_directory_tests.rs"]
+mod current_directory_tests;

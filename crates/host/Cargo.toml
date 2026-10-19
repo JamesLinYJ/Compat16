@@ -17,12 +17,13 @@ compat-services = { path = "../compat" }
 dos-kernel = { path = "../dos" }
 devices = { path = "../devices" }
 runtime = { path = "../runtime" }
+win16-abi = { path = "../win16" }
 text-codec = { path = "../text" }
 graphics = { path = "../graphics" }
 formats = { path = "../formats" }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { workspace = true, features = ["Win32_System_Environment", "Win32_System_Threading"] }
+windows-sys = { workspace = true, features = ["Wdk_Storage_FileSystem", "Win32_System_Environment", "Win32_System_Threading"] }
 windows-link.workspace = true
 windows-core.workspace = true
 cap-std.workspace = true

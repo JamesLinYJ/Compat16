@@ -2,6 +2,9 @@
 
 use super::*;
 
+#[path = "runtime_host_gdi_pixel_trace.rs"]
+mod pixel_trace;
+
 pub(super) fn create_dc(
     host: &mut WindowsHost,
     driver: Option<&[u8]>,
@@ -42,6 +45,7 @@ pub(super) fn execute_drawing(
     host: &mut WindowsHost,
     operation: runtime::Win16DrawingOperation,
 ) -> Result<runtime::Win16DrawingResult, RuntimeError> {
+    pixel_trace::observe(host, &operation)?;
     use runtime::{Win16DrawingOperation as Operation, Win16DrawingResult as ResultValue};
     use windows_sys::Win32::Graphics::Gdi::{DT_MODIFYSTRING, ETO_GLYPH_INDEX};
 

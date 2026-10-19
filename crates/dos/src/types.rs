@@ -59,6 +59,22 @@ pub enum DosIoctlObjectInfo {
     },
 }
 
+impl DosIoctlObjectInfo {
+    /// Encode INT 21h/AX=4400 facts; reject an invalid host drive number.
+    pub fn device_information_word(self) -> Option<u16> {
+        Some(match self {
+            Self::File { drive, written } => {
+                if drive > 25 { return None; }
+                u16::from(drive) | (u16::from(!written) << 6)
+            }
+            Self::CharacterDevice { input_eof, raw_mode, standard_input, standard_output } => {
+                (1 << 7) | (u16::from(!input_eof) << 6) | (u16::from(raw_mode) << 5)
+                    | u16::from(standard_input) | (u16::from(standard_output) << 1)
+            }
+        })
+    }
+}
+
 /// One entry returned by a DOS directory enumeration.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DosDirectoryEntry {
@@ -250,6 +266,12 @@ pub trait DosHost {
         Err(DosHostError::new(DosErrorCode::InvalidFunction))
     }
     fn file_delete(&mut self, path: &[u8]) -> Result<(), DosHostError>;
+    /// FCB deletion can explicitly include a readonly file. `ignore_read_only`
+    /// requests that native capability without temporarily clearing attributes.
+    fn file_delete_fcb(&mut self, path: &[u8], ignore_read_only: bool)->Result<(),DosHostError> {
+        if ignore_read_only {return Err(DosHostError::new(DosErrorCode::InvalidFunction));}
+        self.file_delete(path)
+    }
 
     fn directory_create(&mut self, path: &[u8]) -> Result<(), DosHostError>;
     fn directory_remove(&mut self, path: &[u8]) -> Result<(), DosHostError>;
@@ -257,6 +279,13 @@ pub trait DosHost {
     /// `drive` is zero-based (0 is A:). Returns an unterminated path, excluding
     /// the drive and leading root separator; the caller owns the NUL byte.
     fn directory_get_current(&mut self, drive: u8, output: &mut [u8]) -> Result<usize, DosHostError>;
+    /// Return the existing entry's spelling in the DOS short-name namespace.
+    /// `parent` is an absolute DOS directory, `name` one literal component.
+    /// Missing entries/parents return None: AH=60h also accepts nonexistent
+    /// paths. Hosts without long-name aliases use the DOS lexical fallback.
+    fn file_short_name(&mut self, _parent: &[u8], _name: &[u8]) -> Result<Option<Vec<u8>>, DosHostError> {
+        Ok(None)
+    }
     fn file_rename(&mut self, old_path: &[u8], new_path: &[u8]) -> Result<(), DosHostError>;
     fn file_get_attributes(&mut self, path: &[u8]) -> Result<u8, DosHostError>;
     fn file_set_attributes(&mut self, path: &[u8], attributes: u8) -> Result<(), DosHostError>;

@@ -4,8 +4,102 @@
 mod image;
 
 #[cfg(windows)]
+#[path = "win16_winexec/dos_message.rs"]
+mod dos_message;
+
+#[cfg(windows)]
+#[path = "win16_winexec/dos_version.rs"]
+mod dos_version;
+
+#[cfg(windows)]
+#[path = "win16_winexec/fcb_parse.rs"]
+mod fcb_parse;
+
+#[cfg(windows)]
+#[path = "win16_winexec/fcb_search.rs"]
+mod fcb_search;
+#[cfg(windows)]
+#[path = "win16_winexec/fcb_mutation.rs"]
+mod fcb_mutation;
+#[cfg(windows)]
+#[path = "win16_winexec/canonical_name.rs"]
+mod canonical_name;
+
+#[cfg(windows)]
+#[path = "win16_winexec/extended_error.rs"]
+mod extended_error;
+
+#[cfg(windows)]
+#[path = "win16_winexec/extended_open.rs"]
+mod extended_open;
+
+#[cfg(windows)]
+#[path = "win16_winexec/stdin.rs"]
+mod stdin;
+
+#[cfg(windows)]
+#[path = "win16_winexec/dbcs.rs"]
+mod dbcs;
+
+#[cfg(windows)]
+#[path = "win16_winexec/country.rs"]
+mod country;
+
+#[cfg(windows)]
+#[path = "win16_winexec/registry_expand.rs"]
+mod registry_expand;
+
+#[cfg(windows)]
+#[path = "win16_winexec/registry_cursor.rs"]
+mod registry_cursor;
+
+#[cfg(windows)]
+#[path = "win16_winexec/registry_aliases.rs"]
+mod registry_aliases;
+
+#[cfg(windows)]
+#[path = "win16_winexec/child_dialog.rs"]
+mod child_dialog;
+
+#[cfg(windows)]
+#[path = "win16_winexec/dialog_init.rs"]
+mod dialog_init;
+
+#[cfg(windows)]
+#[path = "win16_winexec/registry.rs"]
+mod registry;
+
+#[cfg(windows)]
+#[path = "win16_winexec/registry_roots.rs"]
+mod registry_roots;
+
+#[cfg(windows)]
+#[path = "win16_winexec/oem_bitmap.rs"]
+mod oem_bitmap;
+
+#[cfg(windows)]
+#[path = "win16_winexec/current_directory.rs"]
+mod current_directory;
+
+#[cfg(windows)]
+#[path = "win16_winexec/launch_options.rs"]
+mod launch_options;
+
+#[cfg(windows)]
 #[path = "win16_winexec/load_module.rs"]
 mod load_module;
+
+#[cfg(windows)]
+#[path = "win16_winexec/global_notify.rs"]
+mod global_notify;
+
+#[cfg(windows)]
+#[path = "win16_winexec/dialog_icon.rs"]
+mod dialog_icon;
+
+#[cfg(windows)]
+#[path = "win16_winexec/printer.rs"]
+mod printer;
 
 #[test]
 fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
@@ -26,6 +120,20 @@ fn fixtures_have_checked_ne_imports_segments_and_library_entry() {
         image::module_library_parent(),
         image::library(),
         image::child_after_release(),
+        image::global_notify_program(),
+        image::named_dialog_icon_program(),
+        image::named_class_dialog_icon_program(),
+        image::default_printer_round_trip_program(),
+        image::ext_device_mode_round_trip_program(),
+        image::current_directory_program(),
+        image::oem_bitmap_program(),
+        image::registry_program("Compat16Test.fixture"),
+        image::registry_query_program("Compat16Test.fixture"),
+        image::registry_buffer_program("Compat16Test.fixture"),
+        image::registry_optional_length_program("Compat16Test.fixture"),
+        image::registry_roots_program("Compat16Test.fixture"),
+        image::child_dialog_program(),
+        image::extended_error_program(),
     ] {
         let module = formats::parse_ne(&bytes).expect("valid fixed-layout NE input");
         assert_eq!(module.header.target_os, 2);
@@ -53,6 +161,41 @@ mod native {
     }
 
     pub(super) fn run(program: &Path, page: u32) {
+        run_with_engine(program, page, "jit");
+    }
+
+    pub(super) fn run_with_engine(program: &Path, page: u32, engine: &str) {
+        run_with_input(program, page, engine, Stdio::null());
+    }
+
+    pub(super) fn run_with_input(program: &Path, page: u32, engine: &str, input: Stdio) {
+        run_with_pages(program, page, 437, engine, input);
+    }
+
+    pub(super) fn run_with_dos_code_page(program: &Path, page: u32, engine: &str) {
+        run_with_pages(program, page, page, engine, Stdio::null());
+    }
+
+    fn run_with_pages(program: &Path, page: u32, dos_page: u32, engine: &str, input: Stdio) {
+        run_configured(program, page, dos_page, engine, input, None);
+    }
+
+    pub(super) fn run_with_dos_version(program: &Path, page: u32, engine: &str, version: &str) {
+        run_configured(program, page, 437, engine, Stdio::null(), Some(version));
+    }
+
+    fn run_configured(program: &Path, page: u32, dos_page: u32, engine: &str, input: Stdio, version: Option<&str>) {
+        run_configured_with_options(program, page, dos_page, engine, input, version, &[]);
+    }
+
+    pub(super) fn run_with_launch_options(program: &Path, page: u32, engine: &str, tail: &str, directory: &Path) {
+        run_configured_with_options(program, page, 437, engine, Stdio::null(), None, &[
+            "--command-tail".into(), tail.into(), "--working-directory".into(), directory.as_os_str().to_os_string(),
+        ]);
+    }
+
+    fn run_configured_with_options(program: &Path, page: u32, dos_page: u32, engine: &str, input: Stdio,
+        version: Option<&str>, launch_options: &[std::ffi::OsString]) {
         let package = PathBuf::from(
             std::env::var_os("COMPAT16_TEST_PACKAGE_DIR")
                 .expect("set COMPAT16_TEST_PACKAGE_DIR to the matching scripts/build.ps1 package"),
@@ -72,15 +215,22 @@ mod native {
         let mut running = Running(
             Command::new(package.join("compat16.exe"))
                 .args([
+                    "--cpu-engine",
+                    engine,
+                    "--no-jit-cache",
                     "--max-instructions",
                     "100000",
+                    "--code-page",
+                    &dos_page.to_string(),
                     "--win16-code-page",
                     &page.to_string(),
                 ])
+                .args(version.into_iter().flat_map(|version| ["--dos-version", version]))
                 .arg("--trace-win16-io-complete")
                 .arg(&trace)
+                .args(launch_options)
                 .arg(program)
-                .stdin(Stdio::null())
+                .stdin(input)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()

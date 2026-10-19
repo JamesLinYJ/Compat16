@@ -22,6 +22,12 @@ use crate::windows::{invalid, os_error};
 
 use super::Filesystem;
 
+mod short_name;
+pub(super) use short_name::canonical_83;
+
+#[cfg(test)]
+mod tests;
+
 #[derive(Clone, Default)]
 pub(super) struct AliasTable {
     /// Uppercase DOS alias to its actual on-disk component.
@@ -337,7 +343,7 @@ impl Filesystem {
     ) -> Result<(), DosHostError> {
         let native_short_names = self.native_short_names(directory);
         let previous = self.aliases.remove(directory).unwrap_or_default();
-        let table = make_alias_table(names, previous, native_short_names, case_sensitivity)?;
+        let table = make_alias_table(names, previous, native_short_names, case_sensitivity, self.guest_code_page)?;
         self.aliases.insert(directory.to_path_buf(), table);
         Ok(())
     }
@@ -416,7 +422,7 @@ impl Filesystem {
                 if short_len != 0 {
                     let short_units = &entry.ShortName[..short_len / size_of::<u16>()];
                     let short_name = OsString::from_wide(short_units);
-                    if let Some(alias) = canonical_83(&short_name) {
+                    if let Some(alias) = canonical_83(&short_name, self.guest_code_page) {
                         let file_units = unsafe {
                             std::slice::from_raw_parts(
                                 std::ptr::addr_of!(entry.FileName).cast::<u16>(),
@@ -464,6 +470,7 @@ fn make_alias_table(
     previous: AliasTable,
     native_short_names: BTreeMap<OsString, String>,
     case_sensitivity: DirectoryCaseSensitivity,
+    page: text_codec::CodePage,
 ) -> Result<AliasTable, DosHostError> {
     let mut table = AliasTable {
         case_sensitivity,
@@ -481,8 +488,23 @@ fn make_alias_table(
         }
     }
 
-    // Prefer the filesystem's own short name when it is legal and unclaimed.
-    // The alias table still verifies uniqueness before exposing it to DOS.
+    // A name that already fits the guest OEM 8.3 namespace needs no alias.
+    // Native short names may use another OEM page (or ASCII substitutions),
+    // so preferring them here would hide legal names from FCB patterns.
+    for name in &names {
+        if table.by_real_name.contains_key(name) {
+            continue;
+        }
+        if let Some(alias) = canonical_83(name, page) {
+            if !table.by_alias.contains_key(&alias) {
+                table.by_alias.insert(alias.clone(), name.clone());
+                table.by_real_name.insert(name.clone(), alias);
+            }
+        }
+    }
+
+    // Prefer the filesystem's own alias for remaining long names when legal
+    // and unclaimed. Existing assignments above still retain their identity.
     for name in &names {
         if table.by_real_name.contains_key(name) {
             continue;
@@ -491,20 +513,6 @@ fn make_alias_table(
             if !table.by_alias.contains_key(alias) {
                 table.by_alias.insert(alias.clone(), name.clone());
                 table.by_real_name.insert(name.clone(), alias.clone());
-            }
-        }
-    }
-
-    // Assign a real 8.3 spelling where it remains unclaimed. Case-sensitive
-    // host collisions receive generated aliases rather than overwriting one.
-    for name in &names {
-        if table.by_real_name.contains_key(name) {
-            continue;
-        }
-        if let Some(alias) = canonical_83(name) {
-            if !table.by_alias.contains_key(&alias) {
-                table.by_alias.insert(alias.clone(), name.clone());
-                table.by_real_name.insert(name.clone(), alias);
             }
         }
     }
@@ -547,31 +555,6 @@ fn allocate_alias(name: &OsString, table: &mut AliasTable) -> Result<(), DosHost
 
 fn allowed_short_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || b"$%'-_@~`!(){}^#&".contains(&byte)
-}
-
-/// Return the canonical spelling only for legal ASCII 8.3 names.
-fn canonical_83(name: &OsString) -> Option<String> {
-    let text = name.to_str()?;
-    if text.is_empty()
-        || text.ends_with('.')
-        || text.ends_with(' ')
-        || super::is_reserved_device_name(text)
-    {
-        return None;
-    }
-    let mut parts = text.split('.');
-    let stem = parts.next()?;
-    let extension = parts.next();
-    if parts.next().is_some()
-        || stem.is_empty()
-        || stem.len() > 8
-        || extension.is_some_and(|value| value.is_empty() || value.len() > 3)
-        || !stem.bytes().all(allowed_short_byte)
-        || !extension.unwrap_or("").bytes().all(allowed_short_byte)
-    {
-        return None;
-    }
-    Some(text.to_ascii_uppercase())
 }
 
 fn alias_parts(name: &OsString) -> (String, String) {

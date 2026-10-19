@@ -12,7 +12,8 @@ mod dc_lease;
 pub(super) mod fonts;
 #[path = "win16_gdi_outline_metrics.rs"]
 mod outline_metrics;
-
+#[path = "win16_gdi_device_caps.rs"]
+mod device_caps;
 
 use std::alloc::{alloc_zeroed, dealloc, Layout};
 use std::collections::BTreeMap;
@@ -28,9 +29,6 @@ use windows_sys::Win32::Graphics::Gdi::{
     CreateCompatibleDC, CreateDCW, CreateICW, DeleteDC, GetDC,
     GetDeviceCaps, GetWindowDC, ReleaseDC, ResetDCW,
     DEVMODEW, DEVMODEW_0, DEVMODEW_0_0, DM_SPECVERSION, HDC,
-    DM_ORIENTATION, DM_PAPERSIZE, DM_PAPERLENGTH, DM_PAPERWIDTH, DM_SCALE,
-    DM_COPIES, DM_DEFAULTSOURCE, DM_PRINTQUALITY, DM_COLOR, DM_DUPLEX,
-    DM_YRESOLUTION, DM_TTOPTION,
 };
 use super::guest_text::GuestTextCodec;
 
@@ -41,11 +39,6 @@ pub(super) fn flush_thread_batch() {
     // SAFETY: GdiFlush has no arguments and operates on the calling thread.
     unsafe { windows_sys::Win32::Graphics::Gdi::GdiFlush(); }
 }
-
-// Native fields actually populated by the Win16 public-layout conversion.
-const CONVERTED_DEVMODE_FIELDS: u32 = DM_ORIENTATION | DM_PAPERSIZE
-    | DM_PAPERLENGTH | DM_PAPERWIDTH | DM_SCALE | DM_COPIES | DM_DEFAULTSOURCE
-    | DM_PRINTQUALITY | DM_COLOR | DM_DUPLEX | DM_YRESOLUTION | DM_TTOPTION;
 
 #[derive(Clone, Copy)]
 enum DcOrigin {
@@ -253,7 +246,8 @@ impl Win16Dcs {
     ) -> Result<Option<i16>, RuntimeError> {
         let Some(dc_use) = self.lease_dc(token)? else { return Ok(None); };
         // SAFETY: The HDC lease pins its table identity through this call.
-        Ok(Some(unsafe { GetDeviceCaps(dc_use.native(), i32::from(index)) } as i16))
+        let native = unsafe { GetDeviceCaps(dc_use.native(), i32::from(index)) };
+        Ok(Some(device_caps::project_count(index, native)))
     }
 
     pub(super) fn reset(
@@ -308,7 +302,7 @@ impl Win16DcState {
         information_context: bool,
         create: impl FnOnce(*const u16, *const u16, *const u16, *const DEVMODEW) -> HDC,
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
-        if devmode.is_some_and(|mode| mode.fields & !CONVERTED_DEVMODE_FIELDS != 0) {
+        if devmode.is_some_and(|mode| !mode.has_mapped_fields()) {
             return Ok(None);
         }
         let driver = wide_string(codec, driver, "driver")?;
@@ -468,7 +462,7 @@ impl Win16DcState {
         token: Win16HostDc,
         devmode: Option<&Win16HostDevMode>,
     ) -> Result<Option<Win16HostDc>, RuntimeError> {
-        if devmode.is_some_and(|mode| mode.fields & !CONVERTED_DEVMODE_FIELDS != 0) {
+        if devmode.is_some_and(|mode| !mode.has_mapped_fields()) {
             return Ok(None);
         }
         let native_mode = devmode.map(|mode| native_devmode(mode, codec)).transpose()?;
@@ -544,6 +538,26 @@ impl NativeDevMode {
     pub(super) fn as_ptr(&self) -> *const DEVMODEW {
         self.allocation.as_ptr().cast()
     }
+
+    pub(super) fn from_bytes(bytes: &[u8]) -> Result<Self, RuntimeError> {
+        if bytes.len() < size_of::<DEVMODEW>() {
+            return Err(RuntimeError::new(Kind::InvalidInput, "native DEVMODE buffer is incomplete"));
+        }
+        let layout = Layout::from_size_align(bytes.len(), align_of::<DEVMODEW>())
+            .map_err(|error| RuntimeError::with_source(Kind::ResourceExhausted,
+                "native DEVMODE allocation layout is invalid", error))?;
+        // SAFETY: The nonzero checked layout has the binding's native alignment.
+        let allocation = NonNull::new(unsafe { alloc_zeroed(layout) }).ok_or_else(||
+            RuntimeError::new(Kind::ResourceExhausted, "allocate native DEVMODE buffer"))?;
+        // SAFETY: Source and destination are disjoint allocations of equal size.
+        unsafe { ptr::copy_nonoverlapping(bytes.as_ptr(), allocation.as_ptr(), bytes.len()); }
+        Ok(Self { allocation, layout })
+    }
+
+    pub(super) fn as_bytes(&self) -> &[u8] {
+        // SAFETY: This wrapper owns and initializes the entire allocation.
+        unsafe { std::slice::from_raw_parts(self.allocation.as_ptr(), self.layout.size()) }
+    }
 }
 
 impl Drop for NativeDevMode {
@@ -558,6 +572,11 @@ pub(super) fn native_devmode(
     value: &Win16HostDevMode,
     codec: GuestTextCodec,
 ) -> Result<NativeDevMode, RuntimeError> {
+    if let Some(extra) = win16_abi::gdi_abi::decode_wow_devmode_extra(
+        value.public_size, &value.driver_extra,
+    ).map_err(|_| RuntimeError::new(Kind::InvalidInput, "malformed WOW DEVMODE trailer"))? {
+        return super::win16_devmode::restore(value, extra, codec);
+    }
     let name_end = value.device_name.iter().position(|byte| *byte == 0).ok_or_else(||
         RuntimeError::new(Kind::InvalidInput,
             "Win16 DEVMODE device name is not terminated within its fixed field"))?;
@@ -621,7 +640,20 @@ pub(super) fn native_devmode(
     // the typed value and opaque tail are copied into disjoint ranges that
     // remain owned until the synchronous native call returns.
     unsafe {
-        owned.allocation.as_ptr().cast::<DEVMODEW>().write(native);
+        // Write fields separately so the zeroed allocation's padding remains
+        // initialized when PRINTDLG copies the complete byte representation.
+        let target = owned.allocation.as_ptr().cast::<DEVMODEW>();
+        ptr::addr_of_mut!((*target).dmDeviceName).write(native.dmDeviceName);
+        ptr::addr_of_mut!((*target).dmSpecVersion).write(native.dmSpecVersion);
+        ptr::addr_of_mut!((*target).dmDriverVersion).write(native.dmDriverVersion);
+        ptr::addr_of_mut!((*target).dmSize).write(native.dmSize);
+        ptr::addr_of_mut!((*target).dmDriverExtra).write(native.dmDriverExtra);
+        ptr::addr_of_mut!((*target).dmFields).write(native.dmFields);
+        ptr::addr_of_mut!((*target).Anonymous1).write(native.Anonymous1);
+        ptr::addr_of_mut!((*target).dmColor).write(native.dmColor);
+        ptr::addr_of_mut!((*target).dmDuplex).write(native.dmDuplex);
+        ptr::addr_of_mut!((*target).dmYResolution).write(native.dmYResolution);
+        ptr::addr_of_mut!((*target).dmTTOption).write(native.dmTTOption);
         if !value.driver_extra.is_empty() {
             ptr::copy_nonoverlapping(
                 value.driver_extra.as_ptr(),
@@ -637,6 +669,7 @@ pub(super) fn native_devmode(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use windows_sys::Win32::Graphics::Gdi::DM_ORIENTATION;
 
     #[test]
     fn devmode_w_uses_native_size_and_decodes_fixed_guest_name() {
@@ -644,6 +677,7 @@ mod tests {
         let mut device_name = [0_u8; 32];
         device_name[..2].copy_from_slice(&[0xd6, 0xd0]); // CP936 "中"
         let value = Win16HostDevMode {
+            public_size: 68,
             device_name,
             spec_version: 0x030a,
             driver_version: 7,

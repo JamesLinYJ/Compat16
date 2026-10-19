@@ -11,6 +11,9 @@ use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost,
 const ERROR_SUCCESS: u32 = 0;
 const ERROR_INVALID_HANDLE: u32 = 6;
 
+#[path = "win16_compat_calls_shell_registry/query.rs"]
+mod query;
+
 impl Win16State {
     pub(crate) fn shell_registry_api(
         &mut self,
@@ -18,13 +21,32 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
+        self.registry_status(request, true, memory, host).map(win31_status)
+    }
+
+    pub(super) fn shell_registry_native_status(
+        &mut self,
+        request: Win16ShellRegistryRequest,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        self.registry_status(request, false, memory, host)
+    }
+
+    fn registry_status(
+        &mut self,
+        request: Win16ShellRegistryRequest,
+        win31: bool,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
         match request {
             Win16ShellRegistryRequest::OpenKey { root, subkey, output } => self
-                .shell_registry_open(root, subkey, output, false, memory, host),
+                .shell_registry_open(root, subkey, output, false, win31, memory, host),
             Win16ShellRegistryRequest::CreateKey { root, subkey, output } => self
-                .shell_registry_open(root, subkey, output, true, memory, host),
+                .shell_registry_open(root, subkey, output, true, win31, memory, host),
             Win16ShellRegistryRequest::CloseKey { key } => {
-                let Ok(key_ref) = self.compat.registry_key(key) else {
+                let Ok(key_ref) = self.registry_key_for_api(key, win31, false) else {
                     return Ok(ERROR_INVALID_HANDLE);
                 };
                 let result = host.win16_registry(Win16HostRegistryOperation::CloseKey { key: key_ref })?;
@@ -37,7 +59,7 @@ impl Win16State {
                 Ok(status)
             }
             Win16ShellRegistryRequest::DeleteKey { root, subkey } => {
-                let Ok(root) = self.compat.registry_key(root) else {
+                let Ok(root) = self.registry_key_for_api(root, win31, true) else {
                     return Ok(ERROR_INVALID_HANDLE);
                 };
                 let result = host.win16_registry(
@@ -48,33 +70,28 @@ impl Win16State {
                 Ok(status)
             }
             Win16ShellRegistryRequest::SetValue {
-                key, subkey, value_type, value, declared_byte_count,
+                key, subkey, value_type, value,
             } => {
-                let Ok(key) = self.compat.registry_key(key) else {
+                if value_type != 1 { return Ok(87); } // REG_SZ only.
+                let Some(value) = value else { return Ok(87); }; // Win32 NULL lpData.
+                let Ok(key) = self.registry_key_for_api(key, win31, true) else {
                     return Ok(ERROR_INVALID_HANDLE);
                 };
-                if usize::try_from(declared_byte_count).ok() != Some(value.len()) {
-                    return Err(RuntimeError::new(Kind::InternalInvariant,
-                        "Win16 RegSetValue buffer length differs from its declared byte count"));
-                }
                 let result = host.win16_registry(Win16HostRegistryOperation::SetValue {
                     key,
                     subkey,
                     value_type,
                     value,
-                    declared_byte_count,
                 })?;
                 let Win16HostRegistryResult::SetValue { status } = result else {
                     return Err(wrong_registry_result("RegSetValue"));
                 };
                 Ok(status)
             }
-            Win16ShellRegistryRequest::QueryValue {
-                key, subkey, output, byte_count, byte_count_output,
-            } => self.shell_registry_query_value(
-                key, subkey, output, byte_count, byte_count_output, memory, host),
+            request @ Win16ShellRegistryRequest::QueryValue { .. } =>
+                self.shell_registry_query_value(request, win31, memory, host),
             Win16ShellRegistryRequest::EnumKey { key, index, output, capacity } => {
-                let Ok(key) = self.compat.registry_key(key) else {
+                let Ok(key) = self.registry_key_for_api(key, win31, false) else {
                     return Ok(ERROR_INVALID_HANDLE);
                 };
                 let capacity = usize::try_from(capacity).map_err(|error|
@@ -114,11 +131,12 @@ impl Win16State {
         subkey: Vec<u8>,
         output: u32,
         create: bool,
+        win31: bool,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
         self.preflight_registry_output(memory, output, 4)?;
-        let Ok(root) = self.compat.registry_key(guest_root) else {
+        let Ok(root) = self.registry_key_for_api(guest_root, win31, true) else {
             return Ok(ERROR_INVALID_HANDLE);
         };
         let operation = if create {
@@ -155,45 +173,19 @@ impl Win16State {
         Ok(status)
     }
 
-    fn shell_registry_query_value(
-        &mut self,
-        guest_key: u32,
-        subkey: Vec<u8>,
-        output: u32,
-        capacity: u32,
-        capacity_output: u32,
-        memory: &mut Memory,
-        host: &mut impl RuntimeHost,
-    ) -> Result<u32, RuntimeError> {
-        let Ok(key) = self.compat.registry_key(guest_key) else {
-            return Ok(ERROR_INVALID_HANDLE);
-        };
-        let capacity_output_pointer = self.preflight_registry_output(memory, capacity_output, 4)?;
-        let capacity = usize::try_from(capacity).map_err(|error| RuntimeError::with_source(
-            Kind::GuestFault, "Win16 RegQueryValue capacity exceeds the host range", error))?;
-        if capacity != 0 { self.preflight_registry_output(memory, output, capacity)?; }
-        let capacity_dword = u32::try_from(capacity).map_err(|error| RuntimeError::with_source(
-            Kind::InternalInvariant, "Win16 RegQueryValue capacity lost its DWORD width", error))?;
-        let result = host.win16_registry(Win16HostRegistryOperation::QueryValue {
-            key,
-            subkey,
-            capacity: capacity_dword,
-        })?;
-        let Win16HostRegistryResult::QueryValue {
-            status, value_type: _, required_bytes, bytes,
-        } = result else {
-            return Err(wrong_registry_result("RegQueryValue"));
-        };
-        if status == ERROR_SUCCESS {
-            if bytes.len() > capacity || required_bytes as usize > capacity {
-                return Err(RuntimeError::new(Kind::InternalInvariant,
-                    "host RegQueryValue result exceeds its caller buffer"));
-            }
-            if !bytes.is_empty() { self.write_registry_output(memory, output, &bytes)?; }
-        }
-        self.selectors.write(memory, capacity_output_pointer, &required_bytes.to_le_bytes())
-            .map_err(crate::runtime_error)?;
-        Ok(status)
+    fn registry_key_for_api(
+        &self,
+        raw: u32,
+        win31: bool,
+        default_root: bool,
+    ) -> Result<Win16RegistryKeyRef, u32> {
+        // SHELL's default root is special only for the path-based APIs.
+        // Close/Enum require the real Win3.1 ClassesRoot constant (1) or an
+        // opened alias. KERNEL accepts native predefined roots and owned aliases.
+        let raw = if win31 && (raw == 1 || (raw == 0 && default_root)) {
+            0x8000_0000
+        } else { raw };
+        self.compat.registry_key(raw)
     }
 
     fn close_unclaimed_registry_key(
@@ -230,6 +222,22 @@ impl Win16State {
     ) -> Result<(), RuntimeError> {
         let pointer = self.preflight_registry_output(memory, address, bytes.len())?;
         self.selectors.write(memory, pointer, bytes).map_err(crate::runtime_error)
+    }
+}
+
+// The native registry is shared with OLE1 and retains Win32 statuses. Translate
+// only the Win16 API's result, following WOW ConvertToWin31Error (WSHELL.C).
+fn win31_status(native: u32) -> u32 {
+    match native {
+        0 => 0,
+        1009 => 1, // ERROR_BADDB.
+        1010 | 2 | 259 => 2, // BADKEY, FILE_NOT_FOUND, NO_MORE_ITEMS.
+        1011 => 3, // CANTOPEN.
+        1012 => 4, // CANTREAD.
+        1013 => 5, // CANTWRITE.
+        14 => 6, // OUTOFMEMORY.
+        87 | 234 => 7, // INVALID_PARAMETER, MORE_DATA.
+        _ => 8, // ACCESS_DENIED, including unknown native errors.
     }
 }
 

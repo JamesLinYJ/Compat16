@@ -117,6 +117,10 @@ impl Win16State {
                     descriptor.return_kind,
                 );
             }
+            Win16ApiRequest::Printer(request @ win16_abi::Win16PrinterRequest::ExtDeviceMode { .. }) => {
+                return self.begin_ext_device_mode(request, registers, memory, host,
+                    (return_selector, return_offset, return_sp), descriptor.return_kind);
+            }
             Win16ApiRequest::Printer(request) => self.printer(request, memory, host)?,
             Win16ApiRequest::Driver(request) => self.driver_call(
                 request, descriptor.module(), descriptor.ordinal(), host,

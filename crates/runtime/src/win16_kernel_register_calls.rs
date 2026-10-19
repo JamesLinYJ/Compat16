@@ -1,6 +1,6 @@
 //! Runtime-owned KERNEL register exports whose contract is not a stack call.
 
-use dos_kernel::{DosAction, DosKernel};
+use dos_kernel::DosAction;
 use formats::NeImportTarget;
 use guest_core::{OwnerId, Registers};
 
@@ -139,7 +139,7 @@ fn dispatch_dos3call(
             )
         })?;
         match runtime.cpu.regs.ah() {
-            0x0e | 0x19 | 0x25 | 0x35 | 0x3a | 0x3b | 0x3e | 0x3f | 0x40 | 0x42 | 0x47 | 0x57 | 0x68 => {
+            0x0e | 0x19 | 0x25 | 0x35 | 0x3a | 0x3b | 0x3e | 0x3f | 0x40 | 0x42 | 0x44 | 0x47 | 0x57 | 0x68 => {
                 super::dos_interrupts::dispatch_int21(
                     state,
                     &mut runtime.dos,
@@ -220,7 +220,7 @@ fn dispatch_dos3call(
                 return_to,
             )? {
                 Some(code) => {
-                    DosKernel::complete_exec_failure(&mut runtime.cpu.regs, code);
+                    runtime.dos.complete_exec_failure(&mut runtime.cpu.regs, code);
                     complete_register_return(runtime, return_to)?;
                     Ok(None)
                 }

@@ -813,3 +813,7 @@ impl Win16State {
 #[cfg(test)]
 #[path = "win16_ole1_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "win16_ole1_registry_tests.rs"]
+mod registry_tests;

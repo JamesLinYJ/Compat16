@@ -13,18 +13,12 @@ ordinal = 3
 name = "EnableOEMLayer"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserEnableOEMLayer", id_value = 2000000, constant = "USER_ENABLE_OEM_LAYER" }
-[exports.call]
-returns = "void"
 
 [[exports]]
 ordinal = 4
 name = "DisableOEMLayer"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserDisableOEMLayer", id_value = 2000001, constant = "USER_DISABLE_OEM_LAYER" }
-[exports.call]
-returns = "void"
 
 [[exports]]
 ordinal = 13
@@ -85,9 +79,6 @@ ordinal = 51
 name = "BEAR51"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserBEAR51", id_value = 2000002, constant = "USER_BEAR51" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 52
@@ -473,9 +464,6 @@ ordinal = 274
 name = "GetNextQueueWindow"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetNextQueueWindow", id_value = 2000016, constant = "USER_GET_NEXT_QUEUE_WINDOW" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 275
@@ -489,9 +477,6 @@ ordinal = 276
 name = "LockMyTask"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserLockMyTask", id_value = 2000018, constant = "USER_LOCK_MY_TASK" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 278
@@ -538,9 +523,6 @@ ordinal = 300
 name = "UnloadInstalledDrivers"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserUnloadInstalledDrivers", id_value = 2000022, constant = "USER_UNLOAD_INSTALLED_DRIVERS" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 301
@@ -693,18 +675,12 @@ ordinal = 322
 name = "WinOldAppHackOMatic"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserWinOldAppHackOMatic", id_value = 2000033, constant = "USER_WIN_OLD_APP_HACK_O_MATIC" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 323
 name = "GetMessage2"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetMessage2", id_value = 2000034, constant = "USER_GET_MESSAGE2" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 324
@@ -806,18 +782,12 @@ ordinal = 338
 name = "ECGETDS"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserECGETDS", id_value = 2000043, constant = "USER_ECGETDS" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 343
 name = "GetFilePortName"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetFilePortName", id_value = 2000044, constant = "USER_GET_FILE_PORT_NAME" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 344
@@ -839,9 +809,6 @@ ordinal = 345
 name = "BEAR345"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserBEAR345", id_value = 2000046, constant = "USER_BEAR345" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 356
@@ -940,9 +907,6 @@ ordinal = 372
 name = "GetInternalIconHeader"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetInternalIconHeader", id_value = 2000051, constant = "USER_GET_INTERNAL_ICON_HEADER" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 374
@@ -965,63 +929,42 @@ ordinal = 375
 name = "DrawTextEx"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserDrawTextEx", id_value = 2000053, constant = "USER_DRAW_TEXT_EX" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 376
 name = "SetMessageExtraInfo"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserSetMessageExtraInfo", id_value = 2000054, constant = "USER_SET_MESSAGE_EXTRA_INFO" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 378
 name = "SetPropEx"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserSetPropEx", id_value = 2000055, constant = "USER_SET_PROP_EX" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 379
 name = "GetPropEx"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetPropEx", id_value = 2000056, constant = "USER_GET_PROP_EX" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 380
 name = "RemovePropEx"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserRemovePropEx", id_value = 2000057, constant = "USER_REMOVE_PROP_EX" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 382
 name = "SetWindowContextHelpID"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserSetWindowContextHelpID", id_value = 2000058, constant = "USER_SET_WINDOW_CONTEXT_HELP_ID" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 383
 name = "GetWindowContextHelpID"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetWindowContextHelpID", id_value = 2000059, constant = "USER_GET_WINDOW_CONTEXT_HELP_ID" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 389
@@ -1190,18 +1133,12 @@ ordinal = 428
 name = "TileWindows"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserTileWindows", id_value = 2000071, constant = "USER_TILE_WINDOWS" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 429
 name = "CascadeWindows"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserCascadeWindows", id_value = 2000072, constant = "USER_CASCADE_WINDOWS" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 441
@@ -1222,18 +1159,12 @@ ordinal = 443
 name = "GetMenuItemInfo"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetMenuItemInfo", id_value = 2000074, constant = "USER_GET_MENU_ITEM_INFO" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 446
 name = "SetMenuItemInfo"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserSetMenuItemInfo", id_value = 2000075, constant = "USER_SET_MENU_ITEM_INFO" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 448
@@ -1382,9 +1313,6 @@ ordinal = 470
 name = "StringFunc"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserStringFunc", id_value = 2000086, constant = "USER_STRING_FUNC" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 475
@@ -1429,27 +1357,18 @@ ordinal = 478
 name = "LoadKeyboardLayout"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserLoadKeyboardLayout", id_value = 2000090, constant = "USER_LOAD_KEYBOARD_LAYOUT" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 479
 name = "MenuItemFromPoint"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserMenuItemFromPoint", id_value = 2000091, constant = "USER_MENU_ITEM_FROM_POINT" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 480
 name = "GetUserLocalObjType"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetUserLocalObjType", id_value = 2000092, constant = "USER_GET_USER_LOCAL_OBJ_TYPE" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 486
@@ -1558,18 +1477,12 @@ ordinal = 498
 name = "BEAR498"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserBEAR498", id_value = 2000104, constant = "USER_BEAR498" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 500
 name = "FARCALLNETDRIVER"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserFARCALLNETDRIVER", id_value = 2000105, constant = "USER_FARCALLNETDRIVER" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 521
@@ -1599,45 +1512,30 @@ ordinal = 534
 name = "WNetLogon"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserWNetLogon", id_value = 2000106, constant = "USER_W_NET_LOGON" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 535
 name = "WOWWORDBREAKPROC"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserWOWWORDBREAKPROC", id_value = 2000107, constant = "USER_WOWWORDBREAKPROC" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 537
 name = "MOUSEEVENT"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserMOUSEEVENT", id_value = 2000108, constant = "USER_MOUSEEVENT" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 538
 name = "KEYBDEVENT"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserKEYBDEVENT", id_value = 2000109, constant = "USER_KEYBDEVENT" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 595
 name = "OLDEXITWINDOWS"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserOLDEXITWINDOWS", id_value = 2000110, constant = "USER_OLDEXITWINDOWS" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 600
@@ -1651,36 +1549,24 @@ ordinal = 601
 name = "DoHotkeyStuff"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserDoHotkeyStuff", id_value = 2000112, constant = "USER_DO_HOTKEY_STUFF" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 602
 name = "SetCheckCursorTimer"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserSetCheckCursorTimer", id_value = 2000113, constant = "USER_SET_CHECK_CURSOR_TIMER" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 604
 name = "BroadcastSystemMessage"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserBroadcastSystemMessage", id_value = 2000114, constant = "USER_BROADCAST_SYSTEM_MESSAGE" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 605
 name = "HackTaskMonitor"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserHackTaskMonitor", id_value = 2000115, constant = "USER_HACK_TASK_MONITOR" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 606
@@ -1774,45 +1660,30 @@ ordinal = 650
 name = "ActivateKeyboardLayout"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserActivateKeyboardLayout", id_value = 2000123, constant = "USER_ACTIVATE_KEYBOARD_LAYOUT" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 651
 name = "GetKeyboardLayout"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetKeyboardLayout", id_value = 2000124, constant = "USER_GET_KEYBOARD_LAYOUT" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 652
 name = "GetKeyboardLayoutList"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetKeyboardLayoutList", id_value = 2000125, constant = "USER_GET_KEYBOARD_LAYOUT_LIST" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 654
 name = "UnloadKeyboardLayout"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserUnloadKeyboardLayout", id_value = 2000126, constant = "USER_UNLOAD_KEYBOARD_LAYOUT" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 655
 name = "PostPostedMessages"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserPostPostedMessages", id_value = 2000127, constant = "USER_POST_POSTED_MESSAGES" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 656
@@ -1850,9 +1721,6 @@ ordinal = 658
 name = "DispatchInput"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserDispatchInput", id_value = 2000130, constant = "USER_DISPATCH_INPUT" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 659
@@ -1887,45 +1755,30 @@ ordinal = 661
 name = "SetSysColorsTemp"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserSetSysColorsTemp", id_value = 2000133, constant = "USER_SET_SYS_COLORS_TEMP" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 662
 name = "DrawMenubarTemp"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserDrawMenubarTemp", id_value = 2000134, constant = "USER_DRAW_MENUBAR_TEMP" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 663
 name = "GetMenuDefaultItem"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetMenuDefaultItem", id_value = 2000135, constant = "USER_GET_MENU_DEFAULT_ITEM" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 664
 name = "SetMenuDefaultItem"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserSetMenuDefaultItem", id_value = 2000136, constant = "USER_SET_MENU_DEFAULT_ITEM" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 667
 name = "TrackPopupMenuEx"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserTrackPopupMenuEx", id_value = 2000137, constant = "USER_TRACK_POPUP_MENU_EX" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 668
@@ -1945,54 +1798,36 @@ ordinal = 669
 name = "GetWindowRgn"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserGetWindowRgn", id_value = 2000139, constant = "USER_GET_WINDOW_RGN" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 800
 name = "CHOOSEFONT_CALLBACK16"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserChooseFontCallback16", id_value = 2000140, constant = "USER_CHOOSEFONT_CALLBACK16" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 801
 name = "FINDREPLACE_CALLBACK16"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserFindReplaceCallback16", id_value = 2000141, constant = "USER_FINDREPLACE_CALLBACK16" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 802
 name = "OPENFILENAME_CALLBACK16"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserOpenFileNameCallback16", id_value = 2000142, constant = "USER_OPENFILENAME_CALLBACK16" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 803
 name = "PRINTDLG_CALLBACK16"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserPrintDlgCallback16", id_value = 2000143, constant = "USER_PRINTDLG_CALLBACK16" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 804
 name = "CHOOSECOLOR_CALLBACK16"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserChooseColorCallback16", id_value = 2000144, constant = "USER_CHOOSECOLOR_CALLBACK16" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 819
@@ -2067,18 +1902,12 @@ ordinal = 825
 name = "PostMessage32"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserPostMessage32", id_value = 2000150, constant = "USER_POST_MESSAGE32" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 826
 name = "PostThreadMessage32"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserPostThreadMessage32", id_value = 2000151, constant = "USER_POST_THREAD_MESSAGE32" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 827
@@ -2096,54 +1925,36 @@ ordinal = 851
 name = "MsgThkConnectionDataLS"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserMsgThkConnectionDataLS", id_value = 2000153, constant = "USER_MSG_THK_CONNECTION_DATA_LS" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 853
 name = "FT_USRFTHKTHKCONNECTIONDATA"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserFtUsrFThkThkConnectionData", id_value = 2000154, constant = "USER_FT_USRFTHKTHKCONNECTIONDATA" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 854
 name = "FT__USRF2THKTHKCONNECTIONDATA"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserFtUsrF2ThkThkConnectionData", id_value = 2000155, constant = "USER_FT_USRF2THKTHKCONNECTIONDATA" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 855
 name = "Usr32ThkConnectionDataSL"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserUsr32ThkConnectionDataSL", id_value = 2000156, constant = "USER_USR32THK_CONNECTION_DATA_SL" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 890
 name = "InstallIMT"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserInstallIMT", id_value = 2000157, constant = "USER_INSTALL_IMT" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 891
 name = "UninstallIMT"
 kind = "stub"
 decl = { attributes = [] }
-binding = { rust_id = "UserUninstallIMT", id_value = 2000158, constant = "USER_UNINSTALL_IMT" }
-[exports.call]
-returns = "word"
 
 [[exports]]
 ordinal = 901

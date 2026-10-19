@@ -5,6 +5,7 @@ mod clock;
 mod cpu_execution;
 mod diagnostics;
 mod environment;
+mod dos_version;
 mod hardware_interrupts;
 mod input;
 mod interrupts;
@@ -275,7 +276,7 @@ mod win16_host_registry;
 pub use win16_host_keyboard::{Win16HostKeyboardCall, Win16HostKeyboardResult};
 pub use win16_host_registry::{
     Win16HostRegistryKey, Win16HostRegistryOperation, Win16HostRegistryResult, Win16RegistryKeyRef,
-    Win16RegistryRoot,
+    Win16RegistryRoot, Win16RegistryQueryOutput, Win16RegistryQueryView,
 };
 mod win16_host_drawing;
 mod win16_host_images;
@@ -299,7 +300,7 @@ pub use win16_host_user_services::{
     Win16HostDialogAtom, Win16HostDialogControlOperation, Win16HostDialogControlResult,
     Win16HostDialogFont, Win16HostDialogItem, Win16HostDialogOperation, Win16HostDialogResult,
     Win16HostDialogTemplate, Win16HostFatalExitChoice, Win16HostSystemParametersResult,
-    Win16HostSessionApiFailure, Win16HostSessionApiPhase, Win16HostSessionCleanupReceipt,
+    Win16HostSessionApiFailure, Win16HostSessionApiPhase,
     Win16HostSessionOperation, Win16HostSessionResult, Win16HostUserServiceOperation,
     Win16HostUserServiceResult, Win16SystemParameterScalar, Win16SystemParametersRequest,
     Win16SystemParametersValue,
@@ -307,6 +308,7 @@ pub use win16_host_user_services::{
 mod win16_host_printer;
 pub use win16_host_compat::Win16HostResourceName;
 pub use win16_host_printer::{
+    Win16HostPrinterMode, Win16HostPrinterModeResult,
     Win16PrinterCapabilities, Win16PrinterCapabilitiesResult, Win16PrinterCapabilityData,
 };
 mod win16_host_dc;

@@ -59,7 +59,7 @@ impl Win16Files {
     }
 
     pub(in crate::windows) fn dos_write(
-        &self,
+        &mut self,
         file: Win16HostFile,
         input: &[u8],
     ) -> Result<usize, DosHostError> {
@@ -79,6 +79,7 @@ impl Win16Files {
                 if unsafe { SetEndOfFile(handle) } == 0 {
                     return Err(file_error(unsafe { GetLastError() }));
                 }
+                self.mark_written(file);
                 return Ok(0);
             }
         }
@@ -95,6 +96,7 @@ impl Win16Files {
         if unsafe { WriteFile(handle, pointer, count, &mut written, std::ptr::null_mut()) } == 0 {
             return Err(file_error(unsafe { GetLastError() }));
         }
+        if written != 0 { self.mark_written(file); }
         Ok(written as usize)
     }
 

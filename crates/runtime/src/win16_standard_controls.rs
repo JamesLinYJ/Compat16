@@ -134,9 +134,11 @@ impl Win16State {
                 0x0401 => Edit::SetSelection{start:l as i16,end:(l>>16) as i16,no_scroll:w!=0},
                 0x0402 => {capture(Some(win16_abi::window_geometry::Rect16::SIZE),ControlOutputShape::Rect)?; Edit::GetRect}
                 0x0403 => Edit::SetRect{rect:rect()?}, 0x0404 => Edit::SetRectNoPaint{rect:rect()?},
+                0x0405 => Edit::Scroll{command:w},
                 0x0406 => Edit::LineScroll{vertical:l as i16,horizontal:(l>>16) as i16},
                 0x0408 => Edit::GetModify, 0x0409 => Edit::SetModify{modified:w!=0},
                 0x040A => Edit::GetLineCount, 0x040B => Edit::LineIndex{line:w as i16},
+                0x040E => Edit::GetThumb,
                 0x0411 => Edit::LineLength{character:w as i16},
                 0x0412 => Edit::ReplaceSelection{text:text(l)?},
                 0x0414 => {
@@ -190,6 +192,10 @@ impl Win16State {
         }), output)))
     }
 }
+
+#[cfg(test)]
+#[path = "win16_standard_controls_scroll_tests.rs"]
+mod scroll_tests;
 
 fn control_gap(host: &mut impl RuntimeHost, family: Family, message: u16)
     -> Result<Option<(Win16HostMessage, MessageOutput)>, RuntimeError> {

@@ -64,7 +64,7 @@ fn us_cp437_table_matches_microsoft_dos4_weights_and_format() {
     assert_eq!(table[0xe1 + 2], b'S');
     assert_eq!(table[0xff + 2], 0xff);
 
-    assert!(collating_table(CodePage::Cp936).is_none());
+    assert_eq!(collating_table(CodePage::Cp936).unwrap()[0x82 + 2], 0x82);
 }
 
 #[test]

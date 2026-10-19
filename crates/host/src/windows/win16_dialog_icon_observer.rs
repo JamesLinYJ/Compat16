@@ -134,14 +134,9 @@ fn observe(frame: &Frame, hwnd: HWND, parameter: isize) -> Result<bool, RuntimeE
         { return Err(error("dialog STATIC parent differs from the pinned root generation")); }
     } else {
         if phase != Phase::Prepared { return Err(error("repeated STATIC observation lost its root")); }
-        super::super::win16_window_identity::bind_dialog_root(state, root_token,
-            native.hwndParent, None, Some(frame.creation))?;
-        let mut borrowed = state.borrow_mut();
-        let pending = borrowed.pending_dialog_routes.iter_mut().find(|pending|
-            pending.operation == frame.operation && pending.creation == frame.creation)
-            .ok_or_else(|| error("dialog root disappeared during identity binding"))?;
-        if pending.root_window.is_some() { return Err(error("dialog root was pinned reentrantly")); }
-        pending.root_window = Some(native.hwndParent as usize);
+        super::super::win16_dialog_root_identity::bind_standard_root(
+            state, frame.operation, frame.creation, native.hwndParent,
+        )?;
     }
     // Several scoped registrations can observe this same CBT event. Accept
     // only the completed pre-NCCREATE binding, after all native predicates and

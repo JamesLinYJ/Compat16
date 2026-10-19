@@ -29,15 +29,15 @@ function Get-PfeTraceSequence([string]$Services) {
 
 function Get-PfeMessageLoopSeen([string]$Services) {
     return [regex]::IsMatch($Services,
-        '(?m)^[@#]\d+ service-boundary stage=dispatch-enter module=USER name=GetMessage ordinal=108 instruction=\d+ guest=[0-9A-F]{4}:[0-9A-F]{4}\r?\n')
+        '(?m)^[@#]\d+ service-boundary stage=dispatch-enter module=USER name=GetMessage ordinal=108 instruction=\d+ guest=[0-9A-F]{4}:[0-9A-F]{4}(?: elapsed-us=\d+)?\r?\n')
 }
 
 function Get-PfeInitTaskCrossing([string]$Services) {
     $entry = [regex]::Match($Services,
-        '(?m)^[@#]\d+ service-boundary stage=dispatch-enter module=KERNEL name=InitTask ordinal=91 instruction=(\d+) guest=([0-9A-F]{4}:[0-9A-F]{4})\r?\n')
+        '(?m)^[@#]\d+ service-boundary stage=dispatch-enter module=KERNEL name=InitTask ordinal=91 instruction=(\d+) guest=([0-9A-F]{4}:[0-9A-F]{4})(?: elapsed-us=\d+)?\r?\n')
     if (-not $entry.Success) { return $false }
     $returned = '(?m)^[@#]\d+ service-boundary stage=dispatch-return module=KERNEL name=InitTask ordinal=91 instruction=' +
-        [regex]::Escape($entry.Groups[1].Value) + ' guest=' + [regex]::Escape($entry.Groups[2].Value) + '\r?\n'
+        [regex]::Escape($entry.Groups[1].Value) + ' guest=' + [regex]::Escape($entry.Groups[2].Value) + '(?: elapsed-us=\d+)?\r?\n'
     return [regex]::IsMatch($Services.Substring($entry.Index + $entry.Length), $returned)
 }
 
@@ -67,7 +67,7 @@ function Get-PfeStartupEvidence {
         $reasons.Add('owned-window-observation-incomplete')
     } else {
         $callbacks = [regex]::Matches($Services,
-            '(?m)^[@#](?<sequence>\d+) window-callback phase=(?<phase>guest-entry|guest-return) procedure=wndproc callback=(?<callback>\d+) window=(?<window>[0-9A-F]{4}) message=0000 return=(?<value>pending|WNDPROC32:[0-9A-F]{8}) dialog-msgresult=not-applicable\r?\n')
+            '(?m)^[@#](?<sequence>\d+) window-callback phase=(?<phase>guest-entry|guest-return) procedure=wndproc callback=(?<callback>\d+) window=(?<window>[0-9A-F]{4}) message=0000 return=(?<value>pending|WNDPROC32:[0-9A-F]{8}) dialog-msgresult=not-applicable(?: elapsed-us=\d+)?\r?\n')
         $priorEnd = -1L
         foreach ($probe in $WindowProbe.Probes) {
             if (-not $probe.Completed -or $probe.StartSequence -lt 0 -or

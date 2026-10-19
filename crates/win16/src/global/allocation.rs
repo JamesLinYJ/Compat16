@@ -99,6 +99,7 @@ impl GlobalHeap {
             segment_lock_count: 0, internal_pin_count: 0, selector_alias_count: 0,
             runtime_primary: None, selector: None,
             allocation_flags: persistent_global_flags(allocation_flags, flags),
+            notify_on_discard: allocation_flags & super::GMEM_NOTIFY != 0,
             discarded: false,
         };
         self.blocks_by_base.insert(base.0, raw);
@@ -142,6 +143,7 @@ impl GlobalHeap {
             allocation_flags: persistent_global_flags(
                 allocation_flags | GMEM_MOVEABLE, flags,
             ),
+            notify_on_discard: allocation_flags & super::GMEM_NOTIFY != 0,
             discarded: true,
         };
         self.blocks_by_handle.insert(raw, block);

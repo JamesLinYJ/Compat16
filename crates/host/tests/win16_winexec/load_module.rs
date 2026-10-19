@@ -120,9 +120,22 @@ fn dbcs_module_filename_keeps_its_exact_program_identity() {
 
 #[test]
 fn dll_references_initialize_once_and_call_wep_only_after_the_final_release() {
+    verify_dll_lifecycle("PARENT.EXE");
+}
+
+#[test]
+fn same_stem_executable_does_not_capture_load_module_dll() {
+    verify_dll_lifecycle("LIB.EXE");
+}
+
+fn verify_dll_lifecycle(executable: &str) {
     let root = setup(image::module_library_parent());
+    let program = root.path().join("APP").join(executable);
+    if executable != "PARENT.EXE" {
+        std::fs::rename(root.path().join("APP/PARENT.EXE"), &program).unwrap();
+    }
     std::fs::write(root.path().join("WORK/BIN/LIB.DLL"), image::library()).unwrap();
-    run(&root.path().join("APP/PARENT.EXE"), 1252);
+    run(&program, 1252);
     assert_eq!(
         std::fs::read(root.path().join("WORK/INIT.OUT")).unwrap(),
         1_u16.to_le_bytes()

@@ -700,6 +700,9 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<runtime::Win16HostFileClose, RuntimeError> {
         self.win16_files.close(file)
     }
+    fn win16_file_ioctl_info(&mut self, file: Win16HostFile) -> Result<dos_kernel::DosIoctlObjectInfo, DosHostError> {
+        self.win16_files.ioctl_info(file)
+    }
     fn win16_file_commit(&mut self, file: Win16HostFile) -> Result<(), DosHostError> {
         self.win16_files.commit(file)
     }
