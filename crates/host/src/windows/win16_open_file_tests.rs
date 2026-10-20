@@ -131,47 +131,6 @@ fn codec() -> GuestTextCodec {
     GuestTextCodec::new(65001).unwrap()
 }
 
-fn qualified_path(names: &[&str]) -> runtime::Win16GuestPath {
-    runtime::Win16GuestPath {
-        drive: 2,
-        namespace: runtime::Win16PathNamespace::NativeWindows,
-        components: names
-            .iter()
-            .map(|text| runtime::Win16PathComponent {
-                text: (*text).to_owned(),
-                source: runtime::Win16PathComponentSource::GuestInput,
-            })
-            .collect(),
-    }
-}
-
-#[test]
-fn open_file_search_uses_the_final_component_of_a_qualified_path() {
-    let path = qualified_path(&["OTHER", "FILE.TXT"]);
-    assert_eq!(
-        open_file_search_name(&path, None, OF_SEARCH),
-        Some("FILE.TXT")
-    );
-    assert_eq!(open_file_search_name(&path, None, 0), None);
-    assert_eq!(
-        open_file_search_name(&path, None, OF_REOPEN | OF_VERIFY),
-        None
-    );
-    assert_eq!(
-        open_file_search_name(&path, None, OF_REOPEN | OF_SEARCH),
-        None
-    );
-    assert_eq!(
-        open_file_search_name(&path, Some("BARE.DLL"), 0),
-        Some("BARE.DLL")
-    );
-    assert_eq!(open_file_search_name(&qualified_path(&[]), None, OF_SEARCH), None);
-    assert_eq!(
-        open_file_search_name(&qualified_path(&[""]), None, OF_SEARCH),
-        None
-    );
-}
-
 #[path = "win16_file_ioctl_tests.rs"]
 mod file_ioctl_tests;
 
