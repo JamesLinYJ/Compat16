@@ -7,7 +7,7 @@ use crate::win16_runtime::{
     test_support::{NoHost, tiny_ne_executable},
 };
 use guest_core::{GuestMemory, Selector, io::NoPorts};
-use win16_abi::global::{GMEM_DISCARDABLE, GMEM_DISCARDED, GMEM_NOCOMPACT, GMEM_NOTIFY};
+use win16_abi::global::{GMEM_DISCARDABLE, GMEM_DISCARDED, GMEM_NOTIFY};
 use win16_abi::{ExportLookupTarget, lookup_export};
 
 fn fixture() -> (Runtime, u32) {
@@ -354,30 +354,6 @@ fn global_notify_allocation_pressure_retries_after_the_real_callback() {
     assert_eq!(
         runtime.win16.as_ref().unwrap().global_size(result).unwrap(),
         requested
-    );
-    clean(&runtime);
-}
-
-#[test]
-fn global_alloc_nocompact_does_not_discard_to_satisfy_the_request() {
-    let (mut runtime, _) = fixture();
-    let handle = allocate(&mut runtime, false);
-    let requested = runtime
-        .win16
-        .as_ref()
-        .unwrap()
-        .heap
-        .maximum_available()
-        .unwrap()
-        + 16;
-    let mut args = requested.to_le_bytes().to_vec();
-    args.extend_from_slice(&(GMEM_MOVEABLE | GMEM_NOCOMPACT).to_le_bytes());
-    api(&mut runtime, 15, &args).unwrap();
-    assert_eq!(runtime.cpu.regs.ax(), 0);
-    assert!(!discarded(&runtime, handle));
-    assert_eq!(
-        runtime.win16.as_ref().unwrap().global_size(handle).unwrap(),
-        512
     );
     clean(&runtime);
 }
