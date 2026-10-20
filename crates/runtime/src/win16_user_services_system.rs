@@ -138,12 +138,20 @@ pub(crate) fn set_caret_blink_time(
     Ok(host.win16_set_caret_blink_time(u32::from(milliseconds))? as u16 as u32)
 }
 
-/// USER.180 `GetSysColor`: its guest argument is a word, while the documented
-/// `COLORREF` result occupies the full 32-bit Win16 return value.
+/// USER.180 `GetSysColor`. The guest argument is a word and the `COLORREF`
+/// occupies the full 32-bit return. Windows 3.1 indexes run from
+/// `COLOR_SCROLLBAR` (0) through `COLOR_BTNHIGHLIGHT`. An index outside that
+/// table is out of range and returns zero; a later host color is not queried.
 pub(crate) fn get_sys_color(
     host: &mut impl RuntimeHost,
     index: u16,
 ) -> Result<u32, RuntimeError> {
+    let Ok(index) = i16::try_from(index) else {
+        return Ok(0);
+    };
+    if !(0..=WIN16_LAST_SYS_COLOR).contains(&index) {
+        return Ok(0);
+    }
     host.win16_get_sys_color(i32::from(index))
 }
 
@@ -158,3 +166,22 @@ pub(crate) fn get_dialog_base_units(
 #[cfg(test)]
 #[path = "win16_dispatch_any_popup_tests.rs"]
 mod any_popup_tests;
+
+#[cfg(test)]
+mod tests {
+    use super::{get_sys_color, WIN16_LAST_SYS_COLOR};
+    use super::super::test_support::NoHost;
+
+    #[test]
+    fn get_sys_color_returns_zero_past_the_win31_table() {
+        let mut host = NoHost;
+        let last = u16::try_from(WIN16_LAST_SYS_COLOR).unwrap();
+        // COLOR_3DDKSHADOW and every later index stay out of range. The host
+        // color service is not called, so its failure is not the guest result.
+        assert_eq!(get_sys_color(&mut host, last + 1).unwrap(), 0);
+        assert_eq!(get_sys_color(&mut host, u16::MAX).unwrap(), 0);
+        // The Windows 3.1 endpoints still query the host.
+        assert!(get_sys_color(&mut host, 0).is_err());
+        assert!(get_sys_color(&mut host, last).is_err());
+    }
+}

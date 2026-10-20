@@ -166,6 +166,28 @@ fn get_temp_drive_current_selection_is_per_task_and_does_not_change_directories(
 }
 
 #[test]
+fn get_drive_type_returns_one_when_the_root_is_missing() {
+    let runtime = fixture(7);
+    let state = runtime.win16.as_ref().unwrap();
+    let cases = [
+        (Win16HostDriveKind::Unknown, 0),
+        (Win16HostDriveKind::MissingRoot, 1),
+        (Win16HostDriveKind::Removable, 2),
+        (Win16HostDriveKind::Fixed, 3),
+        (Win16HostDriveKind::RamDisk, 3),
+        (Win16HostDriveKind::Remote, 4),
+        (Win16HostDriveKind::CdRom, 4),
+    ];
+    for (drive, (kind, expected)) in cases.into_iter().enumerate() {
+        let mut host = DriveHost::default();
+        let drive = u16::try_from(drive).unwrap();
+        host.kinds[usize::from(drive)] = kind;
+        assert_eq!(state.drive_type(drive, &mut host).unwrap(), expected);
+        assert_eq!(host.queried, [drive]);
+    }
+}
+
+#[test]
 fn get_temp_drive_uses_existing_fixed_and_ram_disk_classification_only() {
     for selected_kind in [Win16HostDriveKind::Fixed, Win16HostDriveKind::RamDisk] {
         let mut runtime = fixture(25);
