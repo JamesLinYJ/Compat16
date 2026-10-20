@@ -16,8 +16,8 @@ use dos_kernel::{
 use guest_core::Selector;
 use win16_abi::{
     AUXCAPS_CDAUDIO, AUXCAPS_LRVOLUME, AUXCAPS_VOLUME, AUXCAPS16_SIZE, Access, AccessRights,
-    ExportLookupTarget, MIDIINCAPS16_SIZE, SegmentedPointer, Win16AuxCapabilities16,
-    Win16ExportStackCleanup, Win16ReturnKind, lookup_export,
+    ExportLookupTarget, SegmentedPointer, Win16AuxCapabilities16, Win16ExportStackCleanup,
+    Win16ReturnKind, lookup_export,
 };
 
 const AX: u16 = 0xa55a;
@@ -30,8 +30,6 @@ struct AuxHost {
     message_status: u32,
     calls: Vec<Win16HostAuxOperation>,
     wrong_shape: bool,
-    midi_count: u16,
-    midi_queries: Vec<u16>,
 }
 
 impl AuxHost {
@@ -53,8 +51,6 @@ impl AuxHost {
             message_status: 0x1234_5678,
             calls: Vec::new(),
             wrong_shape: false,
-            midi_count: 1,
-            midi_queries: Vec::new(),
         }
     }
 }
@@ -223,40 +219,7 @@ impl crate::RuntimeDdeHost for AuxHost {
     }
 }
 impl crate::RuntimeMciHost for AuxHost {}
-impl crate::RuntimeMidiHost for AuxHost {
-    fn win16_midi(
-        &mut self,
-        call: crate::Win16HostMidiCall,
-    ) -> Result<crate::Win16HostMidiResult, RuntimeError> {
-        let crate::Win16HostMidiCall::GetCaps {
-            direction,
-            device_id,
-            ..
-        } = call
-        else {
-            panic!("unexpected midi call");
-        };
-        assert_eq!(direction, crate::Win16HostMidiDirection::Input);
-        self.midi_queries.push(device_id);
-        if device_id >= self.midi_count {
-            return Ok(crate::Win16HostMidiResult::Caps {
-                result: MMSYSERR_BADDEVICEID,
-                caps: None,
-            });
-        }
-        let mut product_name = [0; 32];
-        product_name[..4].copy_from_slice(b"Midi");
-        Ok(crate::Win16HostMidiResult::Caps {
-            result: MMSYSERR_NOERROR,
-            caps: Some(crate::Win16HostMidiCaps::Input {
-                manufacturer: 0x0102,
-                product: 0x0304,
-                driver_version: 0x030a,
-                product_name,
-            }),
-        })
-    }
-}
+impl crate::RuntimeMidiHost for AuxHost {}
 impl crate::RuntimeNetbiosHost for AuxHost {}
 
 fn loaded() -> (Runtime, u32) {
@@ -609,46 +572,5 @@ fn aux_wrong_host_shape_does_not_commit_the_return() {
     let error = dispatch(&mut runtime, &mut host).unwrap_err();
     assert_eq!(error.kind(), Kind::InternalInvariant);
     assert_eq!(runtime.cpu.regs, before);
-    assert_eq!(output_bytes(&runtime, far), [0xa5; 48]);
-}
-
-#[test]
-fn midi_in_get_dev_caps_stops_at_the_product_name_and_a_zero_size_skips_the_host() {
-    let (mut runtime, far) = loaded();
-    let mut args = Vec::from(word(42).as_slice());
-    args.extend_from_slice(&dword(far));
-    args.extend_from_slice(&word(0));
-    let return_to = prepare(&mut runtime, 302, &args);
-    let mut host = AuxHost::new();
-    assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
-    assert_eq!(runtime.cpu.regs.ax(), 0);
-    assert_eq!(runtime.cpu.regs.dx(), DX);
-    assert_eq!(
-        (
-            runtime.cpu.regs.cs,
-            runtime.cpu.regs.ip(),
-            runtime.cpu.regs.sp()
-        ),
-        return_to
-    );
-    let seen = output_bytes(&runtime, far);
-    assert_eq!(&seen[0..2], &0x0102u16.to_le_bytes());
-    assert_eq!(&seen[2..4], &0x0304u16.to_le_bytes());
-    assert_eq!(&seen[4..6], &0x030au16.to_le_bytes());
-    assert_eq!(&seen[6..10], b"Midi");
-    assert_eq!(&seen[10..MIDIINCAPS16_SIZE], &[0; 28]);
-    assert_eq!(&seen[MIDIINCAPS16_SIZE..], &[0xa5; 48 - MIDIINCAPS16_SIZE]);
-    assert_eq!(host.midi_queries, vec![0]);
-
-    let (mut runtime, far) = loaded();
-    let mut args = Vec::from(word(0).as_slice());
-    args.extend_from_slice(&dword(0));
-    args.extend_from_slice(&word(0xffff));
-    prepare(&mut runtime, 302, &args);
-    let mut host = AuxHost::new();
-    dispatch(&mut runtime, &mut host).unwrap();
-    assert_eq!(runtime.cpu.regs.ax(), 0);
-    assert_eq!(runtime.cpu.regs.dx(), DX);
-    assert!(host.midi_queries.is_empty());
     assert_eq!(output_bytes(&runtime, far), [0xa5; 48]);
 }

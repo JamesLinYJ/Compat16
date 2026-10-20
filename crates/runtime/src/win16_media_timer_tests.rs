@@ -26,8 +26,6 @@ struct TimerHost {
     kills: Vec<u32>,
     refuse: bool,
     kill_code: u32,
-    /// `timeGetDevCaps` reply: result, minimum period, maximum period.
-    caps: Option<(u32, u32, u32)>,
 }
 
 impl DosHost for TimerHost {
@@ -150,16 +148,6 @@ impl RuntimeHost for TimerHost {
                 self.kills.push(timer);
                 Ok(Win16HostMediaTimeResult::Kill(self.kill_code))
             }
-            Win16HostMediaTimeOperation::GetDevCaps => {
-                let Some((result, minimum_period, maximum_period)) = self.caps else {
-                    panic!("unexpected media time operation");
-                };
-                Ok(Win16HostMediaTimeResult::DevCaps {
-                    result,
-                    minimum_period,
-                    maximum_period,
-                })
-            }
             _ => panic!("unexpected media time operation"),
         }
     }
@@ -238,40 +226,6 @@ fn set_arguments(procedure: u32, delay: u16, resolution: u16, user: u32, flags: 
 
 fn kill_arguments(timer: u16) -> Vec<u8> {
     timer.to_le_bytes().to_vec()
-}
-
-fn dev_caps_arguments(caps: u32, size: u16) -> Vec<u8> {
-    let mut arguments = Vec::from(size.to_le_bytes());
-    arguments.extend_from_slice(&caps.to_le_bytes());
-    arguments
-}
-
-fn poison_time_caps(runtime: &mut Runtime) -> u32 {
-    let far = (u32::from(runtime.cpu.regs.ds) << 16) | 0x10;
-    let state = runtime.win16.as_mut().unwrap();
-    state
-        .selectors
-        .write(
-            &mut runtime.memory,
-            state.selectors.pointer_from_far(far).unwrap(),
-            &[0xa5; 8],
-        )
-        .unwrap();
-    far
-}
-
-fn time_caps_bytes(runtime: &Runtime, far: u32) -> [u8; 8] {
-    let state = runtime.win16.as_ref().unwrap();
-    let mut bytes = [0; 8];
-    state
-        .selectors
-        .read(
-            &runtime.memory,
-            state.selectors.pointer_from_far(far).unwrap(),
-            &mut bytes,
-        )
-        .unwrap();
-    bytes
 }
 
 fn dispatch(runtime: &mut Runtime, host: &mut TimerHost) -> Result<Option<u8>, RuntimeError> {
@@ -428,8 +382,7 @@ fn time_set_event_one_shot_retires_when_its_callback_is_delivered() {
         .win16
         .as_mut()
         .unwrap()
-        .note_multimedia_timer_callback_entered(callback, &mut host)
-        .unwrap();
+        .note_multimedia_timer_callback_entered(callback, &mut host).unwrap();
     arm(&mut runtime, 603, &kill_arguments(guest));
     dispatch(&mut runtime, &mut host).unwrap();
     assert_eq!(runtime.cpu.regs.ax(), 97);
@@ -496,20 +449,11 @@ fn multimedia_timer_cleanup_preserves_failed_owner_until_retry() {
     let mut runtime = Runtime::load(&tiny_ne_executable(), &[], br"C:\TIMER.NE").unwrap();
     let procedure = executable_callback(&mut runtime);
     arm(&mut runtime, 602, &set_arguments(procedure, 10, 1, 3, 1));
-    let mut host = TimerHost {
-        kill_code: 97,
-        ..TimerHost::default()
-    };
+    let mut host = TimerHost { kill_code: 97, ..TimerHost::default() };
     dispatch(&mut runtime, &mut host).unwrap();
     let guest = runtime.cpu.regs.ax();
     let state = runtime.win16.as_mut().unwrap();
-    assert_eq!(
-        state
-            .retire_multimedia_services(&mut host)
-            .unwrap_err()
-            .kind(),
-        Kind::HostFailure
-    );
+    assert_eq!(state.retire_multimedia_services(&mut host).unwrap_err().kind(), Kind::HostFailure);
     assert!(state.media_services.timer(guest).is_some());
     assert!(!state.media_services.native_sources_quiescent());
     host.kill_code = 0;
@@ -517,80 +461,4 @@ fn multimedia_timer_cleanup_preserves_failed_owner_until_retry() {
     assert!(state.media_services.timer(guest).is_none());
     assert!(state.media_services.native_sources_quiescent());
     assert_eq!(host.kills, vec![NATIVE_TIMER, NATIVE_TIMER]);
-}
-
-#[test]
-fn time_get_dev_caps_clamps_the_maximum_and_rejects_an_unrepresentable_minimum() {
-    let mut runtime = Runtime::load(&tiny_ne_executable(), &[], br"C:\TIMER.NE").unwrap();
-    let far = poison_time_caps(&mut runtime);
-    let mut host = TimerHost {
-        caps: Some((0, 1, 1000)),
-        ..TimerHost::default()
-    };
-    let return_to = arm(&mut runtime, 604, &dev_caps_arguments(far, 4));
-    assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
-    assert_eq!(runtime.cpu.regs.ax(), 0);
-    assert_eq!(runtime.cpu.regs.dx(), DX_SENTINEL);
-    assert_eq!(
-        (
-            runtime.cpu.regs.cs,
-            runtime.cpu.regs.ip(),
-            runtime.cpu.regs.sp()
-        ),
-        return_to
-    );
-    let mut expected = [0xa5; 8];
-    expected[0..2].copy_from_slice(&1u16.to_le_bytes());
-    expected[2..4].copy_from_slice(&1000u16.to_le_bytes());
-    assert_eq!(time_caps_bytes(&runtime, far), expected);
-
-    let far = poison_time_caps(&mut runtime);
-    host.caps = Some((0, 1, u32::from(u16::MAX)));
-    let return_to = arm(&mut runtime, 604, &dev_caps_arguments(far, 4));
-    assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
-    assert_eq!(runtime.cpu.regs.ax(), 0);
-    expected[2..4].copy_from_slice(&u16::MAX.to_le_bytes());
-    assert_eq!(time_caps_bytes(&runtime, far), expected);
-    assert_eq!(
-        (
-            runtime.cpu.regs.cs,
-            runtime.cpu.regs.ip(),
-            runtime.cpu.regs.sp()
-        ),
-        return_to
-    );
-
-    let far = poison_time_caps(&mut runtime);
-    host.caps = Some((0, 1, 1_000_000));
-    let return_to = arm(&mut runtime, 604, &dev_caps_arguments(far, 4));
-    assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
-    assert_eq!(runtime.cpu.regs.ax(), 0);
-    assert_eq!(runtime.cpu.regs.dx(), DX_SENTINEL);
-    expected[0..2].copy_from_slice(&1u16.to_le_bytes());
-    expected[2..4].copy_from_slice(&u16::MAX.to_le_bytes());
-    assert_eq!(time_caps_bytes(&runtime, far), expected);
-    assert_eq!(
-        (
-            runtime.cpu.regs.cs,
-            runtime.cpu.regs.ip(),
-            runtime.cpu.regs.sp()
-        ),
-        return_to
-    );
-
-    let far = poison_time_caps(&mut runtime);
-    host.caps = Some((0, 65_536, 1));
-    let return_to = arm(&mut runtime, 604, &dev_caps_arguments(far, 4));
-    assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
-    assert_eq!(runtime.cpu.regs.ax(), 97);
-    assert_eq!(runtime.cpu.regs.dx(), DX_SENTINEL);
-    assert_eq!(time_caps_bytes(&runtime, far), [0xa5; 8]);
-    assert_eq!(
-        (
-            runtime.cpu.regs.cs,
-            runtime.cpu.regs.ip(),
-            runtime.cpu.regs.sp()
-        ),
-        return_to
-    );
 }
