@@ -23,6 +23,12 @@ enum GuestGdiObject {
 struct DcAttributes {
     rel_abs: Option<u16>,
     code_page: Option<u16>,
+    /// Guest FAR of the `AbortProc` installed by `SetAbortProc`. It is a
+    /// 16:16 procedure address, never a host pointer.
+    abort_proc: Option<u32>,
+    /// A host document is open. A positive `StartDoc` sets it. A positive
+    /// `EndDoc` or `AbortDoc` clears it.
+    print_document_open: bool,
 }
 
 pub(super) struct GuestGdiHandles {
@@ -73,6 +79,46 @@ impl GuestGdiHandles {
 
     pub(super) fn set_session_text_code_page(&mut self, page: u16) {
         self.session_text_code_page = page;
+    }
+
+    /// Zero clears the procedure. A nonzero value is stored only after the
+    /// caller has checked that the DC exists.
+    pub(super) fn set_abort_proc(&mut self, handle: u16, procedure: u32) {
+        if procedure == 0 {
+            if let Some(entry) = self.dc_attributes.get_mut(&handle) {
+                entry.abort_proc = None;
+            }
+            return;
+        }
+        self.dc_attributes_mut(handle).abort_proc = Some(procedure);
+    }
+
+    pub(super) fn abort_proc(&self, handle: u16) -> Option<u32> {
+        self.dc_attributes
+            .get(&handle)
+            .and_then(|entry| entry.abort_proc)
+    }
+
+    pub(super) fn abort_procedure_references(&self) -> impl Iterator<Item = u32> + '_ {
+        self.dc_attributes
+            .values()
+            .filter_map(|entry| entry.abort_proc)
+    }
+
+    pub(super) fn print_document_open(&self, handle: u16) -> bool {
+        self.dc_attributes
+            .get(&handle)
+            .is_some_and(|entry| entry.print_document_open)
+    }
+
+    pub(super) fn set_print_document_open(&mut self, handle: u16, open: bool) {
+        if !open {
+            if let Some(entry) = self.dc_attributes.get_mut(&handle) {
+                entry.print_document_open = false;
+            }
+            return;
+        }
+        self.dc_attributes_mut(handle).print_document_open = true;
     }
 
     fn forget_dc_attributes(&mut self, handle: u16) {

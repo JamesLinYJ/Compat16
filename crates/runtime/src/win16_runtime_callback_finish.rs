@@ -116,6 +116,7 @@ impl Win16State {
             CallbackKind::GdiObject => self.finish_object_callback(cpu, dos, memory),
             CallbackKind::AcmEnumeration => self.finish_acm_enumeration(cpu, dos, memory, host),
             CallbackKind::LineDda => self.finish_line_dda_callback(cpu, dos, memory),
+            CallbackKind::PrintAbort => self.finish_print_abort_callback(cpu, dos, memory, host),
             CallbackKind::WindowEnumeration => {
                 self.finish_window_enumeration(cpu, dos, memory, host)
             }

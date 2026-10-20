@@ -6,10 +6,10 @@
 //! the stored size and writes nothing. A short buffer receives only the
 //! copied prefix; the remainder stays as the caller left it.
 //!
-//! `QueryAbort` answers whether printing should continue. `SetAbortProc` still
-//! does not install a guest procedure, so a live device context continues.
-//! The code word is the value that procedure would receive. It is not a pointer
-//! and it is not forwarded to the host.
+//! `QueryAbort` answers whether printing should continue. With no abort
+//! procedure installed, a live device context continues. The code word is the
+//! value an installed procedure receives. It is not a pointer and it is not
+//! forwarded to the host.
 
 use std::collections::BTreeMap;
 
@@ -83,8 +83,9 @@ impl Win16State {
         Ok(u32::from(copied))
     }
 
-    /// Live guest DCs have no abort procedure until `SetAbortProc` can record
-    /// one, so printing continues. An unknown HDC has no job to continue.
+    /// No installed abort procedure means printing continues on a live DC.
+    /// An unknown HDC has no job to continue. `QueryAbort` enters an installed
+    /// procedure from the GDI dispatch path instead of this answer.
     pub(super) fn query_abort(&self, dc: u16) -> Result<u32, RuntimeError> {
         Ok(u32::from(self.guest_gdi.dc(dc).is_some()))
     }

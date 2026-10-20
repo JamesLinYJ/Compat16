@@ -1,8 +1,9 @@
 //! Bounded Win16 Escape queries and the print-job subset.
 //!
-//! SETABORTPROC, PASSTHROUGH, NEXTBAND, SETCOPYCOUNT, and private driver
-//! escapes stay unimplemented and return zero. No guest pointer is passed to
-//! native Escape.
+//! SETABORTPROC installs the same guest abort procedure as `SetAbortProc`.
+//! Its input dword is the procedure address and is not passed to native
+//! Escape. PASSTHROUGH, NEXTBAND, SETCOPYCOUNT, and private driver escapes
+//! stay unimplemented and return zero.
 
 use super::*;
 use crate::Win16EscapeQuery as Query;
@@ -19,6 +20,10 @@ impl Win16State {
         output: u32,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
+        if escape == super::super::print_abort::SET_ABORT_PROC_ESCAPE {
+            // The input dword is the AbortProc address, not a guest buffer.
+            return self.set_abort_proc(memory, dc, input);
+        }
         let Some(query) = escape_query(escape) else {
             return Ok(0);
         };
@@ -46,6 +51,9 @@ impl Win16State {
             self.selectors
                 .read(memory, pointer, &mut bytes)
                 .map_err(crate::runtime_error)?;
+            if i16::from_le_bytes(bytes) == super::super::print_abort::SET_ABORT_PROC_ESCAPE {
+                return Ok(1);
+            }
             let Some(query) = escape_query(i16::from_le_bytes(bytes)) else {
                 return Ok(0);
             };

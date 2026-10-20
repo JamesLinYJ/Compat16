@@ -665,9 +665,13 @@ pairs STARTDOC with `StartDoc` plus the first `StartPage`, NEWFRAME with
 A NEWFRAME that already advanced the page, followed by ENDDOC, can therefore
 close one extra page. A non-positive result stops the pair. A failed first
 `StartPage` aborts the job started by STARTDOC. `QUERYESCSUPPORT` for these
-four codes is true only for printer or plotter technology. `SETABORTPROC`,
-`PASSTHROUGH`, `NEXTBAND`, `SETCOPYCOUNT`, and private codes still return zero
-and do not call the host. No guest pointer is passed to native `Escape`.
+four codes is true only for printer or plotter technology. `SETABORTPROC`
+(escape 9) installs the same guest abort procedure as `SetAbortProc`. The
+input dword is the procedure address, not a buffer, and it is not passed to
+the host. A live DC reports `QUERYESCSUPPORT` for that escape without a host
+query. `PASSTHROUGH`, `NEXTBAND`, `SETCOPYCOUNT`, and private codes still
+return zero and do not call the host. No guest pointer is passed to native
+`Escape`.
 
 ## USER.131/132 class default-menu LONG
 
@@ -900,12 +904,25 @@ does not submit or cancel the document twice.
 
 The DDK identifies OpenJob's third WORD as the application's abort DC. The
 runtime checks nonzero guest DCs before creating a document. `SetAbortProc`
-still reports an explicit compatibility gap, so this bridge does not install
-guest abort procedures. `QueryAbort` (GDI ordinal 155) therefore returns TRUE
-for a live guest DC, including while a spool job that names that DC is open
-and when its code word is `SP_OUTOFDISK`. The code word is not a pointer and
-is not sent to the host. An HDC that is not a live guest device context
-returns FALSE, and `QueryAbort` does not cancel the open job. GDI driver data
+stores the guest FAR procedure on that live DC and returns a positive value.
+An unknown DC, or a procedure that is not executable, returns `SP_ERROR` and
+does not replace a stored procedure. A null procedure clears it. `QueryAbort`
+(GDI ordinal 155) enters the procedure with the caller's code word and returns
+that procedure's BOOL. The code word is not a pointer and is not sent to the
+host. With no procedure installed, `QueryAbort` returns TRUE for a live guest
+DC, including while a spool job that names that DC is open and when its code
+word is `SP_OUTOFDISK`. An HDC that is not a live guest device context returns
+FALSE. `QueryAbort` does not cancel the open job. `Escape` `STARTDOC`,
+`NEWFRAME`, and `ENDDOC`, and `StartDoc`, `StartPage`, `EndPage`, and `EndDoc`,
+enter the procedure once with code 0 before the host print call. A zero return
+is `SP_APPABORT` and skips that host call. The Windows 3.1 SDK `ABORTDOC`,
+`ENDDOC`, and `STARTDOC` remarks say GDI terminates a canceled print operation
+before returning the error, and the application must not send `ENDDOC` or
+`ABORTDOC` for that error. `StartPage`, `EndPage`, `EndDoc`, and the
+`NEWFRAME` and `ENDDOC` escapes therefore abort the host document when
+`StartDoc` has already opened one. `StartDoc` and `STARTDOC` have not opened
+a host document, so a zero return does not call `AbortDoc`. `AbortDoc` does
+not ask the procedure. Drawing calls do not enter it. GDI driver data
 uses the native RAW datatype, keeping device-dependent bytes intact rather
 than selecting a queue's text processor; see the native
 [WritePrinter contract](https://learn.microsoft.com/en-us/windows/win32/printdocs/writeprinter).

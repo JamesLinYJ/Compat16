@@ -209,6 +209,7 @@ impl Win16State {
             active_dispatch_return: None,
             vm_start_tick: None,
             line_dda_callbacks: Vec::new(),
+            print_abort_callbacks: Vec::new(),
             window_enumerations: Vec::new(),
             deferred_window_batches: super::window_operations::DeferredWindowBatches::default(),
             user_hooks: super::user_hooks::Win16UserHooks::default(),

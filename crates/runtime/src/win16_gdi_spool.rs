@@ -91,9 +91,9 @@ impl Win16State {
                 environment,
                 capacity,
             } => self.get_printer_environment(port, environment, capacity, memory),
-            // `code` stays in the decoded request for the abort procedure.
-            // Nothing here installs that procedure, so it does not change the
-            // continue/stop answer and it is not passed to the host.
+            // Guest dispatch enters an installed AbortProc before this arm.
+            // Reaching here means no procedure is installed. The code word is
+            // not a pointer and is not passed to the host.
             Request::QueryAbort { dc, code: _ } => self.query_abort(dc),
         }
     }
@@ -106,10 +106,9 @@ impl Win16State {
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
         // The DDK identifies this WORD as the application's abort DC, despite
-        // PRINT.H spelling its type HPJOB. It is never a native HDC. No abort
-        // procedure can currently be installed (SetAbortProc reports a gap),
-        // so QueryAbort on this DC continues. An invalid non-null guest DC
-        // must not create a native document.
+        // PRINT.H spelling its type HPJOB. It is never a native HDC. OpenJob
+        // does not enter AbortProc; QueryAbort and the print calls do. An
+        // invalid non-null guest DC must not create a native document.
         if legacy_argument != 0 && self.guest_gdi.dc(legacy_argument).is_none() {
             return Ok(GDI_ERROR);
         }

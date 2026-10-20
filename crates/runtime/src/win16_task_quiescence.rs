@@ -25,6 +25,7 @@ impl Win16State {
             && self.font_callbacks.is_empty()
             && self.object_callbacks.is_empty()
             && self.line_dda_callbacks.is_empty()
+            && self.print_abort_callbacks.is_empty()
             && self.window_enumerations.is_empty()
             && self.window_callbacks.is_empty()
             && self.native_function_callbacks.is_empty()
