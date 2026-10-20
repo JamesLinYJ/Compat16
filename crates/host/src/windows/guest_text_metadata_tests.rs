@@ -231,6 +231,16 @@ fn code_page_metadata_serial_probes() {
 
 #[test]
 fn code_page_metadata_concurrent_probes() {
+    // This comparison checks concurrent reads of initialized metadata. The
+    // extended API can fail its first simultaneous call in a cold process;
+    // cold_code_page_extended_metadata observes that case separately, and
+    // cold_code_page_production_probe checks production without warming it.
+    let initialization_failures = check_metadata(0, 1);
+    assert!(
+        initialization_failures.is_empty(),
+        "native metadata initialization failures:\n{}",
+        initialization_failures.join("\n")
+    );
     const WORKERS: usize = 4;
     let barrier = std::sync::Barrier::new(WORKERS);
     let failures = std::thread::scope(|scope| {

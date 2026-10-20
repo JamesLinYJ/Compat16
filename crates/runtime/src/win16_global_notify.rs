@@ -190,6 +190,9 @@ impl Win16State {
                 } => (size, flags, identity.is_none()),
                 GlobalHeapOperation::Compact { .. } => unreachable!(),
             };
+            // Windows 3.1 GlobalAlloc: GMEM_NOCOMPACT does not compact or
+            // discard memory to satisfy the request. GMEM_NODISCARD forbids
+            // discard only. Reallocation still requires both flags.
             if value != 0
                 || size == 0
                 || invalid
@@ -200,6 +203,7 @@ impl Win16State {
                     .map_err(crate::runtime_error)?
                     >= size
                 || flags & (GMEM_NOCOMPACT | GMEM_NODISCARD) == (GMEM_NOCOMPACT | GMEM_NODISCARD)
+                || global_alloc_refuses_discard(operation)
             {
                 return self.return_immediate_global_heap(operation, value, cpu, return_to);
             }
@@ -433,7 +437,9 @@ impl Win16State {
                 frame.minimum_free,
                 &frame.skipped,
                 flags & GMEM_NOCOMPACT == 0,
-                flags & GMEM_NODISCARD == 0 && !frame.reported_enough,
+                flags & GMEM_NODISCARD == 0
+                    && !global_alloc_refuses_discard(operation)
+                    && !frame.reported_enough,
                 memory,
                 &mut self.selectors,
                 &mut updates,
@@ -505,6 +511,13 @@ impl Win16State {
         self.apply_selector_updates(&updates);
         self.sync_discarded_global_handles();
         Ok(())
+    }
+}
+
+fn global_alloc_refuses_discard(operation: GlobalHeapOperation) -> bool {
+    match operation {
+        GlobalHeapOperation::Allocate { flags, .. } => flags & GMEM_NOCOMPACT != 0,
+        GlobalHeapOperation::Reallocate { .. } | GlobalHeapOperation::Compact { .. } => false,
     }
 }
 
