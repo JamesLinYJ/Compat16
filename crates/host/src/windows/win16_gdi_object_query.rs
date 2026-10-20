@@ -55,15 +55,27 @@ impl Win16Objects {
                     face_name: guest_face_name(codec, &font.lfFaceName)?,
                 }))
             }
-            OBJ_BITMAP => read::<BITMAP>(native).map(|bitmap| {
-                Info::Bitmap(Win16HostBitmapInfo {
-                    kind: bitmap.bmType as i16,
-                    width: bitmap.bmWidth as i16,
-                    height: bitmap.bmHeight as i16,
-                    width_bytes: bitmap.bmWidthBytes as i16,
-                    planes: bitmap.bmPlanes as u8,
-                    bits_per_pixel: bitmap.bmBitsPixel as u8,
-                })
+            OBJ_BITMAP => read::<BITMAP>(native).and_then(|bitmap| {
+                // Win16 BITMAP ints are signed. GetBitmapBits requires scan
+                // lines to be multiples of 16 bits, so an 8-bit bitmap at the
+                // maximum width has a 32768-byte stride. That does not fit;
+                // wrapping it would make GetObject succeed with a different
+                // BITMAP. Return no description so the caller reports zero
+                // bytes and leaves guest memory unchanged.
+                let kind = i16::try_from(bitmap.bmType).ok()?;
+                let width = i16::try_from(bitmap.bmWidth).ok()?;
+                let height = i16::try_from(bitmap.bmHeight).ok()?;
+                let width_bytes = i16::try_from(bitmap.bmWidthBytes).ok()?;
+                let planes = u8::try_from(bitmap.bmPlanes).ok()?;
+                let bits_per_pixel = u8::try_from(bitmap.bmBitsPixel).ok()?;
+                Some(Info::Bitmap(Win16HostBitmapInfo {
+                    kind,
+                    width,
+                    height,
+                    width_bytes,
+                    planes,
+                    bits_per_pixel,
+                }))
             }),
             OBJ_BRUSH => {
                 let Some(brush) = read::<LOGBRUSH>(native) else {
