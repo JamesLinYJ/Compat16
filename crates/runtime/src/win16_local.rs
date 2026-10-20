@@ -236,9 +236,9 @@ impl Win16State {
         let value = match result {
             Ok(value) => {
                 // An API can return zero after a successful heap transaction,
-                // such as freeing via LocalReAlloc(size = 0), and failed
-                // allocation attempts can still commit heap compaction. The
-                // transaction result, not AX, determines whether to write back.
+                // such as LocalFree, and failed allocation attempts can still
+                // commit heap compaction. The transaction result, not AX,
+                // determines whether to write back.
                 if operation.changes_heap() {
                     commit_local_spans(memory, address, &bytes, &write_spans)?;
                 }

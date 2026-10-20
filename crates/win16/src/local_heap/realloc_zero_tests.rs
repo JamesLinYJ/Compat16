@@ -67,27 +67,42 @@ fn local_realloc_zero_locked_blocks_fail_without_writes_with_or_without_moveable
 
 #[test]
 fn local_realloc_zero_moveable_discards_and_keeps_reusable_handle() {
-    for attributes in [0, LMEM_DISCARDABLE] {
-        let mut bytes = segment();
-        let mut heap = LocalHeap::open(&mut bytes).unwrap();
-        let (handle, _) = live_block(&mut heap, attributes);
-        let free_before = heap.count_free().unwrap();
-        heap.take_write_spans();
-        assert_eq!(heap.realloc(handle, 0, LMEM_MOVEABLE), Ok(handle));
-        assert!(!heap.take_write_spans().is_empty());
-        assert_eq!(heap.size(handle), Ok(0));
-        assert_eq!(heap.flags(handle), Ok(u16::from(LMEM_DISCARDED) << 8));
-        assert_eq!(heap.lock(handle), Ok(0));
-        assert!(heap.count_free().unwrap() > free_before);
-        let before = heap.dgroup.to_vec();
-        assert_eq!(heap.realloc(handle, 0, 0), Ok(0));
-        assert!(heap.take_write_spans().is_empty());
-        assert_eq!(heap.dgroup, before.as_slice());
-        assert_eq!(heap.realloc(handle, 32, LMEM_MOVEABLE), Ok(handle));
-        assert_ne!(heap.lock(handle).unwrap(), 0);
-        assert_eq!(heap.unlock(handle), Ok(0));
-        assert_eq!(heap.free(handle), Ok(0));
-    }
+    let mut bytes = segment();
+    let mut heap = LocalHeap::open(&mut bytes).unwrap();
+    let (handle, address) = live_block(&mut heap, 0);
+    let size = heap.size(handle).unwrap();
+    heap.take_write_spans();
+    let before = heap.dgroup.to_vec();
+    assert_eq!(heap.realloc(handle, 0, LMEM_MOVEABLE), Ok(0));
+    assert!(heap.take_write_spans().is_empty());
+    assert_eq!(heap.dgroup, before.as_slice());
+    assert_eq!(heap.size(handle), Ok(size));
+    assert_eq!(heap.flags(handle), Ok(0));
+    assert_eq!(heap.lock(handle), Ok(address));
+    let start = usize::from(address);
+    assert_eq!(&heap.dgroup[start..start + SENTINEL.len()], SENTINEL);
+    assert_eq!(heap.unlock(handle), Ok(0));
+    assert_eq!(heap.free(handle), Ok(0));
+
+    let mut bytes = segment();
+    let mut heap = LocalHeap::open(&mut bytes).unwrap();
+    let (handle, _) = live_block(&mut heap, LMEM_DISCARDABLE);
+    let free_before = heap.count_free().unwrap();
+    heap.take_write_spans();
+    assert_eq!(heap.realloc(handle, 0, LMEM_MOVEABLE), Ok(handle));
+    assert!(!heap.take_write_spans().is_empty());
+    assert_eq!(heap.size(handle), Ok(0));
+    assert_eq!(heap.flags(handle), Ok(u16::from(LMEM_DISCARDED) << 8));
+    assert_eq!(heap.lock(handle), Ok(0));
+    assert!(heap.count_free().unwrap() > free_before);
+    let before = heap.dgroup.to_vec();
+    assert_eq!(heap.realloc(handle, 0, 0), Ok(0));
+    assert!(heap.take_write_spans().is_empty());
+    assert_eq!(heap.dgroup, before.as_slice());
+    assert_eq!(heap.realloc(handle, 32, LMEM_MOVEABLE), Ok(handle));
+    assert_ne!(heap.lock(handle).unwrap(), 0);
+    assert_eq!(heap.unlock(handle), Ok(0));
+    assert_eq!(heap.free(handle), Ok(0));
 }
 
 #[test]
@@ -102,7 +117,11 @@ fn local_realloc_zero_preserves_fixed_and_modify_contracts() {
     assert!(heap.take_write_spans().is_empty());
     assert_eq!(heap.dgroup, before.as_slice());
     assert_eq!(heap.realloc(fixed, 0, LMEM_MOVEABLE), Ok(0));
-    assert_eq!(heap.flags(fixed), Ok(LMEM_INVALID_HANDLE));
+    assert!(heap.take_write_spans().is_empty());
+    assert_eq!(heap.dgroup, before.as_slice());
+    assert_eq!(heap.flags(fixed), Ok(0));
+    assert!(heap.size(fixed).unwrap() >= 32);
+    assert_eq!(heap.free(fixed), Ok(0));
 
     let (handle, address) = live_block(&mut heap, 0);
     let size = heap.size(handle).unwrap();
