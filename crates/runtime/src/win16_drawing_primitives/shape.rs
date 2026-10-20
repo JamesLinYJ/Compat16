@@ -290,10 +290,17 @@ pub(super) fn execute(
             let output = state.preflight_drawing_output(memory, output, 8)?;
             match host.win16_gdi(Operation::GetRgnBox { region })? {
                 HostResult::Rect { complexity, rect } => {
-                    if complexity != 0 {
+                    // Win16 RECT edges are signed 16-bit. OffsetRgn requires
+                    // coordinates in -32768..=32767, and write_drawing_rect
+                    // narrows with `as i16`. An edge outside that range has no
+                    // verified wrap contract: return ERROR and leave the
+                    // caller's rectangle unchanged.
+                    if complexity != 0 && region_rect_fits_guest(rect) {
                         state.write_drawing_rect(memory, output, rect)?;
+                        Ok(complexity as u16 as u32)
+                    } else {
+                        Ok(0)
                     }
-                    Ok(complexity as u16 as u32)
                 }
                 _ => Err(wrong_result("GetRgnBox")),
             }
@@ -462,4 +469,10 @@ pub(super) fn execute(
         }) => bezier(state, host, dc, count, valid, points, true),
         request => Err(wrong_result(unhandled_name(&request))),
     }
+}
+
+fn region_rect_fits_guest(rect: crate::Win16DrawingRect) -> bool {
+    [rect.left, rect.top, rect.right, rect.bottom]
+        .into_iter()
+        .all(|edge| i16::try_from(edge).is_ok())
 }

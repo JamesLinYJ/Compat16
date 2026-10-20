@@ -447,9 +447,8 @@ pub(super) fn execute(
             let mut rect = RECT { left: 0, top: 0, right: 0, bottom: 0 };
             // SAFETY: `rect` is a valid writable RECT for this synchronous call.
             let complexity = unsafe { GetClipBox(dc_use.native(), &mut rect) };
-            Ok(ResultValue::Rect { complexity,
-                rect: runtime::Win16DrawingRect { left: rect.left, top: rect.top,
-                    right: rect.right, bottom: rect.bottom } })
+            let (complexity, rect) = extra::guest_region_rect(complexity, rect);
+            Ok(ResultValue::Rect { complexity, rect })
         }
         Op::RectVisible { dc, rect } => Ok(ResultValue::Bool(with_dc(
             dcs, dc, false, |native| {
