@@ -165,6 +165,11 @@ pub(super) fn execute(
         Op::GetTextExtentPoint { dc, text } => {
             let measured = text::text_extent(dcs, dc, &text, None)?;
             Ok(match measured {
+                Some((true, size)) if !text::signed_extent_fits(size) => ResultValue::BoolSize {
+                    success: false,
+                    width: 0,
+                    height: 0,
+                },
                 Some((success, size)) => ResultValue::BoolSize {
                     success,
                     width: size.cx,

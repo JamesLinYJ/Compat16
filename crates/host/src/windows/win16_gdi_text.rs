@@ -83,15 +83,15 @@ pub(super) fn text_extent(
     let mut size = SIZE { cx: 0, cy: 0 };
     // SAFETY: The HDC lease, owned text, and writable SIZE remain live through the call.
     let success = unsafe { GetTextExtentPoint32W(dc_use.native(), pointer, count, &mut size) } != 0;
-    // Win16 GetTextExtent packs two signed 16-bit logical extents, and
-    // GetTextExtentPoint writes a SIZE of two ints. Callers store those edges
-    // with `as u16` or `as i16`. An extent outside -32768..=32767 has no
-    // verified wrap contract: fail the query. GetTextExtent's existing failure
-    // result is the zero DWORD, and GetTextExtentPoint leaves its SIZE unwritten.
-    if success && [size.cx, size.cy].into_iter().any(|value| i16::try_from(value).is_err()) {
-        return Ok(Some((false, SIZE { cx: 0, cy: 0 })));
-    }
     Ok(Some((success, size)))
+}
+
+/// Windows 3.1 `GetTextExtentPoint` writes a `SIZE` of two `int` fields. In
+/// that SDK `int` is signed 16-bit, so an edge outside -32768..=32767 cannot
+/// be stored. `GetTextExtent` returns a `DWORD`; `LOWORD` and `HIWORD` are
+/// unsigned 16-bit `WORD`s and can still carry 32768..=65535.
+pub(super) fn signed_extent_fits(size: SIZE) -> bool {
+    i16::try_from(size.cx).is_ok() && i16::try_from(size.cy).is_ok()
 }
 
 pub(super) fn tabbed_text(
