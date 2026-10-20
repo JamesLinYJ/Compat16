@@ -15,7 +15,7 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
 use windows_sys::Win32::Graphics::Gdi::{
-    ClientToScreen, GetMonitorInfoW, HMONITOR, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    ClientToScreen, GetMonitorInfoW, HMONITOR, MONITOR_DEFAULTTONEAREST, MONITORINFO,
     MapWindowPoints, MonitorFromRect, MonitorFromWindow, ScreenToClient, WindowFromDC,
 };
 use windows_sys::Win32::System::WindowsProgramming::{WINNLSEnableIME, WINNLSGetEnableStatus};
@@ -714,6 +714,11 @@ fn negate_delta(delta: (i32, i32)) -> Option<(i32, i32)> {
 }
 
 fn offset_point(x: i32, y: i32, delta: (i32, i32)) -> Option<Win16HostPoint> {
+    // USER uses (-1,-1) for an unspecified min/max position. It is not a
+    // location in either coordinate system, including across monitors.
+    if (x, y) == (-1, -1) {
+        return Some(Win16HostPoint { x, y });
+    }
     Some(Win16HostPoint {
         x: x.checked_add(delta.0)?,
         y: y.checked_add(delta.1)?,
@@ -811,3 +816,7 @@ pub(super) fn arrange_iconic_windows_with(
 #[cfg(test)]
 #[path = "win16_window_child_queries_tests.rs"]
 mod child_queries_tests;
+
+#[cfg(test)]
+#[path = "win16_window_placement_tests.rs"]
+mod placement_tests;
