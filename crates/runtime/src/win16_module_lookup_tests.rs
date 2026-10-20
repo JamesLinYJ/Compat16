@@ -167,3 +167,57 @@ fn module_lookup_import_binding_uses_dll_export_and_preserves_missing_symbol() {
         None
     );
 }
+
+#[test]
+fn module_handle_rejects_a_task_handle_and_a_missing_module_is_null() {
+    use win16_abi::Win16ModuleReference;
+    let mut runtime = crate::Runtime::load(&tiny_ne_executable(), &[], br"C:\APP.NE").unwrap();
+    let state = runtime.win16.as_mut().unwrap();
+    let task = state.first_task_handle;
+    let instance = state.instance_handle;
+    let main = state.modules.main;
+    assert_ne!(task, 0);
+    assert_ne!(task, instance);
+    assert_ne!(task, main);
+    assert_ne!(state.modules.first, 0);
+    assert_eq!(
+        state.module_handle(&Win16ModuleReference::Handle(task)),
+        None
+    );
+    assert_eq!(
+        state.module_handle(&Win16ModuleReference::Handle(instance)),
+        Some(main)
+    );
+    assert_eq!(
+        state.module_handle(&Win16ModuleReference::Current),
+        Some(main)
+    );
+    let kernel = state.modules.by_name(b"KERNEL").unwrap();
+    assert_eq!(
+        state.module_handle(&Win16ModuleReference::Name(b"KERNEL".to_vec())),
+        Some(kernel)
+    );
+    let alien = 1;
+    assert_eq!(state.modules.by_handle(alien), None);
+    state.task_handles.insert(guest_core::OwnerId(9), alien);
+    assert_eq!(
+        state.module_handle(&Win16ModuleReference::Handle(alien)),
+        None
+    );
+    assert_eq!(
+        state.kernel_get_module_handle(&Win16ModuleReference::Handle(task)),
+        0
+    );
+    assert_eq!(
+        state.kernel_get_module_handle(&Win16ModuleReference::Handle(alien)),
+        0
+    );
+    assert_eq!(
+        state.kernel_get_module_handle(&Win16ModuleReference::Name(b"NO-SUCH".to_vec())),
+        0
+    );
+    assert_eq!(
+        state.kernel_get_module_handle(&Win16ModuleReference::Handle(main)),
+        u32::from(main) | (u32::from(state.modules.first) << 16)
+    );
+}
