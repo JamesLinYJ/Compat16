@@ -15,16 +15,18 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
 use windows_sys::Win32::Graphics::Gdi::{
-    ClientToScreen, MapWindowPoints, ScreenToClient, WindowFromDC,
+    ClientToScreen, GetMonitorInfoW, MONITORINFO, MONITOR_DEFAULTTONEAREST, MapWindowPoints,
+    MonitorFromWindow, ScreenToClient, WindowFromDC,
 };
 use windows_sys::Win32::System::WindowsProgramming::{WINNLSEnableIME, WINNLSGetEnableStatus};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     ArrangeIconicWindows, CascadeWindows, ChildWindowFromPoint, ChildWindowFromPointEx,
-    FindWindowW, FlashWindow, GWL_STYLE, GetClassNameW, GetClientRect, GetClipCursor, GetCursorPos,
-    GetLastActivePopup, GetTopWindow, GetWindowLongW, GetWindowPlacement, GetWindowRect,
-    HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST, MDITILE_ZORDER, MoveWindow, SWP_NOZORDER,
-    SetCursorPos, SetWindowPlacement, SetWindowPos, ShowOwnedPopups, TileWindows, WINDOWPLACEMENT,
-    WS_CHILD, WS_POPUP, WindowFromPoint,
+    FindWindowW, FlashWindow, GWL_EXSTYLE, GWL_STYLE, GetClassNameW, GetClientRect, GetClipCursor,
+    GetCursorPos, GetLastActivePopup, GetTopWindow, GetWindowLongW, GetWindowPlacement,
+    GetWindowRect, HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST, MDITILE_ZORDER, MoveWindow,
+    SWP_NOZORDER, SetCursorPos, SetWindowPlacement, SetWindowPos, ShowOwnedPopups, TileWindows,
+    WINDOWPLACEMENT, WPF_RESTORETOMAXIMIZED, WPF_SETMINPOSITION, WS_CHILD, WS_EX_TOOLWINDOW,
+    WS_POPUP, WindowFromPoint,
 };
 
 use super::win16_window_worker::{self as worker, WorkerState};
@@ -61,44 +63,16 @@ pub(super) fn execute(
         | Call::HideCaret { .. }
         | Call::ShowCaret { .. }
         | Call::GetCaretPos) => super::win16_window_caret::execute(state, call)?,
-        Call::GetWindowPlacement { window } => {
-            let mut placement = WINDOWPLACEMENT {
-                length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
-                ..Default::default()
-            };
-            let success = hwnd(state, window)
-                // SAFETY: `GetWindowPlacement` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-                .is_some_and(|native| unsafe { GetWindowPlacement(native, &mut placement) != 0 });
-            ResultValue::Placement(success.then(|| Win16WindowPlacement {
-                flags: placement.flags,
-                show_command: placement.showCmd,
-                minimum: host_point(placement.ptMinPosition),
-                maximum: host_point(placement.ptMaxPosition),
-                normal: host_rect(placement.rcNormalPosition),
-            }))
-        }
-        Call::SetWindowPlacement { window, placement } => {
-            // Windows owns workspace coordinates, work-area adjustment and
-            // show-state rules. Only the guest/native field widths differ.
-            let placement = WINDOWPLACEMENT {
-                length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
-                flags: placement.flags,
-                showCmd: placement.show_command,
-                ptMinPosition: native_point(placement.minimum),
-                ptMaxPosition: native_point(placement.maximum),
-                rcNormalPosition: RECT {
-                    left: placement.normal.left,
-                    top: placement.normal.top,
-                    right: placement.normal.right,
-                    bottom: placement.normal.bottom,
-                },
-            };
-            ResultValue::Boolean(
-                hwnd(state, window)
-                    // SAFETY: `SetWindowPlacement` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-                    .is_some_and(|native| unsafe { SetWindowPlacement(native, &placement) != 0 }),
-            )
-        }
+        Call::GetWindowPlacement { window } => ResultValue::Placement(
+            hwnd(state, window)
+                .filter(|native| !native.is_null())
+                .and_then(read_window_placement),
+        ),
+        Call::SetWindowPlacement { window, placement } => ResultValue::Boolean(
+            hwnd(state, window)
+                .filter(|native| !native.is_null())
+                .is_some_and(|native| write_window_placement(native, placement)),
+        ),
         Call::GetClipCursor => {
             // Read only. Access can fail (including WINSTA_READATTRIBUTES);
             // never substitute screen bounds or alter the global clip region.
@@ -612,6 +586,119 @@ fn host_point(point: POINT) -> Win16HostPoint {
         x: point.x,
         y: point.y,
     }
+}
+
+// Windows 3.1 positions are screen coordinates, the same rectangle
+// GetWindowRect reports for the restored window. Win32 stores workspace
+// coordinates for a top-level window without WS_EX_TOOLWINDOW: workspace
+// (0, 0) is that monitor's work-area origin, not the screen origin.
+// https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-windowplacement
+fn read_window_placement(native: HWND) -> Option<Win16WindowPlacement> {
+    let mut placement = WINDOWPLACEMENT {
+        length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
+        ..Default::default()
+    };
+    // SAFETY: GetWindowPlacement writes a caller-owned WINDOWPLACEMENT. An invalid handle returns zero, and no guest address is passed.
+    if unsafe { GetWindowPlacement(native, &mut placement) } == 0 {
+        return None;
+    }
+    let delta = placement_screen_delta(native)?;
+    Some(Win16WindowPlacement {
+        flags: placement.flags,
+        show_command: placement.showCmd,
+        minimum: offset_point(placement.ptMinPosition.x, placement.ptMinPosition.y, delta)?,
+        maximum: offset_point(placement.ptMaxPosition.x, placement.ptMaxPosition.y, delta)?,
+        normal: offset_host_rect(host_rect(placement.rcNormalPosition), delta)?,
+    })
+}
+
+fn write_window_placement(native: HWND, placement: Win16WindowPlacement) -> bool {
+    // Convert before the native call. SetWindowPlacement can reenter a window
+    // procedure, so this function retains no worker borrow.
+    let Some(delta) = placement_screen_delta(native).and_then(negate_delta) else {
+        return false;
+    };
+    let Some(minimum) = offset_point(placement.minimum.x, placement.minimum.y, delta) else {
+        return false;
+    };
+    let Some(maximum) = offset_point(placement.maximum.x, placement.maximum.y, delta) else {
+        return false;
+    };
+    let Some(normal) = offset_host_rect(placement.normal, delta) else {
+        return false;
+    };
+    let placement = WINDOWPLACEMENT {
+        length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
+        // Windows 3.1 defines only these two flags. WPF_ASYNCWINDOWPLACEMENT
+        // is absent from that header and would leave this USER worker.
+        flags: placement.flags & (WPF_SETMINPOSITION | WPF_RESTORETOMAXIMIZED),
+        showCmd: placement.show_command,
+        ptMinPosition: native_point(minimum),
+        ptMaxPosition: native_point(maximum),
+        rcNormalPosition: RECT {
+            left: normal.left,
+            top: normal.top,
+            right: normal.right,
+            bottom: normal.bottom,
+        },
+    };
+    // SAFETY: SetWindowPlacement reads a caller-owned WINDOWPLACEMENT. An invalid handle returns zero, and no guest address is passed.
+    unsafe { SetWindowPlacement(native, &placement) != 0 }
+}
+
+fn placement_screen_delta(native: HWND) -> Option<(i32, i32)> {
+    if native.is_null() {
+        return None;
+    }
+    let style = window_long(native, GWL_STYLE)?;
+    let extended = window_long(native, GWL_EXSTYLE)?;
+    if style & WS_CHILD != 0 || extended & WS_EX_TOOLWINDOW != 0 {
+        return Some((0, 0));
+    }
+    let mut monitor = MONITORINFO {
+        cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+        ..Default::default()
+    };
+    // SAFETY: MonitorFromWindow and GetMonitorInfoW use a caller-owned MONITORINFO. A failed query returns zero, and no guest address is passed.
+    let found = unsafe {
+        GetMonitorInfoW(
+            MonitorFromWindow(native, MONITOR_DEFAULTTONEAREST),
+            &mut monitor,
+        ) != 0
+    };
+    found.then_some((monitor.rcWork.left, monitor.rcWork.top))
+}
+
+fn window_long(native: HWND, index: i32) -> Option<u32> {
+    // Style zero is WS_OVERLAPPED, so distinguish it from failure with last-error.
+    crate::windows::win32_safe::set_last_error(0);
+    // SAFETY: GetWindowLongW reads one window integer. Failure returns zero and sets last-error, and no guest address is passed.
+    let value = unsafe { GetWindowLongW(native, index) };
+    if value == 0 && crate::windows::win32_safe::last_error() != 0 {
+        None
+    } else {
+        Some(value as u32)
+    }
+}
+
+fn negate_delta(delta: (i32, i32)) -> Option<(i32, i32)> {
+    Some((delta.0.checked_neg()?, delta.1.checked_neg()?))
+}
+
+fn offset_point(x: i32, y: i32, delta: (i32, i32)) -> Option<Win16HostPoint> {
+    Some(Win16HostPoint {
+        x: x.checked_add(delta.0)?,
+        y: y.checked_add(delta.1)?,
+    })
+}
+
+fn offset_host_rect(rect: Win16HostRect, delta: (i32, i32)) -> Option<Win16HostRect> {
+    Some(Win16HostRect {
+        left: rect.left.checked_add(delta.0)?,
+        top: rect.top.checked_add(delta.1)?,
+        right: rect.right.checked_add(delta.0)?,
+        bottom: rect.bottom.checked_add(delta.1)?,
+    })
 }
 
 // NULL has special meanings in several USER APIs. This API requires an exact
