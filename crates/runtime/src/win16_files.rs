@@ -6,9 +6,13 @@ use guest_core::memory::Memory;
 use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostDriveKind, Win16HostFile,
     Win16HostFileClose};
 
-// Win3.1 SDK WINDOWS.H GetDriveType values. Microsoft KB Q105922
-// classifies RAM disks as fixed media and MSCDEX CD-ROMs as remote drives.
+// Windows 3.1 GetDriveType results. Zero means the type cannot be
+// determined. One means the root directory does not exist. WINDOWS.H names
+// the media results 2, 3, and 4. KB Q105922 classifies RAM disks as fixed
+// media and MSCDEX CD-ROMs as remote drives, so this call does not return
+// the later CD-ROM or RAM-disk codes.
 const DRIVE_UNKNOWN: u16 = 0;
+const DRIVE_NO_ROOT_DIR: u16 = 1;
 const DRIVE_REMOVABLE: u16 = 2;
 const DRIVE_FIXED: u16 = 3;
 const DRIVE_REMOTE: u16 = 4;
@@ -130,12 +134,7 @@ impl Win16State {
     pub(super) fn drive_type(
         &self, drive: u16, host: &mut impl RuntimeHost,
     ) -> Result<u16, RuntimeError> {
-        Ok(match host.win16_drive_kind(drive)? {
-            Win16HostDriveKind::Unknown | Win16HostDriveKind::MissingRoot => DRIVE_UNKNOWN,
-            Win16HostDriveKind::Removable => DRIVE_REMOVABLE,
-            Win16HostDriveKind::Fixed | Win16HostDriveKind::RamDisk => DRIVE_FIXED,
-            Win16HostDriveKind::Remote | Win16HostDriveKind::CdRom => DRIVE_REMOTE,
-        })
+        Ok(guest_drive_type(host.win16_drive_kind(drive)?))
     }
 
     pub(super) fn allocate_file_number(&mut self, file: Win16HostFile) -> Option<u16> {
@@ -233,6 +232,33 @@ impl Win16State {
     }
 }
 
+fn guest_drive_type(kind: Win16HostDriveKind) -> u16 {
+    match kind {
+        Win16HostDriveKind::Unknown => DRIVE_UNKNOWN,
+        Win16HostDriveKind::MissingRoot => DRIVE_NO_ROOT_DIR,
+        Win16HostDriveKind::Removable => DRIVE_REMOVABLE,
+        Win16HostDriveKind::Fixed | Win16HostDriveKind::RamDisk => DRIVE_FIXED,
+        Win16HostDriveKind::Remote | Win16HostDriveKind::CdRom => DRIVE_REMOTE,
+    }
+}
+
 #[cfg(test)]
 #[path = "win16_open_file_tests.rs"]
 mod open_file_tests;
+
+#[cfg(test)]
+mod tests {
+    use super::guest_drive_type;
+    use crate::Win16HostDriveKind;
+
+    #[test]
+    fn get_drive_type_keeps_a_missing_root_distinct_from_unknown() {
+        assert_eq!(guest_drive_type(Win16HostDriveKind::Unknown), 0);
+        assert_eq!(guest_drive_type(Win16HostDriveKind::MissingRoot), 1);
+        assert_eq!(guest_drive_type(Win16HostDriveKind::Removable), 2);
+        assert_eq!(guest_drive_type(Win16HostDriveKind::Fixed), 3);
+        assert_eq!(guest_drive_type(Win16HostDriveKind::RamDisk), 3);
+        assert_eq!(guest_drive_type(Win16HostDriveKind::Remote), 4);
+        assert_eq!(guest_drive_type(Win16HostDriveKind::CdRom), 4);
+    }
+}
