@@ -71,7 +71,7 @@ impl Win16State {
             135 => Ok(SCAN_NOT_FOUND),
             403 => Ok(u32::from(word(args, 0)?)),
             405 | 5000 => Ok(1),
-            _ => Ok(0),
+            ordinal => Ok(gdi_gap_result(ordinal)),
         }
     }
 
@@ -402,6 +402,25 @@ impl Win16State {
     }
 }
 
+/// Result for a bound GDI call this host does not perform.
+///
+/// Zero remains the result where it is the documented failure: a null handle,
+/// FALSE, or an empty query. A call whose success value is zero, or whose
+/// documented failure is a specific nonzero code, does not return zero.
+fn gdi_gap_result(ordinal: u16) -> u32 {
+    match ordinal {
+        // Windows 3.1 DDK `WriteDialog` returns IDOK when the user continues
+        // and IDCANCEL otherwise. WINDOWS.H defines those as 1 and 2. No
+        // dialog is shown.
+        242 => 2,
+        // KB Q141206 and Q141161: `DrvSetPrinterData` and `DrvGetPrinterData`
+        // succeed with ERROR_SUCCESS (0) and fail with TRUE. No printer data
+        // is read or written.
+        281 | 282 => 1,
+        _ => 0,
+    }
+}
+
 fn windows_metafile_header(bytes: &[u8]) -> bool {
     if bytes.len() < 18 {
         return false;
@@ -449,4 +468,21 @@ fn wrong_result(name: &str) -> RuntimeError {
         Kind::InternalInvariant,
         format!("Win16 {name} returned a different GDI result"),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::gdi_gap_result;
+
+    #[test]
+    fn printer_gaps_use_the_documented_failure() {
+        // WriteDialog's failure is IDCANCEL. Zero is neither IDOK nor IDCANCEL.
+        assert_eq!(gdi_gap_result(242), 2);
+        // ERROR_SUCCESS is zero. These calls did not store or load printer data.
+        assert_eq!(gdi_gap_result(281), 1);
+        assert_eq!(gdi_gap_result(282), 1);
+        assert_ne!(gdi_gap_result(281), 0);
+        // CreateDIBSection still fails with a null bitmap.
+        assert_eq!(gdi_gap_result(489), 0);
+    }
 }
