@@ -440,10 +440,8 @@ pub(super) fn execute(
             };
             // SAFETY: The HRGN is retained and `rect` is a writable native RECT.
             let complexity = unsafe { GdiGetRgnBox(region, &mut rect) };
-            Ok(ResultValue::Rect {
-                complexity,
-                rect: host_rect(rect),
-            })
+            let (complexity, rect) = guest_region_rect(complexity, rect);
+            Ok(ResultValue::Rect { complexity, rect })
         }
         PtInRegion { region, x, y } => Ok(ResultValue::Bool(
             objects.native_region(region).is_some_and(|native| {
@@ -786,6 +784,23 @@ fn host_rect(rect: RECT) -> Win16DrawingRect {
         right: rect.right,
         bottom: rect.bottom,
     }
+}
+
+/// A Win16 `RECT` stores four signed 16-bit edges. `OffsetRgn` requires region
+/// coordinates in -32768..=32767, and `GetClipBox` / `GetRgnBox` publish that
+/// same rectangle. The guest writer stores the box only when the complexity is
+/// nonzero, then narrows each edge with `as i16`. A native box outside the
+/// signed 16-bit range has no verified wrap contract: return `ERROR` (0) and a
+/// zero rectangle so the caller buffer stays unchanged.
+pub(super) fn guest_region_rect(complexity: i32, rect: RECT) -> (i32, Win16DrawingRect) {
+    let guest = host_rect(rect);
+    let fits = [guest.left, guest.top, guest.right, guest.bottom]
+        .into_iter()
+        .all(|edge| i16::try_from(edge).is_ok());
+    if complexity != 0 && !fits {
+        return (0, zero_rect());
+    }
+    (complexity, guest)
 }
 
 fn zero_rect() -> Win16DrawingRect {
