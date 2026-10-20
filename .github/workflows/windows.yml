@@ -230,6 +230,7 @@ jobs:
             '-p runtime --lib win16_runtime::catch_throw::tests::'
             '-p runtime --lib escape_'
             '-p host-services --lib escape_'
+            '-p runtime --lib win16_runtime::print_abort::tests::'
             '-p host-services --lib dde_completion_'
             '-p runtime --lib initialization_tests::'
             '-p runtime --lib win16_runtime_dde::transfer::tests::'
@@ -293,6 +294,7 @@ jobs:
             '-p runtime --lib win16_runtime::catch_throw::tests::' = 15
             '-p runtime --lib escape_' = 13
             '-p host-services --lib escape_' = 4
+            '-p runtime --lib win16_runtime::print_abort::tests::' = 8
             '-p host-services --lib dde_completion_' = 5
             '-p runtime --lib metafile::tests' = 8
             '-p host-services --lib metafile_native_ -- --ignored --test-threads=1' = 9

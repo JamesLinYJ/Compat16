@@ -488,7 +488,7 @@ fn abort_doc_and_a_cleared_procedure_do_not_enter_the_callback() {
 }
 
 #[test]
-fn escape_set_abort_proc_installs_the_procedure_and_reports_support() {
+fn set_abort_proc_installs_the_procedure_and_reports_support() {
     let (mut runtime, dc, callback) = fixture(4);
     let mut host = Host::default();
     let mut escape = Vec::new();
