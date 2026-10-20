@@ -105,6 +105,16 @@ returns = "dword"
 ordinal = 34
 name = "MMDRVINSTALL"
 kind = "stub"
+decl = { attributes = ["ret16"], args = ["word", "pointer", "pointer", "word"] }
+binding = { rust_id = "LibMmsystem34", id_value = 9200002, constant = "LIB_MMSYSTEM_34" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "hDriver", type = "U16" },
+  { name = "wszDrvEntry", type = "FarPointer" },
+  { name = "drvMessage", type = "FarPointer" },
+  { name = "wFlags", type = "U16" },
+]
 
 [[exports]]
 ordinal = 111
