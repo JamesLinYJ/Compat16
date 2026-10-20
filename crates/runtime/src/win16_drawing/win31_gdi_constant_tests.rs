@@ -168,7 +168,7 @@ fn text_align_drops_later_reading_bit_and_keeps_win31_flags() {
             &mut host,
         )
         .unwrap();
-    assert_eq!(failed, 0);
+    assert_eq!(failed, 0xFFFF);
     assert_eq!(
         host.drawing,
         [Win16DrawingOperation::SetTextAlign {
@@ -357,7 +357,8 @@ fn read_rect(runtime: &Runtime, far: u32) -> [i16; 4] {
 
 #[test]
 fn text_align_host_error_is_not_reported_as_an_alignment() {
-    // GDI_ERROR is negative. Masking it would look like every Win16 flag.
-    assert_eq!(super::win31_text_align(-1), 0);
+    // GDI_ERROR (-1) truncates to the Win16 sentinel. Masking it would look
+    // like every Win16 flag, and zero would look like TA_LEFT | TA_TOP.
+    assert_eq!(super::win31_text_align(-1), 0xFFFF);
     assert_eq!(super::win31_text_align(i32::from(TA_RIGHT | TA_RTLREADING)), u32::from(TA_RIGHT));
 }

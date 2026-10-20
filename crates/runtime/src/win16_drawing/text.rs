@@ -219,11 +219,13 @@ impl Win16State {
 /// Bits of the Windows 3.1 text-alignment options. `TA_RTLREADING` is 256.
 const WIN31_TEXT_ALIGN: u32 = 0x001F;
 
-/// A negative host result is Win32 `GDI_ERROR`. The Win16 return keeps only
-/// the alignment bits published by the Windows 3.1 SDK.
+/// A negative host result is Win32 `GDI_ERROR` (`0xFFFFFFFF`). Truncating it
+/// is the Win16 sentinel `0xFFFF`. Zero is a successful `TA_LEFT | TA_TOP`
+/// alignment, so a failure must not become zero. A nonnegative result keeps
+/// only the alignment bits published by the Windows 3.1 SDK.
 fn win31_text_align(value: i32) -> u32 {
     if value < 0 {
-        0
+        u32::from(value as u16)
     } else {
         (value as u32) & WIN31_TEXT_ALIGN
     }
