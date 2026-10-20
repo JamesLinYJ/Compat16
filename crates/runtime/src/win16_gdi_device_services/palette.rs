@@ -218,7 +218,7 @@ impl Win16State {
         }
     }
 
-    pub(super) fn system_palette_use(
+    pub(in crate::win16_runtime) fn system_palette_use(
         &mut self,
         dc: u16,
         use_mode: Option<u16>,
@@ -227,14 +227,37 @@ impl Win16State {
         let Some(dc) = self.guest_gdi.dc(dc) else {
             return Ok(0);
         };
-        let result = if let Some(use_mode) = use_mode {
-            host.win16_gdi_device(Operation::SetSystemPaletteUse { dc, use_mode })?
-        } else {
-            host.win16_gdi_device(Operation::GetSystemPaletteUse { dc })?
+        // Windows 3.1 `WINDOWS.H` defines SYSPAL_STATIC (1) and SYSPAL_NOSTATIC
+        // (2). SYSPAL_NOSTATIC256 (3) is a later value. Learn returns
+        // SYSPAL_ERROR (0) when SetSystemPaletteUse fails.
+        let Some(use_mode) = use_mode else {
+            return match host.win16_gdi_device(Operation::GetSystemPaletteUse { dc })? {
+                HostResult::Count(value) if matches!(value, 1 | 2) => Ok(value as u32),
+                HostResult::Count(_) => Ok(0),
+                _ => Err(wrong_device_result("GetSystemPaletteUse")),
+            };
         };
-        match result {
-            HostResult::Count(value) => Ok(value as u16 as u32),
-            _ => Err(wrong_device_result("Get/SetSystemPaletteUse")),
+        if !matches!(use_mode, 1 | 2) {
+            return Ok(0);
+        }
+        match host.win16_gdi_device(Operation::SetSystemPaletteUse { dc, use_mode })? {
+            HostResult::Count(previous) if matches!(previous, 1 | 2) => Ok(previous as u32),
+            HostResult::Count(0) => Ok(0),
+            // The host named a previous use this API cannot return. Put that
+            // use back so the error leaves the palette unchanged.
+            HostResult::Count(previous) => {
+                let Some(restore) = u16::try_from(previous).ok() else {
+                    return Ok(0);
+                };
+                match host.win16_gdi_device(Operation::SetSystemPaletteUse {
+                    dc,
+                    use_mode: restore,
+                })? {
+                    HostResult::Count(_) => Ok(0),
+                    _ => Err(wrong_device_result("SetSystemPaletteUse")),
+                }
+            }
+            _ => Err(wrong_device_result("SetSystemPaletteUse")),
         }
     }
 

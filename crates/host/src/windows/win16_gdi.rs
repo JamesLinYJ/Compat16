@@ -280,9 +280,13 @@ impl Win16Dcs {
         let Some(dc_use) = self.lease_dc(token)? else {
             return Ok(None);
         };
-        // SAFETY: The HDC lease pins its table identity through this call.
-        let native = unsafe { GetDeviceCaps(dc_use.native(), i32::from(index)) };
-        Ok(Some(device_caps::project_count(index, native)))
+        // Windows 3.1 `WINDOWS.H` lists the GetDeviceCaps indexes through
+        // COLORRES. A later index, including PHYSICALWIDTH, is not queried.
+        Ok(Some(device_caps::project_queried(index, |index| {
+            // SAFETY: The HDC lease pins its table identity through this call.
+            // The closure runs only for an index the Windows 3.1 header defines.
+            unsafe { GetDeviceCaps(dc_use.native(), i32::from(index)) }
+        })))
     }
 
     pub(super) fn reset(

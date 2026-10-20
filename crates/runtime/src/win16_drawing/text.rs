@@ -88,7 +88,7 @@ impl Win16State {
                     return Ok(0);
                 };
                 match host.win16_gdi(Operation::GetTextAlign { dc })? {
-                    HostResult::Mode(alignment) => Ok(alignment as u16 as u32),
+                    HostResult::Mode(alignment) => Ok(win31_text_align(alignment)),
                     _ => Err(wrong_result("GetTextAlign")),
                 }
             }
@@ -99,11 +99,13 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
+                // Windows 3.1 `WINDOWS.H` defines TA_UPDATECP through TA_BASELINE.
+                // TA_RTLREADING (256) is a later flag and is not applied.
                 match host.win16_gdi(Operation::SetTextAlign {
                     dc,
-                    alignment: u32::from(alignment),
+                    alignment: u32::from(alignment) & WIN31_TEXT_ALIGN,
                 })? {
-                    HostResult::Mode(previous) => Ok(previous as u16 as u32),
+                    HostResult::Mode(previous) => Ok(win31_text_align(previous)),
                     _ => Err(wrong_result("SetTextAlign")),
                 }
             }
@@ -213,3 +215,22 @@ impl Win16State {
         }
     }
 }
+
+/// Bits of the Windows 3.1 text-alignment options. `TA_RTLREADING` is 256.
+const WIN31_TEXT_ALIGN: u32 = 0x001F;
+
+/// A negative host result is Win32 `GDI_ERROR` (`0xFFFFFFFF`). Truncating it
+/// is the Win16 sentinel `0xFFFF`. Zero is a successful `TA_LEFT | TA_TOP`
+/// alignment, so a failure must not become zero. A nonnegative result keeps
+/// only the alignment bits published by the Windows 3.1 SDK.
+fn win31_text_align(value: i32) -> u32 {
+    if value < 0 {
+        u32::from(value as u16)
+    } else {
+        (value as u32) & WIN31_TEXT_ALIGN
+    }
+}
+
+#[cfg(test)]
+#[path = "win31_gdi_constant_tests.rs"]
+mod win31_gdi_constant_tests;

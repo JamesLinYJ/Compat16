@@ -2,6 +2,50 @@
 
 use windows_sys::Win32::Graphics::Gdi::{NUMBRUSHES, NUMCOLORS, NUMPENS};
 
+/// Indexes published for `GetDeviceCaps` by the Windows 3.1 SDK `WINDOWS.H`.
+/// `PHYSICALWIDTH` (110) and the other later indexes are absent from that list.
+pub(super) fn documented_index(index: i16) -> bool {
+    matches!(
+        index,
+        0 | 2
+            | 4
+            | 6
+            | 8
+            | 10
+            | 12
+            | 14
+            | 16
+            | 18
+            | 20
+            | 22
+            | 24
+            | 26
+            | 28
+            | 30
+            | 32
+            | 34
+            | 36
+            | 38
+            | 40
+            | 42
+            | 44
+            | 88
+            | 90
+            | 104
+            | 106
+            | 108
+    )
+}
+
+/// Read one Windows 3.1 capability. An index outside that header returns 0
+/// and does not call `query`.
+pub(super) fn project_queried(index: i16, query: impl FnOnce(i16) -> i32) -> i16 {
+    if !documented_index(index) {
+        return 0;
+    }
+    project_count(index, query(index))
+}
+
 pub(super) fn project_count(index: i16, native: i32) -> i16 {
     match (index as u32, native) {
         // Legacy WOW exposes a finite positive count for these unlimited
@@ -48,6 +92,36 @@ mod tests {
             assert_eq!(project_count(index as i16, 0), 0);
             assert_eq!(project_count(index as i16, -2), -2);
         }
+    }
+
+    #[test]
+    fn later_indexes_return_zero_without_querying_the_host() {
+        for index in [1, 46, 92, 109, 110, 111, 116, 117, 120, 121, -1, i16::MAX] {
+            let mut queried = false;
+            let value = project_queried(index, |_| {
+                queried = true;
+                5100
+            });
+            assert_eq!(value, 0, "{index}");
+            assert!(!queried, "{index}");
+        }
+    }
+
+    #[test]
+    fn documented_indexes_still_query_and_project_counts() {
+        let mut queried = Vec::new();
+        let colors = project_queried(NUMCOLORS as i16, |index| {
+            queried.push(index);
+            -1
+        });
+        assert_eq!(queried, [NUMCOLORS as i16]);
+        assert_eq!(colors, 2048);
+        let pixels = project_queried(88, |index| {
+            queried.push(index);
+            96
+        });
+        assert_eq!(pixels, 96);
+        assert_eq!(queried, [NUMCOLORS as i16, 88]);
     }
 
     #[test]

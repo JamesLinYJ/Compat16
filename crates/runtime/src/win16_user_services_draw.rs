@@ -10,6 +10,18 @@ use crate::{
 };
 
 const DT_CALCRECT: u16 = 0x0400;
+const DT_TABSTOP: u16 = 0x0080;
+/// `DT_TOP` through `DT_INTERNAL` from the Windows 3.1 SDK `WINDOWS.H`.
+const WIN31_DRAW_TEXT: u16 = 0x1FFF;
+
+fn win31_draw_text_flags(flags: u16) -> u16 {
+    if flags & DT_TABSTOP != 0 {
+        flags
+    } else {
+        flags & WIN31_DRAW_TEXT
+    }
+}
+
 const FIRST_COLOR_BRUSH: u16 = 1;
 const LAST_COLOR_BRUSH: u16 = 31;
 
@@ -155,6 +167,10 @@ impl Win16State {
                     flags,
                 },
             )) => {
+                // Windows 3.1 flags stop at DT_INTERNAL. Later ellipsis and
+                // edit-control bits are cleared unless DT_TABSTOP is using the
+                // high byte as its character count.
+                let flags = win31_draw_text_flags(flags);
                 if count < -1 {
                     return Ok(0);
                 }
