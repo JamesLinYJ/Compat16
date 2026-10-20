@@ -3,12 +3,13 @@
 //! Guest calls check these tables before a host query. An index or mode
 //! outside the table is the documented failure and is not forwarded.
 
-/// `SM_CXSCREEN` (0) through `SM_CMOUSEBUTTONS` (43).
+/// `SM_CXSCREEN` (0) through `SM_DBCSENABLED` (42).
 ///
-/// Windows 3.1 `WINDOWS.H` defines `SM_CMETRICS` as 44, the count of those
-/// indexes. Later headers reuse 44 for `SM_SECURE` and add `SM_CXSMICON` at
-/// 49. Learn returns 0 when `GetSystemMetrics` fails.
-pub const WIN31_LAST_SYSTEM_METRIC: i32 = 43;
+/// Windows 3.1 `WINDOWS.H` defines `SM_CMETRICS` as 43, the count of those
+/// indexes, not a query index. `SM_CMOUSEBUTTONS` was added later at 43.
+/// Later headers reuse 44 for `SM_SECURE` and add `SM_CXSMICON` at 49. Learn
+/// returns 0 when `GetSystemMetrics` fails.
+pub const WIN31_LAST_SYSTEM_METRIC: i32 = 42;
 
 /// `BLACKONWHITE`, `WHITEONBLACK`, and `COLORONCOLOR`.
 ///
@@ -39,10 +40,11 @@ mod tests {
     use super::{win31_stock_object, win31_stretch_blt_mode, win31_system_metric};
 
     #[test]
-    fn win31_system_metric_stops_at_mouse_buttons() {
+    fn win31_system_metric_stops_at_dbcs_enabled() {
         assert!(win31_system_metric(0));
-        assert!(win31_system_metric(43));
+        assert!(win31_system_metric(42));
         assert!(!win31_system_metric(-1));
+        assert!(!win31_system_metric(43));
         assert!(!win31_system_metric(44));
         assert!(!win31_system_metric(49));
     }

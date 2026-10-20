@@ -738,7 +738,7 @@ impl Win16State {
 
 /// USER `GetSystemMetrics`. The guest argument is a signed word and the
 /// result is narrowed to that word. An index outside `SM_CXSCREEN` through
-/// `SM_CMOUSEBUTTONS` returns 0 and does not query the host.
+/// `SM_DBCSENABLED` returns 0 and does not query the host.
 fn system_metrics(host: &mut impl RuntimeHost, index: i16) -> Result<u32, RuntimeError> {
     if !crate::win31_system_metric(i32::from(index)) {
         return Ok(0);

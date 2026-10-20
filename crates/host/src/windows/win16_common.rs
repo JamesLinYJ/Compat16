@@ -41,7 +41,7 @@ pub(super) fn get_async_key_state(virtual_key: i32) -> i16 {
 
 /// Expose caption space consistent with the Win16 frame geometry.
 ///
-/// Windows 3.1 indexes run from `SM_CXSCREEN` through `SM_CMOUSEBUTTONS`.
+/// Windows 3.1 indexes run from `SM_CXSCREEN` through `SM_DBCSENABLED`.
 /// Learn returns 0 when `GetSystemMetrics` fails, so a later host metric is
 /// not queried.
 pub(super) fn get_system_metrics(index: i32) -> i32 {

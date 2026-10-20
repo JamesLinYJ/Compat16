@@ -6,15 +6,17 @@ use crate::Runtime;
 #[test]
 fn system_metrics_outside_win31_return_zero_without_the_host() {
     let mut host = NoHost;
-    // SM_SECURE (44) and SM_CXSMICON (49) are later indexes. The host metric
-    // service is not called, so its failure is not the guest result.
+    // Index 43 is `SM_CMETRICS` in Windows 3.1 and `SM_CMOUSEBUTTONS` on a
+    // later host. `SM_SECURE` (44) and `SM_CXSMICON` (49) are later indexes.
+    // None of them query the host, so its value is not the guest result.
     assert_eq!(super::system_metrics(&mut host, -1).unwrap(), 0);
+    assert_eq!(super::system_metrics(&mut host, 43).unwrap(), 0);
     assert_eq!(super::system_metrics(&mut host, 44).unwrap(), 0);
     assert_eq!(super::system_metrics(&mut host, 49).unwrap(), 0);
     assert_eq!(super::system_metrics(&mut host, i16::MAX).unwrap(), 0);
-    // SM_CXSCREEN and SM_CMOUSEBUTTONS still query the host.
+    // SM_CXSCREEN and SM_DBCSENABLED still query the host.
     assert!(super::system_metrics(&mut host, 0).is_err());
-    assert!(super::system_metrics(&mut host, 43).is_err());
+    assert!(super::system_metrics(&mut host, 42).is_err());
 }
 
 #[test]
