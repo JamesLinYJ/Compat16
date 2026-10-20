@@ -8,6 +8,8 @@ use zerocopy::byteorder::little_endian::{U16, U32};
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
 pub const MIDIHDR16_SIZE: usize = 28;
+/// Packed Windows 3.1 `MIDIINCAPS`. `VERSION` is a word and `szPname` is 32
+/// bytes. The later Win32 `dwSupport` dword is not part of this record.
 pub const MIDIINCAPS16_SIZE: usize = 38;
 pub const MIDIOUTCAPS16_SIZE: usize = 50;
 
@@ -74,7 +76,10 @@ impl Win16MidiInCaps16 {
             product: U16::new(self.product),
             driver_version: U16::new(self.driver_version),
             product_name: self.product_name,
-        }.as_bytes().try_into().unwrap_or_else(|_| unreachable!("MIDIINCAPS16 size is asserted"))
+        }
+        .as_bytes()
+        .try_into()
+        .unwrap_or_else(|_| unreachable!("MIDIINCAPS16 size is asserted"))
     }
 }
 
@@ -90,7 +95,10 @@ impl Win16MidiOutCaps16 {
             notes: U16::new(self.notes),
             channel_mask: U16::new(self.channel_mask),
             support: U32::new(self.support),
-        }.as_bytes().try_into().unwrap_or_else(|_| unreachable!("MIDIOUTCAPS16 size is asserted"))
+        }
+        .as_bytes()
+        .try_into()
+        .unwrap_or_else(|_| unreachable!("MIDIOUTCAPS16 size is asserted"))
     }
 }
 

@@ -141,7 +141,12 @@ impl Win16State {
         } else {
             MIDIOUTCAPS16_SIZE
         };
+        // midiInGetDevCaps / midiOutGetDevCaps: a zero byte count copies
+        // nothing and returns MMSYSERR_NOERROR, including for a bad device id.
         let output_length = usize::from(size).min(expected);
+        if output_length == 0 {
+            return Ok(MMSYSERR_NOERROR);
+        }
         let output = match self.capture_midi_range(memory, output_far, output_length, false, true) {
             Ok(output) => output,
             Err(error) if is_guest_pointer_error(&error) => return Ok(MMSYSERR_INVALPARAM),

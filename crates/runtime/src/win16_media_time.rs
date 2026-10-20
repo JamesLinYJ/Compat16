@@ -64,9 +64,18 @@ impl Win16State {
                     return Err(invariant("timeGetDevCaps returned the wrong result shape"));
                 };
                 if result == 0 {
+                    // Win16 TIMECAPS stores each period in a 16-bit UINT.
+                    // wPeriodMax is an upper bound, so a wider host maximum
+                    // clamps to that word. An unrepresentable minimum would
+                    // leave no legal guest range, so that query returns
+                    // TIMERR_NOCANDO and writes nothing.
+                    let Ok(minimum_period) = u16::try_from(minimum_period) else {
+                        return Ok(u32::from(TIMERR_NOCANDO));
+                    };
+                    let maximum_period = maximum_period.min(u32::from(u16::MAX)) as u16;
                     let record = Win16TimeCaps16 {
-                        minimum_period: minimum_period as u16,
-                        maximum_period: maximum_period as u16,
+                        minimum_period,
+                        maximum_period,
                     }.encode();
                     match commit_guest_writes(self, memory, vec![(output, record.to_vec())]) {
                         Ok(()) => {}

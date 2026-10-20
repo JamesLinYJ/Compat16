@@ -79,6 +79,8 @@ pub(super) fn get_caps(
             let raw_version = unsafe { ptr::addr_of!(native.vDriverVersion).read_unaligned() };
             // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let name = unsafe { ptr::addr_of!(native.szPname).read_unaligned() };
+            // Win32 MIDIINCAPSW.dwSupport is reserved and is not part of the
+            // 38-byte Windows 3.1 MIDIINCAPS record, so it is not projected.
             let version = u16::try_from(raw_version).map_err(|error| {
                 RuntimeError::with_source(
                     Kind::CompatibilityGap,
