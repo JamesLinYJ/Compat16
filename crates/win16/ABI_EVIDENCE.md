@@ -1129,7 +1129,15 @@ void return are the Windows SDK `vfw.h` contract published by
 [StretchDIB](https://learn.microsoft.com/en-us/windows/win32/api/vfw/nf-vfw-stretchdib).
 Each `int` is a signed word and each pointer is a far pointer, matching the
 16-bit widths Wine's `dlls/msvideo.dll16/msvideo.dll16.spec` uses for those
-types on `DrawDibDraw`. The destination buffer is not written. The other
+types on `DrawDibDraw`. The destination buffer is not written.
+`ReEnable` (DISPLAY.31) is bound as id `9000001`. Microsoft Knowledge Base
+article Q141486 publishes `BOOL ReEnable(LPPDEVICE, LPSTR)`. The first
+argument is a long pointer to the driver's `PDEVICE`. The second is a long
+pointer to the current `GDIINFO`; the article spells that slot `LPSTR` and
+describes the structure, so it is a far pointer and is not read as a
+character string. On this Win16 export each long pointer is four bytes and
+`BOOL` is a word, the same widths `Enable` uses. The call is far Pascal and
+pops 8 bytes. It returns FALSE and does not write either structure. The other
 rows whose parameter list is still unpublished stay declaration-only,
 including `ReadCommString`, `InquireEx`, `NewTableEx`, `DoBeep`,
 `MyOpenSound`, `InquireLongInts`, `QueryDeviceNames`, and the unnamed

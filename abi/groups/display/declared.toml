@@ -459,6 +459,13 @@ ordinal = 31
 name = "ReEnable"
 kind = "stub"
 
+binding = { rust_id = "DriverDisplay31ReEnable", id_value = 9000001, constant = "DRIVER_DISPLAY_31" }
+[exports.call]
+returns = "word"
+params = [
+  { name = "device", type = "FarPointer" },
+  { name = "gdi_info", type = "FarPointer" },
+]
 [[exports]]
 ordinal = 39
 name = "DIBBlt"

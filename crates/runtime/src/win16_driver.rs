@@ -208,6 +208,9 @@ fn detail(module: &str, ordinal: u16) -> Option<&'static str> {
     if module.eq_ignore_ascii_case("MSVIDEO") && ordinal == 115 {
         return Some("does not stretch the bitmap and writes no destination");
     }
+    if module.eq_ignore_ascii_case("DISPLAY") && ordinal == 31 {
+        return Some("returns FALSE and does not rewrite PDEVICE or GDIINFO");
+    }
     Some(if module.eq_ignore_ascii_case("COMM") {
         "returns the communications failure and writes no DCB, queue, or status"
     } else if module.eq_ignore_ascii_case("DISPLAY") {
@@ -279,6 +282,7 @@ mod tests {
         assert_eq!(value("DISPLAY", 6), 1);
         assert_eq!(value("DISPLAY", 9), 0x8000_0000);
         assert_eq!(value("DISPLAY", 12), 0xFFFF);
+        assert_eq!(value("DISPLAY", 31), 0);
         assert_eq!(value("WINSPOOL", 9), 0x8000_0000);
         assert_eq!(value("KEYBOARD", 11), 0xFFFF);
         assert_eq!(value("MOUSE", 4), 0xFFFF);
