@@ -141,7 +141,12 @@ impl Win16State {
         } else {
             MIDIOUTCAPS16_SIZE
         };
+        // midiInGetDevCaps / midiOutGetDevCaps: a zero byte count copies
+        // nothing and returns MMSYSERR_NOERROR, including for a bad device id.
         let output_length = usize::from(size).min(expected);
+        if output_length == 0 {
+            return Ok(MMSYSERR_NOERROR);
+        }
         let output = match self.capture_midi_range(memory, output_far, output_length, false, true) {
             Ok(output) => output,
             Err(error) if is_guest_pointer_error(&error) => return Ok(MMSYSERR_INVALPARAM),
@@ -162,8 +167,8 @@ impl Win16State {
         };
         let bytes = match (direction, caps) {
             (GuestDirection::Input, HostCaps::Input { manufacturer, product,
-                driver_version, product_name }) => win16_abi::Win16MidiInCaps16 {
-                    manufacturer, product, driver_version, product_name,
+                driver_version, product_name, support }) => win16_abi::Win16MidiInCaps16 {
+                    manufacturer, product, driver_version, product_name, support,
                 }.encode().to_vec(),
             (GuestDirection::Output, HostCaps::Output { manufacturer, product,
                 driver_version, product_name, technology, voices, notes,

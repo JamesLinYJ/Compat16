@@ -79,6 +79,8 @@ pub(super) fn get_caps(
             let raw_version = unsafe { ptr::addr_of!(native.vDriverVersion).read_unaligned() };
             // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
             let name = unsafe { ptr::addr_of!(native.szPname).read_unaligned() };
+            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
+            let support = unsafe { ptr::addr_of!(native.dwSupport).read_unaligned() };
             let version = u16::try_from(raw_version).map_err(|error| {
                 RuntimeError::with_source(
                     Kind::CompatibilityGap,
@@ -93,6 +95,7 @@ pub(super) fn get_caps(
                     product,
                     driver_version: version,
                     product_name: guest_product_name(codec, name)?,
+                    support,
                 }),
             })
         }
