@@ -15,8 +15,8 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
 use windows_sys::Win32::Graphics::Gdi::{
-    ClientToScreen, GetMonitorInfoW, MONITORINFO, MONITOR_DEFAULTTONEAREST, MapWindowPoints,
-    MonitorFromWindow, ScreenToClient, WindowFromDC,
+    ClientToScreen, GetMonitorInfoW, HMONITOR, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    MapWindowPoints, MonitorFromRect, MonitorFromWindow, ScreenToClient, WindowFromDC,
 };
 use windows_sys::Win32::System::WindowsProgramming::{WINNLSEnableIME, WINNLSGetEnableStatus};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -589,9 +589,10 @@ fn host_point(point: POINT) -> Win16HostPoint {
 }
 
 // Windows 3.1 positions are screen coordinates, the same rectangle
-// GetWindowRect reports for the restored window. Win32 stores workspace
-// coordinates for a top-level window without WS_EX_TOOLWINDOW: workspace
-// (0, 0) is that monitor's work-area origin, not the screen origin.
+// GetWindowRect reports for the restored window. Win32 workspace coordinates
+// for a top-level window without WS_EX_TOOLWINDOW keep that monitor's virtual
+// origin. They differ from screen coordinates by rcWork - rcMonitor on each
+// axis, not by the absolute work-area origin.
 // https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-windowplacement
 fn read_window_placement(native: HWND) -> Option<Win16WindowPlacement> {
     let mut placement = WINDOWPLACEMENT {
@@ -602,7 +603,7 @@ fn read_window_placement(native: HWND) -> Option<Win16WindowPlacement> {
     if unsafe { GetWindowPlacement(native, &mut placement) } == 0 {
         return None;
     }
-    let delta = placement_screen_delta(native)?;
+    let delta = placement_delta_for_window(native)?;
     Some(Win16WindowPlacement {
         flags: placement.flags,
         show_command: placement.showCmd,
@@ -614,8 +615,10 @@ fn read_window_placement(native: HWND) -> Option<Win16WindowPlacement> {
 
 fn write_window_placement(native: HWND, placement: Win16WindowPlacement) -> bool {
     // Convert before the native call. SetWindowPlacement can reenter a window
-    // procedure, so this function retains no worker borrow.
-    let Some(delta) = placement_screen_delta(native).and_then(negate_delta) else {
+    // procedure, so this function retains no worker borrow. The destination
+    // monitor comes from the requested normal rectangle, not the current bounds.
+    let Some(delta) = placement_delta_for_normal(native, placement.normal).and_then(negate_delta)
+    else {
         return false;
     };
     let Some(minimum) = offset_point(placement.minimum.x, placement.minimum.y, delta) else {
@@ -646,27 +649,52 @@ fn write_window_placement(native: HWND, placement: Win16WindowPlacement) -> bool
     unsafe { SetWindowPlacement(native, &placement) != 0 }
 }
 
-fn placement_screen_delta(native: HWND) -> Option<(i32, i32)> {
+fn placement_delta_for_window(native: HWND) -> Option<(i32, i32)> {
+    if !(workspace_placement(native)?) {
+        return Some((0, 0));
+    }
+    // SAFETY: MonitorFromWindow returns the monitor nearest this window. No guest address is passed.
+    let monitor = unsafe { MonitorFromWindow(native, MONITOR_DEFAULTTONEAREST) };
+    monitor_work_delta(monitor)
+}
+
+fn placement_delta_for_normal(native: HWND, normal: Win16HostRect) -> Option<(i32, i32)> {
+    if !(workspace_placement(native)?) {
+        return Some((0, 0));
+    }
+    let normal = RECT {
+        left: normal.left,
+        top: normal.top,
+        right: normal.right,
+        bottom: normal.bottom,
+    };
+    // SAFETY: MonitorFromRect reads a caller-owned screen rectangle. No guest address is passed.
+    let monitor = unsafe { MonitorFromRect(&normal, MONITOR_DEFAULTTONEAREST) };
+    monitor_work_delta(monitor)
+}
+
+fn workspace_placement(native: HWND) -> Option<bool> {
     if native.is_null() {
         return None;
     }
     let style = window_long(native, GWL_STYLE)?;
     let extended = window_long(native, GWL_EXSTYLE)?;
-    if style & WS_CHILD != 0 || extended & WS_EX_TOOLWINDOW != 0 {
-        return Some((0, 0));
-    }
-    let mut monitor = MONITORINFO {
+    Some(style & WS_CHILD == 0 && extended & WS_EX_TOOLWINDOW == 0)
+}
+
+fn monitor_work_delta(monitor: HMONITOR) -> Option<(i32, i32)> {
+    let mut info = MONITORINFO {
         cbSize: std::mem::size_of::<MONITORINFO>() as u32,
         ..Default::default()
     };
-    // SAFETY: MonitorFromWindow and GetMonitorInfoW use a caller-owned MONITORINFO. A failed query returns zero, and no guest address is passed.
-    let found = unsafe {
-        GetMonitorInfoW(
-            MonitorFromWindow(native, MONITOR_DEFAULTTONEAREST),
-            &mut monitor,
-        ) != 0
-    };
-    found.then_some((monitor.rcWork.left, monitor.rcWork.top))
+    // SAFETY: GetMonitorInfoW writes a caller-owned MONITORINFO. A null or invalid monitor returns zero, and no guest address is passed.
+    if unsafe { GetMonitorInfoW(monitor, &mut info) } == 0 {
+        return None;
+    }
+    Some((
+        info.rcWork.left.checked_sub(info.rcMonitor.left)?,
+        info.rcWork.top.checked_sub(info.rcMonitor.top)?,
+    ))
 }
 
 fn window_long(native: HWND, index: i32) -> Option<u32> {
