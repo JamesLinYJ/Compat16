@@ -10,8 +10,8 @@ use dos_kernel::{
     DosDirectoryEntry, DosFileAccess, DosFileSharing, DosHost, DosHostError, DosHostFile,
     DosHostSearch, DosSeekOrigin,
 };
-use guest_core::{GuestMemory, Selector, io::NoPorts};
-use win16_abi::{ExportLookupTarget, lookup_export};
+use guest_core::{GuestMemory, PhysAddr, Selector, io::NoPorts};
+use win16_abi::{Access, AccessRights, ExportLookupTarget, SegmentedPointer, lookup_export};
 
 const NATIVE: Win16HostDc = Win16HostDc(0x1234);
 const SP_ERROR: u16 = 0xffff;
@@ -631,4 +631,134 @@ fn short_stack_and_deleted_dc_do_not_enter_or_keep_the_procedure() {
     dispatch(&mut runtime, &mut host).unwrap();
     assert_return(&runtime, return_to, 0);
     assert_idle(&runtime);
+}
+
+fn doc_info(runtime: &mut Runtime) -> u32 {
+    let state = runtime.win16.as_mut().unwrap();
+    let selector = state
+        .selectors
+        .alloc_block(
+            PhysAddr(0x70000),
+            0x10000,
+            AccessRights::read_write(),
+            &runtime.memory,
+        )
+        .unwrap();
+    let pointer = SegmentedPointer::new(selector, 0);
+    let mut bytes = [0; 10];
+    bytes[..2].copy_from_slice(&10u16.to_le_bytes());
+    state
+        .selectors
+        .write(&mut runtime.memory, pointer, &bytes)
+        .unwrap();
+    pointer.far_value()
+}
+
+fn started_document() -> Operation {
+    Operation::StartDoc {
+        dc: NATIVE,
+        document_name: None,
+        output: None,
+    }
+}
+
+fn aborted_document() -> Operation {
+    Operation::Print {
+        operation: Win16PrintOperation::AbortDocument,
+        dc: NATIVE,
+    }
+}
+
+fn reject_print(runtime: &mut Runtime, host: &mut Host, ordinal: u16, args: &[u8]) {
+    let return_to = invoke(runtime, ordinal, args);
+    dispatch(runtime, host).unwrap();
+    runtime.cpu.regs.set_ax(0);
+    retf(runtime, host).unwrap();
+    assert_return(runtime, return_to, SP_APPABORT);
+    assert_idle(runtime);
+}
+
+fn accept_start_doc(runtime: &mut Runtime, host: &mut Host, dc: u16, info: u32) {
+    let return_to = invoke(runtime, 377, &dword_word(info, dc));
+    dispatch(runtime, host).unwrap();
+    runtime.cpu.regs.set_ax(1);
+    retf(runtime, host).unwrap();
+    assert_return(runtime, return_to, 1);
+    assert_idle(runtime);
+}
+
+#[test]
+fn false_abort_after_start_doc_cancels_the_host_document() {
+    let (mut runtime, dc, callback) = fixture(4);
+    let mut host = Host::default();
+    install(&mut runtime, &mut host, dc, callback);
+    let info = doc_info(&mut runtime);
+    let start_doc = dword_word(info, dc);
+
+    reject_print(&mut runtime, &mut host, 377, &start_doc);
+    assert!(host.calls.is_empty());
+
+    accept_start_doc(&mut runtime, &mut host, dc, info);
+    assert_eq!(host.calls, [started_document()]);
+
+    let return_to = invoke(&mut runtime, 155, &code_dc(0, dc));
+    dispatch(&mut runtime, &mut host).unwrap();
+    runtime.cpu.regs.set_ax(0);
+    retf(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 0);
+    assert_eq!(host.calls, [started_document()]);
+
+    reject_print(&mut runtime, &mut host, 379, &dc.to_le_bytes());
+    assert_eq!(host.calls, [started_document(), aborted_document()]);
+    reject_print(&mut runtime, &mut host, 379, &dc.to_le_bytes());
+    assert_eq!(host.calls.len(), 2);
+
+    for (ordinal, args) in [
+        (380, dc.to_le_bytes().to_vec()),
+        (378, dc.to_le_bytes().to_vec()),
+        (38, escape_args(dc, 1)),
+        (38, escape_args(dc, 11)),
+    ] {
+        accept_start_doc(&mut runtime, &mut host, dc, info);
+        let before = host.calls.len();
+        reject_print(&mut runtime, &mut host, ordinal, &args);
+        assert_eq!(
+            &host.calls[before - 1..],
+            [started_document(), aborted_document()]
+        );
+    }
+
+    accept_start_doc(&mut runtime, &mut host, dc, info);
+    let before = host.calls.len();
+    reject_print(&mut runtime, &mut host, 38, &escape_args(dc, 10));
+    assert_eq!(host.calls.len(), before);
+    reject_print(&mut runtime, &mut host, 379, &dc.to_le_bytes());
+    assert_eq!(host.calls.last(), Some(&aborted_document()));
+
+    accept_start_doc(&mut runtime, &mut host, dc, info);
+    let return_to = invoke(&mut runtime, 378, &dc.to_le_bytes());
+    dispatch(&mut runtime, &mut host).unwrap();
+    runtime.cpu.regs.set_ax(1);
+    retf(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 1);
+    assert_eq!(
+        host.calls.last(),
+        Some(&Operation::Print {
+            operation: Win16PrintOperation::EndDocument,
+            dc: NATIVE,
+        })
+    );
+    let before = host.calls.len();
+    reject_print(&mut runtime, &mut host, 379, &dc.to_le_bytes());
+    assert_eq!(host.calls.len(), before);
+}
+
+fn escape_args(dc: u16, escape: i16) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(&0u32.to_le_bytes());
+    bytes.extend_from_slice(&0u32.to_le_bytes());
+    bytes.extend_from_slice(&0i16.to_le_bytes());
+    bytes.extend_from_slice(&escape.to_le_bytes());
+    bytes.extend_from_slice(&dc.to_le_bytes());
+    bytes
 }

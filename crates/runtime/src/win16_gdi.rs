@@ -26,6 +26,9 @@ struct DcAttributes {
     /// Guest FAR of the `AbortProc` installed by `SetAbortProc`. It is a
     /// 16:16 procedure address, never a host pointer.
     abort_proc: Option<u32>,
+    /// A host document is open. A positive `StartDoc` sets it. A positive
+    /// `EndDoc` or `AbortDoc` clears it.
+    print_document_open: bool,
 }
 
 pub(super) struct GuestGdiHandles {
@@ -100,6 +103,22 @@ impl GuestGdiHandles {
         self.dc_attributes
             .values()
             .filter_map(|entry| entry.abort_proc)
+    }
+
+    pub(super) fn print_document_open(&self, handle: u16) -> bool {
+        self.dc_attributes
+            .get(&handle)
+            .is_some_and(|entry| entry.print_document_open)
+    }
+
+    pub(super) fn set_print_document_open(&mut self, handle: u16, open: bool) {
+        if !open {
+            if let Some(entry) = self.dc_attributes.get_mut(&handle) {
+                entry.print_document_open = false;
+            }
+            return;
+        }
+        self.dc_attributes_mut(handle).print_document_open = true;
     }
 
     fn forget_dc_attributes(&mut self, handle: u16) {

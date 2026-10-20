@@ -915,8 +915,14 @@ word is `SP_OUTOFDISK`. An HDC that is not a live guest device context returns
 FALSE. `QueryAbort` does not cancel the open job. `Escape` `STARTDOC`,
 `NEWFRAME`, and `ENDDOC`, and `StartDoc`, `StartPage`, `EndPage`, and `EndDoc`,
 enter the procedure once with code 0 before the host print call. A zero return
-is `SP_APPABORT` and skips the host call. `AbortDoc` does not ask the
-procedure. Drawing calls do not enter it. GDI driver data
+is `SP_APPABORT` and skips that host call. The Windows 3.1 SDK `ABORTDOC`,
+`ENDDOC`, and `STARTDOC` remarks say GDI terminates a canceled print operation
+before returning the error, and the application must not send `ENDDOC` or
+`ABORTDOC` for that error. `StartPage`, `EndPage`, `EndDoc`, and the
+`NEWFRAME` and `ENDDOC` escapes therefore abort the host document when
+`StartDoc` has already opened one. `StartDoc` and `STARTDOC` have not opened
+a host document, so a zero return does not call `AbortDoc`. `AbortDoc` does
+not ask the procedure. Drawing calls do not enter it. GDI driver data
 uses the native RAW datatype, keeping device-dependent bytes intact rather
 than selecting a queue's text processor; see the native
 [WritePrinter contract](https://learn.microsoft.com/en-us/windows/win32/printdocs/writeprinter).

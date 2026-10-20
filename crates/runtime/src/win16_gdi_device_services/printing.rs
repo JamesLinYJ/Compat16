@@ -56,18 +56,37 @@ impl Win16State {
             document_name: info.document_name,
             output: info.output,
         })? {
-            HostResult::Count(value) => Ok(value as u16 as u32),
+            HostResult::Count(value) => {
+                let status = value as u16 as u32;
+                if positive_spool_status(status) {
+                    self.guest_gdi.set_print_document_open(guest_dc, true);
+                }
+                Ok(status)
+            }
             _ => Err(wrong_device_result("StartDoc")),
         }
+    }
+
+    /// `AbortDoc` for a document `StartDoc` already opened. A DC with no open
+    /// document is left unchanged.
+    pub(in super::super) fn abort_print_document_if_open(
+        &mut self,
+        guest_dc: u16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<(), RuntimeError> {
+        if self.guest_gdi.print_document_open(guest_dc) {
+            self.print(PrintOperation::AbortDocument, guest_dc, host)?;
+        }
+        Ok(())
     }
 
     pub(super) fn print(
         &mut self,
         operation: PrintOperation,
-        dc: u16,
+        guest_dc: u16,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        let Some(dc) = self.guest_gdi.dc(dc) else {
+        let Some(dc) = self.guest_gdi.dc(guest_dc) else {
             return Ok(SP_ERROR16);
         };
         let operation = match operation {
@@ -77,8 +96,23 @@ impl Win16State {
             PrintOperation::AbortDocument => Win16PrintOperation::AbortDocument,
         };
         match host.win16_gdi_device(Operation::Print { operation, dc })? {
-            HostResult::Count(value) => Ok(value as u16 as u32),
+            HostResult::Count(value) => {
+                let status = value as u16 as u32;
+                if positive_spool_status(status)
+                    && matches!(
+                        operation,
+                        Win16PrintOperation::EndDocument | Win16PrintOperation::AbortDocument
+                    )
+                {
+                    self.guest_gdi.set_print_document_open(guest_dc, false);
+                }
+                Ok(status)
+            }
             _ => Err(wrong_device_result("print lifecycle")),
         }
     }
+}
+
+fn positive_spool_status(status: u32) -> bool {
+    i16::try_from(status).ok().is_some_and(|value| value > 0)
 }
