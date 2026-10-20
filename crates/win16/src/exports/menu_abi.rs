@@ -44,3 +44,35 @@ pub const MF_END: u16 = 0x0080;
 
 /// `InsertMenu(..., MF_BYPOSITION, ...)` uses this position to append at end.
 pub const MENU_POSITION_APPEND: u16 = u16::MAX;
+
+/// Win32 `InsertMenu` position. `MF_BYPOSITION` with [`MENU_POSITION_APPEND`]
+/// is the 16-bit form of -1 and must become `u32::MAX`. A command id of
+/// `0xFFFF` stays the zero-extended word.
+pub fn insert_menu_native_position(position: u16, flags: u16) -> u32 {
+    if flags & MF_BYPOSITION != 0 && position == MENU_POSITION_APPEND {
+        u32::MAX
+    } else {
+        u32::from(position)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn insert_menu_by_position_appends_at_native_uint_max() {
+        assert_eq!(
+            insert_menu_native_position(u16::MAX, MF_BYPOSITION),
+            u32::MAX
+        );
+        assert_eq!(
+            insert_menu_native_position(u16::MAX, MF_BYPOSITION | MF_STRING),
+            u32::MAX
+        );
+        assert_eq!(insert_menu_native_position(2, MF_BYPOSITION), 2);
+        assert_eq!(insert_menu_native_position(0, MF_BYPOSITION), 0);
+        assert_eq!(insert_menu_native_position(u16::MAX, MF_BYCOMMAND), 0xffff);
+        assert_eq!(insert_menu_native_position(u16::MAX, MF_STRING), 0xffff);
+    }
+}

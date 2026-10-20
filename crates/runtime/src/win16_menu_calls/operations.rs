@@ -435,7 +435,7 @@ impl Win16State {
                         host,
                         Win16MenuOperation::InsertMenu {
                             menu,
-                            position,
+                            position: flags::insert_menu_native_position(position, action_flags),
                             flags: action_flags,
                             item,
                         },
@@ -600,7 +600,7 @@ impl Win16State {
                     host,
                     Win16MenuOperation::InsertMenu {
                         menu,
-                        position,
+                        position: flags::insert_menu_native_position(position, flags),
                         flags,
                         item,
                     },

@@ -96,7 +96,9 @@ pub enum Win16MenuOperation {
         menu: Win16HostMenu,
         item: u16,
     },
-    InsertMenu { menu: Win16HostMenu, position: u16, flags: u16, item: Win16MenuItem },
+    /// `position` is the native UINT. `MF_BYPOSITION` with Win16 -1 is
+    /// `u32::MAX`; other positions are the zero-extended guest word.
+    InsertMenu { menu: Win16HostMenu, position: u32, flags: u16, item: Win16MenuItem },
     AppendMenu { menu: Win16HostMenu, flags: u16, item: Win16MenuItem },
     ModifyMenu { menu: Win16HostMenu, position: u16, flags: u16, item: Win16MenuItem },
     SetMenuItemBitmaps {

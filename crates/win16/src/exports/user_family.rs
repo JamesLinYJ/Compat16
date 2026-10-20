@@ -36,7 +36,7 @@ pub enum Win16UserDialogRequest {
     SetItemText { dialog: u16, id: u16, text: Option<Vec<u8>> },
     GetItemText { dialog: u16, id: u16, output: u32, capacity: i16 },
     SetItemInteger { dialog: u16, id: u16, value: u16, signed: bool },
-    GetItemInteger { dialog: u16, id: i16, signed: bool, translated_output: u32 },
+    GetItemInteger { dialog: u16, id: u16, signed: bool, translated_output: u32 },
     CheckButton { dialog: u16, id: u16, state: u16 },
     IsButtonChecked { dialog: u16, id: u16 },
     CheckRadioButton { dialog: u16, first: u16, last: u16, checked: u16 },
@@ -238,9 +238,13 @@ pub fn decode_user_family(
             value: word(arguments, 2)?,
             signed: word(arguments, 3)? != 0,
         }),
+        // Dialog control ids are the template WORD. Zero-extend that slot so
+        // ids 0x8000..=0xFFFF match GetDlgItem and the control created from
+        // the same unsigned id. Sign-extending the word looks up a different
+        // Win32 nIDDlgItem.
         95 => Request::Dialog(Dialog::GetItemInteger {
             dialog: word(arguments, 0)?,
-            id: word(arguments, 1)? as i16,
+            id: word(arguments, 1)?,
             translated_output: dword(arguments, 2)?,
             signed: word(arguments, 3)? != 0,
         }),
@@ -434,4 +438,57 @@ fn read_words(
     Ok(bytes.chunks_exact(2)
         .map(|pair| u16::from_le_bytes([pair[0], pair[1]]))
         .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use guest_core::memory::Memory;
+
+    fn get_item_integer(id: u16, signed: u16) -> Win16UserDialogRequest {
+        let selectors = SelectorTable::new().unwrap();
+        let memory = Memory::with_size(0x10_0000).unwrap();
+        let request = decode_user_family(
+            95,
+            &[
+                Win16Argument::Word(0x100),
+                Win16Argument::Word(id),
+                Win16Argument::Dword(0x2000_0004),
+                Win16Argument::Word(signed),
+            ],
+            &selectors,
+            &memory,
+        )
+        .unwrap()
+        .unwrap();
+        let Win16UserFamilyRequest::Dialog(request) = request else {
+            panic!("USER.95 is a dialog request");
+        };
+        request
+    }
+
+    #[test]
+    fn get_dlg_item_int_keeps_control_id_as_unsigned_word() {
+        assert!(matches!(
+            get_item_integer(0x9c40, 0),
+            Win16UserDialogRequest::GetItemInteger {
+                dialog: 0x100,
+                id: 0x9c40,
+                signed: false,
+                translated_output: 0x2000_0004,
+            }
+        ));
+        assert!(matches!(
+            get_item_integer(u16::MAX, 1),
+            Win16UserDialogRequest::GetItemInteger {
+                id: u16::MAX,
+                signed: true,
+                ..
+            }
+        ));
+        assert!(matches!(
+            get_item_integer(1, 0),
+            Win16UserDialogRequest::GetItemInteger { id: 1, signed: false, .. }
+        ));
+    }
 }
