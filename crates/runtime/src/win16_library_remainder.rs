@@ -120,7 +120,12 @@ fn failure_value(module: &str, name: &str, return_kind: Win16ReturnKind) -> u32 
     if module == "NETAPI" {
         return NERR_NET_NOT_STARTED;
     }
-    if module == "MMSYSTEM" && matches!(upper.as_str(), "MMTASKCREATE" | "MMTHREADCREATE") {
+    if module == "MMSYSTEM"
+        && matches!(
+            upper.as_str(),
+            "MMTASKCREATE" | "MMTHREADCREATE" | "MMDRVINSTALL"
+        )
+    {
         return MMSYSERR_NOTSUPPORTED;
     }
     if module == "COMMCTRL" {
@@ -164,7 +169,12 @@ fn failure_phrase(module: &str, name: &str, return_kind: Win16ReturnKind) -> &'s
     if module == "NETAPI" {
         return "returns NERR_NetNotStarted";
     }
-    if module == "MMSYSTEM" && matches!(upper.as_str(), "MMTASKCREATE" | "MMTHREADCREATE") {
+    if module == "MMSYSTEM"
+        && matches!(
+            upper.as_str(),
+            "MMTASKCREATE" | "MMTHREADCREATE" | "MMDRVINSTALL"
+        )
+    {
         return "returns MMSYSERR_NOTSUPPORTED";
     }
     if module == "WINNLS" && upper == "WINNLSGETIMEHOTKEY" {
@@ -293,6 +303,14 @@ mod tests {
         assert_eq!(
             failure_value("MMSYSTEM", "mmTaskCreate", Win16ReturnKind::Dword),
             8
+        );
+        assert_eq!(
+            failure_value("MMSYSTEM", "MMDRVINSTALL", Win16ReturnKind::Word),
+            8
+        );
+        assert_eq!(
+            failure_phrase("MMSYSTEM", "MMDRVINSTALL", Win16ReturnKind::Word),
+            "returns MMSYSERR_NOTSUPPORTED"
         );
         assert_eq!(
             failure_value("MMSYSTEM", "DllEntryPoint", Win16ReturnKind::Dword),

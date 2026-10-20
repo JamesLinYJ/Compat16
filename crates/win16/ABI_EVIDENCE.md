@@ -1137,6 +1137,15 @@ display ordinals. `DoBeep` is an empty `pascal -ret16` frame in
 `dlls/sound.drv16/sound.drv16.spec` and is not bound. Existing binding IDs
 are not renumbered.
 
+`MMDRVINSTALL` (MMSYSTEM.34) is bound as id `9200002`. The parameter list is
+the Windows SDK `mmiscapi.h` prototype `UINT mmDrvInstall(HDRVR, LPCWSTR,
+DRIVERMSGPROC, UINT)`. On this Win16 export `HDRVR` and `UINT` are words, the
+same widths `SendDriverMessage` uses for a driver handle and a `UINT`, and
+`auxGetNumDevs` uses for a `UINT` return. The entry name and the driver
+callback are far pointers. They stay on the stack and the callback is not
+entered. No driver is installed. `MMSYSERR_NOERROR` is 0, so the call returns
+`MMSYSERR_NOTSUPPORTED` (8).
+
 The same rule applies to KERNEL, USER and GDI. Their declaration groups retain
 71, 63 and 100 additional stub rows respectively without runtime call bindings.
 These rows supply neither a parameter list nor independent zero-argument ABI
