@@ -138,7 +138,7 @@ pub enum Win16HostDialogControlOperation {
     SetItemText { dialog: Win16HostWindow, id: u16, text: Option<Vec<u8>> },
     GetItemText { dialog: Win16HostWindow, id: u16, capacity: u16, buffer_is_null: bool },
     SetItemInteger { dialog: Win16HostWindow, id: u16, value: u16, signed: bool },
-    GetItemInteger { dialog: Win16HostWindow, id: i16, signed: bool },
+    GetItemInteger { dialog: Win16HostWindow, id: u16, signed: bool },
     CheckButton { dialog: Win16HostWindow, id: u16, state: u16 },
     IsButtonChecked { dialog: Win16HostWindow, id: u16 },
     CheckRadioButton { dialog: Win16HostWindow, first: u16, last: u16, checked: u16 },

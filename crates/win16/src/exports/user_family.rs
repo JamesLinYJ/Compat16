@@ -36,7 +36,7 @@ pub enum Win16UserDialogRequest {
     SetItemText { dialog: u16, id: u16, text: Option<Vec<u8>> },
     GetItemText { dialog: u16, id: u16, output: u32, capacity: i16 },
     SetItemInteger { dialog: u16, id: u16, value: u16, signed: bool },
-    GetItemInteger { dialog: u16, id: i16, signed: bool, translated_output: u32 },
+    GetItemInteger { dialog: u16, id: u16, signed: bool, translated_output: u32 },
     CheckButton { dialog: u16, id: u16, state: u16 },
     IsButtonChecked { dialog: u16, id: u16 },
     CheckRadioButton { dialog: u16, first: u16, last: u16, checked: u16 },
@@ -238,9 +238,13 @@ pub fn decode_user_family(
             value: word(arguments, 2)?,
             signed: word(arguments, 3)? != 0,
         }),
+        // Dialog control ids are the template WORD. Zero-extend that slot so
+        // ids 0x8000..=0xFFFF match GetDlgItem and the control created from
+        // the same unsigned id. Sign-extending the word looks up a different
+        // Win32 nIDDlgItem.
         95 => Request::Dialog(Dialog::GetItemInteger {
             dialog: word(arguments, 0)?,
-            id: word(arguments, 1)? as i16,
+            id: word(arguments, 1)?,
             translated_output: dword(arguments, 2)?,
             signed: word(arguments, 3)? != 0,
         }),

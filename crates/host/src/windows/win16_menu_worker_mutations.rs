@@ -171,8 +171,7 @@ pub(super) fn execute(
             position,
             flags,
             item,
-        } => insert_item(state, bitmaps, menu, u32::from(position), flags, item, true)
-            .map(super::boolean),
+        } => insert_item(state, bitmaps, menu, position, flags, item, true).map(super::boolean),
         Win16MenuOperation::AppendMenu { menu, flags, item } => {
             insert_item(state, bitmaps, menu, 0, flags, item, false).map(super::boolean)
         }
