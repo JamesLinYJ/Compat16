@@ -83,7 +83,7 @@ impl LocalHeap<'_> {
         }
 
         if size == 0 {
-            return self.realloc_zero(handle, flags, fixed, fixed_block, movable_slot);
+            return self.realloc_zero(handle, flags, fixed, movable_slot);
         }
         let prefix = if fixed { 0 } else { MOVEABLE_PREFIX_BYTES };
         let Some(required) = requested_extent(size, prefix) else { return Ok(0) };
@@ -190,31 +190,28 @@ impl LocalHeap<'_> {
         handle: u16,
         flags: u16,
         fixed: bool,
-        fixed_block: Option<ArenaInfo>,
         movable_slot: Option<HandleSlot>,
     ) -> Result<u16, LocalHeapError> {
-        if fixed {
-            if flags & LMEM_MOVEABLE == 0 {
-                return Ok(0);
-            }
-            let Some(block) = fixed_block else { return Ok(0) };
-            if self.is_internal_heap_block(block.start)? {
-                return Ok(0);
-            }
-            return self.free_fixed_block(handle, block.start);
+        // Windows 3.1 LocalReAlloc discards only an unlocked movable
+        // discardable object when the new size is zero and LMEM_MOVEABLE is
+        // set. LocalDiscard is that call. A fixed block, a non-discardable
+        // block, a locked block, or a request without LMEM_MOVEABLE fails
+        // and leaves the original object allocated.
+        let discardable = (LMEM_DISCARDABLE >> 8) as u8;
+        if fixed || flags & LMEM_MOVEABLE == 0 {
+            return Ok(0);
         }
         match movable_slot {
             Some(HandleSlot::Unused) | None => Ok(0),
-            Some(HandleSlot::Discarded(mut entry)) if flags & LMEM_MOVEABLE != 0 => {
+            Some(HandleSlot::Discarded(mut entry)) => {
                 entry.addr = 0;
                 entry.flags = LMEM_DISCARDED;
                 entry.lock = 0;
                 self.write_entry(entry)?;
                 Ok(handle)
             }
-            Some(HandleSlot::Discarded(_)) => Ok(0),
-            Some(HandleSlot::Live(mut entry)) if flags & LMEM_MOVEABLE != 0 => {
-                if entry.lock != 0 {
+            Some(HandleSlot::Live(mut entry)) => {
+                if entry.lock != 0 || entry.flags & discardable == 0 {
                     return Ok(0);
                 }
                 let start = entry.addr - (ARENA_HEADER_BYTES + MOVEABLE_PREFIX_BYTES) as u16;
@@ -225,9 +222,6 @@ impl LocalHeap<'_> {
                 self.write_entry(entry)?;
                 Ok(handle)
             }
-            // A zero-size request without LMEM_MOVEABLE fails without freeing
-            // the live object. LocalDiscard explicitly supplies LMEM_MOVEABLE.
-            Some(HandleSlot::Live(_)) => Ok(0),
         }
     }
 

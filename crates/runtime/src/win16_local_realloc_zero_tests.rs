@@ -117,10 +117,20 @@ fn local_realloc_zero_service_gate_rejects_locked_blocks_and_allows_explicit_dis
             assert_eq!(snapshot(&runtime, ds), before);
         }
         assert_eq!(operation(&mut runtime, ds, LocalOperation::Unlock { handle }), 0);
-        assert_eq!(gate(&mut runtime, handle, LMEM_MOVEABLE), handle);
-        assert_eq!(operation(&mut runtime, ds, LocalOperation::Size { handle }), 0);
-        assert_eq!(operation(&mut runtime, ds, LocalOperation::Flags { handle }), 0x4000);
-        assert_eq!(operation(&mut runtime, ds, LocalOperation::Lock { handle }), 0);
+        if attributes == 0 {
+            let resident = snapshot(&runtime, ds);
+            assert_eq!(gate(&mut runtime, handle, LMEM_MOVEABLE), 0);
+            assert_eq!(snapshot(&runtime, ds), resident);
+            assert!(operation(&mut runtime, ds, LocalOperation::Size { handle }) >= 32);
+            assert_eq!(operation(&mut runtime, ds, LocalOperation::Flags { handle }), 0);
+            assert_eq!(operation(&mut runtime, ds, LocalOperation::Lock { handle }) as u16, address);
+            assert_eq!(operation(&mut runtime, ds, LocalOperation::Unlock { handle }), 0);
+        } else {
+            assert_eq!(gate(&mut runtime, handle, LMEM_MOVEABLE), handle);
+            assert_eq!(operation(&mut runtime, ds, LocalOperation::Size { handle }), 0);
+            assert_eq!(operation(&mut runtime, ds, LocalOperation::Flags { handle }), 0x4000);
+            assert_eq!(operation(&mut runtime, ds, LocalOperation::Lock { handle }), 0);
+        }
         assert_eq!(operation(&mut runtime, ds, LocalOperation::Free { handle }), 0);
         assert_eq!(operation(&mut runtime, ds, LocalOperation::Flags { handle }), 0x8000);
     }
