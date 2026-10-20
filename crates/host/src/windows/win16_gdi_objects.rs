@@ -283,6 +283,12 @@ impl Win16Objects {
     }
 
     pub(super) fn stock(&mut self, index: i16) -> Result<Option<Win16HostGdiObject>, RuntimeError> {
+        // Windows 3.1 stock objects stop at SYSTEM_FIXED_FONT. Later indexes
+        // such as DEFAULT_GUI_FONT still resolve on this host, and NULL is
+        // the documented failure, so they are not queried.
+        if !runtime::win31_stock_object(index) {
+            return Ok(None);
+        }
         // SAFETY: The index is passed as a scalar. GDI owns the returned stock
         // object and null means the index has no object.
         let native = crate::windows::win32_safe::stock_object(i32::from(index));

@@ -39,9 +39,15 @@ pub(super) fn get_async_key_state(virtual_key: i32) -> i16 {
     unsafe { GetAsyncKeyState(virtual_key) }
 }
 
-/// Expose caption space consistent with the Win16 frame geometry. Other
-/// metrics and invalid indexes retain their native results.
+/// Expose caption space consistent with the Win16 frame geometry.
+///
+/// Windows 3.1 indexes run from `SM_CXSCREEN` through `SM_DBCSENABLED`.
+/// Learn returns 0 when `GetSystemMetrics` fails, so a later host metric is
+/// not queried.
 pub(super) fn get_system_metrics(index: i32) -> i32 {
+    if !runtime::win31_system_metric(index) {
+        return 0;
+    }
     // SAFETY: GetSystemMetrics has no pointer arguments or ownership requirements.
     let native = crate::windows::win32_safe::system_metrics(index);
     if index == SM_CYCAPTION {

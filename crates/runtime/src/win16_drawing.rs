@@ -22,6 +22,10 @@ mod primitives;
 #[path = "win16_drawing/text.rs"]
 mod text_requests;
 
+#[cfg(test)]
+#[path = "win16_stretch_blt_mode_tests.rs"]
+mod stretch_blt_mode_tests;
+
 /// Entry point shared with the GDI device decoder. DIB byte layout and host
 /// conversion stay in this drawing adapter rather than being reimplemented.
 pub(super) fn stretch_dibits(

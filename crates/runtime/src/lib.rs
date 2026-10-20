@@ -330,6 +330,8 @@ mod midi_host_boundary;
 pub use midi_host_boundary::*;
 mod netbios_host_boundary;
 pub use netbios_host_boundary::RuntimeNetbiosHost;
+mod win16_win31_indexes;
+pub use win16_win31_indexes::{win31_stock_object, win31_stretch_blt_mode, win31_system_metric};
 mod host_boundary;
 pub use host_boundary::*;
 mod host_boundary_dde;
