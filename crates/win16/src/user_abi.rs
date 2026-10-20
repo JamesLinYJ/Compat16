@@ -13,7 +13,8 @@ use guest_core::GuestMemory;
 #[path = "user_abi_wire.rs"]
 pub(crate) mod wire;
 
-/// Windows 3.1 WINDOWPLACEMENT; coordinates use workspace semantics owned by USER.
+/// Windows 3.1 `WINDOWPLACEMENT`. Positions are screen coordinates, the same
+/// space as `GetWindowRect`. The host converts Win32 workspace coordinates.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WindowPlacement16 {
     pub length: u16,
