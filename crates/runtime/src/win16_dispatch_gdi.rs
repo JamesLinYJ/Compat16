@@ -39,7 +39,30 @@ impl Win16State {
                 cpu, dos, memory, host, dc, object_type, callback, parameter, return_to,
             ),
             Win16ApiRequest::GdiDevice(request) => {
+                if Self::device_requests_abort(&request)
+                    .is_some_and(|dc| self.guest_gdi.abort_proc(dc).is_some())
+                {
+                    return self.begin_print_abort(
+                        cpu,
+                        dos,
+                        memory,
+                        request,
+                        (return_selector, return_offset, return_sp),
+                        descriptor.return_kind,
+                    );
+                }
                 self.execute_gdi_device(request, memory, host)?
+            }
+            Win16ApiRequest::GdiSpool(win16_abi::Win16GdiSpoolRequest::QueryAbort { dc, code }) => {
+                return self.begin_query_abort(
+                    cpu,
+                    dos,
+                    memory,
+                    dc,
+                    code,
+                    (return_selector, return_offset, return_sp),
+                    descriptor.return_kind,
+                );
             }
             Win16ApiRequest::GdiSpool(request) => {
                 self.execute_gdi_spool(request, memory, host)?

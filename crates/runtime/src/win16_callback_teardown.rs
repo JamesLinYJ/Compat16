@@ -125,6 +125,9 @@ impl Win16State {
             CallbackKind::LineDda => {
                 self.cancel_line_dda_callback_for_teardown(ended, cpu, dos, memory)?
             }
+            CallbackKind::PrintAbort => {
+                self.cancel_print_abort_callback_for_teardown(ended, cpu, dos, memory)?
+            }
             CallbackKind::Window => {
                 match self.cancel_window_callback_for_teardown(ended)? {
                     super::windows::WindowCallbackPayloadCleanup::Released
@@ -267,6 +270,7 @@ impl Win16State {
             || !self.object_callbacks.is_empty()
             || !self.acm.callback_frames_are_empty()
             || !self.line_dda_callbacks.is_empty()
+            || !self.print_abort_callbacks.is_empty()
             || !self.window_enumerations.is_empty()
             || !self.window_callbacks.is_empty()
             || !self.native_function_callbacks.is_empty()
@@ -322,10 +326,11 @@ impl Win16State {
                         self.legacy_cpu_frame_owns_selector(selector)))
             },
         );
-        format!("Win16 callback retirement incomplete: central_kinds={},central_ids={},font={},gdi_object={},acm_live={},line_dda={},window_enum={},window={},window_property={},dde={},module={},resource={},toolhelp={},file_callback={},mci_stopped={},scheduler_active={},scheduler_cleanup={},scheduler_source_retirement={},operations={},operation_cpu_owners={}; top_window=[{}]",
+        format!("Win16 callback retirement incomplete: central_kinds={},central_ids={},font={},gdi_object={},acm_live={},line_dda={},print_abort={},window_enum={},window={},window_property={},dde={},module={},resource={},toolhelp={},file_callback={},mci_stopped={},scheduler_active={},scheduler_cleanup={},scheduler_source_retirement={},operations={},operation_cpu_owners={}; top_window=[{}]",
             self.callback_kinds.len(), self.callback_frame_ids.len(),
             self.font_callbacks.len(), self.object_callbacks.len(), !self.acm.callback_frames_are_empty(),
-            self.line_dda_callbacks.len(), self.window_enumerations.len(),
+            self.line_dda_callbacks.len(), self.print_abort_callbacks.len(),
+            self.window_enumerations.len(),
             self.window_callbacks.len(), self.native_function_callbacks.len(),
             self.dde_callbacks.len(), self.module_callbacks.len(),
             self.resource_callbacks.len(), self.toolhelp_notify_frames.len(),

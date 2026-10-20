@@ -252,6 +252,8 @@ mod callback_scheduler_registration;
 mod callback_lifo;
 #[path = "win16_line_dda.rs"]
 mod line_dda;
+#[path = "win16_print_abort.rs"]
+mod print_abort;
 #[path = "win16_window_enumeration.rs"]
 mod window_enumeration;
 #[path = "win16_user_hooks.rs"]
@@ -538,6 +540,7 @@ enum CallbackKind {
     GdiObject,
     AcmEnumeration,
     LineDda,
+    PrintAbort,
     WindowEnumeration,
     UserHook,
     Ole1,
@@ -714,6 +717,7 @@ pub(crate) struct Win16State {
     font_callbacks: Vec<font_callback::FontCallbackFrame>,
     object_callbacks: Vec<object_callback::ObjectCallbackFrame>,
     line_dda_callbacks: Vec<line_dda::LineDdaCallbackFrame>,
+    print_abort_callbacks: Vec<print_abort::PrintAbortFrame>,
     window_enumerations: Vec<window_enumeration::WindowEnumerationFrame>,
     deferred_window_batches: window_operations::DeferredWindowBatches,
     user_hooks: user_hooks::Win16UserHooks,

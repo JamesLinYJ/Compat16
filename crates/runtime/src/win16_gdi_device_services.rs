@@ -339,19 +339,9 @@ impl Win16State {
             Request::ResetDc { dc, devmode } => self.reset_dc(dc, devmode, memory, host),
             Request::StartDoc { dc, doc_info } => self.start_doc(dc, doc_info, host),
             Request::Print { operation, dc } => self.print(operation, dc, host),
-            // Abort callbacks execute synchronously into Win16 code. Until the
-            // callback frame has a checked continuation, return
-            // the GDI failure value and never hand a guest FAR value to Win32.
-            Request::SetAbortProc { .. } => {
-                host.report_diagnostic(
-                    &Diagnostic::warning(
-                        Kind::CompatibilityGap,
-                        "Win16 SetAbortProc needs a registered synchronous guest callback frame",
-                    )
-                    .with_context("Win16 GDI SetAbortProc"),
-                );
-                Ok(SP_ERROR16)
-            }
+            // The procedure stays a guest FAR. QueryAbort and the print calls
+            // enter it; this call only records it.
+            Request::SetAbortProc { dc, callback } => self.set_abort_proc(memory, dc, callback),
         }
     }
 }

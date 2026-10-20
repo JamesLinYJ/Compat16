@@ -202,9 +202,9 @@ pub(super) fn execute(
             let Some(dc_use) = dcs.lease_dc(dc)? else {
                 return Ok(ResultValue::Played(false));
             };
-            // The exact HDC remains pinned with no table mutex held. No guest
-            // abort procedure is registered: SetAbortProc currently reports
-            // its unsupported callback contract at its existing entrypoint.
+            // The exact HDC remains pinned with no table mutex held. A guest
+            // AbortProc stays a 16:16 procedure and is not registered with
+            // native PlayMetaFile.
             // SAFETY: PlayMetaFile plays a metafile this process owns into a live DC.
             Ok(ResultValue::Played(unsafe {
                 PlayMetaFile(dc_use.native(), native.0) != 0

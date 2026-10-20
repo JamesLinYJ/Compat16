@@ -348,8 +348,9 @@ fn escape_point_queries_use_exact_dc_and_four_signed_output_bytes() {
 
 #[test]
 fn escape_unsupported_commands_and_query_codes_never_reach_host() {
-    // NEXTBAND, SETABORTPROC, SETCOPYCOUNT, PASSTHROUGH, negative/private.
-    for code in [3, 9, 17, 19, -1, -32768, 32767] {
+    // NEXTBAND, SETCOPYCOUNT, PASSTHROUGH, negative/private.
+    // SETABORTPROC (9) installs a guest AbortProc and is covered separately.
+    for code in [3, 17, 19, -1, -32768, 32767] {
         let (mut runtime, dc, output) = fixture();
         let mut host = EscapeHost::default();
         let return_to = prepare(&mut runtime, dc, code, -1, u32::MAX, u32::MAX);
