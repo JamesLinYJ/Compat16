@@ -662,7 +662,7 @@ impl Win16State {
             )) => host.win16_get_key_state(i32::from(virtual_key), true)? as u16 as u32,
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Runtime(
                 win16_abi::Win16UserRuntimeRequest::GetSystemMetrics { index },
-            )) => host.win16_get_system_metrics(i32::from(index))? as u16 as u32,
+            )) => system_metrics(host, index)?,
             Win16ApiRequest::UserSystem(win16_abi::Win16UserSystemRequest::SetSysColors {
                 indices, colors,
             }) => {
@@ -736,6 +736,16 @@ impl Win16State {
     }
 }
 
+/// USER `GetSystemMetrics`. The guest argument is a signed word and the
+/// result is narrowed to that word. An index outside `SM_CXSCREEN` through
+/// `SM_CMOUSEBUTTONS` returns 0 and does not query the host.
+fn system_metrics(host: &mut impl RuntimeHost, index: i16) -> Result<u32, RuntimeError> {
+    if !crate::win31_system_metric(i32::from(index)) {
+        return Ok(0);
+    }
+    Ok(host.win16_get_system_metrics(i32::from(index))? as u16 as u32)
+}
+
 #[cfg(test)]
 #[path = "win16_dispatch_geometry_tests.rs"]
 mod geometry_tests;
@@ -779,3 +789,7 @@ mod window_management_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_system_parameters_tests.rs"]
 mod system_parameters_tests;
+
+#[cfg(test)]
+#[path = "win16_win31_query_tests.rs"]
+mod win31_query_tests;

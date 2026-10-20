@@ -128,6 +128,12 @@ impl Win16State {
                 dc,
                 mode,
             }) => {
+                // Windows 3.1 accepts BLACKONWHITE, WHITEONBLACK, and
+                // COLORONCOLOR. HALFTONE is a later mode: returning the
+                // previous mode would report success and change the DC.
+                if !crate::win31_stretch_blt_mode(i32::from(mode)) {
+                    return Ok(0);
+                }
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
@@ -135,7 +141,18 @@ impl Win16State {
                     dc,
                     mode: i32::from(mode),
                 })? {
-                    HostResult::Mode(previous) => Ok(previous as u16 as u32),
+                    HostResult::Mode(previous) if crate::win31_stretch_blt_mode(previous) => {
+                        Ok(previous as u16 as u32)
+                    }
+                    // The host accepted a Windows 3.1 mode but named a previous
+                    // mode this API cannot return. Put that mode back so the
+                    // error leaves the DC unchanged.
+                    HostResult::Mode(previous) => {
+                        match host.win16_gdi(Operation::SetStretchBltMode { dc, mode: previous })? {
+                            HostResult::Mode(_) => Ok(0),
+                            _ => Err(wrong_result("SetStretchBltMode")),
+                        }
+                    }
                     _ => Err(wrong_result("SetStretchBltMode")),
                 }
             }
@@ -146,7 +163,10 @@ impl Win16State {
                     return Ok(0);
                 };
                 match host.win16_gdi(Operation::GetStretchBltMode { dc })? {
-                    HostResult::Mode(mode) => Ok(mode as u16 as u32),
+                    HostResult::Mode(mode) if crate::win31_stretch_blt_mode(mode) => {
+                        Ok(mode as u16 as u32)
+                    }
+                    HostResult::Mode(_) => Ok(0),
                     _ => Err(wrong_result("GetStretchBltMode")),
                 }
             }

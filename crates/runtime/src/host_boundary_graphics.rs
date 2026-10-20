@@ -68,8 +68,11 @@ macro_rules! graphics_runtime_host_ports {
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 font family enumeration is unavailable"))
     }
-    fn win16_get_stock_object(&mut self, _index: i16)
+    fn win16_get_stock_object(&mut self, index: i16)
         -> Result<Option<Win16HostGdiObject>, RuntimeError> {
+        if !crate::win31_stock_object(index) {
+            return Ok(None);
+        }
         Err(RuntimeError::new(DiagnosticKind::CompatibilityGap,
             "host Win16 stock object lookup is unavailable"))
     }
