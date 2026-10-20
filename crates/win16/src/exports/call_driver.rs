@@ -248,6 +248,10 @@ mod tests {
         assert_eq!(stretch.parameters.len(), 12);
         assert_eq!(stretch.return_kind, Win16ReturnKind::Void);
         assert_eq!(cleanup(b"MSVIDEO", 115), (32, 0));
+        let reenable = lookup_export(b"DISPLAY", ExportLookupTarget::Ordinal(31)).unwrap();
+        assert_eq!(reenable.parameters.len(), 2);
+        assert_eq!(reenable.return_kind, Win16ReturnKind::Word);
+        assert_eq!(cleanup(b"DISPLAY", 31), (8, 0));
         let save = lookup_export(b"AVIFILE", ExportLookupTarget::Ordinal(120)).unwrap();
         assert_eq!(
             save.calling_convention,
