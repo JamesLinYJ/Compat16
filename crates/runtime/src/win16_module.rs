@@ -37,14 +37,22 @@ impl Win16State {
     pub(super) fn module_handle(&self, module: &Win16ModuleReference) -> Option<u16> {
         let handle = match module {
             Win16ModuleReference::Current => Some(self.modules.main),
-            Win16ModuleReference::Handle(handle) => {
-                if self.task_handles.values().any(|task| task == handle) { Some(self.modules.main) }
-                else { self.modules.by_handle(*handle) }
-            }
+            // KB Q81496: a zero high word carries an instance handle, not an HTASK.
+            // The task database selector is a different object from the module
+            // and from the instance's automatic data segment.
+            Win16ModuleReference::Handle(handle) => self.modules.by_handle(*handle),
             Win16ModuleReference::Name(name) => self.modules.by_name(name),
         }?;
         (self.modules.records.get(&handle)?.state != super::module_registry::ModuleState::Retired)
             .then_some(handle)
+    }
+
+    /// Failure is NULL in both words. The catalog return is a dword, so a
+    /// miss must not leave the first module handle in DX. A hit keeps that
+    /// high word and returns the module handle in the low word.
+    pub(super) fn kernel_get_module_handle(&self, module: &Win16ModuleReference) -> u32 {
+        let Some(handle) = self.module_handle(module) else { return 0 };
+        u32::from(handle) | (u32::from(self.modules.first) << 16)
     }
 
     pub(super) fn get_proc_address(&mut self, module: &Win16ModuleReference,

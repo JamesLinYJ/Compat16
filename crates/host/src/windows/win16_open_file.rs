@@ -20,6 +20,8 @@ const OF_PARSE: u16 = 0x0100;
 const OF_DELETE: u16 = 0x0200;
 const OF_CREATE: u16 = 0x1000;
 const OF_VERIFY: u16 = 0x0400;
+/// WINDOWS.H uses this value for both names. OF_REOPEN selects OF_VERIFY.
+const OF_SEARCH: u16 = OF_VERIFY;
 const OF_EXIST: u16 = 0x4000;
 const OF_REOPEN: u16 = 0x8000;
 const OF_PROMPT: u16 = 0x2000;
@@ -337,6 +339,26 @@ fn file_stamp(handle: &OwnedHandle) -> Result<(u16, u16), u32> {
         .map_err(|error| u32::from(error.code as u16))
 }
 
+/// Bare names keep the caller's search key. Qualified `OF_SEARCH` uses the
+/// final component. `OF_REOPEN` shares the bit as `OF_VERIFY` and does not search.
+fn open_file_search_name<'a>(
+    guest_path: &'a runtime::Win16GuestPath,
+    search_name: Option<&'a str>,
+    style: u16,
+) -> Option<&'a str> {
+    if let Some(name) = search_name {
+        return Some(name);
+    }
+    if style & OF_SEARCH == 0 || style & OF_REOPEN != 0 {
+        return None;
+    }
+    guest_path
+        .components
+        .last()
+        .map(|component| component.text.as_str())
+        .filter(|name| !name.is_empty())
+}
+
 /// Share task-first name lookup without imposing OFSTRUCT timestamp/length
 /// contracts on APIs which only need an owned file (such as GetExpandedName).
 pub(super) fn resolve_search_path(
@@ -353,8 +375,9 @@ pub(super) fn resolve_search_path(
     );
     // A Windows search only locates a fallback. The resulting file is still
     // opened through the capability root, rather than reopening guest text.
+    // Learn OpenFile: 16-bit OF_SEARCH searches even when the name has a path.
     if resolved.is_err()
-        && let Some(name) = search_name
+        && let Some(name) = open_file_search_name(guest_path, search_name, style)
     {
         let wide: Vec<u16> = name.encode_utf16().chain(Some(0)).collect();
         if let Some(found) = query_path(&wide, true)? {

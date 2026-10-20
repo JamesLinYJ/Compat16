@@ -402,10 +402,7 @@ impl Win16State {
             )) => u32::from(self.get_module_file_name(module, output, memory, host)?),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
                 win16_abi::Win16KernelModulesRequest::GetModuleHandle { module },
-            )) => {
-                u32::from(self.module_handle(&module).unwrap_or(0))
-                    | (u32::from(self.modules.first) << 16)
-            }
+            )) => self.kernel_get_module_handle(&module),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
                 win16_abi::Win16KernelModulesRequest::GetModuleUsage { module },
             )) => match self.modules.by_handle(module) {

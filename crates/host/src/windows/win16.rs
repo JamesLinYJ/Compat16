@@ -332,6 +332,13 @@ impl Win16Files {
                     2 => FILE_END,
                     _ => return Ok(None),
                 };
+                let mut previous = 0_i64;
+                // SAFETY: `handle` is retained by this adapter. A zero move
+                // from the current position records the pointer so a result
+                // that does not fit in a successful LONG can be undone.
+                let saved = unsafe {
+                    SetFilePointerEx(handle, 0, &mut previous, FILE_CURRENT)
+                } != 0;
                 let mut new_position = 0_i64;
                 // SAFETY: `handle` is retained by this adapter; the output is
                 // a local LARGE_INTEGER-compatible i64 and method is checked.
@@ -340,7 +347,28 @@ impl Win16Files {
                 {
                     return Ok(None);
                 }
-                new_position as i32
+                if let Some(position) = signed_file_position(new_position) {
+                    position
+                } else if saved {
+                    let mut restored = 0_i64;
+                    // SAFETY: `handle` is retained by this adapter. `previous`
+                    // is the pointer recorded before this seek.
+                    if unsafe { SetFilePointerEx(handle, previous, &mut restored, FILE_BEGIN) }
+                        == 0
+                        || restored != previous
+                    {
+                        return Err(RuntimeError::new(
+                            Kind::InternalInvariant,
+                            "Win16 seek could not restore a position past the signed result",
+                        ));
+                    }
+                    return Ok(None);
+                } else {
+                    return Err(RuntimeError::new(
+                        Kind::InternalInvariant,
+                        "Win16 seek moved past the signed result without a saved pointer",
+                    ));
+                }
             }
         };
         if position == -1 {
@@ -464,6 +492,14 @@ impl Win16Files {
             consumed_source,
         })
     }
+}
+
+/// `_llseek` returns a LONG offset, and HFILE_ERROR is -1. Only
+/// `0..=i32::MAX` is a successful absolute position.
+fn signed_file_position(position: i64) -> Option<i32> {
+    u32::try_from(position)
+        .ok()
+        .and_then(|value| i32::try_from(value).ok())
 }
 
 impl Drop for Win16Files {
@@ -713,5 +749,35 @@ mod tests {
         assert!(files.close(writer).unwrap().closed);
         fs::remove_file(&path).expect("remove test file");
         fs::remove_dir(&directory).expect("remove test directory");
+    }
+
+    #[test]
+    fn signed_file_position_accepts_only_a_nonnegative_long() {
+        assert_eq!(signed_file_position(0), Some(0));
+        assert_eq!(signed_file_position(i64::from(i32::MAX)), Some(i32::MAX));
+        assert_eq!(signed_file_position(i64::from(i32::MAX) + 1), None);
+        assert_eq!(signed_file_position(-1), None);
+        assert_eq!(signed_file_position(i64::from(u32::MAX)), None);
+    }
+
+    #[test]
+    fn llseek_rejects_positions_past_the_signed_result_without_moving() {
+        let directory = temp_directory();
+        let path = directory.join("seek.bin");
+        let mut files = Win16Files::new();
+        let guest_path = guest_utf8_path(&path);
+        let file = files
+            .create(utf8_codec(), &guest_path, 0)
+            .expect("create through the guest text codec")
+            .expect("CreateFileW should create the seek fixture");
+        assert_eq!(files.write(file, b"ab").unwrap(), Some(2));
+        assert_eq!(files.seek(file, i32::MAX, 0).unwrap(), Some(i32::MAX));
+        assert_eq!(files.seek(file, 1, 1).unwrap(), None);
+        assert_eq!(files.seek(file, 0, 1).unwrap(), Some(i32::MAX));
+        assert_eq!(files.seek(file, 0, 3).unwrap(), None);
+        assert_eq!(files.seek(file, 0, 0).unwrap(), Some(0));
+        assert!(files.close(file).unwrap().closed);
+        fs::remove_file(&path).expect("remove seek fixture");
+        fs::remove_dir(&directory).expect("remove seek fixture directory");
     }
 }
