@@ -47,7 +47,6 @@ pub enum Win16HostMidiCaps {
         product: u16,
         driver_version: u16,
         product_name: [u8; 32],
-        support: u32,
     },
     Output {
         manufacturer: u16,

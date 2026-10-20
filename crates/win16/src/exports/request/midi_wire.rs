@@ -8,10 +8,9 @@ use zerocopy::byteorder::little_endian::{U16, U32};
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
 pub const MIDIHDR16_SIZE: usize = 28;
-/// Packed Windows 3.1 `MIDIINCAPS`: `VERSION` is a word, `szPname` is 32
-/// bytes, and `dwSupport` is the trailing dword. Learn documents that dword
-/// as reserved.
-pub const MIDIINCAPS16_SIZE: usize = 42;
+/// Packed Windows 3.1 `MIDIINCAPS`. `VERSION` is a word and `szPname` is 32
+/// bytes. The later Win32 `dwSupport` dword is not part of this record.
+pub const MIDIINCAPS16_SIZE: usize = 38;
 pub const MIDIOUTCAPS16_SIZE: usize = 50;
 
 #[repr(C)]
@@ -33,7 +32,6 @@ struct MidiInCaps16Wire {
     product: U16,
     driver_version: U16,
     product_name: [u8; 32],
-    support: U32,
 }
 
 #[repr(C)]
@@ -56,7 +54,6 @@ pub struct Win16MidiInCaps16 {
     pub product: u16,
     pub driver_version: u16,
     pub product_name: [u8; 32],
-    pub support: u32,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -79,7 +76,6 @@ impl Win16MidiInCaps16 {
             product: U16::new(self.product),
             driver_version: U16::new(self.driver_version),
             product_name: self.product_name,
-            support: U32::new(self.support),
         }
         .as_bytes()
         .try_into()
@@ -164,7 +160,6 @@ const _: () = {
     assert!(core::mem::offset_of!(MidiInCaps16Wire, product) == 2);
     assert!(core::mem::offset_of!(MidiInCaps16Wire, driver_version) == 4);
     assert!(core::mem::offset_of!(MidiInCaps16Wire, product_name) == 6);
-    assert!(core::mem::offset_of!(MidiInCaps16Wire, support) == 38);
     assert!(core::mem::size_of::<MidiOutCaps16Wire>() == MIDIOUTCAPS16_SIZE);
     assert!(core::mem::align_of::<MidiOutCaps16Wire>() == 1);
     assert!(core::mem::offset_of!(MidiOutCaps16Wire, manufacturer) == 0);

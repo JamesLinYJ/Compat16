@@ -167,8 +167,8 @@ impl Win16State {
         };
         let bytes = match (direction, caps) {
             (GuestDirection::Input, HostCaps::Input { manufacturer, product,
-                driver_version, product_name, support }) => win16_abi::Win16MidiInCaps16 {
-                    manufacturer, product, driver_version, product_name, support,
+                driver_version, product_name }) => win16_abi::Win16MidiInCaps16 {
+                    manufacturer, product, driver_version, product_name,
                 }.encode().to_vec(),
             (GuestDirection::Output, HostCaps::Output { manufacturer, product,
                 driver_version, product_name, technology, voices, notes,

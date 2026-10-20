@@ -31,7 +31,6 @@ struct AuxHost {
     calls: Vec<Win16HostAuxOperation>,
     wrong_shape: bool,
     midi_count: u16,
-    midi_support: u32,
     midi_queries: Vec<u16>,
 }
 
@@ -55,7 +54,6 @@ impl AuxHost {
             calls: Vec::new(),
             wrong_shape: false,
             midi_count: 1,
-            midi_support: 0x0000_0008,
             midi_queries: Vec::new(),
         }
     }
@@ -255,7 +253,6 @@ impl crate::RuntimeMidiHost for AuxHost {
                 product: 0x0304,
                 driver_version: 0x030a,
                 product_name,
-                support: self.midi_support,
             }),
         })
     }
@@ -616,9 +613,9 @@ fn aux_wrong_host_shape_does_not_commit_the_return() {
 }
 
 #[test]
-fn midi_in_get_dev_caps_writes_support_and_a_zero_size_skips_the_host() {
+fn midi_in_get_dev_caps_stops_at_the_product_name_and_a_zero_size_skips_the_host() {
     let (mut runtime, far) = loaded();
-    let mut args = Vec::from(word(MIDIINCAPS16_SIZE as u16).as_slice());
+    let mut args = Vec::from(word(42).as_slice());
     args.extend_from_slice(&dword(far));
     args.extend_from_slice(&word(0));
     let return_to = prepare(&mut runtime, 302, &args);
@@ -639,21 +636,9 @@ fn midi_in_get_dev_caps_writes_support_and_a_zero_size_skips_the_host() {
     assert_eq!(&seen[2..4], &0x0304u16.to_le_bytes());
     assert_eq!(&seen[4..6], &0x030au16.to_le_bytes());
     assert_eq!(&seen[6..10], b"Midi");
-    assert_eq!(&seen[10..38], &[0; 28]);
-    assert_eq!(&seen[38..42], &host.midi_support.to_le_bytes());
-    assert_eq!(&seen[42..], &[0xa5; 6]);
+    assert_eq!(&seen[10..MIDIINCAPS16_SIZE], &[0; 28]);
+    assert_eq!(&seen[MIDIINCAPS16_SIZE..], &[0xa5; 48 - MIDIINCAPS16_SIZE]);
     assert_eq!(host.midi_queries, vec![0]);
-
-    let (mut runtime, far) = loaded();
-    let mut args = Vec::from(word(38).as_slice());
-    args.extend_from_slice(&dword(far));
-    args.extend_from_slice(&word(0));
-    prepare(&mut runtime, 302, &args);
-    let mut host = AuxHost::new();
-    dispatch(&mut runtime, &mut host).unwrap();
-    let seen = output_bytes(&runtime, far);
-    assert_eq!(&seen[6..10], b"Midi");
-    assert_eq!(&seen[38..], &[0xa5; 10]);
 
     let (mut runtime, far) = loaded();
     let mut args = Vec::from(word(0).as_slice());

@@ -65,15 +65,14 @@ impl Win16State {
                 };
                 if result == 0 {
                     // Win16 TIMECAPS stores each period in a 16-bit UINT.
-                    // A host value that does not fit is not a successful query:
-                    // timeapi.h returns TIMERR_NOCANDO when timeGetDevCaps
-                    // cannot complete, and the guest record stays unchanged.
-                    let (Ok(minimum_period), Ok(maximum_period)) = (
-                        u16::try_from(minimum_period),
-                        u16::try_from(maximum_period),
-                    ) else {
+                    // wPeriodMax is an upper bound, so a wider host maximum
+                    // clamps to that word. An unrepresentable minimum would
+                    // leave no legal guest range, so that query returns
+                    // TIMERR_NOCANDO and writes nothing.
+                    let Ok(minimum_period) = u16::try_from(minimum_period) else {
                         return Ok(u32::from(TIMERR_NOCANDO));
                     };
+                    let maximum_period = maximum_period.min(u32::from(u16::MAX)) as u16;
                     let record = Win16TimeCaps16 {
                         minimum_period,
                         maximum_period,

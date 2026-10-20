@@ -520,7 +520,7 @@ fn multimedia_timer_cleanup_preserves_failed_owner_until_retry() {
 }
 
 #[test]
-fn time_get_dev_caps_keeps_word_periods_and_rejects_a_wider_host_value() {
+fn time_get_dev_caps_clamps_the_maximum_and_rejects_an_unrepresentable_minimum() {
     let mut runtime = Runtime::load(&tiny_ne_executable(), &[], br"C:\TIMER.NE").unwrap();
     let far = poison_time_caps(&mut runtime);
     let mut host = TimerHost {
@@ -560,21 +560,37 @@ fn time_get_dev_caps_keeps_word_periods_and_rejects_a_wider_host_value() {
         return_to
     );
 
-    for (minimum, maximum) in [(1, 1_000_000), (65_536, 1)] {
-        let far = poison_time_caps(&mut runtime);
-        host.caps = Some((0, minimum, maximum));
-        let return_to = arm(&mut runtime, 604, &dev_caps_arguments(far, 4));
-        assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
-        assert_eq!(runtime.cpu.regs.ax(), 97);
-        assert_eq!(runtime.cpu.regs.dx(), DX_SENTINEL);
-        assert_eq!(time_caps_bytes(&runtime, far), [0xa5; 8]);
-        assert_eq!(
-            (
-                runtime.cpu.regs.cs,
-                runtime.cpu.regs.ip(),
-                runtime.cpu.regs.sp()
-            ),
-            return_to
-        );
-    }
+    let far = poison_time_caps(&mut runtime);
+    host.caps = Some((0, 1, 1_000_000));
+    let return_to = arm(&mut runtime, 604, &dev_caps_arguments(far, 4));
+    assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
+    assert_eq!(runtime.cpu.regs.ax(), 0);
+    assert_eq!(runtime.cpu.regs.dx(), DX_SENTINEL);
+    expected[0..2].copy_from_slice(&1u16.to_le_bytes());
+    expected[2..4].copy_from_slice(&u16::MAX.to_le_bytes());
+    assert_eq!(time_caps_bytes(&runtime, far), expected);
+    assert_eq!(
+        (
+            runtime.cpu.regs.cs,
+            runtime.cpu.regs.ip(),
+            runtime.cpu.regs.sp()
+        ),
+        return_to
+    );
+
+    let far = poison_time_caps(&mut runtime);
+    host.caps = Some((0, 65_536, 1));
+    let return_to = arm(&mut runtime, 604, &dev_caps_arguments(far, 4));
+    assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
+    assert_eq!(runtime.cpu.regs.ax(), 97);
+    assert_eq!(runtime.cpu.regs.dx(), DX_SENTINEL);
+    assert_eq!(time_caps_bytes(&runtime, far), [0xa5; 8]);
+    assert_eq!(
+        (
+            runtime.cpu.regs.cs,
+            runtime.cpu.regs.ip(),
+            runtime.cpu.regs.sp()
+        ),
+        return_to
+    );
 }
