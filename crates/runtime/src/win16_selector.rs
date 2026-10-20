@@ -530,16 +530,11 @@ impl Win16State {
             None => return Ok(0),
         };
         let base = descriptor.base;
-        let result = self.retarget_selector_range(reference, base, size, dos, memory, |selectors, memory| {
+        self.retarget_selector_range(reference, base, size, dos, memory, |selectors, memory| {
             selectors.set_selector_limit(reference, limit, memory)
         })?;
-        if !result {
-            return Ok(0);
-        }
-        // The Win3.1 SDK header declares UINT but does not define the success
-        // value. The pinned Win16 implementation returns the selector on
-        // success and zero when the descriptor update fails.
-        Ok(selector)
+        // Programmer's Reference Volume 2: the return value is always zero.
+        Ok(0)
     }
 
     pub(super) fn selector_access_rights(
