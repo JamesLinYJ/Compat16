@@ -255,6 +255,72 @@ fn pack_words(low: i32, high: i32) -> u32 {
     u32::from(low as u16) | (u32::from(high as u16) << 16)
 }
 
+/// Windows 3.1 extents and origins are signed `int`s. The Programmer's
+/// Reference, Volume 2, returns the previous pair in one `DWORD` (x in the
+/// low word, y in the high word) and returns zero when the call fails.
+/// A coordinate outside that `int` is not truncated into the return.
+fn pack_signed_pair(x: i32, y: i32) -> Option<u32> {
+    if i16::try_from(x).is_ok() && i16::try_from(y).is_ok() {
+        Some(pack_words(x, y))
+    } else {
+        None
+    }
+}
+
+fn pair_from_size(result: &HostResult) -> Option<(i32, i32)> {
+    match *result {
+        HostResult::Size { width, height } => Some((width, height)),
+        _ => None,
+    }
+}
+
+fn pair_from_point(result: &HostResult) -> Option<(i32, i32)> {
+    match *result {
+        HostResult::Point { x, y } => Some((x, y)),
+        _ => None,
+    }
+}
+
+/// Read the pair these calls return. When it does not fit a signed 16-bit
+/// extent or origin, skip `apply` so the failure leaves the DC unchanged.
+fn apply_signed_pair(
+    host: &mut impl RuntimeHost,
+    preview: Operation,
+    apply: Operation,
+    restore: impl Fn(i32, i32) -> Operation,
+    read: fn(&HostResult) -> Option<(i32, i32)>,
+    name: &'static str,
+) -> Result<u32, RuntimeError> {
+    let Some((current_x, current_y)) = read(&host.win16_gdi(preview)?) else {
+        return Err(wrong_result(name));
+    };
+    if pack_signed_pair(current_x, current_y).is_none() {
+        return Ok(0);
+    }
+    let Some((previous_x, previous_y)) = read(&host.win16_gdi(apply)?) else {
+        return Err(wrong_result(name));
+    };
+    if let Some(packed) = pack_signed_pair(previous_x, previous_y) {
+        return Ok(packed);
+    }
+    if read(&host.win16_gdi(restore(previous_x, previous_y))?).is_none() {
+        return Err(wrong_result(name));
+    }
+    Ok(0)
+}
+
+fn read_signed_pair(
+    host: &mut impl RuntimeHost,
+    query: Operation,
+    read: fn(&HostResult) -> Option<(i32, i32)>,
+    name: &'static str,
+) -> Result<u32, RuntimeError> {
+    let Some((x, y)) = read(&host.win16_gdi(query)?) else {
+        return Err(wrong_result(name));
+    };
+    Ok(pack_signed_pair(x, y).unwrap_or(0))
+}
+
 fn drawing_rect(left: i16, top: i16, right: i16, bottom: i16) -> Win16DrawingRect {
     Win16DrawingRect {
         left: i32::from(left),

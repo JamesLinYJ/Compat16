@@ -3,7 +3,10 @@
 use guest_core::memory::Memory;
 use win16_abi::Win16ApiRequest;
 
-use super::{HostResult, Operation, Win16State, pack_words, wrong_result};
+use super::{
+    HostResult, Operation, Win16State, apply_signed_pair, pack_words, pair_from_point,
+    pair_from_size, read_signed_pair, wrong_result,
+};
 use crate::RuntimeHost;
 
 impl Win16State {
@@ -22,14 +25,18 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::SetWindowOrg {
-                    dc,
-                    x: i32::from(x),
-                    y: i32::from(y),
-                })? {
-                    HostResult::Point { x, y } => Ok(pack_words(x, y)),
-                    _ => Err(wrong_result("SetWindowOrg")),
-                }
+                apply_signed_pair(
+                    host,
+                    Operation::GetWindowOrg { dc },
+                    Operation::SetWindowOrg {
+                        dc,
+                        x: i32::from(x),
+                        y: i32::from(y),
+                    },
+                    |x, y| Operation::SetWindowOrg { dc, x, y },
+                    pair_from_point,
+                    "SetWindowOrg",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::OffsetWindowOrg {
                 dc,
@@ -39,14 +46,18 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::OffsetWindowOrg {
-                    dc,
-                    x: i32::from(x),
-                    y: i32::from(y),
-                })? {
-                    HostResult::Point { x, y } => Ok(pack_words(x, y)),
-                    _ => Err(wrong_result("OffsetWindowOrg")),
-                }
+                apply_signed_pair(
+                    host,
+                    Operation::GetWindowOrg { dc },
+                    Operation::OffsetWindowOrg {
+                        dc,
+                        x: i32::from(x),
+                        y: i32::from(y),
+                    },
+                    |x, y| Operation::SetWindowOrg { dc, x, y },
+                    pair_from_point,
+                    "OffsetWindowOrg",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::OffsetViewportOrg {
                 dc,
@@ -56,14 +67,18 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::OffsetViewportOrg {
-                    dc,
-                    x: i32::from(x),
-                    y: i32::from(y),
-                })? {
-                    HostResult::Point { x, y } => Ok(pack_words(x, y)),
-                    _ => Err(wrong_result("OffsetViewportOrg")),
-                }
+                apply_signed_pair(
+                    host,
+                    Operation::GetViewportOrg { dc },
+                    Operation::OffsetViewportOrg {
+                        dc,
+                        x: i32::from(x),
+                        y: i32::from(y),
+                    },
+                    |x, y| Operation::SetViewportOrg { dc, x, y },
+                    pair_from_point,
+                    "OffsetViewportOrg",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::ScaleWindowExt {
                 dc,
@@ -75,16 +90,24 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::ScaleWindowExt {
-                    dc,
-                    x_num: i32::from(x_numerator),
-                    x_den: i32::from(x_denominator),
-                    y_num: i32::from(y_numerator),
-                    y_den: i32::from(y_denominator),
-                })? {
-                    HostResult::Size { width, height } => Ok(pack_words(width, height)),
-                    _ => Err(wrong_result("ScaleWindowExt")),
-                }
+                apply_signed_pair(
+                    host,
+                    Operation::GetWindowExt { dc },
+                    Operation::ScaleWindowExt {
+                        dc,
+                        x_num: i32::from(x_numerator),
+                        x_den: i32::from(x_denominator),
+                        y_num: i32::from(y_numerator),
+                        y_den: i32::from(y_denominator),
+                    },
+                    |width, height| Operation::SetWindowExt {
+                        dc,
+                        x: width,
+                        y: height,
+                    },
+                    pair_from_size,
+                    "ScaleWindowExt",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::ScaleViewportExt {
                 dc,
@@ -96,16 +119,24 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::ScaleViewportExt {
-                    dc,
-                    x_num: i32::from(x_numerator),
-                    x_den: i32::from(x_denominator),
-                    y_num: i32::from(y_numerator),
-                    y_den: i32::from(y_denominator),
-                })? {
-                    HostResult::Size { width, height } => Ok(pack_words(width, height)),
-                    _ => Err(wrong_result("ScaleViewportExt")),
-                }
+                apply_signed_pair(
+                    host,
+                    Operation::GetViewportExt { dc },
+                    Operation::ScaleViewportExt {
+                        dc,
+                        x_num: i32::from(x_numerator),
+                        x_den: i32::from(x_denominator),
+                        y_num: i32::from(y_numerator),
+                        y_den: i32::from(y_denominator),
+                    },
+                    |width, height| Operation::SetViewportExt {
+                        dc,
+                        x: width,
+                        y: height,
+                    },
+                    pair_from_size,
+                    "ScaleViewportExt",
+                )
             }
             Win16ApiRequest::GdiDrawing(
                 win16_abi::Win16GdiDrawingRequest::GetCurrentPosition { dc },
@@ -124,10 +155,12 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::GetViewportExt { dc })? {
-                    HostResult::Size { width, height } => Ok(pack_words(width, height)),
-                    _ => Err(wrong_result("GetViewportExt")),
-                }
+                read_signed_pair(
+                    host,
+                    Operation::GetViewportExt { dc },
+                    pair_from_size,
+                    "GetViewportExt",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::GetViewportOrg {
                 dc,
@@ -135,28 +168,34 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::GetViewportOrg { dc })? {
-                    HostResult::Point { x, y } => Ok(pack_words(x, y)),
-                    _ => Err(wrong_result("GetViewportOrg")),
-                }
+                read_signed_pair(
+                    host,
+                    Operation::GetViewportOrg { dc },
+                    pair_from_point,
+                    "GetViewportOrg",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::GetWindowExt { dc }) => {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::GetWindowExt { dc })? {
-                    HostResult::Size { width, height } => Ok(pack_words(width, height)),
-                    _ => Err(wrong_result("GetWindowExt")),
-                }
+                read_signed_pair(
+                    host,
+                    Operation::GetWindowExt { dc },
+                    pair_from_size,
+                    "GetWindowExt",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::GetWindowOrg { dc }) => {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::GetWindowOrg { dc })? {
-                    HostResult::Point { x, y } => Ok(pack_words(x, y)),
-                    _ => Err(wrong_result("GetWindowOrg")),
-                }
+                read_signed_pair(
+                    host,
+                    Operation::GetWindowOrg { dc },
+                    pair_from_point,
+                    "GetWindowOrg",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::GetViewportExtEx {
                 dc,

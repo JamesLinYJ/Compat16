@@ -178,14 +178,22 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::SetWindowExt {
-                    dc,
-                    x: i32::from(x),
-                    y: i32::from(y),
-                })? {
-                    HostResult::Size { width, height } => Ok(pack_words(width, height)),
-                    _ => Err(wrong_result("SetWindowExt")),
-                }
+                apply_signed_pair(
+                    host,
+                    Operation::GetWindowExt { dc },
+                    Operation::SetWindowExt {
+                        dc,
+                        x: i32::from(x),
+                        y: i32::from(y),
+                    },
+                    |width, height| Operation::SetWindowExt {
+                        dc,
+                        x: width,
+                        y: height,
+                    },
+                    pair_from_size,
+                    "SetWindowExt",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::SetViewportOrg {
                 dc,
@@ -195,14 +203,18 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::SetViewportOrg {
-                    dc,
-                    x: i32::from(x),
-                    y: i32::from(y),
-                })? {
-                    HostResult::Point { x, y } => Ok(pack_words(x, y)),
-                    _ => Err(wrong_result("SetViewportOrg")),
-                }
+                apply_signed_pair(
+                    host,
+                    Operation::GetViewportOrg { dc },
+                    Operation::SetViewportOrg {
+                        dc,
+                        x: i32::from(x),
+                        y: i32::from(y),
+                    },
+                    |x, y| Operation::SetViewportOrg { dc, x, y },
+                    pair_from_point,
+                    "SetViewportOrg",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::SetViewportExt {
                 dc,
@@ -212,14 +224,22 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::SetViewportExt {
-                    dc,
-                    x: i32::from(x),
-                    y: i32::from(y),
-                })? {
-                    HostResult::Size { width, height } => Ok(pack_words(width, height)),
-                    _ => Err(wrong_result("SetViewportExt")),
-                }
+                apply_signed_pair(
+                    host,
+                    Operation::GetViewportExt { dc },
+                    Operation::SetViewportExt {
+                        dc,
+                        x: i32::from(x),
+                        y: i32::from(y),
+                    },
+                    |width, height| Operation::SetViewportExt {
+                        dc,
+                        x: width,
+                        y: height,
+                    },
+                    pair_from_size,
+                    "SetViewportExt",
+                )
             }
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::ExcludeClipRect {
                 dc,
