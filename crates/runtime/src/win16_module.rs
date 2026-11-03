@@ -69,6 +69,27 @@ impl Win16State {
             let record = &self.modules.records[&handle];
             record.name.clone()
         };
+        // Learn GetProcAddress: spelling and case must match the EXPORTS entry.
+        // A loaded NE name table is that spelling. Builtin catalog lookup is unchanged.
+        let exact_ordinal = match procedure {
+            Win16ProcReference::Name(exported) if !self.modules.records[&handle].builtin => {
+                self.modules.records[&handle].definition.as_ref().map(|definition| {
+                    definition.resident_names.iter().chain(&definition.nonresident_names)
+                        .find(|entry| entry.ordinal != 0 && entry.name.as_slice() == exported.as_slice())
+                        .map(|entry| entry.ordinal)
+                })
+            }
+            _ => None,
+        };
+        let resolved_ordinal;
+        let procedure = match exact_ordinal {
+            Some(Some(ordinal)) => {
+                resolved_ordinal = Win16ProcReference::Ordinal(ordinal);
+                &resolved_ordinal
+            }
+            Some(None) => return Ok(ProcedureLookup::Missing),
+            None => procedure,
+        };
         let lookup = match procedure {
             Win16ProcReference::Ordinal(ordinal) => win16_abi::ExportLookupTarget::Ordinal(*ordinal),
             Win16ProcReference::Name(name) => win16_abi::ExportLookupTarget::Name(name),
