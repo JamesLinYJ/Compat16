@@ -98,8 +98,11 @@ impl Win16State {
                 Win16KernelTaskRequest::GetVersionEx { version_info } => {
                     u32::from(self.kernel_get_version_ex(version_info, memory)?)
                 }
-                Win16KernelTaskRequest::DirectedYield { task } => {
-                    u32::from(self.kernel_directed_yield(task))
+                Win16KernelTaskRequest::DirectedYield { .. } => {
+                    return Err(RuntimeError::new(
+                        Kind::InternalInvariant,
+                        "DirectedYield bypassed its Yield scheduling boundary",
+                    ));
                 }
             },
             Win16ApiRequest::KernelModule(request) => match request {
