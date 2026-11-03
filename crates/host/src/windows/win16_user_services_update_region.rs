@@ -51,6 +51,29 @@ fn native_rect(rect: Win16HostRect) -> RECT {
     }
 }
 
+/// Windows 3.1 Programmer's Reference, Volume 3: a `RECT` width must not
+/// exceed 32,767 units. Volume 2 `SetRect` measures that width as the
+/// absolute difference of the edges and applies the same limit to the height.
+/// Each edge is a signed int. A rectangle outside either limit is not a
+/// `RECT` these calls can add or remove.
+fn rectangle_fits(rect: Win16HostRect) -> bool {
+    signed_edge(rect.left)
+        && signed_edge(rect.top)
+        && signed_edge(rect.right)
+        && signed_edge(rect.bottom)
+        && dimension_fits(rect.left, rect.right)
+        && dimension_fits(rect.top, rect.bottom)
+}
+
+fn signed_edge(value: i32) -> bool {
+    i16::try_from(value).is_ok()
+}
+
+fn dimension_fits(start: i32, end: i32) -> bool {
+    end.checked_sub(start)
+        .is_some_and(|span| span.unsigned_abs() <= 32_767)
+}
+
 fn host_rect(rect: RECT) -> Win16HostRect {
     Win16HostRect {
         left: rect.left,
@@ -122,6 +145,12 @@ pub(super) fn execute(
             let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
                 return Ok(failure_result(&operation));
             };
+            // A null rectangle is the whole client area. Any other rectangle
+            // that does not fit is refused before USER, so the update region
+            // and its erase flag stay unchanged.
+            if (*rect).is_some_and(|rect| !rectangle_fits(rect)) {
+                return Ok(failure_result(&operation));
+            }
             let rect = (*rect).map(native_rect);
             let rect_ptr = rect
                 .as_ref()
@@ -155,6 +184,12 @@ pub(super) fn execute(
             let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
                 return Ok(failure_result(&operation));
             };
+            // A null rectangle validates the whole client area. A rectangle
+            // that does not fit is refused before USER and leaves the update
+            // region unchanged.
+            if (*rect).is_some_and(|rect| !rectangle_fits(rect)) {
+                return Ok(failure_result(&operation));
+            }
             let rect = (*rect).map(native_rect);
             let rect_ptr = rect
                 .as_ref()
