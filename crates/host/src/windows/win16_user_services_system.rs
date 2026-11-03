@@ -40,12 +40,16 @@ pub(super) fn set_sys_colors(
 ) -> Result<bool, runtime::RuntimeError> {
     // The USER worker establishes the callback operation before invoking this
     // adapter. No worker RefCell borrow may survive the synchronous native call.
-    // SAFETY: the helper validates matching lengths and retains both arrays,
-    // or live dummy values for zero count, until this native call returns.
+    // SAFETY: the helper keeps the published COLORREF arrays, or live dummy
+    // values for zero count, until this native call returns. It does not pass
+    // a guest address.
     set_sys_colors_with(indices, colors, |count, indices, colors| unsafe {
         SetSysColors(count, indices, colors)
     })
 }
+
+/// Windows 3.1 `COLOR_SCROLLBAR` through `COLOR_BTNHIGHLIGHT`.
+const WIN31_LAST_SYS_COLOR: i32 = 20;
 
 fn set_sys_colors_with(
     indices: &[i32],
@@ -58,7 +62,39 @@ fn set_sys_colors_with(
             "native system-color arrays have different lengths",
         ));
     }
-    let count = i32::try_from(indices.len()).map_err(|_| {
+    if i32::try_from(indices.len()).is_err() {
+        return Err(runtime::RuntimeError::new(
+            runtime::DiagnosticKind::InternalInvariant,
+            "native system-color count exceeds INT",
+        ));
+    }
+    let mut published_indices = Vec::new();
+    let mut published_colors = Vec::new();
+    published_indices
+        .try_reserve_exact(indices.len())
+        .map_err(|error| {
+            runtime::RuntimeError::with_source(
+                runtime::DiagnosticKind::ResourceExhausted,
+                "retain published system-color indexes",
+                error,
+            )
+        })?;
+    published_colors
+        .try_reserve_exact(colors.len())
+        .map_err(|error| {
+            runtime::RuntimeError::with_source(
+                runtime::DiagnosticKind::ResourceExhausted,
+                "retain published system-color values",
+                error,
+            )
+        })?;
+    for (&index, &color) in indices.iter().zip(colors) {
+        if (0..=WIN31_LAST_SYS_COLOR).contains(&index) {
+            published_indices.push(index);
+            published_colors.push(color);
+        }
+    }
+    let count = i32::try_from(published_indices.len()).map_err(|_| {
         runtime::RuntimeError::new(
             runtime::DiagnosticKind::InternalInvariant,
             "native system-color count exceeds INT",
@@ -66,10 +102,11 @@ fn set_sys_colors_with(
     })?;
     let empty_index = 0_i32;
     let empty_color = 0_u32;
-    let indices_ptr = indices.first().unwrap_or(&empty_index);
-    let colors_ptr = colors.first().unwrap_or(&empty_color);
-    // Both slices remain owned for the complete synchronous call, including
-    // nested callbacks. Zero count uses live dummy values without reading them.
+    let indices_ptr = published_indices.first().unwrap_or(&empty_index);
+    let colors_ptr = published_colors.first().unwrap_or(&empty_color);
+    // The published arrays stay owned for the complete synchronous call,
+    // including nested callbacks. Zero count uses live dummy values without
+    // reading them. One call applies every published element together.
     Ok(apply(count, indices_ptr, colors_ptr) != 0)
 }
 
