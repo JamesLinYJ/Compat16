@@ -503,22 +503,34 @@ fn wide_parent_directory(file: &[u16]) -> Option<Vec<u16>> {
 }
 
 fn windows31_font_module(filesystem: &mut Filesystem, guest_path: &[u8]) -> Option<Vec<u16>> {
-    if !guest_font_filename_has_extension(guest_path) {
+    if !guest_font_filename_has_extension(filesystem, guest_path) {
         return None;
     }
     let path = font_resource_path(filesystem, guest_path, false)?;
     loadable_font_module(&path).then_some(path)
 }
 
-fn guest_font_filename_has_extension(path: &[u8]) -> bool {
-    let name = path
-        .rsplit(|byte| matches!(*byte, b'\\' | b'/' | b':'))
-        .next()
-        .unwrap_or(path);
-    match name.iter().rposition(|byte| *byte == b'.') {
-        Some(index) => index + 1 < name.len(),
-        None => false,
+fn guest_font_filename_has_extension(filesystem: &Filesystem, path: &[u8]) -> bool {
+    // A CP936 trail byte may be 0x5c. Walk the same guest code page that
+    // filesystem resolution decodes, so that byte stays inside the final
+    // filename instead of becoming a directory separator.
+    let mut dot_end = None;
+    for character in text_codec::encoded_characters(path, filesystem.guest_code_page()) {
+        let Ok(character) = character else {
+            return false;
+        };
+        if character.is_standalone_ascii(b'\\')
+            || character.is_standalone_ascii(b'/')
+            || character.is_standalone_ascii(b':')
+        {
+            dot_end = None;
+            continue;
+        }
+        if character.is_standalone_ascii(b'.') {
+            dot_end = Some(character.byte_range.end);
+        }
     }
+    dot_end.is_some_and(|end| end < path.len())
 }
 
 fn loadable_font_module(path: &[u16]) -> bool {
