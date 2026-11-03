@@ -76,6 +76,9 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
+                if !win31_closed_figure(left, top, right, bottom) {
+                    return Ok(0);
+                }
                 match host.win16_gdi(Operation::Rectangle {
                     dc,
                     left: i32::from(left),

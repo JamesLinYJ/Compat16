@@ -5,7 +5,7 @@ use win16_abi::Win16ApiRequest;
 
 use super::{
     HostResult, Operation, Win16State, drawing_rect, pack_words, point_to_host, rect_to_host,
-    wrong_result,
+    win31_closed_figure, wrong_result,
 };
 use crate::{RuntimeError, RuntimeHost, Win16HostDc};
 

@@ -255,6 +255,20 @@ fn pack_words(low: i32, high: i32) -> u32 {
     u32::from(low as u16) | (u32::from(high as u16) << 16)
 }
 
+/// Windows 3.1 Programmer's Reference, Volume 2: the width of Arc, Ellipse,
+/// Pie, Rectangle, and RoundRect is `nRightRect - nLeftRect`, and the height
+/// is `nBottomRect - nTopRect`. Both must be greater than 2 and less than
+/// 32,767. The difference stays in 32 bits so a signed 16-bit span cannot
+/// wrap into that range and be drawn as a success.
+fn win31_closed_figure(left: i16, top: i16, right: i16, bottom: i16) -> bool {
+    win31_figure_span(left, right) && win31_figure_span(top, bottom)
+}
+
+fn win31_figure_span(start: i16, end: i16) -> bool {
+    let span = i32::from(end) - i32::from(start);
+    (3..32_767).contains(&span)
+}
+
 fn drawing_rect(left: i16, top: i16, right: i16, bottom: i16) -> Win16DrawingRect {
     Win16DrawingRect {
         left: i32::from(left),

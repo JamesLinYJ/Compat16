@@ -25,6 +25,9 @@ pub(super) fn execute(
             let Some(dc) = state.guest_gdi.dc(dc) else {
                 return Ok(0);
             };
+            if !win31_closed_figure(left, top, right, bottom) {
+                return Ok(0);
+            }
             bool_result(
                 host.win16_gdi(Operation::Arc {
                     dc,
@@ -44,6 +47,9 @@ pub(super) fn execute(
             let Some(dc) = state.guest_gdi.dc(dc) else {
                 return Ok(0);
             };
+            if !win31_closed_figure(rect.left, rect.top, rect.right, rect.bottom) {
+                return Ok(0);
+            }
             bool_result(
                 host.win16_gdi(Operation::Ellipse {
                     dc,
@@ -80,6 +86,9 @@ pub(super) fn execute(
             let Some(dc) = state.guest_gdi.dc(dc) else {
                 return Ok(0);
             };
+            if !win31_closed_figure(left, top, right, bottom) {
+                return Ok(0);
+            }
             bool_result(
                 host.win16_gdi(Operation::Pie {
                     dc,
@@ -104,6 +113,9 @@ pub(super) fn execute(
             let Some(dc) = state.guest_gdi.dc(dc) else {
                 return Ok(0);
             };
+            if !win31_closed_figure(rect.left, rect.top, rect.right, rect.bottom) {
+                return Ok(0);
+            }
             bool_result(
                 host.win16_gdi(Operation::RoundRect {
                     dc,
