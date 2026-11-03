@@ -406,13 +406,11 @@ impl Win16State {
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
                 win16_abi::Win16KernelModulesRequest::GetModuleUsage { module },
             )) => match self.modules.by_handle(module) {
+                // KB Q81496: usage is the number of loaded instances. A
+                // WinExec or LoadModule activation stores that count; an
+                // association handle is not an instance.
                 Some(handle) if self.external_application(handle).is_some() => {
-                    super::external_application::report_external_identity_query(
-                        host,
-                        "GetModuleUsage",
-                        handle,
-                    );
-                    0
+                    u32::from(self.modules.records[&handle].explicit_refs)
                 }
                 Some(handle) => u32::from(self.modules.usage(handle)),
                 None => 0,
