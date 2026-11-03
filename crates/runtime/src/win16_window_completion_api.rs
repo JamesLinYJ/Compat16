@@ -818,7 +818,7 @@ pub(super) fn finish_window_call(
             (Output::None, ResultValue::Window(None)) => Some(0),
             (Output::None, ResultValue::Window(Some(native))) =>
                 Some(u32::from(access.map_window_handle(*native, false)?)),
-            (Output::Rect(range) | Output::WindowRect { range, .. }, ResultValue::Rect(rect)) => {
+            (Output::Rect(range), ResultValue::Rect(rect)) => {
                 if let Some(rect) = rect {
                     let output = win16_abi::Rect16 {
                         left: rect.left as i16, top: rect.top as i16,
@@ -826,6 +826,21 @@ pub(super) fn finish_window_call(
                     }.encode();
                     super::super::guest_ranges::commit_guest_output_with_selectors(
                         access.selectors, memory, range, &output,
+                    )?;
+                    owner.phase = Phase::GuestOutputCommitted;
+                }
+                Some(0)
+            }
+            (Output::WindowRect { range, .. }, ResultValue::Rect(rect)) => {
+                // Windows 3.1 Programmer's Reference, Volume 2: GetWindowRect
+                // and GetClientRect are void and fill a RECT of signed ints.
+                // An edge outside that int is not stored. The guest buffer
+                // stays unchanged, and the calls do not return a value.
+                if let Some(rect) = rect
+                    && let Some(output) = signed_rect16(rect)
+                {
+                    super::super::guest_ranges::commit_guest_output_with_selectors(
+                        access.selectors, memory, range, &output.encode(),
                     )?;
                     owner.phase = Phase::GuestOutputCommitted;
                 }
@@ -932,6 +947,15 @@ pub(super) fn finish_window_call(
     owner.value.map(|value| (value, call.return_kind))
         .ok_or_else(|| RuntimeError::new(Kind::InternalInvariant,
             "window-call projection lost its cached result"))
+}
+
+fn signed_rect16(rect: &crate::Win16HostRect) -> Option<win16_abi::Rect16> {
+    Some(win16_abi::Rect16 {
+        left: i16::try_from(rect.left).ok()?,
+        top: i16::try_from(rect.top).ok()?,
+        right: i16::try_from(rect.right).ok()?,
+        bottom: i16::try_from(rect.bottom).ok()?,
+    })
 }
 
 fn bounded_class_name(name: &[u8], capacity: u16) -> Result<(i32, Vec<u8>), RuntimeError> {
