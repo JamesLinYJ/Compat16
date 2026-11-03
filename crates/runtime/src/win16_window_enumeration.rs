@@ -8,7 +8,7 @@ use x86_cpu::Cpu;
 use super::{CallbackKind, Win16State, far_callback::{Win16FarCallbackArgument as Argument,
     Win16FarCallbackConvention, Win16FarCallbackFrame, Win16FarCallbackReturn},
     runtime_arena_backing::RuntimeArenaChunkKind};
-use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostWindow,
+use crate::{Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostWindow,
     Win16WindowEnumerationQuery as Query, Win16WindowEnumerationReply as Reply,
     Win16WindowEnumerationScope as Scope, Win16WindowTarget};
 
@@ -25,7 +25,7 @@ pub(super) struct WindowEnumerationFrame {
 
 impl Win16State {
     /// USER queue owned by this live guest HTASK. The queue token stays on the
-    /// host side. A missing binding means the task has no top-level windows.
+    /// host side. A missing binding does not prove that the task has no windows.
     fn task_enumeration_queue(
         &self, task: u16, memory: &Memory,
     ) -> Result<Option<crate::Win16HostTaskQueue>, RuntimeError> {
@@ -68,11 +68,18 @@ impl Win16State {
                     return self.complete_return(&mut cpu.regs, return_to.0, return_to.1,
                         return_to.2, 0, Win16ReturnKind::Word);
                 }
-                // Vol. 2 p. 282: enumerate the owning task's top-level windows.
-                // An empty list returns nonzero and leaves the callback unentered.
-                let Some(queue) = self.task_enumeration_queue(task, memory)? else {
+                // A missing binding is not evidence of an empty task. Bind
+                // the current task lazily; other unbound tasks remain unsupported.
+                let queue = match self.task_enumeration_queue(task, memory)? {
+                    Some(queue) => Some(queue),
+                    None if self.current_task_handle()? == task => self.ensure_user_queue(host)?,
+                    None => None,
+                };
+                let Some(queue) = queue else {
+                    host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
+                        "EnumTaskWindows task has no verified native USER queue"));
                     return self.complete_return(&mut cpu.regs, return_to.0, return_to.1,
-                        return_to.2, 1, Win16ReturnKind::Word);
+                        return_to.2, 0, Win16ReturnKind::Word);
                 };
                 (Scope::TaskQueue(queue), callback, data)
             }
