@@ -9,7 +9,7 @@ use guest_core::{Registers, memory::Memory};
 use win16_abi::{
     Win16ReturnKind, Win16WindowDataRequest,
     exports::window_data::{
-        DWL_DLGPROC, DWL_MSGRESULT, DWL_USER, GWL_EXSTYLE, GWL_STYLE,
+        DWL_DLGPROC, DWL_MSGRESULT, GWL_EXSTYLE, GWL_STYLE,
         GWL_WNDPROC, GWW_HINSTANCE, GWW_HWNDPARENT, GWW_ID,
     },
 };
@@ -22,16 +22,14 @@ use crate::{
     Win16WindowTarget, Win16HostWindow,
 };
 
-// The Win16 SDK DLGWINDOWEXTRA is 30 bytes. It documents three DWORD slots:
-// DWL_MSGRESULT and DWL_DLGPROC belong to USER; DWL_USER is one app DWORD.
-// The remaining 18 bytes are reserved for dialog-manager use.
+// The Win16 SDK DLGWINDOWEXTRA is 30 bytes. DWL_MSGRESULT, DWL_DLGPROC, and
+// DWL_USER name three DWORD slots inside it. The window's own extra
+// allocation, including the rest of those 30 bytes, stays addressable.
 const DLGWINDOWEXTRA_BYTES: usize = 30;
 const DIALOG_RESULT_RANGE: std::ops::Range<usize> =
     DWL_MSGRESULT as usize..DWL_MSGRESULT as usize + 4;
 const DIALOG_PROC_RANGE: std::ops::Range<usize> =
     DWL_DLGPROC as usize..DWL_DLGPROC as usize + 4;
-const DIALOG_USER_RANGE: std::ops::Range<usize> =
-    DWL_USER as usize..DWL_USER as usize + 4;
 
 #[derive(Debug)]
 pub(super) struct Win16WindowDataState {
@@ -467,9 +465,9 @@ impl Win16State {
         replacement: Option<u32>,
         host: &mut impl RuntimeHost,
     ) -> Result<Option<u32>, RuntimeError> {
-        let (length, is_dialog) = match self.window_data.get(&window) {
+        let length = match self.window_data.get(&window) {
             Some(state) => match state.extra_bytes.as_ref() {
-                Some(bytes) => (bytes.len(), state.is_dialog),
+                Some(bytes) => bytes.len(),
                 None => {
                     self.report_missing_contract(host, window, offset as i16,
                         replacement, width)?;
@@ -483,21 +481,9 @@ impl Win16State {
             }
         };
         let Some(end) = offset.checked_add(width.bytes()) else { return Ok(None) };
-        // Bytes 0..11 contain the documented dialog fields, including the
-        // application DWORD at DWL_USER. The manager owns [12,30); classes
-        // with a larger cbWndExtra expose their remaining bytes to the guest.
-        if is_dialog && offset < 30 && end > DIALOG_USER_RANGE.end {
-            let api = match (replacement.is_some(), width) {
-                (false, DataWidth::Word) => "GetWindowWord",
-                (true, DataWidth::Word) => "SetWindowWord",
-                (false, DataWidth::Long) => "GetWindowLong",
-                (true, DataWidth::Long) => "SetWindowLong",
-            };
-            host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap, format!(
-                "Win16 {api} index {offset} addresses reserved DLGWINDOWEXTRA bytes for guest HWND 0x{window:04X}; returned zero",
-            )));
-            return Ok(None);
-        }
+        // Volume 2 accepts every byte offset from zero through the window's
+        // own extra allocation, minus the accessor width. A span that does
+        // not fit fails and is not stored as a partial word or long.
         if end > length { return Ok(None); }
 
         let old = self.read_extra_value(window, offset, width)
