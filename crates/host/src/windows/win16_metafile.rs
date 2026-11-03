@@ -1,6 +1,9 @@
 //! Classic WMF loading, playback and copying with temporary native ownership.
 
-use std::io::{Read, Write};
+use std::{
+    borrow::Cow,
+    io::{Read, Write},
+};
 
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostFileSystemPath,
@@ -182,21 +185,21 @@ pub(super) fn execute(
             Ok(ResultValue::Bits(Some(copied)))
         }
         Operation::Play { dc, bits } => {
-            let Some(framed) = format::validate(&bits) else {
-                return Ok(ResultValue::Played(false));
+            let stream = match playback_stream(&bits) {
+                Ok(stream) => stream,
+                Err(PlaybackSkip::Invalid) => return Ok(ResultValue::Played(false)),
+                // A non-comment META_ESCAPE can carry a callback pointer or a
+                // driver-specific structure. Those need their own typed
+                // Win16/native ABI; passing the record bytes to native Escape
+                // would bypass the existing bounded printer Escape bridge.
+                Err(PlaybackSkip::UnhandledEscape) => {
+                    return Err(RuntimeError::new(
+                        Kind::CompatibilityGap,
+                        "WMF Escape records require a typed native payload translation",
+                    ));
+                }
             };
-            if framed.has_escape {
-                // META_ESCAPE can carry callback pointers or driver-specific
-                // structures. Those need their own typed Win16/native ABI;
-                // passing record bytes to native Escape would bypass the
-                // existing bounded printer Escape bridge. Comments can also
-                // contain an embedded enhanced metafile with its own escapes.
-                return Err(RuntimeError::new(
-                    Kind::CompatibilityGap,
-                    "WMF Escape records require a typed native payload translation",
-                ));
-            }
-            let Some(native) = NativeMetafile::from_bits(framed.bytes) else {
+            let Some(native) = NativeMetafile::from_bits(&stream) else {
                 return Ok(ResultValue::Played(false));
             };
             let Some(dc_use) = dcs.lease_dc(dc)? else {
@@ -211,6 +214,60 @@ pub(super) fn execute(
             }))
         }
     }
+}
+
+// Windows 3.1 `MFCOMMENT` (escape 15). PlayMetaFile does not draw it.
+const MFCOMMENT: u16 = 15;
+
+enum PlaybackSkip {
+    Invalid,
+    UnhandledEscape,
+}
+
+/// Logical playback bytes. `MFCOMMENT` records are omitted because Windows 3.1
+/// performs no output for them. Any other `META_ESCAPE` is refused so its
+/// payload is not passed to native playback.
+fn playback_stream(bytes: &[u8]) -> Result<Cow<'_, [u8]>, PlaybackSkip> {
+    let parsed = formats::parse_wmf(bytes).map_err(|_| PlaybackSkip::Invalid)?;
+    if !parsed.has_escape() {
+        let length = parsed.bytes().len();
+        return Ok(Cow::Borrowed(&bytes[..length]));
+    }
+    let mut kept = Vec::new();
+    for record in parsed.records() {
+        if !record.is_escape() {
+            kept.push(record.bytes());
+            continue;
+        }
+        let Some(function) = record.parameters().get(..2) else {
+            return Err(PlaybackSkip::UnhandledEscape);
+        };
+        if u16::from_le_bytes([function[0], function[1]]) != MFCOMMENT {
+            return Err(PlaybackSkip::UnhandledEscape);
+        }
+    }
+    let mut body = 0usize;
+    for record in &kept {
+        body = body
+            .checked_add(record.len())
+            .ok_or(PlaybackSkip::Invalid)?;
+    }
+    let total = formats::WMF_HEADER_BYTES
+        .checked_add(body)
+        .ok_or(PlaybackSkip::Invalid)?;
+    let mut out = Vec::new();
+    out.try_reserve_exact(total)
+        .map_err(|_| PlaybackSkip::Invalid)?;
+    out.extend_from_slice(&parsed.bytes()[..formats::WMF_HEADER_BYTES]);
+    let words = u32::try_from(total / 2).map_err(|_| PlaybackSkip::Invalid)?;
+    out[6..10].copy_from_slice(&words.to_le_bytes());
+    for record in kept {
+        out.extend_from_slice(record);
+    }
+    if formats::parse_wmf(&out).is_err() {
+        return Err(PlaybackSkip::Invalid);
+    }
+    Ok(Cow::Owned(out))
 }
 
 fn confined_path(
