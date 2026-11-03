@@ -26,7 +26,7 @@ impl Win16State {
             Request::UnhookWindowsHook {
                 hook_type,
                 procedure,
-            } => u32::from(self.unhook_windows_hook(host, hook_type, procedure)?),
+            } => u32::from(self.unhook_windows_hook(memory, host, hook_type, procedure)?),
             Request::CallMsgFilter { message, code } => {
                 return self.begin_call_msg_filter(cpu, dos, memory, message, code, return_to);
             }
@@ -47,7 +47,7 @@ impl Win16State {
                 task,
             } => self.set_windows_hook_ex(memory, host, hook_type, procedure, instance, task)?,
             Request::UnhookWindowsHookEx { hook } => {
-                u32::from(self.unhook_windows_hook_ex(host, hook)?)
+                u32::from(self.unhook_windows_hook_ex(memory, host, hook)?)
             }
             Request::CallNextHookEx {
                 hook,
