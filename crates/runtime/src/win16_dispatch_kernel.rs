@@ -603,8 +603,11 @@ impl Win16State {
                     file_handle,
                     buffer,
                     count,
+                    segment_bounded,
                 },
-            )) => self.write_file(file_handle, buffer, count, memory, host)?,
+            )) => self.write_file_bounded(
+                file_handle, buffer, count, segment_bounded, memory, host,
+            )?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Files(
                 win16_abi::Win16KernelFilesRequest::HugeMemoryCopy {
                     destination,
