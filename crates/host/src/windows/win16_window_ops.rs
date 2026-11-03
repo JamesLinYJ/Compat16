@@ -88,7 +88,14 @@ pub(super) fn execute(
             let mut point = POINT::default();
             // SAFETY: GetCursorPos writes into a caller-owned POINT.
             let success = unsafe { GetCursorPos(&mut point) != 0 };
-            ResultValue::Point(success.then_some(host_point(point)))
+            // Windows 3.1 Programmer's Reference, Volume 2: GetCursorPos is
+            // void and fills a POINT of signed ints. A coordinate outside that
+            // int is not stored. The call has no failure value, so the guest
+            // buffer stays unchanged.
+            let point = success.then_some(host_point(point)).filter(|point| {
+                i16::try_from(point.x).is_ok() && i16::try_from(point.y).is_ok()
+            });
+            ResultValue::Point(point)
         }
         call @ (Call::SetWindowProperty { .. }
         | Call::GetWindowProperty { .. }
