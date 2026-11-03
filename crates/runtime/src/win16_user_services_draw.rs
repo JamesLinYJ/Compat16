@@ -216,25 +216,31 @@ impl Win16State {
                 })?;
                 match result {
                     HostResult::DrawText { height, rect } => {
-                        if height < 0 {
-                            return Err(RuntimeError::new(
-                                Kind::InternalInvariant,
-                                "native DrawText returned a negative height",
-                            ));
+                        // Windows 3.1 `DrawText` returns the text height as a
+                        // signed `int`, or zero when it fails. Mapping modes
+                        // whose Y axis increases upward report that height as
+                        // negative. A height or `DT_CALCRECT` edge outside
+                        // -32768..=32767 is not stored, and the guest
+                        // rectangle stays unchanged.
+                        let Ok(height) = i16::try_from(height) else {
+                            return Ok(0);
+                        };
+                        if height == 0 {
+                            return Ok(0);
                         }
                         if let Some(pointer) = output {
-                            match rect {
-                                Some(rect) => self.write_user_rect(memory, pointer, rect)?,
-                                None if height == 0 => {}
-                                None => {
-                                    return Err(RuntimeError::new(
-                                        Kind::InternalInvariant,
-                                        "DrawText with DT_CALCRECT omitted a successful rectangle",
-                                    ));
-                                }
-                            }
+                            let Some(rect) = rect else {
+                                return Err(RuntimeError::new(
+                                    Kind::InternalInvariant,
+                                    "DrawText with DT_CALCRECT omitted a successful rectangle",
+                                ));
+                            };
+                            let Some(rect) = signed_draw_rect(rect) else {
+                                return Ok(0);
+                            };
+                            self.write_user_rect(memory, pointer, rect)?;
                         }
-                        Ok(u32::from(height.min(i32::from(i16::MAX)) as u16))
+                        Ok(u32::from(height as u16))
                     }
                     _ => Err(wrong_result("DrawText")),
                 }
@@ -250,14 +256,8 @@ impl Win16State {
         &self,
         memory: &mut Memory,
         pointer: win16_abi::SegmentedPointer,
-        rect: Win16DrawingRect,
+        rect: Rect16,
     ) -> Result<(), RuntimeError> {
-        let rect = Rect16 {
-            left: guest_coordinate(rect.left),
-            top: guest_coordinate(rect.top),
-            right: guest_coordinate(rect.right),
-            bottom: guest_coordinate(rect.bottom),
-        };
         self.write_text_bytes(memory, pointer, &rect.encode())
     }
 }
@@ -306,8 +306,13 @@ fn rect_to_host(rect: Rect16) -> Win16DrawingRect {
     }
 }
 
-fn guest_coordinate(value: i32) -> i16 {
-    value.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16
+fn signed_draw_rect(rect: Win16DrawingRect) -> Option<Rect16> {
+    Some(Rect16 {
+        left: i16::try_from(rect.left).ok()?,
+        top: i16::try_from(rect.top).ok()?,
+        right: i16::try_from(rect.right).ok()?,
+        bottom: i16::try_from(rect.bottom).ok()?,
+    })
 }
 
 fn wrong_result(operation: &'static str) -> RuntimeError {
