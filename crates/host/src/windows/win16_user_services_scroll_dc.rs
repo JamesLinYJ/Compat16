@@ -12,10 +12,10 @@ use super::{
 };
 use crate::windows::win16_gdi::Win16Dcs;
 use std::collections::BTreeMap;
-use windows_sys::Win32::Foundation::{POINT, RECT};
+use windows_sys::Win32::Foundation::RECT;
 use windows_sys::Win32::Graphics::Gdi::{
     BITMAP, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, GetClipBox, GetCurrentObject,
-    GetObjectW, GetRgnBox, HDC, HGDIOBJ, HRGN, LPtoDP, MM_TEXT, NULLREGION, OBJ_BITMAP, RGN_ERROR,
+    GetObjectW, GetRgnBox, HDC, HGDIOBJ, HRGN, MM_TEXT, NULLREGION, OBJ_BITMAP, RGN_ERROR,
     RestoreDC, SRCCOPY, SaveDC, SelectObject, SetMapMode, SetViewportOrgEx, SetWindowOrgEx,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::ScrollDC;
@@ -157,20 +157,11 @@ impl DeviceArea {
     }
 }
 
-fn inflate_one(area: DeviceArea) -> DeviceArea {
-    DeviceArea {
-        x: area.x.saturating_sub(1),
-        y: area.y.saturating_sub(1),
-        width: area.width.saturating_add(2),
-        height: area.height.saturating_add(2),
-    }
-}
-
-fn device_area(corners: [POINT; 2]) -> Option<DeviceArea> {
-    let left = corners[0].x.min(corners[1].x);
-    let right = corners[0].x.max(corners[1].x);
-    let top = corners[0].y.min(corners[1].y);
-    let bottom = corners[0].y.max(corners[1].y);
+fn device_area(rect: RECT) -> Option<DeviceArea> {
+    let left = rect.left.min(rect.right);
+    let right = rect.left.max(rect.right);
+    let top = rect.top.min(rect.bottom);
+    let bottom = rect.top.max(rect.bottom);
     Some(DeviceArea {
         x: left,
         y: top,
@@ -239,8 +230,8 @@ fn with_device_space(dc: HDC, copy: impl FnOnce() -> bool) -> bool {
     }
     let guard = MappingGuard { dc, saved };
     // SAFETY: MM_TEXT with zero window and viewport origins makes logical
-    // points equal device pixels for the copy. The copy runs before the
-    // guard restores the previous mapping, so ScrollDC sees the original DC.
+    // points equal device pixels. The closure runs before the guard restores
+    // the previous mapping, so ScrollDC sees the original DC.
     let mapped = unsafe {
         SetMapMode(dc, MM_TEXT) != 0
             && SetWindowOrgEx(dc, 0, 0, std::ptr::null_mut()) != 0
@@ -356,36 +347,32 @@ fn surface_size(dc: HDC) -> Option<(i32, i32)> {
         .then_some((bitmap.bmWidth, bitmap.bmHeight))
 }
 
-fn capture_clip_bits(dc: HDC) -> Option<PixelBackup> {
-    let mut logical = RECT::default();
-    // SAFETY: GetClipBox writes a caller-owned RECT. The HDC lease is live.
-    let kind = unsafe { GetClipBox(dc, &mut logical) };
-    if kind == RGN_ERROR {
+fn device_clip_area(dc: HDC) -> Option<DeviceArea> {
+    let mut kind = RGN_ERROR;
+    let mut rect = RECT::default();
+    // GetClipBox publishes logical coordinates. Under MM_TEXT with zero
+    // origins those units are device pixels, so the box is the clip bounds
+    // without a logical round trip. The clip region itself stays in device
+    // space and is unchanged by this temporary mapping.
+    let queried = with_device_space(dc, || {
+        // SAFETY: GetClipBox writes the caller-owned RECT. The HDC lease is
+        // live and no guest address is passed.
+        kind = unsafe { GetClipBox(dc, &mut rect) };
+        true
+    });
+    if !queried || kind == RGN_ERROR {
         return None;
     }
     if kind == NULLREGION {
-        return Some(PixelBackup::empty(dc));
+        return Some(DeviceArea::empty());
     }
-    let mut corners = [
-        POINT {
-            x: logical.left,
-            y: logical.top,
-        },
-        POINT {
-            x: logical.right,
-            y: logical.bottom,
-        },
-    ];
-    // SAFETY: LPtoDP converts the two owned corners in place. The DC mapping
-    // is unchanged. No guest address is passed.
-    if unsafe { LPtoDP(dc, corners.as_mut_ptr(), 2) } == 0 {
-        return None;
-    }
-    let mut area = device_area(corners)?;
+    device_area(rect)
+}
+
+fn capture_clip_bits(dc: HDC) -> Option<PixelBackup> {
+    let mut area = device_clip_area(dc)?;
     if let Some((width, height)) = surface_size(dc) {
-        // LPtoDP of a clip-box corner can be one pixel off. Grow the box,
-        // then keep only the selected bitmap so the copy stays on the surface.
-        area = intersect_surface(inflate_one(area), width, height)?;
+        area = intersect_surface(area, width, height)?;
     }
     if area.is_empty() {
         return Some(PixelBackup::empty(dc));
