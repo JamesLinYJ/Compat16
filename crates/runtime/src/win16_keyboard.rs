@@ -19,8 +19,10 @@ impl Win16State {
         ansi.push(0);
         let pointer = self.selectors.pointer_from_far(destination)
             .map_err(crate::runtime_error)?;
-        // SelectorTable validates the full range before committing the write.
-        self.selectors.write(memory, pointer, &ansi).map_err(crate::runtime_error)?;
+        // The same huge-pointer contract applies to the destination. Prepare
+        // every selector in the owned allocation first, so a span that is not
+        // fully writable leaves the guest bytes unchanged.
+        self.write_text_bytes(memory, pointer, &ansi)?;
         Ok(u16::MAX)
     }
 }
