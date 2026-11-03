@@ -8,6 +8,8 @@
 //! coordinate saturation on return. Original Win16 behavior for coordinates
 //! outside the signed 16-bit range is unverified; saturation is a bounded
 //! bridge policy, not a claim of matching Win16 overflow behavior.
+//! GetUpdateRect does not use that policy: a host edge outside the signed
+//! Win16 int is not stored.
 
 use guest_core::memory::Memory;
 use win16_abi::{Access, Rect16, Win16ReturnKind, exports::Win16UserUpdateRequest};
@@ -33,6 +35,8 @@ pub(super) struct Win16UpdateContinuation {
     pub(in crate::win16_runtime) result_kind: UpdateResultKind,
     pub(in crate::win16_runtime) return_kind: Win16ReturnKind,
     pub(in crate::win16_runtime) rect_output: Option<GuestOutputRange>,
+    /// GetUpdateRect stores a RECT only when every edge fits in a signed int.
+    pub(in crate::win16_runtime) exact_signed_rect: bool,
 }
 
 impl Win16State {
@@ -46,6 +50,7 @@ impl Win16State {
         descriptor_return_kind: Win16ReturnKind,
     ) -> Result<Option<u8>, RuntimeError> {
         let (result_kind, return_kind) = result_shape(request);
+        let exact_signed_rect = matches!(request, Win16UserUpdateRequest::GetUpdateRect { .. });
         if descriptor_return_kind != return_kind {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "Win16 USER update export has an unexpected ABI return kind"));
@@ -205,6 +210,7 @@ impl Win16State {
                 result_kind,
                 return_kind,
                 rect_output,
+                exact_signed_rect,
             }),
             return_to,
         )

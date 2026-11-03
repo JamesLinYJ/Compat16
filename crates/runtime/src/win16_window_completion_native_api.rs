@@ -645,6 +645,15 @@ pub(super) fn finish_menu_call(
         Kind::InternalInvariant, "menu projection lost its cached return"))
 }
 
+fn signed_update_rect(rect: &crate::Win16HostRect) -> Option<[u8; win16_abi::Rect16::SIZE]> {
+    Some(win16_abi::Rect16 {
+        left: i16::try_from(rect.left).ok()?,
+        top: i16::try_from(rect.top).ok()?,
+        right: i16::try_from(rect.right).ok()?,
+        bottom: i16::try_from(rect.bottom).ok()?,
+    }.encode())
+}
+
 pub(super) fn finish_update_region(
     continuation: &Win16UpdateContinuation,
     result: &crate::Win16HostUpdateResult,
@@ -666,18 +675,39 @@ pub(super) fn finish_update_region(
             (super::super::user_services_update_region::UpdateResultKind::Rect,
                 crate::Win16HostUpdateResult::Rect { value, rect }) => {
                 if let (Some(output), Some(rect)) = (continuation.rect_output.as_ref(), rect) {
-                    let wire = win16_abi::Rect16 {
-                        left: super::super::user_services_paint::guest_coordinate(rect.left),
-                        top: super::super::user_services_paint::guest_coordinate(rect.top),
-                        right: super::super::user_services_paint::guest_coordinate(rect.right),
-                        bottom: super::super::user_services_paint::guest_coordinate(rect.bottom),
-                    }.encode();
-                    super::super::guest_ranges::commit_guest_output_with_selectors(
-                        access.selectors, memory, output, &wire,
-                    )?;
-                    *phase = GuestOutputProjectionPhase::OutputCommitted;
+                    if continuation.exact_signed_rect {
+                        // Windows 3.1 Programmer's Reference, Volume 2:
+                        // GetUpdateRect returns nonzero only when the update
+                        // region is not empty and the RECT receives those
+                        // coordinates. An edge outside the signed int is not
+                        // stored. The call returns zero and leaves the guest
+                        // buffer unchanged. The empty-rectangle fill applies
+                        // only when there is no update region.
+                        if let Some(wire) = signed_update_rect(rect) {
+                            super::super::guest_ranges::commit_guest_output_with_selectors(
+                                access.selectors, memory, output, &wire,
+                            )?;
+                            *phase = GuestOutputProjectionPhase::OutputCommitted;
+                            u32::from(*value)
+                        } else {
+                            0
+                        }
+                    } else {
+                        let wire = win16_abi::Rect16 {
+                            left: super::super::user_services_paint::guest_coordinate(rect.left),
+                            top: super::super::user_services_paint::guest_coordinate(rect.top),
+                            right: super::super::user_services_paint::guest_coordinate(rect.right),
+                            bottom: super::super::user_services_paint::guest_coordinate(rect.bottom),
+                        }.encode();
+                        super::super::guest_ranges::commit_guest_output_with_selectors(
+                            access.selectors, memory, output, &wire,
+                        )?;
+                        *phase = GuestOutputProjectionPhase::OutputCommitted;
+                        u32::from(*value)
+                    }
+                } else {
+                    u32::from(*value)
                 }
-                u32::from(*value)
             }
             _ => return Err(RuntimeError::new(Kind::InternalInvariant,
                 "USER update result does not match its exact request")),
