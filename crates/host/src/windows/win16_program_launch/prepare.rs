@@ -193,6 +193,13 @@ pub(in crate::windows) fn prepare(
         show: *show,
         execution: host.child_execution,
     };
+    // KB Q81496: GetModuleFileName of a WinExec instance returns the full
+    // path. A path that cannot be represented in the guest code page stays
+    // unset so the launch itself is unchanged.
+    let guest_module_path = match host.win16_main_module_path(&program) {
+        Ok(path) if !path.is_empty() && !path.contains(&0) => Some(path),
+        _ => None,
+    };
     Ok(Ok(PreparedLaunch {
         file,
         _source_file: None,
@@ -202,6 +209,7 @@ pub(in crate::windows) fn prepare(
         native_environment: None,
         request,
         guest,
+        guest_module_path,
     }))
 }
 

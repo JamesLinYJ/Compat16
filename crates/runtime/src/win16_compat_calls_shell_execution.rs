@@ -146,19 +146,32 @@ fn project_shell_execution_result(
                 | Win16ShellExecutionContinuationKind::LoadModule { identity },
             Win16HostShellExecutionResult::WinExec(Ok(activation)),
         ) => {
-            let application_state = match activation {
-                Win16HostShellActivation::ProcessStarted { process } => {
-                    ExternalApplicationState::ProcessStarted { process: *process }
-                }
-                Win16HostShellActivation::NativeActivationReceipt => {
-                    ExternalApplicationState::NativeActivationReceipt
-                }
+            let (application_state, program_path) = match activation {
+                Win16HostShellActivation::ProcessStarted { process, program_path } => (
+                    ExternalApplicationState::ProcessStarted { process: *process },
+                    program_path.clone(),
+                ),
+                Win16HostShellActivation::NativeActivationReceipt { program_path } => (
+                    ExternalApplicationState::NativeActivationReceipt,
+                    program_path.clone(),
+                ),
             };
             state.commit_external_application(
                 *identity,
                 ExternalApplicationKind::Activation,
                 application_state,
             )?;
+            // LoadModule already stored its image path. WinExec fills the
+            // name only when preparation produced a representable path.
+            if let Some(path) = program_path.filter(|path| !path.is_empty()) {
+                let external = state.modules.records.get_mut(identity)
+                    .and_then(|record| record.external_application.as_mut());
+                if let Some(external) = external
+                    && external.program_path.is_none()
+                {
+                    external.program_path = Some(path);
+                }
+            }
             u32::from(*identity)
         }
         (
@@ -187,10 +200,10 @@ fn project_shell_execution_result(
             Win16HostShellExecutionResult::Execute(Ok(activation)),
         ) => {
             let application_state = match activation {
-                Win16HostShellActivation::ProcessStarted { process } => {
+                Win16HostShellActivation::ProcessStarted { process, .. } => {
                     ExternalApplicationState::ProcessStarted { process: *process }
                 }
-                Win16HostShellActivation::NativeActivationReceipt => {
+                Win16HostShellActivation::NativeActivationReceipt { .. } => {
                     ExternalApplicationState::NativeActivationReceipt
                 }
             };

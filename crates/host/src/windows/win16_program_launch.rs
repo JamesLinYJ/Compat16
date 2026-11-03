@@ -51,6 +51,9 @@ pub(super) struct PreparedLaunch {
     pub(super) native_environment: Option<Vec<u16>>,
     request: LaunchRequest,
     pub(super) guest: bool,
+    /// Guest ANSI path for GetModuleFileName. None when the host path cannot
+    /// be represented exactly; the launch still proceeds.
+    pub(super) guest_module_path: Option<Vec<u8>>,
 }
 
 impl super::WindowsHost {
