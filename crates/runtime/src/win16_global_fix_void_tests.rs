@@ -116,7 +116,10 @@ fn global_fix_unfix_void_preserve_counts_cx_and_independent_global_lock() {
         call(&mut runtime, 198, handle, 0);
         assert_eq!(locks(&runtime, handle), global_count);
         if discardable { assert_eq!(runtime.win16.as_mut().unwrap().global_free(handle).unwrap(), handle); }
-        assert_eq!(runtime.win16.as_mut().unwrap().global_unlock(handle).unwrap(), 0);
+        // Fixed memory is not movable, so GlobalUnlock returns nonzero and
+        // does not change the lock count. Movable objects here are fully unlocked.
+        let expected_unlock = u16::from(flags & GMEM_MOVEABLE == 0);
+        assert_eq!(runtime.win16.as_mut().unwrap().global_unlock(handle).unwrap(), expected_unlock);
         assert_eq!(runtime.win16.as_mut().unwrap().global_free(handle).unwrap(), 0);
         assert_eq!(runtime.win16.as_ref().unwrap().heap.allocation_count(), allocations);
     }

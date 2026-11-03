@@ -3,10 +3,11 @@
 
 use dos_kernel::DosKernel;
 use guest_core::{memory::Memory, Registers};
-use win16_abi::{Access, Win16ReturnKind, Win16WindowEnumerationRequest as Request};
+use win16_abi::{Access, TaskState, Win16ReturnKind, Win16WindowEnumerationRequest as Request};
 use x86_cpu::Cpu;
 use super::{CallbackKind, Win16State, far_callback::{Win16FarCallbackArgument as Argument,
-    Win16FarCallbackConvention, Win16FarCallbackFrame, Win16FarCallbackReturn}};
+    Win16FarCallbackConvention, Win16FarCallbackFrame, Win16FarCallbackReturn},
+    runtime_arena_backing::RuntimeArenaChunkKind};
 use crate::{Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostWindow,
     Win16WindowEnumerationQuery as Query, Win16WindowEnumerationReply as Reply,
     Win16WindowEnumerationScope as Scope, Win16WindowTarget};
@@ -23,6 +24,32 @@ pub(super) struct WindowEnumerationFrame {
 }
 
 impl Win16State {
+    /// USER queue owned by this live guest HTASK. The queue token stays on the
+    /// host side. A missing binding does not prove that the task has no windows.
+    fn task_enumeration_queue(
+        &self, task: u16, memory: &Memory,
+    ) -> Result<Option<crate::Win16HostTaskQueue>, RuntimeError> {
+        let Some((owner, bound, generation, queue)) = self.user_task_queue else {
+            return Ok(None);
+        };
+        if bound != task || self.task_handles.get(&owner) != Some(&task) {
+            return Ok(None);
+        }
+        let Ok(info) = self.tasks.info(owner) else { return Ok(None); };
+        if matches!(info.state, TaskState::Terminating | TaskState::Exited) {
+            return Ok(None);
+        }
+        let Some(identity) = self.runtime_arena_backing.identities().find(|identity|
+            identity.kind == RuntimeArenaChunkKind::TaskDatabase
+                && identity.primary.raw().0 == task
+                && identity.primary.generation() == generation)
+        else { return Ok(None); };
+        if !self.runtime_arena_backing.identity_is_live(identity, &self.selectors, memory)? {
+            return Ok(None);
+        }
+        Ok(Some(queue))
+    }
+
     pub(super) fn begin_window_enumeration(
         &mut self, cpu: &mut Cpu, dos: &mut DosKernel, memory: &mut Memory,
         host: &mut impl RuntimeHost, request: Request, return_to: (u16, u16, u32),
@@ -41,13 +68,16 @@ impl Win16State {
                     return self.complete_return(&mut cpu.regs, return_to.0, return_to.1,
                         return_to.2, 0, Win16ReturnKind::Word);
                 }
-                if task != self.current_task_handle()? {
+                // A missing binding is not evidence of an empty task. Bind
+                // the current task lazily; other unbound tasks remain unsupported.
+                let queue = match self.task_enumeration_queue(task, memory)? {
+                    Some(queue) => Some(queue),
+                    None if self.current_task_handle()? == task => self.ensure_user_queue(host)?,
+                    None => None,
+                };
+                let Some(queue) = queue else {
                     host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
-                        "EnumTaskWindows task has no separately bound USER queue"));
-                    return self.complete_return(&mut cpu.regs, return_to.0, return_to.1,
-                        return_to.2, 0, Win16ReturnKind::Word);
-                }
-                let Some(queue) = self.ensure_user_queue(host)? else {
+                        "EnumTaskWindows task has no verified native USER queue"));
                     return self.complete_return(&mut cpu.regs, return_to.0, return_to.1,
                         return_to.2, 0, Win16ReturnKind::Word);
                 };

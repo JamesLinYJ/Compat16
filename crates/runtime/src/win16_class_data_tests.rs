@@ -548,9 +548,9 @@ fn class_data_uncommitted_fields_and_long_only_word_accesses_report_gaps() {
     let hwnd = window(&mut runtime, class, 1);
     assert_eq!(call(&mut runtime, &mut host, 132, hwnd, 0, Some(0x7654_3210)), 0);
     // SetClassWord refuses the fields whose storage the registration already
-    // committed, and narrows nothing: the two LONG fields have no WORD setter,
-    // and the LONG module-handle form has no USER-level refusal to report.
-    for index in [-32, -26, -24, -20, -18, -8, -1, i16::MIN] {
+    // committed, and narrows nothing: the two LONG fields have no WORD setter.
+    // GCW_STYLE is a documented 16-bit setter and is covered below.
+    for index in [-32, -24, -20, -18, -8, -1, i16::MIN] {
         gap(&mut runtime, &mut host, 130, hwnd, index, Some(0xffff));
     }
     for index in [-32, -26, -20, -18, -16, -14, -12, -10, -1, i16::MIN] {
@@ -566,6 +566,26 @@ fn class_data_uncommitted_fields_and_long_only_word_accesses_report_gaps() {
     }
     assert!(host.class_resources.is_empty());
     assert_eq!(call(&mut runtime, &mut host, 131, hwnd, 0, None), 0x7654_3210);
+    // Volume 2 SetClassWord replaces the whole GCW_STYLE word and returns the
+    // previous word. The native class must accept that word before publication.
+    let diagnostics = host.diagnostics.len();
+    assert_eq!(call(&mut runtime, &mut host, 130, hwnd, -26, Some(0x00ab)), 0x8123);
+    assert_eq!(host.diagnostics.len(), diagnostics);
+    assert_eq!(call(&mut runtime, &mut host, 129, hwnd, -26, None), 0x00ab);
+    assert_eq!(
+        host.class_resources.last().map(|entry| entry.2),
+        Some(Win16HostClassResource::Style(0x00ab)),
+    );
+    // SetClassLong at the style index is the wrong width. It fails with zero
+    // and must not truncate a long into the 16-bit style word.
+    gap(&mut runtime, &mut host, 132, hwnd, -26, Some(0x1111_2222));
+    assert_eq!(call(&mut runtime, &mut host, 129, hwnd, -26, None), 0x00ab);
+    host.resource_result = HostResult::Refused;
+    let published = host.class_resources.len();
+    assert_eq!(call(&mut runtime, &mut host, 130, hwnd, -26, Some(0x1111)), 0);
+    assert_eq!(host.class_resources.len(), published);
+    assert_eq!(call(&mut runtime, &mut host, 129, hwnd, -26, None), 0x00ab);
+    host.resource_result = HostResult::Success;
 }
 
 #[test]

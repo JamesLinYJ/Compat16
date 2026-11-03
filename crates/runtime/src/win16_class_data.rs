@@ -159,8 +159,9 @@ impl Win16State {
             ClassField::WndProc =>
                 self.set_class_window_procedure(window, class, value, memory),
             ClassField::MenuName => self.set_class_menu_name(class, value, memory),
-            // Allocation sizes, class style and the registration atom still
-            // need their own mutation contracts and native synchronization.
+            ClassField::Style => self.set_class_style(window, class, value, host),
+            // Allocation sizes and the registration atom are not SetClassWord
+            // indexes in the Windows 3.1 SDK Programmer's Reference, Volume 2.
             _ => {
                 report_class_field_gap(host, window, field);
                 Ok(0)

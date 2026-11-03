@@ -13,10 +13,11 @@ impl Win16State {
         file: u16,
         buffer: u32,
         count: i32,
+        word_limited: bool,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        let result = self.read_file_checked(file, buffer, count, memory, host);
+        let result = self.read_file_checked(file, buffer, count, word_limited, memory, host);
         host.observe_win16_io(&Win16IoEvent::Transfer {
             operation: "read", file, buffer, requested: count,
             result: result.as_ref().ok().copied(),
@@ -25,7 +26,7 @@ impl Win16State {
     }
 
     fn read_file_checked(
-        &mut self, file: u16, buffer: u32, count: i32,
+        &mut self, file: u16, buffer: u32, count: i32, word_limited: bool,
         memory: &mut Memory, host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
         if let Some(owner) = self.tasks.current()
@@ -37,6 +38,14 @@ impl Win16State {
             return Ok(u32::MAX);
         };
         if count < 0 {
+            return Ok(u32::MAX);
+        }
+        // Programmer's Reference, Volume 2: `_lread` cbBuffer cannot be greater
+        // than 0xFFFE (65,534). 0xFFFF is HFILE_ERROR, so a full read of that
+        // count could not be told from failure. Reject it before the host read
+        // so the file pointer and the caller buffer stay unchanged. `_hread`
+        // is a long count and is not limited here.
+        if word_limited && count > 0xFFFE {
             return Ok(u32::MAX);
         }
 

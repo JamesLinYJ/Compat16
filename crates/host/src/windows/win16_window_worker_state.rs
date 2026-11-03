@@ -36,14 +36,16 @@ pub(in crate::windows::win16_windows) struct NativeClass {
         RefCell<crate::windows::win16_gdi_objects::NativeClassBackground>,
 }
 
-/// One resolved class resource on its way to the native USER call. The value
-/// is a resolved native resource handle or zero for "clear"; a guest
-/// WORD or a runtime token never crosses this boundary.
+/// One resolved class field on its way to the native USER call. A resource
+/// value is a resolved native handle or zero for "clear". `Style` is the
+/// full 16-bit class-style word. A guest WORD or a runtime token never
+/// crosses this boundary.
 #[derive(Clone)]
 pub(in crate::windows::win16_windows) enum NativeClassResource {
     Icon(usize),
     Cursor(usize),
     Background(crate::windows::win16_gdi_objects::NativeClassBackground),
+    Style(u16),
 }
 
 impl NativeClassResource {
@@ -53,6 +55,8 @@ impl NativeClassResource {
             Self::Icon(_) => windows_sys::Win32::UI::WindowsAndMessaging::GCLP_HICON,
             Self::Cursor(_) => windows_sys::Win32::UI::WindowsAndMessaging::GCLP_HCURSOR,
             Self::Background(_) => windows_sys::Win32::UI::WindowsAndMessaging::GCLP_HBRBACKGROUND,
+            // Win32 GCL_STYLE is the same -26 index as Win16 GCW_STYLE.
+            Self::Style(_) => windows_sys::Win32::UI::WindowsAndMessaging::GCL_STYLE,
         }
     }
 
@@ -60,6 +64,7 @@ impl NativeClassResource {
         match self {
             Self::Icon(value) | Self::Cursor(value) => *value,
             Self::Background(value) => value.handle,
+            Self::Style(value) => usize::from(*value),
         }
     }
 }

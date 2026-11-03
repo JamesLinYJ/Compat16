@@ -25,78 +25,49 @@ pub(super) const fn canonical_access_flags(rights: AccessRights) -> u16 {
 }
 
 impl SelectorTable {
-    /// Copy each 64-KiB descriptor in a source selector run into an
-    /// independently owned guest selector.
+    /// Copy the addressed guest selector into one independently owned selector.
     ///
-    /// The selector table models checked guest ranges, not host LDT entries;
-    /// this narrow copy keeps the source's base, effective 16-bit limit,
-    /// access bits, and generation-independent identity without making a
-    /// guest selector into an operating-system selector.
+    /// KB Q132005: AllocSelector copies that selector's base, limit, and access
+    /// rights. A limit of at most 64K (last offset `0xFFFF`) allocates one
+    /// selector. Each descriptor in this table stores a limit of at most
+    /// `0xFFFF`, including one tile of a larger allocation, so the addressed
+    /// entry is the whole copy. A limit above 64K would require the tiled run
+    /// described in that article; this selector model cannot represent it.
+    /// The copy stays a checked guest range, not a host LDT entry.
     pub fn alloc_selector_copy(
         &mut self,
         source: SelectorRef,
         memory: &impl GuestMemory,
     ) -> Result<Vec<SelectorRef>, Win16Error> {
         let source_descriptor = self.validate(source)?;
-        if source_descriptor.segment_index == 0 {
-            self.validate_all_segments(source_descriptor)?;
+        // 64K is the largest span one 16-bit selector can address. KB Q132005
+        // allocates a single selector when the source limit is at most that.
+        if source_descriptor.limit > 0xffff {
+            return Err(Win16Error::InvalidRange);
         }
-
-        // AllocSelector copies the source LDT entry run. Each copied entry is
-        // independently freed by FreeSelector, so model each copied slot as a
-        // one-entry allocation instead of one indivisible selector block.
-        // The guest ABI has no host LDT to copy, and source bytes stay in
-        // checked GuestMemory; validate every present source entry first.
-        let source_index = if source_descriptor.segment_index == 0 {
-            source_descriptor.block_index
+        let size = if source_descriptor.present {
+            let size = source_descriptor.limit.checked_add(1)
+                .ok_or(Win16Error::InvalidRange)?;
+            self.check_range(source_descriptor.base, size, source_descriptor.rights, memory)?;
+            size
         } else {
-            usize::from(source.raw().0 >> SELECTOR_SHIFT)
+            0
         };
-        let count = if source_descriptor.segment_index == 0 {
-            source_descriptor.segment_count
-        } else {
-            1
-        };
-        let mut source_entries = Vec::new();
-        source_entries.try_reserve_exact(count).map_err(|_| Win16Error::OutOfMemory)?;
-        for segment in 0..count {
-            let descriptor = self.entries.get(source_index + segment)
-                .and_then(Option::as_ref).copied()
-                .ok_or(Win16Error::StaleSelector)?;
-            if descriptor.present {
-                let size = descriptor.limit.checked_add(1)
-                    .ok_or(Win16Error::InvalidRange)?;
-                self.check_range(descriptor.base, size, descriptor.rights, memory)?;
-            }
-            source_entries.push(descriptor);
-        }
 
-        let block_index = self.find_contiguous(count)
-            .ok_or(Win16Error::SelectorTableFull)?;
-        let generation_count = u64::try_from(count)
-            .map_err(|_| Win16Error::GenerationExhausted)?;
-        let next_generation = self.next_generation.checked_add(generation_count)
-            .ok_or(Win16Error::GenerationExhausted)?;
         let mut references = Vec::new();
-        references.try_reserve_exact(count).map_err(|_| Win16Error::OutOfMemory)?;
-        for segment in 0..count {
-            let index = block_index + segment;
-            let generation = self.next_generation + u64::try_from(segment)
-                .map_err(|_| Win16Error::GenerationExhausted)?;
-            let mut descriptor = source_entries[segment];
-            descriptor.generation = generation;
-            descriptor.block_index = index;
-            descriptor.segment_index = 0;
-            descriptor.segment_count = 1;
-            descriptor.block_size = if descriptor.present {
-                descriptor.limit.checked_add(1).ok_or(Win16Error::InvalidRange)?
-            } else {
-                0
-            };
-            descriptor.resize_policy = AllocationResizePolicy::PreserveDescriptorShape;
-            self.entries[index] = Some(descriptor);
-            references.push(self.reference_for(index, 0).ok_or(Win16Error::StaleSelector)?);
-        }
+        references.try_reserve_exact(1).map_err(|_| Win16Error::OutOfMemory)?;
+        let block_index = self.find_contiguous(1).ok_or(Win16Error::SelectorTableFull)?;
+        let generation = self.next_generation;
+        let next_generation = generation.checked_add(1).ok_or(Win16Error::GenerationExhausted)?;
+        let mut descriptor = source_descriptor;
+        descriptor.generation = generation;
+        descriptor.block_index = block_index;
+        descriptor.segment_index = 0;
+        descriptor.segment_count = 1;
+        descriptor.block_size = size;
+        descriptor.resize_policy = AllocationResizePolicy::PreserveDescriptorShape;
+        self.entries[block_index] = Some(descriptor);
+        references.push(self.reference_for(block_index, 0).ok_or(Win16Error::StaleSelector)?);
         self.next_generation = next_generation;
         Ok(references)
     }

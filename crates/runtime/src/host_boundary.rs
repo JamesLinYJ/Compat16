@@ -278,6 +278,8 @@ pub enum Win16HostClassResource {
     Icon(Option<Win16HostIcon>),
     Cursor(Option<Win16HostCursor>),
     Background(Option<Win16ClassBackground>),
+    /// The full 16-bit `GCW_STYLE` word. A wider value never reaches the host.
+    Style(u16),
 }
 
 /// A Windows predefined control class exposed through a runtime-owned alias.

@@ -225,15 +225,16 @@ fn last_error_and_version_ex_follow_the_get_version_profile() {
 }
 
 #[test]
-fn directed_yield_returns_task_switch_failure_without_switching() {
+fn directed_yield_searches_the_queue_without_switching_or_returning_a_value() {
     let (mut runtime, stack) = fixture();
     let current = current_handle(&runtime);
     let owner = runtime.win16.as_ref().unwrap().tasks.current().unwrap();
+    let descriptor = lookup_export(b"KERNEL", ExportLookupTarget::Ordinal(150)).unwrap();
+    assert_eq!(descriptor.return_kind, win16_abi::Win16ReturnKind::Void);
+    // No USER queue, so the search is the host yield. This host cannot yield.
     for target in [0_u16, current, 0xBEEF] {
-        let (failed, preserved) =
-            invoke(&mut runtime, stack, 150, &pascal_words(&[target])).unwrap();
-        assert_eq!(failed, 0);
-        assert_eq!(preserved, 0xBEEF);
+        let error = invoke(&mut runtime, stack, 150, &pascal_words(&[target])).unwrap_err();
+        assert_eq!(error.kind(), DiagnosticKind::CompatibilityGap);
         assert_eq!(current_handle(&runtime), current);
         assert_eq!(runtime.win16.as_ref().unwrap().tasks.current(), Some(owner));
     }

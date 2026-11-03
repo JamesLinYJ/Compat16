@@ -140,12 +140,19 @@ impl Win16State {
             Ok(module) => module,
             Err(error) => return module_format_failure(error, host),
         };
-        if definition.header.flags & NE_LIBRARY == 0 { return Ok(Err(11)); }
-        if definition.header.flags & NE_MULTIPLE_DATA != 0
-            || definition.header.expected_windows_version >= 0x0400 {
+        // Windows 3.1 LoadLibrary/LoadModule failures share the WinExec table:
+        // 5 is a task, 6 is per-instance library data, and 10 is the wrong
+        // Windows version. 11 remains the invalid-image failure.
+        if definition.header.flags & NE_LIBRARY == 0 { return Ok(Err(5)); }
+        if definition.header.expected_windows_version >= 0x0400 {
             host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
-                "Win16 library requires multiple data instances or Windows 4 DLL initialization; returning bad-format load failure"));
-            return Ok(Err(11));
+                "Win16 library requires a later Windows version; returning version-mismatch load failure"));
+            return Ok(Err(10));
+        }
+        if definition.header.flags & NE_MULTIPLE_DATA != 0 {
+            host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap,
+                "Win16 library requires a separate data segment for each task; returning multiple-data load failure"));
+            return Ok(Err(6));
         }
         let record = match self.prepare_library(file, definition, memory) {
             Ok(record) => record,

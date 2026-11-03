@@ -220,11 +220,13 @@ impl Win16State {
         let dispatch_route = super::dispatch_routes::route_for_request(&request);
         let call_owner = if matches!(dispatch_route,
             super::dispatch_routes::DispatchRoute::User)
-            // Queue-backed KERNEL.Yield and these library families also use USER's
-            // operation stack. Capture their real caller before that stack
-            // consumes it; module routing alone does not describe callbacks.
-            || (matches!(&request, Win16ApiRequest::Kernel(
+            // Queue-backed KERNEL.Yield, DirectedYield, and these library families
+            // also use USER's operation stack. Capture their real caller before
+            // that stack consumes it; module routing alone does not describe callbacks.
+            || ((matches!(&request, Win16ApiRequest::Kernel(
                 win16_abi::Win16KernelRequest::Runtime(win16_abi::Win16KernelRuntimeRequest::Yield)))
+                || matches!(&request, Win16ApiRequest::KernelTask(
+                    win16_abi::Win16KernelTaskRequest::DirectedYield { .. })))
                 && self.kernel_yield_queue()?.is_some())
             || matches!(&request, Win16ApiRequest::GdiObjects(
                 win16_abi::Win16GdiObjectsRequest::EnumMetaFile { .. }))
