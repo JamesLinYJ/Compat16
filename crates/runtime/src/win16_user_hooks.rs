@@ -1,11 +1,9 @@
 //! Task-local Win16 USER hook chains.
 //!
-//! The implemented delivery path is task-local WH_MSGFILTER. The Windows 3.1
-//! Programmer's Reference defines both the HHOOK-returning legacy API and its
-//! extended form; the HOOKS/MAKEAPP samples establish the callback usage. Other
-//! hook kinds and system-scope hooks require typed event delivery and are
-//! rejected until that path is connected. No native process-wide hook is
-//! installed here.
+//! The implemented delivery path is task-local WH_MSGFILTER. Windows 3.1
+//! SetWindowsHook returns the previous filter's far procedure. DefHookProc
+//! calls that procedure. SetWindowsHookEx remains the separate HHOOK form.
+//! Other hook kinds have no connected guest event path and fail the install.
 
 use dos_kernel::DosKernel;
 use guest_core::{GuestMemory, memory::Memory};
@@ -147,9 +145,11 @@ impl Win16UserHooks {
 }
 
 impl Win16State {
-    /// Install a task-local WH_MSGFILTER procedure and return its opaque HHOOK.
-    /// Windows 3.1 specifies NULL on failure; an empty prior chain does not
-    /// change the successful return value.
+    /// Install a task-local WH_MSGFILTER filter.
+    ///
+    /// Windows 3.1 returns the far procedure that was previously at the head of
+    /// this task's chain. An empty chain and a failed install both return zero.
+    /// The returned bits are that procedure's guest far address.
     pub(super) fn set_windows_hook(
         &mut self,
         memory: &Memory,
@@ -158,7 +158,17 @@ impl Win16State {
         procedure: u32,
     ) -> Result<u32, RuntimeError> {
         let task = self.current_task_handle()?;
-        self.install_task_hook(memory, host, hook_type, procedure, task, None)
+        let previous = self
+            .user_hooks
+            .head(task, hook_type)
+            .map(|entry| entry.procedure)
+            .unwrap_or(0);
+        let installed = self.install_task_hook(memory, host, hook_type, procedure, task, None)?;
+        if installed == 0 {
+            Ok(0)
+        } else {
+            Ok(previous)
+        }
     }
 
     /// SetWindowsHookEx has task and module identity arguments. The SDK defines
@@ -491,22 +501,6 @@ impl Win16State {
             )
         })?;
         let slot_procedure = self.read_filter_slot(memory, hook_slot_far)?;
-        // The registration token selects the installed successor. A different
-        // non-zero value is the far procedure stored by SetWindowsHook.
-        if slot_procedure == current.handle {
-            let Some(next) = self.user_hooks.resolve_next(current_id).cloned() else {
-                return self.complete_return(
-                    &mut cpu.regs,
-                    return_to.0,
-                    return_to.1,
-                    return_to.2,
-                    0,
-                    win16_abi::Win16ReturnKind::Dword,
-                );
-            };
-            return self
-                .enter_filter_procedure(cpu, dos, memory, next, code, w_param, l_param, return_to);
-        }
         match self.resolve_filter_target(current.task, current.hook_type, slot_procedure) {
             FilterTarget::Call(id) => {
                 let next = self.user_hooks.entry(id).cloned().ok_or_else(|| {
