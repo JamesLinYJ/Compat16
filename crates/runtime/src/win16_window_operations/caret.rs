@@ -57,3 +57,17 @@ impl Win16State {
         self.submit_value_call(registers, memory, host, call, return_to, return_kind)
     }
 }
+
+/// Windows 3.1 Programmer's Reference, Volume 2: GetCaretPos is void and
+/// copies the caret position into a POINT of signed ints. One coordinate
+/// outside that int is not stored. The guest POINT stays unchanged, and the
+/// call does not return a value. `None` means the host result already fits.
+pub(in crate::win16_runtime) fn caret_point_for_guest(
+    result: &crate::Win16WindowCallResult,
+) -> Option<crate::Win16WindowCallResult> {
+    let crate::Win16WindowCallResult::Point(Some(point)) = result else {
+        return None;
+    };
+    (i16::try_from(point.x).is_err() || i16::try_from(point.y).is_err())
+        .then_some(crate::Win16WindowCallResult::Point(None))
+}
