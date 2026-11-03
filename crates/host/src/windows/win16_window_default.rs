@@ -1228,8 +1228,8 @@ fn default_creation(
 }
 
 /// Byte length for a default WM_GETTEXTLENGTH that did not reenter the guest.
-/// Send and Dispatch stay on the allocation upper bound: another WM_GETTEXT
-/// through those paths would enter the guest procedure a second time.
+/// Send, Dispatch, and DefDlgProc stay off a second guest delivery: DefDlgProcW
+/// forwards WM_GETTEXT to the dialog procedure before applying its default.
 fn default_text_byte_length(
     state: &Rc<RefCell<WorkerState>>,
     invocation: MessageInvocation,
@@ -1270,13 +1270,25 @@ fn default_text_byte_length(
         return upper_bound();
     }
     output.resize(capacity as usize, 0);
-    let count = invoke_native_message(
-        invocation,
-        hwnd,
-        WM_GETTEXT,
-        capacity as usize,
-        output.as_mut_ptr() as usize as isize,
-    );
+    let count = if matches!(invocation, MessageInvocation::DialogDefault) {
+        // DefDlgProcW(WM_GETTEXT) calls the guest dialog procedure. Read the
+        // default window text instead so its handler cannot reenter this query.
+        let Ok(count) = super::win16_window_text::copy_default_window_text(
+            hwnd,
+            &mut output[..capacity as usize],
+        ) else {
+            return upper_bound();
+        };
+        count as isize
+    } else {
+        invoke_native_message(
+            invocation,
+            hwnd,
+            WM_GETTEXT,
+            capacity as usize,
+            output.as_mut_ptr() as usize as isize,
+        )
+    };
     if count < 0 {
         return upper_bound();
     }

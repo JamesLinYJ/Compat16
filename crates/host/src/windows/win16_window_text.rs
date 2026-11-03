@@ -6,7 +6,7 @@ use std::rc::Rc;
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostWindow, Win16WindowResult};
 use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetWindowTextLengthW, GetWindowTextW, SetWindowTextW,
+    DefWindowProcW, GetWindowTextLengthW, GetWindowTextW, SetWindowTextW, WM_GETTEXT,
 };
 
 use super::win16_window_worker::WorkerState;
@@ -190,8 +190,9 @@ enum TextLengthSource {
     Native(i32),
 }
 
-/// Guest byte length when WM_GETTEXTLENGTH did not enter a guest procedure.
-/// The context is already dropped, so this read cannot record another length.
+/// Guest byte length when the length query did not record a guest result.
+/// A guest dialog records a length only when its procedure handles the message,
+/// so an absent result can still belong to a live dialog procedure.
 fn native_window_text_byte_length(
     state: &Rc<RefCell<WorkerState>>,
     hwnd: HWND,
@@ -235,21 +236,29 @@ fn native_window_text_byte_length(
         )
     })?;
     native_text.resize(allocation, 0);
-    // SAFETY: GetWindowTextW writes a caller-owned UTF-16 buffer of `capacity` units, including the terminator. No guest address is passed.
-    let count = unsafe { GetWindowTextW(hwnd, native_text.as_mut_ptr(), capacity) };
+    let count = if guest_routed_dialog(state, hwnd) {
+        // GetWindowTextW delivers WM_GETTEXT to that dialog procedure. Its
+        // handler can call GetWindowTextLength, and the unhandled length query
+        // would enter this function again. DefWindowProcW reads the window text
+        // and does not call the procedure.
+        copy_default_window_text(hwnd, &mut native_text[..capacity as usize])?
+    } else {
+        // SAFETY: GetWindowTextW writes a caller-owned UTF-16 buffer of `capacity` units, including the terminator. No guest address is passed.
+        unsafe { GetWindowTextW(hwnd, native_text.as_mut_ptr(), capacity) }
+    };
     if count < 0 {
         return Ok(count);
     }
     let count = usize::try_from(count).map_err(|_| {
         RuntimeError::new(
             Kind::HostFailure,
-            "GetWindowTextW returned a character count outside its output buffer",
+            "window text query returned a character count outside its output buffer",
         )
     })?;
     if count >= native_text.len() || native_text[count] != 0 || native_text[..count].contains(&0) {
         return Err(RuntimeError::new(
             Kind::HostFailure,
-            "GetWindowTextW output does not match its returned terminated prefix",
+            "window text output does not match its returned terminated prefix",
         ));
     }
     let bytes =
@@ -258,6 +267,48 @@ fn native_window_text_byte_length(
         RuntimeError::with_source(
             Kind::HostFailure,
             "guest window text byte length does not fit in a signed 32-bit count",
+            error,
+        )
+    })
+}
+
+fn guest_routed_dialog(state: &Rc<RefCell<WorkerState>>, hwnd: HWND) -> bool {
+    let route = state
+        .borrow()
+        .dialog_routes_by_native
+        .get(&(hwnd as usize))
+        .copied();
+    route.is_some_and(|route| {
+        super::win16_window_identity::resolve(state, route.window) == Some(hwnd)
+    })
+}
+
+/// Copy the default window text. `DefWindowProcW` handles `WM_GETTEXT` itself
+/// and does not call a window procedure or a dialog procedure.
+pub(super) fn copy_default_window_text(
+    hwnd: HWND,
+    buffer: &mut [u16],
+) -> Result<i32, RuntimeError> {
+    let capacity = i32::try_from(buffer.len()).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::InternalInvariant,
+            "default window text buffer does not fit the WM_GETTEXT count",
+            error,
+        )
+    })?;
+    // SAFETY: DefWindowProcW writes this caller-owned UTF-16 buffer of `capacity` units, including the terminator. It does not call the window or dialog procedure, and no guest address is passed.
+    let count = unsafe {
+        DefWindowProcW(
+            hwnd,
+            WM_GETTEXT,
+            capacity as usize,
+            buffer.as_mut_ptr() as isize,
+        )
+    };
+    i32::try_from(count).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::HostFailure,
+            "DefWindowProcW WM_GETTEXT returned a character count outside its output buffer",
             error,
         )
     })
