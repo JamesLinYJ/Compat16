@@ -624,6 +624,16 @@ impl Win16State {
                     style,
                 },
             )) => {
+                let Some(style) = win31_message_box_style(style) else {
+                    return self.complete_return(
+                        registers,
+                        return_selector,
+                        return_offset,
+                        return_sp,
+                        0,
+                        descriptor.return_kind,
+                    );
+                };
                 return self.begin_user_message_box(
                     registers,
                     memory,
@@ -734,6 +744,34 @@ impl Win16State {
             descriptor.return_kind,
         )
     }
+}
+
+/// Windows 3.1 `MessageBox` `fuStyle`, or `None` when the call fails.
+///
+/// Button types are `MB_OK` through `MB_RETRYCANCEL`. Icons are none,
+/// `MB_ICONHAND`, `MB_ICONQUESTION`, `MB_ICONEXCLAMATION`, and
+/// `MB_ICONASTERISK` (`MB_ICONSTOP` and `MB_ICONINFORMATION` are aliases).
+/// Default buttons are `MB_DEFBUTTON1` through `MB_DEFBUTTON3`. Modality is
+/// `MB_APPLMODAL`, `MB_SYSTEMMODAL`, and `MB_TASKMODAL`. An unknown type,
+/// icon, or default button fails the call. `MB_NOFOCUS` is defined in the
+/// 3.1 header, but KB Q87341 says an application cannot use it, so that bit
+/// is omitted and the box still gets focus. Other undefined bits are omitted
+/// so the host does not add a later button or icon.
+fn win31_message_box_style(style: u16) -> Option<u16> {
+    let button = style & 0x000F;
+    let icon = style & 0x00F0;
+    let default_button = style & 0x0F00;
+    let modality = style & 0x3000;
+    if button > 0x0005 {
+        return None;
+    }
+    if !matches!(icon, 0x0000 | 0x0010 | 0x0020 | 0x0030 | 0x0040) {
+        return None;
+    }
+    if !matches!(default_button, 0x0000 | 0x0100 | 0x0200) {
+        return None;
+    }
+    Some(button | icon | default_button | modality)
 }
 
 /// USER `GetSystemMetrics`. The guest argument is a signed word and the
