@@ -1,6 +1,9 @@
-//! Signed Win16 count results at the native GetDeviceCaps boundary.
+//! Signed Win16 results at the native GetDeviceCaps boundary.
 
-use windows_sys::Win32::Graphics::Gdi::{NUMBRUSHES, NUMCOLORS, NUMPENS};
+use windows_sys::Win32::Graphics::Gdi::{
+    CLIPCAPS, CURVECAPS, LINECAPS, NUMBRUSHES, NUMCOLORS, NUMPENS, POLYGONALCAPS, RASTERCAPS,
+    TEXTCAPS,
+};
 
 /// Indexes published for `GetDeviceCaps` by the Windows 3.1 SDK `WINDOWS.H`.
 /// `PHYSICALWIDTH` (110) and the other later indexes are absent from that list.
@@ -53,17 +56,35 @@ pub(super) fn project_count(index: i16, native: i32) -> i16 {
         // classify a true-color device as monochrome. This does not change
         // the native DC, bitmap format, or genuine two-color count.
         (NUMBRUSHES | NUMPENS | NUMCOLORS, -1) => 2048,
-        // A finite native color count can also exceed signed INT16. Saturate
-        // before narrowing, so e.g. 65536 does not become zero colors.
-        (NUMCOLORS, colors) if colors > i32::from(i16::MAX) => i16::MAX,
-        _ => native as i16,
+        _ => narrow_capability(index, native),
     }
+}
+
+/// `GetDeviceCaps` returns a signed Win16 `int`. A count or size outside that
+/// range is 0. The Windows 3.1 `GDIINFO` flag fields (`dpCurves`, `dpLines`,
+/// `dpPolygonals`, `dpText`, `dpClip`, `dpRaster`) are unsigned shorts, and
+/// `RC_DEVBITS` / `TC_RESERVED` are `0x8000`, so a mask that fits in 16 bits
+/// keeps those bits. A wider mask is 0 instead of wrapping.
+fn narrow_capability(index: i16, native: i32) -> i16 {
+    if capability_mask(index) {
+        if let Ok(bits) = u16::try_from(native) {
+            return bits as i16;
+        }
+    }
+    i16::try_from(native).unwrap_or(0)
+}
+
+fn capability_mask(index: i16) -> bool {
+    matches!(
+        index as u32,
+        CURVECAPS | LINECAPS | POLYGONALCAPS | TEXTCAPS | CLIPCAPS | RASTERCAPS
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use windows_sys::Win32::Graphics::Gdi::{BITSPIXEL, RASTERCAPS, TECHNOLOGY};
+    use windows_sys::Win32::Graphics::Gdi::{BITSPIXEL, HORZRES, RASTERCAPS, TECHNOLOGY, TEXTCAPS};
 
     #[test]
     fn unlimited_device_counts_remain_positive_in_win16() {
@@ -80,10 +101,14 @@ mod tests {
     }
 
     #[test]
-    fn finite_color_overflow_cannot_wrap_to_zero_or_monochrome() {
-        for colors in [32768, 65535, 65536, 1 << 24, i32::MAX] {
-            assert_eq!(project_count(NUMCOLORS as i16, colors), i16::MAX);
+    fn capability_outside_signed_sixteen_bits_returns_zero() {
+        for colors in [32768, 65535, 65536, 1 << 24, i32::MAX, -32_769] {
+            assert_eq!(project_count(NUMCOLORS as i16, colors), 0, "{colors}");
         }
+        assert_eq!(project_count(HORZRES as i16, 40_000), 0);
+        assert_eq!(project_count(HORZRES as i16, 65_536), 0);
+        assert_eq!(project_count(HORZRES as i16, 1920), 1920);
+        assert_eq!(project_count(RASTERCAPS as i16, 0x1_8f81), 0);
     }
 
     #[test]
@@ -129,6 +154,7 @@ mod tests {
         assert_eq!(project_count(BITSPIXEL as i16, 32), 32);
         assert_eq!(project_count(TECHNOLOGY as i16, 1), 1);
         assert_eq!(project_count(RASTERCAPS as i16, 0x8f81), 0x8f81_u16 as i16);
+        assert_eq!(project_count(TEXTCAPS as i16, 0x8001), 0x8001_u16 as i16);
         assert_eq!(project_count(BITSPIXEL as i16, -1), -1);
         assert_eq!(project_count(-1, -1), -1);
     }
