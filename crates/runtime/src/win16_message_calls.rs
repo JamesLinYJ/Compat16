@@ -707,15 +707,12 @@ impl Win16State {
         if callback != 0 {
             self.check_guest_procedure(callback, memory)?;
         }
-        let guest_timer_id = if requested_id != 0 {
-            requested_id
-        } else if let Some(id) = self.timers.allocate_guest_id(guest_window, system) {
-            id
-        } else {
-            host.report_diagnostic(&Diagnostic::warning(
-                Kind::ResourceExhausted,
-                "Win16 USER has no free timer identifiers",
-            ));
+        // Programmer's Reference, Volume 2: idTimer is a nonzero identifier
+        // only when a window is given. A null window ignores that word, and
+        // the returned identifier is the one KillTimer accepts. Zero with a
+        // window is the published failure, not a prompt to invent another id.
+        // SetSystemTimer keeps its separate namespace and id assignment.
+        if !system && guest_window != 0 && requested_id == 0 {
             return self.complete_return(
                 registers,
                 return_to.0,
@@ -724,6 +721,25 @@ impl Win16State {
                 0,
                 Win16ReturnKind::Word,
             );
+        }
+        let guest_timer_id = if (!system && guest_window == 0) || requested_id == 0 {
+            let Some(id) = self.timers.allocate_guest_id(guest_window, system) else {
+                host.report_diagnostic(&Diagnostic::warning(
+                    Kind::ResourceExhausted,
+                    "Win16 USER has no free timer identifiers",
+                ));
+                return self.complete_return(
+                    registers,
+                    return_to.0,
+                    return_to.1,
+                    return_to.2,
+                    0,
+                    Win16ReturnKind::Word,
+                );
+            };
+            id
+        } else {
+            requested_id
         };
         // The host field is an opaque timer-generation token, not the native
         // UINT_PTR. It lets the worker replace this Win16 timer only after a
