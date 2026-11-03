@@ -3,10 +3,10 @@
 use super::super::Win16ExportId;
 use super::super::request::Win16ApiRequest;
 use super::call_helpers::{
-    checked_output_buffer, dword_argument, module_handle_reference, module_reference,
+    checked_output_buffer, dword_argument, module_reference,
     procedure_reference, read_far_string, word_argument,
 };
-use crate::{SelectorTable, Win16Error};
+use crate::{SelectorTable, Win16Error, Win16ModuleReference};
 use guest_core::GuestMemory;
 
 pub(super) fn decode(
@@ -55,12 +55,18 @@ pub(super) fn decode(
                 module: word_argument(arguments, 0)?,
             }),
         ),
-        Win16ExportId::KernelGetProcAddress => Win16ApiRequest::Kernel(
-            super::Win16KernelRequest::Modules(super::Win16KernelModulesRequest::GetProcAddress {
-                module: module_handle_reference(word_argument(arguments, 0)?),
-                procedure: procedure_reference(dword_argument(arguments, 1)?, selectors, memory)?,
-            }),
-        ),
+        Win16ExportId::KernelGetProcAddress => {
+            // Learn GetProcAddress: the module is a handle from LoadLibrary or
+            // GetModuleHandle. Unlike GetModuleFileName, a null handle is not
+            // the current task.
+            let module = word_argument(arguments, 0)?;
+            Win16ApiRequest::Kernel(
+                super::Win16KernelRequest::Modules(super::Win16KernelModulesRequest::GetProcAddress {
+                    module: Win16ModuleReference::Handle(module),
+                    procedure: procedure_reference(dword_argument(arguments, 1)?, selectors, memory)?,
+                }),
+            )
+        }
         Win16ExportId::KernelLoadLibrary => Win16ApiRequest::Kernel(
             super::Win16KernelRequest::Modules(super::Win16KernelModulesRequest::LoadLibrary {
                 library_name: read_far_string(dword_argument(arguments, 0)?, selectors, memory)?,
