@@ -37,9 +37,10 @@ returns = "void"
 [[exports]]
 ordinal = 36
 name = "GetCurrentTask"
+decl = { attributes = ["ret16"] }
 binding = { rust_id = "KernelGetCurrentTask", id_value = 156, constant = "KERNEL_GET_CURRENT_TASK" }
 [exports.call]
-returns = "dword"
+returns = "word"
 
 [[exports]]
 ordinal = 37

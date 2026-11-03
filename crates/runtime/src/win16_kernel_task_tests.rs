@@ -93,13 +93,12 @@ fn task_handles_follow_get_current_task() {
     let (mut runtime, stack) = fixture();
     let state = runtime.win16.as_ref().unwrap();
     let current = state.current_task_handle().unwrap();
-    let first = state.first_task_handle;
     let instance = state.instance_selector.raw().0;
     let owner = state.tasks.current().unwrap();
 
     let (ax, dx) = invoke(&mut runtime, stack, 36, &[]).unwrap();
     assert_eq!(ax, current);
-    assert_eq!(dx, first);
+    assert_eq!(dx, 0xBEEF);
     assert_eq!(current_handle(&runtime), current);
 
     let (locked, preserved) = invoke(&mut runtime, stack, 33, &pascal_words(&[1])).unwrap();

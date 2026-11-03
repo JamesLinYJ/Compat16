@@ -179,8 +179,8 @@ impl Win16State {
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
                 win16_abi::Win16KernelRuntimeRequest::GetCurrentTask,
             )) => {
-                let current = self.current_task_handle()?;
-                u32::from(current) | (u32::from(self.first_task_handle) << 16)
+                // Vol. 2 p. 348: HTASK of the running task, or NULL. Guest word only.
+                u32::from(self.current_task_handle().unwrap_or(0))
             }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
                 win16_abi::Win16KernelRuntimeRequest::SetErrorMode { mode },
