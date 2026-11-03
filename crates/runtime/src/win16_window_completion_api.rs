@@ -858,6 +858,22 @@ pub(super) fn finish_window_call(
                 }
                 Some(0)
             }
+            (Output::ConvertedPoint(range), ResultValue::Point(point)) => {
+                // Windows 3.1 Programmer's Reference, Volume 2: ClientToScreen
+                // and ScreenToClient are void and replace a POINT of signed
+                // ints. A coordinate outside that int is not stored. The
+                // guest point stays unchanged, and the calls do not return
+                // a value.
+                if let Some(point) = point
+                    && let Some(output) = signed_point16(point)
+                {
+                    super::super::guest_ranges::commit_guest_output_with_selectors(
+                        access.selectors, memory, range, &output.encode(),
+                    )?;
+                    owner.phase = Phase::GuestOutputCommitted;
+                }
+                Some(0)
+            }
             (Output::Points { range, count }, ResultValue::Points(points)) => {
                 if let Some(points) = points {
                     if points.len() != usize::from(*count)
@@ -955,6 +971,13 @@ fn signed_rect16(rect: &crate::Win16HostRect) -> Option<win16_abi::Rect16> {
         top: i16::try_from(rect.top).ok()?,
         right: i16::try_from(rect.right).ok()?,
         bottom: i16::try_from(rect.bottom).ok()?,
+    })
+}
+
+fn signed_point16(point: &crate::Win16HostPoint) -> Option<win16_abi::Point16> {
+    Some(win16_abi::Point16 {
+        x: i16::try_from(point.x).ok()?,
+        y: i16::try_from(point.y).ok()?,
     })
 }
 
