@@ -386,22 +386,7 @@ impl Win16State {
             )) => u32::from(self.global_add_atom(name, host)?),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Atoms(
                 win16_abi::Win16UserAtomsRequest::GlobalDeleteAtom { atom },
-            )) => u32::from(if self.is_registered_class_atom(atom) {
-                atom
-            } else {
-                // GlobalDeleteAtom has no guest failure sentinel: keep its
-                // zero return, but retain a diagnostic for a native failure.
-                match host.win16_global_delete_atom(atom) {
-                    Ok(()) => {}
-                    Err(error) if error.kind() == Kind::HostFailure => {
-                        host.report_diagnostic(&crate::Diagnostic::warning(
-                            Kind::HostFailure, error.to_string(),
-                        ));
-                    }
-                    Err(error) => return Err(error),
-                }
-                0
-            }),
+            )) => u32::from(self.global_delete_atom(atom, host)?),
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Atoms(
                 win16_abi::Win16UserAtomsRequest::GlobalFindAtom { name },
             )) => u32::from(self.global_find_atom(name, host)?),
