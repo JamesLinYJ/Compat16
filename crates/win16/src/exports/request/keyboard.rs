@@ -3,9 +3,6 @@
 use guest_core::GuestMemory;
 
 use crate::{SelectorTable, Win16Argument, Win16Error};
-use crate::strings::read_ansi_z;
-
-const MAX_WIN16_STRING_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16KeyboardConversion {
@@ -47,8 +44,9 @@ pub enum Win16KeyboardRequest {
 }
 
 /// Decode the implemented KEYBOARD subset by its exact driver ordinal.
-/// Ordinal 6 (`OemToAnsi`) remains on the established generic route; unknown
-/// exports stay unsupported rather than acquiring a guessed generic result.
+/// Ordinals 5 (`AnsiToOem`) and 6 (`OemToAnsi`) are decoded on the huge-string
+/// route, not here. Unknown exports stay unsupported rather than acquiring a
+/// guessed result.
 pub fn decode_keyboard_export(
     ordinal: u16,
     arguments: &[Win16Argument],
@@ -69,11 +67,6 @@ pub fn decode_keyboard_export(
                 flags: word(arguments, 4)?,
             }
         }
-        5 => Win16KeyboardRequest::ConvertString {
-            conversion: Win16KeyboardConversion::AnsiToOem,
-            source: read_ansi_z(selectors, memory, dword(arguments, 0)?, MAX_WIN16_STRING_BYTES)?,
-            destination: dword(arguments, 1)?,
-        },
         7 => Win16KeyboardRequest::SetSpeed {
             speed: decode_keyboard_set_speed(arguments)?,
         },
