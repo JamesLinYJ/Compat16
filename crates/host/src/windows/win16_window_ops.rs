@@ -508,7 +508,9 @@ pub(super) fn execute(
                         i32::from(y),
                         i32::from(width),
                         i32::from(height),
-                        u32::from(flags),
+                        // Win16 does not define the later asynchronous flag.
+                        // Do not let it escape this synchronous USER operation.
+                        u32::from(flags) & !0x4000,
                     ) != 0
                 },
                 _ => false,
