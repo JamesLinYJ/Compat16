@@ -45,6 +45,8 @@ pub(super) enum ControlWriteBack {
     DirectoryPath { range: Option<GuestOutputRange>, capacity: u16 },
     DirectorySelection { range: GuestOutputRange, capacity: u16 },
     Rect { range: GuestOutputRange },
+    /// `MapDialogRect` output. An edge outside the signed Win16 int is not stored.
+    MappedDialogRect { range: GuestOutputRange },
 }
 
 pub(super) enum FamilyCompletion {
@@ -638,7 +640,7 @@ impl Win16State {
                     }),
                     return_kind,
                     FamilyCompletion::Control {
-                        output: Some(ControlWriteBack::Rect { range }),
+                        output: Some(ControlWriteBack::MappedDialogRect { range }),
                     },
                 ));
             }
