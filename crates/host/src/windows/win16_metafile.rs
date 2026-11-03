@@ -239,10 +239,21 @@ fn playback_stream(bytes: &[u8]) -> Result<Cow<'_, [u8]>, PlaybackSkip> {
             kept.push(record.bytes());
             continue;
         }
-        let Some(function) = record.parameters().get(..2) else {
-            return Err(PlaybackSkip::UnhandledEscape);
+        let parameters = record.parameters();
+        let Some(header) = parameters.get(..4) else {
+            return Err(PlaybackSkip::Invalid);
         };
-        if u16::from_le_bytes([function[0], function[1]]) != MFCOMMENT {
+        if u16::from_le_bytes([header[0], header[1]]) != MFCOMMENT {
+            return Err(PlaybackSkip::UnhandledEscape);
+        }
+        let size = usize::from(u16::from_le_bytes([header[2], header[3]]));
+        let Some(data) = parameters.get(4..).and_then(|bytes| bytes.get(..size)) else {
+            return Err(PlaybackSkip::Invalid);
+        };
+        // MS-WMF META_ESCAPE_ENHANCED_METAFILE uses this same escape value.
+        // Its WMFC signature denotes embedded graphics, not a disposable
+        // comment. Refuse it until a bounded EMF translator exists.
+        if data.starts_with(b"WMFC") {
             return Err(PlaybackSkip::UnhandledEscape);
         }
     }
