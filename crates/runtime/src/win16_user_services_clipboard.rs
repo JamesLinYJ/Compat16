@@ -446,7 +446,9 @@ impl Win16State {
                 let format_changed = self.clipboard_state.get(format)
                     .is_some_and(|entry| entry.native_sequence != sequence);
                 if let Some(entry) = self.clipboard_state.get(format) {
-                    if entry.bytes.as_deref() == Some(bytes.as_slice()) {
+                    let unchanged = entry.bytes.as_deref().is_some_and(|stored|
+                        clipboard_payload_matches(format, stored, &bytes));
+                    if unchanged {
                         if let (Some(handle), Some(identity)) = (entry.handle, entry.identity) {
                             if self.global_handles.get(&handle).copied() == Some(identity) {
                                 if format_changed {
@@ -570,4 +572,24 @@ impl Win16State {
 /// registered formats whose data can be copied as global-memory bytes.
 fn is_global_clipboard_format(format: u16) -> bool {
     !matches!(format, 2 | 3 | 9 | 14 | 0x80 | 0x82 | 0x83 | 0x8e | 0x0200..=0x03ff)
+}
+
+/// Windows 3.1 `CF_TEXT` (1) and `CF_OEMTEXT` (7). The HGLOBAL may be larger
+/// than the NUL-terminated string. `GetClipboardData` returns that same
+/// handle while the string is unchanged.
+fn is_clipboard_text_format(format: u16) -> bool {
+    format == 1 || format == 7
+}
+
+fn clipboard_payload_matches(format: u16, stored: &[u8], retrieved: &[u8]) -> bool {
+    if is_clipboard_text_format(format) {
+        nul_terminated_prefix(stored) == nul_terminated_prefix(retrieved)
+    } else {
+        stored == retrieved
+    }
+}
+
+fn nul_terminated_prefix(bytes: &[u8]) -> &[u8] {
+    let end = bytes.iter().position(|byte| *byte == 0).unwrap_or(bytes.len());
+    &bytes[..end]
 }
