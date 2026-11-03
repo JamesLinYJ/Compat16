@@ -6,8 +6,9 @@
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16UserHooksRequest {
-    /// USER.121 returns the installed opaque guest HHOOK, or zero on failure.
-    /// The procedure remains a guest FAR address until runtime checks it.
+    /// USER.121 returns the previous filter's guest far procedure, or zero when
+    /// that chain was empty or the install fails. The procedure argument stays
+    /// a guest far address.
     SetWindowsHook { hook_type: i16, procedure: u32 },
 
     /// USER.123 calls the task's WH_MSGFILTER chain with this mutable guest
