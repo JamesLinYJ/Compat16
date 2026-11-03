@@ -74,11 +74,18 @@ impl Win16State {
             Win16ProcReference::Name(name) => win16_abi::ExportLookupTarget::Name(name),
         };
         if win16_abi::exports::lookup_export_metadata(&name, lookup)
-            .is_some_and(|declaration| win16_abi::exports::lookup_data_export_source(declaration).is_some()
-                || matches!(declaration.kind,
+            .is_some_and(|declaration| match win16_abi::exports::lookup_data_export_source(declaration) {
+                // Learn GetProcAddress returns the address of an exported variable.
+                Some(win16_abi::exports::Win16DataExportSource::VariableWords {
+                    runtime_state: win16_abi::exports::Win16VariableRuntimeState::InitialWords,
+                    ..
+                }) => false,
+                Some(_) => true,
+                None => matches!(declaration.kind,
                     win16_abi::exports::ExportEntryKind::Extern
                         | win16_abi::exports::ExportEntryKind::Forward
-                        | win16_abi::exports::ExportEntryKind::Unknown)) {
+                        | win16_abi::exports::ExportEntryKind::Unknown),
+            }) {
             return Ok(ProcedureLookup::UnsupportedDataExport);
         }
         match self.module_import_value(handle, procedure, false).map_err(crate::runtime_error)? {
