@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use runtime::{DiagnosticKind as Kind, RuntimeError, Win16HostWindow, Win16WindowResult};
+use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetWindowTextLengthW, GetWindowTextW, SetWindowTextW,
 };
@@ -159,21 +160,105 @@ pub(super) fn text_length(
     let Some(hwnd) = super::win16_window_identity::resolve_user_window(state, window) else {
         return Ok(Win16WindowResult::WindowTextLength(0));
     };
-    let _text_context = super::win16_window_text_context::enter(
-        state,
-        window,
-        hwnd,
-        super::win16_window_text_context::WindowTextCall::GetTextLength,
-    )?;
-    // SAFETY: `GetWindowTextLengthW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    let native_length = unsafe { GetWindowTextLengthW(hwnd) };
-    let guest_length = match super::win16_window_text_context::recorded_guest_text_length_result(
-        state, window, hwnd,
-    ) {
-        Some(length) => length as i32,
-        None => {
-            super::win16_window_text_context::native_text_length_upper_bound(state, native_length)?
+    let pending = {
+        let _text_context = super::win16_window_text_context::enter(
+            state,
+            window,
+            hwnd,
+            super::win16_window_text_context::WindowTextCall::GetTextLength,
+        )?;
+        // SAFETY: `GetWindowTextLengthW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+        let native_length = unsafe { GetWindowTextLengthW(hwnd) };
+        match super::win16_window_text_context::recorded_guest_text_length_result(
+            state, window, hwnd,
+        ) {
+            Some(length) => TextLengthSource::Recorded(length as i32),
+            None => TextLengthSource::Native(native_length),
+        }
+    };
+    let guest_length = match pending {
+        TextLengthSource::Recorded(length) => length,
+        TextLengthSource::Native(native_length) => {
+            native_window_text_byte_length(state, hwnd, native_length)?
         }
     };
     Ok(Win16WindowResult::WindowTextLength(guest_length))
+}
+
+enum TextLengthSource {
+    Recorded(i32),
+    Native(i32),
+}
+
+/// Guest byte length when WM_GETTEXTLENGTH did not enter a guest procedure.
+/// The context is already dropped, so this read cannot record another length.
+fn native_window_text_byte_length(
+    state: &Rc<RefCell<WorkerState>>,
+    hwnd: HWND,
+    native_length: i32,
+) -> Result<i32, RuntimeError> {
+    if native_length <= 0 {
+        return Ok(native_length);
+    }
+    let units = usize::try_from(native_length).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::InternalInvariant,
+            "positive native window text length does not fit a pointer-sized count",
+            error,
+        )
+    })?;
+    if super::win16_window_text_context::native_text_exceeds_checked_copy(units) {
+        return super::win16_window_text_context::native_text_length_upper_bound(
+            state,
+            native_length,
+        );
+    }
+    let allocation = units.checked_add(1).ok_or_else(|| {
+        RuntimeError::new(
+            Kind::HostFailure,
+            "native window text length overflows its terminator",
+        )
+    })?;
+    let capacity = i32::try_from(allocation).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::HostFailure,
+            "native window text buffer does not fit the GetWindowTextW count",
+            error,
+        )
+    })?;
+    let mut native_text = GuestTextBuffer::acquire();
+    native_text.try_reserve_exact(allocation).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "cannot allocate the native UTF-16 window-text length buffer",
+            error,
+        )
+    })?;
+    native_text.resize(allocation, 0);
+    // SAFETY: GetWindowTextW writes a caller-owned UTF-16 buffer of `capacity` units, including the terminator. No guest address is passed.
+    let count = unsafe { GetWindowTextW(hwnd, native_text.as_mut_ptr(), capacity) };
+    if count < 0 {
+        return Ok(count);
+    }
+    let count = usize::try_from(count).map_err(|_| {
+        RuntimeError::new(
+            Kind::HostFailure,
+            "GetWindowTextW returned a character count outside its output buffer",
+        )
+    })?;
+    if count >= native_text.len() || native_text[count] != 0 || native_text[..count].contains(&0) {
+        return Err(RuntimeError::new(
+            Kind::HostFailure,
+            "GetWindowTextW output does not match its returned terminated prefix",
+        ));
+    }
+    let bytes =
+        super::win16_window_text_context::guest_text_byte_length(state, &native_text[..count])?;
+    i32::try_from(bytes).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::HostFailure,
+            "guest window text byte length does not fit in a signed 32-bit count",
+            error,
+        )
+    })
 }
