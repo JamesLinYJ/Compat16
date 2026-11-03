@@ -209,6 +209,13 @@ impl Win16State {
         };
         match host.win16_gdi(operation)? {
             HostResult::Points { success, points } => {
+                // Windows 3.1 `POINT` is two signed 16-bit `int` fields.
+                // `DPtoLP` and `LPtoDP` return zero when they fail. A
+                // converted coordinate outside -32768..=32767 is not stored,
+                // so the guest array stays unchanged.
+                if success && !points_fit_i16(&points) {
+                    return Ok(0);
+                }
                 if success {
                     self.write_drawing_points(memory, output, &points)?;
                 }
@@ -273,6 +280,12 @@ fn point_to_host(point: win16_abi::Point16) -> Win16DrawingPoint {
         x: i32::from(point.x),
         y: i32::from(point.y),
     }
+}
+
+fn points_fit_i16(points: &[Win16DrawingPoint]) -> bool {
+    points
+        .iter()
+        .all(|point| i16::try_from(point.x).is_ok() && i16::try_from(point.y).is_ok())
 }
 
 fn point_array_size(count: i16) -> Result<usize, RuntimeError> {
