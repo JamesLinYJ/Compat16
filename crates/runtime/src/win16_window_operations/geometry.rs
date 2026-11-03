@@ -3,10 +3,6 @@
 use super::*;
 
 const SWP_NOZORDER: u16 = 0x0004;
-// Windows 3.1 WINDOWS.H defines 0x0001..0x0400 and SWP_DEFERERASE.
-// Reject other bits rather than enabling newer host semantics such as
-// SWP_ASYNCWINDOWPOS, which would leave this synchronous owner.
-const SWP_VALID_16: u16 = 0x27ff;
 
 impl Win16State {
     pub(super) fn begin_geometry_api(
@@ -574,16 +570,6 @@ impl Win16State {
                     flags,
                 },
             )) => {
-                if flags & !SWP_VALID_16 != 0 {
-                    return self.complete_return(
-                        registers,
-                        return_to.0,
-                        return_to.1,
-                        return_to.2,
-                        0,
-                        return_kind,
-                    );
-                }
                 host.observe_win16_io(&crate::Win16IoEvent::WindowPositionRequest {
                     window, insert_after, x, y, width, height, flags,
                 });
