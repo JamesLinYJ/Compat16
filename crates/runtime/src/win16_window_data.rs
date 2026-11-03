@@ -331,15 +331,10 @@ impl Win16State {
                 return_to.2, value & width.mask(), return_kind);
         }
 
-        // Programmer's Reference, Volume 2: the WORD calls accept GWW_* and
-        // the LONG calls accept GWL_*. The other named width is not a valid
-        // index. Its stored value is not wrapped into this result; the call
-        // fails as an unknown offset.
+        // Preserve long-width aliases for the legacy word fields: existing
+        // callers use these offsets and parent mutations must reconcile. The
+        // window procedure and style fields are long-valued.
         let declared = match index {
-            GWW_HINSTANCE | GWW_ID => Some(DataWidth::Word),
-            // Keep the existing long-width parent alias: SetWindowLong callers
-            // use this offset and parent mutations must retain reconciliation.
-            GWW_HWNDPARENT => None,
             GWL_WNDPROC | GWL_STYLE | GWL_EXSTYLE => Some(DataWidth::Long),
             _ => None,
         };
@@ -347,7 +342,7 @@ impl Win16State {
             return zero(self, registers);
         }
 
-        // GWW_HINSTANCE is a WORD. Only the WORD calls reach this field.
+        // HINSTANCE is a WORD; retain the historical long-width alias.
         if index == GWW_HINSTANCE {
             let Some(state) = self.window_data.get(&window) else {
                 self.report_missing_contract(host, window, index, replacement, width)?;
