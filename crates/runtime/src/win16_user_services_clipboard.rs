@@ -293,7 +293,12 @@ impl Win16State {
                     reserved_retirements: ClipboardRetirementReservation::default() },
             ),
             Request::GetPriorityFormat { formats, count } => {
-                if count < 0 || usize::try_from(count).unwrap_or(usize::MAX) != formats.len() {
+                // cEntries is signed. A negative value selects no list entry.
+                // The Programmer's Reference returns NULL when the clipboard is
+                // empty and -1 when it holds some other format. The decoder
+                // already passes an empty list for that count, which takes
+                // the same path as a zero count. Do not report -1 first.
+                if count > 0 && usize::try_from(count).unwrap_or(usize::MAX) != formats.len() {
                     return Ok(Prepared::immediate(0xffff, return_kind));
                 }
                 (ClipboardOperation::GetPriorityFormat { formats }, ClipboardCompletion::Plain)
