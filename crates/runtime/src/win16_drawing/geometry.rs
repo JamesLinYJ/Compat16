@@ -49,7 +49,31 @@ impl Win16State {
                     x: i32::from(x),
                     y: i32::from(y),
                 })? {
-                    HostResult::Point { x, y } => Ok(pack_words(x, y)),
+                    // Windows 3.1 Programmer's Reference, Volume 2, returns the
+                    // previous logical point in the low and high words only
+                    // when MoveTo succeeds. Those words are signed 16-bit
+                    // coordinates. A host point outside that range is not
+                    // success: put the position back and return the same zero
+                    // an unknown DC returns. Guest memory is not written.
+                    HostResult::Point {
+                        x: previous_x,
+                        y: previous_y,
+                    } if i16::try_from(previous_x).is_ok() && i16::try_from(previous_y).is_ok() => {
+                        Ok(pack_words(previous_x, previous_y))
+                    }
+                    HostResult::Point {
+                        x: previous_x,
+                        y: previous_y,
+                    } => {
+                        match host.win16_gdi(Operation::MoveTo {
+                            dc,
+                            x: previous_x,
+                            y: previous_y,
+                        })? {
+                            HostResult::Point { .. } => Ok(0),
+                            _ => Err(wrong_result("MoveTo")),
+                        }
+                    }
                     _ => Err(wrong_result("MoveTo")),
                 }
             }
