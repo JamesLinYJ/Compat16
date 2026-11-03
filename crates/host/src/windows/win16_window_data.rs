@@ -111,10 +111,11 @@ pub(super) fn execute(
                 return Ok(not_attempted());
             }
             let public_reparent = matches!(call, Call::Reparent { .. });
+            let style = read_scalar(native, Win16WindowDataField::Style);
             let use_set_parent = if public_reparent {
                 true
             } else {
-                let Some(style) = read_scalar(native, Win16WindowDataField::Style) else {
+                let Some(style) = style else {
                     return Ok(not_attempted());
                 };
                 style & WS_CHILD != 0
@@ -130,12 +131,24 @@ pub(super) fn execute(
                 };
                 previous
             };
+            // Volume 2 returns the previous parent on success. A WS_CHILD
+            // parented to the desktop has that parent, and Win32 SetParent
+            // returns NULL with no error for it. Top-level windows have no
+            // parent, so a NULL native return stays NULL for them.
+            let child_of_desktop = public_reparent
+                && style.is_some_and(|style| style & WS_CHILD != 0)
+                && previous_native == crate::windows::win32_safe::desktop_window();
             let previous_token = token_for_native(state, previous_native)?;
             let returned_previous = mutate_parent(native, new_parent, use_set_parent);
             // No queries, adoption or other fallible work after native USER.
-            // A desktop snapshot does not manufacture a desktop return when
-            // native SetParent returns NULL. Exact liveness is projected later.
-            let previous = previous_token.filter(|_| returned_previous == Some(previous_native));
+            // Exact liveness is projected later.
+            let previous = if returned_previous == Some(previous_native)
+                || (child_of_desktop && returned_previous.is_some_and(|hwnd| hwnd.is_null()))
+            {
+                previous_token
+            } else {
+                None
+            };
             Ok(ResultValue::ParentMutation {
                 attempted: true,
                 succeeded: returned_previous.is_some(),
