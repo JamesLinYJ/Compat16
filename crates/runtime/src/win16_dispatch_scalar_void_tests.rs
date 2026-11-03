@@ -1,6 +1,21 @@
 //! Strict mock-only scalar void USER calls; never change desktop settings or beep.
 use super::*;
 
+/// MessageBeep forwards only the Windows 3.1 sounds. `0xFFFF` is the speaker
+/// beep and reaches the host as `0xFFFFFFFF`. Other USER scalar voids keep the
+/// zero-extended argument.
+fn expected_scalar_call(ordinal: u16, argument: u16) -> Vec<(u16, u32)> {
+    if ordinal == 104 {
+        match argument {
+            0xFFFF => vec![(104, u32::MAX)],
+            0x0000 | 0x0010 | 0x0020 | 0x0030 | 0x0040 => vec![(104, u32::from(argument))],
+            _ => Vec::new(),
+        }
+    } else {
+        vec![(ordinal, u32::from(argument))]
+    }
+}
+
 fn scalar_fixture(ordinal: u16, argument: u16) -> (Runtime, (u16, u16, u16)) {
     let (mut runtime, mut return_to, _) = prepare();
     let state = runtime.win16.as_mut().unwrap();
@@ -27,7 +42,7 @@ fn scalar_void_results_preserve_registers_and_unsigned_values_even_when_native_f
                 assert_eq!((runtime.cpu.regs.ax(), runtime.cpu.regs.dx()), (0xa55a, 0x5aa5));
                 assert_eq!((runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.sp()), return_to);
                 assert_eq!(stack_bytes(&runtime, stack), original);
-                assert_eq!(host.scalar_calls, [(ordinal, u32::from(argument))]);
+                assert_eq!(host.scalar_calls, expected_scalar_call(ordinal, argument));
                 assert_eq!(host.calls, 0);
             }
         }
@@ -44,7 +59,7 @@ fn scalar_void_errors_and_default_unsupported_do_not_commit_a_return() {
             &mut runtime.memory, &mut runtime.dos, &mut host, 0).unwrap_err();
         assert_eq!(error.kind(), Kind::HostFailure);
         assert_eq!(runtime.cpu.regs, before);
-        assert_eq!(host.scalar_calls, [(ordinal, 65535)]);
+        assert_eq!(host.scalar_calls, expected_scalar_call(ordinal, 0xffff));
         let (mut runtime, _) = scalar_fixture(ordinal, 0xffff);
         let before = runtime.cpu.regs.clone();
         let error = runtime.win16.as_mut().unwrap().dispatch(&mut runtime.cpu,
