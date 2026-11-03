@@ -146,11 +146,11 @@ impl Win16State {
             return Ok(read_class_field(atom, &info, module, field));
         };
         if field == ClassField::HModule {
-            // NT 3.5 `PRIVATE/MVDM/WOW16/USER/WINMISC1.ASM` special-cases this
-            // index in SetClassWord (Bug #5138, Designer 2.0) and returns the
-            // current module handle without replacing it. Cross-width LONG
-            // access was rejected above; it does not have this WORD guard.
-            return Ok(u32::from(module));
+            // Windows 3.1 SDK Programmer's Reference, Volume 2, SetClassWord
+            // pp. 825–826 lists the settable class words. GCW_HMODULE is not
+            // one of them, so the call fails with zero and the module owner
+            // stays unchanged. GetClassWord still returns that owner.
+            return Ok(0);
         }
         match field {
             ClassField::HIcon => self.set_class_icon(window, class, value, host),

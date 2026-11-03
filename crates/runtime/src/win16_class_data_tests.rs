@@ -595,7 +595,7 @@ fn class_data_word_fields_do_not_invent_cross_width_long_access_semantics() {
 }
 
 #[test]
-fn class_data_setclassword_module_handle_reports_the_owner_without_replacing_it() {
+fn class_data_setclassword_module_handle_is_not_a_documented_setter() {
     let mut runtime = fixture();
     let mut host = ClassDataHost::default();
     let class = named_class(&mut runtime, &mut host, b"Module", 0);
@@ -604,11 +604,11 @@ fn class_data_setclassword_module_handle_reports_the_owner_without_replacing_it(
     assert_ne!(owner, class.info.h_instance,
         "the module handle must not be confused with its instance/data selector");
     assert_eq!(call(&mut runtime, &mut host, 129, hwnd, -16, None), u32::from(owner));
-    // USER keeps its own refusal for this index, so a replacement reports the
-    // current handle and leaves the class owner alone.
+    // Volume 2 does not list GCW_HMODULE as a SetClassWord index. Failure is
+    // zero, including a value that does not fit a class word, and the owner
+    // is left unchanged.
     for replacement in [0_u32, 0x4321, u32::MAX] {
-        assert_eq!(call(&mut runtime, &mut host, 130, hwnd, -16, Some(replacement)),
-            u32::from(owner));
+        assert_eq!(call(&mut runtime, &mut host, 130, hwnd, -16, Some(replacement)), 0);
         assert_eq!(call(&mut runtime, &mut host, 129, hwnd, -16, None), u32::from(owner));
     }
     assert!(host.class_resources.is_empty());
