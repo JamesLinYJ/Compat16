@@ -4,7 +4,11 @@ use guest_core::memory::Memory;
 use win16_abi::{Win16AtomName, Win16OutputBuffer};
 
 use super::Win16State;
-use crate::{RuntimeError, RuntimeHost, Win16HostAtomName};
+use crate::{DiagnosticKind, RuntimeError, RuntimeHost, Win16HostAtomName};
+
+/// String atoms start at `MAXINTATOM`. Values below this are integer atoms
+/// or the invalid atom zero.
+const FIRST_STRING_ATOM: u16 = 0xC000;
 
 fn host_name(name: &Win16AtomName) -> Win16HostAtomName<'_> {
     match name {
@@ -14,6 +18,26 @@ fn host_name(name: &Win16AtomName) -> Win16HostAtomName<'_> {
 }
 
 impl Win16State {
+    /// Win3.1 `GlobalDeleteAtom`: zero when a reference count is decremented,
+    /// and the atom itself when it is not. Integer atoms have no count.
+    pub(super) fn global_delete_atom(
+        &mut self,
+        atom: u16,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u16, RuntimeError> {
+        if atom < FIRST_STRING_ATOM {
+            return Ok(0);
+        }
+        if self.is_registered_class_atom(atom) {
+            return Ok(atom);
+        }
+        match host.win16_global_delete_atom(atom) {
+            Ok(()) => Ok(0),
+            Err(error) if error.kind() == DiagnosticKind::HostFailure => Ok(atom),
+            Err(error) => Err(error),
+        }
+    }
+
     pub(super) fn global_add_atom(
         &mut self,
         name: Win16AtomName,
