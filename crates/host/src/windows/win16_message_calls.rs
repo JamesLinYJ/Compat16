@@ -522,17 +522,104 @@ pub(super) fn execute(
             let mut keys = [0_u8; 256];
             // SAFETY: GetKeyboardState writes into a caller-owned 256-byte array.
             let succeeded = unsafe { GetKeyboardState(keys.as_mut_ptr()) } != 0;
+            if succeeded {
+                overlay_guest_key_slots(&mut keys);
+            }
             Ok(Win16MessageCallResult::KeyboardState {
                 succeeded,
                 state: keys,
             })
         }
         Win16MessageCall::SetKeyboardState { state: keys } => {
+            let mut host_keys = keys;
+            clear_guest_key_slots(&mut host_keys);
             // SAFETY: SetKeyboardState reads a caller-owned 256-byte array.
-            let succeeded = unsafe { SetKeyboardState(keys.as_ptr()) } != 0;
+            let succeeded = unsafe { SetKeyboardState(host_keys.as_ptr()) } != 0;
+            if succeeded {
+                remember_guest_key_slots(&keys);
+            }
             Ok(Win16MessageCallResult::Boolean(succeeded))
         }
     }
+}
+
+/// Windows 3.1 virtual keys that Win32 still uses for the same key.
+///
+/// Volume 3 Appendix B and the Windows 3.1 DDK virtual-key table leave the
+/// other codes undefined or unassigned. Win32 later assigned those codes to
+/// different keys, so a host query would report the wrong key. Values outside
+/// `0..=255` are not one of the 256 virtual-key codes.
+pub(in crate::windows) fn win31_host_virtual_key(key: i32) -> bool {
+    u8::try_from(key).is_ok_and(|key| !win32_only_virtual_key(key))
+}
+
+/// Signed word for one saved guest key byte. The high bit is down and the
+/// low bit is the toggle, matching `GetKeyState`.
+pub(super) fn guest_key_state(key: i32) -> i16 {
+    let Ok(index) = u8::try_from(key) else {
+        return 0;
+    };
+    let byte = GUEST_KEYBOARD_SLOTS.with(|slots| slots.borrow()[usize::from(index)]);
+    let mut state = 0_u16;
+    if byte & 0x80 != 0 {
+        state |= 0x8000;
+    }
+    if byte & 0x01 != 0 {
+        state |= 0x0001;
+    }
+    state as i16
+}
+
+fn overlay_guest_key_slots(keys: &mut [u8; 256]) {
+    GUEST_KEYBOARD_SLOTS.with(|slots| {
+        let saved = slots.borrow();
+        for index in 0..=u8::MAX {
+            if win32_only_virtual_key(index) {
+                let slot = usize::from(index);
+                keys[slot] = saved[slot];
+            }
+        }
+    });
+}
+
+fn clear_guest_key_slots(keys: &mut [u8; 256]) {
+    for index in 0..=u8::MAX {
+        if win32_only_virtual_key(index) {
+            keys[usize::from(index)] = 0;
+        }
+    }
+}
+
+fn remember_guest_key_slots(keys: &[u8; 256]) {
+    GUEST_KEYBOARD_SLOTS.with(|slots| {
+        let mut saved = slots.borrow_mut();
+        for index in 0..=u8::MAX {
+            if win32_only_virtual_key(index) {
+                let slot = usize::from(index);
+                saved[slot] = keys[slot];
+            }
+        }
+    });
+}
+
+/// Codes the Windows 3.1 tables leave undefined or unassigned and that Win32
+/// assigns to a different key.
+///
+/// `0x05`–`0x06` are the X buttons (`05`–`07` undefined). `0x5B`–`0x5F` are
+/// the Windows, Apps, and Sleep keys (`5B`–`5F` undefined). `0x92`–`0xB9`
+/// are the left/right modifiers and the later browser and media keys
+/// (`92`–`B9` unassigned). `0xC1`–`0xDA` are gamepad buttons (`C1`–`DA`
+/// unassigned). `0xE5` is `VK_PROCESSKEY` and `0xE7` is `VK_PACKET` (both
+/// unassigned).
+fn win32_only_virtual_key(key: u8) -> bool {
+    matches!(
+        key,
+        0x05 | 0x06 | 0x5B..=0x5F | 0x92..=0xB9 | 0xC1..=0xDA | 0xE5 | 0xE7
+    )
+}
+
+thread_local! {
+    static GUEST_KEYBOARD_SLOTS: RefCell<[u8; 256]> = RefCell::new([0; 256]);
 }
 
 fn broadcast_arguments(

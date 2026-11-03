@@ -784,9 +784,13 @@ pub(super) fn process_command(state: &Rc<RefCell<WorkerState>>, command: WorkerC
             ));
         }
         WorkerCommand::GetKeyState { key, response } => {
-            let state =
+            let state = if super::win16_message_calls::win31_host_virtual_key(key) {
                 // SAFETY: GetKeyState takes a virtual-key integer.
-                unsafe { windows_sys::Win32::UI::Input::KeyboardAndMouse::GetKeyState(key) };
+                unsafe { windows_sys::Win32::UI::Input::KeyboardAndMouse::GetKeyState(key) }
+            } else {
+                // A code Win32 assigned later is a guest table slot, not that host key.
+                super::win16_message_calls::guest_key_state(key)
+            };
             let _ = response.send(state);
         }
         WorkerCommand::Ctl3dFrame { window, response } => {

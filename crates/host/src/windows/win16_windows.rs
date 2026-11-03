@@ -94,6 +94,7 @@ mod win16_menu_attachment;
 mod win16_menu_worker;
 #[path = "win16_message_calls.rs"]
 mod win16_message_calls;
+pub(super) use win16_message_calls::win31_host_virtual_key;
 #[path = "win16_message_loop.rs"]
 mod win16_message_loop;
 #[path = "win16_user_cursor_accelerator.rs"]

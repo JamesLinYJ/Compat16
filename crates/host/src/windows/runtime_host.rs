@@ -1120,7 +1120,13 @@ impl RuntimeHost for WindowsHost {
     }
     fn win16_get_key_state(&mut self, key: i32, asynchronous: bool) -> Result<i16, RuntimeError> {
         if asynchronous {
-            Ok(win16_common::get_async_key_state(key))
+            // Interrupt-level state exists only for a Windows 3.1 virtual key.
+            // A later Win32 code has no 3.1 hardware key, so the signed word is 0.
+            if super::win16_windows::win31_host_virtual_key(key) {
+                Ok(win16_common::get_async_key_state(key))
+            } else {
+                Ok(0)
+            }
         } else {
             self.win16_windows.get_key_state(key)
         }
