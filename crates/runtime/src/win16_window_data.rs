@@ -336,7 +336,10 @@ impl Win16State {
         // index. Its stored value is not wrapped into this result; the call
         // fails as an unknown offset.
         let declared = match index {
-            GWW_HINSTANCE | GWW_HWNDPARENT | GWW_ID => Some(DataWidth::Word),
+            GWW_HINSTANCE | GWW_ID => Some(DataWidth::Word),
+            // Keep the existing long-width parent alias: SetWindowLong callers
+            // use this offset and parent mutations must retain reconciliation.
+            GWW_HWNDPARENT => None,
             GWL_WNDPROC | GWL_STYLE | GWL_EXSTYLE => Some(DataWidth::Long),
             _ => None,
         };
