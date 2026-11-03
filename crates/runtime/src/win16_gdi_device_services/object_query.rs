@@ -61,11 +61,15 @@ impl Win16State {
                 return Ok(0);
             }
         };
-        let written = bytes.len().min(count as usize);
-        if written == 0 { return Ok(0); }
+        // Programmer's Reference Volume 2: the buffer must be sufficiently
+        // large to receive the information. A shorter count fails and leaves
+        // guest memory unchanged. Success stores the Windows 3.1 structure
+        // and returns that byte count.
+        let written = bytes.len();
+        if written == 0 || (count as usize) < written { return Ok(0); }
         let pointer = self.selectors.pointer_from_far(output).map_err(crate::runtime_error)?;
         self.selectors.translate(pointer, Access::Write, written, memory).map_err(crate::runtime_error)?;
-        self.selectors.write(memory, pointer, &bytes[..written]).map_err(crate::runtime_error)?;
+        self.selectors.write(memory, pointer, &bytes).map_err(crate::runtime_error)?;
         Ok(written as u32)
     }
 }
