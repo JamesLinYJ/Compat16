@@ -205,8 +205,9 @@ pub(super) fn replace_class_resource(
 }
 
 fn read_class_resource(hwnd: HWND, field: i32) -> Result<usize, RuntimeError> {
-    // SAFETY: Callers resolve this live HWND and select only pointer-valued
-    // icon, cursor or background class fields. Zero is a valid empty field.
+    // SAFETY: Callers resolve this live HWND and select the 16-bit class
+    // style word or a pointer-valued icon, cursor, or background field.
+    // Zero is a valid empty resource or a class style with no bits set.
     (crate::windows::win32_safe::set_last_error(0));
     let value = unsafe { GetClassLongPtrW(hwnd, field) };
     let error = crate::windows::win32_safe::last_error();
