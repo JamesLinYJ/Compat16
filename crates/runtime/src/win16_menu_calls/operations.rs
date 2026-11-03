@@ -509,20 +509,26 @@ impl Win16State {
                 let Some(menu) = self.guest_menus.resolve(menu) else {
                     return self.menu_immediate(registers, return_to, 0, return_kind);
                 };
-                let capacity_usize = if capacity > 0 {
-                    if output == 0 {
-                        return self.menu_immediate(registers, return_to, 0, return_kind);
-                    }
-                    let destination = self
+                // A null label pointer returns the byte length and writes
+                // nothing, as does cbMax of 0. A positive cbMax copies at most
+                // that many bytes, including the terminating null. A negative
+                // cbMax stays a failed query.
+                let (query_capacity, destination) = if capacity > 0 && output != 0 {
+                    let pointer = self
                         .selectors
                         .pointer_from_far(output)
                         .map_err(crate::runtime_error)?;
-                    let capacity = capacity as usize;
-                    Some(super::super::guest_ranges::GuestOutputRange::capture(
-                        self, memory, destination, capacity,
-                    )?)
+                    let captured = super::super::guest_ranges::GuestOutputRange::capture(
+                        self,
+                        memory,
+                        pointer,
+                        capacity as usize,
+                    )?;
+                    (capacity, Some(captured))
+                } else if capacity < 0 {
+                    (capacity, None)
                 } else {
-                    None
+                    (0, None)
                 };
                 self.submit_menu_call(
                     registers,
@@ -532,11 +538,11 @@ impl Win16State {
                         menu,
                         item,
                         flags,
-                        capacity,
+                        capacity: query_capacity,
                     },
                     MenuCallKind::MenuString,
                     return_kind,
-                    capacity_usize,
+                    destination,
                     return_to,
                 )
             }
