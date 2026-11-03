@@ -25,7 +25,7 @@ pub enum Win16KernelTaskRequest {
     GetLastError,
     /// Far pointer to a caller-owned OSVERSIONINFO. Never a host pointer.
     GetVersionEx { version_info: u32 },
-    /// Requested task handle. This runtime does not switch to it.
+    /// Guest task to awaken. One guest task means scheduling is `Yield`.
     DirectedYield { task: u16 },
 }
 
