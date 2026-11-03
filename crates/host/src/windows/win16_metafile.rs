@@ -236,6 +236,7 @@ fn playback_stream(bytes: &[u8]) -> Result<Cow<'_, [u8]>, PlaybackSkip> {
     let mut kept = Vec::new();
     for record in parsed.records() {
         if !record.is_escape() {
+            kept.try_reserve(1).map_err(|_| PlaybackSkip::Invalid)?;
             kept.push(record.bytes());
             continue;
         }
