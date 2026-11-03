@@ -93,7 +93,7 @@ impl Win16WindowDataState {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum DataWidth {
     Word,
     Long,
@@ -331,8 +331,20 @@ impl Win16State {
                 return_to.2, value & width.mask(), return_kind);
         }
 
-        // The Win16 structure exposes HINSTANCE as a WORD. Long access at the
-        // same byte offset observes or changes only that declared 16-bit field.
+        // Programmer's Reference, Volume 2: the WORD calls accept GWW_* and
+        // the LONG calls accept GWL_*. The other named width is not a valid
+        // index. Its stored value is not wrapped into this result; the call
+        // fails as an unknown offset.
+        let declared = match index {
+            GWW_HINSTANCE | GWW_HWNDPARENT | GWW_ID => Some(DataWidth::Word),
+            GWL_WNDPROC | GWL_STYLE | GWL_EXSTYLE => Some(DataWidth::Long),
+            _ => None,
+        };
+        if declared.is_some_and(|declared| declared != width) {
+            return zero(self, registers);
+        }
+
+        // GWW_HINSTANCE is a WORD. Only the WORD calls reach this field.
         if index == GWW_HINSTANCE {
             let Some(state) = self.window_data.get(&window) else {
                 self.report_missing_contract(host, window, index, replacement, width)?;
@@ -356,9 +368,6 @@ impl Win16State {
         }
 
         if index == GWL_WNDPROC {
-            if !matches!(width, DataWidth::Long) {
-                return zero(self, registers);
-            }
             let Some(procedure) = self.window_procedures.get(&window).copied() else {
                 return self.begin_native_subclass_data(
                     registers, memory, host, window, replacement, return_to,
@@ -396,10 +405,12 @@ impl Win16State {
                 }, return_to);
         }
 
+        // Masks are the published field widths. A WORD field stays 16 bits
+        // and a LONG field stays 32 bits; neither result is truncated.
         let native_field = match index {
             GWW_ID => Some((Win16WindowDataField::ControlId, u32::from(u16::MAX))),
-            GWL_STYLE => Some((Win16WindowDataField::Style, width.mask())),
-            GWL_EXSTYLE => Some((Win16WindowDataField::ExStyle, width.mask())),
+            GWL_STYLE => Some((Win16WindowDataField::Style, u32::MAX)),
+            GWL_EXSTYLE => Some((Win16WindowDataField::ExStyle, u32::MAX)),
             _ => None,
         };
         if let Some((field, field_mask)) = native_field {
