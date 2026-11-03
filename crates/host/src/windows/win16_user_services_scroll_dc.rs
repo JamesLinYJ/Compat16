@@ -135,6 +135,7 @@ fn region_box_fits(region: HRGN) -> bool {
     kind == NULLREGION || (kind != RGN_ERROR && signed_rect_fits(bounds))
 }
 
+#[derive(Clone, Copy)]
 struct DeviceArea {
     x: i32,
     y: i32,
