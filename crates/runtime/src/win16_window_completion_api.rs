@@ -866,21 +866,28 @@ pub(super) fn finish_window_call(
                         return Err(RuntimeError::new(Kind::InternalInvariant,
                             "native MapWindowPoints result does not match its captured array"));
                     }
+                    // Windows 3.1 Programmer's Reference, Volume 2:
+                    // MapWindowPoints is void and converts POINT ints in place.
+                    // One coordinate outside that signed int leaves the whole
+                    // guest array unchanged. The call does not return a value.
                     let mut output = Vec::new();
                     output.try_reserve_exact(range.length()).map_err(|error|
                         RuntimeError::with_source(Kind::ResourceExhausted,
                             "retain Win16 MapWindowPoints output", error))?;
+                    let mut fits = true;
                     for point in points {
-                        // POINT16 retains the low signed 16-bit coordinate,
-                        // matching the other Win16 coordinate conversions.
-                        output.extend_from_slice(&win16_abi::Point16 {
-                            x: point.x as i16, y: point.y as i16,
-                        }.encode());
+                        let (Ok(x), Ok(y)) = (i16::try_from(point.x), i16::try_from(point.y)) else {
+                            fits = false;
+                            break;
+                        };
+                        output.extend_from_slice(&win16_abi::Point16 { x, y }.encode());
                     }
-                    super::super::guest_ranges::commit_guest_output_with_selectors(
-                        access.selectors, memory, range, &output,
-                    )?;
-                    owner.phase = Phase::GuestOutputCommitted;
+                    if fits {
+                        super::super::guest_ranges::commit_guest_output_with_selectors(
+                            access.selectors, memory, range, &output,
+                        )?;
+                        owner.phase = Phase::GuestOutputCommitted;
+                    }
                 }
                 Some(0)
             }

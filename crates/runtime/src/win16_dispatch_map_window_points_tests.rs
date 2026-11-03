@@ -190,8 +190,8 @@ fn assert_return(runtime: &Runtime, return_to: (u16, u16, u16)) {
 #[test]
 fn map_window_points_maps_signed_arrays_and_preserves_void_abi() {
     let input = [Point16 { x: -32768, y: 32767 }, Point16 { x: 123, y: -456 }, Point16 { x: 32767, y: -32768 }];
-    let output = [Win16HostPoint { x: -32769, y: 32768 }, Win16HostPoint { x: 3, y: -4 }, Win16HostPoint { x: 65537, y: -65538 }];
-    let expected = [Point16 { x: 32767, y: -32768 }, Point16 { x: 3, y: -4 }, Point16 { x: 1, y: -2 }];
+    let output = [Win16HostPoint { x: 40, y: -8 }, Win16HostPoint { x: 10, y: -4 }, Win16HostPoint { x: 32767, y: -32768 }];
+    let expected = [Point16 { x: 40, y: -8 }, Point16 { x: 10, y: -4 }, Point16 { x: 32767, y: -32768 }];
     // The count-two case is also a RECT16 whose first x remains greater than
     // its second x. Neither marshalling nor completion may sort its edges.
     for count in 1..=3 {
@@ -213,6 +213,29 @@ fn map_window_points_maps_signed_arrays_and_preserves_void_abi() {
         assert_eq!(host.consumed, 1);
         assert_return(&runtime, return_to);
     }
+
+    // A host coordinate outside the signed Win16 int is not stored. The
+    // void call leaves the guest array unchanged.
+    let mut runtime = fixture();
+    write_points(&mut runtime, &input);
+    let native_from = Win16HostWindow(0x1234_5678_9abc);
+    let native_to = Win16HostWindow(0xabcd_1234_5678);
+    runtime.win16.as_mut().unwrap().window_handles.insert(0x1234, native_from);
+    runtime.win16.as_mut().unwrap().window_handles.insert(0x2345, native_to);
+    let pointer = far(&runtime);
+    let return_to = prepare(&mut runtime, 0x1234, 0x2345, pointer, 3);
+    let mut host = MapPointsHost {
+        result: Some(vec![
+            Win16HostPoint { x: -32769, y: 1 },
+            Win16HostPoint { x: 2, y: 32768 },
+            Win16HostPoint { x: 3, y: 4 },
+        ]),
+        ..Default::default()
+    };
+    assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
+    assert_eq!(read_points(&runtime, 3), input);
+    assert_eq!(host.consumed, 1);
+    assert_return(&runtime, return_to);
 }
 
 #[test]
