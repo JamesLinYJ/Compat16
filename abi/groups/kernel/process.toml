@@ -268,7 +268,7 @@ ordinal = 150
 name = "DirectedYield"
 binding = { rust_id = "KernelDirectedYield", id_value = 1299, constant = "KERNEL_DIRECTED_YIELD" }
 [exports.call]
-returns = "word"
+returns = "void"
 params = [
   { name = "task", type = "U16" },
 ]
