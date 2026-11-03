@@ -109,7 +109,10 @@ pub(super) fn execute(
             })
         }
         Op::AddFontResource { guest_path } => {
-            let Some(path) = font_resource_path(filesystem, &guest_path, false) else {
+            // Programmer's Reference, Volume 2: the name includes an extension
+            // and is passed to LoadLibrary. A name LoadLibrary cannot load
+            // adds no fonts. The host call is only for an MZ font module.
+            let Some(path) = windows31_font_module(filesystem, &guest_path) else {
                 return Ok(Value::FontResourceCount(0));
             };
             // The Windows 3.1 SDK declares an ANSI DOS path. Resolve its
@@ -123,7 +126,9 @@ pub(super) fn execute(
             }))
         }
         Op::RemoveFontResource { guest_path } => {
-            let Some(path) = font_resource_path(filesystem, &guest_path, false) else {
+            // Volume 2 uses the same filename rule as AddFontResource and
+            // returns zero when the resource cannot be removed.
+            let Some(path) = windows31_font_module(filesystem, &guest_path) else {
                 return Ok(Value::Bool(false));
             };
             // SAFETY: `path` is an owned, NUL-terminated UTF-16 path produced
@@ -495,6 +500,44 @@ fn wide_parent_directory(file: &[u16]) -> Option<Vec<u16>> {
     directory.extend_from_slice(&path[..end]);
     directory.push(0);
     Some(directory)
+}
+
+fn windows31_font_module(filesystem: &mut Filesystem, guest_path: &[u8]) -> Option<Vec<u16>> {
+    if !guest_font_filename_has_extension(guest_path) {
+        return None;
+    }
+    let path = font_resource_path(filesystem, guest_path, false)?;
+    loadable_font_module(&path).then_some(path)
+}
+
+fn guest_font_filename_has_extension(path: &[u8]) -> bool {
+    let name = path
+        .rsplit(|byte| matches!(*byte, b'\\' | b'/' | b':'))
+        .next()
+        .unwrap_or(path);
+    match name.iter().rposition(|byte| *byte == b'.') {
+        Some(index) => index + 1 < name.len(),
+        None => false,
+    }
+}
+
+fn loadable_font_module(path: &[u16]) -> bool {
+    use std::io::Read;
+    use std::os::windows::ffi::OsStringExt;
+    let Some(path) = path.strip_suffix(&[0]) else {
+        return false;
+    };
+    if path.is_empty() {
+        return false;
+    }
+    let mut file = match std::fs::File::open(std::ffi::OsString::from_wide(path)) {
+        Ok(file) => file,
+        Err(_) => return false,
+    };
+    // A Windows 3.1 font resource is a dynamic-link library. LoadLibrary
+    // requires that module, and those files begin with an MZ stub.
+    let mut magic = [0_u8; 2];
+    file.read_exact(&mut magic).is_ok() && magic == *b"MZ"
 }
 
 fn font_resource_path(
