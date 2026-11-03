@@ -596,8 +596,9 @@ impl Win16State {
                     file_handle,
                     buffer,
                     count,
+                    word_limited,
                 },
-            )) => self.read_file(file_handle, buffer, count, memory, host)?,
+            )) => self.read_file(file_handle, buffer, count, word_limited, memory, host)?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Files(
                 win16_abi::Win16KernelFilesRequest::SeekFile {
                     file_handle,
