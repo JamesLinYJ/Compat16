@@ -296,12 +296,27 @@ impl Win16State {
             )) => {
                 let pointer =
                     self.checked_guest_range(rect, Rect16::SIZE, Access::Write, memory)?;
-                let mut rect = self.read_rect(memory, pointer)?;
-                rect.left = rect.left.wrapping_sub(x);
-                rect.right = rect.right.wrapping_add(x);
-                rect.top = rect.top.wrapping_sub(y);
-                rect.bottom = rect.bottom.wrapping_add(y);
-                self.write_rect(memory, pointer, rect)?;
+                let rect = self.read_rect(memory, pointer)?;
+                // Windows 3.1 Programmer's Reference, Volume 2: InflateRect is
+                // void. Positive amounts move the edges outward. Each edge must
+                // stay a signed int, and the resulting width and height must
+                // not be greater than 32,767 or less than -32,768. An
+                // out-of-range result leaves the guest rectangle unchanged.
+                let left = i16::try_from(i32::from(rect.left) - i32::from(x));
+                let right = i16::try_from(i32::from(rect.right) + i32::from(x));
+                let top = i16::try_from(i32::from(rect.top) - i32::from(y));
+                let bottom = i16::try_from(i32::from(rect.bottom) + i32::from(y));
+                if let (Ok(left), Ok(right), Ok(top), Ok(bottom)) = (left, right, top, bottom) {
+                    let width = i32::from(right) - i32::from(left);
+                    let height = i32::from(bottom) - i32::from(top);
+                    if i16::try_from(width).is_ok() && i16::try_from(height).is_ok() {
+                        self.write_rect(
+                            memory,
+                            pointer,
+                            Rect16 { left, top, right, bottom },
+                        )?;
+                    }
+                }
                 self.complete_return(
                     registers,
                     return_to.0,
