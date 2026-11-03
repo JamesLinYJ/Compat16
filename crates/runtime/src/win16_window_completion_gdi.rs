@@ -96,9 +96,17 @@ pub(super) fn finish_paint(
         if output.length() != PaintStruct16::SIZE {
             return Err(invariant("BeginPaint output is not the captured PAINTSTRUCT16 extent"));
         }
-        let structure = super::super::user_services_paint::paintstruct_from_host(
+        // WINDOWS.H 3.1 stores PAINTSTRUCT.rcPaint as signed ints. Do not
+        // clamp an edge that does not fit, and do not bind the HDC: the host
+        // rejects that box before publishing. This path only catches a host
+        // result that still does not fit, and it does not write the buffer.
+        let Some(structure) = super::super::user_services_paint::paintstruct_from_host(
             guest_dc_reserved, paint,
-        );
+        ) else {
+            return Err(invariant(
+                "BeginPaint rcPaint does not fit the signed Win16 PAINTSTRUCT",
+            ));
+        };
         super::super::guest_ranges::commit_guest_output_with_selectors(
             access.selectors, memory, output, &structure.encode(),
         )?;

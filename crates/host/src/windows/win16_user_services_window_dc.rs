@@ -26,6 +26,14 @@ fn window_context(
     Some((dcs, hwnd))
 }
 
+/// A Win16 `RECT` stores four signed ints. `BeginPaint` cannot publish a
+/// native box outside -32768..=32767.
+fn signed_paint_rect(rect: &RECT) -> bool {
+    [rect.left, rect.top, rect.right, rect.bottom]
+        .into_iter()
+        .all(|edge| i16::try_from(edge).is_ok())
+}
+
 fn native_paint_info(paint: &PAINTSTRUCT) -> Win16NativePaintInfo {
     Win16NativePaintInfo {
         erase: paint.fErase,
@@ -78,6 +86,18 @@ pub(super) fn begin_paint(
     // HWND. Do not publish its borrowed HDC under a retired owner, or issue
     // EndPaint against a different window that reused the same HWND bits.
     if super::win16_window_identity::resolve_user_window(state, window) != Some(hwnd) {
+        return Ok(None);
+    }
+    // WINDOWS.H 3.1: PAINTSTRUCT.rcPaint is a RECT of signed 16-bit ints.
+    // BeginPaint fails with a null HDC. End the native session on the window
+    // that owns this DC and publish nothing, so the guest buffer stays intact.
+    if !signed_paint_rect(&paint.rcPaint) {
+        // SAFETY: This is the exact PAINTSTRUCT produced by BeginPaint, the
+        // HWND still resolves to that window, and cleanup runs immediately
+        // on the same owning worker thread.
+        unsafe {
+            EndPaint(hwnd, &paint);
+        }
         return Ok(None);
     }
 

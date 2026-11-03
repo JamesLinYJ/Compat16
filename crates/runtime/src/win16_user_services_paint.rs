@@ -266,23 +266,26 @@ impl Win16State {
 
 }
 
+/// Builds one guest `PAINTSTRUCT`. `rcPaint` is four signed 16-bit ints
+/// (`WINDOWS.H` 3.1). An edge outside that range is `None`: BeginPaint must
+/// return a null HDC and leave the guest buffer unchanged.
 pub(in crate::win16_runtime) fn paintstruct_from_host(
     handle: u16,
     paint: Win16HostPaintInfo,
-) -> PaintStruct16 {
-    PaintStruct16 {
+) -> Option<PaintStruct16> {
+    Some(PaintStruct16 {
         hdc: handle,
         f_erase: if paint.erase { 1 } else { 0 },
         rc_paint: Rect16 {
-            left: guest_coordinate(paint.rect.left),
-            top: guest_coordinate(paint.rect.top),
-            right: guest_coordinate(paint.rect.right),
-            bottom: guest_coordinate(paint.rect.bottom),
+            left: i16::try_from(paint.rect.left).ok()?,
+            top: i16::try_from(paint.rect.top).ok()?,
+            right: i16::try_from(paint.rect.right).ok()?,
+            bottom: i16::try_from(paint.rect.bottom).ok()?,
         },
         f_restore: if paint.restore { 1 } else { 0 },
         f_inc_update: if paint.inc_update { 1 } else { 0 },
         rgb_reserved: paint.reserved,
-    }
+    })
 }
 
 /// Host desktop/window coordinates can exceed the signed Win16 coordinate
