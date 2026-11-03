@@ -108,13 +108,12 @@ fn target(
             if length == 0 || length >= directory.len() {
                 return Err(invalid(DosErrorCode::PathNotFound));
             }
-            let mut absolute = PathBuf::from(std::ffi::OsString::from_wide(&directory[..length]));
-            absolute.push(name);
+            let absolute = PathBuf::from(std::ffi::OsString::from_wide(&directory[..length]));
             let relative = absolute
                 .strip_prefix(&filesystem.canonical_root)
                 .map_err(|_| invalid(DosErrorCode::UnknownUnit))?;
-            // Only the guest filename is an alias; Windows directory components
-            // are canonical host identities and must not be reinterpreted.
+            // The Windows directory is a canonical host identity, while each
+            // appended component comes from the guest and must resolve aliases.
             let Some(canonical) = filesystem.canonical_win16_path(filesystem.drive(), relative)?
             else {
                 return Err(invalid(DosErrorCode::InvalidData));
@@ -122,17 +121,26 @@ fn target(
             let mut guest = runtime::Win16GuestPath {
                 drive: canonical.drive,
                 namespace: runtime::Win16PathNamespace::DosVirtual,
-                components: canonical
-                    .components
-                    .into_iter()
-                    .map(|text| runtime::Win16PathComponent {
-                        text,
-                        source: runtime::Win16PathComponentSource::CanonicalCwd,
-                    })
-                    .collect(),
+                components: canonical.components.into_iter().map(|text| runtime::Win16PathComponent {
+                    text,
+                    source: runtime::Win16PathComponentSource::CanonicalCwd,
+                }).collect(),
             };
-            if let Some(last) = guest.components.last_mut() {
-                last.source = runtime::Win16PathComponentSource::GuestInput;
+            // Normalize relative input without allowing escape above the
+            // capability root. Preserve guest identity for alias lookup.
+            for part in name.split(['\\', '/']) {
+                match part {
+                    "" | "." => {}
+                    ".." => {
+                        if guest.components.pop().is_none() {
+                            return Err(invalid(DosErrorCode::AccessDenied));
+                        }
+                    }
+                    text => guest.components.push(runtime::Win16PathComponent {
+                        text: text.to_owned(),
+                        source: runtime::Win16PathComponentSource::GuestInput,
+                    }),
+                }
             }
             super::win16_file_paths::resolve(filesystem, &guest, true, write)
         }
