@@ -276,12 +276,21 @@ impl Win16State {
             )) => {
                 let pointer =
                     self.checked_guest_range(rect, Rect16::SIZE, Access::Write, memory)?;
-                let mut rect = self.read_rect(memory, pointer)?;
-                rect.left = rect.left.wrapping_add(x);
-                rect.right = rect.right.wrapping_add(x);
-                rect.top = rect.top.wrapping_add(y);
-                rect.bottom = rect.bottom.wrapping_add(y);
-                self.write_rect(memory, pointer, rect)?;
+                let rect = self.read_rect(memory, pointer)?;
+                // Windows 3.1 Programmer's Reference, Volume 2: OffsetRect is
+                // void. Each coordinate must stay within a signed int. A sum
+                // outside that range leaves the guest rectangle unchanged.
+                let left = i16::try_from(i32::from(rect.left) + i32::from(x));
+                let right = i16::try_from(i32::from(rect.right) + i32::from(x));
+                let top = i16::try_from(i32::from(rect.top) + i32::from(y));
+                let bottom = i16::try_from(i32::from(rect.bottom) + i32::from(y));
+                if let (Ok(left), Ok(right), Ok(top), Ok(bottom)) = (left, right, top, bottom) {
+                    self.write_rect(
+                        memory,
+                        pointer,
+                        Rect16 { left, top, right, bottom },
+                    )?;
+                }
                 self.complete_return(
                     registers,
                     return_to.0,
