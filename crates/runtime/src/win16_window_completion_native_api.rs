@@ -718,23 +718,33 @@ pub(super) fn finish_scroll_bar(
                 let maximum_range = continuation.maximum_output.as_ref().ok_or_else(||
                     RuntimeError::new(Kind::InternalInvariant,
                         "GetScrollRange lost its captured maximum output"))?;
-                let mut writes = Vec::new();
-                writes.try_reserve_exact(2).map_err(|error| RuntimeError::with_source(
-                    Kind::ResourceExhausted, "retain GetScrollRange output transaction", error))?;
-                writes.push((minimum_range.clone(), (*minimum as i16).to_le_bytes().to_vec()));
-                writes.push((maximum_range.clone(), (*maximum as i16).to_le_bytes().to_vec()));
-                match super::super::guest_ranges::commit_guest_writes_with_selectors(
-                    access.selectors, memory, writes,
-                ) {
-                    Ok(()) => *phase = GuestOutputProjectionPhase::OutputCommitted,
-                    Err(error) if matches!(error.kind(), Kind::GuestFault | Kind::InvalidInput) => {
-                        *phase = GuestOutputProjectionPhase::OutputCommitted;
-                        value.replace((0, continuation.return_kind));
-                        return Ok((0, continuation.return_kind));
+                // Windows 3.1 Programmer's Reference, Volume 2: GetScrollRange
+                // is void and copies signed ints. A limit outside that int is
+                // not stored, and both guest words stay as they were.
+                match (i16::try_from(*minimum), i16::try_from(*maximum)) {
+                    (Ok(minimum), Ok(maximum)) => {
+                        let mut writes = Vec::new();
+                        writes.try_reserve_exact(2).map_err(|error| RuntimeError::with_source(
+                            Kind::ResourceExhausted,
+                            "retain GetScrollRange output transaction", error))?;
+                        writes.push((minimum_range.clone(), minimum.to_le_bytes().to_vec()));
+                        writes.push((maximum_range.clone(), maximum.to_le_bytes().to_vec()));
+                        match super::super::guest_ranges::commit_guest_writes_with_selectors(
+                            access.selectors, memory, writes,
+                        ) {
+                            Ok(()) => *phase = GuestOutputProjectionPhase::OutputCommitted,
+                            Err(error) if matches!(error.kind(),
+                                Kind::GuestFault | Kind::InvalidInput) => {
+                                *phase = GuestOutputProjectionPhase::OutputCommitted;
+                                value.replace((0, continuation.return_kind));
+                                return Ok((0, continuation.return_kind));
+                            }
+                            Err(error) => return Err(error),
+                        }
+                        0
                     }
-                    Err(error) => return Err(error),
+                    _ => 0,
                 }
-                0
             }
             (Request::Range, ResultValue::Range(None))
             | (Request::Void, ResultValue::Void)
