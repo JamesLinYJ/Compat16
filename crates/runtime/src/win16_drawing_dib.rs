@@ -54,10 +54,21 @@ pub(super) fn stretch_dibits(
         usage: u32::from(usage),
         rop,
     })? {
-        HostResult::Dibits(lines) => Ok(lines as u16 as u32),
+        HostResult::Dibits(lines) => Ok(guest_stretch_lines(lines)),
         _ => Err(RuntimeError::new(
             Kind::InternalInvariant,
             "Win16 host drawing returned the wrong result for StretchDIBits",
         )),
+    }
+}
+
+/// Win16 `StretchDIBits` returns a signed int. Mirrored copies and
+/// `GDI_ERROR` (-1) fit in that int and keep their bit pattern. A host count
+/// outside the int, such as 32768 scan lines, is failure (0).
+/// <https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-stretchdibits>
+fn guest_stretch_lines(lines: i32) -> u32 {
+    match i16::try_from(lines) {
+        Ok(lines) => u32::from(lines as u16),
+        Err(_) => 0,
     }
 }
