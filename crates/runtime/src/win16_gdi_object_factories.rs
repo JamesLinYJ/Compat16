@@ -630,6 +630,23 @@ fn bitmap_bits_length(
     let word_aligned_row_bytes = row_bits.checked_add(15)?.checked_div(16)?.checked_mul(2)?;
     let row_bytes = match declared_width_bytes {
         Some(value) if value < 0 => return None,
+        Some(value) if width > 0 && height > 0 => {
+            // Win16 BITMAP.bmWidthBytes is a signed int and must be even. It is
+            // the word-aligned width of one scan, ((bmWidth * bmBitsPixel + 15)
+            // / 16) * 2. An 8-bit bitmap at the maximum width has a 32768-byte
+            // scan. That does not fit, and a smaller declared stride is not
+            // that scan. CreateBitmapIndirect returns a null handle and does
+            // not read bmBits. Zero width or height still reaches the host,
+            // which returns the documented 1-by-1 monochrome bitmap.
+            // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmap
+            // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createbitmapindirect
+            let scan_bits = i64::from(width).checked_mul(i64::from(bits_per_pixel))?;
+            let scan_bytes = scan_bits.checked_add(15)?.checked_div(16)?.checked_mul(2)?;
+            if value % 2 != 0 || i64::from(value) < scan_bytes {
+                return None;
+            }
+            word_aligned_row_bytes.max(i64::from(value))
+        }
         Some(value) => word_aligned_row_bytes.max(i64::from(value)),
         None => word_aligned_row_bytes,
     };
