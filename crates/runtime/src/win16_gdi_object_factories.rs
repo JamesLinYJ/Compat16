@@ -77,6 +77,12 @@ impl Win16State {
         face_name: Option<Vec<u8>>,
         host: &mut impl RuntimeHost,
     ) -> Result<u16, RuntimeError> {
+        // Programmer's Reference, Volume 2: the face name must not exceed
+        // LF_FACESIZE - 1. That field is 32 bytes, so a longer guest name
+        // returns a null handle.
+        if face_name.as_ref().is_some_and(|name| name.len() > 31) {
+            return Ok(0);
+        }
         self.create_object(
             Operation::CreateFont {
                 height,
