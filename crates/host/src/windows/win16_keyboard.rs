@@ -165,7 +165,24 @@ pub(super) fn oem_key_scan(codec: GuestTextCodec, value: u16) -> Result<u32, Run
     let shift_state = key_and_shift >> 8;
     // OemKeyScan does not translate characters requiring CTRL+ALT, even when
     // VkKeyScanExW can describe that combination for a layout such as French.
+    // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-oemkeyscan
     if shift_state & 0x0006 == 0x0006 {
+        return Ok(u32::MAX);
+    }
+
+    let virtual_key = u32::from(key_and_shift as u8);
+    // SAFETY: Both arguments are scalars and `layout` is the HKL returned by
+    // GetKeyboardLayout on this worker thread. No guest address is passed.
+    let unshifted = unsafe { MapVirtualKeyExW(virtual_key, MAPVK_VK_TO_CHAR, layout) };
+    // The same OemKeyScan contract refuses dead keys. MapVirtualKeyExW sets
+    // bit 31 when the key's unshifted character is a dead key. VkKeyScan still
+    // returns that key, so an unshifted match is not a single typed character.
+    // A shifted character is a different keystroke. VK_TO_CHAR does not
+    // describe it, and ToUnicodeEx would change this thread's dead-key state.
+    if shift_state & 0x0001 == 0
+        && unshifted & 0x8000_0000 != 0
+        && unshifted as u16 == character
+    {
         return Ok(u32::MAX);
     }
 
@@ -173,8 +190,7 @@ pub(super) fn oem_key_scan(codec: GuestTextCodec, value: u16) -> Result<u32, Run
     // high WORD exactly as the keyboard layout's shift-state byte.
     // SAFETY: Both arguments are scalar values and `layout` is a native HKL
     // returned by GetKeyboardLayout on this same worker thread.
-    let scan_code =
-        unsafe { MapVirtualKeyExW(u32::from(key_and_shift as u8), MAPVK_VK_TO_VSC, layout) };
+    let scan_code = unsafe { MapVirtualKeyExW(virtual_key, MAPVK_VK_TO_VSC, layout) };
     if scan_code == 0 {
         return Ok(u32::MAX);
     }
