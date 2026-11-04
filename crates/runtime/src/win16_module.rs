@@ -65,15 +65,17 @@ impl Win16State {
             );
             return Ok(ProcedureLookup::Missing);
         }
-        let name = {
+        let (name, builtin) = {
             let record = &self.modules.records[&handle];
-            record.name.clone()
+            (record.name.clone(), record.builtin)
         };
         let lookup = match procedure {
             Win16ProcReference::Ordinal(ordinal) => win16_abi::ExportLookupTarget::Ordinal(*ordinal),
             Win16ProcReference::Name(name) => win16_abi::ExportLookupTarget::Name(name),
         };
-        if win16_abi::exports::lookup_export_metadata(&name, lookup)
+        // Catalog data classifications apply only to builtin modules. An NE
+        // module with the same name must resolve against its own entry table.
+        if builtin && win16_abi::exports::lookup_export_metadata(&name, lookup)
             .is_some_and(|declaration| match win16_abi::exports::lookup_data_export_source(declaration) {
                 // Learn GetProcAddress returns the address of an exported variable.
                 Some(win16_abi::exports::Win16DataExportSource::VariableWords {
