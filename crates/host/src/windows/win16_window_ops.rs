@@ -77,7 +77,19 @@ pub(super) fn execute(
             // Read only. Access can fail (including WINSTA_READATTRIBUTES);
             // never substitute screen bounds or alter the global clip region.
             // SAFETY: GetClipCursor writes into a caller-owned RECT.
-            get_clip_cursor_with(|rect| unsafe { GetClipCursor(rect) != 0 })
+            let read = get_clip_cursor_with(|rect| unsafe { GetClipCursor(rect) != 0 });
+            // Windows 3.1 Programmer's Reference, Volume 2: GetClipCursor is
+            // void and fills a RECT of signed ints. An edge outside that int
+            // is not stored. The call has no failure value, so the guest
+            // buffer stays unchanged.
+            match read {
+                ResultValue::Rect(rect) => ResultValue::Rect(rect.filter(|rect| {
+                    [rect.left, rect.top, rect.right, rect.bottom]
+                        .into_iter()
+                        .all(|edge| i16::try_from(edge).is_ok())
+                })),
+                other => other,
+            }
         }
         // SAFETY: SetCursorPos takes integer coordinates.
         Call::SetCursorPos { x, y } => {
