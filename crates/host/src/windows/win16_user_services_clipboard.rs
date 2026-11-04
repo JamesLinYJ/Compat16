@@ -4,7 +4,7 @@
 //! after SetClipboardData succeeds. GetClipboardData is copied while locked;
 //! neither handle nor pointer escapes this worker adapter.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use runtime::{
@@ -14,13 +14,14 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{GlobalFree, HWND};
 use windows_sys::Win32::System::DataExchange::{
-    ChangeClipboardChain, CloseClipboard, CountClipboardFormats, EmptyClipboard,
+    ChangeClipboardChain, CloseClipboard, EmptyClipboard,
     EnumClipboardFormats, GetClipboardData, GetClipboardOwner, GetClipboardSequenceNumber,
-    GetClipboardViewer, GetOpenClipboardWindow, GetPriorityClipboardFormat,
-    IsClipboardFormatAvailable, OpenClipboard, SetClipboardData, SetClipboardViewer,
+    GetUpdatedClipboardFormats,
+    GetClipboardViewer, GetOpenClipboardWindow, IsClipboardFormatAvailable, OpenClipboard,
+    SetClipboardData, SetClipboardViewer,
 };
 use windows_sys::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalSize, GlobalUnlock};
-use windows_sys::Win32::System::Ole::{CF_OEMTEXT, CF_TEXT, CF_UNICODETEXT};
+use windows_sys::Win32::System::Ole::{CF_LOCALE, CF_OEMTEXT, CF_TEXT, CF_UNICODETEXT};
 
 use super::win16_window_worker::{self as worker, WorkerState};
 
@@ -56,8 +57,14 @@ pub(super) fn execute(
         }
         // SAFETY: CloseClipboard closes the clipboard this thread opened.
         Call::Close => Result::Bool(unsafe { CloseClipboard() != 0 }),
-        // SAFETY: EmptyClipboard clears the clipboard this thread opened.
-        Call::Empty => Result::Bool(unsafe { EmptyClipboard() != 0 }),
+        Call::Empty => {
+            // SAFETY: EmptyClipboard clears the clipboard this thread opened.
+            let emptied = unsafe { EmptyClipboard() != 0 };
+            if emptied {
+                clear_guest_text_format();
+            }
+            Result::Bool(emptied)
+        }
         // SAFETY: `GetClipboardOwner` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         Call::Owner => Result::Window(token_for_native(state, unsafe { GetClipboardOwner() })?),
         Call::SetData { format, data } => {
@@ -71,20 +78,26 @@ pub(super) fn execute(
                 ClipboardData::Delayed => false,
                 ClipboardData::GdiObject(_) => false,
             };
+            if accepted {
+                if is_guest_legacy_text_format(format) {
+                    note_guest_text_format(format);
+                } else {
+                    note_clipboard_contents_changed();
+                }
+            }
             Result::SetData(accepted)
         }
-        Call::GetData { format } => Result::Data(get_global_data(ansi_codec, oem_codec, format)?),
-        Call::CountFormats => {
-            // SAFETY: `CountClipboardFormats` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-            Result::Count(unsafe { CountClipboardFormats() }.clamp(0, i32::from(u16::MAX)) as u16)
+        Call::GetData { format } => {
+            // CF_UNICODETEXT and CF_LOCALE are Win32 formats. A Win3.1 caller
+            // reads text through CF_TEXT or CF_OEMTEXT.
+            if format == CF_UNICODETEXT || format == CF_LOCALE {
+                Result::Data(None)
+            } else {
+                Result::Data(get_global_data(ansi_codec, oem_codec, format)?)
+            }
         }
-        Call::EnumFormats { previous } => {
-            // Enumeration reflects formats actually present on the native
-            // clipboard. The CF_TEXT/CF_OEMTEXT compatibility views below
-            // are lookup aliases to CF_UNICODETEXT, not synthetic enum items.
-            // SAFETY: EnumClipboardFormats takes a format integer and no pointers.
-            Result::Format(unsafe { EnumClipboardFormats(u32::from(previous)) } as u16)
-        }
+        Call::CountFormats => Result::Count(guest_format_count()),
+        Call::EnumFormats { previous } => Result::Format(next_guest_format(previous)?),
         Call::RegisterFormat { name } => Result::Format(
             super::super::win16_registered_names::register_clipboard_format(
                 ansi_codec,
@@ -107,48 +120,22 @@ pub(super) fn execute(
             })?;
             Result::FormatName { copied, bytes }
         }
-        // SAFETY: IsClipboardFormatAvailable takes a format integer and no pointers.
-        Call::IsFormatAvailable { format } => Result::Bool(unsafe {
-            IsClipboardFormatAvailable(native_clipboard_format(format)) != 0
-        }),
+        Call::IsFormatAvailable { format } => Result::Bool(guest_format_available(format)),
         Call::GetPriorityFormat { formats } => {
-            let count = i32::try_from(formats.len()).map_err(|error| {
-                RuntimeError::with_source(
-                    Kind::InvalidInput,
-                    "Win16 clipboard format priority list is too long",
-                    error,
-                )
-            })?;
-            let mut formats32 = Vec::new();
-            formats32
-                .try_reserve_exact(formats.len())
-                .map_err(|error| {
-                    RuntimeError::with_source(
-                        Kind::ResourceExhausted,
-                        "allocate Win16 clipboard priority list",
-                        error,
-                    )
-                })?;
-            formats32.extend(formats.iter().copied().map(native_clipboard_format));
-            let pointer = if formats32.is_empty() {
-                std::ptr::null()
+            // Programmer's Reference: the first listed format that is present,
+            // NULL when the clipboard is empty, and -1 when it holds data in
+            // none of the requested formats.
+            let value = if let Some(format) = formats
+                .into_iter()
+                .find(|format| guest_format_available(*format))
+            {
+                format as i16
+            } else if guest_format_count() == 0 {
+                0
             } else {
-                formats32.as_ptr()
+                -1
             };
-            // SAFETY: `GetPriorityClipboardFormat` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-            let native = unsafe { GetPriorityClipboardFormat(pointer, count) };
-            let guest = if native > 0 {
-                formats
-                    .iter()
-                    .zip(&formats32)
-                    .find_map(|(guest, native_format)| {
-                        (*native_format == native as u32).then_some(*guest)
-                    })
-                    .unwrap_or(native as u16)
-            } else {
-                native as u16
-            };
-            Result::PriorityFormat(guest as i16)
+            Result::PriorityFormat(value)
         }
         Call::SetViewer { viewer } => {
             let viewer = match viewer {
@@ -324,6 +311,243 @@ fn is_guest_legacy_text_format(format: u16) -> bool {
     format == CF_TEXT || format == CF_OEMTEXT
 }
 
+/// The Win16 text format this worker last placed, with the clipboard sequence
+/// observed after that placement. A later host change advances the sequence
+/// and the recorded format is no longer the placed Win3.1 format.
+#[derive(Clone, Copy)]
+struct GuestTextPlacement {
+    format: u16,
+    sequence: u32,
+}
+
+thread_local! {
+    static GUEST_TEXT_PLACEMENT: Cell<Option<GuestTextPlacement>> = Cell::new(None);
+}
+
+fn note_guest_text_format(format: u16) {
+    // SAFETY: GetClipboardSequenceNumber takes no pointers.
+    let sequence = unsafe { GetClipboardSequenceNumber() };
+    GUEST_TEXT_PLACEMENT.with(|slot| {
+        slot.set(Some(GuestTextPlacement { format, sequence }));
+    });
+}
+
+fn note_clipboard_contents_changed() {
+    // SAFETY: GetClipboardSequenceNumber takes no pointers.
+    let sequence = unsafe { GetClipboardSequenceNumber() };
+    GUEST_TEXT_PLACEMENT.with(|slot| {
+        if let Some(mut placed) = slot.get() {
+            placed.sequence = sequence;
+            slot.set(Some(placed));
+        }
+    });
+}
+
+fn clear_guest_text_format() {
+    GUEST_TEXT_PLACEMENT.with(|slot| slot.set(None));
+}
+
+fn placed_guest_text_format() -> Option<u16> {
+    let placed = GUEST_TEXT_PLACEMENT.with(|slot| slot.get())?;
+    // SAFETY: GetClipboardSequenceNumber takes no pointers.
+    let sequence = unsafe { GetClipboardSequenceNumber() };
+    (sequence == placed.sequence && is_guest_legacy_text_format(placed.format))
+        .then_some(placed.format)
+}
+
+fn native_format_available(format: u16) -> bool {
+    // SAFETY: IsClipboardFormatAvailable takes a format integer and no pointers.
+    unsafe { IsClipboardFormatAvailable(u32::from(format)) != 0 }
+}
+
+/// Win3.1 synthesizes `CF_TEXT` and `CF_OEMTEXT` from each other. Win32 also
+/// synthesizes `CF_UNICODETEXT` and adds `CF_LOCALE` when the clipboard
+/// closes. Those two are not Windows 3.1 formats (`WINDOWS.H` stops the
+/// predefined list at `CF_WAVE`).
+fn guest_format_available(format: u16) -> bool {
+    if is_guest_legacy_text_format(format) {
+        return native_format_available(CF_TEXT)
+            || native_format_available(CF_OEMTEXT)
+            || native_format_available(CF_UNICODETEXT);
+    }
+    if format == CF_UNICODETEXT || format == CF_LOCALE {
+        return false;
+    }
+    native_format_available(format)
+}
+
+// CountClipboardFormats may be called without opening the clipboard, whereas
+// EnumClipboardFormats requires it to be open. GetUpdatedClipboardFormats
+// supplies a snapshot without changing clipboard ownership.
+fn guest_format_count() -> u16 {
+    const MAX_SNAPSHOT_FORMATS: u32 = 1_000_000;
+    const SNAPSHOT_ATTEMPTS: usize = 4;
+    use windows_sys::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER;
+
+    for _ in 0..SNAPSHOT_ATTEMPTS {
+        let mut required = 0u32;
+        // SAFETY: A null buffer and zero capacity request only the format count.
+        let ok = unsafe {
+            GetUpdatedClipboardFormats(std::ptr::null_mut(), 0, &mut required)
+        } != 0;
+        let error = crate::windows::win32_safe::last_error();
+        if !ok && error != ERROR_INSUFFICIENT_BUFFER {
+            return 0;
+        }
+        if required == 0 {
+            return 0;
+        }
+        // Avoid uncontrolled allocation from an externally owned clipboard.
+        if required > MAX_SNAPSHOT_FORMATS {
+            return 0;
+        }
+        let mut formats = Vec::<u32>::new();
+        if formats.try_reserve_exact(required as usize).is_err() {
+            return 0;
+        }
+        formats.resize(required as usize, 0);
+        let mut returned = 0u32;
+        // SAFETY: The vector owns required initialized UINT slots; returned is
+        // a writable local. Neither pointer escapes the synchronous call.
+        let ok = unsafe {
+            GetUpdatedClipboardFormats(formats.as_mut_ptr(), required, &mut returned)
+        } != 0;
+        if !ok {
+            if crate::windows::win32_safe::last_error() == ERROR_INSUFFICIENT_BUFFER {
+                continue;
+            }
+            return 0;
+        }
+        if returned > required {
+            return 0;
+        }
+        let mut count = 0u32;
+        let mut saw_text = false;
+        for &raw in &formats[..returned as usize] {
+            let Ok(format) = u16::try_from(raw) else { continue; };
+            if format == CF_LOCALE {
+                continue;
+            }
+            if is_guest_legacy_text_format(format) || format == CF_UNICODETEXT {
+                if !saw_text {
+                    count = count.saturating_add(2);
+                    saw_text = true;
+                }
+            } else {
+                count = count.saturating_add(1);
+            }
+        }
+        return count.min(u32::from(u16::MAX)) as u16;
+    }
+    // A rapidly changing clipboard never yielded a complete snapshot.
+    0
+}
+
+fn next_guest_format(previous: u16) -> Result<u16, RuntimeError> {
+    let formats = win31_clipboard_formats()?;
+    if previous == 0 {
+        return Ok(formats.first().copied().unwrap_or(0));
+    }
+    Ok(formats
+        .iter()
+        .position(|format| *format == previous)
+        .and_then(|index| formats.get(index + 1).copied())
+        .unwrap_or(0))
+}
+
+fn win31_clipboard_formats() -> Result<Vec<u16>, RuntimeError> {
+    const MAX_SNAPSHOT_FORMATS: usize = 1_000_000;
+    let mut native = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let mut previous = 0u32;
+    loop {
+        // SAFETY: EnumClipboardFormats takes a format id and no guest address.
+        // It fails with zero when this thread does not have the clipboard open.
+        let next = unsafe { EnumClipboardFormats(previous) };
+        if next == 0 || seen.contains(&next) {
+            break;
+        }
+        if seen.len() >= MAX_SNAPSHOT_FORMATS {
+            return Err(RuntimeError::new(Kind::ResourceExhausted,
+                "native clipboard format list exceeds the snapshot limit"));
+        }
+        seen.try_reserve(1).map_err(|error| RuntimeError::with_source(
+            Kind::ResourceExhausted, "track native clipboard format identifiers", error))?;
+        seen.insert(next);
+        let Ok(id) = u16::try_from(next) else {
+            previous = next;
+            continue;
+        };
+        native.try_reserve(1).map_err(|error| RuntimeError::with_source(
+            Kind::ResourceExhausted, "enumerate native clipboard formats", error))?;
+        native.push(id);
+        previous = next;
+    }
+    project_win31_formats(&native, placed_guest_text_format())
+}
+
+/// The format placed by the guest comes first. Win32 CF_UNICODETEXT is host
+/// storage and is projected to the two guest legacy text views.
+fn project_win31_formats(
+    native: &[u16],
+    placed_text: Option<u16>,
+) -> Result<Vec<u16>, RuntimeError> {
+    let mut guest = Vec::new();
+    guest.try_reserve(native.len().saturating_add(2)).map_err(|error|
+        RuntimeError::with_source(Kind::ResourceExhausted,
+            "project Win16 clipboard formats", error))?;
+    let placed_text = placed_text.filter(|format| is_guest_legacy_text_format(*format));
+    let mut emitted_text = false;
+    let mut emitted_oem = false;
+    let mut saw_unicode = false;
+    for &format in native {
+        if format == CF_LOCALE {
+            continue;
+        }
+        if format == CF_UNICODETEXT {
+            saw_unicode = true;
+            // Only map Unicode in place when it represents text placed by
+            // this guest. External Unicode cannot by itself establish where a
+            // synthesized legacy format belongs in the native priority order.
+            if !emitted_text && !emitted_oem {
+                if let Some(primary) = placed_text {
+                    guest.push(primary);
+                    emitted_text = primary == CF_TEXT;
+                    emitted_oem = primary == CF_OEMTEXT;
+                }
+            }
+            continue;
+        }
+        if format == CF_TEXT {
+            if !emitted_text {
+                guest.push(format);
+                emitted_text = true;
+            }
+            continue;
+        }
+        if format == CF_OEMTEXT {
+            if !emitted_oem {
+                guest.push(format);
+                emitted_oem = true;
+            }
+            continue;
+        }
+        guest.push(format);
+    }
+    // Preserve all representable native formats in order. Any legacy text
+    // view absent from the native list is added after those formats.
+    if saw_unicode && !emitted_text && !emitted_oem {
+        guest.push(CF_TEXT);
+        emitted_text = true;
+    }
+    if emitted_text && !emitted_oem {
+        guest.push(CF_OEMTEXT);
+    } else if emitted_oem && !emitted_text {
+        guest.push(CF_TEXT);
+    }
+    Ok(guest)
+}
+
 fn clipboard_text_codec(
     format: u16,
     ansi_codec: super::super::guest_text::GuestTextCodec,
@@ -337,8 +561,8 @@ fn clipboard_text_codec(
 }
 
 // Win16 CF_TEXT and CF_OEMTEXT are guest-side views over one native Unicode
-// text block. Read/write/availability queries translate either ID; format
-// enumeration above intentionally preserves the native IDs that Windows owns.
+// text block. Read and write translate either ID. Enumeration, counts, and
+// availability above present only the two Win3.1 formats.
 fn native_clipboard_format(format: u16) -> u32 {
     if is_guest_legacy_text_format(format) {
         u32::from(CF_UNICODETEXT)
