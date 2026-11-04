@@ -216,12 +216,6 @@ impl Win16State {
                 })?;
                 match result {
                     HostResult::DrawText { height, rect } => {
-                        if height < 0 {
-                            return Err(RuntimeError::new(
-                                Kind::InternalInvariant,
-                                "native DrawText returned a negative height",
-                            ));
-                        }
                         if let Some(pointer) = output {
                             match rect {
                                 Some(rect) => self.write_user_rect(memory, pointer, rect)?,
@@ -234,7 +228,7 @@ impl Win16State {
                                 }
                             }
                         }
-                        Ok(u32::from(height.min(i32::from(i16::MAX)) as u16))
+                        Ok(u32::from(height.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16 as u16))
                     }
                     _ => Err(wrong_result("DrawText")),
                 }
