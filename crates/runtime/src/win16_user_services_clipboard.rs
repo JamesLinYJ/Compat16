@@ -583,13 +583,16 @@ fn is_clipboard_text_format(format: u16) -> bool {
 
 fn clipboard_payload_matches(format: u16, stored: &[u8], retrieved: &[u8]) -> bool {
     if is_clipboard_text_format(format) {
-        nul_terminated_prefix(stored) == nul_terminated_prefix(retrieved)
+        match (nul_terminated_prefix(stored), nul_terminated_prefix(retrieved)) {
+            (Some(stored), Some(retrieved)) => stored == retrieved,
+            _ => false,
+        }
     } else {
         stored == retrieved
     }
 }
 
-fn nul_terminated_prefix(bytes: &[u8]) -> &[u8] {
-    let end = bytes.iter().position(|byte| *byte == 0).unwrap_or(bytes.len());
-    &bytes[..end]
+fn nul_terminated_prefix(bytes: &[u8]) -> Option<&[u8]> {
+    let end = bytes.iter().position(|byte| *byte == 0)?;
+    Some(&bytes[..end])
 }
