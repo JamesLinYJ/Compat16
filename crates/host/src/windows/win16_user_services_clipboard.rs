@@ -496,20 +496,25 @@ fn project_win31_formats(
     guest.try_reserve(native.len().saturating_add(2)).map_err(|error|
         RuntimeError::with_source(Kind::ResourceExhausted,
             "project Win16 clipboard formats", error))?;
-    let (primary, _) = win31_text_pair(native, placed_text);
+    let placed_text = placed_text.filter(|format| is_guest_legacy_text_format(*format));
     let mut emitted_text = false;
     let mut emitted_oem = false;
+    let mut saw_unicode = false;
     for &format in native {
         if format == CF_LOCALE {
             continue;
         }
         if format == CF_UNICODETEXT {
-            // Represent native Unicode by one guest text view at this position.
-            // Preserve later guest-representable formats in native order.
+            saw_unicode = true;
+            // Only map Unicode in place when it represents text placed by
+            // this guest. External Unicode cannot by itself establish where a
+            // synthesized legacy format belongs in the native priority order.
             if !emitted_text && !emitted_oem {
-                guest.push(primary);
-                emitted_text = primary == CF_TEXT;
-                emitted_oem = primary == CF_OEMTEXT;
+                if let Some(primary) = placed_text {
+                    guest.push(primary);
+                    emitted_text = primary == CF_TEXT;
+                    emitted_oem = primary == CF_OEMTEXT;
+                }
             }
             continue;
         }
@@ -529,31 +534,18 @@ fn project_win31_formats(
         }
         guest.push(format);
     }
-    // Add only a missing conversion view after the native enumeration,
-    // so intervening formats retain their relative priority.
+    // Preserve all representable native formats in order. Any legacy text
+    // view absent from the native list is added after those formats.
+    if saw_unicode && !emitted_text && !emitted_oem {
+        guest.push(CF_TEXT);
+        emitted_text = true;
+    }
     if emitted_text && !emitted_oem {
         guest.push(CF_OEMTEXT);
     } else if emitted_oem && !emitted_text {
         guest.push(CF_TEXT);
     }
     Ok(guest)
-}
-
-fn win31_text_pair(native: &[u16], placed_text: Option<u16>) -> (u16, u16) {
-    let primary = placed_text
-        .filter(|format| is_guest_legacy_text_format(*format))
-        .or_else(|| {
-            native
-                .iter()
-                .copied()
-                .find(|format| is_guest_legacy_text_format(*format))
-        })
-        .unwrap_or(CF_TEXT);
-    if primary == CF_OEMTEXT {
-        (CF_OEMTEXT, CF_TEXT)
-    } else {
-        (CF_TEXT, CF_OEMTEXT)
-    }
 }
 
 fn clipboard_text_codec(
