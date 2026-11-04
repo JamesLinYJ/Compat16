@@ -258,9 +258,37 @@ fn finish_user_control(
             }
             Ok(u32::from(rect.is_some()))
         }
+        (Some(Output::MappedDialogRect { range }), ResultValue::Rect(rect)) => {
+            if range.length() != win16_abi::Rect16::SIZE {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "MapDialogRect result lost its exact eight-byte guest range"));
+            }
+            // Windows 3.1 Programmer's Reference, Volume 2: MapDialogRect is
+            // void and replaces the RECT ints in place. An edge outside that
+            // signed int is not stored. The guest buffer stays unchanged.
+            let Some(rect16) = rect.as_ref().and_then(signed_mapped_dialog_rect) else {
+                return Ok(0);
+            };
+            if owner.phase == Phase::Ready {
+                super::super::guest_ranges::commit_guest_output_with_selectors(
+                    access.selectors, memory, range, &rect16.encode(),
+                )?;
+                owner.phase = Phase::GuestOutputCommitted;
+            }
+            Ok(1)
+        }
         _ => Err(RuntimeError::new(Kind::InternalInvariant,
             "dialog-control native result does not match its captured USER output contract")),
     }
+}
+
+fn signed_mapped_dialog_rect(rect: &crate::Win16HostRect) -> Option<win16_abi::Rect16> {
+    Some(win16_abi::Rect16 {
+        left: i16::try_from(rect.left).ok()?,
+        top: i16::try_from(rect.top).ok()?,
+        right: i16::try_from(rect.right).ok()?,
+        bottom: i16::try_from(rect.bottom).ok()?,
+    })
 }
 
 fn finish_user_default_procedure(
