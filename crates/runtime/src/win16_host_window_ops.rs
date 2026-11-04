@@ -255,6 +255,10 @@ pub(crate) enum Win16WindowCallOutput {
         guest_window: u16,
     },
     Point(crate::win16_runtime::guest_ranges::GuestOutputRange),
+    /// ClientToScreen and ScreenToClient. A host coordinate outside the
+    /// signed Win16 int is not written. Both calls are void in the
+    /// Windows 3.1 Programmer's Reference, Volume 2.
+    ConvertedPoint(crate::win16_runtime::guest_ranges::GuestOutputRange),
     Points { range: crate::win16_runtime::guest_ranges::GuestOutputRange, count: u16 },
     Placement(crate::win16_runtime::guest_ranges::GuestOutputRange),
     ClassName { range: crate::win16_runtime::guest_ranges::GuestOutputRange, capacity: u16 },
