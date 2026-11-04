@@ -154,9 +154,22 @@ fn mode_value(result: HostResult, name: &'static str) -> Result<u32, RuntimeErro
 
 fn point_value(result: HostResult, name: &'static str) -> Result<u32, RuntimeError> {
     match result {
+        // Windows 3.1 `WINDOWS.H` declares `DWORD GetDCOrg(HDC)`. Volume 2
+        // puts the final translation origin in that DWORD: x in the low word
+        // and y in the high word. `POINT` is two signed ints, and `MAKEPOINT`
+        // reads them back. A coordinate outside that int cannot be returned,
+        // so the call fails with 0. It does not write guest memory.
+        HostResult::Point { x, y } if name == "GetDCOrg" => Ok(dc_org_dword(x, y)),
         HostResult::Point { x, y } => Ok(pack_words(x, y)),
         _ => Err(wrong_result(name)),
     }
+}
+
+fn dc_org_dword(x: i32, y: i32) -> u32 {
+    let (Ok(x), Ok(y)) = (i16::try_from(x), i16::try_from(y)) else {
+        return 0;
+    };
+    pack_words(i32::from(x), i32::from(y))
 }
 
 fn point_bytes(count: i16) -> Result<usize, RuntimeError> {
