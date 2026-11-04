@@ -33,8 +33,9 @@ pub(super) enum ExternalApplicationState {
 #[derive(Clone, Debug)]
 pub(super) struct ExternalApplicationRecord {
     pub(super) state: ExternalApplicationState,
-    /// LoadModule owns the exact resolved filename used for its child image.
-    /// A shell activation alone does not establish such module metadata.
+    /// Resolved guest ANSI path of the executable. LoadModule stores the
+    /// image path it already resolved. WinExec stores the prepared path when
+    /// that path can be represented in the guest code page.
     pub(super) program_path: Option<Vec<u8>>,
     /// Unbacked descriptors reserve a unique WORD identity above Shell's
     /// error range. They carry no guest RAM and cannot be executed as code.

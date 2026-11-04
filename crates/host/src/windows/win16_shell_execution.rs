@@ -252,6 +252,7 @@ fn win_exec(
             }));
         }
     };
+    let program_path = prepared.guest_module_path.clone();
     let token = {
         let source = Arc::clone(&state.borrow().identity_source);
         Win16HostProcess(allocate_shared_identity(&source)?)
@@ -289,6 +290,7 @@ fn win_exec(
                 lease.handle = Some(handle);
                 Ok(Ok(Win16HostShellActivation::ProcessStarted {
                     process: token,
+                    program_path: program_path.clone(),
                 }))
             }
             Ok(Err(failure)) => {
@@ -347,7 +349,9 @@ fn win_exec(
     if created == 0 {
         let error = crate::windows::win32_safe::last_error();
         if error == ERROR_ELEVATION_REQUIRED && prepared.native_environment.is_none() {
-            let result = shell_execute_for_elevation(state, token, command, &cwd, show);
+            let result = shell_execute_for_elevation(
+                state, token, command, &cwd, show, program_path.clone(),
+            );
             if !matches!(&result, Ok(Ok(_))) {
                 retire_process_reservation(state, token);
             }
@@ -381,6 +385,7 @@ fn win_exec(
     lease.handle = Some(owned);
     Ok(Ok(Win16HostShellActivation::ProcessStarted {
         process: token,
+        program_path,
     }))
 }
 
@@ -430,6 +435,7 @@ fn shell_execute_for_elevation(
     command: &[u16],
     cwd: &[u16],
     show: u16,
+    program_path: Option<Vec<u8>>,
 ) -> Result<Result<Win16HostShellActivation, Win16HostWinExecFailure>, RuntimeError> {
     let Some((file, parameters)) = split_win_exec_command_line(command) else {
         return Ok(Err(Win16HostWinExecFailure {
@@ -484,7 +490,9 @@ fn shell_execute_for_elevation(
     if called && shell_status > 32 {
         if info.hProcess.is_null() {
             retire_process_reservation(state, token);
-            return Ok(Ok(Win16HostShellActivation::NativeActivationReceipt));
+            return Ok(Ok(Win16HostShellActivation::NativeActivationReceipt {
+                program_path,
+            }));
         }
         // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
         let handle = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
@@ -502,6 +510,7 @@ fn shell_execute_for_elevation(
         lease.handle = Some(handle);
         return Ok(Ok(Win16HostShellActivation::ProcessStarted {
             process: token,
+            program_path,
         }));
     }
     if !info.hProcess.is_null() {
@@ -705,12 +714,15 @@ fn execute_file(
             };
             lease.handle = Some(owned);
             return Ok(Win16HostShellExecutionResult::Execute(Ok(
-                Win16HostShellActivation::ProcessStarted { process: token },
+                Win16HostShellActivation::ProcessStarted {
+                    process: token,
+                    program_path: None,
+                },
             )));
         }
         retire_process_reservation(state, token);
         return Ok(Win16HostShellExecutionResult::Execute(Ok(
-            Win16HostShellActivation::NativeActivationReceipt,
+            Win16HostShellActivation::NativeActivationReceipt { program_path: None },
         )));
     }
 

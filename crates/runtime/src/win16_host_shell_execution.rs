@@ -65,13 +65,22 @@ pub enum Win16HostShellExecutionOperation {
     },
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16HostShellActivation {
     /// ShellExecuteEx supplied a process handle retained by the USER worker.
-    ProcessStarted { process: Win16HostProcess },
+    ProcessStarted {
+        process: Win16HostProcess,
+        /// Guest ANSI module path from WinExec preparation. ShellExecute
+        /// leaves this unset.
+        program_path: Option<Vec<u8>>,
+    },
     /// Windows confirmed activation but supplied no process handle (for
     /// example, a DDE or already-running application activation).
-    NativeActivationReceipt,
+    NativeActivationReceipt {
+        /// Guest ANSI module path from WinExec preparation. ShellExecute
+        /// leaves this unset.
+        program_path: Option<Vec<u8>>,
+    },
 }
 
 /// Native failures that SHELL maps to its documented HINSTANCE error range.
