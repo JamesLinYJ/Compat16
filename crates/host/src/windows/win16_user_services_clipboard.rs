@@ -419,21 +419,19 @@ fn next_guest_format(previous: u16) -> u16 {
 
 fn win31_clipboard_formats() -> Vec<u16> {
     let mut native = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
     let mut previous = 0u32;
-    while native.len() < 512 {
+    loop {
         // SAFETY: EnumClipboardFormats takes a format id and no guest address.
         // It fails with zero when this thread does not have the clipboard open.
         let next = unsafe { EnumClipboardFormats(previous) };
-        if next == 0 {
+        if next == 0 || !seen.insert(next) {
             break;
         }
         let Ok(id) = u16::try_from(next) else {
             previous = next;
             continue;
         };
-        if native.contains(&id) {
-            break;
-        }
         native.push(id);
         previous = next;
     }
