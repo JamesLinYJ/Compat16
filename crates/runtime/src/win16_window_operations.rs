@@ -24,6 +24,7 @@ mod defer;
 pub(super) use defer::DeferredWindowBatches;
 #[path = "win16_window_operations/caret.rs"]
 mod caret;
+pub(in crate::win16_runtime) use caret::caret_point_for_guest;
 #[path = "win16_window_operations/window.rs"]
 mod window;
 #[path = "win16_window_operations/mdi.rs"]
@@ -114,10 +115,12 @@ impl Win16State {
         return_kind: Win16ReturnKind,
         destroyed_guest_window: Option<u16>,
     ) -> Result<Option<u8>, RuntimeError> {
+        let caret_point = matches!(call, Win16WindowCall::GetCaretPos);
         let continuation = Win16WindowCallContinuation {
             return_kind,
             output,
             destroyed_guest_window,
+            caret_point,
         };
         self.begin_window_operation(
             registers,
