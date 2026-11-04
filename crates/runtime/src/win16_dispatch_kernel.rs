@@ -54,6 +54,13 @@ impl Win16State {
             Win16ApiRequest::KernelProfileSection(request) => {
                 super::profile_sections::dispatch(self, &request, memory, host)?
             }
+            // Programmer's Reference, Vol. 2: void DirectedYield(HTASK) sleeps
+            // the current task and awakens htask when that task has an event.
+            // Otherwise the scheduler searches the task queue. This runtime has
+            // one guest task, so that search is Yield. The handle is a guest word.
+            Win16ApiRequest::KernelTask(
+                win16_abi::Win16KernelTaskRequest::DirectedYield { .. },
+            ) => return self.begin_kernel_yield(registers, memory, host, return_to),
             request @ (Win16ApiRequest::KernelMemory(_)
             | Win16ApiRequest::KernelTask(_)
             | Win16ApiRequest::KernelModule(_)
@@ -589,8 +596,9 @@ impl Win16State {
                     file_handle,
                     buffer,
                     count,
+                    word_limited,
                 },
-            )) => self.read_file(file_handle, buffer, count, memory, host)?,
+            )) => self.read_file(file_handle, buffer, count, word_limited, memory, host)?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Files(
                 win16_abi::Win16KernelFilesRequest::SeekFile {
                     file_handle,
@@ -603,8 +611,11 @@ impl Win16State {
                     file_handle,
                     buffer,
                     count,
+                    segment_bounded,
                 },
-            )) => self.write_file(file_handle, buffer, count, memory, host)?,
+            )) => self.write_file_bounded(
+                file_handle, buffer, count, segment_bounded, memory, host,
+            )?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Files(
                 win16_abi::Win16KernelFilesRequest::HugeMemoryCopy {
                     destination,

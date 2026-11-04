@@ -20,7 +20,7 @@ fn public_reparent(
 
 #[test]
 #[ignore = "requires a Windows USER desktop; creates hidden native windows"]
-fn public_set_parent_preserves_native_desktop_null_and_style_conventions() {
+fn public_set_parent_returns_child_desktop_parent_and_preserves_styles() {
     run_on_worker(|state| {
         let windows = NativeWindows::new(state);
         let owner = windows.window(ptr::null_mut(), WS_POPUP);
@@ -55,11 +55,17 @@ fn public_set_parent_preserves_native_desktop_null_and_style_conventions() {
                 };
                 assert!(attempted);
                 assert_eq!(succeeded, !direct_previous.is_null() || direct_error == 0);
-                // Native return is authoritative: a desktop snapshot does not
-                // manufacture a desktop return when SetParent returns NULL.
+                // Volume 2 returns the previous parent. Win32 returns NULL with
+                // no error when a WS_CHILD was parented to the desktop.
                 let expected =
                     if succeeded && !direct_previous.is_null() && direct_previous == before {
                         Some(worker::token_for_native(state, direct_previous).unwrap())
+                    } else if succeeded
+                        && direct_previous.is_null()
+                        && before_style & WS_CHILD != 0
+                        && before == crate::windows::win32_safe::desktop_window()
+                    {
+                        Some(worker::token_for_native(state, before).unwrap())
                     } else {
                         None
                     };

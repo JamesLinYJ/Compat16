@@ -15,6 +15,7 @@ pub(super) fn decode(
                 file_handle: word_argument(arguments, 0)?,
                 buffer: dword_argument(arguments, 1)?,
                 count: i32::from(word_argument(arguments, 2)?),
+                word_limited: true,
             }),
         )),
         Win16ExportId::KernelHread => Ok(Win16ApiRequest::Kernel(
@@ -22,6 +23,7 @@ pub(super) fn decode(
                 file_handle: word_argument(arguments, 0)?,
                 buffer: dword_argument(arguments, 1)?,
                 count: dword_argument(arguments, 2)? as i32,
+                word_limited: false,
             }),
         )),
         Win16ExportId::KernelLwrite => Ok(Win16ApiRequest::Kernel(
@@ -29,6 +31,7 @@ pub(super) fn decode(
                 file_handle: word_argument(arguments, 0)?,
                 buffer: dword_argument(arguments, 1)?,
                 count: i32::from(word_argument(arguments, 2)?),
+                segment_bounded: true,
             }),
         )),
         Win16ExportId::KernelHwrite => Ok(Win16ApiRequest::Kernel(
@@ -36,6 +39,7 @@ pub(super) fn decode(
                 file_handle: word_argument(arguments, 0)?,
                 buffer: dword_argument(arguments, 1)?,
                 count: dword_argument(arguments, 2)? as i32,
+                segment_bounded: false,
             }),
         )),
         Win16ExportId::KernelHmemcpy => Ok(Win16ApiRequest::Kernel(

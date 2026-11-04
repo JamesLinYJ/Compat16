@@ -20,10 +20,12 @@ pub enum Win16KernelFilesRequest {
     /// Read file bytes into the raw guest far buffer. The decoder retains the
     /// signed count and never validates or dereferences the pointer; zero count
     /// leaves the pointer unused and negative counts are rejected by runtime.
+    /// `word_limited` is `_lread`: its count cannot exceed `0xFFFE`.
     ReadFile {
         file_handle: u16,
         buffer: u32,
         count: i32,
+        word_limited: bool,
     },
 
     SeekFile {
@@ -40,10 +42,13 @@ pub enum Win16KernelFilesRequest {
     /// Write file bytes from the raw guest far buffer. The decoder retains the
     /// signed count and never validates or dereferences the pointer; zero count
     /// leaves the pointer unused and negative counts are rejected by runtime.
+    /// `segment_bounded` is `_lwrite`: its buffer must stay in the starting
+    /// selector. `_hwrite` may cross selectors of one huge allocation.
     WriteFile {
         file_handle: u16,
         buffer: u32,
         count: i32,
+        segment_bounded: bool,
     },
 
     /// Copy the requested number of bytes between raw guest huge pointers.

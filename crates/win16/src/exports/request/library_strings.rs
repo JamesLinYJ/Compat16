@@ -12,8 +12,9 @@ pub enum Win16LibraryStringsRequest {
     },
 
     /// Convert bytes copied from a NUL-terminated guest OEM string to ANSI.
-    /// `source` excludes the terminator; the destination is retained as a raw
-    /// guest FAR pointer so the runtime can size and validate output including
-    /// its terminator before writing it.
+    /// `source` excludes the terminator and may cross a 64K selector inside
+    /// its owned allocation. The destination stays a guest address so the
+    /// runtime can validate the translated bytes, including the terminator,
+    /// before writing them.
     OemToAnsi { source: Vec<u8>, destination: u32 },
 }
