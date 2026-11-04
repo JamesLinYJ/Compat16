@@ -167,6 +167,16 @@ impl Win16State {
                         return_kind,
                     );
                 };
+                // Published positions are zero-based. -1 is an append sentinel
+                // only for InsertMenu, so it fails here as a missing item.
+                if position < 0 {
+                    return self.menu_immediate(
+                        registers,
+                        return_to,
+                        u32::from(u16::MAX),
+                        return_kind,
+                    );
+                }
                 self.submit_menu_call(
                     registers,
                     memory,
@@ -450,6 +460,11 @@ impl Win16State {
                 let Some(menu) = self.guest_menus.resolve(menu) else {
                     return self.menu_immediate(registers, return_to, 0, return_kind);
                 };
+                // Published positions are zero-based. A negative position is
+                // not a submenu, so the call returns NULL.
+                if position < 0 {
+                    return self.menu_immediate(registers, return_to, 0, return_kind);
+                }
                 self.submit_menu_call(
                     registers,
                     memory,
