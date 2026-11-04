@@ -364,6 +364,9 @@ impl Win16State {
         use ClipboardCompletion as Completion;
         use ClipboardResult as ResultValue;
 
+        // Only a sequence returned with this operation can support the wider
+        // text-prefix match. A remembered sequence may already be stale.
+        let sequence_was_reported = matches!(&result, ResultValue::Sequenced { .. });
         let (sequence, result) = match result {
             ResultValue::Sequenced { sequence, result } => {
                 self.clipboard_state.observe_native_sequence(sequence);
@@ -446,8 +449,13 @@ impl Win16State {
                 let format_changed = self.clipboard_state.get(format)
                     .is_some_and(|entry| entry.native_sequence != sequence);
                 if let Some(entry) = self.clipboard_state.get(format) {
-                    let unchanged = entry.bytes.as_deref().is_some_and(|stored|
-                        clipboard_payload_matches(format, stored, &bytes));
+                    let unchanged = entry.bytes.as_deref().is_some_and(|stored| {
+                        stored == bytes.as_slice()
+                            || (sequence_was_reported
+                                && sequence.is_some_and(|value| value != 0)
+                                && entry.native_sequence == sequence
+                                && clipboard_payload_matches(format, stored, &bytes))
+                    });
                     if unchanged {
                         if let (Some(handle), Some(identity)) = (entry.handle, entry.identity) {
                             if self.global_handles.get(&handle).copied() == Some(identity) {
