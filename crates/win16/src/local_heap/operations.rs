@@ -388,7 +388,10 @@ impl LocalHeap<'_> {
                 continue;
             }
             let start = arena.start + ARENA_HEADER_BYTES as u16;
-            if offset >= start && offset < arena.end {
+            // Programmer's Reference, Vol. 2, pp. 591-592: LocalHandle returns
+            // the object's handle, or NULL when the address has no handle. A
+            // fixed handle is the first byte returned by LocalAlloc/LocalLock.
+            if offset == start {
                 return Ok(true);
             }
         }

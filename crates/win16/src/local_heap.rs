@@ -222,9 +222,9 @@ impl<'a> LocalHeap<'a> {
         self.size_inner(handle)
     }
 
-    /// Maps a guest near pointer to its movable handle when it equals a
-    /// movable block's current locked address; fixed-block pointers map to
-    /// themselves.
+    /// Maps a guest near pointer to its handle when the pointer is the
+    /// object's address: a movable block's current locked address, or a fixed
+    /// block's first byte. Any other address returns zero.
     pub fn handle(&self, offset: u16) -> Result<u16, LocalHeapError> {
         self.handle_inner(offset)
     }
