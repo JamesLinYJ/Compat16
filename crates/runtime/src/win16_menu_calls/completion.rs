@@ -79,11 +79,9 @@ impl Win16State {
             };
             Win16MenuItemContent::Bitmap(object)
         } else if item_flags & flags::MF_OWNERDRAW != 0 {
-            host.report_diagnostic(&Diagnostic::warning(
-                Kind::CompatibilityGap,
-                "owner-draw menu items require Win16 WM_MEASUREITEM and WM_DRAWITEM conversion",
-            ));
-            return Ok(None);
+            // lpNewItem is the application's 32-bit item data, including zero.
+            // It is not a guest string, so a failure must not read guest memory.
+            Win16MenuItemContent::OwnerDraw(new_item)
         } else {
             let text = if new_item == 0 {
                 None

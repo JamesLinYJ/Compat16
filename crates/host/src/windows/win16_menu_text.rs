@@ -169,12 +169,14 @@ pub(super) fn native_item(
                 value,
                 text: Some(text),
                 pointer: None,
+                owner_data: None,
             }
         }
         Win16MenuItemContent::Text(None) | Win16MenuItemContent::Separator => PreparedMenuItem {
             value,
             text: None,
             pointer: None,
+            owner_data: None,
         },
         Win16MenuItemContent::Bitmap(bitmap) => {
             let pointer = match bitmap {
@@ -188,11 +190,16 @@ pub(super) fn native_item(
                 value,
                 text: None,
                 pointer,
+                owner_data: None,
             }
         }
-        // Owner-draw values are numeric guest data, never native pointers.
-        // The checked MEASUREITEM/DRAWITEM bridge is not part of this path.
-        Win16MenuItemContent::OwnerDraw(_) => return Ok(None),
+        // The integer is item data. MF_OWNERDRAW tells USER not to dereference it.
+        Win16MenuItemContent::OwnerDraw(data) => PreparedMenuItem {
+            value,
+            text: None,
+            pointer: None,
+            owner_data: Some(data),
+        },
     };
     Ok(Some(prepared))
 }
@@ -208,11 +215,14 @@ pub(super) struct PreparedMenuItem {
     pub(super) value: usize,
     text: Option<Vec<u16>>,
     pointer: Option<usize>,
+    owner_data: Option<u32>,
 }
 
 impl PreparedMenuItem {
     pub(super) fn pointer(&self) -> windows_sys::core::PCWSTR {
-        if let Some(pointer) = self.pointer {
+        if let Some(data) = self.owner_data {
+            data as usize as windows_sys::core::PCWSTR
+        } else if let Some(pointer) = self.pointer {
             pointer as windows_sys::core::PCWSTR
         } else {
             self.text

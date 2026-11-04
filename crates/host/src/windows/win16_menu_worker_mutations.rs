@@ -241,7 +241,7 @@ fn insert_item(
         roots.push(child);
     }
     let _owners = attachment::retain_menu_call_owners(state, &roots)?;
-    // SAFETY: InsertMenuW reads an optional caller-owned string. AppendMenuW reads an optional caller-owned string.
+    // SAFETY: With MF_STRING, InsertMenuW and AppendMenuW read a caller-owned UTF-16 buffer that stays live for this synchronous call. MF_BITMAP, MF_OWNERDRAW, and MF_SEPARATOR pass an integer or null and do not dereference it.
     let succeeded = unsafe {
         if insert {
             InsertMenuW(
@@ -343,7 +343,7 @@ fn modify_item(
         Some(tree) => Some(attachment::reserve_menu_retirement(state, tree)?),
         None => None,
     };
-    // SAFETY: ModifyMenuW reads an optional caller-owned string.
+    // SAFETY: With MF_STRING, ModifyMenuW reads a caller-owned UTF-16 buffer that stays live for this synchronous call. MF_BITMAP, MF_OWNERDRAW, and MF_SEPARATOR pass an integer or null and do not dereference it.
     let succeeded = unsafe {
         ModifyMenuW(
             native,
