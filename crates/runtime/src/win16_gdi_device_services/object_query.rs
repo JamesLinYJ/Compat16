@@ -43,8 +43,12 @@ impl Win16State {
                     let handle = self.guest_gdi.existing_object(pattern)
                         .or_else(|| self.guest_gdi.allocate_object(pattern));
                     let Some(handle) = handle else { return Ok(0); };
+                    // The signed lbHatch field stores the guest bitmap WORD.
                     handle as i16
-                } else { brush.hatch as i16 };
+                } else {
+                    let Ok(hatch) = i16::try_from(brush.hatch) else { return Ok(0); };
+                    hatch
+                };
                 LogBrush16 { style: brush.style, color: brush.color, hatch }.encode().to_vec()
             }
             Info::Bitmap(bitmap) => Bitmap16 {
