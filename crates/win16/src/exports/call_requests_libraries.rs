@@ -533,8 +533,21 @@ pub(super) fn decode(
             kernel_service_calls::decode(descriptor.id, &arguments, selectors, memory)?
                 .ok_or(Win16Error::InvalidRange)?
         }
+        Win16ExportId::KeyboardAnsiToOem => Win16ApiRequest::Libraries(
+            super::Win16LibraryRequest::Strings(super::Win16LibraryStringsRequest::AnsiToOem {
+                // Windows 3.1 declares this argument `char _huge *` and the
+                // keyboard DDK allows a string longer than 64K. Scan to the
+                // owned allocation, not to one selector.
+                source: crate::strings::read_ansi_z(
+                    selectors,
+                    memory,
+                    dword_argument(&arguments, 0)?,
+                    u32::MAX as usize,
+                )?,
+                destination: dword_argument(&arguments, 1)?,
+            }),
+        ),
         Win16ExportId::KeyboardToAscii
-        | Win16ExportId::KeyboardAnsiToOem
         | Win16ExportId::KeyboardSetSpeed
         | Win16ExportId::KeyboardScreenSwitchEnable
         | Win16ExportId::KeyboardOemKeyScan

@@ -261,6 +261,12 @@ impl Win16State {
                 },
             )) => u32::from(self.oem_to_ansi(&source, destination, memory, host)?),
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::Strings(
+                win16_abi::Win16LibraryStringsRequest::AnsiToOem {
+                    source,
+                    destination,
+                },
+            )) => u32::from(self.ansi_to_oem(source, destination, memory, host)?),
+            Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::Strings(
                 win16_abi::Win16LibraryStringsRequest::StringCompare {
                     left,
                     right,
