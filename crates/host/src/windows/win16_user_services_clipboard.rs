@@ -14,8 +14,9 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{GlobalFree, HWND};
 use windows_sys::Win32::System::DataExchange::{
-    ChangeClipboardChain, CloseClipboard, CountClipboardFormats, EmptyClipboard,
+    ChangeClipboardChain, CloseClipboard, EmptyClipboard,
     EnumClipboardFormats, GetClipboardData, GetClipboardOwner, GetClipboardSequenceNumber,
+    GetUpdatedClipboardFormats,
     GetClipboardViewer, GetOpenClipboardWindow, IsClipboardFormatAvailable, OpenClipboard,
     SetClipboardData, SetClipboardViewer,
 };
@@ -375,34 +376,71 @@ fn guest_format_available(format: u16) -> bool {
     native_format_available(format)
 }
 
+// CountClipboardFormats may be called without opening the clipboard, whereas
+// EnumClipboardFormats requires it to be open. GetUpdatedClipboardFormats
+// supplies a snapshot without changing clipboard ownership.
 fn guest_format_count() -> u16 {
-    // SAFETY: CountClipboardFormats takes no pointers.
-    let native = unsafe { CountClipboardFormats() };
-    adjust_win31_format_count(
-        native,
-        native_format_available(CF_TEXT),
-        native_format_available(CF_OEMTEXT),
-        native_format_available(CF_UNICODETEXT),
-        native_format_available(CF_LOCALE),
-    )
-}
+    const MAX_SNAPSHOT_FORMATS: u32 = 1_000_000;
+    const SNAPSHOT_ATTEMPTS: usize = 4;
+    use windows_sys::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER;
 
-/// Replace the Win32 text cluster with the two Win3.1 text formats.
-/// `CF_LOCALE` is removed and not replaced.
-fn adjust_win31_format_count(
-    native_count: i32,
-    ansi: bool,
-    oem: bool,
-    unicode: bool,
-    locale: bool,
-) -> u16 {
-    let native = u32::try_from(native_count).unwrap_or(0);
-    let cluster = u32::from(ansi) + u32::from(oem) + u32::from(unicode) + u32::from(locale);
-    let guest_text = u32::from(ansi || oem || unicode) * 2;
-    native
-        .saturating_sub(cluster)
-        .saturating_add(guest_text)
-        .min(u32::from(u16::MAX)) as u16
+    for _ in 0..SNAPSHOT_ATTEMPTS {
+        let mut required = 0u32;
+        // SAFETY: A null buffer and zero capacity request only the format count.
+        let ok = unsafe {
+            GetUpdatedClipboardFormats(std::ptr::null_mut(), 0, &mut required)
+        } != 0;
+        let error = crate::windows::win32_safe::last_error();
+        if !ok && error != ERROR_INSUFFICIENT_BUFFER {
+            return 0;
+        }
+        if required == 0 {
+            return 0;
+        }
+        // Avoid uncontrolled allocation from an externally owned clipboard.
+        if required > MAX_SNAPSHOT_FORMATS {
+            return 0;
+        }
+        let mut formats = Vec::<u32>::new();
+        if formats.try_reserve_exact(required as usize).is_err() {
+            return 0;
+        }
+        formats.resize(required as usize, 0);
+        let mut returned = 0u32;
+        // SAFETY: The vector owns required initialized UINT slots; returned is
+        // a writable local. Neither pointer escapes the synchronous call.
+        let ok = unsafe {
+            GetUpdatedClipboardFormats(formats.as_mut_ptr(), required, &mut returned)
+        } != 0;
+        if !ok {
+            if crate::windows::win32_safe::last_error() == ERROR_INSUFFICIENT_BUFFER {
+                continue;
+            }
+            return 0;
+        }
+        if returned > required {
+            return 0;
+        }
+        let mut count = 0u32;
+        let mut saw_text = false;
+        for &raw in &formats[..returned as usize] {
+            let Ok(format) = u16::try_from(raw) else { continue; };
+            if format == CF_LOCALE {
+                continue;
+            }
+            if is_guest_legacy_text_format(format) || format == CF_UNICODETEXT {
+                if !saw_text {
+                    count = count.saturating_add(2);
+                    saw_text = true;
+                }
+            } else {
+                count = count.saturating_add(1);
+            }
+        }
+        return count.min(u32::from(u16::MAX)) as u16;
+    }
+    // A rapidly changing clipboard never yielded a complete snapshot.
+    0
 }
 
 fn next_guest_format(previous: u16) -> u16 {
