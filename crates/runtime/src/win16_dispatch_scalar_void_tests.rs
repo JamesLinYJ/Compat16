@@ -1,7 +1,7 @@
 //! Strict mock-only scalar void USER calls; never change desktop settings or beep.
 use super::*;
 
-/// MessageBeep forwards only the Windows 3.1 sounds. `0xFFFF` is the speaker
+/// MessageBeep forwards sound values. `0xFFFF` is the speaker
 /// beep and reaches the host as `0xFFFFFFFF`. Other USER scalar voids keep the
 /// zero-extended argument.
 fn expected_scalar_call(ordinal: u16, argument: u16) -> Vec<(u16, u32)> {
@@ -9,7 +9,7 @@ fn expected_scalar_call(ordinal: u16, argument: u16) -> Vec<(u16, u32)> {
         match argument {
             0xFFFF => vec![(104, u32::MAX)],
             0x0000 | 0x0010 | 0x0020 | 0x0030 | 0x0040 => vec![(104, u32::from(argument))],
-            _ => Vec::new(),
+            _ => vec![(104, u32::from(argument))],
         }
     } else {
         vec![(ordinal, u32::from(argument))]

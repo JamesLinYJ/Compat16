@@ -654,7 +654,7 @@ impl Win16State {
             Win16ApiRequest::User(win16_abi::Win16UserRequest::Runtime(
                 win16_abi::Win16UserRuntimeRequest::MessageBeep { beep_type },
             )) => {
-                // Void export: queue a Windows 3.1 sound, and do not play any other.
+                // Preserve unknown sound values for compatibility; widen the Win16 -1 sentinel.
                 if let Some(sound) = win31_message_beep_sound(beep_type) {
                     host.win16_message_beep(sound)?;
                 }
@@ -748,12 +748,12 @@ impl Win16State {
 /// host `MessageBeep` names that beep `0xFFFFFFFF`. The other accepted values
 /// are `MB_OK`, `MB_ICONHAND`, `MB_ICONQUESTION`, `MB_ICONEXCLAMATION`, and
 /// `MB_ICONASTERISK` (`MB_ICONSTOP` and `MB_ICONINFORMATION` are aliases of
-/// the same words). Any other sound is not played.
+/// the same words). Other values are forwarded unchanged for compatibility.
 fn win31_message_beep_sound(beep_type: u16) -> Option<u32> {
     match beep_type {
         0xFFFF => Some(u32::MAX),
         0x0000 | 0x0010 | 0x0020 | 0x0030 | 0x0040 => Some(u32::from(beep_type)),
-        _ => None,
+        _ => Some(u32::from(beep_type)),
     }
 }
 
