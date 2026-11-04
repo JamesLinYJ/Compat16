@@ -97,7 +97,7 @@ pub(super) fn execute(
             }
         }
         Call::CountFormats => Result::Count(guest_format_count()),
-        Call::EnumFormats { previous } => Result::Format(next_guest_format(previous)),
+        Call::EnumFormats { previous } => Result::Format(next_guest_format(previous)?),
         Call::RegisterFormat { name } => Result::Format(
             super::super::win16_registered_names::register_clipboard_format(
                 ansi_codec,
@@ -443,44 +443,59 @@ fn guest_format_count() -> u16 {
     0
 }
 
-fn next_guest_format(previous: u16) -> u16 {
-    let formats = win31_clipboard_formats();
+fn next_guest_format(previous: u16) -> Result<u16, RuntimeError> {
+    let formats = win31_clipboard_formats()?;
     if previous == 0 {
-        return formats.first().copied().unwrap_or(0);
+        return Ok(formats.first().copied().unwrap_or(0));
     }
-    formats
+    Ok(formats
         .iter()
         .position(|format| *format == previous)
         .and_then(|index| formats.get(index + 1).copied())
-        .unwrap_or(0)
+        .unwrap_or(0))
 }
 
-fn win31_clipboard_formats() -> Vec<u16> {
+fn win31_clipboard_formats() -> Result<Vec<u16>, RuntimeError> {
+    const MAX_SNAPSHOT_FORMATS: usize = 1_000_000;
     let mut native = Vec::new();
-    let mut seen = std::collections::BTreeSet::new();
+    let mut seen = std::collections::HashSet::new();
     let mut previous = 0u32;
     loop {
         // SAFETY: EnumClipboardFormats takes a format id and no guest address.
         // It fails with zero when this thread does not have the clipboard open.
         let next = unsafe { EnumClipboardFormats(previous) };
-        if next == 0 || !seen.insert(next) {
+        if next == 0 || seen.contains(&next) {
             break;
         }
+        if seen.len() >= MAX_SNAPSHOT_FORMATS {
+            return Err(RuntimeError::new(Kind::ResourceExhausted,
+                "native clipboard format list exceeds the snapshot limit"));
+        }
+        seen.try_reserve(1).map_err(|error| RuntimeError::with_source(
+            Kind::ResourceExhausted, "track native clipboard format identifiers", error))?;
+        seen.insert(next);
         let Ok(id) = u16::try_from(next) else {
             previous = next;
             continue;
         };
+        native.try_reserve(1).map_err(|error| RuntimeError::with_source(
+            Kind::ResourceExhausted, "enumerate native clipboard formats", error))?;
         native.push(id);
         previous = next;
     }
     project_win31_formats(&native, placed_guest_text_format())
 }
 
-/// The format placed by the guest comes first. Win32 `CF_UNICODETEXT` is the
-/// host storage for that text, so it is not itself a guest format. Its
-/// synthesized `CF_TEXT` and `CF_OEMTEXT` views are.
-fn project_win31_formats(native: &[u16], placed_text: Option<u16>) -> Vec<u16> {
+/// The format placed by the guest comes first. Win32 CF_UNICODETEXT is host
+/// storage and is projected to the two guest legacy text views.
+fn project_win31_formats(
+    native: &[u16],
+    placed_text: Option<u16>,
+) -> Result<Vec<u16>, RuntimeError> {
     let mut guest = Vec::new();
+    guest.try_reserve(native.len().saturating_add(2)).map_err(|error|
+        RuntimeError::with_source(Kind::ResourceExhausted,
+            "project Win16 clipboard formats", error))?;
     let mut saw_text = false;
     for &format in native {
         if format == CF_LOCALE {
@@ -497,7 +512,7 @@ fn project_win31_formats(native: &[u16], placed_text: Option<u16>) -> Vec<u16> {
         }
         guest.push(format);
     }
-    guest
+    Ok(guest)
 }
 
 fn win31_text_pair(native: &[u16], placed_text: Option<u16>) -> (u16, u16) {
