@@ -338,7 +338,7 @@ fn arrays(runtime: &mut Runtime) -> (u32, u32) {
     write(
         runtime,
         base | 0x10,
-        &[-1_i16, 7]
+        &[-1_i16, 20, 7, 21]
             .into_iter()
             .flat_map(i16::to_le_bytes)
             .collect::<Vec<_>>(),
@@ -346,7 +346,7 @@ fn arrays(runtime: &mut Runtime) -> (u32, u32) {
     write(
         runtime,
         base | 0x20,
-        &[0x00ab_cdef_u32, 0xff01_0203]
+        &[0x00ab_cdef_u32, 0x0011_2233, 0xff01_0203, 0x00ff_ffff]
             .into_iter()
             .flat_map(u32::to_le_bytes)
             .collect::<Vec<_>>(),
@@ -489,13 +489,16 @@ fn set_sys_colors_copies_signed_indices_and_dwords_and_preserves_void_caller() {
     for result in [false, true] {
         let mut runtime = super::fixture();
         let (indices, colors) = arrays(&mut runtime);
-        let target = colors_call(&mut runtime, 2, indices, colors);
+        let target = colors_call(&mut runtime, 4, indices, colors);
         let mut host = SystemHost {
             result,
             ..Default::default()
         };
         dispatch(&mut runtime, &mut host).unwrap();
-        assert_eq!(host.colors, [(vec![-1, 7], vec![0x00ab_cdef, 0xff01_0203])]);
+        // -1 and COLOR_3DDKSHADOW (21) are outside the Windows 3.1 COLOR_* set.
+        // COLOR_BTNHIGHLIGHT (20) and COLOR_MENUTEXT (7) stay, in order, with
+        // the guest COLORREF values.
+        assert_eq!(host.colors, [(vec![20, 7], vec![0x0011_2233, 0xff01_0203])]);
         assert_eq!(host.consumed, [1]);
         assert_void(&runtime, target);
     }
@@ -533,7 +536,7 @@ fn set_sys_colors_invalid_inputs_never_start_a_partial_host_update() {
 fn set_sys_colors_retries_retained_completion_without_reading_or_updating_again() {
     let mut runtime = super::fixture();
     let (indices, colors) = arrays(&mut runtime);
-    let target = colors_call(&mut runtime, 2, indices, colors);
+    let target = colors_call(&mut runtime, 4, indices, colors);
     let before = runtime.cpu.regs.clone();
     let mut host = SystemHost {
         fail_readback_once: true,
@@ -546,8 +549,8 @@ fn set_sys_colors_retries_retained_completion_without_reading_or_updating_again(
     );
     assert_eq!(runtime.cpu.regs, before);
     assert!(host.consumed.is_empty());
-    write(&mut runtime, indices, &[0; 4]);
-    write(&mut runtime, colors, &[0; 8]);
+    write(&mut runtime, indices, &[0; 8]);
+    write(&mut runtime, colors, &[0; 16]);
     runtime
         .win16
         .as_mut()
@@ -559,7 +562,7 @@ fn set_sys_colors_retries_retained_completion_without_reading_or_updating_again(
             &mut host,
         )
         .unwrap();
-    assert_eq!(host.colors, [(vec![-1, 7], vec![0x00ab_cdef, 0xff01_0203])]);
+    assert_eq!(host.colors, [(vec![20, 7], vec![0x0011_2233, 0xff01_0203])]);
     assert_eq!(host.consumed, [1]);
     assert_void(&runtime, target);
 }
@@ -612,7 +615,7 @@ fn set_sys_colors_broadcast_callbacks_allow_nested_update_and_restore_original_c
         })
         .collect();
     let (indices, colors) = arrays(&mut runtime);
-    let target = colors_call(&mut runtime, 2, indices, colors);
+    let target = colors_call(&mut runtime, 4, indices, colors);
     let mut host = SystemHost {
         notify: targets.clone().into(),
         result: true,
@@ -634,8 +637,8 @@ fn set_sys_colors_broadcast_callbacks_allow_nested_update_and_restore_original_c
         nested
     );
     assert_eq!(runtime.win16.as_ref().unwrap().window_callbacks.len(), 1);
-    write(&mut runtime, indices, &[0; 4]);
-    write(&mut runtime, colors, &[0; 8]);
+    write(&mut runtime, indices, &[0; 8]);
+    write(&mut runtime, colors, &[0; 16]);
     for (index, (native, class)) in targets.iter().enumerate() {
         let state = runtime.win16.as_ref().unwrap();
         let frame = state.window_callbacks.last().unwrap();
@@ -652,7 +655,7 @@ fn set_sys_colors_broadcast_callbacks_allow_nested_update_and_restore_original_c
     assert_eq!(
         host.colors,
         [
-            (vec![-1, 7], vec![0x00ab_cdef, 0xff01_0203]),
+            (vec![20, 7], vec![0x0011_2233, 0xff01_0203]),
             (vec![], vec![])
         ]
     );
