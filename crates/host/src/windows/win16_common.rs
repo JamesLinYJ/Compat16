@@ -175,10 +175,11 @@ fn profile_int(
         _ => copy_optional_wide_z(codec, file_name)?,
     };
 
+    let system = matches!(source, ProfileIntSource::System);
     // SAFETY: Every non-null pointer references an owned, NUL-terminated UTF-16
     // copy which remains alive for the synchronous call; null options preserve
     // the native API's null-parameter semantics.
-    Ok(unsafe {
+    let native = unsafe {
         match source {
             ProfileIntSource::System => GetProfileIntW(
                 wide_ptr(app_name.as_ref()),
@@ -192,7 +193,77 @@ fn profile_int(
                 wide_ptr(file_name.as_ref()),
             ) as u32,
         }
-    })
+    };
+    // A stored negative key returns zero. `GetPrivateProfileIntW` yields the
+    // two's-complement UINT instead (for example -1 as 0xFFFFFFFF). A result
+    // below 2^31 cannot be that pattern, so a missing key still returns
+    // `default`, including a negative default. `GetProfileIntW` documents the
+    // same zero result; the text check covers a host that returns the pattern.
+    if native >= 0x8000_0000 && negative_profile_key(system, &app_name, &key_name, &file_name)? {
+        return Ok(0);
+    }
+    Ok(native)
+}
+
+/// True when the stored key text is negative. An absent name, a missing key,
+/// or a non-negative value is false. Leading spaces and tabs are the
+/// whitespace the integer parser skips; the sign that remains is ASCII '-'.
+fn negative_profile_key(
+    system: bool,
+    app_name: &Option<Vec<u16>>,
+    key_name: &Option<Vec<u16>>,
+    file_name: &Option<Vec<u16>>,
+) -> Result<bool, RuntimeError> {
+    let (Some(app_name), Some(key_name)) = (app_name, key_name) else {
+        return Ok(false);
+    };
+    let empty = [0_u16];
+    let mut capacity = 16_u32;
+    loop {
+        let mut buffer = zeroed_wide(capacity as usize, "read Win16 profile integer text")?;
+        // SAFETY: `app_name` and `key_name` are owned NUL-terminated UTF-16.
+        // `empty` is a live empty default so a missing key is not reported as
+        // stored text. The output buffer holds `capacity` units. A null file
+        // pointer is WIN.INI; otherwise it is the owned profile path.
+        let copied = unsafe {
+            if system {
+                GetProfileStringW(
+                    app_name.as_ptr(),
+                    key_name.as_ptr(),
+                    empty.as_ptr(),
+                    buffer.as_mut_ptr(),
+                    capacity,
+                )
+            } else {
+                GetPrivateProfileStringW(
+                    app_name.as_ptr(),
+                    key_name.as_ptr(),
+                    empty.as_ptr(),
+                    buffer.as_mut_ptr(),
+                    capacity,
+                    wide_ptr(file_name.as_ref()),
+                )
+            }
+        };
+        if copied >= capacity {
+            return Err(RuntimeError::new(
+                Kind::InternalInvariant,
+                "native profile integer text count exceeds its UTF-16 buffer",
+            ));
+        }
+        let text = &buffer[..copied as usize];
+        if let Some(unit) = text
+            .iter()
+            .find(|unit| **unit != u16::from(b' ') && **unit != u16::from(b'\t'))
+        {
+            return Ok(*unit == u16::from(b'-'));
+        }
+        let truncated = copied == capacity - 1;
+        if !truncated || capacity >= 32_767 {
+            return Ok(false);
+        }
+        capacity = capacity.saturating_mul(2).min(32_767);
+    }
 }
 
 /// A guest-code-page output buffer and its Win16 return count. The buffer has
