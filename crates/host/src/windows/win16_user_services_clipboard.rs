@@ -496,21 +496,45 @@ fn project_win31_formats(
     guest.try_reserve(native.len().saturating_add(2)).map_err(|error|
         RuntimeError::with_source(Kind::ResourceExhausted,
             "project Win16 clipboard formats", error))?;
-    let mut saw_text = false;
+    let (primary, _) = win31_text_pair(native, placed_text);
+    let mut emitted_text = false;
+    let mut emitted_oem = false;
     for &format in native {
         if format == CF_LOCALE {
             continue;
         }
-        if is_guest_legacy_text_format(format) || format == CF_UNICODETEXT {
-            if !saw_text {
-                saw_text = true;
-                let (primary, secondary) = win31_text_pair(native, placed_text);
+        if format == CF_UNICODETEXT {
+            // Represent native Unicode by one guest text view at this position.
+            // Preserve later explicit guest formats in their native order.
+            if !emitted_text && !emitted_oem {
                 guest.push(primary);
-                guest.push(secondary);
+                emitted_text = primary == CF_TEXT;
+                emitted_oem = primary == CF_OEMTEXT;
+            }
+            continue;
+        }
+        if format == CF_TEXT {
+            if !emitted_text {
+                guest.push(format);
+                emitted_text = true;
+            }
+            continue;
+        }
+        if format == CF_OEMTEXT {
+            if !emitted_oem {
+                guest.push(format);
+                emitted_oem = true;
             }
             continue;
         }
         guest.push(format);
+    }
+    // Only the missing conversion view is synthesized, after explicitly
+    // enumerated formats, so richer formats retain their relative priority.
+    if emitted_text && !emitted_oem {
+        guest.push(CF_OEMTEXT);
+    } else if emitted_oem && !emitted_text {
+        guest.push(CF_TEXT);
     }
     Ok(guest)
 }
