@@ -505,7 +505,7 @@ fn project_win31_formats(
         }
         if format == CF_UNICODETEXT {
             // Represent native Unicode by one guest text view at this position.
-            // Preserve later explicit guest formats in their native order.
+            // Preserve later guest-representable formats in native order.
             if !emitted_text && !emitted_oem {
                 guest.push(primary);
                 emitted_text = primary == CF_TEXT;
@@ -529,8 +529,8 @@ fn project_win31_formats(
         }
         guest.push(format);
     }
-    // Only the missing conversion view is synthesized, after explicitly
-    // enumerated formats, so richer formats retain their relative priority.
+    // Add only a missing conversion view after the native enumeration,
+    // so intervening formats retain their relative priority.
     if emitted_text && !emitted_oem {
         guest.push(CF_OEMTEXT);
     } else if emitted_oem && !emitted_text {
