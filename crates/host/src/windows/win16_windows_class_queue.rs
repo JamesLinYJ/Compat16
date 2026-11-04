@@ -127,6 +127,7 @@ impl Win16Windows {
                 let Some(value) = resolve_background(background, objects) else { return Ok(false); };
                 NativeClassResource::Background(value)
             }
+            runtime::Win16HostClassResource::Style(style) => NativeClassResource::Style(style),
         };
         let (reply, response) = std::sync::mpsc::channel();
         self.send(WorkerCommand::ReplaceClassResource {

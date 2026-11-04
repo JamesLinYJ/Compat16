@@ -175,13 +175,6 @@ impl Win16State {
         Ok(1)
     }
 
-    /// Same honest limit as ToolHelp `TaskSwitch`: there is no second runnable
-    /// task. Every handle, including null and the current task, returns 0.
-    /// This does not call `Yield` or `OldYield`.
-    pub(super) fn kernel_directed_yield(&self, _task: u16) -> u16 {
-        0
-    }
-
     fn current_owner(&self) -> Result<OwnerId, RuntimeError> {
         self.tasks.current().ok_or_else(|| RuntimeError::new(
             Kind::InternalInvariant, "Win16 has no current task",

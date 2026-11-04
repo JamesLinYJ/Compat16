@@ -581,7 +581,15 @@ pub(super) fn decode(
         }
         Win16ExportId::KeyboardOemToAnsi => Win16ApiRequest::Libraries(
             super::Win16LibraryRequest::Strings(super::Win16LibraryStringsRequest::OemToAnsi {
-                source: read_far_string(dword_argument(&arguments, 0)?, selectors, memory)?,
+                // Windows 3.1 declares this argument `char _huge *` and the
+                // keyboard DDK allows a string longer than 64K. Scan to the
+                // owned allocation, not to one selector.
+                source: crate::strings::read_ansi_z(
+                    selectors,
+                    memory,
+                    dword_argument(&arguments, 0)?,
+                    u32::MAX as usize,
+                )?,
                 destination: dword_argument(&arguments, 1)?,
             }),
         ),

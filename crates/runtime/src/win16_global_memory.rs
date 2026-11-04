@@ -854,8 +854,18 @@ impl Win16State {
     }
 
     pub(super) fn global_unlock(&mut self, guest_handle: u16) -> Result<u16, RuntimeError> {
-        if self.dos_global_blocks.contains_key(&guest_handle) { return Ok(0); }
+        // Programmer's Reference, Vol. 2, p. 520: GlobalUnlock has no effect on
+        // fixed memory, and the result is nonzero when the object is not movable.
+        if self.dos_global_blocks.contains_key(&guest_handle) {
+            return Ok(1);
+        }
         let Some(&handle) = self.global_handles.get(&guest_handle) else { return Ok(0); };
+        match self.heap.info(handle) {
+            Ok(info) if !info.movable => return Ok(1),
+            Ok(_) => {}
+            Err(Win16Error::InvalidHandle) => return Ok(0),
+            Err(error) => return Err(crate::runtime_error(error)),
+        }
         match self.heap.global_unlock(handle) {
             Ok(remaining) => {
                 if !remaining {

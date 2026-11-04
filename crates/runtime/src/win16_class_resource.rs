@@ -139,6 +139,55 @@ impl Win16State {
                 "native class resource replacement lost its guest registration"))?;
         Ok(u32::from(previous))
     }
+
+    pub(in crate::win16_runtime) fn set_class_style(
+        &mut self,
+        window: u16,
+        class: Win16HostClass,
+        value: u32,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        // Windows 3.1 SDK Programmer's Reference, Volume 2, SetClassWord
+        // pp. 825-826: GCW_STYLE replaces the 16-bit class style and returns
+        // the previous word. A value that does not fit that width fails with
+        // zero and is not truncated into the field.
+        let Ok(style) = u16::try_from(value) else { return Ok(0); };
+        let Some(&native) = self.window_handles.get(&window) else { return Ok(0); };
+        if window == 0
+            || self.window_host_class(window) != Some(class)
+            || self.window_system_classes.contains_key(&window)
+        {
+            return Ok(0);
+        }
+        // The host confirms the native class style before guest publication.
+        // Ok(false) leaves the previous word; a transport error stops dispatch.
+        if !host.win16_replace_class_resource(class, native, Win16HostClassResource::Style(style))?
+        {
+            return Ok(refused_style(host, window));
+        }
+        let previous = self.window_classes.replace_style(class, style).ok_or_else(|| {
+            RuntimeError::new(
+                Kind::InternalInvariant,
+                "native class style replacement lost its guest registration",
+            )
+        })?;
+        Ok(u32::from(previous))
+    }
+}
+
+impl GuestWindowClasses {
+    fn replace_style(&mut self, class: Win16HostClass, style: u16) -> Option<u16> {
+        let entry = self.entries.iter_mut().find(|entry| entry.host_class == class)?;
+        Some(std::mem::replace(&mut entry.info.style, style))
+    }
+}
+
+fn refused_style(host: &mut impl RuntimeHost, window: u16) -> u32 {
+    host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap, format!(
+        "Win16 SetClassWord GCW_STYLE for guest HWND 0x{window:04X} could not replace \
+         the class style; the previous value stands",
+    )));
+    0
 }
 
 fn refused_resource(host: &mut impl RuntimeHost, window: u16, slot: Slot) -> u32 {

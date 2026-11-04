@@ -19,12 +19,18 @@ impl Win16State {
             Err(error) => return Err(error),
         };
         if text.is_empty() { return Ok(Path::Invalid); }
-        // The SDK places a bare INI filename in the Windows directory. An
-        // explicit relative path (including .\) uses the task's DOS cwd.
-        if !text.contains(['\\', '/', ':']) { return Ok(Path::WindowsDirectory(text)); }
-        Ok(match self.legacy_file_path(bytes, host)? {
-            Some(path) => Path::File(path), None => Path::Invalid,
-        })
+        // Programmer's Reference Volume 2: a name that is not a full path is
+        // in the Windows directory, including a relative name such as
+        // `dir\app.ini`. Drive, root, and UNC paths keep the DOS resolver.
+        // Classification uses the decoded string, so a DBCS trail 0x5c is not
+        // a path separator.
+        if profile_path_is_outside_windows_directory(&text) {
+            return Ok(match self.legacy_file_path(bytes, host)? {
+                Some(path) => Path::File(path),
+                None => Path::Invalid,
+            });
+        }
+        Ok(Path::WindowsDirectory(text))
     }
 
     pub(super) fn profile_string(
@@ -84,5 +90,17 @@ impl Win16State {
         };
         self.write_output(memory, output, &bytes[..written])?;
         Ok(u32::from(copied))
+    }
+}
+
+/// A rooted or drive-qualified profile name is not looked up in the Windows
+/// directory. The text is already ANSI-decoded, so only a real separator or
+/// drive colon matches.
+fn profile_path_is_outside_windows_directory(text: &str) -> bool {
+    let mut chars = text.chars();
+    match (chars.next(), chars.next()) {
+        (Some('\\' | '/'), _) => true,
+        (Some(drive), Some(':')) if drive.is_ascii_alphabetic() => true,
+        _ => false,
     }
 }
