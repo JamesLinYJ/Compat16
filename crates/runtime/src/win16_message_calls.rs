@@ -707,22 +707,15 @@ impl Win16State {
         if callback != 0 {
             self.check_guest_procedure(callback, memory)?;
         }
-        // Programmer's Reference, Volume 2: idTimer is a nonzero identifier
-        // only when a window is given. A null window ignores that word, and
-        // the returned identifier is the one KillTimer accepts. Zero with a
-        // window is the published failure, not a prompt to invent another id.
-        // SetSystemTimer keeps its separate namespace and id assignment.
-        if !system && guest_window != 0 && requested_id == 0 {
-            return self.complete_return(
-                registers,
-                return_to.0,
-                return_to.1,
-                return_to.2,
-                0,
-                Win16ReturnKind::Word,
-            );
-        }
-        let guest_timer_id = if (!system && guest_window == 0) || requested_id == 0 {
+        // A windowless timer normally receives an allocated ID. KB Q81592
+        // also describes resetting an existing windowless timer by passing
+        // its returned ID again. Preserve that replacement path. For a zero
+        // window-bound ID, retain the existing allocation behavior rather
+        // than rejecting applications that depend on it.
+        let needs_id = requested_id == 0
+            || (!system && guest_window == 0
+                && self.timers.get(guest_window, requested_id, system).is_none());
+        let guest_timer_id = if needs_id {
             let Some(id) = self.timers.allocate_guest_id(guest_window, system) else {
                 host.report_diagnostic(&Diagnostic::warning(
                     Kind::ResourceExhausted,
