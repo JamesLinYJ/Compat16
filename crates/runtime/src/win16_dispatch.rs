@@ -152,6 +152,8 @@ impl Win16State {
                 win16_abi::Win16KernelModulesRequest::GetModuleUsage { module },
             )) => {
                 if let Some(identity) = self.modules.by_handle(*module)
+                    && self.modules.records.get(&identity).is_some_and(|record|
+                        record.state == super::module_registry::ModuleState::Ready)
                     && let Some(super::external_application::ExternalApplicationState::ProcessStarted { process }) =
                         self.external_application(identity).map(|record| &record.state)
                 {
