@@ -331,7 +331,10 @@ pub use midi_host_boundary::*;
 mod netbios_host_boundary;
 pub use netbios_host_boundary::RuntimeNetbiosHost;
 mod win16_win31_indexes;
-pub use win16_win31_indexes::{win31_stock_object, win31_stretch_blt_mode, win31_system_metric};
+pub use win16_win31_indexes::{
+    merge_win31_keyboard_state, overlay_win31_keyboard_slots, win31_key_state_word,
+    win31_stock_object, win31_stretch_blt_mode, win31_system_metric, win31_virtual_key,
+};
 mod host_boundary;
 pub use host_boundary::*;
 mod host_boundary_dde;

@@ -522,14 +522,29 @@ pub(super) fn execute(
             let mut keys = [0_u8; 256];
             // SAFETY: GetKeyboardState writes into a caller-owned 256-byte array.
             let succeeded = unsafe { GetKeyboardState(keys.as_mut_ptr()) } != 0;
+            if succeeded {
+                // Appendix B codes Win32 reused stay the guest bytes. The host
+                // array is not published for those slots.
+                super::win16_keyboard_state::overlay_guest_slots(&mut keys);
+            }
             Ok(Win16MessageCallResult::KeyboardState {
                 succeeded,
                 state: keys,
             })
         }
         Win16MessageCall::SetKeyboardState { state: keys } => {
+            let mut current = [0_u8; 256];
+            // SAFETY: GetKeyboardState writes into a caller-owned 256-byte array.
+            let current_ok = unsafe { GetKeyboardState(current.as_mut_ptr()) } != 0;
+            if !current_ok {
+                return Ok(Win16MessageCallResult::Boolean(false));
+            }
+            let host_keys = super::win16_keyboard_state::host_keys_for_set(&current, &keys);
             // SAFETY: SetKeyboardState reads a caller-owned 256-byte array.
-            let succeeded = unsafe { SetKeyboardState(keys.as_ptr()) } != 0;
+            let succeeded = unsafe { SetKeyboardState(host_keys.as_ptr()) } != 0;
+            if succeeded {
+                super::win16_keyboard_state::remember_guest_slots(&keys);
+            }
             Ok(Win16MessageCallResult::Boolean(succeeded))
         }
     }
