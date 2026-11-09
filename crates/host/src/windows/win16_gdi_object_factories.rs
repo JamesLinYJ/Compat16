@@ -16,7 +16,7 @@ use windows_sys::Win32::Graphics::Gdi::{
     CreateBitmapIndirect, CreateBrushIndirect, CreateCompatibleBitmap, CreateDIBPatternBrushPt,
     CreateDIBitmap, CreateEllipticRgn, CreateEllipticRgnIndirect, CreateFontIndirectW, CreateFontW,
     CreatePen, CreatePenIndirect, CreatePolyPolygonRgn, CreatePolygonRgn, CreateRectRgn,
-    CreateRectRgnIndirect, CreateRoundRectRgn, HGDIOBJ, LOGBRUSH, LOGFONTW, LOGPEN, LoadBitmapW,
+    CreateRoundRectRgn, HGDIOBJ, LOGBRUSH, LOGFONTW, LOGPEN, LoadBitmapW,
 };
 
 use super::win16_gdi::Win16Dcs;
@@ -402,33 +402,38 @@ pub(super) fn create_region(
             // SAFETY: `CreatePolygonRgn` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             unsafe { CreatePolygonRgn(points_pointer, i32::from(count), i32::from(fill_mode)) }
         }
-        // SAFETY: CreateRectRgn takes integer bounds and returns a region this process must delete.
-        Win16RegionCreate::Rectangle(rect) => unsafe {
-            CreateRectRgn(rect.left, rect.top, rect.right, rect.bottom)
-        },
+        Win16RegionCreate::Rectangle(rect) => rectangular_region(rect),
         Win16RegionCreate::RectangleIndirect(rect) => {
             let Some(rect) = rect else {
                 return Ok(None);
             };
-            let native_rect = native_rect(rect);
-            // SAFETY: `native_rect` is a complete host RECT retained through
-            // the synchronous call.
-            unsafe { CreateRectRgnIndirect(&native_rect) }
+            rectangular_region(rect)
         }
         Win16RegionCreate::RoundRectangle {
             rect,
             ellipse_width,
             ellipse_height,
-        } => unsafe {
-            CreateRoundRectRgn(
-                rect.left,
-                rect.top,
-                rect.right,
-                rect.bottom,
-                i32::from(ellipse_width),
-                i32::from(ellipse_height),
-            )
-        },
+        } => {
+            // A zero corner axis is the rectangular region, including the
+            // empty-region rule. A negative axis is passed through; Win32 uses
+            // its absolute size instead of faulting.
+            if ellipse_width == 0 || ellipse_height == 0 {
+                rectangular_region(rect)
+            } else {
+                // SAFETY: CreateRoundRectRgn takes integer bounds and returns a
+                // region this process must delete. No guest address is passed.
+                unsafe {
+                    CreateRoundRectRgn(
+                        rect.left,
+                        rect.top,
+                        rect.right,
+                        rect.bottom,
+                        i32::from(ellipse_width),
+                        i32::from(ellipse_height),
+                    )
+                }
+            }
+        }
         Win16RegionCreate::PolyPolygon {
             points,
             polygon_counts,
@@ -491,6 +496,19 @@ pub(super) fn create_region(
         }
     };
     adopt(objects, native.cast())
+}
+
+/// Windows 3.1 `CreateRectRgn` stores an empty region when `left >= right`.
+/// Win32 normalizes that reversed span into a non-empty region, so the empty
+/// box is created explicitly. A reversed vertical span is passed through.
+fn rectangular_region(rect: Win16DrawingRect) -> windows_sys::Win32::Graphics::Gdi::HRGN {
+    let (left, top, right, bottom) = if rect.left < rect.right {
+        (rect.left, rect.top, rect.right, rect.bottom)
+    } else {
+        (0, 0, 0, 0)
+    };
+    // SAFETY: CreateRectRgn takes integer bounds and returns a region this process must delete.
+    unsafe { CreateRectRgn(left, top, right, bottom) }
 }
 
 fn native_rect(rect: Win16DrawingRect) -> RECT {
