@@ -264,10 +264,12 @@ pub(super) fn execute(
             Result::Succeeded(success)
         }
         Call::IsButtonChecked { dialog, id } => {
+            // Windows 3.1 returns -1 when the dialog handle is invalid.
+            let Some(dialog) = hwnd(state, dialog) else {
+                return Ok(Result::ButtonState(u16::MAX));
+            };
             // SAFETY: `IsDlgButtonChecked` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-            let state = hwnd(state, dialog).map_or(0, |dialog| unsafe {
-                IsDlgButtonChecked(dialog, i32::from(id))
-            });
+            let state = unsafe { IsDlgButtonChecked(dialog, i32::from(id)) };
             Result::ButtonState(state as u16)
         }
         Call::CheckRadioButton {

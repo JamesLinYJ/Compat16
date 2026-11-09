@@ -541,8 +541,9 @@ impl Win16State {
                 ControlOperation::CheckButton { dialog, id, state }
             }
             Request::IsButtonChecked { dialog, id } => {
+                // Windows 3.1 returns -1 when hwndDlg is not a valid window.
                 let Some(dialog) = self.dialog_window(dialog) else {
-                    return Ok(Prepared::immediate(0, return_kind));
+                    return Ok(Prepared::immediate(u32::from(u16::MAX), return_kind));
                 };
                 ControlOperation::IsButtonChecked { dialog, id }
             }
