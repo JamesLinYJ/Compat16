@@ -42,11 +42,14 @@ pub(super) fn execute(
             make_result(succeeded, Value::None)
         }
         Request::GetWord(action) => {
-            let mut value = 0_u32;
+            let mut value = 0_i32;
             // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
             let succeeded = unsafe {
-                SystemParametersInfoW(u32::from(action), 0, (&mut value as *mut u32).cast(), 0)
+                SystemParametersInfoW(u32::from(action), 0, (&mut value as *mut i32).cast(), 0)
             } != 0;
+            let Some(value) = guest_i16(value) else {
+                return Ok(make_result(false, Value::None));
+            };
             make_result(succeeded, Value::Word(value as u16))
         }
         Request::SetWord {
@@ -71,7 +74,10 @@ pub(super) fn execute(
                 // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
                 unsafe { SystemParametersInfoW(SPI_GETMOUSE, 0, values.as_mut_ptr().cast(), 0) }
                     != 0;
-            make_result(succeeded, Value::Mouse(values.map(|value| value as i16)))
+            let [Some(first), Some(second), Some(third)] = values.map(guest_i16) else {
+                return Ok(make_result(false, Value::None));
+            };
+            make_result(succeeded, Value::Mouse([first, second, third]))
         }
         Request::SetMouse { values, flags } => {
             let mut native = values.map(i32::from);
@@ -131,10 +137,10 @@ pub(super) fn execute(
                     0,
                 )
             } != 0;
-            make_result(
-                succeeded,
-                Value::LogFont(logfont_from_native(codec, native)?),
-            )
+            let Some(font) = logfont_from_native(codec, native)? else {
+                return Ok(make_result(false, Value::None));
+            };
+            make_result(succeeded, Value::LogFont(font))
         }
         Request::SetIconTitleLogFont { font, flags } => {
             let Some(mut native) = logfont_to_native(codec, font)? else {
@@ -157,6 +163,13 @@ pub(super) fn execute(
 
 fn make_result(succeeded: bool, value: Value) -> Win16HostSystemParametersResult {
     Win16HostSystemParametersResult { succeeded, value }
+}
+
+/// Win16 `int` fields in these results are signed 16-bit. A host integer
+/// outside that range cannot be stored, so the call fails and guest memory
+/// stays unchanged.
+fn guest_i16(value: i32) -> Option<i16> {
+    i16::try_from(value).ok()
 }
 
 fn logfont_to_native(
@@ -189,23 +202,28 @@ fn logfont_to_native(
 fn logfont_from_native(
     codec: crate::windows::guest_text::GuestTextCodec,
     native: LOGFONTW,
-) -> Result<Win16HostLogFont, RuntimeError> {
-    Ok(Win16HostLogFont {
-        height: native
-            .lfHeight
-            .clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16,
-        width: native
-            .lfWidth
-            .clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16,
-        escapement: native
-            .lfEscapement
-            .clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16,
-        orientation: native
-            .lfOrientation
-            .clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16,
-        weight: native
-            .lfWeight
-            .clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16,
+) -> Result<Option<Win16HostLogFont>, RuntimeError> {
+    let (
+        Some(height),
+        Some(width),
+        Some(escapement),
+        Some(orientation),
+        Some(weight),
+    ) = (
+        guest_i16(native.lfHeight),
+        guest_i16(native.lfWidth),
+        guest_i16(native.lfEscapement),
+        guest_i16(native.lfOrientation),
+        guest_i16(native.lfWeight),
+    ) else {
+        return Ok(None);
+    };
+    Ok(Some(Win16HostLogFont {
+        height,
+        width,
+        escapement,
+        orientation,
+        weight,
         italic: native.lfItalic,
         underline: native.lfUnderline,
         strikeout: native.lfStrikeOut,
@@ -215,5 +233,5 @@ fn logfont_from_native(
         quality: native.lfQuality,
         pitch_and_family: native.lfPitchAndFamily,
         face_name: crate::windows::win16_gdi::fonts::guest_face_name(codec, &native.lfFaceName)?,
-    })
+    }))
 }
