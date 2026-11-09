@@ -43,6 +43,20 @@ fn window_target(
     }
 }
 
+/// Volume 2 identifies one window for InvalidateRect, InvalidateRgn,
+/// ValidateRect, and ValidateRgn. A null handle is not that window. It is
+/// not passed to USER, so those calls cannot change another window's update
+/// region. The calls are void, so failure has no guest return value.
+fn present_window(
+    state: &Rc<RefCell<WorkerState>>,
+    window: Option<Win16HostWindow>,
+) -> Option<HWND> {
+    match window_target(state, window) {
+        WindowTarget::Resolved(hwnd) if !hwnd.is_null() => Some(hwnd),
+        _ => None,
+    }
+}
+
 fn native_rect(rect: Win16HostRect) -> RECT {
     RECT {
         left: rect.left,
@@ -193,7 +207,7 @@ pub(super) fn execute(
             rect,
             erase,
         } => {
-            let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
+            let Some(hwnd) = present_window(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             // A null rectangle is the whole client area. Any other rectangle
@@ -216,7 +230,7 @@ pub(super) fn execute(
             region,
             erase,
         } => {
-            let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
+            let Some(hwnd) = present_window(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             let region = match region {
@@ -232,7 +246,7 @@ pub(super) fn execute(
             Ok(ResultValue::Void { succeeded })
         }
         Operation::ValidateRect { window, rect } => {
-            let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
+            let Some(hwnd) = present_window(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             // A null rectangle validates the whole client area. A rectangle
@@ -251,7 +265,7 @@ pub(super) fn execute(
             Ok(ResultValue::Void { succeeded })
         }
         Operation::ValidateRgn { window, region } => {
-            let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
+            let Some(hwnd) = present_window(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             let region = match region {
