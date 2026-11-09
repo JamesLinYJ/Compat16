@@ -278,23 +278,23 @@ fn existing_task_file(
     let relative = match super::super::win16_file_paths::resolve(filesystem, path, true, false) {
         Ok(path) => path,
         Err(error) => {
-            return match error.code {
-                dos_kernel::DosErrorCode::FileNotFound
-                | dos_kernel::DosErrorCode::PathNotFound
-                | dos_kernel::DosErrorCode::InvalidData
-                | dos_kernel::DosErrorCode::UnknownUnit
-                | dos_kernel::DosErrorCode::NoMoreFiles => Ok(None),
-                _ => Err(RuntimeError::with_source(
+            // AddFontResource returns zero when LoadLibrary cannot open the
+            // file. Access denied is that guest failure, not a host fault
+            // that interrupts dispatch.
+            return if font_path_unavailable(error.code) {
+                Ok(None)
+            } else {
+                Err(RuntimeError::with_source(
                     Kind::HostFailure,
                     "resolve Win16 font library file",
                     error,
-                )),
+                ))
             };
         }
     };
     let metadata = match filesystem.root.metadata(&relative) {
         Ok(metadata) => metadata,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) if font_metadata_unavailable(&error) => return Ok(None),
         Err(error) => {
             return Err(RuntimeError::with_source(
                 Kind::HostFailure,
@@ -400,6 +400,50 @@ fn probe_wide_file(path: &[u16]) -> Result<Option<Vec<u16>>, RuntimeError> {
         return Ok(None);
     }
     Ok(Some(terminated))
+}
+
+/// A missing file and an access-denied file are both ordinary font-load
+/// misses. AddFontResource and RemoveFontResource return zero for them.
+fn font_path_unavailable(code: dos_kernel::DosErrorCode) -> bool {
+    matches!(
+        code,
+        dos_kernel::DosErrorCode::FileNotFound
+            | dos_kernel::DosErrorCode::PathNotFound
+            | dos_kernel::DosErrorCode::InvalidData
+            | dos_kernel::DosErrorCode::UnknownUnit
+            | dos_kernel::DosErrorCode::NoMoreFiles
+            | dos_kernel::DosErrorCode::AccessDenied
+    )
+}
+
+fn font_metadata_unavailable(error: &io::Error) -> bool {
+    matches!(
+        error.kind(),
+        io::ErrorKind::NotFound | io::ErrorKind::PermissionDenied
+    ) || error.raw_os_error() == Some(5)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::font_metadata_unavailable;
+    use super::font_path_unavailable;
+
+    #[test]
+    fn access_denied_font_candidate_is_a_load_miss() {
+        assert!(font_path_unavailable(dos_kernel::DosErrorCode::AccessDenied));
+        assert!(font_path_unavailable(dos_kernel::DosErrorCode::FileNotFound));
+        assert!(!font_path_unavailable(dos_kernel::DosErrorCode::GeneralFailure));
+        let denied = std::io::Error::from_raw_os_error(5);
+        assert!(font_metadata_unavailable(&denied));
+        assert!(font_metadata_unavailable(&std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "font file",
+        )));
+        assert!(!font_metadata_unavailable(&std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            "font file",
+        )));
+    }
 }
 
 fn task_file_error(error: io::Error, operation: &'static str) -> CandidateError {

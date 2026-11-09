@@ -60,6 +60,29 @@ impl Win16State {
                 let status = spool_status(value);
                 if positive_spool_status(status) {
                     self.guest_gdi.set_print_document_open(guest_dc, true);
+                    return Ok(status);
+                }
+                // StartDoc succeeds with a job id greater than zero and opens
+                // the native document. A positive id outside a signed 16-bit
+                // int cannot be returned, so the job is aborted before
+                // `SP_ERROR`. Leaving `print_document_open` false would hide
+                // that open job from a later AbortDoc.
+                // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-startdocw
+                // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-abortdoc
+                if value > i32::from(i16::MAX) {
+                    match host.win16_gdi_device(Operation::Print {
+                        operation: Win16PrintOperation::AbortDocument,
+                        dc,
+                    })? {
+                        HostResult::Count(abort_status) if abort_status > 0 => {}
+                        HostResult::Count(_) => {
+                            return Err(RuntimeError::new(
+                                Kind::HostFailure,
+                                "Win16 StartDoc could not abort a job id outside the signed int range",
+                            ));
+                        }
+                        _ => return Err(wrong_device_result("AbortDoc")),
+                    }
                 }
                 Ok(status)
             }

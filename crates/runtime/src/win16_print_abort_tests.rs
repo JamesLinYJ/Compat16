@@ -759,7 +759,7 @@ fn false_abort_after_start_doc_cancels_the_host_document() {
 fn start_doc_count_outside_i16_is_sp_error_and_leaves_the_document_closed() {
     let (mut runtime, dc, _) = fixture(4);
     let mut host = Host {
-        count: Some(40_000),
+        count: Some(65_537),
         ..Host::default()
     };
     let info = doc_info(&mut runtime);
@@ -774,7 +774,7 @@ fn start_doc_count_outside_i16_is_sp_error_and_leaves_the_document_closed() {
             .guest_gdi
             .print_document_open(dc)
     );
-    assert_eq!(host.calls, [started_document()]);
+    assert_eq!(host.calls, [started_document(), aborted_document()]);
 }
 
 fn escape_args(dc: u16, escape: i16) -> Vec<u8> {
