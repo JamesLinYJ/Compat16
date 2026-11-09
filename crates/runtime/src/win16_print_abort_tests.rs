@@ -20,6 +20,8 @@ const SP_APPABORT: u16 = 0xfffe;
 #[derive(Default)]
 struct Host {
     calls: Vec<Operation>,
+    /// `None` keeps the historical successful job id of 1.
+    count: Option<i32>,
 }
 
 impl DosHost for Host {
@@ -123,7 +125,7 @@ impl DosHost for Host {
 impl RuntimeHost for Host {
     fn win16_gdi_device(&mut self, operation: Operation) -> Result<HostResult, RuntimeError> {
         self.calls.push(operation);
-        Ok(HostResult::Count(1))
+        Ok(HostResult::Count(self.count.unwrap_or(1)))
     }
     fn win16_delete_dc(&mut self, dc: Win16HostDc) -> Result<bool, RuntimeError> {
         assert_eq!(dc, NATIVE);
@@ -751,6 +753,28 @@ fn false_abort_after_start_doc_cancels_the_host_document() {
     let before = host.calls.len();
     reject_print(&mut runtime, &mut host, 379, &dc.to_le_bytes());
     assert_eq!(host.calls.len(), before);
+}
+
+#[test]
+fn start_doc_count_outside_i16_is_sp_error_and_leaves_the_document_closed() {
+    let (mut runtime, dc, _) = fixture(4);
+    let mut host = Host {
+        count: Some(40_000),
+        ..Host::default()
+    };
+    let info = doc_info(&mut runtime);
+    let return_to = invoke(&mut runtime, 377, &dword_word(info, dc));
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, SP_ERROR);
+    assert!(
+        !runtime
+            .win16
+            .as_ref()
+            .unwrap()
+            .guest_gdi
+            .print_document_open(dc)
+    );
+    assert_eq!(host.calls, [started_document()]);
 }
 
 fn escape_args(dc: u16, escape: i16) -> Vec<u8> {

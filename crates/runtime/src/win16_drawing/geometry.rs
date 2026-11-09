@@ -386,7 +386,9 @@ impl Win16State {
                 count,
                 points,
             }) => {
-                if count <= 0 {
+                // Programmer's Reference: a polyline connects the points in
+                // order. Fewer than two points does not draw a segment.
+                if count < 2 {
                     return Ok(0);
                 }
                 let Some(dc) = self.guest_gdi.dc(dc) else {
@@ -517,14 +519,7 @@ impl Win16State {
                         success,
                         width,
                         height,
-                    } => {
-                        if success {
-                            if let Some(output) = output {
-                                self.write_drawing_size(memory, output, width, height)?;
-                            }
-                        }
-                        Ok(u32::from(u16::from(success)))
-                    }
+                    } => self.commit_mapping_size(memory, output, success, width, height),
                     _ => Err(wrong_result("SetWindowExtEx")),
                 }
             }
@@ -551,14 +546,7 @@ impl Win16State {
                         success,
                         width,
                         height,
-                    } => {
-                        if success {
-                            if let Some(output) = output {
-                                self.write_drawing_size(memory, output, width, height)?;
-                            }
-                        }
-                        Ok(u32::from(u16::from(success)))
-                    }
+                    } => self.commit_mapping_size(memory, output, success, width, height),
                     _ => Err(wrong_result("SetViewportExtEx")),
                 }
             }
@@ -582,12 +570,7 @@ impl Win16State {
                     y: i32::from(y),
                 })? {
                     HostResult::BoolPoint { success, point } => {
-                        if success {
-                            if let Some(output) = output {
-                                self.write_drawing_point(memory, output, point)?;
-                            }
-                        }
-                        Ok(u32::from(u16::from(success)))
+                        self.commit_mapping_point(memory, output, success, point)
                     }
                     _ => Err(wrong_result("SetViewportOrgEx")),
                 }
@@ -602,10 +585,7 @@ impl Win16State {
                 let output = self.preflight_drawing_output(memory, output, 4)?;
                 match host.win16_gdi(Operation::GetViewportOrgEx { dc })? {
                     HostResult::BoolPoint { success, point } => {
-                        if success {
-                            self.write_drawing_point(memory, output, point)?;
-                        }
-                        Ok(u32::from(u16::from(success)))
+                        self.commit_mapping_point(memory, Some(output), success, point)
                     }
                     _ => Err(wrong_result("GetViewportOrgEx")),
                 }

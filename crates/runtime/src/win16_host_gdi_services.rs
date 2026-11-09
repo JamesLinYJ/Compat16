@@ -14,7 +14,9 @@ pub struct Win16HostGlyphMetrics {
 }
 
 /// GGO_GLYPH_INDEX and GGO_UNHINTED modify the underlying output mode.
-pub(crate) fn glyph_metrics_only(format: u16) -> bool { format & !0x0180 == 0 }
+pub(crate) fn glyph_metrics_only(format: u16) -> bool {
+    format & !0x0180 == 0
+}
 
 /// One native ABC width returned by Windows. Runtime narrows these fields to
 /// the Windows 3.1 `ABC` layout before writing guest memory.
@@ -55,8 +57,12 @@ pub enum Win16HostGdiIdentity {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Win16GdiServicesOperation {
     GetGlyphOutline {
-        dc: Win16HostDc, character: u16, format: u16, matrix: [u32; 4],
-        byte_count: u32, copy_buffer: bool,
+        dc: Win16HostDc,
+        character: u16,
+        format: u16,
+        matrix: [u32; 4],
+        byte_count: u32,
+        copy_buffer: bool,
     },
     SetBoundsRect {
         dc: Win16HostDc,
@@ -79,9 +85,15 @@ pub enum Win16GdiServicesOperation {
     },
     AddFontResource {
         guest_path: Vec<u8>,
+        /// Module path used as the LoadLibrary application directory.
+        application_path: Vec<u8>,
+        /// Task-directory candidate, the first LoadLibrary search location.
+        task_path: crate::Win16GuestPath,
     },
     RemoveFontResource {
         guest_path: Vec<u8>,
+        application_path: Vec<u8>,
+        task_path: crate::Win16GuestPath,
     },
     /// `current_path` is present only for a bare font filename. A directory
     /// already present in `font_file` is resolved on its own.

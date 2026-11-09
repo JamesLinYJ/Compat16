@@ -2,7 +2,7 @@
 
 use super::super::request::Win16ApiRequest;
 use super::{Win16ExportId, dword_argument, gdi_calls, word_argument};
-use crate::gdi_abi::{ETO_PDY, ETO_RECT_FLAGS};
+use crate::gdi_abi::ETO_RECT_FLAGS;
 use crate::window_geometry::Rect16;
 use crate::{Point16, SelectorTable, Win16Argument, Win16Error};
 use guest_core::GuestMemory;
@@ -251,15 +251,17 @@ pub(super) fn decode(
                         memory,
                     )?
                 };
+                // Learn ExtTextOutA: the ANSI `lpDx` array has one INT per byte
+                // of `lpString`, including when the spacing option `ETO_PDY`
+                // (`0x2000`) is set. A second INT per byte would read past the
+                // caller's array.
+                // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-exttextouta
                 let spacing = if count == 0 || spacing_far == 0 {
                     None
                 } else {
-                    let values_per_character = if options & ETO_PDY != 0 { 2 } else { 1 };
                     Some(read_i16_values(
                         spacing_far,
-                        usize::from(count)
-                            .checked_mul(values_per_character)
-                            .ok_or(Win16Error::InvalidRange)?,
+                        usize::from(count),
                         selectors,
                         memory,
                     )?)
@@ -482,6 +484,10 @@ pub(super) fn read_i16_values(
     }
     Ok(values)
 }
+
+#[cfg(test)]
+#[path = "call_gdi_ext_text_out_tests.rs"]
+mod ext_text_out_tests;
 
 pub(super) fn read_optional_rect(
     far: u32,

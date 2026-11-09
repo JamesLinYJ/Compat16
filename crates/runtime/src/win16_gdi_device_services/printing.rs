@@ -57,7 +57,7 @@ impl Win16State {
             output: info.output,
         })? {
             HostResult::Count(value) => {
-                let status = value as u16 as u32;
+                let status = spool_status(value);
                 if positive_spool_status(status) {
                     self.guest_gdi.set_print_document_open(guest_dc, true);
                 }
@@ -97,7 +97,7 @@ impl Win16State {
         };
         match host.win16_gdi_device(Operation::Print { operation, dc })? {
             HostResult::Count(value) => {
-                let status = value as u16 as u32;
+                let status = spool_status(value);
                 if positive_spool_status(status)
                     && matches!(
                         operation,
@@ -110,6 +110,16 @@ impl Win16State {
             }
             _ => Err(wrong_device_result("print lifecycle")),
         }
+    }
+}
+
+/// StartDoc, EndDoc, StartPage, EndPage, and AbortDoc return a signed int.
+/// `SP_ERROR` is -1. A host count outside that int is the same failure and
+/// is not wrapped into a positive job id.
+fn spool_status(value: i32) -> u32 {
+    match i16::try_from(value) {
+        Ok(status) => u32::from(status as u16),
+        Err(_) => SP_ERROR16,
     }
 }
 

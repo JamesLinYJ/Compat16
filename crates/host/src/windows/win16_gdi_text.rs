@@ -159,9 +159,7 @@ pub(super) fn ext_text_out(
                 // failure; propagate the typed cause without converting twice.
                 Err(error) => return Err(error.with_context("map Win16 ExtTextOut spacing text")),
             };
-            let Some(converted) =
-                convert_spacing(&spans, bytes, &wide, values, options & ETO_PDY != 0)?
-            else {
+            let Some(converted) = convert_spacing(&spans, bytes, &wide, values)? else {
                 return Ok(false);
             };
             Some(converted)
@@ -190,6 +188,10 @@ pub(super) fn ext_text_out(
         .as_ref()
         .filter(|values| !values.is_empty())
         .map_or(std::ptr::null(), |values| values.as_ptr());
+    // The guest spacing option is one INT per byte. Native `ETO_PDY` would
+    // read a second INT per glyph and walk off that array, so the draw keeps
+    // the single advances and clears only that pair-layout bit.
+    let native_options = options & !u32::from(ETO_PDY);
     // SAFETY: The HDC lease, UTF-16 string, optional copied RECT, and remapped
     // spacing array are owned and remain live for the synchronous GDI call.
     Ok(unsafe {
@@ -197,7 +199,7 @@ pub(super) fn ext_text_out(
             dc_use.native(),
             x,
             y,
-            options,
+            native_options,
             rect_pointer,
             pointer,
             count,
@@ -210,24 +212,19 @@ pub(super) fn ext_text_out(
 /// `GuestTextCodec` supplies exact guest-byte/UTF-16 ranges, which Windows' W
 /// APIs no longer retain. This combines source-byte advances for a DBCS
 /// character and keeps one total advance across any surrogate pair.
+///
+/// Learn documents one ANSI `lpDx` INT per string byte. `ETO_PDY` does not
+/// add a second guest INT on this export.
 fn convert_spacing(
     spans: &[GuestTextSpan],
     bytes: &[u8],
     wide: &[u16],
     guest_spacing: &[i32],
-    pdy: bool,
 ) -> Result<Option<Vec<i32>>, RuntimeError> {
-    let values_per_byte = if pdy { 2 } else { 1 };
-    let Some(expected) = bytes.len().checked_mul(values_per_byte) else {
-        return Ok(None);
-    };
-    if guest_spacing.len() != expected {
+    if guest_spacing.len() != bytes.len() {
         return Ok(None);
     }
-    let values_per_wide_unit = if pdy { 2 } else { 1 };
-    let Some(output_len) = wide.len().checked_mul(values_per_wide_unit) else {
-        return Ok(None);
-    };
+    let output_len = wide.len();
     let mut output = Vec::new();
     output.try_reserve_exact(output_len).map_err(|error| {
         RuntimeError::with_source(
@@ -256,36 +253,17 @@ fn convert_spacing(
         }
 
         let mut x_advance = 0_i32;
-        let mut y_advance = 0_i32;
         for byte_index in byte_range.clone() {
-            let Some(base) = byte_index.checked_mul(values_per_byte) else {
-                return Ok(None);
-            };
-            x_advance = x_advance.checked_add(guest_spacing[base]).ok_or_else(|| {
+            x_advance = x_advance.checked_add(guest_spacing[byte_index]).ok_or_else(|| {
                 RuntimeError::new(
                     Kind::InvalidInput,
                     "Win16 ExtTextOut x displacement overflow",
                 )
             })?;
-            if pdy {
-                y_advance = y_advance
-                    .checked_add(guest_spacing[base + 1])
-                    .ok_or_else(|| {
-                        RuntimeError::new(
-                            Kind::InvalidInput,
-                            "Win16 ExtTextOut y displacement overflow",
-                        )
-                    })?;
-            }
         }
 
         for unit_index in 0..unit_range.len() {
-            if pdy {
-                output.push(if unit_index == 0 { x_advance } else { 0 });
-                output.push(if unit_index == 0 { y_advance } else { 0 });
-            } else {
-                output.push(if unit_index == 0 { x_advance } else { 0 });
-            }
+            output.push(if unit_index == 0 { x_advance } else { 0 });
         }
         byte_offset = byte_range.end;
         wide_offset = unit_range.end;

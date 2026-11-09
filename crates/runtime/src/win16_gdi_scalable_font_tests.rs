@@ -119,7 +119,7 @@ impl DosHost for FontHost {
         panic!("unexpected host call")
     }
     fn guest_code_page(&self) -> text_codec::CodePage {
-        panic!("unexpected host call")
+        text_codec::CodePage::Cp437
     }
     fn current_drive(&self) -> u8 {
         panic!("unexpected host call")
@@ -459,5 +459,64 @@ fn scalable_font_native_false_and_wrong_results_stay_distinct() {
             &mut host,
         ),
         Err(Kind::HostFailure)
+    );
+}
+
+#[test]
+fn add_font_resource_passes_the_load_library_task_and_application_paths() {
+    let (mut runtime, _) = fixture();
+    let state = runtime.win16.as_mut().unwrap();
+    let owner = state.current_task_owner().unwrap();
+    state
+        .kernel_file_system
+        .seed_owner(
+            owner,
+            crate::Win16CanonicalPath {
+                drive: 2,
+                components: Vec::new(),
+            },
+        )
+        .unwrap();
+    let mut host = FontHost {
+        result: Some(ResultValue::FontResourceCount(2)),
+        ..Default::default()
+    };
+    let result = runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .execute_gdi_services(
+            win16_abi::Win16GdiServicesRequest::AddFontResource {
+                input: win16_abi::Win16FontResourceInput::Path(b"DEMO.FON".to_vec()),
+            },
+            &mut runtime.memory,
+            &mut host,
+        )
+        .unwrap();
+    assert_eq!(result, 2);
+    let [
+        Operation::AddFontResource {
+            guest_path,
+            application_path,
+            task_path,
+        },
+    ] = host.calls.as_slice()
+    else {
+        panic!("one AddFontResource call");
+    };
+    assert_eq!(guest_path, b"DEMO.FON");
+    assert_eq!(application_path, br"C:\FONT.NE");
+    assert_eq!(
+        task_path
+            .components
+            .last()
+            .map(|component| component.text.as_str()),
+        Some("DEMO.FON")
+    );
+    assert!(
+        task_path
+            .components
+            .iter()
+            .all(|component| !component.text.to_ascii_uppercase().ends_with(".DLL"))
     );
 }

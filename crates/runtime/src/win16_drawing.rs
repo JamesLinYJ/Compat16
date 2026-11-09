@@ -23,6 +23,9 @@ mod primitives;
 mod text_requests;
 
 #[cfg(test)]
+#[path = "win16_gdi_mapping_shape_tests.rs"]
+mod gdi_mapping_shape_tests;
+#[cfg(test)]
 #[path = "win16_stretch_blt_mode_tests.rs"]
 mod stretch_blt_mode_tests;
 
@@ -180,6 +183,43 @@ impl Win16State {
         self.write_text_bytes(memory, pointer, &bytes)
     }
 
+    /// Windows 3.1 `POINT` and `SIZE` are signed 16-bit ints. A mapping Ex
+    /// result outside -32768..=32767 fails and leaves the guest buffer
+    /// unchanged. A null output does not store the previous value, so a
+    /// successful host call can still return TRUE.
+    fn commit_mapping_point(
+        &self,
+        memory: &mut Memory,
+        output: Option<SegmentedPointer>,
+        success: bool,
+        point: Win16DrawingPoint,
+    ) -> Result<u32, RuntimeError> {
+        if !success || (output.is_some() && !signed_pair_fits(point.x, point.y)) {
+            return Ok(0);
+        }
+        if let Some(output) = output {
+            self.write_drawing_point(memory, output, point)?;
+        }
+        Ok(1)
+    }
+
+    fn commit_mapping_size(
+        &self,
+        memory: &mut Memory,
+        output: Option<SegmentedPointer>,
+        success: bool,
+        width: i32,
+        height: i32,
+    ) -> Result<u32, RuntimeError> {
+        if !success || (output.is_some() && !signed_pair_fits(width, height)) {
+            return Ok(0);
+        }
+        if let Some(output) = output {
+            self.write_drawing_size(memory, output, width, height)?;
+        }
+        Ok(1)
+    }
+
     fn transform_points(
         &mut self,
         memory: &mut Memory,
@@ -285,7 +325,11 @@ fn point_to_host(point: win16_abi::Point16) -> Win16DrawingPoint {
 fn points_fit_i16(points: &[Win16DrawingPoint]) -> bool {
     points
         .iter()
-        .all(|point| i16::try_from(point.x).is_ok() && i16::try_from(point.y).is_ok())
+        .all(|point| signed_pair_fits(point.x, point.y))
+}
+
+fn signed_pair_fits(first: i32, second: i32) -> bool {
+    i16::try_from(first).is_ok() && i16::try_from(second).is_ok()
 }
 
 fn point_array_size(count: i16) -> Result<usize, RuntimeError> {

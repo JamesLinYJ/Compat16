@@ -5,7 +5,7 @@
 //! ordinal's failure value and does not report success.
 
 use guest_core::memory::Memory;
-use win16_abi::gdi_abi::{ETO_PDY, ETO_RECT_FLAGS};
+use win16_abi::gdi_abi::ETO_RECT_FLAGS;
 use win16_abi::{Win16GdiInternalArg as Arg, Win16GdiInternalRequest as Request};
 
 use super::Win16State;
@@ -311,7 +311,7 @@ impl Win16State {
         } else {
             None
         };
-        let spacing = self.read_guest_spacing(memory, far(args, 7)?, count, options)?;
+        let spacing = self.read_guest_spacing(memory, far(args, 7)?, count)?;
         match host.win16_gdi(Operation::ExtTextOut {
             dc,
             x: i32::from(word(args, 1)? as i16),
@@ -374,15 +374,14 @@ impl Win16State {
         memory: &Memory,
         far: u32,
         count: u16,
-        options: u16,
     ) -> Result<Option<Vec<i32>>, RuntimeError> {
         if count == 0 || far == 0 {
             return Ok(None);
         }
-        let values_per_character = if options & ETO_PDY != 0 { 2 } else { 1 };
-        let values = usize::from(count)
-            .checked_mul(values_per_character)
-            .ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "RawExtTextOut spacing"))?;
+        // One signed spacing INT per guest byte. `ETO_PDY` (`0x2000`) does
+        // not add a second value; Learn documents that ANSI `lpDx` matches
+        // the byte count of the string.
+        let values = usize::from(count);
         let byte_count = values
             .checked_mul(2)
             .ok_or_else(|| RuntimeError::new(Kind::InvalidInput, "RawExtTextOut spacing"))?;

@@ -128,7 +128,9 @@ pub(super) fn execute(
             )
         }
         Request::GdiDrawing(win16_abi::Win16GdiDrawingRequest::Polygon { dc, count, points }) => {
-            if count <= 0 || points.len() != count as usize {
+            // Windows 3.1 Polygon closes the figure. Fewer than two points
+            // cannot form that figure and returns FALSE.
+            if count < 2 || points.len() != count as usize {
                 return Ok(0);
             }
             let Some(dc) = state.guest_gdi.dc(dc) else {
@@ -404,6 +406,11 @@ pub(super) fn execute(
             color,
             fill_type,
         }) => {
+            // WINDOWS.H: FLOODFILLBORDER is 0 and FLOODFILLSURFACE is 1.
+            // Any other type is not a documented fill and returns FALSE.
+            if !matches!(fill_type, 0 | 1) {
+                return Ok(0);
+            }
             let Some(dc) = state.guest_gdi.dc(dc) else {
                 return Ok(0);
             };
@@ -426,6 +433,8 @@ pub(super) fn execute(
             point_counts,
         }) => {
             if !valid
+                || polygon_count <= 0
+                || point_counts.iter().any(|count| *count < 2)
                 || points.len()
                     != point_counts
                         .iter()
