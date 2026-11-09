@@ -61,6 +61,39 @@ fn call(runtime: &mut Runtime, ordinal: u16, handle: u16) -> (u16, u16) {
 }
 
 #[test]
+fn get_code_handle_names_the_task_code_segment() {
+    let mut runtime = stock();
+    let code = segment_selector(&runtime, 1);
+    let data = segment_selector(&runtime, 2);
+    let state = runtime.win16.as_mut().unwrap();
+    let expected = state.loaded_segment_handles[&code];
+    let procedure = u32::from(code) << 16;
+    assert_eq!(state.kernel_get_code_handle(procedure, &runtime.memory), u32::from(expected));
+    assert_eq!(state.kernel_get_code_handle(u32::from(data) << 16, &runtime.memory), 0);
+
+    let output = u32::from(data) << 16;
+    let pointer = state.selectors.pointer_from_raw(Selector(data), 0).unwrap();
+    state.selectors.write(&mut runtime.memory, pointer, &[0xA5; 16]).unwrap();
+    state.kernel_get_code_info(0, output, &mut runtime.memory).unwrap();
+    let mut unchanged = [0; 16];
+    state.selectors.read(&runtime.memory, pointer, &mut unchanged).unwrap();
+    assert_eq!(unchanged, [0xA5; 16]);
+
+    state.kernel_get_code_info(procedure, output, &mut runtime.memory).unwrap();
+    let mut info = [0; 16];
+    state.selectors.read(&runtime.memory, pointer, &mut info).unwrap();
+    let handle = u16::from_le_bytes([info[8], info[9]]);
+    let flags = u16::from_le_bytes([info[4], info[5]]);
+    let allocated = u16::from_le_bytes([info[6], info[7]]);
+    assert_eq!(handle, expected);
+    assert_eq!(flags, 0);
+    assert_eq!(u32::from(allocated), state.loaded.segments.iter()
+        .find(|segment| segment.number == 1).unwrap().memory_size);
+    assert_eq!(state.global_lock(handle, &runtime.memory).unwrap(), procedure);
+    assert_eq!(state.kernel_global_flags(handle), 0);
+}
+
+#[test]
 fn global_lock_counts_dgroup_and_ignores_fixed_code_and_module_header() {
     let mut runtime = stock();
     let before = data_bytes(&runtime);

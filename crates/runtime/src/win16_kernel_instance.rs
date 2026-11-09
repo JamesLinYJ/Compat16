@@ -293,11 +293,19 @@ impl Win16State {
             None => 0,
         };
         let cb_segment = size_word(segment.file_size)?;
-        let allocation = record
-            .allocations
-            .iter()
-            .find(|allocation| allocation.selector.raw().0 == selector)?;
-        let cb_alloc = size_word(self.heap.reserved_capacity(allocation.handle).ok()?)?;
+        // Library segments live in GlobalHeap. The task image keeps its
+        // segments in the reserved arena, so there is no heap allocation to
+        // size; the loaded segment's memory size is the allocated length.
+        let cb_alloc = match record.allocations.iter()
+            .find(|allocation| allocation.selector.raw().0 == selector)
+        {
+            Some(allocation) => size_word(self.heap.reserved_capacity(allocation.handle).ok()?)?,
+            None => {
+                let resident = record.loaded.as_ref()?.segments.iter()
+                    .find(|segment| segment.selector.0 == selector)?;
+                size_word(resident.memory_size)?
+            }
+        };
         let handle = *self.loaded_segment_handles.get(&selector)?;
         Some(NeSegmentInfo {
             handle,
