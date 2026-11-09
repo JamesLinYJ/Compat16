@@ -742,14 +742,20 @@ fn win31_message_beep_sound(beep_type: u16) -> Option<u32> {
     }
 }
 
-/// USER `GetSystemMetrics`. The guest argument is a signed word and the
-/// result is narrowed to that word. An index outside `SM_CXSCREEN` through
-/// `SM_DBCSENABLED` returns 0 and does not query the host.
+/// USER `GetSystemMetrics`. The guest argument and the result are signed
+/// 16-bit ints. An index outside `SM_CXSCREEN` through `SM_DBCSENABLED`
+/// returns 0 and does not query the host. Learn returns 0 when the call
+/// fails, so a host metric outside that signed range fails the same way
+/// instead of keeping the low 16 bits.
 fn system_metrics(host: &mut impl RuntimeHost, index: i16) -> Result<u32, RuntimeError> {
     if !crate::win31_system_metric(i32::from(index)) {
         return Ok(0);
     }
-    Ok(host.win16_get_system_metrics(i32::from(index))? as u16 as u32)
+    let metric = host.win16_get_system_metrics(i32::from(index))?;
+    let Ok(metric) = i16::try_from(metric) else {
+        return Ok(0);
+    };
+    Ok(u32::from(metric as u16))
 }
 
 #[cfg(test)]
