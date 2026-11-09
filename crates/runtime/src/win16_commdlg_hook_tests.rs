@@ -294,27 +294,28 @@ fn color_font_find_and_print_hooks_stay_false() {
             flags: 0x10,
             hook: 1,
             ..ChooseColor16::default()
-        }.encode().to_vec()),
+        }.encode().to_vec(), 0),
+        // Owner 0 is not a window, so FindText fails before the hook flags.
         (11, FindReplace16 {
             structure_size: FindReplace16::SIZE as u32,
             flags: 0x2300,
             hook: 1,
             ..FindReplace16::default()
-        }.encode().to_vec()),
+        }.encode().to_vec(), 0xffff),
         (15, ChooseFont16 {
             structure_size: ChooseFont16::SIZE as u32,
             flags: 0x8,
             hook: 1,
             ..ChooseFont16::default()
-        }.encode().to_vec()),
+        }.encode().to_vec(), 0),
         (20, PrintDlg16 {
             structure_size: PrintDlg16::SIZE as u32,
             flags: 0x1000,
             print_hook: 1,
             ..PrintDlg16::default()
-        }.encode().to_vec()),
+        }.encode().to_vec(), 0),
     ];
-    for (ordinal, bytes) in families {
+    for (ordinal, bytes, error) in families {
         let mut runtime = Runtime::load(&tiny_ne_executable(), &[], br"C:\FILE.NE").unwrap();
         let structure = u32::from(runtime.cpu.regs.ds) << 16;
         write_at(&mut runtime, structure, &bytes);
@@ -327,6 +328,270 @@ fn color_font_find_and_print_hooks_stay_false() {
         assert_eq!(runtime.cpu.regs.ax(), 0);
         let state = runtime.win16.as_ref().unwrap();
         assert!(state.callback_kinds.is_empty());
-        assert_eq!(state.common_dialog_state.last_extended_error, 0);
+        assert_eq!(state.common_dialog_state.last_extended_error, error);
     }
+}
+
+fn extended_error(runtime: &mut Runtime) -> u32 {
+    let return_to = invoke(runtime, 26, None);
+    dispatch(runtime);
+    assert_eq!(
+        (runtime.cpu.regs.cs, runtime.cpu.regs.ip(), u32::from(runtime.cpu.regs.sp())),
+        return_to,
+    );
+    u32::from(runtime.cpu.regs.ax()) | (u32::from(runtime.cpu.regs.dx()) << 16)
+}
+
+fn call_structure(runtime: &mut Runtime, ordinal: u16, structure: u32) -> u16 {
+    let return_to = invoke(runtime, ordinal, Some(structure));
+    dispatch(runtime);
+    assert_eq!(
+        (runtime.cpu.regs.cs, runtime.cpu.regs.ip(), u32::from(runtime.cpu.regs.sp())),
+        return_to,
+    );
+    runtime.cpu.regs.ax()
+}
+
+fn fresh() -> Runtime {
+    Runtime::load(&tiny_ne_executable(), &[], br"C:\FILE.NE").unwrap()
+}
+
+fn data_far(runtime: &Runtime) -> u32 {
+    u32::from(runtime.cpu.regs.ds) << 16
+}
+
+fn map_owner(runtime: &mut Runtime) -> u16 {
+    runtime.win16.as_mut().unwrap().window_handles.insert(1, crate::Win16HostWindow(0x1000));
+    1
+}
+
+fn assert_bytes(runtime: &Runtime, far: u32, expected: &[u8]) {
+    let mut actual = vec![0; expected.len()];
+    read_at(runtime, far, &mut actual);
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn structure_size_and_null_pointer_return_sdk_errors() {
+    let cases = [
+        (1_u16, OpenFileName16::SIZE),
+        (2, OpenFileName16::SIZE),
+        (5, ChooseColor16::SIZE),
+        (11, FindReplace16::SIZE),
+        (12, FindReplace16::SIZE),
+        (15, ChooseFont16::SIZE),
+        (20, PrintDlg16::SIZE),
+    ];
+    for (ordinal, size) in cases {
+        let mut runtime = fresh();
+        let structure = data_far(&runtime);
+        let mut record = vec![0xa5; size];
+        record[..4].copy_from_slice(&0u32.to_le_bytes());
+        write_at(&mut runtime, structure, &record);
+        write_at(&mut runtime, structure + 200, &[0x3c]);
+        assert_eq!(call_structure(&mut runtime, ordinal, structure), 0);
+        assert_eq!(extended_error(&mut runtime), 1);
+        assert_bytes(&runtime, structure, &record);
+        assert_bytes(&runtime, structure + 200, &[0x3c]);
+
+        let mut runtime = fresh();
+        let structure = data_far(&runtime);
+        write_at(&mut runtime, structure, &[0x5a]);
+        assert_eq!(call_structure(&mut runtime, ordinal, 0), 0);
+        assert_eq!(extended_error(&mut runtime), 2);
+        assert_bytes(&runtime, structure, &[0x5a]);
+    }
+}
+
+#[test]
+fn find_replace_owner_and_buffer_return_sdk_errors() {
+    for ordinal in [11_u16, 12] {
+        let mut runtime = fresh();
+        let structure = data_far(&runtime);
+        let record = FindReplace16 {
+            structure_size: FindReplace16::SIZE as u32,
+            owner: 7,
+            ..FindReplace16::default()
+        }.encode();
+        write_at(&mut runtime, structure, &record);
+        assert_eq!(call_structure(&mut runtime, ordinal, structure), 0);
+        assert_eq!(extended_error(&mut runtime), 0xffff);
+        assert_bytes(&runtime, structure, &record);
+
+        let mut runtime = fresh();
+        let owner = map_owner(&mut runtime);
+        let structure = data_far(&runtime);
+        let record = FindReplace16 {
+            structure_size: FindReplace16::SIZE as u32,
+            owner,
+            find_text_capacity: 0,
+            ..FindReplace16::default()
+        }.encode();
+        write_at(&mut runtime, structure, &record);
+        assert_eq!(call_structure(&mut runtime, ordinal, structure), 0);
+        assert_eq!(extended_error(&mut runtime), 0x4001);
+        assert_bytes(&runtime, structure, &record);
+    }
+
+    let mut runtime = fresh();
+    let owner = map_owner(&mut runtime);
+    let structure = data_far(&runtime);
+    let find = structure + 80;
+    write_at(&mut runtime, find, b"a\0");
+    let record = FindReplace16 {
+        structure_size: FindReplace16::SIZE as u32,
+        owner,
+        find_text: find,
+        find_text_capacity: 2,
+        replace_text: 0,
+        replace_text_capacity: 8,
+        ..FindReplace16::default()
+    }.encode();
+    write_at(&mut runtime, structure, &record);
+    assert_eq!(call_structure(&mut runtime, 12, structure), 0);
+    assert_eq!(extended_error(&mut runtime), 0x4001);
+    assert_bytes(&runtime, structure, &record);
+    assert_bytes(&runtime, find, b"a\0");
+}
+
+#[test]
+fn choose_font_size_limits_use_signed_comparison() {
+    let mut runtime = fresh();
+    let structure = data_far(&runtime);
+    let record = ChooseFont16 {
+        structure_size: ChooseFont16::SIZE as u32,
+        flags: 0x2000,
+        min_size: 10,
+        max_size: -1,
+        ..ChooseFont16::default()
+    }.encode();
+    write_at(&mut runtime, structure, &record);
+    write_at(&mut runtime, structure + 200, &[0x3c]);
+    assert_eq!(call_structure(&mut runtime, 15, structure), 0);
+    assert_eq!(extended_error(&mut runtime), 0x2002);
+    assert_bytes(&runtime, structure, &record);
+    assert_bytes(&runtime, structure + 200, &[0x3c]);
+
+    let mut runtime = fresh();
+    let structure = data_far(&runtime);
+    let record = ChooseFont16 {
+        structure_size: ChooseFont16::SIZE as u32,
+        flags: 0x2000,
+        min_size: -1,
+        max_size: 10,
+        ..ChooseFont16::default()
+    }.encode();
+    write_at(&mut runtime, structure, &record);
+    assert_eq!(call_structure(&mut runtime, 15, structure), 0);
+    assert_eq!(extended_error(&mut runtime), 2);
+    assert_bytes(&runtime, structure, &record);
+
+    let mut runtime = fresh();
+    let structure = data_far(&runtime);
+    let record = ChooseFont16 {
+        structure_size: ChooseFont16::SIZE as u32,
+        flags: 0x80,
+        log_font: 1,
+        ..ChooseFont16::default()
+    }.encode();
+    write_at(&mut runtime, structure, &record);
+    assert_eq!(call_structure(&mut runtime, 15, structure), 0);
+    assert_eq!(extended_error(&mut runtime), 2);
+    assert_bytes(&runtime, structure, &record);
+}
+
+#[test]
+fn missing_hooks_and_print_default_return_sdk_errors() {
+    let cases = [
+        (5_u16, ChooseColor16 {
+            structure_size: ChooseColor16::SIZE as u32,
+            flags: 0x10,
+            ..ChooseColor16::default()
+        }.encode().to_vec(), 0x000b_u32),
+        (5, ChooseColor16 {
+            structure_size: ChooseColor16::SIZE as u32,
+            flags: 0x20,
+            template: 1,
+            ..ChooseColor16::default()
+        }.encode().to_vec(), 0x0004),
+        (15, ChooseFont16 {
+            structure_size: ChooseFont16::SIZE as u32,
+            flags: 0x8,
+            ..ChooseFont16::default()
+        }.encode().to_vec(), 0x000b),
+        (20, PrintDlg16 {
+            structure_size: PrintDlg16::SIZE as u32,
+            flags: 0x1000,
+            ..PrintDlg16::default()
+        }.encode().to_vec(), 0x000b),
+        (20, PrintDlg16 {
+            structure_size: PrintDlg16::SIZE as u32,
+            flags: 0x2000,
+            ..PrintDlg16::default()
+        }.encode().to_vec(), 0x000b),
+        (20, PrintDlg16 {
+            structure_size: PrintDlg16::SIZE as u32,
+            flags: 0x4000,
+            print_template_name: 1,
+            ..PrintDlg16::default()
+        }.encode().to_vec(), 0x0004),
+        (20, PrintDlg16 {
+            structure_size: PrintDlg16::SIZE as u32,
+            flags: 0x400,
+            dev_mode: 0x1234,
+            ..PrintDlg16::default()
+        }.encode().to_vec(), 0x1003),
+    ];
+    for (ordinal, record, error) in cases {
+        let mut runtime = fresh();
+        let structure = data_far(&runtime);
+        write_at(&mut runtime, structure, &record);
+        write_at(&mut runtime, structure + 200, &[0x3c]);
+        assert_eq!(call_structure(&mut runtime, ordinal, structure), 0);
+        assert_eq!(extended_error(&mut runtime), error);
+        assert_bytes(&runtime, structure, &record);
+        assert_bytes(&runtime, structure + 200, &[0x3c]);
+    }
+}
+
+#[test]
+fn color_and_find_hooks_are_not_entered() {
+    let mut runtime = fresh();
+    let hook = install_hook(&mut runtime);
+    let structure = data_far(&runtime);
+    let record = ChooseColor16 {
+        structure_size: ChooseColor16::SIZE as u32,
+        flags: 0x10,
+        hook,
+        ..ChooseColor16::default()
+    }.encode();
+    write_at(&mut runtime, structure, &record);
+    assert_eq!(call_structure(&mut runtime, 5, structure), 0);
+    assert_eq!(extended_error(&mut runtime), 0);
+    assert_bytes(&runtime, structure, &record);
+    assert_bytes(&runtime, hook, &HOOK_BYTES);
+    assert!(runtime.win16.as_ref().unwrap().callback_kinds.is_empty());
+
+    let mut runtime = fresh();
+    let hook = install_hook(&mut runtime);
+    let owner = map_owner(&mut runtime);
+    let structure = data_far(&runtime);
+    let find = structure + 80;
+    write_at(&mut runtime, find, b"a\0");
+    let record = FindReplace16 {
+        structure_size: FindReplace16::SIZE as u32,
+        owner,
+        flags: 0x100,
+        hook,
+        find_text: find,
+        find_text_capacity: 2,
+        ..FindReplace16::default()
+    }.encode();
+    write_at(&mut runtime, structure, &record);
+    assert_eq!(call_structure(&mut runtime, 11, structure), 0);
+    assert_eq!(extended_error(&mut runtime), 0);
+    assert_bytes(&runtime, structure, &record);
+    assert_bytes(&runtime, find, b"a\0");
+    assert_bytes(&runtime, hook, &HOOK_BYTES);
+    assert!(runtime.win16.as_ref().unwrap().callback_kinds.is_empty());
 }
