@@ -451,8 +451,10 @@ pub(super) fn execute(
         )),
         SetRectRgn { region, rect } => Ok(ResultValue::Bool(
             objects.native_region(region).is_some_and(|native| {
-                // SAFETY: The region is validated and retained; rectangle is an owned value.
-                unsafe { GdiSetRectRgn(native, rect.left, rect.top, rect.right, rect.bottom) != 0 }
+                let (left, top, right, bottom) = win16_rect_edges(rect);
+                // SAFETY: The region is validated and retained. Edges are
+                // scalars; an unordered horizontal span is the empty box.
+                unsafe { GdiSetRectRgn(native, left, top, right, bottom) != 0 }
             }),
         )),
         GetClipRgn { dc } => {
@@ -765,6 +767,17 @@ fn native_point(point: &Win16DrawingPoint) -> POINT {
     POINT {
         x: point.x,
         y: point.y,
+    }
+}
+
+/// Windows 3.1 `SetRectRgn` stores an empty region when `left >= right`.
+/// Win32 normalizes that reversed span, so the call uses the empty box.
+/// A reversed vertical span is passed through.
+fn win16_rect_edges(rect: Win16DrawingRect) -> (i32, i32, i32, i32) {
+    if rect.left < rect.right {
+        (rect.left, rect.top, rect.right, rect.bottom)
+    } else {
+        (0, 0, 0, 0)
     }
 }
 

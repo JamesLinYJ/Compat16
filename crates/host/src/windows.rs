@@ -133,6 +133,9 @@ mod win16_compat_calls_lzexpand;
 mod win16_compat_calls_ver;
 mod win16_dde;
 mod win16_dialog_icon_retention;
+#[cfg(test)]
+#[path = "windows/win16_gdi_region_clip_tests.rs"]
+mod win16_gdi_region_clip_tests;
 mod win16_images;
 mod win16_kernel_diagnostics;
 mod win16_keyboard;
