@@ -26,24 +26,42 @@ impl Win16Objects {
         // callback runs while these aligned Windows structures are filled.
         let kind = (crate::windows::win32_safe::get_object_type(native)) as i32;
         let info = match kind {
-            OBJ_PEN => read::<LOGPEN>(native).map(|pen| {
-                Info::Pen(Win16HostLogPen {
-                    style: pen.lopnStyle as u16,
-                    width_x: pen.lopnWidth.x as i16,
-                    width_y: pen.lopnWidth.y as i16,
+            OBJ_PEN => read::<LOGPEN>(native).and_then(|pen| {
+                // Win16 LOGPEN stores style as a UINT and the width point as
+                // signed ints. Truncating a wider host field would make
+                // GetObject succeed with a different pen.
+                let style = u16::try_from(pen.lopnStyle).ok()?;
+                let width_x = i16::try_from(pen.lopnWidth.x).ok()?;
+                let width_y = i16::try_from(pen.lopnWidth.y).ok()?;
+                Some(Info::Pen(Win16HostLogPen {
+                    style,
+                    width_x,
+                    width_y,
                     color: pen.lopnColor,
-                })
+                }))
             }),
             OBJ_FONT => {
                 let Some(font) = read_wide::<LOGFONTW>(native) else {
                     return Ok(None);
                 };
+                // Win16 LOGFONT stores these five metrics as signed ints.
+                // A host LONG outside that range must not wrap into the guest font.
+                let height = i16::try_from(font.lfHeight).ok();
+                let width = i16::try_from(font.lfWidth).ok();
+                let escapement = i16::try_from(font.lfEscapement).ok();
+                let orientation = i16::try_from(font.lfOrientation).ok();
+                let weight = i16::try_from(font.lfWeight).ok();
+                let (Some(height), Some(width), Some(escapement), Some(orientation), Some(weight)) =
+                    (height, width, escapement, orientation, weight)
+                else {
+                    return Ok(None);
+                };
                 Some(Info::Font(Win16HostLogFont {
-                    height: font.lfHeight as i16,
-                    width: font.lfWidth as i16,
-                    escapement: font.lfEscapement as i16,
-                    orientation: font.lfOrientation as i16,
-                    weight: font.lfWeight as i16,
+                    height,
+                    width,
+                    escapement,
+                    orientation,
+                    weight,
                     italic: font.lfItalic,
                     underline: font.lfUnderline,
                     strikeout: font.lfStrikeOut,
@@ -81,21 +99,33 @@ impl Win16Objects {
                 let Some(brush) = read::<LOGBRUSH>(native) else {
                     return Ok(None);
                 };
+                // Win16 LOGBRUSH stores style as a UINT and a hatch index as a
+                // signed int. A host value outside that field is not truncated.
+                let Some(style) = u16::try_from(brush.lbStyle).ok() else {
+                    return Ok(None);
+                };
                 let pattern = if brush.lbStyle == BS_PATTERN {
                     Some(self.intern_borrowed(brush.lbHatch as HGDIOBJ)?)
                 } else {
                     None
                 };
                 if matches!(brush.lbStyle, BS_SOLID | BS_NULL | BS_HATCHED | BS_PATTERN) {
+                    let hatch = if brush.lbStyle == BS_HATCHED {
+                        let Some(hatch) = i16::try_from(brush.lbHatch)
+                            .ok()
+                            .and_then(|hatch| u16::try_from(hatch).ok())
+                        else {
+                            return Ok(None);
+                        };
+                        u32::from(hatch)
+                    } else {
+                        0
+                    };
                     Some(Info::Brush {
                         brush: Win16HostLogBrush {
-                            style: brush.lbStyle as u16,
+                            style,
                             color: brush.lbColor,
-                            hatch: if brush.lbStyle == BS_HATCHED {
-                                brush.lbHatch as u32
-                            } else {
-                                0
-                            },
+                            hatch,
                         },
                         pattern,
                     })
