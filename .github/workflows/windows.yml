@@ -297,7 +297,7 @@ jobs:
             '-p runtime --lib win16_runtime::catch_throw::tests::' = 15
             '-p runtime --lib escape_' = 13
             '-p host-services --lib escape_' = 4
-            '-p runtime --lib win16_runtime::print_abort::tests::' = 8
+            '-p runtime --lib win16_runtime::print_abort::tests::' = 9
             '-p host-services --lib dde_completion_' = 5
             '-p runtime --lib metafile::tests' = 8
             '-p host-services --lib metafile_native_ -- --ignored --test-threads=1' = 9
@@ -313,7 +313,7 @@ jobs:
             '-p runtime --lib win16_runtime::ctl3d::tests::' = 5
             '-p runtime --lib win16_runtime::dispatch_user::system_parameters_tests::' = 4
             '-p runtime --lib win16_runtime::dispatch_user::window_management_tests::' = 5
-            '-p runtime --lib win16_runtime::gdi_services::scalable_font_tests::' = 5
+            '-p runtime --lib win16_runtime::gdi_services::scalable_font_tests::' = 6
             '-p runtime --lib win16_runtime::joystick::tests::' = 10
             '-p runtime --lib win16_runtime::kernel_path_info::short_path_profile_struct_tests::' = 9
             '-p runtime --lib win16_runtime::kernel_task::tests::' = 6
