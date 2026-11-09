@@ -876,6 +876,10 @@ pub(crate) struct Win16State {
     next_window_handle: u16,
     next_window_creation: u64,
     loaded_segment_handles: BTreeMap<u16, u16>,
+    /// GlobalLock counts for module segments that do not live in GlobalHeap.
+    /// Keyed by the segment selector so the selector and its movable handle
+    /// share one count. Heap-backed segments store the count on the block.
+    module_segment_locks: BTreeMap<u16, u16>,
     discarded_handles: BTreeSet<u16>,
     reported_global_flags: BTreeSet<u16>,
     reported_global_realloc_flags: BTreeSet<u16>,

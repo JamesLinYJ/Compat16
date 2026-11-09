@@ -194,6 +194,9 @@ impl Win16State {
             return u32::from(block.fix_count.saturating_add(block.wire_count)
                 .min(GMEM_LOCKCOUNT_MASK));
         }
+        if let Some(target) = self.module_global_target(guest_handle) {
+            return u32::from(self.module_global_flags(&target));
+        }
         let Some(identity) = self.global_handles.get(&guest_handle).copied() else {
             return u32::from(GMEM_INVALID_HANDLE);
         };
@@ -819,8 +822,8 @@ impl Win16State {
         if self.task_handles.values().any(|handle| *handle == guest_handle) {
             return Ok(u32::from(guest_handle) << 16);
         }
-        if let Some((selector, _)) = self.module_memory_info(guest_handle) {
-            return Ok(u32::from(selector) << 16);
+        if let Some(target) = self.module_global_target(guest_handle) {
+            return self.lock_module_global_target(&target);
         }
         if self.dos_global_blocks.contains_key(&guest_handle) {
             let Some(selector) = self.global_selectors.get(&guest_handle).copied() else {
@@ -859,6 +862,9 @@ impl Win16State {
         if self.dos_global_blocks.contains_key(&guest_handle) {
             return Ok(1);
         }
+        if let Some(target) = self.module_global_target(guest_handle) {
+            return self.unlock_module_global_target(&target);
+        }
         let Some(&handle) = self.global_handles.get(&guest_handle) else { return Ok(0); };
         match self.heap.info(handle) {
             Ok(info) if !info.movable => return Ok(1),
@@ -891,8 +897,181 @@ impl Win16State {
             Err(error) => Err(crate::runtime_error(error)),
         }
     }
+
+    fn module_global_flags(&self, target: &ModuleGlobalTarget) -> u16 {
+        let count = if let Some(identity) = target.allocation {
+            match self.heap.global_flags(identity) {
+                Ok(flags) => flags,
+                Err(_) => return GMEM_INVALID_HANDLE,
+            }
+        } else {
+            self.module_segment_locks.get(&target.selector).copied().unwrap_or(0)
+                .min(GMEM_LOCKCOUNT_MASK)
+        };
+        let discardable = if target.discardable { GMEM_DISCARDABLE } else { 0 };
+        count | discardable
+    }
+
+    fn lock_module_global_target(
+        &mut self, target: &ModuleGlobalTarget,
+    ) -> Result<u32, RuntimeError> {
+        let Some(pointer) = self.present_module_selector(target.selector) else {
+            return Ok(0);
+        };
+        if !target.count_locks {
+            return Ok(pointer);
+        }
+        if let Some(identity) = target.allocation {
+            match self.heap.enable_module_segment_lock_count(identity) {
+                Ok(()) => {}
+                Err(Win16Error::InvalidHandle | Win16Error::StaleHandle) => return Ok(0),
+                Err(error) => return Err(crate::runtime_error(error).with_context(
+                    "counting a Win16 module-segment GlobalLock")),
+            }
+            match self.heap.global_lock(identity) {
+                Ok(()) => Ok(pointer),
+                Err(Win16Error::InvalidHandle | Win16Error::SelectorTableFull
+                    | Win16Error::OutOfMemory | Win16Error::LockCountOverflow) => Ok(0),
+                Err(error) => Err(crate::runtime_error(error).with_context(
+                    "counting a Win16 module-segment GlobalLock")),
+            }
+        } else {
+            let count = self.module_segment_locks.get(&target.selector).copied().unwrap_or(0);
+            if count == u16::MAX {
+                return Ok(0);
+            }
+            self.module_segment_locks.insert(target.selector, count + 1);
+            Ok(pointer)
+        }
+    }
+
+    fn unlock_module_global_target(
+        &mut self, target: &ModuleGlobalTarget,
+    ) -> Result<u16, RuntimeError> {
+        if !target.count_locks {
+            // Programmer's Reference, Vol. 2, p. 520: fixed memory is unchanged
+            // and the result is nonzero. A movable segment whose GlobalLock
+            // does not count stays at zero.
+            return Ok(u16::from(target.fixed_unlock));
+        }
+        if let Some(identity) = target.allocation {
+            return match self.heap.global_unlock(identity) {
+                Ok(remaining) => Ok(u16::from(remaining)),
+                Err(Win16Error::InvalidHandle | Win16Error::LockUnderflow
+                    | Win16Error::StaleHandle) => Ok(0),
+                Err(error) => Err(crate::runtime_error(error).with_context(
+                    "releasing a Win16 module-segment GlobalLock")),
+            };
+        }
+        let count = self.module_segment_locks.get(&target.selector).copied().unwrap_or(0);
+        if count == 0 {
+            return Ok(0);
+        }
+        let next = count - 1;
+        if next == 0 {
+            self.module_segment_locks.remove(&target.selector);
+        } else {
+            self.module_segment_locks.insert(target.selector, next);
+        }
+        Ok(u16::from(next != 0))
+    }
+
+    fn present_module_selector(&self, selector: u16) -> Option<u32> {
+        let reference = self.selectors.reference(Selector(selector)).ok()?;
+        let descriptor = self.selectors.describe(reference).ok()?;
+        descriptor.present.then_some(u32::from(selector) << 16)
+    }
+
+    /// Resolve a module handle, instance, segment selector, or movable segment
+    /// handle. KB Q61285 counts GlobalLock for the automatic data segment and
+    /// for discardable segments. Other protected-mode objects keep a pointer
+    /// without a GlobalLock count. A retired module's still-resident segment
+    /// remains unlockable.
+    fn module_global_target(&self, input: u16) -> Option<ModuleGlobalTarget> {
+        if input == 0 {
+            return None;
+        }
+        if let Some(owner) = self.modules.by_handle(input) {
+            return self.module_record_global_target(owner, input, false);
+        }
+        self.modules.records.iter().find_map(|(&handle, record)| {
+            (record.state == ModuleState::Retired)
+                .then(|| self.module_record_global_target(handle, input, true))
+                .flatten()
+        })
+    }
+
+    fn module_record_global_target(
+        &self, owner: u16, input: u16, retired_segment_only: bool,
+    ) -> Option<ModuleGlobalTarget> {
+        let record = self.modules.records.get(&owner)?;
+        if !retired_segment_only && input == record.handle {
+            let allocation = record.allocations.first()?;
+            return Some(ModuleGlobalTarget {
+                selector: allocation.selector.raw().0,
+                allocation: Some(allocation.handle),
+                count_locks: false,
+                discardable: false,
+                fixed_unlock: true,
+            });
+        }
+        if !retired_segment_only
+            && record.builtin_data_selector.is_some_and(|selector| selector.raw().0 == input)
+        {
+            // A builtin provider's data segment is its DGROUP.
+            return Some(ModuleGlobalTarget {
+                selector: input,
+                allocation: None,
+                count_locks: true,
+                discardable: false,
+                fixed_unlock: false,
+            });
+        }
+        let loaded = record.loaded.as_ref()?;
+        let definition = record.definition.as_ref()?;
+        let segment = loaded.segments.iter().find(|segment| {
+            segment.selector.0 == input
+                || self.loaded_segment_handles.get(&segment.selector.0) == Some(&input)
+        })?;
+        let metadata = definition.segments.iter()
+            .find(|metadata| metadata.number == segment.number)?;
+        let discardable = metadata.flags & NE_SEGMENT_DISCARDABLE != 0;
+        let movable = metadata.flags & NE_SEGMENT_MOVEABLE != 0;
+        let automatic = definition.header.automatic_data_segment == segment.number
+            && definition.header.automatic_data_segment != 0;
+        let count_locks = automatic || discardable;
+        let allocation = record.allocations.iter()
+            .find(|allocation| allocation.selector.raw().0 == segment.selector.0)
+            .map(|allocation| allocation.handle);
+        Some(ModuleGlobalTarget {
+            selector: segment.selector.0,
+            allocation,
+            count_locks,
+            discardable,
+            fixed_unlock: !movable && !count_locks,
+        })
+    }
 }
+
+/// One guest identity that names a loaded module object.
+struct ModuleGlobalTarget {
+    selector: u16,
+    allocation: Option<GlobalHandle>,
+    /// KB Q61285: DGROUP and discardable segments.
+    count_locks: bool,
+    discardable: bool,
+    /// Fixed, non-counted memory: GlobalUnlock returns nonzero and changes nothing.
+    fixed_unlock: bool,
+}
+
+// Public NE segment-table flags. Microsoft Windows 3.1 executable format.
+const NE_SEGMENT_MOVEABLE: u16 = 0x0010;
+const NE_SEGMENT_DISCARDABLE: u16 = 0x1000;
 
 #[cfg(test)]
 #[path = "win16_global_fix_void_tests.rs"]
 mod fix_void_tests;
+
+#[cfg(test)]
+#[path = "win16_module_segment_lock_tests.rs"]
+mod module_segment_lock_tests;

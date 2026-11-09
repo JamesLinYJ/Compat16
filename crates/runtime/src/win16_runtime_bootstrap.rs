@@ -293,6 +293,7 @@ impl Win16State {
             pending_kernel_diagnostic_effects: Vec::new(),
             window_teardown_state: super::WindowTeardownState::Live,
             loaded_segment_handles,
+            module_segment_locks: BTreeMap::new(),
             discarded_handles: BTreeSet::new(),
             reported_global_flags: BTreeSet::new(),
             reported_global_realloc_flags: BTreeSet::new(),

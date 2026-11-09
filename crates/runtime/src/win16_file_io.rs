@@ -171,7 +171,11 @@ impl Win16State {
     pub(super) fn seek_file(
         &self, file: u16, offset: i32, origin: u16, host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        let result = if self.tasks.current()
+        // Programmer's Reference, Vol. 2, _llseek: nOrigin must be 0, 1, or 2.
+        // Any other value fails and does not move the file pointer.
+        let result = if origin > 2 {
+            Ok(u32::MAX)
+        } else if self.tasks.current()
             .is_some_and(|owner| self.reject_network_print_hfile_io(owner, file))
         {
             Ok(u32::MAX)
@@ -211,5 +215,20 @@ impl Win16State {
         self.preflight_text_write(memory, destination, count as usize)?;
         let bytes = self.read_text_bytes(memory, source, count as usize)?;
         self.write_text_bytes(memory, destination, &bytes)
+    }
+}
+
+#[cfg(test)]
+mod seek_origin_tests {
+    use super::super::test_support::{NoHost, tiny_ne_executable};
+    use crate::Runtime;
+
+    #[test]
+    fn llseek_rejects_an_origin_outside_zero_through_two() {
+        let mut runtime = Runtime::load(&tiny_ne_executable(), &[], br"C:\SEEK.NE").unwrap();
+        let state = runtime.win16.as_mut().unwrap();
+        for origin in [3_u16, 0x7fff, 0x8000, 0xffff] {
+            assert_eq!(state.seek_file(1, 4, origin, &mut NoHost).unwrap(), u32::MAX);
+        }
     }
 }

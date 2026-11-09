@@ -120,6 +120,11 @@ struct Block {
     /// count; managed objects can also retain locks across discard transitions.
     global_lock_count: u16,
     discard_transition_locks: bool,
+    /// KB Q61285: protected-mode GlobalLock still counts a module's automatic
+    /// data segment, and discardable segments, even when this block was not
+    /// allocated with GMEM_DISCARDABLE. The loader's internal pin stays out of
+    /// GlobalFlags.
+    count_module_locks: bool,
     /// Guest GlobalFix references, independent of GlobalLock/GlobalUnlock.
     fix_count: u16,
     /// Win16 GlobalPageLock references are allocator pins, not GlobalFlags
