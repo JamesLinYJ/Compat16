@@ -12,7 +12,6 @@ use win16_abi::toolhelp_abi::{
 use win16_abi::{ExportLookupTarget, Win16Argument, lookup_export};
 
 const FRAME_FAR: u16 = 0;
-const FRAME_NEAR: u16 = 1;
 const OUTPUT_OFFSET: u16 = 0x200;
 
 fn load() -> Runtime {
@@ -140,11 +139,13 @@ fn global_entry_module_uses_the_callers_return_selector() {
 }
 
 #[test]
-fn stack_trace_next_distinguishes_near_and_far_frames() {
+fn stack_trace_next_stops_on_an_unmarked_frame_and_walks_a_far_frame() {
     let mut runtime = load();
     let stack = runtime.cpu.regs.ss;
     let code = runtime.cpu.regs.cs;
-    write_words(&mut runtime, stack, 0x40, &[0x0060, 0x0010]);
+    // Even saved BP, with a return IP that is executable in the current CS.
+    // That layout is also a legal unmarked far frame, so it must not succeed.
+    write_words(&mut runtime, stack, 0x40, &[0x0060, 0x0010, 0xBEEF]);
     write_words(&mut runtime, stack, 0x60, &[0x0000]);
     let output = prepare_output(&mut runtime, stack, StackTraceEntry16::SIZE as u32);
     assert_eq!(
@@ -153,16 +154,13 @@ fn stack_trace_next_distinguishes_near_and_far_frames() {
         ).unwrap(),
         1,
     );
-    assert_eq!(state_next(&mut runtime, output), 1);
-    let (dw_size, near) = read_stack(&runtime, stack);
-    assert_eq!(dw_size, StackTraceEntry16::SIZE as u32);
-    assert_eq!(near.flags, FRAME_NEAR);
-    assert_eq!(near.code_segment, code);
-    assert_eq!(near.instruction_pointer, 0x0010);
-    assert_eq!(near.base_pointer, 0x0060);
-    let preserved = stack_bytes(&runtime, stack);
+    let seeded = stack_bytes(&runtime, stack);
     assert_eq!(state_next(&mut runtime, output), 0);
-    assert_eq!(stack_bytes(&runtime, stack), preserved);
+    assert_eq!(stack_bytes(&runtime, stack), seeded);
+    let (_, unchanged) = read_stack(&runtime, stack);
+    assert_eq!(unchanged.code_segment, code);
+    assert_eq!(unchanged.instruction_pointer, 0);
+    assert_eq!(unchanged.base_pointer, 0x40);
 
     write_words(&mut runtime, stack, 0x40, &[0x0061, 0x0020, code]);
     assert_eq!(
