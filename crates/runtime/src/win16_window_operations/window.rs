@@ -2,9 +2,15 @@
 
 use super::*;
 
-// WinUser.h's documented adjacent-window selectors accepted by GetNextWindow.
+// Windows 3.1 WINDOWS.H relationships. GetWindow accepts this set; an invalid
+// fuRel returns NULL (Programmer's Reference, Volume 2). GetNextWindow accepts
+// only the two adjacent-window selectors.
+const GW_HWNDFIRST: u16 = 0;
+const GW_HWNDLAST: u16 = 1;
 const GW_HWNDNEXT: u16 = 2;
 const GW_HWNDPREV: u16 = 3;
+const GW_OWNER: u16 = 4;
+const GW_CHILD: u16 = 5;
 
 impl Win16State {
     pub(super) fn begin_window_request(
@@ -278,17 +284,34 @@ impl Win16State {
             ),
             Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetWindow { window, command },
-            )) => self.submit_value_call(
-                registers,
-                memory,
-                host,
-                Win16WindowCall::GetWindow {
-                    window: self.native_window(window),
+            )) => {
+                // Volume 2 returns NULL for an unrecognized relationship.
+                // Win32's GW_ENABLEDPOPUP is outside the Windows 3.1 set.
+                if !matches!(
                     command,
-                },
-                return_to,
-                return_kind,
-            ),
+                    GW_HWNDFIRST | GW_HWNDLAST | GW_HWNDNEXT | GW_HWNDPREV | GW_OWNER | GW_CHILD
+                ) {
+                    return self.complete_return(
+                        registers,
+                        return_to.0,
+                        return_to.1,
+                        return_to.2,
+                        0,
+                        return_kind,
+                    );
+                }
+                self.submit_value_call(
+                    registers,
+                    memory,
+                    host,
+                    Win16WindowCall::GetWindow {
+                        window: self.native_window(window),
+                        command,
+                    },
+                    return_to,
+                    return_kind,
+                )
+            }
             Request::User(win16_abi::Win16UserRequest::Window(
                 win16_abi::Win16UserWindowRequest::GetTopWindow { window },
             )) => self.submit_value_call(
