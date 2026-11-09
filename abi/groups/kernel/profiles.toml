@@ -24,7 +24,7 @@ params = [
   { name = "key", type = "NullableFarString" },
   { name = "default_value", type = "NullableFarString" },
   { name = "output_buffer", type = "FarOutputBuffer" },
-  { name = "capacity", type = "U16" },
+  { name = "capacity", type = "I16" },
 ]
 
 [[exports]]
@@ -51,7 +51,7 @@ params = [
   { name = "key", type = "NullableFarString" },
   { name = "default_value", type = "NullableFarString" },
   { name = "output_buffer", type = "FarOutputBuffer" },
-  { name = "capacity", type = "U16" },
+  { name = "capacity", type = "I16" },
   { name = "filename", type = "NullableFarString" },
 ]
 

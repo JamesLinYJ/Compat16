@@ -55,7 +55,7 @@ pub(super) fn decode(
                         selectors,
                         memory,
                     )?,
-                    output_buffer: checked_output_buffer(
+                    output_buffer: signed_profile_buffer(
                         dword_argument(arguments, 3)?,
                         word_argument(arguments, 4)?,
                         selectors,
@@ -87,7 +87,7 @@ pub(super) fn decode(
                         selectors,
                         memory,
                     )?,
-                    output_buffer: checked_output_buffer(
+                    output_buffer: signed_profile_buffer(
                         dword_argument(arguments, 3)?,
                         word_argument(arguments, 4)?,
                         selectors,
@@ -188,4 +188,19 @@ pub(super) fn decode(
         ),
         _ => return Err(Win16Error::InvalidRange),
     })
+}
+
+/// `cbReturnBuffer` is a signed int. A non-positive size copies no bytes and
+/// does not read the guest pointer, so the caller's buffer stays unchanged.
+fn signed_profile_buffer(
+    far: u32,
+    capacity: u16,
+    selectors: &SelectorTable,
+    memory: &impl GuestMemory,
+) -> Result<Option<crate::Win16OutputBuffer>, Win16Error> {
+    let signed = capacity as i16;
+    if signed <= 0 {
+        return Ok(None);
+    }
+    checked_output_buffer(far, signed as u16, selectors, memory).map(Some)
 }
