@@ -955,8 +955,21 @@ impl Win16State {
             return Ok(u16::from(target.fixed_unlock));
         }
         if let Some(identity) = target.allocation {
+            let before = self.heap.info(identity).map_err(crate::runtime_error)?.lock_count;
             return match self.heap.global_unlock(identity) {
-                Ok(remaining) => Ok(u16::from(remaining)),
+                Ok(remaining) => {
+                    let after = self.heap.info(identity).map_err(crate::runtime_error)?.lock_count;
+                    // FreeLibrary keeps a locked library as a segment-lock root
+                    // and clears module_reap_pending when nothing else is
+                    // reapable yet. UnlockSegment already schedules the next
+                    // reap when its lock drops. A heap-backed GlobalUnlock has
+                    // to do the same, or the retired library and its
+                    // dependencies stay until some unrelated call.
+                    if after < before {
+                        self.module_reap_pending = true;
+                    }
+                    Ok(u16::from(remaining))
+                }
                 Err(Win16Error::InvalidHandle | Win16Error::LockUnderflow
                     | Win16Error::StaleHandle) => Ok(0),
                 Err(error) => Err(crate::runtime_error(error).with_context(

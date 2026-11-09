@@ -253,3 +253,126 @@ fn heap_backed_discardable_segment_counts_on_its_block() {
     assert_ne!(state.global_lock(plain, &runtime.memory).unwrap(), 0);
     assert_eq!(state.kernel_global_flags(plain) & 0xff, 0);
 }
+
+#[test]
+fn global_unlock_reaps_a_library_freed_while_its_dgroup_was_locked() {
+    let mut runtime = stock();
+    let caller_cs = runtime.cpu.regs.cs;
+    let (library, dependency, data_selector, code_selector) = {
+        let state = runtime.win16.as_mut().unwrap();
+        let header = ModuleAllocation::allocate(
+            &mut state.heap, &mut state.selectors, &mut runtime.memory, 64, false,
+        ).unwrap();
+        let code = ModuleAllocation::allocate(
+            &mut state.heap, &mut state.selectors, &mut runtime.memory, 64, true,
+        ).unwrap();
+        let data = ModuleAllocation::allocate(
+            &mut state.heap, &mut state.selectors, &mut runtime.memory, 128, false,
+        ).unwrap();
+        let dependency_header = ModuleAllocation::allocate(
+            &mut state.heap, &mut state.selectors, &mut runtime.memory, 64, false,
+        ).unwrap();
+        let code_selector = code.selector.raw().0;
+        let data_selector = data.selector.raw().0;
+        let library = header.selector.raw().0;
+        let dependency = dependency_header.selector.raw().0;
+        let mut definition = state.modules.records[&state.modules.main].definition.clone().unwrap();
+        definition.header.automatic_data_segment = 2;
+        definition.header.flags &= !0x8000;
+        let mut loaded = state.modules.records[&state.modules.main].loaded.clone().unwrap();
+        loaded.code_entry = None;
+        let mut code_segment = loaded.segments.iter().find(|segment| segment.number == 1).unwrap().clone();
+        let mut data_segment = loaded.segments.iter().find(|segment| segment.number == 2).unwrap().clone();
+        code_segment.selector = code.selector.raw();
+        code_segment.memory_size = 64;
+        data_segment.selector = data.selector.raw();
+        data_segment.memory_size = 128;
+        loaded.segments = vec![code_segment, data_segment];
+        state.loaded_segment_handles.insert(code_selector, code_selector);
+        state.loaded_segment_handles.insert(data_selector, data_selector);
+        state.modules.records.insert(dependency, ModuleRecord {
+            handle: dependency,
+            instance: dependency,
+            path: b"LOCKDEP.DLL".to_vec(),
+            name: b"LOCKDEP".to_vec(),
+            builtin: false,
+            pinned: false,
+            explicit_refs: 0,
+            continuation_owner_refs: 0,
+            state: ModuleState::Ready,
+            deps: Vec::new(),
+            definition: None,
+            loaded: None,
+            image: Vec::new(),
+            allocations: vec![dependency_header],
+            builtin_data_selector: None,
+            builtin_data_exports: None,
+            external_application: None,
+            wep_called: false,
+            resources_retirement_deferred: false,
+        });
+        state.modules.records.insert(library, ModuleRecord {
+            handle: library,
+            instance: library,
+            path: b"LOCKSEG.DLL".to_vec(),
+            name: b"LOCKSEG".to_vec(),
+            builtin: false,
+            pinned: false,
+            explicit_refs: 1,
+            continuation_owner_refs: 0,
+            state: ModuleState::Ready,
+            deps: vec![dependency],
+            definition: Some(definition),
+            loaded: Some(loaded),
+            image: Vec::new(),
+            allocations: vec![header, code, data],
+            builtin_data_selector: None,
+            builtin_data_exports: None,
+            external_application: None,
+            wep_called: false,
+            resources_retirement_deferred: false,
+        });
+        assert_ne!(state.global_lock(data_selector, &runtime.memory).unwrap(), 0);
+        assert_eq!(state.kernel_global_flags(data_selector) & 0xff, 1);
+        (library, dependency, data_selector, code_selector)
+    };
+
+    let return_to = (caller_cs, runtime.cpu.regs.ip(), u32::from(runtime.cpu.regs.sp()));
+    runtime.win16.as_mut().unwrap().begin_free_library(
+        library, &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut NoHost, return_to,
+    ).unwrap();
+    {
+        let state = runtime.win16.as_ref().unwrap();
+        assert!(state.module_callbacks.is_empty());
+        assert_eq!(state.modules.records[&library].state, ModuleState::Retired);
+        assert!(state.modules.records.contains_key(&dependency));
+    }
+    // A safe point whose code root is still the library finds nothing reapable
+    // and clears the flag. Leaving that code does not schedule another reap.
+    runtime.cpu.regs.cs = code_selector;
+    runtime.win16.as_mut().unwrap().reap_modules(
+        &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut NoHost,
+    ).unwrap();
+    runtime.cpu.regs.cs = caller_cs;
+    {
+        let state = runtime.win16.as_ref().unwrap();
+        assert!(!state.module_reap_pending);
+        assert!(state.modules.records.contains_key(&library));
+        assert!(state.modules.records.contains_key(&dependency));
+    }
+    runtime.win16.as_mut().unwrap().reap_modules(
+        &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut NoHost,
+    ).unwrap();
+    assert!(runtime.win16.as_ref().unwrap().modules.records.contains_key(&library));
+
+    assert_eq!(runtime.win16.as_mut().unwrap().global_unlock(data_selector).unwrap(), 0);
+    assert!(runtime.win16.as_ref().unwrap().module_reap_pending);
+    runtime.win16.as_mut().unwrap().reap_modules(
+        &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory, &mut NoHost,
+    ).unwrap();
+    let state = runtime.win16.as_ref().unwrap();
+    assert!(!state.modules.records.contains_key(&library));
+    assert!(!state.modules.records.contains_key(&dependency));
+    assert!(state.selectors.reference(Selector(data_selector)).is_err());
+    assert!(state.selectors.reference(Selector(code_selector)).is_err());
+}
