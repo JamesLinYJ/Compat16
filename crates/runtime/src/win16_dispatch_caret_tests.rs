@@ -312,8 +312,16 @@ fn caret_window_targets_distinguish_null_mapped_and_invalid() {
 }
 
 #[test]
-fn caret_get_pos_writes_exact_point16_only_on_native_success() {
-    for result in [None, Some(Win16HostPoint { x: -32769, y: 32768 })] {
+fn caret_get_pos_writes_exact_point16_only_when_both_coordinates_fit() {
+    let fitting = Some(Point16 { x: i16::MIN, y: i16::MAX });
+    let cases = [
+        (None, None),
+        (Some(Win16HostPoint { x: -32769, y: 32768 }), None),
+        (Some(Win16HostPoint { x: 32768, y: 1 }), None),
+        (Some(Win16HostPoint { x: -1, y: -32769 }), None),
+        (Some(Win16HostPoint { x: i32::from(i16::MIN), y: i32::from(i16::MAX) }), fitting),
+    ];
+    for (result, written) in cases {
         let mut runtime = fixture();
         let original = [0x91, 0x92, 0x93, 0x94, 0xa1, 0xa2, 0xa3, 0xa4];
         write_output(&mut runtime, original);
@@ -322,7 +330,7 @@ fn caret_get_pos_writes_exact_point16_only_on_native_success() {
         let mut host = CaretHost { result: Some(Win16WindowCallResult::Point(result)), ..Default::default() };
         dispatch(&mut runtime, &mut host).unwrap();
         let mut expected = original;
-        if result.is_some() { expected[..4].copy_from_slice(&Point16 { x: 32767, y: -32768 }.encode()); }
+        if let Some(point) = written { expected[..4].copy_from_slice(&point.encode()); }
         assert_eq!(read_output(&runtime), expected);
         assert_eq!(host.calls, [CaretCall::GetPos]);
         assert_eq!(host.consumed, 1);

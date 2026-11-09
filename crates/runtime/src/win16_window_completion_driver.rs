@@ -606,14 +606,22 @@ impl Win16State {
                             WindowProjectionJournal::Api(WindowApiProjectionJournal::WindowCall(
                                 owner,
                             )),
-                        ) => super::completion_api::finish_window_call(
-                            call,
-                            result,
-                            owner,
-                            &mut access,
-                            memory,
-                            host,
-                        ),
+                        ) => {
+                            let narrowed = if call.caret_point {
+                                super::super::window_operations::caret_point_for_guest(result)
+                            } else {
+                                None
+                            };
+                            let result = narrowed.as_ref().unwrap_or(result);
+                            super::completion_api::finish_window_call(
+                                call,
+                                result,
+                                owner,
+                                &mut access,
+                                memory,
+                                host,
+                            )
+                        }
                         (
                             WindowReturn::WindowData(continuation),
                             Win16WindowResult::WindowCall(

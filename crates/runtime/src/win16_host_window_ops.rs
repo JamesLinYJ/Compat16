@@ -272,6 +272,8 @@ pub(crate) struct Win16WindowCallContinuation {
     /// Marks explicit DestroyWindow, including a null guest argument. Actual
     /// retirement is authorized only by the host's exact incarnation receipts.
     pub destroyed_guest_window: Option<u16>,
+    /// GetCaretPos only. A coordinate outside signed 16-bit is not stored.
+    pub caret_point: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
