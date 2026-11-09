@@ -1120,7 +1120,14 @@ impl RuntimeHost for WindowsHost {
     }
     fn win16_get_key_state(&mut self, key: i32, asynchronous: bool) -> Result<i16, RuntimeError> {
         if asynchronous {
-            Ok(win16_common::get_async_key_state(key))
+            // GetAsyncKeyState reports one of the 256 virtual keys at the
+            // call. A code Appendix B leaves undefined has no 3.1 key, so the
+            // signed word is 0 rather than a later host key.
+            if runtime::win31_virtual_key(key) {
+                Ok(win16_common::get_async_key_state(key))
+            } else {
+                Ok(0)
+            }
         } else {
             self.win16_windows.get_key_state(key)
         }
