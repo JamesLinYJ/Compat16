@@ -879,24 +879,28 @@ fn message_with_invocation(
             }
         }
         Win16HostMessage::GetTextLength => {
-            let _text_context = super::win16_window_text_context::enter(
-                state,
-                window,
-                hwnd,
-                super::win16_window_text_context::WindowTextCall::GetTextLength,
-            )?;
-            let native = invoke_message(invocation, hwnd, WM_GETTEXTLENGTH, 0, 0);
-            let value = if let Some(guest_result) =
-                super::win16_window_text_context::recorded_guest_text_length_result(
-                    state, window, hwnd,
-                ) {
-                guest_result as i32 as u32
-            } else {
-                super::win16_window_text_context::native_text_length_upper_bound(
+            let native_value = {
+                let _text_context = super::win16_window_text_context::enter(
                     state,
-                    native.value as i32,
-                )? as u32
+                    window,
+                    hwnd,
+                    super::win16_window_text_context::WindowTextCall::GetTextLength,
+                )?;
+                let native = invoke_message(invocation, hwnd, WM_GETTEXTLENGTH, 0, 0);
+                if let Some(guest_result) =
+                    super::win16_window_text_context::recorded_guest_text_length_result(
+                        state, window, hwnd,
+                    )
+                {
+                    return Ok(Some(Win16HostMessageResult {
+                        dialog_result: None,
+                        value: guest_result as i32 as u32,
+                        output: Output::None,
+                    }));
+                }
+                native.value
             };
+            let value = default_text_byte_length(state, invocation, hwnd, native_value)?;
             Win16HostMessageResult {
                 dialog_result: None,
                 value,
@@ -1221,6 +1225,87 @@ fn default_creation(
         w_param,
         &mut native as *mut CREATESTRUCTW as isize,
     )))
+}
+
+/// Byte length for a default WM_GETTEXTLENGTH that did not reenter the guest.
+/// Send, Dispatch, and DefDlgProc stay off a second guest delivery: DefDlgProcW
+/// forwards WM_GETTEXT to the dialog procedure before applying its default.
+fn default_text_byte_length(
+    state: &Rc<RefCell<WorkerState>>,
+    invocation: MessageInvocation,
+    hwnd: HWND,
+    native_value: u32,
+) -> Result<u32, RuntimeError> {
+    let upper_bound = || {
+        super::win16_window_text_context::native_text_length_upper_bound(state, native_value as i32)
+            .map(|length| length as u32)
+    };
+    if matches!(
+        invocation,
+        MessageInvocation::Send | MessageInvocation::Dispatch { .. }
+    ) {
+        return upper_bound();
+    }
+    let native_length = native_value as i32;
+    if native_length < 0 {
+        return upper_bound();
+    }
+    if native_length == 0 {
+        return Ok(0);
+    }
+    let Ok(units) = usize::try_from(native_length) else {
+        return upper_bound();
+    };
+    if super::win16_window_text_context::native_text_exceeds_checked_copy(units) {
+        return upper_bound();
+    }
+    let Some(capacity) = units
+        .checked_add(1)
+        .and_then(|count| i32::try_from(count).ok())
+    else {
+        return upper_bound();
+    };
+    let mut output = crate::windows::guest_text::GuestTextBuffer::acquire();
+    if output.try_reserve_exact(capacity as usize).is_err() {
+        return upper_bound();
+    }
+    output.resize(capacity as usize, 0);
+    let count = if matches!(invocation, MessageInvocation::DialogDefault) {
+        // DefDlgProcW(WM_GETTEXT) calls the guest dialog procedure. Read the
+        // default window text instead so its handler cannot reenter this query.
+        let Ok(count) = super::win16_window_text::copy_default_window_text(
+            hwnd,
+            &mut output[..capacity as usize],
+        ) else {
+            return upper_bound();
+        };
+        count as isize
+    } else {
+        invoke_native_message(
+            invocation,
+            hwnd,
+            WM_GETTEXT,
+            capacity as usize,
+            output.as_mut_ptr() as usize as isize,
+        )
+    };
+    if count < 0 {
+        return upper_bound();
+    }
+    let Ok(length) = usize::try_from(count) else {
+        return upper_bound();
+    };
+    if length == 0 {
+        return if output.first() == Some(&0) {
+            Ok(0)
+        } else {
+            upper_bound()
+        };
+    }
+    if length >= output.len() || output[..length].contains(&0) || output[length] != 0 {
+        return upper_bound();
+    }
+    super::win16_window_text_context::guest_text_byte_length(state, &output[..length])
 }
 
 pub(super) fn invoke_message(
