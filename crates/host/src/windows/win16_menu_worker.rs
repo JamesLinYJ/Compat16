@@ -461,7 +461,13 @@ pub(super) fn execute(
             // SAFETY: GetMenuItemCount takes a menu handle and no pointers.
             let count =
                 native_menu(state, menu).map_or(-1, |native| unsafe { GetMenuItemCount(native) });
-            Ok(Win16MenuResult::ItemCount(count as i16))
+            // Win16 success is 0..=32767. -1 is the documented failure; any
+            // other value outside that range is not a wrapped count.
+            let count = i16::try_from(count)
+                .ok()
+                .filter(|count| *count >= 0)
+                .unwrap_or(-1);
+            Ok(Win16MenuResult::ItemCount(count))
         }
         Operation::GetMenuItemRect { window, menu, item } => {
             let hwnd = match window {

@@ -272,13 +272,17 @@ impl Win16State {
                             }
                             *phase =
                                 super::operation_frame::WindowTextLengthProjectionPhase::Complete;
-                            let length = u32::try_from(*value).map_err(|_| {
-                                RuntimeError::new(
+                            // GetWindowTextLength returns a signed 16-bit int. A host
+                            // length outside that range must not wrap into AX.
+                            match i16::try_from(*value) {
+                                Ok(length) if length >= 0 => {
+                                    Ok((u32::from(length as u16), Win16ReturnKind::Word))
+                                }
+                                _ => Err(RuntimeError::new(
                                     Kind::HostFailure,
-                                    "native window text length returned a negative value",
-                                )
-                            })?;
-                            Ok((length, Win16ReturnKind::Word))
+                                    "native window text length does not fit in a signed 16-bit int",
+                                )),
+                            }
                         }
                         (
                             WindowReturn::Icon { .. },
@@ -602,14 +606,22 @@ impl Win16State {
                             WindowProjectionJournal::Api(WindowApiProjectionJournal::WindowCall(
                                 owner,
                             )),
-                        ) => super::completion_api::finish_window_call(
-                            call,
-                            result,
-                            owner,
-                            &mut access,
-                            memory,
-                            host,
-                        ),
+                        ) => {
+                            let narrowed = if call.caret_point {
+                                super::super::window_operations::caret_point_for_guest(result)
+                            } else {
+                                None
+                            };
+                            let result = narrowed.as_ref().unwrap_or(result);
+                            super::completion_api::finish_window_call(
+                                call,
+                                result,
+                                owner,
+                                &mut access,
+                                memory,
+                                host,
+                            )
+                        }
                         (
                             WindowReturn::WindowData(continuation),
                             Win16WindowResult::WindowCall(

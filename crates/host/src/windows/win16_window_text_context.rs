@@ -169,8 +169,8 @@ pub(super) fn current(
 }
 
 /// Remember an exact Win16 byte-count returned from a guest text procedure.
-/// A surrounding W GetTextLength operation must return that original value to
-/// the guest, while a native-origin W query may use it as a safe upper bound.
+/// A surrounding GetTextLength operation must return that original value.
+/// A native-origin query converts the UTF-16 text to the same guest byte length.
 pub(super) fn record_guest_text_length_result(
     state: &Rc<RefCell<WorkerState>>,
     window: Win16HostWindow,
@@ -274,6 +274,36 @@ pub(super) fn maximum_guest_character_bytes(
         RuntimeError::with_source(
             Kind::InternalInvariant,
             "convert the guest code-page maximum character width",
+            error,
+        )
+    })
+}
+
+pub(super) fn native_text_exceeds_checked_copy(units: usize) -> bool {
+    units > MAX_NATIVE_TEXT_UNITS
+}
+
+/// Exact guest ANSI/DBCS byte length of a validated UTF-16 prefix. The count
+/// excludes a terminator, matching GetWindowTextLength.
+pub(super) fn guest_text_byte_length(
+    state: &Rc<RefCell<WorkerState>>,
+    native_text: &[u16],
+) -> Result<u32, RuntimeError> {
+    let encoded = {
+        let codec = state.borrow().text_codec;
+        codec.from_wide(native_text)?
+    };
+    if encoded.used_default_char == Some(true) {
+        super::win16_window_position::report_diagnostic(
+            state,
+            Kind::CompatibilityGap,
+            "native UTF-16 window text used the guest code-page default replacement",
+        );
+    }
+    u32::try_from(encoded.bytes.len()).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::HostFailure,
+            "guest window text byte length does not fit in a 32-bit count",
             error,
         )
     })

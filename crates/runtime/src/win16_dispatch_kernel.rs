@@ -413,12 +413,11 @@ impl Win16State {
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
                 win16_abi::Win16KernelModulesRequest::GetModuleUsage { module },
             )) => match self.modules.by_handle(module) {
+                // Process-backed activations are polled through the owned
+                // window continuation before this scalar dispatch. An
+                // association or a receipt without a process is not evidence
+                // of a live loaded instance.
                 Some(handle) if self.external_application(handle).is_some() => {
-                    super::external_application::report_external_identity_query(
-                        host,
-                        "GetModuleUsage",
-                        handle,
-                    );
                     0
                 }
                 Some(handle) => u32::from(self.modules.usage(handle)),

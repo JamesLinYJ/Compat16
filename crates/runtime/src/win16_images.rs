@@ -131,8 +131,11 @@ impl GuestImageHandles {
         handle: u16,
         host: &mut impl RuntimeHost,
     ) -> Result<bool, RuntimeError> {
-        if self.class_images.contains(&handle)
-            || self.system_icons.values().any(|cached| *cached == handle) {
+        // DestroyIcon frees a CreateIcon image. A LoadIcon module or system
+        // resource stays shared for the module lifetime, and an unknown handle
+        // returns the documented zero result.
+        // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-destroyicon
+        if self.retained_icon(handle) {
             return Ok(false);
         }
         let Some(GuestImage::Icon(icon)) = self.images.get(&handle).copied() else {
@@ -149,8 +152,10 @@ impl GuestImageHandles {
         handle: u16,
         host: &mut impl RuntimeHost,
     ) -> Result<bool, RuntimeError> {
-        if self.class_images.contains(&handle)
-            || self.system_cursors.values().any(|cached| *cached == handle) {
+        // DestroyCursor frees a CreateCursor image. LoadCursor resources stay
+        // shared, and an unknown handle returns the documented zero result.
+        // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-destroycursor
+        if self.retained_cursor(handle) {
             return Ok(false);
         }
         let Some(GuestImage::Cursor(cursor)) = self.images.get(&handle).copied() else {
@@ -160,6 +165,18 @@ impl GuestImageHandles {
         self.images.remove(&handle);
         self.module_cursors.retain(|(_, _, cached)| *cached != handle);
         Ok(true)
+    }
+
+    fn retained_icon(&self, handle: u16) -> bool {
+        self.class_images.contains(&handle)
+            || self.system_icons.values().any(|cached| *cached == handle)
+            || self.module_icons.iter().any(|(_, _, cached)| *cached == handle)
+    }
+
+    fn retained_cursor(&self, handle: u16) -> bool {
+        self.class_images.contains(&handle)
+            || self.system_cursors.values().any(|cached| *cached == handle)
+            || self.module_cursors.iter().any(|(_, _, cached)| *cached == handle)
     }
 
     pub(super) fn icon(&self, handle: u16) -> Option<Win16HostIcon> {

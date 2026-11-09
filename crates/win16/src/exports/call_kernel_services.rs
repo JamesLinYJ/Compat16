@@ -51,12 +51,12 @@ pub(super) fn decode(
                         section: None,
                         key: None,
                         default_value: None,
-                        output_buffer: checked_output_buffer(
+                        output_buffer: Some(checked_output_buffer(
                             dword_argument(arguments, 0)?,
                             word_argument(arguments, 1)?,
                             selectors,
                             memory,
-                        )?,
+                        )?),
                     },
                 ),
             )));
@@ -68,12 +68,12 @@ pub(super) fn decode(
                         section: None,
                         key: None,
                         default_value: None,
-                        output_buffer: checked_output_buffer(
+                        output_buffer: Some(checked_output_buffer(
                             dword_argument(arguments, 0)?,
                             word_argument(arguments, 1)?,
                             selectors,
                             memory,
-                        )?,
+                        )?),
                         filename: read_nullable_far_string(
                             dword_argument(arguments, 2)?,
                             selectors,

@@ -258,9 +258,37 @@ fn finish_user_control(
             }
             Ok(u32::from(rect.is_some()))
         }
+        (Some(Output::MappedDialogRect { range }), ResultValue::Rect(rect)) => {
+            if range.length() != win16_abi::Rect16::SIZE {
+                return Err(RuntimeError::new(Kind::InternalInvariant,
+                    "MapDialogRect result lost its exact eight-byte guest range"));
+            }
+            // Windows 3.1 Programmer's Reference, Volume 2: MapDialogRect is
+            // void and replaces the RECT ints in place. An edge outside that
+            // signed int is not stored. The guest buffer stays unchanged.
+            let Some(rect16) = rect.as_ref().and_then(signed_mapped_dialog_rect) else {
+                return Ok(0);
+            };
+            if owner.phase == Phase::Ready {
+                super::super::guest_ranges::commit_guest_output_with_selectors(
+                    access.selectors, memory, range, &rect16.encode(),
+                )?;
+                owner.phase = Phase::GuestOutputCommitted;
+            }
+            Ok(1)
+        }
         _ => Err(RuntimeError::new(Kind::InternalInvariant,
             "dialog-control native result does not match its captured USER output contract")),
     }
+}
+
+fn signed_mapped_dialog_rect(rect: &crate::Win16HostRect) -> Option<win16_abi::Rect16> {
+    Some(win16_abi::Rect16 {
+        left: i16::try_from(rect.left).ok()?,
+        top: i16::try_from(rect.top).ok()?,
+        right: i16::try_from(rect.right).ok()?,
+        bottom: i16::try_from(rect.bottom).ok()?,
+    })
 }
 
 fn finish_user_default_procedure(
@@ -709,8 +737,12 @@ pub(super) fn finish_scroll_bar(
     }
     if *phase == GuestOutputProjectionPhase::Ready {
         let projected = match (continuation.result_kind, result) {
-            (Request::Position, ResultValue::Position(position)) =>
-                u32::from(*position as i16 as u16),
+            (Request::Position, ResultValue::Position(position)) => {
+                // Windows 3.1 Programmer's Reference, Volume 2: GetScrollPos and
+                // SetScrollPos return a signed int, or zero when the call fails.
+                // A host position outside that int is not wrapped into the guest word.
+                i16::try_from(*position).map_or(0, |position| u32::from(position as u16))
+            }
             (Request::Range, ResultValue::Range(Some((minimum, maximum)))) => {
                 let minimum_range = continuation.minimum_output.as_ref().ok_or_else(||
                     RuntimeError::new(Kind::InternalInvariant,
@@ -718,23 +750,33 @@ pub(super) fn finish_scroll_bar(
                 let maximum_range = continuation.maximum_output.as_ref().ok_or_else(||
                     RuntimeError::new(Kind::InternalInvariant,
                         "GetScrollRange lost its captured maximum output"))?;
-                let mut writes = Vec::new();
-                writes.try_reserve_exact(2).map_err(|error| RuntimeError::with_source(
-                    Kind::ResourceExhausted, "retain GetScrollRange output transaction", error))?;
-                writes.push((minimum_range.clone(), (*minimum as i16).to_le_bytes().to_vec()));
-                writes.push((maximum_range.clone(), (*maximum as i16).to_le_bytes().to_vec()));
-                match super::super::guest_ranges::commit_guest_writes_with_selectors(
-                    access.selectors, memory, writes,
-                ) {
-                    Ok(()) => *phase = GuestOutputProjectionPhase::OutputCommitted,
-                    Err(error) if matches!(error.kind(), Kind::GuestFault | Kind::InvalidInput) => {
-                        *phase = GuestOutputProjectionPhase::OutputCommitted;
-                        value.replace((0, continuation.return_kind));
-                        return Ok((0, continuation.return_kind));
+                // Windows 3.1 Programmer's Reference, Volume 2: GetScrollRange
+                // is void and copies signed ints. A limit outside that int is
+                // not stored, and both guest words stay as they were.
+                match (i16::try_from(*minimum), i16::try_from(*maximum)) {
+                    (Ok(minimum), Ok(maximum)) => {
+                        let mut writes = Vec::new();
+                        writes.try_reserve_exact(2).map_err(|error| RuntimeError::with_source(
+                            Kind::ResourceExhausted,
+                            "retain GetScrollRange output transaction", error))?;
+                        writes.push((minimum_range.clone(), minimum.to_le_bytes().to_vec()));
+                        writes.push((maximum_range.clone(), maximum.to_le_bytes().to_vec()));
+                        match super::super::guest_ranges::commit_guest_writes_with_selectors(
+                            access.selectors, memory, writes,
+                        ) {
+                            Ok(()) => *phase = GuestOutputProjectionPhase::OutputCommitted,
+                            Err(error) if matches!(error.kind(),
+                                Kind::GuestFault | Kind::InvalidInput) => {
+                                *phase = GuestOutputProjectionPhase::OutputCommitted;
+                                value.replace((0, continuation.return_kind));
+                                return Ok((0, continuation.return_kind));
+                            }
+                            Err(error) => return Err(error),
+                        }
+                        0
                     }
-                    Err(error) => return Err(error),
+                    _ => 0,
                 }
-                0
             }
             (Request::Range, ResultValue::Range(None))
             | (Request::Void, ResultValue::Void)

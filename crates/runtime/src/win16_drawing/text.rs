@@ -201,7 +201,7 @@ impl Win16State {
                     dc,
                     x: i32::from(x),
                     y: i32::from(y),
-                    options: u32::from(options),
+                    options: u32::from(win31_ext_text_out_options(options)),
                     rect,
                     text,
                     spacing,
@@ -218,6 +218,23 @@ impl Win16State {
 
 /// Bits of the Windows 3.1 text-alignment options. `TA_RTLREADING` is 256.
 const WIN31_TEXT_ALIGN: u32 = 0x001F;
+
+/// `ETO_GRAYED | ETO_OPAQUE | ETO_CLIPPED` from Windows 3.1 `WINDOWS.H`.
+const WIN31_EXT_TEXT_OUT: u16 = 0x0007;
+
+/// Not a Windows 3.1 option. The export decoder has already read two
+/// `lpDx` values per byte when this bit is set, so the host call must still
+/// describe that array. Clearing it here would reject the call.
+const ETO_PDY_ALREADY_READ: u16 = 0x2000;
+
+/// Windows 3.1 `ExtTextOut` options are `ETO_GRAYED`, `ETO_OPAQUE`, and
+/// `ETO_CLIPPED`. Programmer's Reference Volume 4 says applications set
+/// further bits and that `ETO_CLIPPED` and `ETO_OPAQUE` are tested with AND.
+/// `ETO_GLYPH_INDEX` (`0x0010`) is a later flag; leaving it set makes the
+/// host return failure and draw nothing.
+fn win31_ext_text_out_options(options: u16) -> u16 {
+    options & (WIN31_EXT_TEXT_OUT | ETO_PDY_ALREADY_READ)
+}
 
 /// A negative host result is Win32 `GDI_ERROR` (`0xFFFFFFFF`). Truncating it
 /// is the Win16 sentinel `0xFFFF`. Zero is a successful `TA_LEFT | TA_TOP`

@@ -102,7 +102,7 @@ impl Win16State {
                     Win16HostKeyboardCall::MapVirtualKey { code, map_type })? else {
                     return Err(wrong_keyboard_result("MapVirtualKey"));
                 };
-                Ok(u32::from(value as u16))
+                Ok(u32::from(map_virtual_key_word(map_type, value)))
             }
             Win16KeyboardRequest::GetCodePage => {
                 let Win16HostKeyboardResult::CodePage(value) = host.win16_keyboard(
@@ -194,4 +194,19 @@ impl Win16State {
 fn wrong_keyboard_result(operation: &'static str) -> RuntimeError {
     RuntimeError::new(Kind::InternalInvariant,
         format!("host returned the wrong result for Win16 {operation}"))
+}
+
+/// Narrow a `MapVirtualKeyW` result to the Windows 3.1 `UINT` returned in AX.
+///
+/// Map type 2 returns the unshifted character in the low word. Learn states
+/// that a dead key sets the top bit of that return value. `MapVirtualKeyW`
+/// stores the flag in bit 31 of a 32-bit `UINT`; the Win16 return is 16 bits,
+/// so the flag is bit 15.
+fn map_virtual_key_word(map_type: u16, value: u32) -> u16 {
+    const TO_CHARACTER: u16 = 2;
+    let mut word = value as u16;
+    if map_type == TO_CHARACTER && value & 0x8000_0000 != 0 {
+        word |= 0x8000;
+    }
+    word
 }

@@ -85,7 +85,7 @@ impl Win16State {
             bits,
             color_usage: u32::from(color_usage),
         })? {
-            HostResult::Count(count) => Ok(count as u16 as u32),
+            HostResult::Count(count) => Ok(guest_positive_scan_lines(count).unwrap_or(0)),
             _ => Err(wrong_result("SetDIBits")),
         }
     }
@@ -167,6 +167,11 @@ impl Win16State {
         let HostResult::GetDibits { count, info, bits } = result else {
             return Err(wrong_result("GetDIBits"));
         };
+        // Failure is zero. A host count outside the signed int is not a
+        // successful line count, so the guest buffers stay as they were.
+        let Some(reported) = guest_positive_scan_lines(count) else {
+            return Ok(0);
+        };
 
         if let Some(info_write) = info_write {
             let Some(bytes) = info.as_deref() else {
@@ -190,7 +195,7 @@ impl Win16State {
             }
             bits_write.commit(memory, bytes)?;
         }
-        Ok(count as u16 as u32)
+        Ok(reported)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -234,10 +239,22 @@ impl Win16State {
             bits,
             color_usage: u32::from(color_usage),
         })? {
-            HostResult::Count(count) => Ok(count as u16 as u32),
+            HostResult::Count(count) => Ok(guest_positive_scan_lines(count).unwrap_or(0)),
             _ => Err(wrong_result("SetDIBitsToDevice")),
         }
     }
+}
+
+/// Win16 `GetDIBits`, `SetDIBits`, and `SetDIBitsToDevice` return a signed
+/// int: the number of scan lines, or zero on failure. A count above 32767,
+/// including a 32768-line transfer, does not fit in that int. Truncating it
+/// would publish a different success.
+/// <https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-getdibits>
+/// <https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-setdibits>
+/// <https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-setdibitstodevice>
+fn guest_positive_scan_lines(count: i32) -> Option<u32> {
+    let lines = i16::try_from(count).ok()?;
+    (lines > 0).then_some(u32::from(lines as u16))
 }
 
 fn dib_transfer_length(layout: win16_abi::gdi_dib::DibLayout16, scan_lines: u16)

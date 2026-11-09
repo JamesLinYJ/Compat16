@@ -149,6 +149,21 @@ impl Win16State {
         }
         match &decoded.request {
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
+                win16_abi::Win16KernelModulesRequest::GetModuleUsage { module },
+            )) => {
+                if let Some(identity) = self.modules.by_handle(*module)
+                    && self.modules.records.get(&identity).is_some_and(|record|
+                        record.state == super::module_registry::ModuleState::Ready)
+                    && let Some(super::external_application::ExternalApplicationState::ProcessStarted { process }) =
+                        self.external_application(identity).map(|record| &record.state)
+                {
+                    let process = *process;
+                    return self.dispatch_owned_window_call(cpu, dos, memory, host, |state, cpu, memory, host| {
+                        state.begin_external_module_usage(identity, process, &mut cpu.regs, memory, host, return_to)
+                    });
+                }
+            }
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
                 win16_abi::Win16KernelModulesRequest::LoadModule { module, parameters },
             )) => return self.begin_load_module(module, *parameters, cpu, dos, memory, host, return_to),
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(

@@ -1,11 +1,9 @@
 //! Task-local Win16 USER hook chains.
 //!
-//! The implemented delivery path is task-local WH_MSGFILTER. The Windows 3.1
-//! Programmer's Reference defines both the HHOOK-returning legacy API and its
-//! extended form; the HOOKS/MAKEAPP samples establish the callback usage. Other
-//! hook kinds and system-scope hooks require typed event delivery and are
-//! rejected until that path is connected. No native process-wide hook is
-//! installed here.
+//! The implemented delivery path is task-local WH_MSGFILTER. Windows 3.1
+//! SetWindowsHook returns the previous filter's far procedure. DefHookProc
+//! calls that procedure. SetWindowsHookEx remains the separate HHOOK form.
+//! Other hook kinds have no connected guest event path and fail the install.
 
 use dos_kernel::DosKernel;
 use guest_core::{GuestMemory, memory::Memory};
@@ -40,12 +38,31 @@ struct HookRegistration {
     installed: bool,
 }
 
+/// Procedure address that used to be installed, and the filter that followed it.
+/// `DefHookProc` resolves a removed filter while the caller still owns the slot.
+#[derive(Clone, Copy, Debug)]
+struct RetiredFilter {
+    task: u16,
+    hook_type: i16,
+    procedure: u32,
+    successor: u32,
+}
+
+enum FilterTarget {
+    Call(HookNodeId),
+    /// The chain has no further filter. `rewrite` stores zero in the slot passed
+    /// to this `DefHookProc` call when the saved procedure was removed.
+    End { rewrite: bool },
+    Unknown,
+}
+
 /// Family state is separate from the shared callback LIFO. Each callback
 /// frame is also bound to that shared stack with a `CallbackFrameId`.
 pub(super) struct Win16UserHooks {
     next_node_id: u64,
     next_hook_handle: u32,
     registrations: Vec<HookRegistration>,
+    retired: Vec<RetiredFilter>,
     callbacks: callback::HookCallbackStack,
 }
 
@@ -55,6 +72,7 @@ impl Default for Win16UserHooks {
             next_node_id: 1,
             next_hook_handle: 1,
             registrations: Vec::new(),
+            retired: Vec::new(),
             callbacks: callback::HookCallbackStack::default(),
         }
     }
@@ -82,12 +100,56 @@ impl Win16UserHooks {
         let next = self.entry(id)?.next?;
         self.entry(next).filter(|entry| entry.installed)
     }
+
+    fn installed_filter(
+        &self,
+        task: u16,
+        hook_type: i16,
+        procedure: u32,
+    ) -> Option<&HookRegistration> {
+        self.registrations.iter().rev().find(|entry| {
+            entry.installed
+                && entry.task == task
+                && entry.hook_type == hook_type
+                && entry.procedure == procedure
+        })
+    }
+
+    /// Far procedure of the next installed filter after `id`, or zero.
+    fn successor_procedure(&self, id: HookNodeId) -> u32 {
+        let mut next = self.entry(id).and_then(|entry| entry.next);
+        for _ in 0..self.registrations.len() {
+            let Some(id) = next else {
+                return 0;
+            };
+            let Some(entry) = self.entry(id) else {
+                return 0;
+            };
+            if entry.installed {
+                return entry.procedure;
+            }
+            next = entry.next;
+        }
+        0
+    }
+
+    fn retired_successor(&self, task: u16, hook_type: i16, procedure: u32) -> Option<u32> {
+        self.retired
+            .iter()
+            .rev()
+            .find(|link| {
+                link.task == task && link.hook_type == hook_type && link.procedure == procedure
+            })
+            .map(|link| link.successor)
+    }
 }
 
 impl Win16State {
-    /// Install a task-local WH_MSGFILTER procedure and return its opaque HHOOK.
-    /// Windows 3.1 specifies NULL on failure; an empty prior chain does not
-    /// change the successful return value.
+    /// Install a task-local WH_MSGFILTER filter.
+    ///
+    /// Windows 3.1 returns the far procedure that was previously at the head of
+    /// this task's chain. An empty chain and a failed install both return zero.
+    /// The returned bits are that procedure's guest far address.
     pub(super) fn set_windows_hook(
         &mut self,
         memory: &Memory,
@@ -96,7 +158,17 @@ impl Win16State {
         procedure: u32,
     ) -> Result<u32, RuntimeError> {
         let task = self.current_task_handle()?;
-        self.install_task_hook(memory, host, hook_type, procedure, task, None)
+        let previous = self
+            .user_hooks
+            .head(task, hook_type)
+            .map(|entry| entry.procedure)
+            .unwrap_or(0);
+        let installed = self.install_task_hook(memory, host, hook_type, procedure, task, None)?;
+        if installed == 0 {
+            Ok(0)
+        } else {
+            Ok(previous)
+        }
     }
 
     /// SetWindowsHookEx has task and module identity arguments. The SDK defines
@@ -245,6 +317,7 @@ impl Win16State {
         });
         self.user_hooks.next_node_id = following_id;
         self.user_hooks.next_hook_handle = following_handle;
+        self.forget_retired_filter(task, hook_type, procedure);
         Ok(handle)
     }
 
@@ -274,8 +347,7 @@ impl Win16State {
         }) else {
             return Ok(0);
         };
-        self.remove_hook_at(index);
-        self.prune_retired_user_hook_nodes();
+        self.unlink_hook_at(index)?;
         Ok(1)
     }
 
@@ -300,9 +372,24 @@ impl Win16State {
             ));
             return Ok(0);
         }
+        self.unlink_hook_at(index)?;
+        Ok(1)
+    }
+
+    /// Record the successor for a later `DefHookProc`. The caller's slot is not
+    /// written here; that address is only valid for the call that passed it.
+    fn unlink_hook_at(&mut self, index: usize) -> Result<(), RuntimeError> {
+        let removed = self.user_hooks.registrations[index].clone();
+        let successor = self.user_hooks.successor_procedure(removed.id);
+        self.record_retired_filter(
+            removed.task,
+            removed.hook_type,
+            removed.procedure,
+            successor,
+        )?;
         self.remove_hook_at(index);
         self.prune_retired_user_hook_nodes();
-        Ok(1)
+        Ok(())
     }
 
     fn remove_hook_at(&mut self, index: usize) {
@@ -413,63 +500,50 @@ impl Win16State {
                 "active Win16 hook callback lost its chain node",
             )
         })?;
-        let slot = self
-            .selectors
-            .pointer_from_far(hook_slot_far)
-            .map_err(crate::runtime_error)?;
-        let slot_address = self
-            .selectors
-            .translate(slot, Access::Read, 4, memory)
-            .map_err(crate::runtime_error)?;
-        let mut bytes = [0_u8; 4];
-        memory
-            .read(slot_address, &mut bytes)
-            .map_err(crate::runtime_error)?;
-        let slot_hook = u32::from_le_bytes(bytes);
-        if slot_hook != current.handle {
-            host.report_diagnostic(&Diagnostic::warning(
-                Kind::CompatibilityGap,
-                "Win16 DefHookProc HHOOK slot does not identify the active hook registration",
-            ));
-            return self.complete_return(
-                &mut cpu.regs,
-                return_to.0,
-                return_to.1,
-                return_to.2,
-                0,
-                win16_abi::Win16ReturnKind::Dword,
-            );
+        let slot_procedure = self.read_filter_slot(memory, hook_slot_far)?;
+        match self.resolve_filter_target(current.task, current.hook_type, slot_procedure) {
+            FilterTarget::Call(id) => {
+                let next = self.user_hooks.entry(id).cloned().ok_or_else(|| {
+                    RuntimeError::new(
+                        Kind::InternalInvariant,
+                        "Win16 filter target lost its chain node",
+                    )
+                })?;
+                if next.procedure != slot_procedure {
+                    self.write_filter_slot(memory, hook_slot_far, next.procedure)?;
+                }
+                self.enter_filter_procedure(
+                    cpu, dos, memory, next, code, w_param, l_param, return_to,
+                )
+            }
+            FilterTarget::End { rewrite } => {
+                if rewrite {
+                    self.write_filter_slot(memory, hook_slot_far, 0)?;
+                }
+                self.complete_return(
+                    &mut cpu.regs,
+                    return_to.0,
+                    return_to.1,
+                    return_to.2,
+                    0,
+                    win16_abi::Win16ReturnKind::Dword,
+                )
+            }
+            FilterTarget::Unknown => {
+                host.report_diagnostic(&Diagnostic::warning(
+                    Kind::CompatibilityGap,
+                    "Win16 DefHookProc slot does not name an installed filter procedure",
+                ));
+                self.complete_return(
+                    &mut cpu.regs,
+                    return_to.0,
+                    return_to.1,
+                    return_to.2,
+                    0,
+                    win16_abi::Win16ReturnKind::Dword,
+                )
+            }
         }
-        let next = self.user_hooks.resolve_next(current_id).cloned();
-        let Some(next) = next else {
-            return self.complete_return(
-                &mut cpu.regs,
-                return_to.0,
-                return_to.1,
-                return_to.2,
-                0,
-                win16_abi::Win16ReturnKind::Dword,
-            );
-        };
-        self.validate_hook_entry(memory, &next)?;
-        self.validate_message_payload(memory, l_param)?;
-        self.begin_hook_callback(
-            cpu,
-            dos,
-            memory,
-            next,
-            &[
-                callback::HookArgument::Word(code as u16),
-                callback::HookArgument::Word(w_param),
-                callback::HookArgument::GuestPointer {
-                    far: l_param,
-                    access: Access::Write,
-                    bytes: win16_abi::Msg16::SIZE as u32,
-                },
-            ],
-            return_to,
-            callback::HookCallbackReturn::DefHookProc,
-        )
     }
 
     /// CallNextHookEx can continue only the active task-local registration. The
@@ -663,6 +737,140 @@ impl Win16State {
                 entry.installed = false;
             }
         }
+        self.user_hooks.retired.clear();
         self.prune_retired_user_hook_nodes();
+    }
+
+    fn resolve_filter_target(&self, task: u16, hook_type: i16, mut procedure: u32) -> FilterTarget {
+        if procedure == 0 {
+            return FilterTarget::End { rewrite: false };
+        }
+        let limit = self
+            .user_hooks
+            .registrations
+            .len()
+            .saturating_add(self.user_hooks.retired.len())
+            .saturating_add(1);
+        for _ in 0..limit {
+            if procedure == 0 {
+                return FilterTarget::End { rewrite: true };
+            }
+            if let Some(entry) = self.user_hooks.installed_filter(task, hook_type, procedure) {
+                return FilterTarget::Call(entry.id);
+            }
+            if let Some(successor) = self
+                .user_hooks
+                .retired_successor(task, hook_type, procedure)
+            {
+                procedure = successor;
+                continue;
+            }
+            return FilterTarget::Unknown;
+        }
+        FilterTarget::Unknown
+    }
+
+    fn enter_filter_procedure(
+        &mut self,
+        cpu: &mut x86_cpu::Cpu,
+        dos: &mut DosKernel,
+        memory: &mut Memory,
+        entry: HookRegistration,
+        code: i16,
+        w_param: u16,
+        l_param: u32,
+        return_to: (u16, u16, u32),
+    ) -> Result<Option<u8>, RuntimeError> {
+        self.validate_hook_entry(memory, &entry)?;
+        // The published filter frame is far Pascal (int nCode, WORD wParam,
+        // DWORD lParam). lParam stays the caller's bits.
+        self.begin_hook_callback(
+            cpu,
+            dos,
+            memory,
+            entry,
+            &[
+                callback::HookArgument::Word(code as u16),
+                callback::HookArgument::Word(w_param),
+                callback::HookArgument::Dword(l_param),
+            ],
+            return_to,
+            callback::HookCallbackReturn::DefHookProc,
+        )
+    }
+
+    fn read_filter_slot(&self, memory: &Memory, slot_far: u32) -> Result<u32, RuntimeError> {
+        let slot = self
+            .selectors
+            .pointer_from_far(slot_far)
+            .map_err(crate::runtime_error)?;
+        let slot_address = self
+            .selectors
+            .translate(slot, Access::Read, 4, memory)
+            .map_err(crate::runtime_error)?;
+        let mut bytes = [0_u8; 4];
+        memory
+            .read(slot_address, &mut bytes)
+            .map_err(crate::runtime_error)?;
+        Ok(u32::from_le_bytes(bytes))
+    }
+
+    fn write_filter_slot(
+        &self,
+        memory: &mut Memory,
+        slot_far: u32,
+        procedure: u32,
+    ) -> Result<(), RuntimeError> {
+        let slot = self
+            .selectors
+            .pointer_from_far(slot_far)
+            .map_err(crate::runtime_error)?;
+        let slot_address = self
+            .selectors
+            .translate(slot, Access::Write, 4, memory)
+            .map_err(crate::runtime_error)?;
+        memory
+            .write(slot_address, &procedure.to_le_bytes())
+            .map_err(crate::runtime_error)
+    }
+
+    fn record_retired_filter(
+        &mut self,
+        task: u16,
+        hook_type: i16,
+        procedure: u32,
+        successor: u32,
+    ) -> Result<(), RuntimeError> {
+        for link in &mut self.user_hooks.retired {
+            if link.task == task && link.hook_type == hook_type && link.successor == procedure {
+                link.successor = successor;
+            }
+        }
+        if let Some(link) = self.user_hooks.retired.iter_mut().find(|link| {
+            link.task == task && link.hook_type == hook_type && link.procedure == procedure
+        }) {
+            link.successor = successor;
+            return Ok(());
+        }
+        self.user_hooks.retired.try_reserve(1).map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "retain Win16 filter successor",
+                error,
+            )
+        })?;
+        self.user_hooks.retired.push(RetiredFilter {
+            task,
+            hook_type,
+            procedure,
+            successor,
+        });
+        Ok(())
+    }
+
+    fn forget_retired_filter(&mut self, task: u16, hook_type: i16, procedure: u32) {
+        self.user_hooks.retired.retain(|link| {
+            !(link.task == task && link.hook_type == hook_type && link.procedure == procedure)
+        });
     }
 }

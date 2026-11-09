@@ -24,12 +24,37 @@ mod defer;
 pub(super) use defer::DeferredWindowBatches;
 #[path = "win16_window_operations/caret.rs"]
 mod caret;
+pub(in crate::win16_runtime) use caret::caret_point_for_guest;
 #[path = "win16_window_operations/window.rs"]
 mod window;
 #[path = "win16_window_operations/mdi.rs"]
 mod mdi;
 
 const POINT16_SIZE: usize = 4;
+/// Windows 3.1 `COLOR_SCROLLBAR` through `COLOR_BTNHIGHLIGHT`.
+const WIN31_LAST_SYS_COLOR: i32 = 20;
+
+fn published_system_colors(
+    indices: Vec<i32>, colors: Vec<u32>,
+) -> Result<(Vec<i32>, Vec<u32>), RuntimeError> {
+    let mut published_indices = Vec::new();
+    let mut published_colors = Vec::new();
+    published_indices.try_reserve_exact(indices.len()).map_err(|error| {
+        RuntimeError::with_source(Kind::ResourceExhausted,
+            "retain Win16 system-color indexes", error)
+    })?;
+    published_colors.try_reserve_exact(colors.len()).map_err(|error| {
+        RuntimeError::with_source(Kind::ResourceExhausted,
+            "retain Win16 system-color values", error)
+    })?;
+    for (index, color) in indices.into_iter().zip(colors) {
+        if (0..=WIN31_LAST_SYS_COLOR).contains(&index) {
+            published_indices.push(index);
+            published_colors.push(color);
+        }
+    }
+    Ok((published_indices, published_colors))
+}
 
 impl Win16State {
     pub(super) fn begin_system_color_update(
@@ -41,6 +66,9 @@ impl Win16State {
             return Err(RuntimeError::new(Kind::InternalInvariant,
                 "SetSysColors request arrays differ from the Win16 count contract"));
         }
+        // Windows 3.1 changes COLOR_SCROLLBAR through COLOR_BTNHIGHLIGHT only.
+        // Other indexes stay out of this single host update.
+        let (indices, colors) = published_system_colors(indices, colors)?;
         // Native BOOL is an internal result contract; the guest's VOID return
         // preserves its caller while notifications use the normal continuation.
         self.submit_call(registers, memory, host,
@@ -114,10 +142,12 @@ impl Win16State {
         return_kind: Win16ReturnKind,
         destroyed_guest_window: Option<u16>,
     ) -> Result<Option<u8>, RuntimeError> {
+        let caret_point = matches!(call, Win16WindowCall::GetCaretPos);
         let continuation = Win16WindowCallContinuation {
             return_kind,
             output,
             destroyed_guest_window,
+            caret_point,
         };
         self.begin_window_operation(
             registers,

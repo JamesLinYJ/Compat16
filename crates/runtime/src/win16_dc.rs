@@ -127,6 +127,12 @@ impl Win16State {
             .map_err(crate::runtime_error)?;
         self.preflight_text_write(memory, destination, TEXTMETRIC16_SIZE)?;
         let Some(metric) = host.win16_get_text_metrics(native)? else { return Ok(0); };
+        // Windows 3.1 TEXTMETRIC stores these fields as signed 16-bit ints.
+        // GetTextMetrics returns zero on failure. A metric outside
+        // -32768..=32767 is not stored, so the guest buffer stays unchanged.
+        if !text_metric_ints_fit(&metric.dimensions, &metric.extra) {
+            return Ok(0);
+        }
         let encoded = TextMetric16::from_host(
             metric.dimensions, metric.styles, metric.extra,
         ).encode();
@@ -240,6 +246,13 @@ impl Win16State {
         }
         Ok(1)
     }
+}
+
+fn text_metric_ints_fit(dimensions: &[i32; 8], extra: &[i32; 3]) -> bool {
+    dimensions
+        .iter()
+        .chain(extra.iter())
+        .all(|value| i16::try_from(*value).is_ok())
 }
 
 fn outline_metrics_sizes(names: &[Vec<u16>; 4]) -> Option<(u16, u16)> {

@@ -468,14 +468,37 @@ pub(super) fn create_window(
     })
 }
 
+// Windows 3.1 WINDOWS.H ShowWindow commands are SW_HIDE (0) through SW_RESTORE (9).
+const WIN16_SW_HIDE: i32 = 0;
+const WIN16_SW_RESTORE: i32 = 9;
+
 pub(in crate::windows::win16_windows) fn show_window(
     state: &Rc<RefCell<WorkerState>>,
     token: Win16HostWindow,
     command: i16,
 ) -> Option<bool> {
     let hwnd = super::super::win16_window_identity::resolve_user_window(state, token)?;
+    let command = i32::from(command);
+    if !(WIN16_SW_HIDE..=WIN16_SW_RESTORE).contains(&command) {
+        // SW_SHOWDEFAULT and SW_FORCEMINIMIZE are not in the 3.1 command set.
+        // Leave the window unchanged and return its own previous WS_VISIBLE bit.
+        return Some(window_was_visible(hwnd));
+    }
     // ShowWindow returns previous visibility, not operation success.
-    Some((crate::windows::win32_safe::show_window(hwnd, i32::from(command))) != 0)
+    Some(crate::windows::win32_safe::show_window(hwnd, command) != 0)
+}
+
+fn window_was_visible(hwnd: HWND) -> bool {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{GWL_STYLE, GetWindowLongW, WS_VISIBLE};
+
+    // Style zero is WS_OVERLAPPED, so distinguish it from failure with last-error.
+    crate::windows::win32_safe::set_last_error(0);
+    // SAFETY: GetWindowLongW reads GWL_STYLE. Failure returns 0 and sets last-error. No guest address is passed.
+    let style = unsafe { GetWindowLongW(hwnd, GWL_STYLE) };
+    if style == 0 && crate::windows::win32_safe::last_error() != 0 {
+        return false;
+    }
+    (style as u32) & WS_VISIBLE != 0
 }
 
 pub(in crate::windows::win16_windows) fn destroy_window_operation(

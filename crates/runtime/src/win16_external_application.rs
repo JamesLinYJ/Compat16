@@ -1,5 +1,9 @@
 //! Reserved, non-executable Win16 identities for native shell operations.
 
+#[cfg(test)]
+#[path = "win16_external_application_usage_tests.rs"]
+mod usage_tests;
+
 use std::{error::Error, fmt};
 
 use win16_abi::{SelectorRef, SelectorTable};
@@ -315,6 +319,21 @@ impl Win16State {
             .get(&handle)?
             .external_application
             .as_ref()
+    }
+
+    pub(super) fn external_module_usage(
+        &self, identity: u16, process: Win16HostProcess, running: bool,
+    ) -> u16 {
+        let Some(record) = self.modules.records.get(&identity) else { return 0; };
+        let exact_process = record.external_application.as_ref().is_some_and(|external|
+            matches!(external.state, ExternalApplicationState::ProcessStarted { process: current }
+                if current == process));
+        // A completed process query must not revive a released/replaced
+        // module identity. Its process lease remains owned until FreeModule
+        // or task cleanup; the lease count is separate from process liveness.
+        if running && exact_process && record.state == ModuleState::Ready {
+            record.explicit_refs
+        } else { 0 }
     }
 
     pub(super) fn finish_external_module_release(

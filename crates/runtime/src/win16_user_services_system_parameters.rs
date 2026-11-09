@@ -32,6 +32,11 @@ impl Win16SpiContinuation {
         &self,
         result: &Win16HostSystemParametersResult,
     ) -> Result<(u32, Option<Vec<u8>>), RuntimeError> {
+        // A failed call returns 0 and does not publish a partial or narrowed
+        // value. Guest memory stays at the bytes captured before the call.
+        if !result.succeeded {
+            return Ok((0, None));
+        }
         let Some(kind) = self.kind else {
             if result.value != HostValue::None {
                 return Err(RuntimeError::new(Kind::InternalInvariant,

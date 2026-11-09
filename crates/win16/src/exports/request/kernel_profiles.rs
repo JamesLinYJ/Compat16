@@ -11,22 +11,25 @@ pub enum Win16KernelProfilesRequest {
         filename: Option<Vec<u8>>,
     },
 
+    /// `output_buffer` is absent when `cbReturnBuffer` is not a positive int.
+    /// That call copies nothing and does not read the guest pointer.
     GetPrivateProfileString {
         section: Option<Vec<u8>>,
         key: Option<Vec<u8>>,
         default_value: Option<Vec<u8>>,
-        output_buffer: Win16OutputBuffer,
+        output_buffer: Option<Win16OutputBuffer>,
         filename: Option<Vec<u8>>,
     },
 
     /// Read from the host's Win.ini profile mapping through the Windows
     /// GetProfileString API. Nullable input strings preserve section/key
     /// enumeration semantics and the default-string contract.
+    /// `output_buffer` is absent when `cbReturnBuffer` is not a positive int.
     GetProfileString {
         section: Option<Vec<u8>>,
         key: Option<Vec<u8>>,
         default_value: Option<Vec<u8>>,
-        output_buffer: Win16OutputBuffer,
+        output_buffer: Option<Win16OutputBuffer>,
     },
 
     WritePrivateProfileString {

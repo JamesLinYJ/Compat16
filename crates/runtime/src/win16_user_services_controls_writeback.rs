@@ -100,6 +100,21 @@ impl Win16State {
                 }
                 u32::from(rect.is_some())
             }
+            (Some(ControlWriteBack::MappedDialogRect { range }), ResultValue::Rect(rect)) => {
+                // Windows 3.1 Programmer's Reference, Volume 2: MapDialogRect
+                // is void and replaces the RECT ints in place. An edge outside
+                // that signed int is not stored. The guest buffer stays unchanged.
+                let mut stored = false;
+                if let Some(rect) = rect
+                    && let Some(rect16) = signed_dialog_rect(&rect)
+                {
+                    super::super::guest_ranges::commit_guest_output(
+                        self, memory, &range, &rect16.encode(),
+                    )?;
+                    stored = true;
+                }
+                u32::from(stored)
+            }
             _ => return Err(RuntimeError::new(Kind::InternalInvariant,
                 "Win16 dialog-control result does not match its output contract")),
         };
@@ -144,4 +159,13 @@ impl Win16State {
         self.selectors.read(memory, pointer, &mut bytes).map_err(crate::runtime_error)?;
         Ok(Rect16::decode(&bytes))
     }
+}
+
+fn signed_dialog_rect(rect: &crate::Win16HostRect) -> Option<Rect16> {
+    Some(Rect16 {
+        left: i16::try_from(rect.left).ok()?,
+        top: i16::try_from(rect.top).ok()?,
+        right: i16::try_from(rect.right).ok()?,
+        bottom: i16::try_from(rect.bottom).ok()?,
+    })
 }

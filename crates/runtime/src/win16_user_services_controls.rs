@@ -45,6 +45,8 @@ pub(super) enum ControlWriteBack {
     DirectoryPath { range: Option<GuestOutputRange>, capacity: u16 },
     DirectorySelection { range: GuestOutputRange, capacity: u16 },
     Rect { range: GuestOutputRange },
+    /// `MapDialogRect` output. An edge outside the signed Win16 int is not stored.
+    MappedDialogRect { range: GuestOutputRange },
 }
 
 pub(super) enum FamilyCompletion {
@@ -541,8 +543,9 @@ impl Win16State {
                 ControlOperation::CheckButton { dialog, id, state }
             }
             Request::IsButtonChecked { dialog, id } => {
+                // Windows 3.1 returns -1 when hwndDlg is not a valid window.
                 let Some(dialog) = self.dialog_window(dialog) else {
-                    return Ok(Prepared::immediate(0, return_kind));
+                    return Ok(Prepared::immediate(u32::from(u16::MAX), return_kind));
                 };
                 ControlOperation::IsButtonChecked { dialog, id }
             }
@@ -638,7 +641,7 @@ impl Win16State {
                     }),
                     return_kind,
                     FamilyCompletion::Control {
-                        output: Some(ControlWriteBack::Rect { range }),
+                        output: Some(ControlWriteBack::MappedDialogRect { range }),
                     },
                 ));
             }

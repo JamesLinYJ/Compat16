@@ -10,8 +10,9 @@ use runtime::{
 };
 use windows_sys::Win32::Foundation::{HWND, RECT};
 use windows_sys::Win32::Graphics::Gdi::{
-    GetUpdateRect, GetUpdateRgn, HRGN, InvalidateRect, InvalidateRgn, LockWindowUpdate,
-    RedrawWindow, ValidateRect, ValidateRgn,
+    CombineRgn, CreateRectRgn, GetRgnBox, GetUpdateRect, GetUpdateRgn, HRGN, InvalidateRect,
+    InvalidateRgn, LockWindowUpdate, NULLREGION, RGN_COPY, RGN_ERROR, RedrawWindow, ValidateRect,
+    ValidateRgn,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{ScrollWindow, ScrollWindowEx};
 
@@ -42,6 +43,20 @@ fn window_target(
     }
 }
 
+/// Volume 2 identifies one window for InvalidateRect, InvalidateRgn,
+/// ValidateRect, and ValidateRgn. A null handle is not that window. It is
+/// not passed to USER, so those calls cannot change another window's update
+/// region. The calls are void, so failure has no guest return value.
+fn present_window(
+    state: &Rc<RefCell<WorkerState>>,
+    window: Option<Win16HostWindow>,
+) -> Option<HWND> {
+    match window_target(state, window) {
+        WindowTarget::Resolved(hwnd) if !hwnd.is_null() => Some(hwnd),
+        _ => None,
+    }
+}
+
 fn native_rect(rect: Win16HostRect) -> RECT {
     RECT {
         left: rect.left,
@@ -49,6 +64,29 @@ fn native_rect(rect: Win16HostRect) -> RECT {
         right: rect.right,
         bottom: rect.bottom,
     }
+}
+
+/// Windows 3.1 Programmer's Reference, Volume 3: a `RECT` width must not
+/// exceed 32,767 units. Volume 2 `SetRect` measures that width as the
+/// absolute difference of the edges and applies the same limit to the height.
+/// Each edge is a signed int. A rectangle outside either limit is not a
+/// `RECT` these calls can add or remove.
+fn rectangle_fits(rect: Win16HostRect) -> bool {
+    signed_edge(rect.left)
+        && signed_edge(rect.top)
+        && signed_edge(rect.right)
+        && signed_edge(rect.bottom)
+        && dimension_fits(rect.left, rect.right)
+        && dimension_fits(rect.top, rect.bottom)
+}
+
+fn signed_edge(value: i32) -> bool {
+    i16::try_from(value).is_ok()
+}
+
+fn dimension_fits(start: i32, end: i32) -> bool {
+    end.checked_sub(start)
+        .is_some_and(|span| span.unsigned_abs() <= 32_767)
 }
 
 fn host_rect(rect: RECT) -> Win16HostRect {
@@ -71,6 +109,56 @@ fn native_region(
         .as_ref()
         .map(Win16RegionLease::native)
         .filter(|region| !region.is_null())
+}
+
+/// Copies the update region only when its box fits a Win16 `RECT`.
+///
+/// `WINDOWS.H` 3.1 stores region coordinates as signed ints. `GetUpdateRgn`
+/// returns `ERROR` (0) on failure. An unrepresentable box leaves the leased
+/// guest region unchanged.
+fn copy_update_region(hwnd: HWND, region: HRGN, erase: bool) -> u16 {
+    struct Scratch(HRGN);
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            if !self.0.is_null() {
+                crate::windows::win32_safe::delete_object(self.0.cast());
+            }
+        }
+    }
+    // SAFETY: CreateRectRgn takes integer bounds. This empty region is owned
+    // by `Scratch` and is not a guest handle.
+    let scratch = Scratch(unsafe { CreateRectRgn(0, 0, 0, 0) });
+    if scratch.0.is_null() {
+        return 0;
+    }
+    // SAFETY: `scratch` is a live HRGN owned by this call. `hwnd` is the
+    // worker window or NULL. No guest address is passed. Erase callbacks may
+    // reenter USER; no worker-state borrow is held.
+    let value = unsafe { GetUpdateRgn(hwnd, scratch.0, erase as i32) };
+    if value == RGN_ERROR {
+        return 0;
+    }
+    let mut bounds = RECT::default();
+    // SAFETY: `scratch` outlives this call and `bounds` is a local RECT.
+    let kind = unsafe { GetRgnBox(scratch.0, &mut bounds) };
+    // An empty update region is NULLREGION. It has no edges to store.
+    let empty = value == NULLREGION;
+    let fits = [bounds.left, bounds.top, bounds.right, bounds.bottom]
+        .into_iter()
+        .all(|edge| i16::try_from(edge).is_ok());
+    let Ok(reported) = u16::try_from(value) else {
+        return 0;
+    };
+    if !empty && (kind == RGN_ERROR || !fits) {
+        return 0;
+    }
+    // SAFETY: `region` is the operation-leased guest HRGN. `scratch` is the
+    // source. RGN_COPY ignores its third region. Both handles stay live.
+    let copied = unsafe { CombineRgn(region, scratch.0, std::ptr::null_mut(), RGN_COPY) };
+    if copied == RGN_ERROR {
+        return 0;
+    }
+    reported
 }
 
 fn failure_result(operation: &Operation) -> ResultValue {
@@ -119,9 +207,15 @@ pub(super) fn execute(
             rect,
             erase,
         } => {
-            let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
+            let Some(hwnd) = present_window(state, *window) else {
                 return Ok(failure_result(&operation));
             };
+            // A null rectangle is the whole client area. Any other rectangle
+            // that does not fit is refused before USER, so the update region
+            // and its erase flag stay unchanged.
+            if (*rect).is_some_and(|rect| !rectangle_fits(rect)) {
+                return Ok(failure_result(&operation));
+            }
             let rect = (*rect).map(native_rect);
             let rect_ptr = rect
                 .as_ref()
@@ -136,7 +230,7 @@ pub(super) fn execute(
             region,
             erase,
         } => {
-            let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
+            let Some(hwnd) = present_window(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             let region = match region {
@@ -152,9 +246,15 @@ pub(super) fn execute(
             Ok(ResultValue::Void { succeeded })
         }
         Operation::ValidateRect { window, rect } => {
-            let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
+            let Some(hwnd) = present_window(state, *window) else {
                 return Ok(failure_result(&operation));
             };
+            // A null rectangle validates the whole client area. A rectangle
+            // that does not fit is refused before USER and leaves the update
+            // region unchanged.
+            if (*rect).is_some_and(|rect| !rectangle_fits(rect)) {
+                return Ok(failure_result(&operation));
+            }
             let rect = (*rect).map(native_rect);
             let rect_ptr = rect
                 .as_ref()
@@ -165,7 +265,7 @@ pub(super) fn execute(
             Ok(ResultValue::Void { succeeded })
         }
         Operation::ValidateRgn { window, region } => {
-            let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {
+            let Some(hwnd) = present_window(state, *window) else {
                 return Ok(failure_result(&operation));
             };
             let region = match region {
@@ -219,10 +319,7 @@ pub(super) fn execute(
             let Some(region) = native_region(regions, *region) else {
                 return Ok(failure_result(&operation));
             };
-            // SAFETY: `region` is protected by its operation-scoped lease and
-            // `hwnd` is copied; the native API mutates only that retained HRGN.
-            let value = unsafe { GetUpdateRgn(hwnd, region, *erase as i32) };
-            Ok(ResultValue::Word(value as u16))
+            Ok(ResultValue::Word(copy_update_region(hwnd, region, *erase)))
         }
         Operation::ExcludeUpdateRgn { dc, window } => {
             let WindowTarget::Resolved(hwnd) = window_target(state, *window) else {

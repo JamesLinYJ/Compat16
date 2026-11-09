@@ -39,10 +39,11 @@ impl Win16State {
         key: Option<&[u8]>,
         default_value: Option<&[u8]>,
         filename: Option<&[u8]>,
-        output: Win16OutputBuffer,
+        output: Option<Win16OutputBuffer>,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
+        let Some(output) = output else { return Ok(0); };
         let filename = self.private_profile_path(filename, host)?;
         let (bytes, copied) = host.win16_profile_string(
             section, key, default_value, &filename, output.capacity,
@@ -55,10 +56,11 @@ impl Win16State {
         section: Option<&[u8]>,
         key: Option<&[u8]>,
         default_value: Option<&[u8]>,
-        output: Win16OutputBuffer,
+        output: Option<Win16OutputBuffer>,
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
+        let Some(output) = output else { return Ok(0); };
         let (bytes, copied) = host.win16_system_profile_string(
             section, key, default_value, output.capacity,
         )?;
