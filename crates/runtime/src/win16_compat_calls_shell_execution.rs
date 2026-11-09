@@ -41,11 +41,13 @@ impl Win16ShellExecutionContinuation {
             Win16ShellExecutionContinuationKind::About { .. } => None,
             Win16ShellExecutionContinuationKind::DragAcceptFiles => None,
             Win16ShellExecutionContinuationKind::FreeModule { .. } => None,
+            Win16ShellExecutionContinuationKind::GetModuleUsage { .. } => None,
         }
     }
 }
 
 pub(super) enum Win16ShellExecutionContinuationKind {
+    GetModuleUsage { identity: u16, process: crate::Win16HostProcess },
     WinExec { identity: u16 },
     LoadModule { identity: u16 },
     FreeModule { identity: u16, process: Option<crate::Win16HostProcess> },
@@ -137,6 +139,10 @@ fn project_shell_execution_result(
     let reserved_identity = continuation.terminal_external_application();
     let return_kind = continuation.return_kind;
     let value = match (&continuation.kind, result) {
+        (Win16ShellExecutionContinuationKind::GetModuleUsage { identity, process },
+            Win16HostShellExecutionResult::ProcessRunning(running)) => {
+            u32::from(state.external_module_usage(*identity, *process, *running))
+        }
         (Win16ShellExecutionContinuationKind::FreeModule { identity, process },
             Win16HostShellExecutionResult::ProcessReleased(released)) => {
             u32::from(state.finish_external_module_release(*identity, *process, *released)?)
@@ -480,6 +486,19 @@ fn project_shell_execution_result(
 }
 
 impl Win16State {
+    pub(in crate::win16_runtime) fn begin_external_module_usage(
+        &mut self, identity: u16, process: crate::Win16HostProcess,
+        registers: &mut Registers, memory: &mut Memory, host: &mut impl RuntimeHost,
+        return_to: (u16, u16, u32),
+    ) -> Result<Option<u8>, RuntimeError> {
+        self.begin_window_operation(registers, memory, host,
+            Win16WindowOperation::ShellExecution(Win16HostShellExecutionOperation::QueryProcess { process }),
+            WindowReturn::ShellExecution(Win16ShellExecutionContinuation {
+                kind: Win16ShellExecutionContinuationKind::GetModuleUsage { identity, process },
+                return_kind: Win16ReturnKind::Word,
+            }), return_to)
+    }
+
     pub(in crate::win16_runtime) fn begin_external_module_release(
         &mut self, identity: u16, process: Option<crate::Win16HostProcess>,
         registers: &mut Registers, memory: &mut Memory, host: &mut impl RuntimeHost,

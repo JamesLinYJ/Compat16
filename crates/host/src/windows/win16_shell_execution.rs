@@ -1,7 +1,7 @@
 //! Native Windows SHELL services executed on the Win16 USER owner thread.
 
 use std::cell::RefCell;
-use std::os::windows::io::{FromRawHandle, OwnedHandle, RawHandle};
+use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle, RawHandle};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -107,6 +107,17 @@ pub(super) fn execute(
     prepared: Option<Result<win16_program_launch::PreparedLaunch, u16>>,
 ) -> Result<super::super::win16_modal::NativeModalOperationOutcome, RuntimeError> {
     match operation {
+        Win16HostShellExecutionOperation::QueryProcess { process } => {
+            let worker = state.borrow();
+            let handle = worker.shell_processes.iter()
+                .find(|lease| lease.token == process)
+                .and_then(|lease| lease.handle.as_ref())
+                .ok_or_else(|| RuntimeError::new(Kind::InvalidInput,
+                    "process query has no retained native lease"))?;
+            let running = process_is_running(handle)?;
+            Ok(super::super::win16_modal::NativeModalOperationOutcome::Returned(
+                Win16WindowResult::ShellExecution(Win16HostShellExecutionResult::ProcessRunning(running))))
+        }
         Win16HostShellExecutionOperation::ReleaseProcess { process } => {
             let released = match process {
                 None => true,
@@ -1066,3 +1077,21 @@ fn map_shell_error(error: u32) -> u16 {
         _ => 31,
     }
 }
+
+/// Check the retained process object rather than interpreting its exit code.
+fn process_is_running(process: &impl AsRawHandle) -> Result<bool, RuntimeError> {
+    use windows_sys::Win32::Foundation::{WAIT_OBJECT_0, WAIT_TIMEOUT};
+    use windows_sys::Win32::System::Threading::WaitForSingleObject;
+    // SAFETY: The exact owned process HANDLE stays borrowed for this zero-time
+    // wait. A process that exits with code 259 is still correctly terminated.
+    match unsafe { WaitForSingleObject(process.as_raw_handle(), 0) } {
+        WAIT_OBJECT_0 => Ok(false),
+        WAIT_TIMEOUT => Ok(true),
+        _ => Err(RuntimeError::with_source(Kind::HostFailure,
+            "poll retained Win16 application process", std::io::Error::last_os_error())),
+    }
+}
+
+#[cfg(test)]
+#[path = "win16_shell_process_tests.rs"]
+mod process_liveness_tests;

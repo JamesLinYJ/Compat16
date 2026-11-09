@@ -27,6 +27,8 @@ pub struct Win16HostProgramLoadInput {
 
 #[derive(Clone, Debug)]
 pub enum Win16HostShellExecutionOperation {
+    /// Poll the exact retained process without waiting for its termination.
+    QueryProcess { process: Win16HostProcess },
     /// Release the caller's process lease after a successful program load.
     ReleaseProcess { process: Option<Win16HostProcess> },
     LoadModule {
@@ -210,6 +212,7 @@ impl Error for Win16HostShellFailure {
 
 #[derive(Debug)]
 pub enum Win16HostShellExecutionResult {
+    ProcessRunning(bool),
     ProcessReleased(bool),
     WinExec(Result<Win16HostShellActivation, Win16HostWinExecFailure>),
     /// Native DragAcceptFiles is void; false reports that the owner did not

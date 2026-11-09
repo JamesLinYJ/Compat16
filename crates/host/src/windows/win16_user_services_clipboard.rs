@@ -55,8 +55,18 @@ pub(super) fn execute(
             // SAFETY: OpenClipboard opens the clipboard for this thread.
             Result::Bool(unsafe { OpenClipboard(owner) != 0 })
         }
-        // SAFETY: CloseClipboard closes the clipboard this thread opened.
-        Call::Close => Result::Bool(unsafe { CloseClipboard() != 0 }),
+        Call::Close => {
+            let previous = current_guest_text_placement();
+            // SAFETY: CloseClipboard closes the clipboard this thread opened.
+            let closed = unsafe { CloseClipboard() != 0 };
+            if closed {
+                // User32 synthesizes text formats during our successful close.
+                // Preserve the original guest format only for the same native
+                // owner and the same placement, including across reentry.
+                note_clipboard_contents_changed(previous);
+            }
+            Result::Bool(closed)
+        }
         Call::Empty => {
             // SAFETY: EmptyClipboard clears the clipboard this thread opened.
             let emptied = unsafe { EmptyClipboard() != 0 };
@@ -68,6 +78,7 @@ pub(super) fn execute(
         // SAFETY: `GetClipboardOwner` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
         Call::Owner => Result::Window(token_for_native(state, unsafe { GetClipboardOwner() })?),
         Call::SetData { format, data } => {
+            let previous = current_guest_text_placement();
             let accepted = match data {
                 ClipboardData::GlobalMemory(bytes) => {
                     set_global_data(ansi_codec, oem_codec, format, &bytes)?
@@ -82,7 +93,7 @@ pub(super) fn execute(
                 if is_guest_legacy_text_format(format) {
                     note_guest_text_format(format);
                 } else {
-                    note_clipboard_contents_changed();
+                    note_clipboard_contents_changed(previous);
                 }
             }
             Result::SetData(accepted)
@@ -314,10 +325,11 @@ fn is_guest_legacy_text_format(format: u16) -> bool {
 /// The Win16 text format this worker last placed, with the clipboard sequence
 /// observed after that placement. A later host change advances the sequence
 /// and the recorded format is no longer the placed Win3.1 format.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GuestTextPlacement {
     format: u16,
     sequence: u32,
+    owner: usize,
 }
 
 thread_local! {
@@ -327,32 +339,75 @@ thread_local! {
 fn note_guest_text_format(format: u16) {
     // SAFETY: GetClipboardSequenceNumber takes no pointers.
     let sequence = unsafe { GetClipboardSequenceNumber() };
+    // SAFETY: GetClipboardOwner returns a native identity, never a guest pointer.
+    let owner = unsafe { GetClipboardOwner() } as usize;
     GUEST_TEXT_PLACEMENT.with(|slot| {
-        slot.set(Some(GuestTextPlacement { format, sequence }));
+        slot.set(Some(GuestTextPlacement { format, sequence, owner }));
     });
 }
 
-fn note_clipboard_contents_changed() {
+fn note_clipboard_contents_changed(previous: Option<GuestTextPlacement>) {
     // SAFETY: GetClipboardSequenceNumber takes no pointers.
     let sequence = unsafe { GetClipboardSequenceNumber() };
+    // SAFETY: Read-only clipboard ownership query.
+    let owner = unsafe { GetClipboardOwner() } as usize;
     GUEST_TEXT_PLACEMENT.with(|slot| {
-        if let Some(mut placed) = slot.get() {
-            placed.sequence = sequence;
-            slot.set(Some(placed));
-        }
+        slot.set(refreshed_text_placement(slot.get(), previous, owner, sequence));
     });
+}
+
+fn refreshed_text_placement(
+    current: Option<GuestTextPlacement>, previous: Option<GuestTextPlacement>,
+    owner: usize, sequence: u32,
+) -> Option<GuestTextPlacement> {
+    if let Some(mut placed) = previous
+        && current == previous && owner != 0 && placed.owner == owner && sequence != 0
+    {
+        placed.sequence = sequence;
+        return Some(placed);
+    }
+    current
 }
 
 fn clear_guest_text_format() {
     GUEST_TEXT_PLACEMENT.with(|slot| slot.set(None));
 }
 
-fn placed_guest_text_format() -> Option<u16> {
+fn current_guest_text_placement() -> Option<GuestTextPlacement> {
     let placed = GUEST_TEXT_PLACEMENT.with(|slot| slot.get())?;
     // SAFETY: GetClipboardSequenceNumber takes no pointers.
     let sequence = unsafe { GetClipboardSequenceNumber() };
-    (sequence == placed.sequence && is_guest_legacy_text_format(placed.format))
-        .then_some(placed.format)
+    // SAFETY: Read-only clipboard ownership query.
+    let owner = unsafe { GetClipboardOwner() } as usize;
+    (sequence != 0 && sequence == placed.sequence && owner == placed.owner
+        && is_guest_legacy_text_format(placed.format)).then_some(placed)
+}
+
+fn placed_guest_text_format() -> Option<u16> {
+    current_guest_text_placement().map(|placed| placed.format)
+}
+
+#[cfg(test)]
+mod placement_tests {
+    use super::*;
+
+    #[test]
+    fn clipboard_close_preserves_the_placed_oem_format_after_native_synthesis() {
+        let placed = Some(GuestTextPlacement { format: CF_OEMTEXT, sequence: 10, owner: 7 });
+        let refreshed = refreshed_text_placement(placed, placed, 7, 12).unwrap();
+        assert_eq!(refreshed.format, CF_OEMTEXT);
+        assert_eq!(refreshed.sequence, 12);
+    }
+
+    #[test]
+    fn clipboard_close_does_not_relabel_foreign_or_reentrant_replacements() {
+        let placed = Some(GuestTextPlacement { format: CF_OEMTEXT, sequence: 10, owner: 7 });
+        let replacement = Some(GuestTextPlacement { format: CF_TEXT, sequence: 13, owner: 7 });
+        assert_eq!(refreshed_text_placement(placed, placed, 8, 12), placed);
+        assert_eq!(refreshed_text_placement(replacement, placed, 7, 14), replacement);
+        assert_eq!(refreshed_text_placement(placed, None, 7, 12), placed);
+        assert_eq!(refreshed_text_placement(placed, placed, 7, 0), placed);
+    }
 }
 
 fn native_format_available(format: u16) -> bool {
