@@ -274,10 +274,10 @@ pub(in crate::win16_runtime) fn paintstruct_from_host(
         hdc: handle,
         f_erase: if paint.erase { 1 } else { 0 },
         rc_paint: Rect16 {
-            left: guest_coordinate(paint.rect.left),
-            top: guest_coordinate(paint.rect.top),
-            right: guest_coordinate(paint.rect.right),
-            bottom: guest_coordinate(paint.rect.bottom),
+            left: saturated_paint_coordinate(paint.rect.left),
+            top: saturated_paint_coordinate(paint.rect.top),
+            right: saturated_paint_coordinate(paint.rect.right),
+            bottom: saturated_paint_coordinate(paint.rect.bottom),
         },
         f_restore: if paint.restore { 1 } else { 0 },
         f_inc_update: if paint.inc_update { 1 } else { 0 },
@@ -285,10 +285,27 @@ pub(in crate::win16_runtime) fn paintstruct_from_host(
     }
 }
 
-/// Host desktop/window coordinates can exceed the signed Win16 coordinate
-/// range. Saturate at the guest ABI boundary instead of wrapping across the
-/// screen; ordinary 16-bit-era coordinates are unchanged.
-pub(super) fn guest_coordinate(value: i32) -> i16 {
+/// A Win16 `RECT` edge is a signed 16-bit int. A host coordinate outside
+/// `-32768..=32767` is not stored. Windows 3.1 Programmer's Reference,
+/// Volume 2, describes the same rule for `GetWindowRect`: the guest buffer
+/// stays unchanged. Ordinary coordinates, including the signed extremes,
+/// are stored exactly.
+pub(super) fn guest_coordinate(value: i32) -> Option<i16> {
+    i16::try_from(value).ok()
+}
+
+pub(super) fn guest_rect(rect: &Win16HostRect) -> Option<Rect16> {
+    Some(Rect16 {
+        left: guest_coordinate(rect.left)?,
+        top: guest_coordinate(rect.top)?,
+        right: guest_coordinate(rect.right)?,
+        bottom: guest_coordinate(rect.bottom)?,
+    })
+}
+
+/// BeginPaint always fills a `PAINTSTRUCT`. Its writer lives in the GDI
+/// completion path, so an edge that does not fit is still saturated there.
+fn saturated_paint_coordinate(value: i32) -> i16 {
     value.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16
 }
 
