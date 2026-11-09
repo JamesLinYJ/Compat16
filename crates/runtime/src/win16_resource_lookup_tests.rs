@@ -429,3 +429,135 @@ fn null_resource_handler_restores_the_builtin_loader() {
         Some(0x1111)
     );
 }
+
+#[test]
+fn load_resource_adopts_a_handler_block_that_replaces_a_discarded_one() {
+    let mut runtime = install(menu_resource(), &[]);
+    let mut host = NoHost;
+    let info = runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .find_resource(
+            0,
+            &Win16ResourceName::Id(1),
+            &Win16ResourceName::Id(RT_MENU),
+            &mut host,
+        )
+        .unwrap();
+    let module = runtime.win16.as_ref().unwrap().modules.main;
+    let key = super::ResourceKey { module, info };
+    let old = runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .global_alloc(
+            win16_abi::global::GMEM_MOVEABLE,
+            6,
+            &mut runtime.memory,
+            &mut host,
+        )
+        .unwrap();
+    let old_identity = runtime
+        .win16
+        .as_ref()
+        .unwrap()
+        .live_global_identity(old)
+        .unwrap();
+    let state = runtime.win16.as_mut().unwrap();
+    state.resources.loaded.insert(
+        key,
+        super::LoadedResource {
+            data: old,
+            identity: old_identity,
+            references: 2,
+            retirement_cause: None,
+        },
+    );
+    state.discarded_handles.insert(old);
+
+    let replacement = state
+        .global_alloc(
+            win16_abi::global::GMEM_MOVEABLE,
+            6,
+            &mut runtime.memory,
+            &mut host,
+        )
+        .unwrap();
+    assert_ne!(replacement, 0);
+    assert_ne!(replacement, old);
+    assert_eq!(
+        state.commit_loaded_resource(key, replacement).unwrap(),
+        replacement
+    );
+    let entry = state.resources.loaded.get(&key).unwrap();
+    assert_eq!(entry.data, replacement);
+    assert_eq!(entry.references, 3);
+    assert!(!state.discarded_handles.contains(&replacement));
+}
+
+#[test]
+fn load_resource_keeps_a_live_handle_when_another_block_is_returned() {
+    let mut runtime = install(menu_resource(), &[]);
+    let mut host = NoHost;
+    let info = runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .find_resource(
+            0,
+            &Win16ResourceName::Id(1),
+            &Win16ResourceName::Id(RT_MENU),
+            &mut host,
+        )
+        .unwrap();
+    let module = runtime.win16.as_ref().unwrap().modules.main;
+    let key = super::ResourceKey { module, info };
+    let old = runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .global_alloc(
+            win16_abi::global::GMEM_MOVEABLE,
+            6,
+            &mut runtime.memory,
+            &mut host,
+        )
+        .unwrap();
+    let old_identity = runtime
+        .win16
+        .as_ref()
+        .unwrap()
+        .live_global_identity(old)
+        .unwrap();
+    let state = runtime.win16.as_mut().unwrap();
+    state.resources.loaded.insert(
+        key,
+        super::LoadedResource {
+            data: old,
+            identity: old_identity,
+            references: 1,
+            retirement_cause: None,
+        },
+    );
+    let replacement = state
+        .global_alloc(
+            win16_abi::global::GMEM_MOVEABLE,
+            6,
+            &mut runtime.memory,
+            &mut host,
+        )
+        .unwrap();
+    assert_eq!(state.commit_loaded_resource(key, replacement).unwrap(), 0);
+    let entry = state.resources.loaded.get(&key).unwrap();
+    assert_eq!(entry.data, old);
+    assert_eq!(entry.identity, old_identity);
+    assert_eq!(entry.references, 1);
+}
+
+fn menu_resource() -> Vec<NeResourceType> {
+    vec![NeResourceType {
+        id: NeResourceId::Numeric(RT_MENU),
+        resources: vec![resource(NeResourceId::Numeric(1), 6, 0)],
+    }]
+}
