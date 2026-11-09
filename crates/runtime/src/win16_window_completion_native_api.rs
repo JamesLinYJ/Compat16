@@ -709,8 +709,12 @@ pub(super) fn finish_scroll_bar(
     }
     if *phase == GuestOutputProjectionPhase::Ready {
         let projected = match (continuation.result_kind, result) {
-            (Request::Position, ResultValue::Position(position)) =>
-                u32::from(*position as i16 as u16),
+            (Request::Position, ResultValue::Position(position)) => {
+                // Windows 3.1 Programmer's Reference, Volume 2: GetScrollPos and
+                // SetScrollPos return a signed int, or zero when the call fails.
+                // A host position outside that int is not wrapped into the guest word.
+                i16::try_from(*position).map_or(0, |position| u32::from(position as u16))
+            }
             (Request::Range, ResultValue::Range(Some((minimum, maximum)))) => {
                 let minimum_range = continuation.minimum_output.as_ref().ok_or_else(||
                     RuntimeError::new(Kind::InternalInvariant,
