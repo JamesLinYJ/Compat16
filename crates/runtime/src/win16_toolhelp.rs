@@ -150,10 +150,14 @@ impl Win16State {
         let Some((pointer, dw_size)) = self.toolhelp_output_pointer::<{ ModuleEntry16::SIZE }>(
             output, memory,
         )? else { return Ok(0); };
+        // Module handles, instance handles, and segment selectors all name the
+        // same module. wNext continues the handle-ordered walk from that module.
+        let Some(module) = self.modules.by_handle(handle) else { return Ok(0); };
         let entries = self.toolhelp_module_entries()?;
-        let Some(mut entry) = entries.iter().find(|entry| entry.module_handle == handle).cloned()
+        let Some(index) = entries.iter().position(|entry| entry.module_handle == module)
         else { return Ok(0); };
-        entry.next = 0;
+        let mut entry = entries[index].clone();
+        entry.next = entries.get(index + 1).map_or(0, |next| next.module_handle);
         self.selectors.write(memory, pointer, &entry.encode_with_size(dw_size))
             .map_err(crate::runtime_error)?;
         Ok(1)
@@ -609,3 +613,7 @@ fn basename(path: &[u8]) -> &[u8] {
         .map_or(0, |separator| separator + 1);
     &path[start..]
 }
+
+#[cfg(test)]
+#[path = "win16_toolhelp_walk_tests.rs"]
+mod walk_tests;

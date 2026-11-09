@@ -225,10 +225,10 @@ impl Win16State {
             )) => u32::from(self.toolhelp_global_handle_to_sel(handle)),
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::Toolhelp(
                 win16_abi::Win16LibraryToolhelpRequest::ToolhelpGlobalFirst { output, flags },
-            )) => u32::from(self.toolhelp_global_first(output, flags, memory)?),
+            )) => u32::from(self.toolhelp_global_first(output, flags, return_selector, memory)?),
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::Toolhelp(
                 win16_abi::Win16LibraryToolhelpRequest::ToolhelpGlobalNext { output, flags },
-            )) => u32::from(self.toolhelp_global_next(output, flags, memory)?),
+            )) => u32::from(self.toolhelp_global_next(output, flags, return_selector, memory)?),
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::Toolhelp(
                 win16_abi::Win16LibraryToolhelpRequest::ToolhelpGlobalInfo { output },
             )) => u32::from(self.toolhelp_global_info(output, memory)?),
@@ -237,14 +237,18 @@ impl Win16State {
                     output,
                     handle,
                 },
-            )) => u32::from(self.toolhelp_global_entry_handle(output, handle, memory)?),
+            )) => u32::from(self.toolhelp_global_entry_handle(
+                output, handle, return_selector, memory,
+            )?),
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::Toolhelp(
                 win16_abi::Win16LibraryToolhelpRequest::ToolhelpGlobalEntryModule {
                     output,
                     module,
                     segment,
                 },
-            )) => u32::from(self.toolhelp_global_entry_module(output, module, segment, memory)?),
+            )) => u32::from(self.toolhelp_global_entry_module(
+                output, module, segment, return_selector, memory,
+            )?),
             Win16ApiRequest::Libraries(win16_abi::Win16LibraryRequest::Interrupts(
                 win16_abi::Win16LibraryInterruptsRequest::InterruptRegister {
                     task_handle,
