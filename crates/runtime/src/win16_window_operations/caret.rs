@@ -17,13 +17,20 @@ impl Win16State {
 
         let call = match request {
             Request::CreateCaret { window, bitmap, width, height } => {
+                // CreateCaret: bitmap 0 is solid, 1 is gray, and any other
+                // value is an HBITMAP. Only a guest object the runtime already
+                // retained can be resolved. An unknown handle does not replace
+                // the queue's current caret.
                 let shape = match bitmap {
                     0 => crate::Win16CaretShape::Solid,
                     1 => crate::Win16CaretShape::Gray,
-                    _ => return Err(RuntimeError::new(
-                        Kind::CompatibilityGap,
-                        "Win16 bitmap carets require a retained native bitmap owner; the existing caret was not changed",
-                    )),
+                    handle => match self.guest_gdi.object(handle) {
+                        Some(token) => crate::Win16CaretShape::Bitmap(token),
+                        None => return Err(RuntimeError::new(
+                            Kind::CompatibilityGap,
+                            "Win16 bitmap carets require a retained native bitmap owner; the existing caret was not changed",
+                        )),
+                    },
                 };
                 Win16WindowCall::CreateCaret {
                     window: self.native_window(window), shape, width, height,

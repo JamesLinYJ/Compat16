@@ -10,6 +10,7 @@ use super::guest_text::GuestTextCodec;
 use runtime::Win16HostFile;
 use runtime::Win16HostFileClose;
 use runtime::{DiagnosticKind as Kind, RuntimeError};
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 #[cfg(test)]
 use windows_sys::Win32::Foundation::{ERROR_NO_UNICODE_TRANSLATION, INVALID_HANDLE_VALUE};
@@ -21,7 +22,11 @@ use windows_sys::Win32::Storage::FileSystem::{
     FILE_BEGIN, FILE_CURRENT, FILE_END, FILE_SHARE_READ, FILE_SHARE_WRITE, ReadFile, SetEndOfFile,
     SetFilePointerEx, WriteFile,
 };
-use windows_sys::Win32::UI::WindowsAndMessaging::MessageBoxW;
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::VK_ESCAPE;
+use windows_sys::Win32::UI::WindowsAndMessaging::{
+    CallNextHookEx, HHOOK, MSG, MSGF_DIALOGBOX, MSGF_MESSAGEBOX, MessageBoxW, SetWindowsHookExW,
+    WH_MSGFILTER, WM_KEYDOWN,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum Win16NativeFile {
@@ -603,6 +608,134 @@ pub(super) fn create_attributes(attributes: u16) -> Option<u32> {
     }
 }
 
+struct MessageBoxEscapeFilter {
+    hook: HHOOK,
+    eat_escape: Vec<bool>,
+}
+
+thread_local! {
+    static MESSAGE_BOX_ESCAPE: RefCell<MessageBoxEscapeFilter> =
+        RefCell::new(MessageBoxEscapeFilter {
+            hook: std::ptr::null_mut(),
+            eat_escape: Vec::new(),
+        });
+}
+
+struct MessageBoxEscapeGuard;
+
+impl Drop for MessageBoxEscapeGuard {
+    fn drop(&mut self) {
+        let hook = MESSAGE_BOX_ESCAPE.with(|slot| {
+            let mut filter = slot.borrow_mut();
+            filter.eat_escape.pop();
+            if filter.eat_escape.is_empty() {
+                Some(filter.hook)
+            } else {
+                None
+            }
+        });
+        let Some(hook) = hook else {
+            return;
+        };
+        if hook.is_null() {
+            return;
+        }
+        if crate::windows::win32_safe::unhook_windows_hook(hook) != 0 {
+            MESSAGE_BOX_ESCAPE.with(|slot| slot.borrow_mut().hook = std::ptr::null_mut());
+        }
+    }
+}
+
+/// `MB_OKCANCEL`, `MB_YESNOCANCEL`, and `MB_RETRYCANCEL` are the button
+/// types that include Cancel. Icon, default-button, and modality bits sit
+/// outside the low nibble.
+fn message_box_style_has_cancel(style: u16) -> bool {
+    matches!(style & 0x000F, 1 | 3 | 5)
+}
+
+fn push_message_box_escape_policy(eat_escape: bool) -> MessageBoxEscapeGuard {
+    MESSAGE_BOX_ESCAPE.with(|slot| slot.borrow_mut().eat_escape.push(eat_escape));
+    MessageBoxEscapeGuard
+}
+
+fn begin_message_box_escape_filter(
+    eat_escape: bool,
+) -> Result<MessageBoxEscapeGuard, RuntimeError> {
+    let needs_hook = MESSAGE_BOX_ESCAPE.with(|slot| slot.borrow().hook.is_null());
+    let guard = push_message_box_escape_policy(eat_escape);
+    if !needs_hook {
+        return Ok(guard);
+    }
+    let thread = crate::windows::win32_safe::current_thread_id();
+    // SAFETY: The procedure is a static function. hmod is null because the
+    // filter is limited to this thread. The returned HHOOK is an opaque host
+    // handle, not a guest address.
+    let hook = unsafe {
+        SetWindowsHookExW(
+            WH_MSGFILTER,
+            Some(message_box_escape_proc),
+            std::ptr::null_mut(),
+            thread,
+        )
+    };
+    if hook.is_null() {
+        drop(guard);
+        let error = crate::windows::win32_safe::last_error();
+        return Err(RuntimeError::with_source(
+            Kind::HostFailure,
+            "install the Win16 message-box Escape filter",
+            std::io::Error::from_raw_os_error(error as i32),
+        ));
+    }
+    let stored = MESSAGE_BOX_ESCAPE.with(|slot| {
+        let mut filter = slot.borrow_mut();
+        if filter.hook.is_null() {
+            filter.hook = hook;
+            true
+        } else {
+            false
+        }
+    });
+    if !stored {
+        let _ = crate::windows::win32_safe::unhook_windows_hook(hook);
+    }
+    Ok(guard)
+}
+
+fn should_eat_escape(code: i32, l_param: isize) -> bool {
+    let filter_code = u32::try_from(code).unwrap_or(u32::MAX);
+    if code < 0
+        || (filter_code != MSGF_DIALOGBOX as u32 && filter_code != MSGF_MESSAGEBOX as u32)
+        || l_param == 0
+    {
+        return false;
+    }
+    let eat =
+        MESSAGE_BOX_ESCAPE.with(|slot| slot.borrow().eat_escape.last().copied().unwrap_or(false));
+    if !eat {
+        return false;
+    }
+    // SAFETY: WH_MSGFILTER passes a pointer to the MSG Windows is filtering.
+    // That pointer is valid for this call and is not a guest address.
+    let message = unsafe { &*(l_param as *const MSG) };
+    message.message == WM_KEYDOWN as u32 && message.wParam == VK_ESCAPE as usize
+}
+
+// SAFETY: Windows calls this function with the system ABI in its signature.
+// Pointer arguments are valid only for this invocation and are not guest addresses.
+unsafe extern "system" fn message_box_escape_proc(
+    code: i32,
+    w_param: usize,
+    l_param: isize,
+) -> isize {
+    let eat = std::panic::catch_unwind(|| should_eat_escape(code, l_param)).unwrap_or(false);
+    if eat {
+        return 1;
+    }
+    // SAFETY: CallNextHookEx forwards the hook arguments Windows passed into this callback.
+    unsafe { CallNextHookEx(std::ptr::null_mut(), code, w_param, l_param) }
+}
+
 pub(super) fn message_box(
     codec: super::guest_text::GuestTextCodec,
     text: &[u8],
@@ -631,6 +764,9 @@ pub(super) fn message_box_with_owner(
     let caption_z = caption
         .map(|caption| codec.to_wide_z(caption))
         .transpose()?;
+    // Windows 3.1 ignores Escape when the box has no Cancel button.
+    // MessageBoxW treats Escape as OK for MB_OK, so the filter eats that key.
+    let _escape = begin_message_box_escape_filter(!message_box_style_has_cancel(style))?;
 
     // Preserve NULL separately from an empty string: MessageBoxW supplies
     // its own default caption for NULL, including the host's localization.
@@ -657,7 +793,56 @@ pub(super) fn message_box_with_owner(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::{message_box_style_has_cancel, push_message_box_escape_policy, should_eat_escape};
     use std::fs;
+    use windows_sys::Win32::Foundation::POINT;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        MSG, MSGF_DIALOGBOX, MSGF_MESSAGEBOX, WM_KEYDOWN,
+    };
+
+    #[test]
+    fn escape_does_nothing_when_the_message_box_has_no_cancel_button() {
+        assert!(!message_box_style_has_cancel(0));
+        assert!(message_box_style_has_cancel(1));
+        assert!(!message_box_style_has_cancel(2));
+        assert!(message_box_style_has_cancel(3));
+        assert!(!message_box_style_has_cancel(4));
+        assert!(message_box_style_has_cancel(5));
+        assert!(!message_box_style_has_cancel(0x0030));
+        assert!(message_box_style_has_cancel(0x0101));
+        assert!(!message_box_style_has_cancel(0x2004));
+        assert!(message_box_style_has_cancel(0x3005));
+
+        let escape = MSG {
+            hwnd: std::ptr::null_mut(),
+            message: WM_KEYDOWN,
+            wParam: 0x1B,
+            lParam: 0,
+            time: 0,
+            pt: POINT { x: 0, y: 0 },
+        };
+        let escape_param = &escape as *const MSG as isize;
+        let _outer = push_message_box_escape_policy(true);
+        assert!(should_eat_escape(MSGF_DIALOGBOX as i32, escape_param));
+        assert!(should_eat_escape(MSGF_MESSAGEBOX as i32, escape_param));
+        {
+            let _inner = push_message_box_escape_policy(false);
+            assert!(!should_eat_escape(MSGF_DIALOGBOX as i32, escape_param));
+        }
+        assert!(should_eat_escape(MSGF_DIALOGBOX as i32, escape_param));
+        assert!(!should_eat_escape(-1, escape_param));
+        assert!(!should_eat_escape(2, escape_param));
+        assert!(!should_eat_escape(MSGF_DIALOGBOX as i32, 0));
+        let return_key = MSG {
+            wParam: 0x0D,
+            ..escape
+        };
+        assert!(!should_eat_escape(
+            MSGF_DIALOGBOX as i32,
+            &return_key as *const MSG as isize
+        ));
+    }
+
     use std::path::{Path, PathBuf};
     use std::sync::atomic::{AtomicU64, Ordering};
 

@@ -17,6 +17,7 @@ use crate::{
 
 #[path = "win16_window_queued_messages.rs"]
 mod queued_messages;
+pub(in crate::win16_runtime) use queued_messages::guest_msg_point;
 #[path = "win16_nonclient_payloads.rs"]
 pub(super) mod nonclient_payloads;
 #[path = "win16_window_position_payloads.rs"]

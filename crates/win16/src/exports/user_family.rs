@@ -238,10 +238,9 @@ pub fn decode_user_family(
             value: word(arguments, 2)?,
             signed: word(arguments, 3)? != 0,
         }),
-        // Dialog control ids are the template WORD. Zero-extend that slot so
-        // ids 0x8000..=0xFFFF match GetDlgItem and the control created from
-        // the same unsigned id. Sign-extending the word looks up a different
-        // Win32 nIDDlgItem.
+        // Dialog control ids are the template WORD. Zero-extend 0x8000..=0xFFFE
+        // so they stay distinct from a sign-extended Win32 id. 0xFFFF is
+        // IDC_STATIC (-1) and is translated at the Win32 boundary, not here.
         95 => Request::Dialog(Dialog::GetItemInteger {
             dialog: word(arguments, 0)?,
             id: word(arguments, 1)?,

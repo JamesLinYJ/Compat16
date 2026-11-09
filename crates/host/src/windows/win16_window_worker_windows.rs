@@ -71,7 +71,7 @@ pub(super) fn create_window(
         .map(|byte| u16::from(*byte))
         .collect::<Vec<_>>();
     let child_id = data.child_id.map_or(std::ptr::null_mut(), |id| {
-        usize::from(id) as *mut std::ffi::c_void
+        super::super::win16_window_default::native_child_menu(id)
     });
     let child_window = data.style & windows_sys::Win32::UI::WindowsAndMessaging::WS_CHILD != 0;
     if (child_window || data.menu.is_some()) && data.class_menu_template.is_some() {

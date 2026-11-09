@@ -3,7 +3,7 @@
 use super::super::{ImportBinding, test_support::tiny_ne_executable};
 use crate::{
     DiagnosticKind as Kind, Runtime, RuntimeError, RuntimeHost, Win16CaretShape,
-    Win16HostPoint, Win16HostWindow, Win16HostWindowOperationId,
+    Win16HostGdiObject, Win16HostPoint, Win16HostWindow, Win16HostWindowOperationId,
     Win16NativeWindowOperationKind, Win16NativeWindowOperationProof,
     Win16NativeWindowOperationState, Win16WindowCall, Win16WindowCallResult,
     Win16WindowOperation, Win16WindowResult, Win16WindowSourceRetiredProof,
@@ -261,6 +261,25 @@ fn caret_bitmap_gap_does_not_replace_the_existing_native_caret() {
         assert_eq!(runtime.cpu.regs.ax(), AX);
         assert_eq!(runtime.cpu.regs.dx(), DX);
     }
+}
+
+#[test]
+fn caret_create_from_a_retained_bitmap_handle() {
+    let mut runtime = fixture();
+    let token = Win16HostGdiObject(0xC4_7E_B17);
+    let bitmap = runtime.win16.as_mut().unwrap().guest_gdi.allocate_object(token).unwrap();
+    let native = Win16HostWindow(0x1234_5678_9abc);
+    runtime.win16.as_mut().unwrap().window_handles.insert(2, native);
+    let return_to = prepare(&mut runtime, 163, &[Word(2), Word(bitmap), Word(i16::MIN as u16), Word(i16::MAX as u16)]);
+    let mut host = CaretHost { result: Some(Win16WindowCallResult::Boolean(true)), ..Default::default() };
+    assert_eq!(dispatch(&mut runtime, &mut host).unwrap(), None);
+    assert_eq!(host.calls, [CaretCall::Create {
+        window: Win16WindowTarget::Mapped(native),
+        shape: Win16CaretShape::Bitmap(token),
+        width: i16::MIN,
+        height: i16::MAX,
+    }]);
+    assert_return(&runtime, return_to);
 }
 
 #[test]

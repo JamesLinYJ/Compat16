@@ -329,8 +329,10 @@ pub(super) fn run_operation(
                         .map(Win16WindowResult::Menu)
                 }
                 Win16WindowOperation::WindowCall(call) => {
-                    super::super::win16_window_ops::execute(state, call)
-                        .map(Win16WindowResult::WindowCall)
+                    super::super::win16_window_caret::with_bitmaps(&native_bitmaps, || {
+                        super::super::win16_window_ops::execute(state, call)
+                    })
+                    .map(Win16WindowResult::WindowCall)
                 }
                 Win16WindowOperation::MessageCall(call) => {
                     super::super::win16_message_calls::execute(state, id, call, &response)

@@ -529,6 +529,9 @@ impl Win16State {
             }
             Request::GetItemInteger { dialog, id, signed, translated_output } => {
                 let Some(dialog) = self.dialog_window(dialog) else {
+                    // GetDlgItemInt returns 0 when hwndDlg is not a window.
+                    // A non-NULL lpTranslated receives FALSE and is not left stale.
+                    self.store_untranslated_dialog_item(translated_output, memory)?;
                     return Ok(Prepared::immediate(0, return_kind));
                 };
                 if translated_output != 0 {

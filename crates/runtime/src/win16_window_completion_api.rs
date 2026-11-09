@@ -490,7 +490,9 @@ pub(super) fn finish_queued_message(
             w_param,
             l_param,
             time: message.time,
-            pt: win16_abi::Point16 { x: message.point.x as i16, y: message.point.y as i16 },
+            pt: super::super::window_payloads::guest_msg_point(
+                access.selectors, memory, output.start(), message.point,
+            )?,
         });
         owner.phase = Phase::GuestHandlesMapped;
     }

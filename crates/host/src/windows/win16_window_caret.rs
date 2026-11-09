@@ -4,11 +4,12 @@
 //! position, shape or hide/show count, or destroy it on guest focus messages.
 
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use runtime::{
-    DiagnosticKind as Kind, RuntimeError, Win16CaretShape, Win16HostPoint, Win16WindowCall,
-    Win16WindowCallResult, Win16WindowTarget,
+    DiagnosticKind as Kind, RuntimeError, Win16CaretShape, Win16HostGdiObject, Win16HostPoint,
+    Win16WindowCall, Win16WindowCallResult, Win16WindowTarget,
 };
 use windows_sys::Win32::Foundation::{HWND, POINT};
 use windows_sys::Win32::Graphics::Gdi::HBITMAP;
@@ -18,6 +19,58 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 use super::win16_window_worker::WorkerState;
+
+thread_local! {
+    static CARET_BITMAPS: RefCell<BTreeMap<Win16HostGdiObject, Option<usize>>> =
+        RefCell::new(BTreeMap::new());
+}
+
+/// Publish the operation's resolved bitmap tokens for the caret call.
+/// The map is restored when `body` returns, including on panic. The
+/// `RefCell` is not held across `body`.
+pub(super) fn with_bitmaps<T>(
+    bitmaps: &BTreeMap<Win16HostGdiObject, Option<usize>>,
+    body: impl FnOnce() -> T,
+) -> T {
+    let previous =
+        CARET_BITMAPS.with(|slot| std::mem::replace(&mut *slot.borrow_mut(), bitmaps.clone()));
+    let _guard = CaretBitmapGuard { previous };
+    body()
+}
+
+struct CaretBitmapGuard {
+    previous: BTreeMap<Win16HostGdiObject, Option<usize>>,
+}
+
+impl Drop for CaretBitmapGuard {
+    fn drop(&mut self) {
+        CARET_BITMAPS.with(|slot| {
+            *slot.borrow_mut() = std::mem::take(&mut self.previous);
+        });
+    }
+}
+
+fn caret_bitmap(shape: Win16CaretShape) -> Result<Option<HBITMAP>, RuntimeError> {
+    Ok(match shape {
+        Win16CaretShape::Solid => Some(std::ptr::null_mut()),
+        Win16CaretShape::Gray => Some(1_usize as HBITMAP),
+        Win16CaretShape::Bitmap(token) => {
+            let mapped = CARET_BITMAPS.with(|slot| slot.borrow().get(&token).copied());
+            match mapped {
+                Some(Some(native)) => Some(native as HBITMAP),
+                // The token is retained, but it is not a bitmap. Leave the
+                // queue caret unchanged.
+                Some(None) => None,
+                None => {
+                    return Err(RuntimeError::new(
+                        Kind::InternalInvariant,
+                        "bitmap caret lost its resolved native bitmap",
+                    ));
+                }
+            }
+        }
+    })
+}
 
 pub(super) fn execute(
     state: &Rc<RefCell<WorkerState>>,
@@ -33,11 +86,11 @@ pub(super) fn execute(
             width,
             height,
         } => {
-            // These are native API shape selectors, never guest HBITMAP bits.
-            // USER chooses default dimensions for zero and starts hidden.
-            let bitmap: HBITMAP = match shape {
-                Win16CaretShape::Solid => std::ptr::null_mut(),
-                Win16CaretShape::Gray => 1_usize as HBITMAP,
+            // Bitmap 0 is solid and 1 is gray. Any other shape is a retained
+            // HBITMAP. CreateCaret ignores width and height for a real bitmap.
+            // A token that is not a bitmap does not replace the current caret.
+            let Some(bitmap) = caret_bitmap(shape)? else {
+                return Ok(ResultValue::Boolean(false));
             };
             // SAFETY: `CreateCaret` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             ResultValue::Boolean(hwnd(state, window).is_some_and(|native| unsafe {
@@ -122,4 +175,36 @@ pub(super) fn shutdown() -> Result<(), RuntimeError> {
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{caret_bitmap, with_bitmaps};
+    use runtime::{Win16CaretShape, Win16HostGdiObject};
+    use std::collections::BTreeMap;
+    use windows_sys::Win32::Graphics::Gdi::HBITMAP;
+
+    #[test]
+    fn bitmap_caret_uses_the_snapshotted_native_handle() {
+        let token = Win16HostGdiObject(0x51);
+        let other = Win16HostGdiObject(0x52);
+        let map = BTreeMap::from([(token, Some(0xABCusize)), (other, None)]);
+        with_bitmaps(&map, || {
+            assert_eq!(
+                caret_bitmap(Win16CaretShape::Solid).unwrap(),
+                Some(std::ptr::null_mut())
+            );
+            assert_eq!(
+                caret_bitmap(Win16CaretShape::Gray).unwrap(),
+                Some(1_usize as HBITMAP),
+            );
+            assert_eq!(
+                caret_bitmap(Win16CaretShape::Bitmap(token)).unwrap(),
+                Some(0xABC_usize as HBITMAP),
+            );
+            assert_eq!(caret_bitmap(Win16CaretShape::Bitmap(other)).unwrap(), None);
+            assert!(caret_bitmap(Win16CaretShape::Bitmap(Win16HostGdiObject(0x53))).is_err());
+        });
+        assert!(caret_bitmap(Win16CaretShape::Bitmap(token)).is_err());
+    }
 }
