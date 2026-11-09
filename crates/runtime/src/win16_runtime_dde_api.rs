@@ -147,6 +147,48 @@ impl Win16State {
             }
         }
 
+        // A null HSZ is the empty string once the instance exists. Windows
+        // resolves that before the code page, writes one NUL when the caller
+        // provided room for it, and returns 1. cchMax 0 or a null buffer
+        // returns the same length and writes nothing.
+        if let Win16DdeRequest::QueryString {
+            instance,
+            string: 0,
+            output,
+            ..
+        } = &request
+        {
+            let instance = *instance;
+            if self.dde.existing_host_instance(instance).is_none() {
+                return self.complete_return(
+                    registers,
+                    return_to.0,
+                    return_to.1,
+                    return_to.2,
+                    0,
+                    return_kind,
+                );
+            }
+            if output.far_pointer != 0 && output.capacity > 0 {
+                let pointer = self
+                    .selectors
+                    .pointer_from_far(output.far_pointer)
+                    .map_err(crate::runtime_error)?;
+                self.selectors
+                    .write(memory, pointer, &[0])
+                    .map_err(crate::runtime_error)?;
+            }
+            self.dde.set_last_error(instance, dde_error::NO_ERROR);
+            return self.complete_return(
+                registers,
+                return_to.0,
+                return_to.1,
+                return_to.2,
+                1,
+                return_kind,
+            );
+        }
+
         if let Win16DdeRequest::GetLastError { instance } = &request {
             let instance = *instance;
             let value = if self.dde.existing_host_instance(instance).is_some() {

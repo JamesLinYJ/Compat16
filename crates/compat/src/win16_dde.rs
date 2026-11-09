@@ -200,6 +200,23 @@ pub mod initialization_flag {
     pub const APPCLASS_MONITOR: u32 = 0x0000_0001;
 }
 
+/// `CP_WINANSI` from the Windows 3.1 SDK `DDEML.H`.
+///
+/// The Win16 ANSI `DdeCreateStringHandle` and `DdeQueryString` entries treat
+/// code page 0 as this default. The Unicode entries map 0 to `CP_WINUNICODE`
+/// and are not this guest ABI.
+pub const CP_WINANSI: i16 = 1004;
+
+/// Map the Win16 ANSI DDEML code-page argument. Zero selects `CP_WINANSI`;
+/// every other value, including an unsupported page, is left unchanged.
+pub const fn normalize_ansi_code_page(code_page: i16) -> i16 {
+    if code_page == 0 {
+        CP_WINANSI
+    } else {
+        code_page
+    }
+}
+
 /// Win16 DDEML error values from the Windows 3.1 SDK `DDEML.H` contract
 /// (`files/include/DDEML.H`, DMLERR_NO_ERROR through DMLERR_LAST, lines 312–335;
 /// Windows 3.1 Programmer's Reference Volume 2, printed pages 179 and 183 for

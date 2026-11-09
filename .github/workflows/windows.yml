@@ -301,7 +301,7 @@ jobs:
             '-p host-services --lib dde_completion_' = 5
             '-p runtime --lib metafile::tests' = 8
             '-p host-services --lib metafile_native_ -- --ignored --test-threads=1' = 9
-            '-p runtime --lib initialization_tests::' = 17
+            '-p runtime --lib initialization_tests::' = 21
             '-p runtime --lib win16_runtime_dde::transfer::tests::' = 16
             '-p runtime --lib win16_dde_callback::retirement::tests::' = 1
             '-p host-services --lib dde_normal_tombstone_shutdown_' = 2
