@@ -102,10 +102,13 @@ impl Win16State {
         let default = self.default_resource_procedure()?;
         let mut previous = default;
         for identity in types {
-            previous = self.resource_handlers.get(&identity).copied().unwrap_or(default);
-            // A NULL handler disables loading for this resource type. Only
-            // the actual default procedure restores the built-in loader.
-            if handler == default {
+            let installed = self.resource_handlers.get(&identity).copied().unwrap_or(0);
+            // A missing or null slot is the built-in loader. Report that
+            // procedure, matching a handler that was never replaced.
+            previous = if installed == 0 { default } else { installed };
+            // A null procedure restores the built-in loader. LoadResource
+            // treats a null handler as DefResourceHandler rather than failure.
+            if handler == 0 || handler == default {
                 self.resource_handlers.remove(&identity);
             } else {
                 self.resource_handlers.insert(identity, handler);

@@ -168,10 +168,13 @@ impl Win16State {
         metadata: ResourceMetadata,
         data: u16,
     ) -> Result<Option<u8>, RuntimeError> {
+        // A missing or null handler is the built-in loader. A caller restores
+        // that loader by passing either null or DefResourceHandler itself.
         let procedure = self
             .resource_handlers
             .get(&(metadata.key.module, metadata.type_index))
-            .copied();
+            .copied()
+            .filter(|procedure| *procedure != 0);
         let Some(procedure) = procedure else {
             let loaded = self.default_resource_load(data, metadata.key, memory, host)?;
             let frame = self
@@ -186,18 +189,6 @@ impl Win16State {
             self.complete_resource_call(cpu, dos, memory, host)?;
             return Ok(None);
         };
-        if procedure == 0 {
-            let kind = match self
-                .resource_callbacks
-                .last()
-                .expect("disabled resource owner")
-                .result
-            {
-                ResourceReturn::Load => Win16ReturnKind::Word,
-                ResourceReturn::Lock => Win16ReturnKind::FarPointer,
-            };
-            return self.resource_direct_return(cpu, dos, memory, host, 0, kind, None);
-        }
         let instance = self
             .modules
             .records
