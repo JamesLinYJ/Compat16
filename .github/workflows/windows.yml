@@ -253,6 +253,7 @@ jobs:
             '-p runtime --lib win16_runtime::kernel_task::tests::'
             '-p runtime --lib win16_runtime::media_time::timer_tests::'
             '-p runtime --lib win16_runtime::mixer_tests::'
+            '-p runtime --lib win16_runtime::multimedia_buffers::tests::'
             '-p runtime --lib win16_host_mixer::session_tests::'
             '-p runtime --lib win16_runtime::user_drag::drag_tests::'
             '-p runtime --lib win16_runtime::winmem32::tests::'
@@ -319,6 +320,7 @@ jobs:
             '-p runtime --lib win16_runtime::kernel_task::tests::' = 6
             '-p runtime --lib win16_runtime::media_time::timer_tests::' = 7
             '-p runtime --lib win16_runtime::mixer_tests::' = 4
+            '-p runtime --lib win16_runtime::multimedia_buffers::tests::' = 13
             '-p runtime --lib win16_host_mixer::session_tests::' = 1
             '-p runtime --lib win16_runtime::user_drag::drag_tests::' = 8
             '-p runtime --lib win16_runtime::winmem32::tests::' = 4
