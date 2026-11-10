@@ -16,8 +16,11 @@ impl Win16State {
         if output == 0 {
             // A size query does not allocate guest aliases for pointer-bearing
             // fields. The queried size is the guest structure, not host sizeof.
+            // A brush style or hatch that does not fit LOGBRUSH is not a size.
             let size = match &info {
                 Info::Pen(_) => LogPen16::SIZE, Info::Font(_) => LogFont16::SIZE,
+                Info::Brush { brush, pattern: None }
+                    if i16::try_from(brush.hatch).is_err() => return Ok(0),
                 Info::Brush { .. } => LogBrush16::SIZE, Info::Bitmap(_) => Bitmap16::SIZE,
                 Info::Palette(_) => 2,
                 Info::UnsupportedBrush => {
@@ -28,10 +31,16 @@ impl Win16State {
             };
             return Ok(size as u32);
         }
+        // Windows 3.1 GetObject copies LOGPEN and LOGBRUSH only when cbBuffer
+        // holds the whole structure. A shorter buffer returns zero and is left
+        // unchanged. Fonts, bitmaps, and palettes still copy a requested prefix.
         let bytes = match info {
-            Info::Pen(pen) => LogPen16 {
-                style: pen.style, width_x: pen.width_x, width_y: pen.width_y, color: pen.color,
-            }.encode().to_vec(),
+            Info::Pen(pen) => {
+                if (count as usize) < LogPen16::SIZE { return Ok(0); }
+                LogPen16 {
+                    style: pen.style, width_x: pen.width_x, width_y: pen.width_y, color: pen.color,
+                }.encode().to_vec()
+            }
             Info::Font(font) => LogFont16 {
                 dimensions: [font.height, font.width, font.escapement, font.orientation, font.weight],
                 styles: [font.italic, font.underline, font.strikeout, font.char_set,
@@ -39,6 +48,8 @@ impl Win16State {
                 face_name: font.face_name,
             }.encode().to_vec(),
             Info::Brush { brush, pattern } => {
+                // Reject a short buffer before allocating a pattern-bitmap alias.
+                if (count as usize) < LogBrush16::SIZE { return Ok(0); }
                 let hatch = if let Some(pattern) = pattern {
                     let handle = self.guest_gdi.existing_object(pattern)
                         .or_else(|| self.guest_gdi.allocate_object(pattern));
