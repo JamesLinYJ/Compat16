@@ -49,9 +49,13 @@ impl Outcome {
 struct Printer(PRINTER_HANDLE);
 impl Drop for Printer {
     fn drop(&mut self) {
-        // SAFETY: This call owns the printer opened by OpenPrinterW.
+        let printer = self.0;
+        // SAFETY: `printer` is the handle opened by OpenPrinterW and owned by
+        // this `Printer`. It stays valid until ClosePrinter returns. Drop runs
+        // once. ClosePrinter closes that handle and retains nothing. No
+        // pointer is a guest address.
         unsafe {
-            ClosePrinter(self.0);
+            ClosePrinter(printer);
         }
     }
 }
@@ -72,12 +76,21 @@ pub(super) fn execute(
     let mut handle = PRINTER_HANDLE {
         Value: ptr::null_mut(),
     };
-    // SAFETY: The optional UTF-16 device name stays live; no guest pointer is used.
-    if unsafe { OpenPrinterW(name, &mut handle, ptr::null()) } == 0 {
+    let printer_out = &mut handle as *mut PRINTER_HANDLE;
+    // SAFETY: `name` is null or points at the NUL-terminated UTF-16 device
+    // name in `device`, which stays live for this call. `printer_out` points
+    // at the local `handle`, which stays live. The defaults pointer is null.
+    // OpenPrinterW writes the opened printer into `handle` and returns zero
+    // on failure. It retains no pointer. No pointer is a guest address.
+    if unsafe { OpenPrinterW(name, printer_out, ptr::null()) } == 0 {
         return Ok(Outcome::status(-1));
     }
     let printer = Printer(handle);
-    // SAFETY: The live printer and optional device name identify this query.
+    // SAFETY: `printer.0` is the printer handle owned by `printer` for this
+    // call. `name` is null or the NUL-terminated UTF-16 device name that
+    // stays live. The output and input pointers are null and the mode is
+    // zero, so DocumentPropertiesW returns the required byte count and writes
+    // nothing. It retains no pointer. No pointer is a guest address.
     let required =
         unsafe { DocumentPropertiesW(owner, printer.0, name, ptr::null_mut(), ptr::null(), 0) };
     if required <= 0 {
@@ -100,13 +113,19 @@ pub(super) fn execute(
     // parameter. Rounding adds at most three initialized padding bytes.
     let count = capacity.div_ceil(size_of::<u32>());
     let mut output = NativeOutputBuffer::<u32>::new(count)?;
-    // SAFETY: The queried driver size fits the owned aligned mapping.
+    let defaults_mode = output.as_mut_ptr().cast::<DEVMODEW>();
+    // SAFETY: `printer.0` is the printer handle owned by `printer` for this
+    // call. `name` is null or the NUL-terminated UTF-16 device name that
+    // stays live. `defaults_mode` addresses `capacity` initialized bytes in
+    // `output`, and that buffer stays live. The input pointer is null.
+    // DocumentPropertiesW writes the driver DEVMODE with DM_COPY and returns
+    // IDOK on success. It retains no pointer. No pointer is a guest address.
     let defaults_status = unsafe {
         DocumentPropertiesW(
             owner,
             printer.0,
             name,
-            output.as_mut_ptr().cast(),
+            defaults_mode,
             ptr::null(),
             u32::from(DM_COPY),
         )
@@ -132,17 +151,18 @@ pub(super) fn execute(
     // As in WOW, feed the per-user defaults even without DM_MODIFY. DM_UPDATE
     // needs a private output copy to persist, independently of guest DM_COPY.
     let native_mode = native_flags(request.mode);
-    // SAFETY: Both buffers are owned, aligned and bounded. The UI worker owns
-    // owner and remains available to the existing guest-callback continuation.
+    let output_mode = output.as_mut_ptr().cast::<DEVMODEW>();
+    let input_mode = input.as_ptr();
+    // SAFETY: `printer.0` is the printer handle owned by `printer` for this
+    // call. `name` is null or the NUL-terminated UTF-16 device name that
+    // stays live. `output_mode` addresses `capacity` initialized bytes in
+    // `output`, and that buffer stays live. `input_mode` points at the aligned
+    // DEVMODE owned by `input`, which stays live. Both buffers are bounded.
+    // DocumentPropertiesW reads that input and writes the result. It retains
+    // no pointer. No pointer is a guest address. `owner` is the UI worker
+    // window and stays available to the existing guest-callback continuation.
     let value = unsafe {
-        DocumentPropertiesW(
-            owner,
-            printer.0,
-            name,
-            output.as_mut_ptr().cast(),
-            input.as_ptr(),
-            native_mode,
-        )
+        DocumentPropertiesW(owner, printer.0, name, output_mode, input_mode, native_mode)
     };
     if value != IDOK {
         return Ok(Outcome::status(value));
@@ -157,15 +177,25 @@ pub(super) fn execute(
         let info = PRINTER_INFO_9W {
             pDevMode: output.as_mut_ptr().cast(),
         };
-        // SAFETY: Level 9 writes this user's defaults; the checked DEVMODE
-        // remains owned until the synchronous Windows call returns.
-        if unsafe { SetPrinterW(printer.0, 9, (&info as *const PRINTER_INFO_9W).cast(), 0) } == 0 {
+        let info_bytes = (&info as *const PRINTER_INFO_9W).cast::<u8>();
+        // SAFETY: `printer.0` is the printer handle owned by `printer` for
+        // this call. `info_bytes` points at `info`, which stays live.
+        // `info.pDevMode` addresses the checked DEVMODE in `output`, and that
+        // buffer stays live until SetPrinterW returns. Level 9 writes this
+        // user's defaults. SetPrinterW retains no pointer. No pointer is a
+        // guest address.
+        if unsafe { SetPrinterW(printer.0, 9, info_bytes, 0) } == 0 {
             return Ok(Outcome::status(-1));
         }
-        // SAFETY: WM_DEVMODECHANGE is a system string message. USER performs
-        // its documented marshalling; this name stays live through the call.
+        let name_param = name as isize;
+        // SAFETY: `name` is null or points at the NUL-terminated UTF-16 device
+        // name in `device`, which stays live for this call. `name_param` is
+        // that pointer as LPARAM. WM_DEVMODECHANGE is a system string message.
+        // USER performs its documented marshalling, and this name stays live
+        // through the call. SendNotifyMessageW retains no pointer after it
+        // returns. No pointer is a guest address.
         unsafe {
-            SendNotifyMessageW(HWND_BROADCAST, WM_DEVMODECHANGE, 0, name as isize);
+            SendNotifyMessageW(HWND_BROADCAST, WM_DEVMODECHANGE, 0, name_param);
         }
     }
     if request.mode & DM_COPY == 0 {
@@ -227,8 +257,12 @@ fn checked_native(bytes: &[u8]) -> Result<DEVMODEW, RuntimeError> {
     if bytes.len() < size_of::<DEVMODEW>() {
         return Err(bad_mode());
     }
-    // SAFETY: The checked prefix has no pointers and accepts all bit patterns.
-    let mode = unsafe { bytes.as_ptr().cast::<DEVMODEW>().read_unaligned() };
+    let mode_ptr = bytes.as_ptr().cast::<DEVMODEW>();
+    // SAFETY: `mode_ptr` points at the prefix of `bytes`. That slice stays
+    // live for this read and is at least `size_of::<DEVMODEW>()` bytes. The
+    // public DEVMODEW prefix has no pointers and accepts all bit patterns, so
+    // the unaligned read copies those bytes. No pointer is a guest address.
+    let mode = unsafe { mode_ptr.read_unaligned() };
     if usize::from(mode.dmSize) != size_of::<DEVMODEW>()
         || usize::from(mode.dmSize)
             .checked_add(usize::from(mode.dmDriverExtra))
