@@ -57,8 +57,13 @@ fn native_directory(
             return Err(resource_limit(operation));
         }
         let mut buffer = zeroed_buffer(capacity, operation)?;
-        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-        let length = unsafe { api(buffer.as_mut_ptr(), capacity as u32) } as usize;
+        let output = buffer.as_mut_ptr();
+        // SAFETY: `output` addresses `capacity` initialized bytes in `buffer`,
+        // and that buffer stays live for this call. `api` is
+        // GetWindowsDirectoryA or GetSystemDirectoryA. It writes the directory
+        // there and returns the byte count. It retains no pointer. No pointer
+        // is a guest address.
+        let length = unsafe { api(output, capacity as u32) } as usize;
         if length == 0 {
             return Ok(None);
         }
@@ -184,8 +189,12 @@ fn temp_directory(drive: u8) -> Result<Option<Vec<u16>>, RuntimeError> {
         return native_full_path(&[b'.' as u16, 0], "resolve default-drive current directory");
     }
     let root = [u16::from(letter), b':' as u16, b'\\' as u16, 0];
-    // SAFETY: GetDriveTypeW reads a caller-owned root path, or null for the current drive.
-    if unsafe { GetDriveTypeW(root.as_ptr()) } == DRIVE_NO_ROOT_DIR {
+    let root_path = root.as_ptr();
+    // SAFETY: `root_path` points at the NUL-terminated UTF-16 drive root in
+    // `root`, which stays live for this call. GetDriveTypeW reads that path
+    // and returns the drive type. It retains no pointer. No pointer is a guest
+    // address.
+    if unsafe { GetDriveTypeW(root_path) } == DRIVE_NO_ROOT_DIR {
         // Windows 3.0 Programmer's Reference, GetTempFileName Comments:
         // TF_FORCEDRIVE requires the selected drive's current directory.
         return Ok(None);
@@ -206,8 +215,12 @@ fn native_temp_directory() -> Result<Option<Vec<u16>>, RuntimeError> {
             return Err(resource_limit("query host temporary directory"));
         }
         let mut buffer = zeroed_buffer_u16(capacity, "allocate host temporary directory")?;
-        // SAFETY: GetTempPathW writes into a caller-owned buffer of the capacity passed with it.
-        let length = unsafe { GetTempPathW(capacity as u32, buffer.as_mut_ptr()) } as usize;
+        let output = buffer.as_mut_ptr();
+        // SAFETY: `output` addresses `capacity` initialized UTF-16 units in
+        // `buffer`, and that buffer stays live for this call. GetTempPathW
+        // writes the temporary directory there and returns the unit count. It
+        // retains no pointer. No pointer is a guest address.
+        let length = unsafe { GetTempPathW(capacity as u32, output) } as usize;
         if length == 0 {
             return Ok(None);
         }
@@ -234,15 +247,17 @@ fn native_full_path(
             return Err(resource_limit(operation));
         }
         let mut buffer = zeroed_buffer_u16(capacity, operation)?;
-        // SAFETY: GetFullPathNameW reads a caller-owned path and writes into a caller-owned buffer.
-        let length = unsafe {
-            GetFullPathNameW(
-                path.as_ptr(),
-                capacity as u32,
-                buffer.as_mut_ptr(),
-                std::ptr::null_mut(),
-            )
-        } as usize;
+        let path_units = path.as_ptr();
+        let output = buffer.as_mut_ptr();
+        // SAFETY: `path_units` points at the NUL-terminated UTF-16 path in
+        // `path`, which stays live for this call. `output` addresses
+        // `capacity` initialized UTF-16 units in `buffer`, and that buffer
+        // stays live. The file-part pointer is null. GetFullPathNameW writes
+        // the full path into `output` and returns the unit count. It retains
+        // no pointer. No pointer is a guest address.
+        let length =
+            unsafe { GetFullPathNameW(path_units, capacity as u32, output, std::ptr::null_mut()) }
+                as usize;
         if length == 0 {
             return Ok(None);
         }
@@ -266,15 +281,15 @@ fn generate_temp_path(
     buffer: &mut [u16],
 ) -> Result<Option<u16>, RuntimeError> {
     buffer.fill(0xffff);
-    // SAFETY: `GetTempFileNameW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    let result = unsafe {
-        GetTempFileNameW(
-            directory.as_ptr(),
-            prefix,
-            u32::from(unique),
-            buffer.as_mut_ptr(),
-        )
-    };
+    let directory_units = directory.as_ptr();
+    let output = buffer.as_mut_ptr();
+    // SAFETY: `directory_units` points at the NUL-terminated UTF-16 directory
+    // in `directory`, which stays live for this call. `prefix` is null or a
+    // NUL-terminated UTF-16 prefix the caller keeps live. `output` addresses
+    // the initialized UTF-16 units in `buffer`, and that buffer stays live.
+    // GetTempFileNameW writes the path there and returns the unique value, or
+    // zero on failure. It retains no pointer. No pointer is a guest address.
+    let result = unsafe { GetTempFileNameW(directory_units, prefix, u32::from(unique), output) };
     if result == 0 {
         return Ok(None);
     }
@@ -394,12 +409,17 @@ fn multibyte_length(
     } else {
         0
     };
-    // SAFETY: MultiByteToWideChar reads a caller-owned byte span and writes a caller-owned UTF-16 buffer.
+    let source_bytes = source.as_ptr();
+    // SAFETY: `source_bytes` points at `source_length` bytes in `source`,
+    // which stays live for this call. The output pointer is null and the
+    // output count is zero, so MultiByteToWideChar returns the required
+    // UTF-16 unit count and writes nothing. It retains no pointer. No pointer
+    // is a guest address.
     let length = unsafe {
         MultiByteToWideChar(
             code_page,
             flags,
-            source.as_ptr(),
+            source_bytes,
             source_length,
             std::ptr::null_mut(),
             0,
@@ -424,14 +444,20 @@ fn decode_multibyte(
     } else {
         0
     };
-    // SAFETY: MultiByteToWideChar reads a caller-owned byte span and writes a caller-owned UTF-16 buffer.
+    let source_bytes = source.as_ptr();
+    let output_units = output.as_mut_ptr();
+    // SAFETY: `source_bytes` points at `source_length` bytes in `source`,
+    // which stays live for this call. `output_units` addresses `capacity`
+    // initialized UTF-16 units in `output`, and that slice stays live.
+    // MultiByteToWideChar writes the converted units there and returns the
+    // written count. It retains no pointer. No pointer is a guest address.
     let written = unsafe {
         MultiByteToWideChar(
             code_page,
             flags,
-            source.as_ptr(),
+            source_bytes,
             source_length,
-            output.as_mut_ptr(),
+            output_units,
             capacity,
         )
     };
@@ -448,12 +474,17 @@ fn encoded_length(
 ) -> Result<usize, RuntimeError> {
     let source_length = i32::try_from(source.len()).map_err(|_| resource_limit(operation))?;
     let (flags, _) = encoding_flags(code_page);
-    // SAFETY: WideCharToMultiByte reads a caller-owned UTF-16 span and writes a caller-owned byte buffer.
+    let source_units = source.as_ptr();
+    // SAFETY: `source_units` points at `source_length` UTF-16 units in
+    // `source`, which stays live for this call. The output pointer, default
+    // character, and default-use pointer are null, and the output count is
+    // zero, so WideCharToMultiByte returns the required byte count and writes
+    // nothing. It retains no pointer. No pointer is a guest address.
     let length = unsafe {
         WideCharToMultiByte(
             code_page,
             flags,
-            source.as_ptr(),
+            source_units,
             source_length,
             std::ptr::null_mut(),
             0,
@@ -482,14 +513,23 @@ fn encode_multibyte(
     } else {
         std::ptr::null_mut()
     };
-    // SAFETY: WideCharToMultiByte reads a caller-owned UTF-16 span and writes a caller-owned byte buffer.
+    let source_units = source.as_ptr();
+    let output_bytes = output.as_mut_ptr();
+    // SAFETY: `source_units` points at `source_length` UTF-16 units in
+    // `source`, which stays live for this call. `output_bytes` addresses
+    // `capacity` initialized bytes in `output`, and that slice stays live.
+    // The default character is null. `default_ptr` is null when `flags`
+    // rejects invalid input; otherwise it points at the local `used_default`
+    // flag, which stays live. WideCharToMultiByte writes the converted bytes
+    // and returns the written count. It retains no pointer. No pointer is a
+    // guest address.
     let written = unsafe {
         WideCharToMultiByte(
             code_page,
             flags,
-            source.as_ptr(),
+            source_units,
             source_length,
-            output.as_mut_ptr(),
+            output_bytes,
             capacity,
             std::ptr::null(),
             default_ptr,
