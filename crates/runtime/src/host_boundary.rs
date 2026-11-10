@@ -70,8 +70,8 @@ pub enum Win16HostCommLine {
 /// Serial parameters applied with the host's device-control call.
 ///
 /// Baud is the numeric rate. Win16 `CBR_*` constants are translated before
-/// they reach the host. Fields the host API cannot store are rejected by the
-/// runtime and never appear here.
+/// they reach the host. Timeout words stay in the guest DCB and are checked
+/// against `Win16HostCommLines` before a write.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Win16HostCommConfig {
     pub baud_rate: u32,
@@ -116,6 +116,15 @@ pub enum Win16HostCommControl {
 pub enum Win16HostCommQueue {
     Transmit,
     Receive,
+}
+
+/// CTS, DSR, and RLSD as observed by the host. A low line with a non-zero
+/// Win16 timeout fails `WriteComm` with the matching `CE_*TO` error.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Win16HostCommLines {
+    pub cts: bool,
+    pub dsr: bool,
+    pub rlsd: bool,
 }
 
 /// An initialized stream identity in the host's common file table.
@@ -2119,6 +2128,18 @@ pub trait RuntimeHost:
             "host Win16 communications flush is unavailable",
         ))
     }
+
+    /// Report CTS, DSR, and RLSD for one open serial device.
+    fn win16_comm_lines(
+        &mut self,
+        _port: Win16HostCommPort,
+    ) -> Result<Win16HostCommLines, RuntimeError> {
+        Err(RuntimeError::new(
+            DiagnosticKind::CompatibilityGap,
+            "host Win16 communications modem status is unavailable",
+        ))
+    }
+
     /// Store opaque profile bytes through the same private-profile file as the
     /// string APIs. `data` is not text. A null data slice is a null structure.
     fn win16_profile_struct_write(

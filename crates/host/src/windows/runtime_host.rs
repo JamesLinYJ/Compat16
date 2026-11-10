@@ -1401,6 +1401,12 @@ impl RuntimeHost for WindowsHost {
     ) -> Result<(), RuntimeError> {
         self.win16_comm.flush(port, queue)
     }
+    fn win16_comm_lines(
+        &mut self,
+        port: runtime::Win16HostCommPort,
+    ) -> Result<runtime::Win16HostCommLines, RuntimeError> {
+        self.win16_comm.lines(port)
+    }
 
     fn epoch_seconds(&self) -> i64 {
         SystemTime::now()

@@ -14,16 +14,17 @@ use std::collections::BTreeMap;
 use guest_core::memory::Memory;
 use win16_abi::Win16UserCommRequest;
 use win16_abi::comm_abi::{
-    self, CE_IOE, CE_MODE, CLRDTR, CLRRTS, CommDeviceName, DCB16_LEN, EV_RXCHAR, EV_TXEMPTY,
-    GETMAXCOM, GETMAXLPT, IE_BADID, IE_BAUDRATE, IE_DEFAULT, IE_HARDWARE, IE_MEMORY, IE_NOPEN,
-    IE_OPEN,
+    self, CE_CTSTO, CE_DSRTO, CE_IOE, CE_MODE, CE_RLSDTO, CE_RXOVER, CLRDTR, CLRRTS, CSTF_EOF,
+    CSTF_XOFFHOLD, CommDeviceName, DCB16_LEN, EV_RXCHAR, EV_RXFLAG, EV_TXEMPTY, GETMAXCOM,
+    GETMAXLPT, IE_BADID, IE_BAUDRATE, IE_DEFAULT, IE_HARDWARE, IE_MEMORY, IE_NOPEN, IE_OPEN,
     MAX_COM_ID, MAX_LPT_ID, RESETDEV, SETDTR, SETRTS, SETXOFF, SETXON,
 };
 use win16_abi::global::GMEM_ZEROINIT;
 
 use crate::{
     DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostCommConfig, Win16HostCommControl,
-    Win16HostCommDevice, Win16HostCommLine, Win16HostCommPort, Win16HostCommQueue,
+    Win16HostCommDevice, Win16HostCommLine, Win16HostCommLines, Win16HostCommPort,
+    Win16HostCommQueue,
 };
 
 use super::Win16State;
@@ -44,6 +45,8 @@ struct Port {
     rts: bool,
     dtr: bool,
     unget: Option<u8>,
+    /// `CSTF_EOF` after a non-binary read sees `EofChar`. Q101419 does not clear it.
+    eof: bool,
     event_mask: u16,
     events: u16,
     event_selector: Option<u16>,
@@ -135,18 +138,30 @@ impl Win16State {
             Ok(token) => token,
             Err(error) => return map_open_error(error),
         };
+        let dcb = comm_abi::default_dcb(id);
+        if matches!(device, CommDeviceName::Com(_)) {
+            let Ok(config) = host_config(&dcb) else {
+                let _ = host.win16_comm_close(token);
+                return Ok(word(IE_DEFAULT));
+            };
+            if let Err(error) = host.win16_comm_configure(token, &config) {
+                host.win16_comm_close(token)?;
+                return map_device_error(error, false);
+            }
+        }
         self.comm_ports.ports.insert(
             id,
             Port {
                 host: token,
                 host_closed: false,
-                dcb: comm_abi::default_dcb(id, in_queue),
+                dcb,
                 error: 0,
                 break_set: false,
                 xoff: false,
                 rts: true,
                 dtr: true,
                 unget: None,
+                eof: false,
                 event_mask: 0,
                 events: 0,
                 event_selector: None,
@@ -216,7 +231,13 @@ impl Win16State {
             let encoded = if status == 0 {
                 None
             } else {
-                let flags = u8::from(port.xoff) << 3;
+                let mut flags = 0;
+                if port.xoff {
+                    flags |= CSTF_XOFFHOLD;
+                }
+                if port.eof {
+                    flags |= CSTF_EOF;
+                }
                 let queued = u16::from(port.unget.is_some());
                 Some(comm_abi::encode_comstat(flags, queued, 0))
             };
@@ -243,6 +264,7 @@ impl Win16State {
             return Ok(0);
         };
         let token = port.host;
+        let dcb = port.dcb;
         let pushed = if count == 0 {
             None
         } else {
@@ -256,6 +278,7 @@ impl Win16State {
             data.push(byte);
         }
         let remaining = usize::from(count as u16).saturating_sub(data.len());
+        let mut host_error = false;
         if remaining > 0 {
             let mut host_bytes = Vec::new();
             host_bytes.try_reserve_exact(remaining).map_err(|error| {
@@ -271,29 +294,51 @@ impl Win16State {
                     ));
                 }
                 Err(error) => {
-                    self.latch_comm_error(id, CE_IOE);
                     if matches!(
                         error.kind(),
                         Kind::HostFailure | Kind::CompatibilityGap | Kind::InvalidInput
                     ) {
-                        if !data.is_empty()
-                            && let Ok(read) = i16::try_from(data.len())
-                        {
-                            self.write_guest(memory, buffer, &data)?;
-                            self.note_comm_event(id, EV_RXCHAR, memory)?;
-                            return Ok(word(-read));
-                        }
-                        return Ok(0);
+                        host_error = true;
+                        self.latch_comm_error(id, CE_IOE);
+                    } else {
+                        self.restore_unget(id, pushed);
+                        return Err(error);
                     }
-                    return Err(error);
                 }
             }
         }
-        if !data.is_empty() {
-            self.write_guest(memory, buffer, &data)?;
-            self.note_comm_event(id, EV_RXCHAR, memory)?;
+        let host_len = data.len() - usize::from(pushed.is_some());
+        let viewed = interpret_comm_read(&dcb, &data, host_len);
+        if !viewed.bytes.is_empty() {
+            if let Err(error) = self.write_guest(memory, buffer, viewed.bytes) {
+                self.restore_unget(id, pushed);
+                return Err(error);
+            }
         }
-        Ok(u32::try_from(data.len()).unwrap_or(0))
+        if viewed.eof
+            && let Some(port) = self.comm_ports.ports.get_mut(&id)
+        {
+            port.eof = true;
+        }
+        if viewed.overflow {
+            self.latch_comm_error(id, CE_RXOVER);
+        }
+        let mut event = 0;
+        if host_len > 0 {
+            event |= EV_RXCHAR;
+        }
+        if viewed.rxflag {
+            event |= EV_RXFLAG;
+        }
+        if event != 0 {
+            self.note_comm_event(id, event, memory)?;
+        }
+        let length = i16::try_from(viewed.bytes.len()).unwrap_or(i16::MAX);
+        if (host_error || viewed.overflow) && length > 0 {
+            Ok(word(-length))
+        } else {
+            Ok(u32::from(length as u16))
+        }
     }
 
     fn write_comm(
@@ -303,9 +348,31 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        let Some(token) = self.comm_ports.ports.get(&id).map(|port| port.host) else {
+        let Some(port) = self.comm_ports.ports.get(&id) else {
             return Ok(0);
         };
+        let token = port.host;
+        let dcb = port.dcb;
+        if armed_line_timeout(&dcb) {
+            match host.win16_comm_lines(token) {
+                Ok(lines) => {
+                    if let Some(flag) = line_timeout_error(&dcb, lines) {
+                        self.latch_comm_error(id, flag);
+                        return Ok(0);
+                    }
+                }
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        Kind::HostFailure | Kind::CompatibilityGap | Kind::InvalidInput
+                    ) =>
+                {
+                    self.latch_comm_error(id, CE_IOE);
+                    return Ok(0);
+                }
+                Err(error) => return Err(error),
+            }
+        }
         match host.win16_comm_write(token, bytes) {
             Ok(written) if written <= bytes.len() => {
                 if written == bytes.len() {
@@ -635,9 +702,26 @@ impl Win16State {
         Ok(0)
     }
 
+    fn restore_unget(&mut self, id: u16, byte: Option<u8>) {
+        let Some(byte) = byte else {
+            return;
+        };
+        if let Some(port) = self.comm_ports.ports.get_mut(&id)
+            && port.unget.is_none()
+        {
+            port.unget = Some(byte);
+        }
+    }
+
     fn latch_comm_error(&mut self, id: u16, flag: u16) {
         if let Some(port) = self.comm_ports.ports.get_mut(&id) {
-            port.error |= flag;
+            // The SDK's `GetCommError` table says `CE_MODE`, when set, is the
+            // only valid error.
+            if flag == CE_MODE || port.error & CE_MODE != 0 {
+                port.error = CE_MODE;
+            } else {
+                port.error |= flag;
+            }
         }
     }
 
@@ -673,6 +757,80 @@ impl Win16State {
 
 fn known_comm_id(id: u16) -> bool {
     id <= MAX_COM_ID || (0x80..=MAX_LPT_ID).contains(&id)
+}
+
+/// Q101419: flow control is active only when the disable bit is clear.
+/// Both bits set drives the line low.
+fn flow_line(disable: bool, handshake: bool) -> Win16HostCommLine {
+    if handshake && !disable {
+        Win16HostCommLine::Handshake
+    } else if disable {
+        Win16HostCommLine::Disable
+    } else {
+        Win16HostCommLine::Enable
+    }
+}
+
+struct CommReadView<'a> {
+    bytes: &'a [u8],
+    eof: bool,
+    overflow: bool,
+    rxflag: bool,
+}
+
+/// Non-binary reads stop at `EofChar` and do not return it or anything after it.
+/// Bytes after it are `CE_RXOVER`. `EvtChar` in the host bytes is `EV_RXFLAG`
+/// whether or not `fChEvt` is set; Q101419 says that flag is unused.
+fn interpret_comm_read<'a>(
+    dcb: &[u8; DCB16_LEN],
+    data: &'a [u8],
+    host_len: usize,
+) -> CommReadView<'a> {
+    let host_start = data.len().saturating_sub(host_len);
+    let rxflag = data[host_start..].contains(&dcb[22]);
+    let flags = u16::from_le_bytes([dcb[12], dcb[13]]);
+    if flags & 1 != 0 {
+        return CommReadView {
+            bytes: data,
+            eof: false,
+            overflow: false,
+            rxflag,
+        };
+    }
+    let Some(index) = data.iter().position(|byte| *byte == dcb[21]) else {
+        return CommReadView {
+            bytes: data,
+            eof: false,
+            overflow: false,
+            rxflag,
+        };
+    };
+    CommReadView {
+        bytes: &data[..index],
+        eof: true,
+        overflow: index + 1 < data.len(),
+        rxflag,
+    }
+}
+
+fn armed_line_timeout(dcb: &[u8; DCB16_LEN]) -> bool {
+    dcb_timeout(dcb, 6) != 0 || dcb_timeout(dcb, 8) != 0 || dcb_timeout(dcb, 10) != 0
+}
+
+fn line_timeout_error(dcb: &[u8; DCB16_LEN], lines: Win16HostCommLines) -> Option<u16> {
+    if dcb_timeout(dcb, 6) != 0 && !lines.rlsd {
+        Some(CE_RLSDTO)
+    } else if dcb_timeout(dcb, 8) != 0 && !lines.cts {
+        Some(CE_CTSTO)
+    } else if dcb_timeout(dcb, 10) != 0 && !lines.dsr {
+        Some(CE_DSRTO)
+    } else {
+        None
+    }
+}
+
+fn dcb_timeout(dcb: &[u8; DCB16_LEN], offset: usize) -> u16 {
+    u16::from_le_bytes([dcb[offset], dcb[offset + 1]])
 }
 
 fn word(value: i16) -> u32 {
@@ -715,37 +873,15 @@ fn host_control(function: i16) -> Option<Win16HostCommControl> {
     })
 }
 
-/// Win16 flag bits that have no Win32 `DCB` field this host applies.
-/// `fChEvt` needs `SetCommMask(EV_RXFLAG)`, which this runtime does not deliver.
-const UNAPPLIED_DCB_FLAGS: u16 = (1 << 5) | (1 << 6) | (1 << 12) | (1 << 15);
-
 fn host_config(dcb: &[u8; DCB16_LEN]) -> Result<Win16HostCommConfig, i16> {
     let baud_rate = comm_abi::numeric_baud(comm_abi::dcb_baud(dcb)).ok_or(IE_BAUDRATE)?;
-    let rls = u16::from_le_bytes([dcb[6], dcb[7]]);
-    let cts = u16::from_le_bytes([dcb[8], dcb[9]]);
-    let dsr = u16::from_le_bytes([dcb[10], dcb[11]]);
     let flags = u16::from_le_bytes([dcb[12], dcb[13]]);
-    let tx_delay = u16::from_le_bytes([dcb[23], dcb[24]]);
-    if rls != 0 || cts != 0 || dsr != 0 || tx_delay != 0 || flags & UNAPPLIED_DCB_FLAGS != 0 {
-        return Err(IE_DEFAULT);
-    }
+    // Win32 `SetCommState` fails when the XON and XOFF characters are equal.
     if dcb[14] == dcb[15] {
         return Err(IE_DEFAULT);
     }
-    let rts = if flags & (1 << 14) != 0 {
-        Win16HostCommLine::Handshake
-    } else if flags & (1 << 1) != 0 {
-        Win16HostCommLine::Disable
-    } else {
-        Win16HostCommLine::Enable
-    };
-    let dtr = if flags & (1 << 13) != 0 {
-        Win16HostCommLine::Handshake
-    } else if flags & (1 << 7) != 0 {
-        Win16HostCommLine::Disable
-    } else {
-        Win16HostCommLine::Enable
-    };
+    let rts = flow_line(flags & (1 << 1) != 0, flags & (1 << 14) != 0);
+    let dtr = flow_line(flags & (1 << 7) != 0, flags & (1 << 13) != 0);
     Ok(Win16HostCommConfig {
         baud_rate,
         byte_size: dcb[3],
