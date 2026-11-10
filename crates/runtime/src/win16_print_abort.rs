@@ -11,16 +11,17 @@
 //! the procedure's BOOL. It does not cancel an open spool job. A live DC with
 //! no procedure still continues, and an unknown HDC still returns FALSE.
 //!
-//! `Escape` `STARTDOC`, `NEWFRAME`, and `ENDDOC`, plus `StartDoc`, `StartPage`,
-//! `EndPage`, and `EndDoc`, enter the procedure once with code 0 before the
-//! host print call. A zero return is `SP_APPABORT` (-2) and that host call is
-//! skipped. The Windows 3.1 SDK says GDI terminates a canceled print operation
-//! before returning the error, so the application must not send `ENDDOC` or
-//! `ABORTDOC` for it. `StartPage`, `EndPage`, `EndDoc`, and the `NEWFRAME` and
-//! `ENDDOC` escapes therefore abort the host document when one is already
-//! open. `StartDoc` and `STARTDOC` have not opened a host document, so a zero
-//! return does not call `AbortDoc`. `AbortDoc` and `Escape` `ABORTDOC` do not
-//! ask the procedure, because the application has already canceled the job.
+//! `Escape` `STARTDOC`, `NEXTBAND`, `NEWFRAME`, and `ENDDOC`, plus `StartDoc`,
+//! `StartPage`, `EndPage`, and `EndDoc`, enter the procedure once with code 0
+//! before the host print call. A zero return is `SP_APPABORT` (-2) and that
+//! host call is skipped. The Windows 3.1 SDK says GDI terminates a canceled
+//! print operation before returning the error, so the application must not
+//! send `ENDDOC` or `ABORTDOC` for it. `StartPage`, `EndPage`, `EndDoc`, and
+//! the `NEXTBAND`, `NEWFRAME`, and `ENDDOC` escapes therefore abort the host
+//! document when one is already open. `StartDoc` and `STARTDOC` have not
+//! opened a host document, so a zero return does not call `AbortDoc`.
+//! `AbortDoc` and `Escape` `ABORTDOC` do not ask the procedure, because the
+//! application has already canceled the job.
 //! Drawing calls such as `TextOut` and `BitBlt` do not enter it. A spooler
 //! disk-full condition is not synthesized; the application passes
 //! `SP_OUTOFDISK` through `QueryAbort`.
@@ -460,20 +461,22 @@ impl Win16State {
 }
 
 fn escape_calls_abort(escape: i16) -> bool {
-    // STARTDOC (10), NEWFRAME (1), ENDDOC (11). ABORTDOC (2) is an explicit cancel.
-    matches!(escape, 1 | 10 | 11)
+    // STARTDOC (10), NEXTBAND (3), NEWFRAME (1), ENDDOC (11).
+    // ABORTDOC (2) is an explicit cancel.
+    matches!(escape, 1 | 3 | 10 | 11)
 }
 
-/// `StartPage`, `EndPage`, `EndDoc`, `NEWFRAME`, and `ENDDOC` continue a
-/// document that `StartDoc` already opened. A false abort procedure cancels
-/// that document. `STARTDOC` and `StartDoc` run before the host document exists.
+/// `StartPage`, `EndPage`, `EndDoc`, `NEXTBAND`, `NEWFRAME`, and `ENDDOC`
+/// continue a document that `StartDoc` already opened. A false abort procedure
+/// cancels that document. `STARTDOC` and `StartDoc` run before the host
+/// document exists.
 fn false_abort_cancels_open_document(request: &GdiDeviceRequest) -> bool {
     match request {
         GdiDeviceRequest::Print { operation, .. } => matches!(
             operation,
             PrintOperation::StartPage | PrintOperation::EndPage | PrintOperation::EndDocument
         ),
-        GdiDeviceRequest::Escape { escape, .. } => matches!(*escape, 1 | 11),
+        GdiDeviceRequest::Escape { escape, .. } => matches!(*escape, 1 | 3 | 11),
         _ => false,
     }
 }
@@ -493,7 +496,9 @@ impl Win16State {
                 "Win16 print abort lost the device context of an open document",
             ));
         };
-        self.abort_print_document_if_open(dc, host)
+        self.abort_print_document_if_open(dc, host)?;
+        self.guest_gdi.clear_next_band(dc);
+        Ok(())
     }
 }
 

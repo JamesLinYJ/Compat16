@@ -29,6 +29,12 @@ struct DcAttributes {
     /// A host document is open. A positive `StartDoc` sets it. A positive
     /// `EndDoc` or `AbortDoc` clears it.
     print_document_open: bool,
+    /// `NEXTBAND` has published a band rectangle and has not ejected that page.
+    next_band_open: bool,
+    /// The ejecting `NEXTBAND` already closed the host page. `ENDDOC` and
+    /// `NEWFRAME` must not close it again. The next `NEXTBAND` starts the
+    /// following page.
+    next_band_ejected: bool,
 }
 
 pub(super) struct GuestGdiHandles {
@@ -119,6 +125,35 @@ impl GuestGdiHandles {
             return;
         }
         self.dc_attributes_mut(handle).print_document_open = true;
+    }
+
+    pub(super) fn next_band_open(&self, handle: u16) -> bool {
+        self.dc_attributes.get(&handle).is_some_and(|entry| entry.next_band_open)
+    }
+
+    pub(super) fn next_band_ejected(&self, handle: u16) -> bool {
+        self.dc_attributes.get(&handle).is_some_and(|entry| entry.next_band_ejected)
+    }
+
+    /// The application is drawing the band just published.
+    pub(super) fn note_next_band_open(&mut self, handle: u16) {
+        let entry = self.dc_attributes_mut(handle);
+        entry.next_band_open = true;
+        entry.next_band_ejected = false;
+    }
+
+    /// The page was ejected by the `NEXTBAND` that returned an empty rectangle.
+    pub(super) fn note_next_band_ejected(&mut self, handle: u16) {
+        let entry = self.dc_attributes_mut(handle);
+        entry.next_band_open = false;
+        entry.next_band_ejected = true;
+    }
+
+    pub(super) fn clear_next_band(&mut self, handle: u16) {
+        if let Some(entry) = self.dc_attributes.get_mut(&handle) {
+            entry.next_band_open = false;
+            entry.next_band_ejected = false;
+        }
     }
 
     fn forget_dc_attributes(&mut self, handle: u16) {

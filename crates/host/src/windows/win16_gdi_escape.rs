@@ -5,8 +5,9 @@ use runtime::{
     RuntimeError, Win16EscapeQuery as Query, Win16GdiDeviceResult as Value, Win16HostDc,
 };
 use windows_sys::Win32::Graphics::Gdi::{
-    DT_PLOTTER, DT_RASPRINTER, GetDeviceCaps, PHYSICALHEIGHT, PHYSICALOFFSETX, PHYSICALOFFSETY,
-    PHYSICALWIDTH, QUERYESCSUPPORT, SCALINGFACTORX, SCALINGFACTORY, TECHNOLOGY,
+    DT_PLOTTER, DT_RASPRINTER, GetDeviceCaps, HORZRES, PHYSICALHEIGHT, PHYSICALOFFSETX,
+    PHYSICALOFFSETY, PHYSICALWIDTH, QUERYESCSUPPORT, SCALINGFACTORX, SCALINGFACTORY, TECHNOLOGY,
+    VERTRES,
 };
 use windows_sys::Win32::Storage::Xps::Escape;
 
@@ -87,6 +88,7 @@ fn printer_technology(technology: i32) -> bool {
 
 fn query_caps(query: Query, mut caps: impl FnMut(i32) -> i32) -> Option<(i32, i32)> {
     let indices = match query {
+        Query::PrintablePage => return printable_page_extent(&mut caps),
         Query::PhysicalPageSize => (PHYSICALWIDTH, PHYSICALHEIGHT),
         Query::PrintingOffset => (PHYSICALOFFSETX, PHYSICALOFFSETY),
         Query::ScalingFactor => (SCALINGFACTORX, SCALINGFACTORY),
@@ -122,6 +124,23 @@ fn query_caps(query: Query, mut caps: impl FnMut(i32) -> i32) -> Option<(i32, i3
     i16::try_from(x).ok()?;
     i16::try_from(y).ok()?;
     Some((x, y))
+}
+
+fn printable_page_extent(caps: &mut impl FnMut(i32) -> i32) -> Option<(i32, i32)> {
+    // NEXTBAND's rectangle is the printable page in device units. HORZRES and
+    // VERTRES are the Windows 3.1 GetDeviceCaps indexes 8 and 10. A zero or
+    // negative extent is an empty band, and a value outside a signed word
+    // cannot be stored in the guest RECT.
+    let technology = caps(TECHNOLOGY as i32);
+    if !printer_technology(technology) {
+        return None;
+    }
+    let width = caps(HORZRES as i32);
+    let height = caps(VERTRES as i32);
+    if !(1..=i32::from(i16::MAX)).contains(&width) || !(1..=i32::from(i16::MAX)).contains(&height) {
+        return None;
+    }
+    Some((width, height))
 }
 
 #[cfg(test)]

@@ -71,6 +71,11 @@ pub enum Win16EscapeQuery {
     NewFrame,
     EndDocument,
     AbortDocument,
+    /// Printable page in device units (`HORZRES`, `VERTRES`). Support and the
+    /// returned point both require a strictly positive extent that fits in a
+    /// signed 16-bit coordinate. This is the application `NEXTBAND` rectangle,
+    /// not the driver `Control` scaling `POINT`.
+    PrintablePage,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
