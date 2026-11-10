@@ -16,7 +16,6 @@ use windows_sys::Win32::Media::Multimedia::*;
 use super::{MciNativeContext, WorkerThreadState, worker_loop::mci_yield_proc};
 use crate::windows::guest_text::GuestTextCodec;
 
-const MCIERR_NO_WINDOW_VALUE: u32 = 346;
 const MCIERR_UNSUPPORTED_FUNCTION_VALUE: u32 = 274;
 const MCIERR_DUPLICATE_ALIAS_VALUE: u32 = MCIERR_DUPLICATE_ALIAS;
 
@@ -246,19 +245,7 @@ fn send_string(
         }
         _ => None,
     };
-    if matches!(&action, MciStringAction::Open(None)) {
-        return Ok(Win16HostMciResult {
-            return_value: MCIERR_UNSUPPORTED_FUNCTION_VALUE,
-            output: Win16HostMciOutput::StringCommand {
-                bytes: zeroed_buffer(capacity)?,
-                opened: None,
-                closed: None,
-                closed_all: false,
-                unsupported_owner: true,
-            },
-        });
-    }
-    let open_source_id = if matches!(&action, MciStringAction::Open(Some(_))) {
+    let open_source_id = if matches!(&action, MciStringAction::Open(_)) {
         Some(context.state.reserve_device_slot()?)
     } else {
         None
@@ -269,12 +256,11 @@ fn send_string(
         // Do not forward it with a guessed callback route.
         return Ok(unsupported(MCIERR_UNSUPPORTED_FUNCTION_VALUE));
     };
-    if requests_notify && target.is_none() {
-        return Ok(unsupported(MCIERR_NO_WINDOW_VALUE));
-    }
+    // A notify token with a null callback window still runs. Windows returns
+    // success for "pause <device> notify" when hwndCallback is null.
     let notify = requests_notify;
     let (native_for_route, device_for_route, allow_new_device) = match &action {
-        MciStringAction::Open(Some(_)) => (None, None, true),
+        MciStringAction::Open(_) => (None, None, true),
         MciStringAction::Close { native, device } => (*native, *device, false),
         MciStringAction::CloseAll => (None, None, false),
         MciStringAction::Other => {
@@ -286,7 +272,6 @@ fn send_string(
             let device = native.and_then(|native| context.state.existing_identity(native));
             (native, device, false)
         }
-        MciStringAction::Open(None) => unreachable!("handled before native dispatch"),
     };
     let notification_source_id = retirement::string_notification_source_id(
         &context,
@@ -300,7 +285,15 @@ fn send_string(
         .find(|token| !token.is_empty())
         .is_some_and(|token| token.eq_ignore_ascii_case(b"sysinfo"));
     let command = wide_terminated(context.state.text_codec, command)?;
-    let mut output = zeroed_wide_buffer(wide_capacity(capacity)?)?;
+    let guest_units = wide_capacity(capacity)?;
+    // OPEN with no alias returns its device id in the string. Keep a private
+    // buffer large enough to read that id when the guest buffer is null.
+    let capture_units = if matches!(action, MciStringAction::Open(None)) {
+        guest_units.max(16)
+    } else {
+        guest_units
+    };
+    let mut output = zeroed_wide_buffer(capture_units)?;
     let native_output_capacity = u32::try_from(output.len()).map_err(|error| {
         RuntimeError::with_source(
             Kind::ResourceExhausted,
@@ -308,12 +301,10 @@ fn send_string(
             error,
         )
     })?;
-    let callback: HWND = if notify {
-        context.state.sink
-    } else {
-        ptr::null_mut()
-    };
-    let notification = if let (true, Some(target)) = (notify, target) {
+    let notification = if let (true, Some(target)) = (
+        notify && (allow_new_device || notification_source_id.is_some()),
+        target,
+    ) {
         Some(reserve_notification(
             context,
             native_for_route,
@@ -324,6 +315,11 @@ fn send_string(
         )?)
     } else {
         None
+    };
+    let callback: HWND = if notification.is_some() {
+        context.state.sink
+    } else {
+        ptr::null_mut()
     };
     let close_preflight = match &action {
         MciStringAction::Close {
@@ -354,6 +350,22 @@ fn send_string(
             callback,
         )
     };
+    let unaliased_native_id = if code == 0 && matches!(action, MciStringAction::Open(None)) {
+        match decimal_device_id(&output) {
+            Some(native_id) => Some(native_id),
+            None => {
+                if let Some(id) = notification {
+                    cancel_notification(context, id);
+                }
+                return Err(RuntimeError::new(
+                    Kind::HostFailure,
+                    "MCI string OPEN succeeded without a decimal device id in its return string",
+                ));
+            }
+        }
+    } else {
+        None
+    };
     let output = guest_output_projection(context.state.text_codec, &output, capacity).map(
         |(bytes, truncated)| {
             if code == 0 && sysinfo && truncated {
@@ -372,15 +384,19 @@ fn send_string(
     let mut closed_all = false;
     if code == 0 {
         match action {
-            MciStringAction::Open(Some(alias)) => {
-                let alias_z = open_alias_z.as_deref().ok_or_else(|| {
-                    RuntimeError::new(
-                        Kind::InternalInvariant,
-                        "MCI string OPEN lost its preallocated alias lookup string",
-                    )
-                })?;
-                // SAFETY: mciGetDeviceIDW reads a caller-owned device name.
-                let native_id = unsafe { mciGetDeviceIDW(alias_z.as_ptr()) };
+            MciStringAction::Open(alias) => {
+                let native_id = if let Some(native_id) = unaliased_native_id {
+                    native_id
+                } else {
+                    let alias_z = open_alias_z.as_deref().ok_or_else(|| {
+                        RuntimeError::new(
+                            Kind::InternalInvariant,
+                            "MCI string OPEN lost its preallocated alias lookup string",
+                        )
+                    })?;
+                    // SAFETY: mciGetDeviceIDW reads a caller-owned device name.
+                    unsafe { mciGetDeviceIDW(alias_z.as_ptr()) }
+                };
                 if native_id == 0 || native_id == u32::MAX {
                     let primary = RuntimeError::new(
                         Kind::HostFailure,
@@ -389,24 +405,7 @@ fn send_string(
                     if let Some(id) = notification {
                         quarantine_unbound_open_notification(context, id);
                     }
-                    let cleanup = match close_string_alias(&alias, context.state.text_codec) {
-                        Ok(code) => {
-                            if code != 0 {
-                                context.state.retain_orphan_alias(alias);
-                            }
-                            MciStringCloseOutcome {
-                                result: Some(code),
-                                failure: None,
-                            }
-                        }
-                        Err(error) => {
-                            context.state.retain_orphan_alias(alias);
-                            MciStringCloseOutcome {
-                                result: None,
-                                failure: Some(error),
-                            }
-                        }
-                    };
+                    let cleanup = rollback_string_open(context, alias.as_deref(), native_id);
                     if cleanup.result == Some(0) && cleanup.failure.is_none() {
                         if let Some(id) = notification {
                             retire_failed_open_notification(context, id);
@@ -475,24 +474,7 @@ fn send_string(
                         if let Some(id) = notification {
                             quarantine_open_notification(context, id, native_id, None);
                         }
-                        let cleanup = match close_string_alias(&alias, context.state.text_codec) {
-                            Ok(code) => {
-                                if code != 0 {
-                                    context.state.retain_orphan_alias(alias);
-                                }
-                                MciStringCloseOutcome {
-                                    result: Some(code),
-                                    failure: None,
-                                }
-                            }
-                            Err(error) => {
-                                context.state.retain_orphan_alias(alias);
-                                MciStringCloseOutcome {
-                                    result: None,
-                                    failure: Some(error),
-                                }
-                            }
-                        };
+                        let cleanup = rollback_string_open(context, alias.as_deref(), native_id);
                         if cleanup.result == Some(0) && cleanup.failure.is_none() {
                             if let Some(id) = notification {
                                 retire_failed_open_notification(context, id);
@@ -521,7 +503,7 @@ fn send_string(
                 context.state.retire_all_devices()?;
                 closed_all = true;
             }
-            MciStringAction::Other | MciStringAction::Open(None) => {}
+            MciStringAction::Other => {}
         }
     }
     Ok(Win16HostMciResult {
@@ -617,6 +599,75 @@ fn analyze_string_action(
         return Ok(MciStringAction::Close { native, device });
     }
     Ok(MciStringAction::Other)
+}
+
+fn decimal_device_id(wide: &[u16]) -> Option<u32> {
+    let end = wide
+        .iter()
+        .position(|unit| *unit == 0)
+        .unwrap_or(wide.len());
+    let text = &wide[..end];
+    if text.is_empty() {
+        return None;
+    }
+    let mut value = 0_u32;
+    for unit in text {
+        let digit = u32::from(unit.checked_sub(u16::from(b'0'))?);
+        if digit > 9 {
+            return None;
+        }
+        value = value.checked_mul(10)?.checked_add(digit)?;
+    }
+    (value != 0 && value != u32::MAX).then_some(value)
+}
+
+fn rollback_string_open(
+    context: &MciNativeContext,
+    alias: Option<&[u8]>,
+    native_id: u32,
+) -> MciStringCloseOutcome {
+    let Some(alias) = alias else {
+        let code = close_native_device(native_id, context.state.sink);
+        if code != 0 {
+            context.state.retain_orphan_native_id(native_id);
+        }
+        return MciStringCloseOutcome {
+            result: Some(code),
+            failure: None,
+        };
+    };
+    let retain = |bytes: &[u8]| -> Result<(), RuntimeError> {
+        context.state.retain_orphan_alias(owned_bytes(bytes)?);
+        Ok(())
+    };
+    match close_string_alias(alias, context.state.text_codec) {
+        Ok(code) => {
+            if code != 0 {
+                if let Err(error) = retain(alias) {
+                    return MciStringCloseOutcome {
+                        result: Some(code),
+                        failure: Some(error),
+                    };
+                }
+            }
+            MciStringCloseOutcome {
+                result: Some(code),
+                failure: None,
+            }
+        }
+        Err(error) => {
+            if let Err(retain_error) = retain(alias) {
+                return MciStringCloseOutcome {
+                    result: None,
+                    failure: Some(retain_error),
+                };
+            }
+            MciStringCloseOutcome {
+                result: None,
+                failure: Some(error),
+            }
+        }
+    }
 }
 
 pub(super) fn close_string_alias(alias: &[u8], codec: GuestTextCodec) -> Result<u32, RuntimeError> {

@@ -509,7 +509,8 @@ pub enum Win16HostMciParameters {
         to: u32,
     },
     Break {
-        virtual_key: u16,
+        /// SDK 3.1 `MCI_BREAK_PARMS.nVirtKey` is a signed 16-bit `int`.
+        virtual_key: i16,
         window: Option<Win16HostWindow>,
     },
     File {

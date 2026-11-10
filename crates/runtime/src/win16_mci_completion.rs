@@ -138,39 +138,45 @@ pub(super) fn complete(
                 )?;
             } else {
                 state.release_reserved_from_request(&request);
+                // NT mciSendString clears the whole return buffer before the
+                // call and copies a result back only on success. A failure
+                // therefore leaves a zero-filled guest buffer, including an
+                // empty command's MCIERR_MISSING_COMMAND_STRING.
+                clear_output_buffer(state, *output, memory)?;
             }
             result.return_value
         }
-        Win16MciRequest::GetDeviceId { .. }
-        | Win16MciRequest::GetDeviceIdFromElement { .. } => match result.output {
-            Win16HostMciOutput::All => u32::from(u16::MAX),
-            Win16HostMciOutput::Device {
-                device,
-                device_type,
-            } => {
-                let creator = match state.current_task_handle() {
-                    Ok(creator) => creator,
-                    Err(error) => {
-                        state.retain_orphan_mci_device(device);
-                        return Err(error.with_context(
-                            "MCI lookup identity retained after creator lookup failed",
-                        ));
-                    }
-                };
-                let alias = match state.retain_mci_device(device, device_type, creator) {
-                    Ok(alias) => alias,
-                    Err(error) => {
-                        state.retain_orphan_mci_device(device);
-                        return Err(error.with_context(
+        Win16MciRequest::GetDeviceId { .. } | Win16MciRequest::GetDeviceIdFromElement { .. } => {
+            match result.output {
+                Win16HostMciOutput::All => u32::from(u16::MAX),
+                Win16HostMciOutput::Device {
+                    device,
+                    device_type,
+                } => {
+                    let creator = match state.current_task_handle() {
+                        Ok(creator) => creator,
+                        Err(error) => {
+                            state.retain_orphan_mci_device(device);
+                            return Err(error.with_context(
+                                "MCI lookup identity retained after creator lookup failed",
+                            ));
+                        }
+                    };
+                    let alias = match state.retain_mci_device(device, device_type, creator) {
+                        Ok(alias) => alias,
+                        Err(error) => {
+                            state.retain_orphan_mci_device(device);
+                            return Err(error.with_context(
                             "MCI lookup identity retained for task cleanup after alias mapping failed",
                         ));
-                    }
-                };
-                u32::from(alias)
+                        }
+                    };
+                    u32::from(alias)
+                }
+                Win16HostMciOutput::None | Win16HostMciOutput::Scalar(0) => 0,
+                _ => return Err(invariant("MCI device lookup returned the wrong host value")),
             }
-            Win16HostMciOutput::None | Win16HostMciOutput::Scalar(0) => 0,
-            _ => return Err(invariant("MCI device lookup returned the wrong host value")),
-        },
+        }
         Win16MciRequest::GetErrorString { output, .. } => {
             if result.return_value != 0 {
                 write_output(state, *output, result.output, memory)?;
@@ -192,7 +198,9 @@ pub(super) fn complete(
                 registration,
             } = result.output
             else {
-                return Err(invariant("mciSetYieldProc returned no registration receipt"));
+                return Err(invariant(
+                    "mciSetYieldProc returned no registration receipt",
+                ));
             };
             if result.return_value != 0
                 && (installed != (*procedure != 0)
@@ -257,7 +265,8 @@ pub(super) fn complete(
                 installed,
                 data,
                 registration,
-            } = result.output else {
+            } = result.output
+            else {
                 return Err(invariant("mciGetYieldProc returned the wrong host value"));
             };
             if let Some(range) = data_output {
@@ -304,14 +313,26 @@ fn preflight_output_ranges(
                 (MCI_OPEN, Win16MciParameters::Open { .. }, Win16HostMciOutput::Device { .. }) => {
                     preflight_guest_range(state, *parameter_output, 2, false, memory)?;
                 }
-                (_, Win16MciParameters::Status { .. } | Win16MciParameters::GetDeviceCaps { .. }, Win16HostMciOutput::Scalar(_)) => {
+                (
+                    _,
+                    Win16MciParameters::Status { .. } | Win16MciParameters::GetDeviceCaps { .. },
+                    Win16HostMciOutput::Scalar(_),
+                ) => {
                     preflight_guest_range(state, *parameter_output, 4, false, memory)?;
                 }
                 (_, Win16MciParameters::Info { output, .. }, Win16HostMciOutput::Bytes(bytes))
-                | (_, Win16MciParameters::SystemInfo { output, .. }, Win16HostMciOutput::Bytes(bytes)) => {
+                | (
+                    _,
+                    Win16MciParameters::SystemInfo { output, .. },
+                    Win16HostMciOutput::Bytes(bytes),
+                ) => {
                     preflight_output_buffer(state, *output, bytes.len(), true, memory)?;
                 }
-                (_, Win16MciParameters::SystemInfo { output, .. }, Win16HostMciOutput::Scalar(_)) => {
+                (
+                    _,
+                    Win16MciParameters::SystemInfo { output, .. },
+                    Win16HostMciOutput::Scalar(_),
+                ) => {
                     if let Some(range) = output.range {
                         preflight_guest_range(state, Some(range), 4, false, memory)?;
                     } else {
@@ -320,24 +341,26 @@ fn preflight_output_ranges(
                         ));
                     }
                 }
-                (0x0843, Win16MciParameters::Rectangle { output: true, .. }, Win16HostMciOutput::Rectangle(_)) => {
+                (
+                    0x0843,
+                    Win16MciParameters::Rectangle { output: true, .. },
+                    Win16HostMciOutput::Rectangle(_),
+                ) => {
                     preflight_guest_range(state, *parameter_output, 8, false, memory)?;
                 }
                 _ => {}
             },
-            Win16MciRequest::SendString { output, .. } => {
-                match &result.output {
-                    Win16HostMciOutput::StringCommand {
-                        bytes,
-                        unsupported_owner: false,
-                        ..
-                    }
-                    | Win16HostMciOutput::Bytes(bytes) => {
-                        preflight_output_buffer(state, *output, bytes.len(), true, memory)?;
-                    }
-                    _ => {}
+            Win16MciRequest::SendString { output, .. } => match &result.output {
+                Win16HostMciOutput::StringCommand {
+                    bytes,
+                    unsupported_owner: false,
+                    ..
                 }
-            }
+                | Win16HostMciOutput::Bytes(bytes) => {
+                    preflight_output_buffer(state, *output, bytes.len(), true, memory)?;
+                }
+                _ => {}
+            },
             Win16MciRequest::GetYieldProc { data_output, .. } => {
                 if let Some(range) = data_output {
                     preflight_guest_range(state, Some(*range), 4, false, memory)?;
@@ -355,6 +378,11 @@ fn preflight_output_ranges(
             | Win16MciRequest::FreeCommandResource { .. }
             | Win16MciRequest::SetYieldProc { .. }
             | Win16MciRequest::GetCreatorTask { .. } => {}
+        }
+    } else if let Win16MciRequest::SendString { output, .. } = request {
+        if output.far != 0 && output.capacity != 0 {
+            let length = usize::try_from(output.capacity).unwrap_or(usize::MAX);
+            preflight_output_buffer(state, *output, length, true, memory)?;
         }
     } else if let Win16MciRequest::GetErrorString { output, .. } = request {
         if output.far != 0 && output.capacity != 0 {
@@ -392,7 +420,9 @@ fn preflight_guest_range(
     let range = range.ok_or_else(|| invariant("MCI result omitted its captured output range"))?;
     let range_length = usize::try_from(range.length).unwrap_or(usize::MAX);
     if byte_count > range_length || (exact_length && byte_count != range_length) {
-        return Err(invariant("MCI result length does not match its captured guest output span"));
+        return Err(invariant(
+            "MCI result length does not match its captured guest output span",
+        ));
     }
     state
         .selectors
@@ -446,12 +476,7 @@ fn finish_string_effects(
                 ));
             }
         };
-        let _guest = state.commit_reserved_mci_device(
-            reserved,
-            device,
-            device_type,
-            creator,
-        )?;
+        let _guest = state.commit_reserved_mci_device(reserved, device, device_type, creator)?;
     } else {
         state.release_reserved_from_request(request);
     }
@@ -465,6 +490,31 @@ fn finish_string_effects(
         write_output(state, output, Win16HostMciOutput::Bytes(bytes), memory)?;
     }
     Ok(())
+}
+
+fn clear_output_buffer(
+    state: &Win16State,
+    output: Win16MciOutputBuffer,
+    memory: &mut Memory,
+) -> Result<(), RuntimeError> {
+    if output.far == 0 || output.capacity == 0 {
+        return Ok(());
+    }
+    let range = output
+        .range
+        .ok_or_else(|| invariant("MCI output buffer has no captured selector generation"))?;
+    let length = usize::try_from(range.length)
+        .map_err(|_| invariant("MCI output buffer length does not fit the host address space"))?;
+    let mut zeros = Vec::new();
+    zeros.try_reserve_exact(length).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "allocate the cleared MCI return buffer",
+            error,
+        )
+    })?;
+    zeros.resize(length, 0);
+    write_guest_range(state, range, &zeros, memory)
 }
 
 fn write_output(
