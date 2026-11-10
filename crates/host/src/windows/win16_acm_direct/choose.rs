@@ -311,60 +311,230 @@ pub(super) fn choose(
     let (mut result, selected_tag, selected_item, mut data_bytes) = match kind {
         Win16HostAcmChooseKind::Format => {
             let mut native = ACMFORMATCHOOSEW::default();
-            // SAFETY: The field belongs to a packed record. addr_of plus write_unaligned writes it without creating a misaligned reference.
+            let struct_size = std::mem::size_of::<ACMFORMATCHOOSEW>() as u32;
+            let cb_struct = ptr::addr_of_mut!(native.cbStruct);
+            // SAFETY: `cb_struct` addresses the packed `cbStruct` field of this
+            // caller-owned `ACMFORMATCHOOSEW`. The record stays live for the
+            // write and is a host address, not a guest address. `write_unaligned`
+            // stores the structure size without a misaligned reference.
+            unsafe { cb_struct.write_unaligned(struct_size) };
+            let style_field = ptr::addr_of_mut!(native.fdwStyle);
+            // SAFETY: `style_field` addresses the packed `fdwStyle` field of
+            // this caller-owned `ACMFORMATCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` stores `style` without a misaligned reference.
+            unsafe { style_field.write_unaligned(style) };
+            let owner_field = ptr::addr_of_mut!(native.hwndOwner);
+            // SAFETY: `owner_field` addresses the packed `hwndOwner` field of
+            // this caller-owned `ACMFORMATCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` stores a null `HWND` without a misaligned
+            // reference. That null owner is not a guest window.
             unsafe {
-                ptr::addr_of_mut!(native.cbStruct)
-                    .write_unaligned(std::mem::size_of::<ACMFORMATCHOOSEW>() as u32);
-                ptr::addr_of_mut!(native.fdwStyle).write_unaligned(style);
-                ptr::addr_of_mut!(native.hwndOwner)
-                    .write_unaligned(ptr::null_mut::<core::ffi::c_void>() as HWND);
-                ptr::addr_of_mut!(native.pwfx).write_unaligned(native_data.as_mut_ptr().cast());
-                // The guest PCM wire can be 16 bytes; native WAVEFORMATEX
-                // needs its separate 18-byte backing extent even then.
-                ptr::addr_of_mut!(native.cbwfx).write_unaligned(native_format_capacity);
-                ptr::addr_of_mut!(native.pszTitle).write_unaligned(title_ptr);
-                ptr::addr_of_mut!(native.szFormatTag).write_unaligned(tag);
-                ptr::addr_of_mut!(native.szFormat).write_unaligned(item);
-                ptr::addr_of_mut!(native.pszName).write_unaligned(name_ptr);
-                ptr::addr_of_mut!(native.cchName).write_unaligned(name_capacity);
-                ptr::addr_of_mut!(native.fdwEnum).write_unaligned(enum_flags);
-                ptr::addr_of_mut!(native.pwfxEnum).write_unaligned(enum_ptr.cast());
+                owner_field.write_unaligned(ptr::null_mut::<core::ffi::c_void>() as HWND);
             }
-            // SAFETY: all pointers are host-owned and live through this
-            // synchronous call; guest callbacks, templates, and owners are not passed.
+            let format_field = ptr::addr_of_mut!(native.pwfx);
+            // SAFETY: `format_field` addresses the packed `pwfx` field of this
+            // caller-owned `ACMFORMATCHOOSEW`. The record stays live for the
+            // write and is a host address, not a guest address.
+            // `write_unaligned` stores the pointer to the host `native_data`
+            // buffer without a misaligned reference. It does not retain it.
+            unsafe { format_field.write_unaligned(native_data.as_mut_ptr().cast()) };
+            // The guest PCM wire can be 16 bytes; native WAVEFORMATEX
+            // needs its separate 18-byte backing extent even then.
+            let format_bytes = ptr::addr_of_mut!(native.cbwfx);
+            // SAFETY: `format_bytes` addresses the packed `cbwfx` field of this
+            // caller-owned `ACMFORMATCHOOSEW`. The record stays live for the
+            // write and is a host address, not a guest address.
+            // `write_unaligned` stores `native_format_capacity` without a
+            // misaligned reference.
+            unsafe { format_bytes.write_unaligned(native_format_capacity) };
+            let title_field = ptr::addr_of_mut!(native.pszTitle);
+            // SAFETY: `title_field` addresses the packed `pszTitle` field of
+            // this caller-owned `ACMFORMATCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` stores `title_ptr` without a misaligned
+            // reference. `title_ptr` is null or the host `title_buffer`.
+            unsafe { title_field.write_unaligned(title_ptr) };
+            let tag_field = ptr::addr_of_mut!(native.szFormatTag);
+            // SAFETY: `tag_field` addresses the packed `szFormatTag` array of
+            // this caller-owned `ACMFORMATCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` copies the host `tag` array without a
+            // misaligned reference and does not retain it.
+            unsafe { tag_field.write_unaligned(tag) };
+            let item_field = ptr::addr_of_mut!(native.szFormat);
+            // SAFETY: `item_field` addresses the packed `szFormat` array of
+            // this caller-owned `ACMFORMATCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` copies the host `item` array without a
+            // misaligned reference and does not retain it.
+            unsafe { item_field.write_unaligned(item) };
+            let name_field = ptr::addr_of_mut!(native.pszName);
+            // SAFETY: `name_field` addresses the packed `pszName` field of this
+            // caller-owned `ACMFORMATCHOOSEW`. The record stays live for the
+            // write and is a host address, not a guest address.
+            // `write_unaligned` stores `name_ptr` without a misaligned
+            // reference. `name_ptr` is null or the host `chosen_name` buffer.
+            unsafe { name_field.write_unaligned(name_ptr) };
+            let name_chars = ptr::addr_of_mut!(native.cchName);
+            // SAFETY: `name_chars` addresses the packed `cchName` field of this
+            // caller-owned `ACMFORMATCHOOSEW`. The record stays live for the
+            // write and is a host address, not a guest address.
+            // `write_unaligned` stores `name_capacity` without a misaligned
+            // reference.
+            unsafe { name_chars.write_unaligned(name_capacity) };
+            let enum_style = ptr::addr_of_mut!(native.fdwEnum);
+            // SAFETY: `enum_style` addresses the packed `fdwEnum` field of this
+            // caller-owned `ACMFORMATCHOOSEW`. The record stays live for the
+            // write and is a host address, not a guest address.
+            // `write_unaligned` stores `enum_flags` without a misaligned
+            // reference.
+            unsafe { enum_style.write_unaligned(enum_flags) };
+            let enum_format = ptr::addr_of_mut!(native.pwfxEnum);
+            // SAFETY: `enum_format` addresses the packed `pwfxEnum` field of
+            // this caller-owned `ACMFORMATCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` stores `enum_ptr` without a misaligned
+            // reference. `enum_ptr` is null or the host `enum_data` buffer.
+            unsafe { enum_format.write_unaligned(enum_ptr.cast()) };
+            // SAFETY: `native` is a caller-owned `ACMFORMATCHOOSEW` that stays
+            // live for this synchronous call. Its pointers are null or address
+            // the host buffers retained above. `acmFormatChooseW` returns an
+            // `MMRESULT` and retains no pointer. No guest address, callback,
+            // template, or owner window is passed.
             let result = unsafe { acmFormatChooseW(&mut native) };
-            let selected_tag = unsafe { ptr::addr_of!(native.szFormatTag).read_unaligned() };
-            let selected_item = unsafe { ptr::addr_of!(native.szFormat).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let data_bytes = unsafe { ptr::addr_of!(native.cbwfx).read_unaligned() };
+            let selected_tag_field = ptr::addr_of!(native.szFormatTag);
+            // SAFETY: `selected_tag_field` addresses the packed `szFormatTag`
+            // array of this caller-owned `ACMFORMATCHOOSEW`. The record stays
+            // live for the read and is a host address, not a guest address.
+            // `read_unaligned` copies the array and does not retain the pointer.
+            let selected_tag = unsafe { selected_tag_field.read_unaligned() };
+            let selected_item_field = ptr::addr_of!(native.szFormat);
+            // SAFETY: `selected_item_field` addresses the packed `szFormat`
+            // array of this caller-owned `ACMFORMATCHOOSEW`. The record stays
+            // live for the read and is a host address, not a guest address.
+            // `read_unaligned` copies the array and does not retain the pointer.
+            let selected_item = unsafe { selected_item_field.read_unaligned() };
+            let reported_bytes = ptr::addr_of!(native.cbwfx);
+            // SAFETY: `reported_bytes` addresses the packed `cbwfx` field of
+            // this caller-owned `ACMFORMATCHOOSEW`. The record stays live for
+            // the read and is a host address, not a guest address.
+            // `read_unaligned` copies the `u32` and does not retain the pointer.
+            let data_bytes = unsafe { reported_bytes.read_unaligned() };
             (result, selected_tag, selected_item, data_bytes)
         }
         Win16HostAcmChooseKind::Filter => {
             let mut native = ACMFILTERCHOOSEW::default();
-            // SAFETY: The field belongs to a packed record. addr_of plus write_unaligned writes it without creating a misaligned reference.
+            let struct_size = std::mem::size_of::<ACMFILTERCHOOSEW>() as u32;
+            let cb_struct = ptr::addr_of_mut!(native.cbStruct);
+            // SAFETY: `cb_struct` addresses the packed `cbStruct` field of this
+            // caller-owned `ACMFILTERCHOOSEW`. The record stays live for the
+            // write and is a host address, not a guest address. `write_unaligned`
+            // stores the structure size without a misaligned reference.
+            unsafe { cb_struct.write_unaligned(struct_size) };
+            let style_field = ptr::addr_of_mut!(native.fdwStyle);
+            // SAFETY: `style_field` addresses the packed `fdwStyle` field of
+            // this caller-owned `ACMFILTERCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` stores `style` without a misaligned reference.
+            unsafe { style_field.write_unaligned(style) };
+            let owner_field = ptr::addr_of_mut!(native.hwndOwner);
+            // SAFETY: `owner_field` addresses the packed `hwndOwner` field of
+            // this caller-owned `ACMFILTERCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` stores a null `HWND` without a misaligned
+            // reference. That null owner is not a guest window.
             unsafe {
-                ptr::addr_of_mut!(native.cbStruct)
-                    .write_unaligned(std::mem::size_of::<ACMFILTERCHOOSEW>() as u32);
-                ptr::addr_of_mut!(native.fdwStyle).write_unaligned(style);
-                ptr::addr_of_mut!(native.hwndOwner)
-                    .write_unaligned(ptr::null_mut::<core::ffi::c_void>() as HWND);
-                ptr::addr_of_mut!(native.pwfltr).write_unaligned(native_data.as_mut_ptr().cast());
-                ptr::addr_of_mut!(native.cbwfltr).write_unaligned(data_capacity);
-                ptr::addr_of_mut!(native.pszTitle).write_unaligned(title_ptr);
-                ptr::addr_of_mut!(native.szFilterTag).write_unaligned(tag);
-                ptr::addr_of_mut!(native.szFilter).write_unaligned(item);
-                ptr::addr_of_mut!(native.pszName).write_unaligned(name_ptr);
-                ptr::addr_of_mut!(native.cchName).write_unaligned(name_capacity);
-                ptr::addr_of_mut!(native.fdwEnum).write_unaligned(enum_flags);
-                ptr::addr_of_mut!(native.pwfltrEnum).write_unaligned(enum_ptr.cast());
+                owner_field.write_unaligned(ptr::null_mut::<core::ffi::c_void>() as HWND);
             }
-            // SAFETY: all pointers are host-owned and live through this
-            // synchronous call; guest callbacks, templates, and owners are not passed.
+            let filter_field = ptr::addr_of_mut!(native.pwfltr);
+            // SAFETY: `filter_field` addresses the packed `pwfltr` field of
+            // this caller-owned `ACMFILTERCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` stores the pointer to the host `native_data`
+            // buffer without a misaligned reference. It does not retain it.
+            unsafe { filter_field.write_unaligned(native_data.as_mut_ptr().cast()) };
+            let filter_bytes = ptr::addr_of_mut!(native.cbwfltr);
+            // SAFETY: `filter_bytes` addresses the packed `cbwfltr` field of
+            // this caller-owned `ACMFILTERCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` stores `data_capacity` without a misaligned
+            // reference.
+            unsafe { filter_bytes.write_unaligned(data_capacity) };
+            let title_field = ptr::addr_of_mut!(native.pszTitle);
+            // SAFETY: `title_field` addresses the packed `pszTitle` field of
+            // this caller-owned `ACMFILTERCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` stores `title_ptr` without a misaligned
+            // reference. `title_ptr` is null or the host `title_buffer`.
+            unsafe { title_field.write_unaligned(title_ptr) };
+            let tag_field = ptr::addr_of_mut!(native.szFilterTag);
+            // SAFETY: `tag_field` addresses the packed `szFilterTag` array of
+            // this caller-owned `ACMFILTERCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` copies the host `tag` array without a
+            // misaligned reference and does not retain it.
+            unsafe { tag_field.write_unaligned(tag) };
+            let item_field = ptr::addr_of_mut!(native.szFilter);
+            // SAFETY: `item_field` addresses the packed `szFilter` array of
+            // this caller-owned `ACMFILTERCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` copies the host `item` array without a
+            // misaligned reference and does not retain it.
+            unsafe { item_field.write_unaligned(item) };
+            let name_field = ptr::addr_of_mut!(native.pszName);
+            // SAFETY: `name_field` addresses the packed `pszName` field of this
+            // caller-owned `ACMFILTERCHOOSEW`. The record stays live for the
+            // write and is a host address, not a guest address.
+            // `write_unaligned` stores `name_ptr` without a misaligned
+            // reference. `name_ptr` is null or the host `chosen_name` buffer.
+            unsafe { name_field.write_unaligned(name_ptr) };
+            let name_chars = ptr::addr_of_mut!(native.cchName);
+            // SAFETY: `name_chars` addresses the packed `cchName` field of this
+            // caller-owned `ACMFILTERCHOOSEW`. The record stays live for the
+            // write and is a host address, not a guest address.
+            // `write_unaligned` stores `name_capacity` without a misaligned
+            // reference.
+            unsafe { name_chars.write_unaligned(name_capacity) };
+            let enum_style = ptr::addr_of_mut!(native.fdwEnum);
+            // SAFETY: `enum_style` addresses the packed `fdwEnum` field of this
+            // caller-owned `ACMFILTERCHOOSEW`. The record stays live for the
+            // write and is a host address, not a guest address.
+            // `write_unaligned` stores `enum_flags` without a misaligned
+            // reference.
+            unsafe { enum_style.write_unaligned(enum_flags) };
+            let enum_filter = ptr::addr_of_mut!(native.pwfltrEnum);
+            // SAFETY: `enum_filter` addresses the packed `pwfltrEnum` field of
+            // this caller-owned `ACMFILTERCHOOSEW`. The record stays live for
+            // the write and is a host address, not a guest address.
+            // `write_unaligned` stores `enum_ptr` without a misaligned
+            // reference. `enum_ptr` is null or the host `enum_data` buffer.
+            unsafe { enum_filter.write_unaligned(enum_ptr.cast()) };
+            // SAFETY: `native` is a caller-owned `ACMFILTERCHOOSEW` that stays
+            // live for this synchronous call. Its pointers are null or address
+            // the host buffers retained above. `acmFilterChooseW` returns an
+            // `MMRESULT` and retains no pointer. No guest address, callback,
+            // template, or owner window is passed.
             let result = unsafe { acmFilterChooseW(&mut native) };
-            let selected_tag = unsafe { ptr::addr_of!(native.szFilterTag).read_unaligned() };
-            let selected_item = unsafe { ptr::addr_of!(native.szFilter).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let data_bytes = unsafe { ptr::addr_of!(native.cbwfltr).read_unaligned() };
+            let selected_tag_field = ptr::addr_of!(native.szFilterTag);
+            // SAFETY: `selected_tag_field` addresses the packed `szFilterTag`
+            // array of this caller-owned `ACMFILTERCHOOSEW`. The record stays
+            // live for the read and is a host address, not a guest address.
+            // `read_unaligned` copies the array and does not retain the pointer.
+            let selected_tag = unsafe { selected_tag_field.read_unaligned() };
+            let selected_item_field = ptr::addr_of!(native.szFilter);
+            // SAFETY: `selected_item_field` addresses the packed `szFilter`
+            // array of this caller-owned `ACMFILTERCHOOSEW`. The record stays
+            // live for the read and is a host address, not a guest address.
+            // `read_unaligned` copies the array and does not retain the pointer.
+            let selected_item = unsafe { selected_item_field.read_unaligned() };
+            let reported_bytes = ptr::addr_of!(native.cbwfltr);
+            // SAFETY: `reported_bytes` addresses the packed `cbwfltr` field of
+            // this caller-owned `ACMFILTERCHOOSEW`. The record stays live for
+            // the read and is a host address, not a guest address.
+            // `read_unaligned` copies the `u32` and does not retain the pointer.
+            let data_bytes = unsafe { reported_bytes.read_unaligned() };
             (result, selected_tag, selected_item, data_bytes)
         }
     };
