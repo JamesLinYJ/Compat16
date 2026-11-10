@@ -87,10 +87,13 @@ impl Win16TimerRegistrations {
         previous
     }
 
-    /// Assign a representable Win16 identifier when USER's native SetTimer
-    /// chooses one (the Win16 caller passed zero). Existing task-local IDs are
-    /// retained so a native 32/64-bit timer identity never leaks into WPARAM16.
-    /// Allocation stays inside the requested namespace.
+    /// Assign the identifier `SetTimer` returns when the caller passed zero.
+    ///
+    /// KB Q81592: with a null window, this identifier is the function result,
+    /// and zero means the timer was not created. The Win16 result is a UINT,
+    /// so the id stays in `1..=65535`. A native pointer-sized timer identity
+    /// is not narrowed into that word. Each window and timer namespace keeps
+    /// its own ids.
     pub(in crate::win16_runtime) fn allocate_guest_id(
         &self,
         window: u16,
@@ -215,5 +218,156 @@ mod tests {
         assert!(timers.get(4, 1, true).is_none());
         assert!(timers.registration_for_host(1).is_some());
         assert!(timers.registration_for_host(2).is_some());
+    }
+
+    #[test]
+    fn windowless_timer_ids_skip_zero_and_keep_the_unsigned_word() {
+        let mut timers = Win16TimerRegistrations::default();
+        // KB Q81592: zero means the timer was not created, so it is not an
+        // allocated result. A null callback is no guest procedure.
+        assert_eq!(timers.allocate_guest_id(0, false), Some(1));
+        timers.insert(
+            0,
+            0,
+            Win16TimerRegistration {
+                host_id: 99,
+                host_window: None,
+                callback: None,
+                system: false,
+            },
+        );
+        assert_eq!(timers.get(0, 0, false).unwrap().callback, None);
+        assert_eq!(timers.allocate_guest_id(0, false), Some(1));
+
+        // 32768 fits in the UINT result. It is not a signed-int failure.
+        for id in 1..=i16::MAX as u16 {
+            timers.insert(0, id, registration(u64::from(id), false));
+        }
+        assert_eq!(timers.allocate_guest_id(0, false), Some(i16::MAX as u16 + 1));
+        assert_eq!(timers.allocate_guest_id(0, true), Some(1));
+    }
+
+    fn words(values: &[u16]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for value in values {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+        bytes
+    }
+
+    /// Far-Pascal arguments, last parameter at the low address, matching the
+    /// system-timer decode frame.
+    fn invoke(runtime: &mut crate::Runtime, ordinal: u16, args: &[u8]) -> (u16, u16, u16) {
+        use crate::win16_runtime::test_support::NoHost;
+        use crate::win16_runtime::ImportBinding;
+        use guest_core::Selector;
+        use win16_abi::{ExportLookupTarget, lookup_export};
+
+        let descriptor = lookup_export(b"USER", ExportLookupTarget::Ordinal(ordinal)).unwrap();
+        let stack_sp = runtime.cpu.regs.sp();
+        runtime.cpu.regs.set_ax(0xA55A);
+        runtime.cpu.regs.set_dx(0xBEEF);
+        let return_cs = runtime.cpu.regs.cs;
+        let mut bytes = 0x12_u16.to_le_bytes().to_vec();
+        bytes.extend_from_slice(&return_cs.to_le_bytes());
+        bytes.extend_from_slice(args);
+        let state = runtime.win16.as_mut().unwrap();
+        let stack = state
+            .selectors
+            .pointer_from_raw(Selector(runtime.cpu.regs.ss), stack_sp)
+            .unwrap();
+        state
+            .selectors
+            .write(&mut runtime.memory, stack, &bytes)
+            .unwrap();
+        let slot = state.bindings.len();
+        state.bindings.push(ImportBinding::Supported(descriptor));
+        runtime.cpu.regs.cs = state.gate_selector.0;
+        runtime.cpu.regs.set_ip((slot * 2) as u16);
+        runtime
+            .win16
+            .as_mut()
+            .unwrap()
+            .dispatch(
+                &mut runtime.cpu,
+                &mut runtime.memory,
+                &mut runtime.dos,
+                &mut NoHost,
+                0,
+            )
+            .unwrap();
+        (runtime.cpu.regs.ax(), runtime.cpu.regs.dx(), runtime.cpu.regs.sp())
+    }
+
+    fn read_dword(runtime: &crate::Runtime, offset: u16) -> u32 {
+        use guest_core::Selector;
+
+        let state = runtime.win16.as_ref().unwrap();
+        let pointer = state
+            .selectors
+            .pointer_from_raw(Selector(runtime.cpu.regs.ss), offset)
+            .unwrap();
+        let mut bytes = [0_u8; 4];
+        state
+            .selectors
+            .read(&runtime.memory, pointer, &mut bytes)
+            .unwrap();
+        u32::from_le_bytes(bytes)
+    }
+
+    #[test]
+    fn missing_timer_and_unknown_window_return_zero_without_a_host_timer() {
+        use crate::win16_runtime::test_support::tiny_ne_executable;
+        use guest_core::Selector;
+        use win16_abi::{ExportLookupTarget, Win16ReturnKind, lookup_export};
+
+        let set = lookup_export(b"USER", ExportLookupTarget::Ordinal(10)).unwrap();
+        let kill = lookup_export(b"USER", ExportLookupTarget::Ordinal(12)).unwrap();
+        assert_eq!(set.return_kind, Win16ReturnKind::Word);
+        assert_eq!(kill.return_kind, Win16ReturnKind::Word);
+
+        let mut runtime = crate::Runtime::load(&tiny_ne_executable(), &[], br"C:\TIMERS.NE").unwrap();
+        let stack = runtime.cpu.regs.sp();
+        let ss = runtime.cpu.regs.ss;
+        const SENTINEL_AT: u16 = 0x20;
+        const SENTINEL: u32 = 0xA5A5_5A5A;
+        {
+            let state = runtime.win16.as_mut().unwrap();
+            let slot = state
+                .selectors
+                .pointer_from_raw(Selector(ss), SENTINEL_AT)
+                .unwrap();
+            state
+                .selectors
+                .write(&mut runtime.memory, slot, &SENTINEL.to_le_bytes())
+                .unwrap();
+        }
+
+        // KillTimer of an id that was never installed is zero. A zero id is
+        // included: it is not a timer, and the word result leaves DX alone.
+        // The far return plus the callee-popped arguments advance SP.
+        let kill_args = words(&[0, 0]);
+        runtime.cpu.regs.set_sp(stack);
+        assert_eq!(
+            invoke(&mut runtime, 12, &kill_args),
+            (0, 0xBEEF, stack + 4 + kill_args.len() as u16)
+        );
+        let kill_window = words(&[1, 7]);
+        runtime.cpu.regs.set_sp(stack);
+        assert_eq!(
+            invoke(&mut runtime, 12, &kill_window),
+            (0, 0xBEEF, stack + 4 + kill_window.len() as u16)
+        );
+
+        // SetTimer on a window this task does not own fails before a timer
+        // exists. The null callback is not treated as a bad procedure.
+        let set_args = words(&[0, 0, 100, 1, 7]);
+        runtime.cpu.regs.set_sp(stack);
+        assert_eq!(
+            invoke(&mut runtime, 10, &set_args),
+            (0, 0xBEEF, stack + 4 + set_args.len() as u16)
+        );
+        assert_eq!(read_dword(&runtime, SENTINEL_AT), SENTINEL);
+        assert!(runtime.win16.as_ref().unwrap().timers.entries.is_empty());
     }
 }
