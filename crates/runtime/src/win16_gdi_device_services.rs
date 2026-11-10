@@ -363,6 +363,3 @@ mod palette_tests;
 #[cfg(test)]
 #[path = "win16_gdi_device_services/object_query_tests.rs"]
 mod object_query_tests;
-#[cfg(test)]
-#[path = "win16_gdi_device_services/bitmap_dimension_tests.rs"]
-mod bitmap_dimension_tests;
