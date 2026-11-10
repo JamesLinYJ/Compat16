@@ -2,7 +2,7 @@
 
 use super::super::super::guest_text::GuestTextCodec;
 use super::*;
-use windows_sys::Win32::Graphics::Gdi::DT_RASDISPLAY;
+use windows_sys::Win32::Graphics::Gdi::{DT_RASDISPLAY, HORZRES, VERTRES};
 
 fn mock_caps(
     query: Query,
@@ -129,6 +129,56 @@ fn escape_caps_support_requires_print_device_page_and_representable_output() {
 }
 
 #[test]
+fn escape_printable_page_uses_horzres_vertres_and_the_signed_extent() {
+    assert_eq!(
+        query_caps(Query::PrintablePage, |index| match index as u32 {
+            TECHNOLOGY => DT_RASPRINTER as i32,
+            HORZRES => 2400,
+            VERTRES => 3000,
+            _ => panic!("unexpected caps index {index}"),
+        }),
+        Some((2400, 3000))
+    );
+    assert_eq!(
+        query_caps(Query::PrintablePage, |index| match index as u32 {
+            TECHNOLOGY => DT_PLOTTER as i32,
+            HORZRES => 1,
+            VERTRES => 32767,
+            _ => panic!("unexpected caps index {index}"),
+        }),
+        Some((1, 32767))
+    );
+    assert_eq!(
+        query_caps(Query::PrintablePage, |index| match index as u32 {
+            TECHNOLOGY => DT_RASDISPLAY as i32,
+            _ => panic!("a display device has no printable page"),
+        }),
+        None
+    );
+    for (width, height) in [
+        (0, 3000),
+        (2400, 0),
+        (-1, 3000),
+        (2400, -1),
+        (32768, 3000),
+        (2400, 32768),
+        (i32::MIN, 1),
+        (1, i32::MAX),
+    ] {
+        assert_eq!(
+            query_caps(Query::PrintablePage, |index| match index as u32 {
+                TECHNOLOGY => DT_RASPRINTER as i32,
+                HORZRES => width,
+                VERTRES => height,
+                _ => panic!("unexpected caps index {index}"),
+            }),
+            None,
+            "{width}x{height}"
+        );
+    }
+}
+
+#[test]
 fn escape_job_support_follows_printer_or_plotter_technology() {
     assert!(printer_technology(DT_RASPRINTER as i32));
     assert!(printer_technology(DT_PLOTTER as i32));
@@ -161,6 +211,7 @@ fn escape_native_memory_dc_is_not_a_printer_and_self_query_matches_native() {
         Query::NewFrame,
         Query::EndDocument,
         Query::AbortDocument,
+        Query::PrintablePage,
     ] {
         assert_unsupported(&dcs, dc, query);
     }
@@ -193,6 +244,7 @@ fn escape_native_memory_dc_is_not_a_printer_and_self_query_matches_native() {
         Query::NewFrame,
         Query::EndDocument,
         Query::AbortDocument,
+        Query::PrintablePage,
     ] {
         assert_unsupported(&dcs, dc, query);
         assert_unsupported(&dcs, Win16HostDc(u64::MAX), query);

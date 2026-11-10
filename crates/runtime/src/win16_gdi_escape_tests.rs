@@ -348,9 +348,10 @@ fn escape_point_queries_use_exact_dc_and_four_signed_output_bytes() {
 
 #[test]
 fn escape_unsupported_commands_and_query_codes_never_reach_host() {
-    // NEXTBAND, SETCOPYCOUNT, PASSTHROUGH, negative/private.
+    // SETCOPYCOUNT, PASSTHROUGH, negative/private.
     // SETABORTPROC (9) installs a guest AbortProc and is covered separately.
-    for code in [3, 17, 19, -1, -32768, 32767] {
+    // NEXTBAND (3) is the non-banding page rectangle and is covered separately.
+    for code in [17, 19, -1, -32768, 32767] {
         let (mut runtime, dc, output) = fixture();
         let mut host = EscapeHost::default();
         let return_to = prepare(&mut runtime, dc, code, -1, u32::MAX, u32::MAX);
@@ -861,6 +862,563 @@ fn escape_page_commands_pair_end_page_and_ignore_unused_pointers() {
         );
         assert_eq!(read_output(&runtime, output), [0x5a; 32]);
     }
+}
+
+#[test]
+fn escape_next_band_publishes_the_printable_page_then_ejects() {
+    let (mut runtime, dc, rect) = fixture();
+    let name = rect.wrapping_add(16);
+    write_document_name(&mut runtime, name);
+    let mut host = EscapeHost {
+        results: vec![
+            HostResult::Count(7),
+            HostResult::Count(1),
+            HostResult::Point {
+                success: true,
+                x: 2400,
+                y: 3000,
+            },
+            HostResult::Count(4),
+            HostResult::Count(9),
+        ],
+        ..Default::default()
+    };
+    let return_to = prepare(&mut runtime, dc, 10, 7, name, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 7);
+
+    // Unused nCount and lpInData are not read, including a null selector.
+    let return_to = prepare(&mut runtime, dc, 3, -1, 0xffff_0000, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 1);
+    let bytes = read_output(&runtime, rect);
+    assert_eq!(&bytes[..8], &page_rect(2400, 3000));
+    assert_name_preserved(&bytes);
+
+    let return_to = prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 4);
+    let bytes = read_output(&runtime, rect);
+    assert_eq!(&bytes[..8], &[0; 8]);
+    assert_name_preserved(&bytes);
+
+    let return_to = prepare(&mut runtime, dc, 11, 0, u32::MAX, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 9);
+    assert_eq!(
+        host.calls,
+        [
+            Operation::StartDoc {
+                dc: NATIVE_DC,
+                document_name: Some(b"Report".to_vec()),
+                output: None,
+            },
+            Operation::Print {
+                operation: Win16PrintOperation::StartPage,
+                dc: NATIVE_DC,
+            },
+            Operation::EscapeQuery {
+                dc: NATIVE_DC,
+                query: Query::PrintablePage,
+            },
+            Operation::Print {
+                operation: Win16PrintOperation::EndPage,
+                dc: NATIVE_DC,
+            },
+            Operation::Print {
+                operation: Win16PrintOperation::EndDocument,
+                dc: NATIVE_DC,
+            },
+        ]
+    );
+
+    // The NEXTBAND after the empty rectangle is the first band of the next page.
+    let (mut runtime, dc, rect) = fixture();
+    let name = rect.wrapping_add(16);
+    write_document_name(&mut runtime, name);
+    let mut host = EscapeHost {
+        results: vec![
+            HostResult::Count(1),
+            HostResult::Count(1),
+            HostResult::Point {
+                success: true,
+                x: 8,
+                y: 9,
+            },
+            HostResult::Count(1),
+            HostResult::Point {
+                success: true,
+                x: 8,
+                y: 9,
+            },
+            HostResult::Count(2),
+        ],
+        ..Default::default()
+    };
+    prepare(&mut runtime, dc, 10, 7, name, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    let return_to = prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 1);
+    assert_eq!(&read_output(&runtime, rect)[..8], &page_rect(8, 9));
+    assert!(matches!(
+        host.calls.last(),
+        Some(Operation::Print {
+            operation: Win16PrintOperation::StartPage,
+            ..
+        })
+    ));
+
+    // NEWFRAME after that eject starts the next page and does not end another.
+    let (mut runtime, dc, rect) = fixture();
+    let name = rect.wrapping_add(16);
+    write_document_name(&mut runtime, name);
+    let mut host = EscapeHost {
+        results: vec![
+            HostResult::Count(1),
+            HostResult::Count(1),
+            HostResult::Point {
+                success: true,
+                x: 8,
+                y: 9,
+            },
+            HostResult::Count(1),
+            HostResult::Count(6),
+        ],
+        ..Default::default()
+    };
+    prepare(&mut runtime, dc, 10, 7, name, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    let return_to = prepare(&mut runtime, dc, 1, 0, 0, 0);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 6);
+    assert_eq!(
+        host.calls.last(),
+        Some(&Operation::Print {
+            operation: Win16PrintOperation::StartPage,
+            dc: NATIVE_DC,
+        })
+    );
+    assert_eq!(
+        host.calls
+            .iter()
+            .filter(|call| matches!(
+                call,
+                Operation::Print {
+                    operation: Win16PrintOperation::EndPage,
+                    ..
+                }
+            ))
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn escape_next_band_failure_leaves_guest_memory_unchanged() {
+    let (mut runtime, _dc, rect) = fixture();
+    let mut host = EscapeHost::default();
+    let return_to = prepare(&mut runtime, 0xffff, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 0xffff);
+    assert!(host.calls.is_empty());
+    assert_eq!(read_output(&runtime, rect), [0x5a; 32]);
+
+    for output in [0_u32, rect | 0xfff9] {
+        let (mut runtime, dc, rect) = fixture();
+        let mut host = EscapeHost::default();
+        let return_to = prepare(&mut runtime, dc, 3, 4, 0xffff_0000, output);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 0);
+        assert!(host.calls.is_empty());
+        assert_eq!(read_output(&runtime, rect), [0x5a; 32]);
+    }
+
+    for (base, rights) in [
+        (0x90000, AccessRights::read_write()),
+        (0x91000, AccessRights::read_only()),
+    ] {
+        let (mut runtime, dc, original) = fixture();
+        let state = runtime.win16.as_mut().unwrap();
+        let selector = state
+            .selectors
+            .alloc_block(PhysAddr(base), 7, rights, &runtime.memory)
+            .unwrap();
+        let output = SegmentedPointer::new(selector, 0).far_value();
+        let mut host = EscapeHost::default();
+        prepare(&mut runtime, dc, 3, 0, 0, output);
+        assert_eq!(
+            dispatch(&mut runtime, &mut host).unwrap_err().kind(),
+            Kind::GuestFault
+        );
+        assert!(host.calls.is_empty());
+        assert_eq!(read_output(&runtime, original), [0x5a; 32]);
+    }
+
+    for (supported, result) in [(false, 0_u16), (true, 0xffff)] {
+        let (mut runtime, dc, rect) = fixture();
+        let mut host = EscapeHost {
+            result: Some(HostResult::Bool(supported)),
+            ..Default::default()
+        };
+        let return_to = prepare(&mut runtime, dc, 3, 0, 0, rect);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, result);
+        assert_eq!(
+            host.calls,
+            [Operation::QueryEscapeSupport {
+                dc: NATIVE_DC,
+                query: Query::PrintablePage,
+            }]
+        );
+        assert_eq!(read_output(&runtime, rect), [0x5a; 32]);
+    }
+
+    for supported in [false, true] {
+        let (mut runtime, dc, output) = fixture();
+        let input = output | 0xfffe;
+        write_input(&mut runtime, input, 3);
+        let mut host = EscapeHost {
+            result: Some(HostResult::Bool(supported)),
+            ..Default::default()
+        };
+        let return_to = prepare(&mut runtime, dc, 8, 2, input, output);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, u16::from(supported));
+        assert_eq!(
+            host.calls,
+            [Operation::QueryEscapeSupport {
+                dc: NATIVE_DC,
+                query: Query::PrintablePage,
+            }]
+        );
+        assert_eq!(read_output(&runtime, output), [0x5a; 32]);
+    }
+
+    let (mut runtime, dc, rect) = fixture();
+    let name = rect.wrapping_add(16);
+    write_document_name(&mut runtime, name);
+    for point in [
+        HostResult::Point {
+            success: false,
+            x: 1,
+            y: 2,
+        },
+        HostResult::Point {
+            success: true,
+            x: 32768,
+            y: 3000,
+        },
+        HostResult::Point {
+            success: true,
+            x: -1,
+            y: 3000,
+        },
+        HostResult::Point {
+            success: true,
+            x: 2400,
+            y: 0,
+        },
+    ] {
+        let mut host = EscapeHost {
+            results: vec![HostResult::Count(1), HostResult::Count(1), point],
+            ..Default::default()
+        };
+        let started = read_output(&runtime, rect);
+        prepare(&mut runtime, dc, 10, 7, name, u32::MAX);
+        dispatch(&mut runtime, &mut host).unwrap();
+        let return_to = prepare(&mut runtime, dc, 3, 0, 0, rect);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 0);
+        assert!(matches!(
+            host.calls.last(),
+            Some(Operation::EscapeQuery {
+                query: Query::PrintablePage,
+                ..
+            })
+        ));
+        assert_eq!(read_output(&runtime, rect), started);
+        // The failed band must not make the next attempt eject a page.
+        host.calls.clear();
+        host.results.clear();
+        host.result = Some(HostResult::Count(1));
+        let return_to = prepare(&mut runtime, dc, 2, 0, 0, 0);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 1);
+        assert_eq!(
+            host.calls,
+            [Operation::Print {
+                operation: Win16PrintOperation::AbortDocument,
+                dc: NATIVE_DC,
+            }]
+        );
+    }
+}
+
+#[test]
+fn escape_next_band_eject_and_next_page_failures_preserve_the_rectangle() {
+    let (mut runtime, dc, rect) = fixture();
+    let name = rect.wrapping_add(16);
+    write_document_name(&mut runtime, name);
+    let mut host = EscapeHost {
+        results: vec![
+            HostResult::Count(1),
+            HostResult::Count(1),
+            HostResult::Point {
+                success: true,
+                x: 2400,
+                y: 3000,
+            },
+            HostResult::Count(-4),
+            HostResult::Count(1),
+            HostResult::Count(5),
+        ],
+        ..Default::default()
+    };
+    prepare(&mut runtime, dc, 10, 7, name, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    let published = read_output(&runtime, rect);
+    assert_eq!(&published[..8], &page_rect(2400, 3000));
+    let return_to = prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 0xfffc);
+    assert_eq!(read_output(&runtime, rect), published);
+    let return_to = prepare(&mut runtime, dc, 11, 0, 0, 0);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 5);
+    assert_eq!(
+        &host.calls[host.calls.len() - 2..],
+        [
+            Operation::Print {
+                operation: Win16PrintOperation::EndPage,
+                dc: NATIVE_DC,
+            },
+            Operation::Print {
+                operation: Win16PrintOperation::EndDocument,
+                dc: NATIVE_DC,
+            },
+        ]
+    );
+
+    let (mut runtime, dc, rect) = fixture();
+    let name = rect.wrapping_add(16);
+    write_document_name(&mut runtime, name);
+    let mut host = EscapeHost {
+        results: vec![
+            HostResult::Count(1),
+            HostResult::Count(1),
+            HostResult::Point {
+                success: true,
+                x: 2400,
+                y: 3000,
+            },
+            HostResult::Count(1),
+            HostResult::Point {
+                success: true,
+                x: 2400,
+                y: 3000,
+            },
+            HostResult::Count(-1),
+        ],
+        ..Default::default()
+    };
+    prepare(&mut runtime, dc, 10, 7, name, u32::MAX);
+    dispatch(&mut runtime, &mut host).unwrap();
+    prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    let empty = read_output(&runtime, rect);
+    assert_eq!(&empty[..8], &[0; 8]);
+    let return_to = prepare(&mut runtime, dc, 3, 0, 0, rect);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_return(&runtime, return_to, 0xffff);
+    assert_eq!(read_output(&runtime, rect), empty);
+    assert!(matches!(
+        host.calls.last(),
+        Some(Operation::Print {
+            operation: Win16PrintOperation::StartPage,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn escape_next_band_follows_a_new_document_after_abort_doc_or_end_doc() {
+    // Ordinals 382 and 378 are the exported AbortDoc and EndDoc. They close
+    // the job through the shared print path, not the Escape wrappers.
+    for close in [382_u16, 378] {
+        let (mut runtime, dc, rect) = fixture();
+        let escape_name = rect.wrapping_add(16);
+        write_document_name(&mut runtime, escape_name);
+        let info = rect.wrapping_add(64);
+        let api_name = rect.wrapping_add(96);
+        write_doc_info(&mut runtime, info, api_name);
+        let mut host = EscapeHost {
+            results: vec![
+                HostResult::Count(1),
+                HostResult::Count(1),
+                HostResult::Point {
+                    success: true,
+                    x: 2400,
+                    y: 3000,
+                },
+                HostResult::Count(1),
+                HostResult::Bool(true),
+                HostResult::Count(3),
+                HostResult::Count(1),
+                HostResult::Point {
+                    success: true,
+                    x: 2400,
+                    y: 3000,
+                },
+            ],
+            ..Default::default()
+        };
+        prepare(&mut runtime, dc, 10, 7, escape_name, u32::MAX);
+        dispatch(&mut runtime, &mut host).unwrap();
+        prepare(&mut runtime, dc, 3, 0, 0, rect);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_eq!(&read_output(&runtime, rect)[..8], &page_rect(2400, 3000));
+
+        let return_to = call_gdi(&mut runtime, close, &dc.to_le_bytes());
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 1);
+
+        // The exported close must drop the band before the next StartDoc.
+        // A stale next_band_open flag would eject an empty rectangle here.
+        let published = read_output(&runtime, rect);
+        let return_to = prepare(&mut runtime, dc, 3, 0, 0, rect);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 0xffff);
+        assert_eq!(read_output(&runtime, rect), published);
+        assert!(matches!(
+            host.calls.last(),
+            Some(Operation::QueryEscapeSupport {
+                dc: NATIVE_DC,
+                query: Query::PrintablePage,
+            })
+        ));
+
+        let mut start = Vec::new();
+        start.extend_from_slice(&info.to_le_bytes());
+        start.extend_from_slice(&dc.to_le_bytes());
+        let return_to = call_gdi(&mut runtime, 377, &start);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 3);
+        let return_to = call_gdi(&mut runtime, 379, &dc.to_le_bytes());
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 1);
+
+        let return_to = prepare(&mut runtime, dc, 3, -1, 0xffff_0000, rect);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 1);
+        assert_eq!(&read_output(&runtime, rect)[..8], &page_rect(2400, 3000));
+        assert!(
+            !host.calls.iter().any(|call| matches!(
+                call,
+                Operation::Print {
+                    operation: Win16PrintOperation::EndPage,
+                    ..
+                }
+            ))
+        );
+        assert_eq!(
+            &host.calls[host.calls.len() - 2..],
+            [
+                Operation::Print {
+                    operation: Win16PrintOperation::StartPage,
+                    dc: NATIVE_DC,
+                },
+                Operation::EscapeQuery {
+                    dc: NATIVE_DC,
+                    query: Query::PrintablePage,
+                },
+            ]
+        );
+    }
+}
+
+fn call_gdi(runtime: &mut Runtime, ordinal: u16, params: &[u8]) -> (u16, u16, u16) {
+    let descriptor = lookup_export(b"GDI", ExportLookupTarget::Ordinal(ordinal)).unwrap();
+    let Win16ExportStackCleanup::Fixed(cleanup) = descriptor.stack_cleanup else {
+        panic!("fixed Pascal frame required");
+    };
+    assert_eq!(cleanup.caller_pop_bytes, 0);
+    assert_eq!(usize::from(cleanup.callee_pop_bytes), params.len());
+    let return_cs = runtime.cpu.regs.cs;
+    let return_ip = 0x12_u16;
+    let stack = runtime.cpu.regs.sp();
+    let state = runtime.win16.as_mut().unwrap();
+    let mut bytes = Vec::from(return_ip.to_le_bytes());
+    bytes.extend_from_slice(&return_cs.to_le_bytes());
+    bytes.extend_from_slice(params);
+    let pointer = state
+        .selectors
+        .pointer_from_raw(Selector(runtime.cpu.regs.ss), stack)
+        .unwrap();
+    state
+        .selectors
+        .write(&mut runtime.memory, pointer, &bytes)
+        .unwrap();
+    let slot = state.bindings.len();
+    state.bindings.push(ImportBinding::Supported(descriptor));
+    runtime.cpu.regs.cs = state.gate_selector.0;
+    runtime.cpu.regs.set_ip((slot * 2) as u16);
+    runtime.cpu.regs.eax = 0xa1b2_a55a;
+    runtime.cpu.regs.edx = 0xc3d4_5aa5;
+    (return_cs, return_ip, stack + bytes.len() as u16)
+}
+
+fn write_doc_info(runtime: &mut Runtime, info: u32, name: u32) {
+    let mut bytes = [0_u8; 10];
+    bytes[..2].copy_from_slice(&10_u16.to_le_bytes());
+    bytes[2..6].copy_from_slice(&name.to_le_bytes());
+    let state = runtime.win16.as_mut().unwrap();
+    let pointer = state.selectors.pointer_from_far(info).unwrap();
+    state
+        .selectors
+        .write(&mut runtime.memory, pointer, &bytes)
+        .unwrap();
+    let name_pointer = state.selectors.pointer_from_far(name).unwrap();
+    state
+        .selectors
+        .write(&mut runtime.memory, name_pointer, b"Report\0")
+        .unwrap();
+}
+
+fn page_rect(width: i16, height: i16) -> [u8; 8] {
+    let mut bytes = [0; 8];
+    bytes[4..6].copy_from_slice(&width.to_le_bytes());
+    bytes[6..8].copy_from_slice(&height.to_le_bytes());
+    bytes
+}
+
+fn write_document_name(runtime: &mut Runtime, far: u32) {
+    let state = runtime.win16.as_mut().unwrap();
+    let pointer = state.selectors.pointer_from_far(far).unwrap();
+    let mut name = b"Report\0".to_vec();
+    name.resize(16, 0x5a);
+    state
+        .selectors
+        .write(&mut runtime.memory, pointer, &name)
+        .unwrap();
+}
+
+fn assert_name_preserved(bytes: &[u8]) {
+    assert_eq!(&bytes[8..16], &[0x5a; 8]);
+    assert_eq!(&bytes[16..23], b"Report\0");
+    assert_eq!(&bytes[23..], &[0x5a; 9]);
 }
 
 fn write_name(runtime: &mut Runtime, far: u32) {

@@ -2,7 +2,9 @@
 //!
 //! SETABORTPROC installs the same guest abort procedure as `SetAbortProc`.
 //! Its input dword is the procedure address and is not passed to native
-//! Escape. PASSTHROUGH, NEXTBAND, SETCOPYCOUNT, and private driver escapes
+//! Escape. NEXTBAND simulates a non-banding printer: the first call of a page
+//! returns the printable page, and the next call ejects that page and returns
+//! an empty rectangle. PASSTHROUGH, SETCOPYCOUNT, and private driver escapes
 //! stay unimplemented and return zero.
 
 use super::*;
@@ -23,6 +25,10 @@ impl Win16State {
         if escape == super::super::print_abort::SET_ABORT_PROC_ESCAPE {
             // The input dword is the AbortProc address, not a guest buffer.
             return self.set_abort_proc(memory, dc, input);
+        }
+        if escape == NEXT_BAND_ESCAPE {
+            // nCount and lpInData are unused. The rectangle is lpvOutData.
+            return self.escape_next_band(memory, dc, output, host);
         }
         let Some(query) = escape_query(escape) else {
             return Ok(0);
@@ -53,6 +59,15 @@ impl Win16State {
                 .map_err(crate::runtime_error)?;
             if i16::from_le_bytes(bytes) == super::super::print_abort::SET_ABORT_PROC_ESCAPE {
                 return Ok(1);
+            }
+            if i16::from_le_bytes(bytes) == NEXT_BAND_ESCAPE {
+                return match host.win16_gdi_device(Operation::QueryEscapeSupport {
+                    dc,
+                    query: Query::PrintablePage,
+                })? {
+                    HostResult::Bool(supported) => Ok(u32::from(supported)),
+                    _ => Err(wrong_device_result("Escape QUERYESCSUPPORT")),
+                };
             }
             let Some(query) = escape_query(i16::from_le_bytes(bytes)) else {
                 return Ok(0);
@@ -129,31 +144,161 @@ impl Win16State {
                     return Ok(started);
                 }
                 let page = match self.print(PrintOperation::StartPage, dc, host) {
-                    Ok(status) if positive_escape(status) => return Ok(started),
+                    Ok(status) if positive_escape(status) => {
+                        self.guest_gdi.clear_next_band(dc);
+                        return Ok(started);
+                    }
                     Ok(status) => status,
                     Err(error) => {
                         self.print(PrintOperation::AbortDocument, dc, host)?;
+                        self.guest_gdi.clear_next_band(dc);
                         return Err(error);
                     }
                 };
                 self.print(PrintOperation::AbortDocument, dc, host)?;
+                self.guest_gdi.clear_next_band(dc);
                 Ok(page)
             }
             PrintCommand::NewFrame => {
+                // A completed NEXTBAND already ejected the page. Closing it
+                // again would emit a second page.
+                if self.guest_gdi.next_band_ejected(dc) {
+                    let started = self.print(PrintOperation::StartPage, dc, host)?;
+                    if positive_escape(started) {
+                        self.guest_gdi.clear_next_band(dc);
+                    }
+                    return Ok(started);
+                }
                 let ended = self.print(PrintOperation::EndPage, dc, host)?;
                 if !positive_escape(ended) {
                     return Ok(ended);
                 }
-                self.print(PrintOperation::StartPage, dc, host)
+                let started = self.print(PrintOperation::StartPage, dc, host)?;
+                if positive_escape(started) {
+                    self.guest_gdi.clear_next_band(dc);
+                }
+                Ok(started)
             }
             PrintCommand::End => {
-                let ended = self.print(PrintOperation::EndPage, dc, host)?;
-                if !positive_escape(ended) {
-                    return Ok(ended);
+                if !self.guest_gdi.next_band_ejected(dc) {
+                    let ended = self.print(PrintOperation::EndPage, dc, host)?;
+                    if !positive_escape(ended) {
+                        return Ok(ended);
+                    }
                 }
-                self.print(PrintOperation::EndDocument, dc, host)
+                let closed = self.print(PrintOperation::EndDocument, dc, host)?;
+                if positive_escape(closed) {
+                    self.guest_gdi.clear_next_band(dc);
+                }
+                Ok(closed)
             }
-            PrintCommand::Abort => self.print(PrintOperation::AbortDocument, dc, host),
+            PrintCommand::Abort => {
+                let status = self.print(PrintOperation::AbortDocument, dc, host)?;
+                if positive_escape(status) {
+                    self.guest_gdi.clear_next_band(dc);
+                }
+                Ok(status)
+            }
+        }
+    }
+
+    /// Windows 3.1 `NEXTBAND` for a driver that does not band.
+    ///
+    /// The first call of a page writes the printable page, `(0, 0, HORZRES,
+    /// VERTRES)`, in device units. The next call ejects that page and writes
+    /// an empty rectangle. A later call is the first band of the next page.
+    /// Both successful calls return a positive value. A coordinate outside
+    /// `-32768..=32767`, or a non-positive extent, fails and leaves the guest
+    /// rectangle unchanged. `nCount` and `lpInData` are not read.
+    fn escape_next_band(
+        &mut self,
+        memory: &mut Memory,
+        dc: u16,
+        output: u32,
+        host: &mut impl RuntimeHost,
+    ) -> Result<u32, RuntimeError> {
+        let Some(native) = self.guest_gdi.dc(dc) else {
+            return Ok(SP_ERROR16);
+        };
+        let Some(prepared) = self.prepare_band_rect(memory, output)? else {
+            return Ok(0);
+        };
+        if self.guest_gdi.next_band_open(dc) {
+            let ended = self.print(PrintOperation::EndPage, dc, host)?;
+            if !positive_escape(ended) {
+                return Ok(ended);
+            }
+            prepared.commit(memory, &[0; 8])?;
+            self.guest_gdi.note_next_band_ejected(dc);
+            return Ok(ended);
+        }
+        if self.guest_gdi.next_band_ejected(dc) || self.guest_gdi.print_document_open(dc) {
+            let Some((width, height)) = self.printable_band(native, host)? else {
+                return Ok(0);
+            };
+            if self.guest_gdi.next_band_ejected(dc) {
+                let started = self.print(PrintOperation::StartPage, dc, host)?;
+                if !positive_escape(started) {
+                    return Ok(started);
+                }
+            }
+            prepared.commit(memory, &band_bytes(width, height))?;
+            self.guest_gdi.note_next_band_open(dc);
+            return Ok(1);
+        }
+        match host.win16_gdi_device(Operation::QueryEscapeSupport {
+            dc: native,
+            query: Query::PrintablePage,
+        })? {
+            HostResult::Bool(true) => Ok(SP_ERROR16),
+            HostResult::Bool(false) => Ok(0),
+            _ => Err(wrong_device_result("Escape NEXTBAND")),
+        }
+    }
+
+    fn prepare_band_rect(
+        &self,
+        memory: &Memory,
+        output: u32,
+    ) -> Result<Option<super::super::text_memory::PreparedTextWrite>, RuntimeError> {
+        // A Win16 RECT is four signed words and must fit in one selector.
+        if output == 0 || usize::from(output as u16) > 0x1_0000 - 8 {
+            return Ok(None);
+        }
+        let target = self
+            .selectors
+            .pointer_from_far(output)
+            .map_err(crate::runtime_error)?;
+        self.selectors
+            .translate(target, Access::Write, 8, memory)
+            .map_err(crate::runtime_error)?;
+        self.prepare_text_write(memory, target, 8).map(Some)
+    }
+
+    fn printable_band(
+        &self,
+        dc: crate::Win16HostDc,
+        host: &mut impl RuntimeHost,
+    ) -> Result<Option<(i16, i16)>, RuntimeError> {
+        match host.win16_gdi_device(Operation::EscapeQuery {
+            dc,
+            query: Query::PrintablePage,
+        })? {
+            HostResult::Point { success: false, .. } => Ok(None),
+            HostResult::Point {
+                success: true,
+                x,
+                y,
+            } => {
+                let (Ok(x), Ok(y)) = (i16::try_from(x), i16::try_from(y)) else {
+                    return Ok(None);
+                };
+                if x <= 0 || y <= 0 {
+                    return Ok(None);
+                }
+                Ok(Some((x, y)))
+            }
+            _ => Err(wrong_device_result("Escape NEXTBAND")),
         }
     }
 
@@ -220,12 +365,23 @@ fn print_command(query: Query) -> Option<PrintCommand> {
         Query::QuerySupport
         | Query::PhysicalPageSize
         | Query::PrintingOffset
-        | Query::ScalingFactor => None,
+        | Query::ScalingFactor
+        | Query::PrintablePage => None,
     }
 }
 
 fn positive_escape(status: u32) -> bool {
     i16::try_from(status).ok().is_some_and(|value| value > 0)
+}
+
+/// Application `NEXTBAND`. The driver `Control` number is the same value.
+const NEXT_BAND_ESCAPE: i16 = 3;
+
+fn band_bytes(width: i16, height: i16) -> [u8; 8] {
+    let mut bytes = [0; 8];
+    bytes[4..6].copy_from_slice(&width.to_le_bytes());
+    bytes[6..8].copy_from_slice(&height.to_le_bytes());
+    bytes
 }
 
 fn escape_query(escape: i16) -> Option<Query> {

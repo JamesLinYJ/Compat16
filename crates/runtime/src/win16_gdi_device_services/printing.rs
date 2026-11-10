@@ -60,6 +60,10 @@ impl Win16State {
                 let status = value as u16 as u32;
                 if positive_spool_status(status) {
                     self.guest_gdi.set_print_document_open(guest_dc, true);
+                    // A new job has no published band. Escape and the exported
+                    // StartDoc share this path, so a band left by the previous
+                    // job cannot eject the new page.
+                    self.guest_gdi.clear_next_band(guest_dc);
                 }
                 Ok(status)
             }
@@ -105,6 +109,10 @@ impl Win16State {
                     )
                 {
                     self.guest_gdi.set_print_document_open(guest_dc, false);
+                    // Exported EndDoc and AbortDoc close the job here and do
+                    // not pass through the Escape wrappers. Drop the band so
+                    // the next document's first NEXTBAND publishes the page.
+                    self.guest_gdi.clear_next_band(guest_dc);
                 }
                 Ok(status)
             }
