@@ -9,8 +9,8 @@ use super::{
 };
 use crate::{
     Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostMciCall,
-    Win16HostMciOutput, Win16HostMciResult, Win16HostMciTarget, Win16MciCommandSyntaxError,
-    Win16MciCommandToken, parse_win16_mci_command,
+    Win16HostMciDevice, Win16HostMciOutput, Win16HostMciResult, Win16HostMciTarget,
+    Win16MciCommandSyntaxError, Win16MciCommandToken, parse_win16_mci_command,
 };
 
 const MCI_NOTIFY: u32 = 1;
@@ -278,9 +278,15 @@ pub(super) fn prepare(
                 command: command.clone(),
                 output_capacity: (output.far != 0).then_some(output.capacity),
                 callback_target,
+                resolved_device: resolved_string_device(state, &tokens),
             }
         }
         Win16MciRequest::GetDeviceId { name, .. } => {
+            // A published guest id is the same number string OPEN wrote. Resolve
+            // it here so a native lookup cannot mint a second alias.
+            if let Some(guest) = decimal_guest_device(state, name) {
+                return Ok(immediate_value(0, u32::from(guest)));
+            }
             Win16HostMciCall::GetDeviceId { name: name.clone() }
         }
         Win16MciRequest::LoadCommandResource { .. } => {
@@ -352,6 +358,7 @@ pub(super) fn prepare(
                 command: command.clone(),
                 output_capacity: None,
                 callback_target: None,
+                resolved_device: resolved_string_device(state, &tokens),
             }
         }
         Win16MciRequest::FreeCommandResource { .. } => {
@@ -440,6 +447,43 @@ pub(super) fn prepare(
         }
     };
     Ok(PreparedMciCall::Host(call))
+}
+
+/// Guest id written by a successful string OPEN. Leading zeros are not the
+/// published form, and `0` / `0xFFFF` are never device aliases.
+fn decimal_guest_device(state: &Win16State, bytes: &[u8]) -> Option<u16> {
+    if bytes.is_empty() || !bytes.iter().all(u8::is_ascii_digit) {
+        return None;
+    }
+    if bytes.len() > 1 && bytes[0] == b'0' {
+        return None;
+    }
+    let mut value = 0_u32;
+    for byte in bytes {
+        value = value.checked_mul(10)?.checked_add(u32::from(byte - b'0'))?;
+    }
+    let guest = u16::try_from(value).ok()?;
+    if guest == 0 || guest == MCI_ALL_DEVICE_ID {
+        return None;
+    }
+    state.resolve_mci_device(guest).map(|_| guest)
+}
+
+fn resolved_string_device(
+    state: &Win16State,
+    tokens: &[Win16MciCommandToken],
+) -> Option<Win16HostMciDevice> {
+    let verb = tokens.first()?;
+    // OPEN's second token is a device type or element, not an open alias.
+    if keyword(verb, b"open") {
+        return None;
+    }
+    let token = tokens.get(1)?;
+    if token.quoted {
+        return None;
+    }
+    let guest = decimal_guest_device(state, &token.bytes)?;
+    state.resolve_mci_device(guest).map(|entry| entry.host)
 }
 
 fn command_target(state: &Win16State, guest: u16, message: u16) -> Option<Win16HostMciTarget> {

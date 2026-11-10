@@ -58,7 +58,14 @@ pub(super) fn execute(
             command,
             output_capacity,
             callback_target,
-        } => send_string(&context, &command, output_capacity, callback_target)?,
+            resolved_device,
+        } => send_string(
+            &context,
+            &command,
+            output_capacity,
+            callback_target,
+            resolved_device,
+        )?,
         Win16HostMciCall::GetDeviceId { name } => {
             let name = wide_terminated(context.state.text_codec, &name)?;
             // SAFETY: `name` is owned and UTF-16 NUL-terminated for this call.
@@ -219,7 +226,18 @@ fn send_string(
     command: &[u8],
     capacity: Option<u32>,
     target: Option<runtime::Win16HostWindow>,
+    resolved_device: Option<runtime::Win16HostMciDevice>,
 ) -> Result<Win16HostMciResult, RuntimeError> {
+    // The guest command names the id string OPEN published. WinMM still
+    // addresses the device by its native id.
+    let command = match resolved_device {
+        Some(device) => {
+            let (native_id, _) = context.state.native_id(device)?;
+            rewrite_guest_device_token(command, native_id)?
+        }
+        None => owned_bytes(command)?,
+    };
+    let command = command.as_slice();
     let action = analyze_string_action(context, command)?;
     let open_alias_z = match &action {
         MciStringAction::Open(Some(alias)) => {
@@ -601,6 +619,107 @@ fn analyze_string_action(
     Ok(MciStringAction::Other)
 }
 
+fn rewrite_guest_device_token(command: &[u8], native_id: u32) -> Result<Vec<u8>, RuntimeError> {
+    let Some((start, end)) = second_unquoted_token_span(command) else {
+        return Err(RuntimeError::new(
+            Kind::InternalInvariant,
+            "MCI string device token was not in the command",
+        ));
+    };
+    let mut rewritten = Vec::new();
+    let digits = decimal_len(native_id);
+    rewritten
+        .try_reserve_exact(command.len() - (end - start) + digits)
+        .map_err(|error| {
+            RuntimeError::with_source(
+                Kind::ResourceExhausted,
+                "rewrite the MCI string device token",
+                error,
+            )
+        })?;
+    rewritten.extend_from_slice(&command[..start]);
+    append_decimal(&mut rewritten, native_id);
+    rewritten.extend_from_slice(&command[end..]);
+    Ok(rewritten)
+}
+
+fn decimal_len(value: u32) -> usize {
+    if value == 0 {
+        1
+    } else {
+        let mut length = 0;
+        let mut value = value;
+        while value > 0 {
+            value /= 10;
+            length += 1;
+        }
+        length
+    }
+}
+
+fn append_decimal(out: &mut Vec<u8>, value: u32) {
+    let start = out.len();
+    let mut value = value;
+    if value == 0 {
+        out.push(b'0');
+        return;
+    }
+    while value > 0 {
+        out.push(b'0' + (value % 10) as u8);
+        value /= 10;
+    }
+    out[start..].reverse();
+}
+
+fn second_unquoted_token_span(command: &[u8]) -> Option<(usize, usize)> {
+    let mut cursor = skip_ascii_space(command, 0);
+    cursor = skip_command_token(command, cursor)?;
+    cursor = skip_ascii_space(command, cursor);
+    if cursor >= command.len() || command[cursor] == b'"' {
+        return None;
+    }
+    let start = cursor;
+    while cursor < command.len() && !command[cursor].is_ascii_whitespace() {
+        cursor += 1;
+    }
+    Some((start, cursor))
+}
+
+fn skip_ascii_space(command: &[u8], mut cursor: usize) -> usize {
+    while command.get(cursor).is_some_and(u8::is_ascii_whitespace) {
+        cursor += 1;
+    }
+    cursor
+}
+
+fn skip_command_token(command: &[u8], mut cursor: usize) -> Option<usize> {
+    if cursor >= command.len() {
+        return None;
+    }
+    if command[cursor] == b'"' {
+        cursor += 1;
+        while cursor < command.len() {
+            if command[cursor] == b'"' {
+                if command.get(cursor + 1) == Some(&b'"') {
+                    cursor += 2;
+                } else {
+                    return Some(cursor + 1);
+                }
+            } else {
+                cursor += 1;
+            }
+        }
+        return None;
+    }
+    while command
+        .get(cursor)
+        .is_some_and(|byte| !byte.is_ascii_whitespace())
+    {
+        cursor += 1;
+    }
+    Some(cursor)
+}
+
 fn decimal_device_id(wide: &[u16]) -> Option<u32> {
     let end = wide
         .iter()
@@ -855,5 +974,18 @@ fn unsupported(code: u32) -> Win16HostMciResult {
     Win16HostMciResult {
         return_value: code,
         output: Win16HostMciOutput::None,
+    }
+}
+
+#[cfg(test)]
+mod guest_device_token_tests {
+    use super::rewrite_guest_device_token;
+
+    #[test]
+    fn substitutes_the_native_id_for_the_published_guest_token() {
+        let rewritten = rewrite_guest_device_token(b"play 1 notify", 15).unwrap();
+        assert_eq!(rewritten, b"play 15 notify");
+        let rewritten = rewrite_guest_device_token(b"status 10 mode", 3).unwrap();
+        assert_eq!(rewritten, b"status 3 mode");
     }
 }

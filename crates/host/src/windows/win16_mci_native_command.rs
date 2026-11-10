@@ -56,24 +56,23 @@ pub(super) fn send_command(
     };
     // A null MCI_NOTIFY callback still executes the command. Windows returns
     // success for MCI_CLOSE of MCI_ALL_DEVICE_ID with MCI_NOTIFY and a null
-    // parameter block, and for a string notify with a null hwnd. Close-all
-    // has no single device generation, so it uses a null callback instead of
-    // inventing one route. MCIERR_NO_WINDOW remains the display-window error.
-    let notification = if flags & MCI_NOTIFY_VALUE != 0 {
+    // parameter block, and for a string notify with a null hwnd. Every
+    // all-device command, not only CLOSE, has no single device generation.
+    // Skip the single-device route instead of failing the call. OPEN is sent
+    // to the all-devices id and still reserves its new-device route.
+    // MCIERR_NO_WINDOW remains the display-window error.
+    let all_devices = native_id == MCI_ALL_DEVICE_ID && message != MCI_OPEN_VALUE;
+    let notification = if flags & MCI_NOTIFY_VALUE != 0 && !all_devices {
         match notify_target {
-            Some(notification_window)
-                if !(message == MCI_CLOSE_VALUE && native_id == MCI_ALL_DEVICE_ID) =>
-            {
-                Some(notify::reserve_command_notification(
-                    context,
-                    message,
-                    native_id,
-                    &parameters,
-                    notification_window,
-                    open_source_id,
-                )?)
-            }
-            Some(_) | None => None,
+            Some(notification_window) => Some(notify::reserve_command_notification(
+                context,
+                message,
+                native_id,
+                &parameters,
+                notification_window,
+                open_source_id,
+            )?),
+            None => None,
         }
     } else {
         None

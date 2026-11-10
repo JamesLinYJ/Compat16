@@ -577,6 +577,9 @@ pub enum Win16HostMciCall {
         command: Vec<u8>,
         output_capacity: Option<u32>,
         callback_target: Option<Win16HostWindow>,
+        /// Device named by a guest id in the command. The host substitutes the
+        /// native id before WinMM parses the string.
+        resolved_device: Option<Win16HostMciDevice>,
     },
     GetDeviceId {
         name: Vec<u8>,

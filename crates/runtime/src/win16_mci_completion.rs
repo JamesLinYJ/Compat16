@@ -135,7 +135,7 @@ pub(super) fn complete(
                     result.output,
                     memory,
                     host,
-                )?;
+                )?
             } else {
                 state.release_reserved_from_request(&request);
                 // NT mciSendString clears the whole return buffer before the
@@ -143,8 +143,8 @@ pub(super) fn complete(
                 // therefore leaves a zero-filled guest buffer, including an
                 // empty command's MCIERR_MISSING_COMMAND_STRING.
                 clear_output_buffer(state, *output, memory)?;
+                result.return_value
             }
-            result.return_value
         }
         Win16MciRequest::GetDeviceId { .. } | Win16MciRequest::GetDeviceIdFromElement { .. } => {
             match result.output {
@@ -174,6 +174,17 @@ pub(super) fn complete(
                     u32::from(alias)
                 }
                 Win16HostMciOutput::None | Win16HostMciOutput::Scalar(0) => 0,
+                // prepare() returns a live guest id directly when the name is
+                // the decimal published by string OPEN.
+                Win16HostMciOutput::Scalar(id) => {
+                    let Some(guest) = u16::try_from(id)
+                        .ok()
+                        .filter(|guest| state.resolve_mci_device(*guest).is_some())
+                    else {
+                        return Err(invariant("MCI device lookup returned the wrong host value"));
+                    };
+                    u32::from(guest)
+                }
                 _ => return Err(invariant("MCI device lookup returned the wrong host value")),
             }
         }
@@ -242,7 +253,7 @@ pub(super) fn complete(
             reserved_device_id, ..
         } => {
             if result.return_value == 0 {
-                finish_string_effects(
+                let code = finish_string_effects(
                     state,
                     &request,
                     *reserved_device_id,
@@ -251,7 +262,7 @@ pub(super) fn complete(
                     memory,
                     host,
                 )?;
-                1
+                u32::from(code == 0)
             } else {
                 state.release_reserved_from_request(&request);
                 0
@@ -439,7 +450,7 @@ fn finish_string_effects(
     result: Win16HostMciOutput,
     memory: &mut Memory,
     host: &mut impl RuntimeHost,
-) -> Result<(), RuntimeError> {
+) -> Result<u32, RuntimeError> {
     let (bytes, opened, closed, closed_all, unsupported_owner) = match result {
         Win16HostMciOutput::StringCommand {
             bytes,
@@ -460,7 +471,7 @@ fn finish_string_effects(
             "native MCI string OPEN succeeded without a retained owner receipt",
         ));
     }
-    if let Some((device, device_type)) = opened {
+    let guest_id = if let Some((device, device_type)) = opened {
         let Some(reserved) = reserved_device_id else {
             state.retain_orphan_mci_device(device);
             return Err(invariant(
@@ -476,10 +487,11 @@ fn finish_string_effects(
                 ));
             }
         };
-        let _guest = state.commit_reserved_mci_device(reserved, device, device_type, creator)?;
+        Some(state.commit_reserved_mci_device(reserved, device, device_type, creator)?)
     } else {
         state.release_reserved_from_request(request);
-    }
+        None
+    };
     if let Some(device) = closed {
         state.retire_mci_host_device_with_sources(device);
     }
@@ -487,9 +499,56 @@ fn finish_string_effects(
         state.retire_all_mci_devices();
     }
     if let Some(output) = output {
+        let bytes = if let Some(guest) = guest_id {
+            if output.far != 0 && output.capacity != 0 {
+                match project_guest_device_id(&bytes, guest)? {
+                    Some(projected) => projected,
+                    None => {
+                        // The committed id does not fit. PARAM_OVERFLOW is the
+                        // string-interface result, and the device stays open.
+                        clear_output_buffer(state, output, memory)?;
+                        return Ok(MCIERR_PARAM_OVERFLOW);
+                    }
+                }
+            } else {
+                bytes
+            }
+        } else {
+            bytes
+        };
         write_output(state, output, Win16HostMciOutput::Bytes(bytes), memory)?;
     }
-    Ok(())
+    Ok(0)
+}
+
+const MCIERR_PARAM_OVERFLOW: u32 = 268;
+
+/// Replace the native OPEN device id with the guest id command calls accept.
+/// `None` means the id and its terminator do not fit the captured buffer.
+fn project_guest_device_id(bytes: &[u8], guest: u16) -> Result<Option<Vec<u8>>, RuntimeError> {
+    let mut digits = [0_u8; 5];
+    let mut value = u32::from(guest);
+    let mut length = 0;
+    while value > 0 {
+        digits[length] = b'0' + (value % 10) as u8;
+        value /= 10;
+        length += 1;
+    }
+    digits[..length].reverse();
+    if length + 1 > bytes.len() {
+        return Ok(None);
+    }
+    let mut projected = Vec::new();
+    projected.try_reserve_exact(bytes.len()).map_err(|error| {
+        RuntimeError::with_source(
+            Kind::ResourceExhausted,
+            "project the MCI OPEN guest device id",
+            error,
+        )
+    })?;
+    projected.extend_from_slice(&digits[..length]);
+    projected.resize(bytes.len(), 0);
+    Ok(Some(projected))
 }
 
 fn clear_output_buffer(

@@ -6,6 +6,7 @@ use super::{ImportBinding, test_support::tiny_ne_executable};
 use crate::{
     Runtime, RuntimeError, RuntimeHost, Win16HostMciCall, Win16HostMciDevice, Win16HostMciOutput,
     Win16HostMciParameters, Win16HostMciResult, Win16HostMciStep, Win16HostMciTarget,
+    Win16HostWindow,
 };
 use devices::{keyboard::KeyStroke, video::ConsoleSnapshot};
 use dos_kernel::{
@@ -22,6 +23,7 @@ const DX_WORD: u16 = (EDX_SENTINEL & 0xffff) as u16;
 const MCI_OPEN: u16 = 0x0803;
 const MCI_CLOSE: u16 = 0x0804;
 const MCI_PLAY: u16 = 0x0806;
+const MCI_STOP: u16 = 0x0808;
 const MCI_SYSINFO: u16 = 0x0810;
 const MCI_BREAK: u16 = 0x0811;
 const MCI_WHERE: u16 = 0x0843;
@@ -639,4 +641,123 @@ fn break_key_sign_extends_and_where_overflow_preserves_the_rect() {
     let mut rect = [0; 12];
     read_at(&runtime, 0x180, &mut rect);
     assert_eq!(rect, [0x5A; 12]);
+}
+
+fn opened_string(bytes: Vec<u8>, device: Win16HostMciDevice) -> Win16HostMciResult {
+    Win16HostMciResult {
+        return_value: 0,
+        output: Win16HostMciOutput::StringCommand {
+            bytes,
+            opened: Some((device, Some(522))),
+            closed: None,
+            closed_all: false,
+            unsupported_owner: false,
+        },
+    }
+}
+
+#[test]
+fn string_open_publishes_the_committed_guest_id() {
+    let (mut runtime, selector) = runtime();
+    let mut host = MciHost::new();
+    write_at(&mut runtime, 0x140, &[0; 20]);
+    host.enqueue(Win16HostMciResult {
+        return_value: 0,
+        output: Win16HostMciOutput::Device {
+            device: DEVICE,
+            device_type: Some(522),
+        },
+    });
+    let (ax, _) = invoke(
+        &mut runtime,
+        &mut host,
+        701,
+        &[
+            &word(0),
+            &word(MCI_OPEN),
+            &dword(0),
+            &dword(far(selector, 0x140)),
+        ],
+    );
+    assert_eq!(ax, 0);
+
+    fill(&mut runtime, 0, 0x5A, 4);
+    place(&mut runtime, 0x40, b"open waveaudio");
+    host.enqueue(opened_string(b"9\0\0\0".to_vec(), DEVICE));
+    let (ax, dx) = send_string(&mut runtime, &mut host, selector, 0x40, 0, 4);
+    assert_eq!((ax, dx), (0, 0));
+    let mut buffer = [0; 4];
+    read_at(&runtime, 0, &mut buffer);
+    assert_eq!(&buffer, b"1\0\0\0");
+
+    place(&mut runtime, 0x60, b"play 1");
+    host.enqueue(string_receipt(vec![0; 4], false));
+    let (ax, _) = send_string(&mut runtime, &mut host, selector, 0x60, 0, 4);
+    assert_eq!(ax, 0);
+    assert!(matches!(
+        &host.calls[2],
+        Win16HostMciCall::SendString {
+            command,
+            resolved_device: Some(DEVICE),
+            ..
+        } if command == b"play 1"
+    ));
+
+    place(&mut runtime, 0x70, b"play 9");
+    host.enqueue(string_receipt(vec![0; 4], false));
+    let (ax, _) = send_string(&mut runtime, &mut host, selector, 0x70, 0, 4);
+    assert_eq!(ax, 0);
+    assert!(matches!(
+        &host.calls[3],
+        Win16HostMciCall::SendString {
+            command,
+            resolved_device: None,
+            ..
+        } if command == b"play 9"
+    ));
+
+    let calls = host.calls.len();
+    place(&mut runtime, 0x90, b"1");
+    let (ax, dx) = invoke(&mut runtime, &mut host, 703, &[&dword(far(selector, 0x90))]);
+    assert_eq!((ax, dx), (1, DX_WORD));
+    assert_eq!(host.calls.len(), calls);
+}
+
+#[test]
+fn all_device_stop_notify_reaches_the_host() {
+    let (mut runtime, selector) = runtime();
+    let mut host = MciHost::new();
+    runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .window_handles
+        .insert(0x10, Win16HostWindow(0x1000));
+    write_at(&mut runtime, 0x100, &0x10_u32.to_le_bytes());
+    host.enqueue(Win16HostMciResult {
+        return_value: 0,
+        output: Win16HostMciOutput::None,
+    });
+    let (ax, dx) = invoke(
+        &mut runtime,
+        &mut host,
+        701,
+        &[
+            &word(MCI_ALL_DEVICE_ID),
+            &word(MCI_STOP),
+            &dword(MCI_NOTIFY),
+            &dword(far(selector, 0x100)),
+        ],
+    );
+    assert_eq!((ax, dx), (0, 0));
+    assert!(matches!(
+        &host.calls[0],
+        Win16HostMciCall::SendCommand {
+            target: Win16HostMciTarget::All,
+            message: MCI_STOP,
+            flags: MCI_NOTIFY,
+            parameters: Win16HostMciParameters::Generic,
+            notify_target: Some(Win16HostWindow(0x1000)),
+        }
+    ));
 }
