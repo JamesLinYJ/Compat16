@@ -17,6 +17,7 @@ const WM_SETFOCUS: u16 = 0x0007;
 const WM_KILLFOCUS: u16 = 0x0008;
 const WM_SETCURSOR: u16 = 0x0020;
 const WM_MOUSEACTIVATE: u16 = 0x0021;
+const WM_NEXTDLGCTL: u16 = 0x0028;
 const WM_NCACTIVATE: u16 = 0x0086;
 
 impl Win16State {
@@ -71,6 +72,17 @@ impl Win16State {
                 hit_test: l_param as u16,
                 mouse_message: (l_param >> 16) as u16,
             },
+            // Learn WM_NEXTDLGCTL: the low word is the mode. A nonzero low
+            // word makes wParam a control HWND16; zero keeps wParam as the
+            // direction word. 0x00010000 therefore stays a direction.
+            WM_NEXTDLGCTL => {
+                let control_form = (l_param as u16) != 0;
+                Win16WindowInputMessage::NextDialogControl {
+                    direction: if control_form { 0 } else { w_param },
+                    control: if control_form { host_window(w_param)? } else { None },
+                    control_form,
+                }
+            }
             _ => return None,
         })
     }
@@ -100,6 +112,10 @@ impl Win16State {
             Win16WindowInputMessage::MouseActivate { parent, hit_test, mouse_message } => {
                 let parent = self.guest_window(parent)?;
                 (parent, u32::from(hit_test) | (u32::from(mouse_message) << 16))
+            }
+            Win16WindowInputMessage::NextDialogControl { direction, control, control_form } => {
+                let control = if control_form { self.guest_window(control)? } else { 0 };
+                Win16WindowInputMessage::next_dialog_guest_params(direction, control, control_form)
             }
         };
         Ok((input.message_id(), w_param, l_param))

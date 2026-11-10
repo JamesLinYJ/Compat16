@@ -30,6 +30,8 @@ pub(super) fn prepare(
         None => return Ok(Win16UserFamilyPreparation::immediate(0, return_kind)),
     };
     let parameter = if Win16WindowInputMessage::accepts(message.message) {
+        // Includes WM_NEXTDLGCTL. Its low word chooses a control HWND16 or a
+        // direction word; an unmapped nonzero control fails closed below.
         let Some(input) = state.window_input_from_guest(
             message.message,
             message.w_param,
@@ -74,10 +76,13 @@ pub(super) fn prepare(
         ));
         return Ok(Win16UserFamilyPreparation::immediate(0, return_kind));
     } else if Win16ScalarMessage::from_raw(message.message).is_some() {
+        // WM_KEYDOWN VK_RETURN (0x0D) and VK_ESCAPE (0x1B) stay numeric.
+        // IsDialogMessageW turns those keys into the default or cancel
+        // button; this side does not invent a WM_COMMAND from the key.
         Win16MessageParam::Scalar(message.l_param)
     } else if message.message >= 0x0400 {
-        // Application-defined messages remain opaque guest bits. The host
-        // adapter must not dereference their LPARAM.
+        // DM_GETDEFID is WM_USER+0 (0x0400). Its parameters are unused numeric
+        // bits. The host adapter must not dereference their LPARAM.
         Win16MessageParam::GuestBits(message.l_param)
     } else {
         // Other standard messages can carry guest pointers, handles or nested

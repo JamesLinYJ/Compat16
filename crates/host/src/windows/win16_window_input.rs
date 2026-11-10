@@ -229,6 +229,28 @@ pub(super) fn decode_window_input(
                 mouse_message: (packed >> 16) as u16,
             }
         }
+        0x0028 => {
+            // WM_NEXTDLGCTL. Only the low word selects control form. A high
+            // word alone, including 0x00010000, remains a direction and must
+            // not be adopted as a native HWND.
+            let control_form = ((l_param as u32) as u16) != 0;
+            if control_form {
+                let Some(control) = token_for_optional_hwnd(state, w_param as HWND)? else {
+                    return Ok(None);
+                };
+                Win16WindowInputMessage::NextDialogControl {
+                    direction: 0,
+                    control,
+                    control_form: true,
+                }
+            } else {
+                Win16WindowInputMessage::NextDialogControl {
+                    direction: (w_param as u32) as u16,
+                    control: None,
+                    control_form: false,
+                }
+            }
+        }
         _ => return Ok(None),
     };
     Ok(Some(copied))
@@ -332,6 +354,22 @@ pub(super) fn encode_window_input(
                 parent as usize,
                 pack_words(hit_test, mouse_message),
             )
+        }
+        Win16WindowInputMessage::NextDialogControl {
+            direction,
+            control,
+            control_form,
+        } => {
+            if control_form {
+                let Some(control) = resolve_optional_hwnd(state, control) else {
+                    return Ok(None);
+                };
+                // Native dialog code treats a nonzero LPARAM as control form.
+                // Publish 1 rather than a guest high word.
+                (message, control as usize, 1)
+            } else {
+                (message, usize::from(direction), 0)
+            }
         }
     };
     Ok(Some(encoded))
