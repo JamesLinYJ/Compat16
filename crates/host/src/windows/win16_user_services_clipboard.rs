@@ -20,13 +20,16 @@ use windows_sys::Win32::System::DataExchange::{
     GetClipboardViewer, GetOpenClipboardWindow, IsClipboardFormatAvailable, OpenClipboard,
     SetClipboardData, SetClipboardViewer,
 };
-use windows_sys::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalSize, GlobalUnlock};
+use windows_sys::Win32::System::Memory::{
+    GlobalAlloc, GlobalFlags, GlobalLock, GlobalSize, GlobalUnlock,
+};
 use windows_sys::Win32::System::Ole::{CF_LOCALE, CF_OEMTEXT, CF_TEXT, CF_UNICODETEXT};
 
 use super::win16_window_worker::{self as worker, WorkerState};
 
 const GMEM_MOVEABLE: u32 = 0x0002;
 const GMEM_ZEROINIT: u32 = 0x0040;
+const GMEM_INVALID_HANDLE: u32 = 0x8000;
 const MAX_CLIPBOARD_BYTES: usize = 16 * 1024 * 1024;
 
 type SharedWorker = Rc<RefCell<WorkerState>>;
@@ -43,6 +46,10 @@ pub(super) fn execute(
         let worker = state.borrow();
         (worker.text_codec, worker.oem_text_codec)
     };
+    // EmptyClipboard and a replacing SetClipboardData can drop a private or
+    // CF_GDIOBJ block that Windows did not free. Sweep on every exit,
+    // including the early returns below, after those calls have returned.
+    let _release_dropped_blocks = ReleaseDroppedNativeBlocks;
     let result = match operation {
         Call::Open { owner } => {
             let owner = match owner {
@@ -135,17 +142,13 @@ pub(super) fn execute(
         Call::GetPriorityFormat { formats } => {
             // Programmer's Reference: the first listed format that is present,
             // NULL when the clipboard is empty, and -1 when it holds data in
-            // none of the requested formats.
-            let value = if let Some(format) = formats
-                .into_iter()
-                .find(|format| guest_format_available(*format))
-            {
-                format as i16
-            } else if guest_format_count() == 0 {
-                0
-            } else {
-                -1
-            };
+            // none of the requested formats. An empty list, including a
+            // negative count forwarded as no entries, uses the last two.
+            let value = select_priority_clipboard_format(
+                &formats,
+                guest_format_available,
+                guest_format_count() == 0,
+            );
             Result::PriorityFormat(value)
         }
         Call::SetViewer { viewer } => {
@@ -241,6 +244,19 @@ fn set_global_data(
     unsafe {
         GlobalUnlock(memory);
     }
+    if native_owner_may_keep_global(format) {
+        let reserved = RETAINED_NATIVE_BLOCKS.with(|slot| {
+            slot.borrow_mut().handles.try_reserve(1).is_ok()
+        });
+        if !reserved {
+            // SAFETY: GlobalFree releases an HGLOBAL this owner still holds.
+            // SetClipboardData has not been called.
+            unsafe {
+                GlobalFree(memory);
+            }
+            return Ok(false);
+        }
+    }
     let transferred =
         // SAFETY: SetClipboardData transfers an HGLOBAL this owner allocated.
         unsafe { SetClipboardData(native_format, memory.cast::<core::ffi::c_void>()) };
@@ -250,9 +266,14 @@ fn set_global_data(
             GlobalFree(memory);
         }
         Ok(false)
+    } else if native_owner_may_keep_global(format) {
+        // Private formats are not freed by EmptyClipboard. The Win32
+        // CF_GDIOBJ range is documented both ways, so remember the block and
+        // release it only once the format is gone and the handle is still live.
+        remember_retained_native_block(format, memory as usize);
+        Ok(true)
     } else {
-        // The clipboard now owns `memory`; freeing it here would invalidate
-        // the newly published clipboard data.
+        // The clipboard now owns `memory` and frees it with the format.
         Ok(true)
     }
 }
@@ -320,6 +341,103 @@ fn get_global_data(
 
 fn is_guest_legacy_text_format(format: u16) -> bool {
     format == CF_TEXT || format == CF_OEMTEXT
+}
+
+/// `CF_PRIVATEFIRST`..=`CF_PRIVATELAST`, and the Win32 `CF_GDIOBJ` range.
+/// EmptyClipboard does not reliably free these HGLOBALs.
+fn native_owner_may_keep_global(format: u16) -> bool {
+    (0x0200..=0x03ff).contains(&format)
+}
+
+fn select_priority_clipboard_format(
+    formats: &[u16],
+    mut available: impl FnMut(u16) -> bool,
+    clipboard_is_empty: bool,
+) -> i16 {
+    if let Some(format) = formats.iter().copied().find(|format| available(format)) {
+        format as i16
+    } else if clipboard_is_empty {
+        0
+    } else {
+        -1
+    }
+}
+
+fn native_global_was_freed(flags: u32) -> bool {
+    flags == GMEM_INVALID_HANDLE
+}
+
+struct RetainedNativeClipboardBlocks {
+    handles: std::collections::BTreeMap<u16, usize>,
+}
+
+impl Drop for RetainedNativeClipboardBlocks {
+    fn drop(&mut self) {
+        for (&format, &handle) in &self.handles {
+            if !native_format_available(format) {
+                release_native_block(handle);
+            }
+        }
+    }
+}
+
+thread_local! {
+    static RETAINED_NATIVE_BLOCKS: RefCell<RetainedNativeClipboardBlocks> =
+        RefCell::new(RetainedNativeClipboardBlocks {
+            handles: std::collections::BTreeMap::new(),
+        });
+}
+
+struct ReleaseDroppedNativeBlocks;
+
+impl Drop for ReleaseDroppedNativeBlocks {
+    fn drop(&mut self) {
+        release_dropped_native_blocks();
+    }
+}
+
+fn remember_retained_native_block(format: u16, handle: usize) {
+    let previous = RETAINED_NATIVE_BLOCKS.with(|slot| {
+        slot.borrow_mut().handles.insert(format, handle)
+    });
+    if let Some(previous) = previous.filter(|previous| *previous != handle) {
+        release_native_block(previous);
+    }
+}
+
+fn release_dropped_native_blocks() {
+    let stale = RETAINED_NATIVE_BLOCKS.with(|slot| {
+        slot.borrow()
+            .handles
+            .iter()
+            .filter(|(format, _)| !native_format_available(**format))
+            .map(|(format, handle)| (*format, *handle))
+            .collect::<Vec<_>>()
+    });
+    for (format, handle) in stale {
+        release_native_block(handle);
+        RETAINED_NATIVE_BLOCKS.with(|slot| {
+            slot.borrow_mut().handles.remove(&format);
+        });
+    }
+}
+
+fn release_native_block(handle: usize) {
+    let memory = handle as *mut core::ffi::c_void;
+    if memory.is_null() {
+        return;
+    }
+    // SAFETY: GlobalFlags returns GMEM_INVALID_HANDLE when `memory` is not a
+    // live HGLOBAL. It does not free the object or follow a guest address.
+    let flags = unsafe { GlobalFlags(memory) };
+    if native_global_was_freed(flags) {
+        return;
+    }
+    // SAFETY: This adapter allocated `memory`, GlobalFlags still reports it,
+    // and the clipboard format that referenced it is no longer published.
+    unsafe {
+        GlobalFree(memory);
+    }
 }
 
 /// The Win16 text format this worker last placed, with the clipboard sequence
@@ -407,6 +525,28 @@ mod placement_tests {
         assert_eq!(refreshed_text_placement(replacement, placed, 7, 14), replacement);
         assert_eq!(refreshed_text_placement(placed, None, 7, 12), placed);
         assert_eq!(refreshed_text_placement(placed, placed, 7, 0), placed);
+    }
+
+    #[test]
+    fn clipboard_close_priority_for_an_empty_list_follows_clipboard_contents() {
+        let text_present = |format: u16| format == CF_TEXT;
+        assert_eq!(select_priority_clipboard_format(&[], text_present, true), 0);
+        assert_eq!(select_priority_clipboard_format(&[], text_present, false), -1);
+        assert_eq!(select_priority_clipboard_format(&[CF_OEMTEXT], text_present, false), -1);
+        assert_eq!(
+            select_priority_clipboard_format(&[CF_OEMTEXT, CF_TEXT], text_present, false),
+            CF_TEXT as i16,
+        );
+    }
+
+    #[test]
+    fn clipboard_close_private_native_blocks_are_released_only_while_live() {
+        assert!(native_owner_may_keep_global(0x0200));
+        assert!(native_owner_may_keep_global(0x03ff));
+        assert!(!native_owner_may_keep_global(CF_TEXT));
+        assert!(!native_owner_may_keep_global(0x01ff));
+        assert!(native_global_was_freed(GMEM_INVALID_HANDLE));
+        assert!(!native_global_was_freed(GMEM_MOVEABLE));
     }
 }
 

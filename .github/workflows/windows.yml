@@ -127,6 +127,7 @@ jobs:
             '-p runtime --lib external_module_usage_',
             '-p host-services --lib shell_process_liveness_',
             '-p host-services --lib clipboard_close_',
+            '-p runtime --lib clipboard_close_',
             '-p runtime --lib driver_contract_',
             '-p runtime --lib ole_remainder_contract_',
             '-p runtime --lib library_remainder_contract_',
@@ -329,6 +330,7 @@ jobs:
             '-p runtime --lib win16_runtime::dispatch::input_event_tests::' = 2
             '-p runtime --lib win16_runtime::ole1::tests::' = 8
             '-p host-services --lib windows::win16_media_services::timer::tests::' = 3
+            '-p runtime --lib clipboard_close_' = 4
           }
           $failedSuites = @()
           $hostCompileChecked = $false
