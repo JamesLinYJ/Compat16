@@ -276,12 +276,13 @@ impl Win16State {
             )) => {
                 let pointer =
                     self.checked_guest_range(rect, Rect16::SIZE, Access::Write, memory)?;
-                let mut rect = self.read_rect(memory, pointer)?;
-                rect.left = rect.left.wrapping_add(x);
-                rect.right = rect.right.wrapping_add(x);
-                rect.top = rect.top.wrapping_add(y);
-                rect.bottom = rect.bottom.wrapping_add(y);
-                self.write_rect(memory, pointer, rect)?;
+                let rect = self.read_rect(memory, pointer)?;
+                // Windows 3.1 SDK `WINDOWS.H` declares `void OffsetRect`. The
+                // rectangle uses signed ints. An edge outside that int is not
+                // stored, so the guest rectangle stays as the caller left it.
+                if let Some(rect) = offset_rect_edges(rect, x, y) {
+                    self.write_rect(memory, pointer, rect)?;
+                }
                 self.complete_return(
                     registers,
                     return_to.0,
@@ -296,12 +297,15 @@ impl Win16State {
             )) => {
                 let pointer =
                     self.checked_guest_range(rect, Rect16::SIZE, Access::Write, memory)?;
-                let mut rect = self.read_rect(memory, pointer)?;
-                rect.left = rect.left.wrapping_sub(x);
-                rect.right = rect.right.wrapping_add(x);
-                rect.top = rect.top.wrapping_sub(y);
-                rect.bottom = rect.bottom.wrapping_add(y);
-                self.write_rect(memory, pointer, rect)?;
+                let rect = self.read_rect(memory, pointer)?;
+                // Windows 3.1 SDK `WINDOWS.H` declares `void InflateRect`.
+                // Learn adds `-dx` to the left and `dx` to the right, and the
+                // same for `dy`. MFC `CRect` requires the resulting width and
+                // height to stay within a signed int. An edge or span outside
+                // that int is not stored.
+                if let Some(rect) = inflate_rect_edges(rect, x, y) {
+                    self.write_rect(memory, pointer, rect)?;
+                }
                 self.complete_return(
                     registers,
                     return_to.0,
@@ -639,4 +643,38 @@ impl Win16State {
             )),
         }
     }
+}
+
+/// Moves each edge by a signed int. `None` means one sum does not fit.
+fn offset_rect_edges(rect: Rect16, x: i16, y: i16) -> Option<Rect16> {
+    Some(Rect16 {
+        left: fit_i16(i32::from(rect.left) + i32::from(x))?,
+        top: fit_i16(i32::from(rect.top) + i32::from(y))?,
+        right: fit_i16(i32::from(rect.right) + i32::from(x))?,
+        bottom: fit_i16(i32::from(rect.bottom) + i32::from(y))?,
+    })
+}
+
+/// Grows or shrinks the rectangle. Positive amounts move the edges outward.
+/// `None` means an edge, width, or height does not fit in a signed int.
+fn inflate_rect_edges(rect: Rect16, x: i16, y: i16) -> Option<Rect16> {
+    let left = i32::from(rect.left) - i32::from(x);
+    let top = i32::from(rect.top) - i32::from(y);
+    let right = i32::from(rect.right) + i32::from(x);
+    let bottom = i32::from(rect.bottom) + i32::from(y);
+    let width = right - left;
+    let height = bottom - top;
+    if fit_i16(width).is_none() || fit_i16(height).is_none() {
+        return None;
+    }
+    Some(Rect16 {
+        left: fit_i16(left)?,
+        top: fit_i16(top)?,
+        right: fit_i16(right)?,
+        bottom: fit_i16(bottom)?,
+    })
+}
+
+fn fit_i16(value: i32) -> Option<i16> {
+    i16::try_from(value).ok()
 }
