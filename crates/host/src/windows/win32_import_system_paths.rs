@@ -62,8 +62,11 @@ fn query(
             ptr::null_mut()
         };
         crate::windows::win32_safe::set_last_error(0);
-        // SAFETY: buffer is host-owned and sized in UTF-16 units. A NULL
-        // pointer is passed only for the guest's valid NULL/zero-capacity pair.
+        // SAFETY: `pointer` is null only for the guest's valid NULL and
+        // zero-capacity pair. Otherwise it addresses the caller-owned buffer of
+        // `capacity` UTF-16 units, which stays live for this call. A zero return
+        // is the failure result. The pointer is a host address, not a guest
+        // address.
         let returned = unsafe { call_query_w(kind, capacity, pointer) };
         let error = (returned == 0).then(api_error);
         let valid = output_is_complete(returned, capacity, output_present);
@@ -118,8 +121,10 @@ fn set_current_directory(
         path,
         "Win32 current-directory path contains embedded NUL",
     )?;
-    // SAFETY: the owned UTF-16 path is terminated and remains live for the call.
-    let success = unsafe { SetCurrentDirectoryW(path.as_ptr()) != 0 };
+    // SAFETY: `path` is an owned NUL-terminated UTF-16 path that stays live for
+    // this call. A zero BOOL is the only failure result. The pointer is a host
+    // address, not a guest address.
+    let success = unsafe { SetCurrentDirectoryW(path.as_ptr()) } != 0;
     Ok(result(V::Bool(success), (!success).then(api_error)))
 }
 
@@ -204,22 +209,19 @@ fn transform_wide_guest(
         ptr::null_mut()
     };
     let mut file_part = ptr::null_mut();
-    crate::windows::win32_safe::set_last_error(0);
-    // SAFETY: path and output buffer are host-owned for the call. The optional
-    // file-part pointer targets a local native pointer and never escapes.
-    let returned = unsafe {
-        call_transform_w(
-            kind,
-            path.as_ptr(),
-            capacity,
-            output,
-            if request_file_part {
-                &mut file_part
-            } else {
-                ptr::null_mut()
-            },
-        )
+    let file_part_ptr = if request_file_part {
+        &mut file_part
+    } else {
+        ptr::null_mut()
     };
+    crate::windows::win32_safe::set_last_error(0);
+    // SAFETY: `path` is an owned NUL-terminated UTF-16 path that stays live for
+    // this call. `output` is null or the caller-owned buffer of `capacity`
+    // UTF-16 units, which stays live. `file_part_ptr` is null or the local
+    // file-part slot, which stays live and does not escape. All three are host
+    // addresses, not guest addresses.
+    let returned =
+        unsafe { call_transform_w(kind, path.as_ptr(), capacity, output, file_part_ptr) };
     let valid = returned != 0 && returned < capacity && output_present;
     let error = (returned == 0).then(api_error);
     let value = if valid {
@@ -257,20 +259,24 @@ fn complete_transform_w(
         let native_capacity = u32::try_from(capacity).map_err(|_| exhausted("wide path buffer"))?;
         let mut buffer = wide_buffer(native_capacity, true)?;
         let mut file_part = ptr::null_mut();
+        let file_part_ptr = if request_file_part {
+            &mut file_part
+        } else {
+            ptr::null_mut()
+        };
         crate::windows::win32_safe::set_last_error(0);
-        // SAFETY: the terminated input and output allocation are owned and
-        // live through this synchronous W call; file_part points to a local.
+        // SAFETY: `path` is a NUL-terminated UTF-16 input that stays live for
+        // this call. `buffer` has `native_capacity` writable UTF-16 units and
+        // stays live. `file_part_ptr` is null or the local file-part slot, which
+        // stays live and does not escape. All three are host addresses, not
+        // guest addresses.
         let returned = unsafe {
             call_transform_w(
                 kind,
                 path.as_ptr(),
                 native_capacity,
                 buffer.as_mut_ptr(),
-                if request_file_part {
-                    &mut file_part
-                } else {
-                    ptr::null_mut()
-                },
+                file_part_ptr,
             )
         };
         if returned == 0 {
@@ -300,7 +306,11 @@ fn complete_transform_w(
     }
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `path` is a NUL-terminated UTF-16 path that stays live for the call.
+// `output` is null or addresses at least `capacity` writable UTF-16 units that
+// stay live. `file_part` is null or addresses a caller-owned pointer slot that
+// stays live for the call and does not escape. Every pointer is a host address,
+// not a guest address. `file_part` is used only for `T::Full`.
 unsafe fn call_transform_w(
     kind: T,
     path: *const u16,
@@ -308,13 +318,31 @@ unsafe fn call_transform_w(
     output: *mut u16,
     file_part: *mut *mut u16,
 ) -> u32 {
-    // SAFETY: caller guarantees path/output/file_part contracts documented by
-    // the selected Windows API and retains all storage for the call.
-    unsafe {
-        match kind {
-            T::Full => GetFullPathNameW(path, capacity, output, file_part),
-            T::Long => GetLongPathNameW(path, output, capacity),
-            T::Short => GetShortPathNameW(path, output, capacity),
+    match kind {
+        T::Full => {
+            // SAFETY: `path` is a NUL-terminated UTF-16 path that stays live for
+            // this call. `output` is null or addresses at least `capacity`
+            // writable UTF-16 units that stay live. `file_part` is null or a
+            // caller-owned pointer slot that stays live and does not escape.
+            // GetFullPathNameW returns 0 on failure and retains no pointer.
+            // Every pointer is a host address, not a guest address.
+            unsafe { GetFullPathNameW(path, capacity, output, file_part) }
+        }
+        T::Long => {
+            // SAFETY: `path` is a NUL-terminated UTF-16 path that stays live for
+            // this call. `output` is null or addresses at least `capacity`
+            // writable UTF-16 units that stay live. GetLongPathNameW returns 0
+            // on failure and retains no pointer. `file_part` is not passed.
+            // Both pointers are host addresses, not guest addresses.
+            unsafe { GetLongPathNameW(path, output, capacity) }
+        }
+        T::Short => {
+            // SAFETY: `path` is a NUL-terminated UTF-16 path that stays live for
+            // this call. `output` is null or addresses at least `capacity`
+            // writable UTF-16 units that stay live. GetShortPathNameW returns 0
+            // on failure and retains no pointer. `file_part` is not passed.
+            // Both pointers are host addresses, not guest addresses.
+            unsafe { GetShortPathNameW(path, output, capacity) }
         }
     }
 }
@@ -325,8 +353,9 @@ fn complete_query_w(kind: Q) -> Result<(Option<Vec<u16>>, Option<u32>), RuntimeE
         let native_capacity = u32::try_from(capacity).map_err(|_| exhausted("wide path buffer"))?;
         let mut buffer = wide_buffer(native_capacity, true)?;
         crate::windows::win32_safe::set_last_error(0);
-        // SAFETY: buffer is host-owned and has `native_capacity` writable
-        // UTF-16 units for the selected directory query.
+        // SAFETY: `buffer` is caller-owned and has `native_capacity` writable
+        // UTF-16 units that stay live for this call. A zero return is the
+        // failure result. The pointer is a host address, not a guest address.
         let returned = unsafe { call_query_w(kind, native_capacity, buffer.as_mut_ptr()) };
         if returned == 0 {
             return Ok((None, Some(api_error())));
@@ -338,15 +367,38 @@ fn complete_query_w(kind: Q) -> Result<(Option<Vec<u16>>, Option<u32>), RuntimeE
     }
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `output` is null or addresses at least `capacity` writable UTF-16
+// units that stay live for the call. The pointer is a host address, not a guest
+// address. A null output is valid only with a zero capacity.
 unsafe fn call_query_w(kind: Q, capacity: u32, output: *mut u16) -> u32 {
-    // SAFETY: caller provides a live buffer with the stated UTF-16 capacity.
-    unsafe {
-        match kind {
-            Q::CurrentDirectory => GetCurrentDirectoryW(capacity, output),
-            Q::SystemDirectory => GetSystemDirectoryW(output, capacity),
-            Q::WindowsDirectory => GetWindowsDirectoryW(output, capacity),
-            Q::TempPath => GetTempPathW(capacity, output),
+    match kind {
+        Q::CurrentDirectory => {
+            // SAFETY: `output` is null or addresses at least `capacity` writable
+            // UTF-16 units that stay live for this call. GetCurrentDirectoryW
+            // returns 0 on failure and retains no pointer. The pointer is a host
+            // address, not a guest address.
+            unsafe { GetCurrentDirectoryW(capacity, output) }
+        }
+        Q::SystemDirectory => {
+            // SAFETY: `output` is null or addresses at least `capacity` writable
+            // UTF-16 units that stay live for this call. GetSystemDirectoryW
+            // returns 0 on failure and retains no pointer. The pointer is a host
+            // address, not a guest address.
+            unsafe { GetSystemDirectoryW(output, capacity) }
+        }
+        Q::WindowsDirectory => {
+            // SAFETY: `output` is null or addresses at least `capacity` writable
+            // UTF-16 units that stay live for this call. GetWindowsDirectoryW
+            // returns 0 on failure and retains no pointer. The pointer is a host
+            // address, not a guest address.
+            unsafe { GetWindowsDirectoryW(output, capacity) }
+        }
+        Q::TempPath => {
+            // SAFETY: `output` is null or addresses at least `capacity` writable
+            // UTF-16 units that stay live for this call. GetTempPathW returns 0
+            // on failure and retains no pointer. The pointer is a host address,
+            // not a guest address.
+            unsafe { GetTempPathW(capacity, output) }
         }
     }
 }
