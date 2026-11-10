@@ -43,6 +43,10 @@ pub(super) fn execute(
         let worker = state.borrow();
         (worker.text_codec, worker.oem_text_codec)
     };
+    // EmptyClipboard and a replacing SetClipboardData can drop a private or
+    // CF_GDIOBJ block that Windows did not free. Sweep on every exit,
+    // including the early returns below, after those calls have returned.
+    let _release_dropped_blocks = ReleaseDroppedNativeBlocks;
     let result = match operation {
         Call::Open { owner } => {
             let owner = match owner {
@@ -135,17 +139,13 @@ pub(super) fn execute(
         Call::GetPriorityFormat { formats } => {
             // Programmer's Reference: the first listed format that is present,
             // NULL when the clipboard is empty, and -1 when it holds data in
-            // none of the requested formats.
-            let value = if let Some(format) = formats
-                .into_iter()
-                .find(|format| guest_format_available(*format))
-            {
-                format as i16
-            } else if guest_format_count() == 0 {
-                0
-            } else {
-                -1
-            };
+            // none of the requested formats. An empty list, including a
+            // negative count forwarded as no entries, uses the last two.
+            let value = select_priority_clipboard_format(
+                &formats,
+                guest_format_available,
+                guest_format_count() == 0,
+            );
             Result::PriorityFormat(value)
         }
         Call::SetViewer { viewer } => {
@@ -241,6 +241,21 @@ fn set_global_data(
     unsafe {
         GlobalUnlock(memory);
     }
+    if caller_owns_native_global(format) {
+        let reserved = RETAINED_NATIVE_BLOCKS.with(|slot| {
+            // BTreeMap has no try_reserve on the pinned toolchain. HashMap does,
+            // and the format key does not depend on map order.
+            slot.borrow_mut().handles.try_reserve(1).is_ok()
+        });
+        if !reserved {
+            // SAFETY: GlobalFree releases an HGLOBAL this owner still holds.
+            // SetClipboardData has not been called.
+            unsafe {
+                GlobalFree(memory);
+            }
+            return Ok(false);
+        }
+    }
     let transferred =
         // SAFETY: SetClipboardData transfers an HGLOBAL this owner allocated.
         unsafe { SetClipboardData(native_format, memory.cast::<core::ffi::c_void>()) };
@@ -250,9 +265,15 @@ fn set_global_data(
             GlobalFree(memory);
         }
         Ok(false)
+    } else if caller_owns_native_global(format) {
+        // Private formats are not freed by EmptyClipboard. This adapter
+        // allocated the block and frees it after the format is unpublished.
+        // System-owned formats, including 0x0300..=0x03FF, are left with
+        // Windows. GlobalFlags cannot prove a freed HGLOBAL was not reused.
+        remember_retained_native_block(format, memory as usize);
+        Ok(true)
     } else {
-        // The clipboard now owns `memory`; freeing it here would invalidate
-        // the newly published clipboard data.
+        // The clipboard now owns `memory` and frees it with the format.
         Ok(true)
     }
 }
@@ -320,6 +341,95 @@ fn get_global_data(
 
 fn is_guest_legacy_text_format(format: u16) -> bool {
     format == CF_TEXT || format == CF_OEMTEXT
+}
+
+/// `CF_PRIVATEFIRST`..=`CF_PRIVATELAST`. The system does not free these
+/// HGLOBALs, so this adapter keeps the block it allocated. `0x0300`..=`0x03FF`
+/// is system-owned on Win32 and must not be reclaimed here.
+fn caller_owns_native_global(format: u16) -> bool {
+    (0x0200..=0x02ff).contains(&format)
+}
+
+fn select_priority_clipboard_format(
+    formats: &[u16],
+    mut available: impl FnMut(u16) -> bool,
+    clipboard_is_empty: bool,
+) -> i16 {
+    if let Some(format) = formats.iter().copied().find(|format| available(*format)) {
+        format as i16
+    } else if clipboard_is_empty {
+        0
+    } else {
+        -1
+    }
+}
+
+struct RetainedNativeClipboardBlocks {
+    handles: std::collections::HashMap<u16, usize>,
+}
+
+impl Drop for RetainedNativeClipboardBlocks {
+    fn drop(&mut self) {
+        for (&format, &handle) in &self.handles {
+            if !native_format_available(format) {
+                release_native_block(handle);
+            }
+        }
+    }
+}
+
+thread_local! {
+    static RETAINED_NATIVE_BLOCKS: RefCell<RetainedNativeClipboardBlocks> =
+        RefCell::new(RetainedNativeClipboardBlocks {
+            handles: std::collections::HashMap::new(),
+        });
+}
+
+struct ReleaseDroppedNativeBlocks;
+
+impl Drop for ReleaseDroppedNativeBlocks {
+    fn drop(&mut self) {
+        release_dropped_native_blocks();
+    }
+}
+
+fn remember_retained_native_block(format: u16, handle: usize) {
+    let previous = RETAINED_NATIVE_BLOCKS.with(|slot| {
+        slot.borrow_mut().handles.insert(format, handle)
+    });
+    if let Some(previous) = previous.filter(|previous| *previous != handle) {
+        release_native_block(previous);
+    }
+}
+
+fn release_dropped_native_blocks() {
+    let stale = RETAINED_NATIVE_BLOCKS.with(|slot| {
+        slot.borrow()
+            .handles
+            .iter()
+            .filter(|(format, _)| !native_format_available(**format))
+            .map(|(format, handle)| (*format, *handle))
+            .collect::<Vec<_>>()
+    });
+    for (format, handle) in stale {
+        release_native_block(handle);
+        RETAINED_NATIVE_BLOCKS.with(|slot| {
+            slot.borrow_mut().handles.remove(&format);
+        });
+    }
+}
+
+fn release_native_block(handle: usize) {
+    let memory = handle as *mut core::ffi::c_void;
+    if memory.is_null() {
+        return;
+    }
+    // SAFETY: `memory` is an HGLOBAL this adapter allocated for a private
+    // clipboard format. Windows does not free that range, the format is no
+    // longer published, and the pointer is not a guest address.
+    unsafe {
+        GlobalFree(memory);
+    }
 }
 
 /// The Win16 text format this worker last placed, with the clipboard sequence
@@ -407,6 +517,28 @@ mod placement_tests {
         assert_eq!(refreshed_text_placement(replacement, placed, 7, 14), replacement);
         assert_eq!(refreshed_text_placement(placed, None, 7, 12), placed);
         assert_eq!(refreshed_text_placement(placed, placed, 7, 0), placed);
+    }
+
+    #[test]
+    fn clipboard_close_priority_for_an_empty_list_follows_clipboard_contents() {
+        let text_present = |format: u16| format == CF_TEXT;
+        assert_eq!(select_priority_clipboard_format(&[], text_present, true), 0);
+        assert_eq!(select_priority_clipboard_format(&[], text_present, false), -1);
+        assert_eq!(select_priority_clipboard_format(&[CF_OEMTEXT], text_present, false), -1);
+        assert_eq!(
+            select_priority_clipboard_format(&[CF_OEMTEXT, CF_TEXT], text_present, false),
+            CF_TEXT as i16,
+        );
+    }
+
+    #[test]
+    fn clipboard_close_private_native_blocks_are_released_only_while_live() {
+        assert!(caller_owns_native_global(0x0200));
+        assert!(caller_owns_native_global(0x02ff));
+        assert!(!caller_owns_native_global(0x0300));
+        assert!(!caller_owns_native_global(0x03ff));
+        assert!(!caller_owns_native_global(CF_TEXT));
+        assert!(!caller_owns_native_global(0x01ff));
     }
 }
 

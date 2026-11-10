@@ -31,6 +31,9 @@ const MAX_CLIPBOARD_BYTES: usize = 16 * 1024 * 1024;
 pub(super) enum GuestClipboardOwnership {
     TransferredToClipboard,
     BorrowedFromClipboard,
+    /// `CF_PRIVATEFIRST`..=`CF_PRIVATELAST`. The owner frees this HGLOBAL,
+    /// normally from `WM_DESTROYCLIPBOARD`. EmptyClipboard must not.
+    CallerRetained,
 }
 
 impl GuestClipboardOwnership {
@@ -40,7 +43,13 @@ impl GuestClipboardOwnership {
                 "retiring guest HGLOBAL transferred to the native clipboard",
             Self::BorrowedFromClipboard =>
                 "retiring guest copy of native clipboard data",
+            Self::CallerRetained =>
+                "forgetting caller-owned private clipboard HGLOBAL",
         }
+    }
+
+    pub(super) fn system_frees(self) -> bool {
+        !matches!(self, Self::CallerRetained)
     }
 }
 
@@ -76,8 +85,13 @@ impl GuestClipboardState {
         identity: Option<GlobalHandle>,
     ) -> bool {
         let Some(identity) = identity else { return false; };
+        // Caller-retained private formats stay owned by the guest. GlobalFree
+        // from WM_DESTROYCLIPBOARD must succeed; retirement then only forgets
+        // the record. System-owned entries still block that free.
         self.entries.values().chain(self.retired.iter().map(|owner| &owner.entry)).any(|entry|
-            entry.handle == Some(handle) && entry.identity == Some(identity))
+            entry.ownership.system_frees()
+                && entry.handle == Some(handle)
+                && entry.identity == Some(identity))
     }
 
     fn get(&self, format: u16) -> Option<&GuestClipboardEntry> {
@@ -219,9 +233,9 @@ impl Win16State {
             Request::Owner => (ClipboardOperation::Owner, ClipboardCompletion::Plain),
             Request::SetData { format, handle } => {
                 if handle != 0 && !is_global_clipboard_format(format) {
-                    // Private and CF_GDIOBJ-range formats have special native
-                    // ownership rules that this global-copy bridge does not
-                    // manage. Do not claim an unsafe transfer.
+                    // Bitmap, palette, metafile, and owner-display handles are
+                    // not HGLOBALs. Returning a copied global would claim a
+                    // transfer this bridge does not perform.
                     return Ok(Prepared::immediate(0, return_kind));
                 }
                 let identity = self.global_handles.get(&handle).copied();
@@ -293,9 +307,9 @@ impl Win16State {
                     reserved_retirements: ClipboardRetirementReservation::default() },
             ),
             Request::GetPriorityFormat { formats, count } => {
-                if count < 0 || usize::try_from(count).unwrap_or(usize::MAX) != formats.len() {
+                let Some(formats) = priority_query_formats(formats, count) else {
                     return Ok(Prepared::immediate(0xffff, return_kind));
-                }
+                };
                 (ClipboardOperation::GetPriorityFormat { formats }, ClipboardCompletion::Plain)
             }
             Request::SetViewer { viewer } => {
@@ -420,7 +434,11 @@ impl Win16State {
                 if !succeeded { return Ok(0); }
                 let replacement = GuestClipboardEntry {
                     handle, identity,
-                    ownership: GuestClipboardOwnership::TransferredToClipboard,
+                    ownership: if caller_retains_clipboard_memory(format) {
+                        GuestClipboardOwnership::CallerRetained
+                    } else {
+                        GuestClipboardOwnership::TransferredToClipboard
+                    },
                     bytes,
                     native_sequence: sequence,
                 };
@@ -575,11 +593,33 @@ impl Win16State {
     }
 }
 
-/// The private and CF_GDIOBJ ranges have special ownership rules that need a
-/// separate lifetime bridge. Keep the supported path to standard and
-/// registered formats whose data can be copied as global-memory bytes.
+/// Bitmap, palette, metafile, and owner-display handles are not HGLOBALs this
+/// bridge can copy. `CF_PRIVATEFIRST`..=`CF_PRIVATELAST` (0x0200..=0x02FF) and
+/// the Win32 `CF_GDIOBJ` range (0x0300..=0x03FF) are `GlobalAlloc` memory.
 fn is_global_clipboard_format(format: u16) -> bool {
-    !matches!(format, 2 | 3 | 9 | 14 | 0x80 | 0x82 | 0x83 | 0x8e | 0x0200..=0x03ff)
+    !matches!(format, 2 | 3 | 9 | 14 | 0x80 | 0x82 | 0x83 | 0x8e)
+}
+
+/// Private clipboard formats stay allocated until the owner frees them.
+/// `CF_GDIOBJFIRST`..=`CF_GDIOBJLAST` did not exist in Windows 3.1; those
+/// format numbers are ordinary global-memory formats and the system frees them.
+fn caller_retains_clipboard_memory(format: u16) -> bool {
+    (0x0200..=0x02ff).contains(&format)
+}
+
+/// `GetPriorityClipboardFormat` returns NULL when the clipboard is empty and
+/// -1 when it holds data in none of the listed formats. A negative count names
+/// no entries, so it uses that same pair of results. The caller's array is
+/// left unread. A non-negative count that does not match the copied words is
+/// not a documented success and stays -1.
+fn priority_query_formats(formats: Vec<u16>, count: i16) -> Option<Vec<u16>> {
+    if count < 0 {
+        return Some(Vec::new());
+    }
+    if usize::try_from(count).unwrap_or(usize::MAX) != formats.len() {
+        return None;
+    }
+    Some(formats)
 }
 
 /// Windows 3.1 `CF_TEXT` (1) and `CF_OEMTEXT` (7). The HGLOBAL may be larger
@@ -596,7 +636,95 @@ fn clipboard_payload_matches(format: u16, stored: &[u8], retrieved: &[u8]) -> bo
             _ => false,
         }
     } else {
-        stored == retrieved
+        // GlobalSize can exceed the placed length. The extra bytes are the
+        // zero fill from GMEM_ZEROINIT, not a new clipboard object. The caller
+        // only uses this comparison when the clipboard sequence is unchanged.
+        retrieved.len() >= stored.len()
+            && &retrieved[..stored.len()] == stored
+            && retrieved[stored.len()..].iter().all(|byte| *byte == 0)
+    }
+}
+
+#[cfg(test)]
+mod clipboard_contract_tests {
+    use super::{
+        caller_retains_clipboard_memory, clipboard_payload_matches, is_global_clipboard_format,
+        priority_query_formats,
+    };
+
+    #[test]
+    fn clipboard_close_private_formats_round_trip_as_caller_owned_memory() {
+        assert!(is_global_clipboard_format(0x0200));
+        assert!(is_global_clipboard_format(0x02ff));
+        assert!(caller_retains_clipboard_memory(0x0200));
+        assert!(caller_retains_clipboard_memory(0x02ff));
+        assert!(!caller_retains_clipboard_memory(0x01ff));
+        assert!(!caller_retains_clipboard_memory(0x0300));
+    }
+
+    #[test]
+    fn clipboard_close_gdi_object_range_is_system_freed_global_memory() {
+        assert!(is_global_clipboard_format(0x0300));
+        assert!(is_global_clipboard_format(0x03ff));
+        assert!(!caller_retains_clipboard_memory(0x0300));
+        assert!(!caller_retains_clipboard_memory(1));
+        assert!(!is_global_clipboard_format(2));
+        assert!(!is_global_clipboard_format(3));
+        assert!(!is_global_clipboard_format(9));
+        assert!(!is_global_clipboard_format(14));
+        assert!(!is_global_clipboard_format(0x80));
+        assert!(!is_global_clipboard_format(0x82));
+        assert!(!is_global_clipboard_format(0x83));
+        assert!(!is_global_clipboard_format(0x8e));
+    }
+
+    #[test]
+    fn clipboard_close_negative_priority_count_is_an_empty_list() {
+        assert_eq!(priority_query_formats(vec![1, 7], -1), Some(Vec::new()));
+        assert_eq!(priority_query_formats(vec![1], i16::MIN), Some(Vec::new()));
+        assert_eq!(priority_query_formats(Vec::new(), 0), Some(Vec::new()));
+        assert_eq!(priority_query_formats(vec![1, 8], 2), Some(vec![1, 8]));
+        assert_eq!(priority_query_formats(vec![1], 2), None);
+    }
+
+    #[test]
+    fn clipboard_close_unchanged_block_keeps_zero_allocator_padding() {
+        assert!(clipboard_payload_matches(8, b"abcd", b"abcd\0\0"));
+        assert!(!clipboard_payload_matches(8, b"abcd", b"abcd\x01"));
+        assert!(!clipboard_payload_matches(8, b"abcd", b"abc"));
+        assert!(clipboard_payload_matches(1, b"ab\0xx", b"ab\0"));
+        assert!(!clipboard_payload_matches(1, b"ab", b"ab\0"));
+    }
+
+    #[test]
+    fn clipboard_close_caller_retained_identity_does_not_block_owner_free() {
+        use guest_core::memory::Memory;
+        use guest_core::{OwnerId, PhysAddr};
+        use win16_abi::{AllocationFlags, GlobalHeap};
+
+        let mut memory = Memory::with_size(0x0010_0000).expect("guest memory");
+        let mut heap = GlobalHeap::new(PhysAddr(0x1000), 0x8000).unwrap();
+        let identity = heap.alloc(
+            &mut memory, OwnerId(1), 16, AllocationFlags::movable(),
+        ).unwrap();
+        let mut state = super::GuestClipboardState::default();
+        state.insert(0x0200, super::GuestClipboardEntry {
+            handle: Some(0x1111),
+            identity: Some(identity),
+            ownership: super::GuestClipboardOwnership::CallerRetained,
+            bytes: Some(vec![1, 2, 3, 4]),
+            native_sequence: None,
+        });
+        assert!(!state.owns_identity(0x1111, Some(identity)));
+        state.insert(1, super::GuestClipboardEntry {
+            handle: Some(0x2222),
+            identity: Some(identity),
+            ownership: super::GuestClipboardOwnership::TransferredToClipboard,
+            bytes: None,
+            native_sequence: None,
+        });
+        assert!(state.owns_identity(0x2222, Some(identity)));
+        assert!(!state.owns_identity(0x1111, Some(identity)));
     }
 }
 

@@ -150,6 +150,9 @@ impl Win16State {
             self.clipboard_state.ensure_retired_capacity(displaced)?;
         }
         for (_, entry) in std::mem::take(&mut self.clipboard_state.entries) {
+            if !entry.ownership.system_frees() {
+                continue;
+            }
             self.clipboard_state.retired.push(RetiredClipboardOwner {
                 entry, cause: ClipboardRetirementCause::Pending,
             });
@@ -213,6 +216,10 @@ impl Win16State {
         if except.is_some_and(|(handle, identity)|
             entry.handle == Some(handle) && entry.identity == Some(identity))
         {
+            self.clipboard_state.remove(format);
+            return Ok(GlobalTeardownResult::Freed);
+        }
+        if !entry.ownership.system_frees() {
             self.clipboard_state.remove(format);
             return Ok(GlobalTeardownResult::Freed);
         }
@@ -281,6 +288,9 @@ impl Win16State {
         entry: GuestClipboardEntry,
         reservation: &mut usize,
     ) -> Result<GlobalTeardownResult, RuntimeError> {
+        if !entry.ownership.system_frees() {
+            return Ok(GlobalTeardownResult::Freed);
+        }
         let cleanup_context = entry.ownership.cleanup_context();
         let (handle, identity) = match (entry.handle, entry.identity) {
             (None, None) => return Ok(GlobalTeardownResult::Freed),
