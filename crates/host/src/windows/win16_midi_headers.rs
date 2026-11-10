@@ -87,15 +87,23 @@ impl Win16MidiHost {
         });
         let mut storage = storage_vec.into_boxed_slice();
         let pointer = &mut storage[0].header as *mut MIDIHDR;
-        // SAFETY: `Input`, `Output` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-        let result = unsafe {
-            match native_device {
-                NativeMidiHandle::Input(handle) => {
-                    midiInPrepareHeader(handle, pointer, size_of::<MIDIHDR>() as u32)
-                }
-                NativeMidiHandle::Output(handle) => {
-                    midiOutPrepareHeader(handle, pointer, size_of::<MIDIHDR>() as u32)
-                }
+        let header_size = size_of::<MIDIHDR>() as u32;
+        let result = match native_device {
+            NativeMidiHandle::Input(handle) => {
+                // SAFETY: `handle` is this device's live `HMIDIIN`. `pointer`
+                // addresses the `MIDIHDR` in the owned `storage` buffer, which
+                // stays live for this call. `header_size` is the size of that
+                // record. midiInPrepareHeader prepares the header. Neither
+                // value is a guest address.
+                unsafe { midiInPrepareHeader(handle, pointer, header_size) }
+            }
+            NativeMidiHandle::Output(handle) => {
+                // SAFETY: `handle` is this device's live `HMIDIOUT`. `pointer`
+                // addresses the `MIDIHDR` in the owned `storage` buffer, which
+                // stays live for this call. `header_size` is the size of that
+                // record. midiOutPrepareHeader prepares the header. Neither
+                // value is a guest address.
+                unsafe { midiOutPrepareHeader(handle, pointer, header_size) }
             }
         };
         if result != MMSYSERR_NOERROR {
@@ -152,15 +160,25 @@ impl Win16MidiHost {
         let native_device = self.devices[device_index].native;
         let record = &mut self.headers[index];
         let pointer = &mut record.storage[0].header as *mut MIDIHDR;
-        // SAFETY: `Input`, `Output` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-        let result = unsafe {
-            match native_device {
-                NativeMidiHandle::Input(handle) => {
-                    midiInUnprepareHeader(handle, pointer, size_of::<MIDIHDR>() as u32)
-                }
-                NativeMidiHandle::Output(handle) => {
-                    midiOutUnprepareHeader(handle, pointer, size_of::<MIDIHDR>() as u32)
-                }
+        let header_size = size_of::<MIDIHDR>() as u32;
+        let result = match native_device {
+            NativeMidiHandle::Input(handle) => {
+                // SAFETY: `handle` is this device's live `HMIDIIN`, and
+                // `pointer` addresses the owned `MIDIHDR` in this header's
+                // storage, which stays live. `header_size` is the size of
+                // that record. midiInUnprepareHeader uses that header and
+                // retains no pointer. Both values are host addresses, not
+                // guest addresses.
+                unsafe { midiInUnprepareHeader(handle, pointer, header_size) }
+            }
+            NativeMidiHandle::Output(handle) => {
+                // SAFETY: `handle` is this device's live `HMIDIOUT`, and
+                // `pointer` addresses the owned `MIDIHDR` in this header's
+                // storage, which stays live. `header_size` is the size of
+                // that record. midiOutUnprepareHeader uses that header and
+                // retains no pointer. Both values are host addresses, not
+                // guest addresses.
+                unsafe { midiOutUnprepareHeader(handle, pointer, header_size) }
             }
         };
         if result != MMSYSERR_NOERROR {
@@ -284,11 +302,16 @@ impl Win16MidiHost {
         record.storage[0].samples.copy_from_slice(&data);
         record.storage[0].header.dwBytesRecorded = 0;
         let pointer = &record.storage[0].header as *const MIDIHDR;
+        let header_size = size_of::<MIDIHDR>() as u32;
         let NativeMidiHandle::Output(handle_native) = native_device else {
             return Ok(invalid_device());
         };
-        // SAFETY: midiOutLongMsg reads a caller-owned buffer that stays live for the call.
-        let result = unsafe { midiOutLongMsg(handle_native, pointer, size_of::<MIDIHDR>() as u32) };
+        // SAFETY: `handle_native` is this device's live `HMIDIOUT`. `pointer`
+        // addresses the owned `MIDIHDR` in this header's storage, which stays
+        // in the header ledger until the long message completes. `header_size`
+        // is the size of that record. midiOutLongMsg reads that header.
+        // Neither value is a guest address.
+        let result = unsafe { midiOutLongMsg(handle_native, pointer, header_size) };
         if result != MMSYSERR_NOERROR {
             return Ok(ResultValue::Header {
                 result,
@@ -337,12 +360,16 @@ impl Win16MidiHost {
         let record = &mut self.headers[header_index];
         record.storage[0].header.dwBytesRecorded = 0;
         let pointer = &mut record.storage[0].header as *mut MIDIHDR;
+        let header_size = size_of::<MIDIHDR>() as u32;
         let NativeMidiHandle::Input(handle_native) = native_device else {
             return Ok(invalid_device());
         };
-        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-        let result =
-            unsafe { midiInAddBuffer(handle_native, pointer, size_of::<MIDIHDR>() as u32) };
+        // SAFETY: `handle_native` is this device's live `HMIDIIN`. `pointer`
+        // addresses the owned `MIDIHDR` in this header's storage, which stays
+        // in the header ledger until the input buffer is returned.
+        // `header_size` is the size of that record. midiInAddBuffer queues
+        // that header. Neither value is a guest address.
+        let result = unsafe { midiInAddBuffer(handle_native, pointer, header_size) };
         if result != MMSYSERR_NOERROR {
             return Ok(ResultValue::Header {
                 result,
