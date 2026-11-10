@@ -165,8 +165,9 @@ pub(super) fn execute(
         StrokePath { dc } => path_bool(dcs, dc, GdiStrokePath),
         WidenPath { dc } => path_bool(dcs, dc, GdiWidenPath),
         SelectClipPath { dc, mode } => Ok(ResultValue::Bool(with_dc(dcs, dc, false, |native| {
-            // SAFETY: The HDC lease and copied region-combine mode remain valid through the call.
-            unsafe { GdiSelectClipPath(native, mode) != 0 }
+            // SAFETY: `native` is a live HDC lease, not a guest address. `mode`
+            // is a copied region-combine value. A zero BOOL is the only failure result.
+            (unsafe { GdiSelectClipPath(native, mode) }) != 0
         })?)),
         ExtSelectClipRgn { dc, region, mode } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else {
@@ -210,22 +211,25 @@ pub(super) fn execute(
             end_y,
         } => {
             Ok(ResultValue::Bool(with_dc(dcs, dc, false, |native| {
-                // SAFETY: The HDC lease and copied coordinates remain valid through the call.
-                unsafe {
+                // SAFETY: `native` is a live HDC lease, not a guest address. The
+                // coordinates are copied scalars. A zero BOOL is the only failure result.
+                (unsafe {
                     GdiArc(
                         native, left, top, right, bottom, start_x, start_y, end_x, end_y,
-                    ) != 0
-                }
+                    )
+                }) != 0
             })?))
         }
         Ellipse { dc, rect } => Ok(ResultValue::Bool(with_dc(dcs, dc, false, |native| {
-            // SAFETY: The HDC lease and owned rectangle remain valid through the call.
-            unsafe { GdiEllipse(native, rect.left, rect.top, rect.right, rect.bottom) != 0 }
+            // SAFETY: `native` is a live HDC lease, not a guest address. The
+            // rectangle edges are copied scalars. A zero BOOL is the only failure result.
+            (unsafe { GdiEllipse(native, rect.left, rect.top, rect.right, rect.bottom) }) != 0
         })?)),
         FloodFill { dc, x, y, color } => {
             Ok(ResultValue::Bool(with_dc(dcs, dc, false, |native| {
-                // SAFETY: The HDC lease and scalar arguments remain valid through the call.
-                unsafe { GdiFloodFill(native, x, y, color) != 0 }
+                // SAFETY: `native` is a live HDC lease, not a guest address. The
+                // point and color are copied scalars. A zero BOOL is the only failure result.
+                (unsafe { GdiFloodFill(native, x, y, color) }) != 0
             })?))
         }
         Pie {
@@ -240,12 +244,13 @@ pub(super) fn execute(
             end_y,
         } => {
             Ok(ResultValue::Bool(with_dc(dcs, dc, false, |native| {
-                // SAFETY: The HDC lease and copied coordinates remain valid through the call.
-                unsafe {
+                // SAFETY: `native` is a live HDC lease, not a guest address. The
+                // coordinates are copied scalars. A zero BOOL is the only failure result.
+                (unsafe {
                     GdiPie(
                         native, left, top, right, bottom, start_x, start_y, end_x, end_y,
-                    ) != 0
-                }
+                    )
+                }) != 0
             })?))
         }
         RoundRect {
@@ -255,8 +260,10 @@ pub(super) fn execute(
             ellipse_height,
         } => {
             Ok(ResultValue::Bool(with_dc(dcs, dc, false, |native| {
-                // SAFETY: The HDC lease and scalar geometry remain valid for this call.
-                unsafe {
+                // SAFETY: `native` is a live HDC lease, not a guest address. The
+                // rectangle and ellipse sizes are copied scalars. A zero BOOL is
+                // the only failure result.
+                (unsafe {
                     GdiRoundRect(
                         native,
                         rect.left,
@@ -265,8 +272,8 @@ pub(super) fn execute(
                         rect.bottom,
                         ellipse_width,
                         ellipse_height,
-                    ) != 0
-                }
+                    )
+                }) != 0
             })?))
         }
         OffsetClipRgn { dc, x, y } => Ok(ResultValue::RegionComplexity(with_dc(
@@ -286,10 +293,12 @@ pub(super) fn execute(
                 return Ok(ResultValue::Bool(false));
             };
             let native_points = points.iter().map(native_point).collect::<Vec<_>>();
-            // SAFETY: `native_points` is a contiguous owned POINT array live through the call.
-            Ok(ResultValue::Bool(unsafe {
-                GdiPolygon(dc_use.native(), native_points.as_ptr(), count) != 0
-            }))
+            // SAFETY: `native_points` is an owned contiguous POINT array that stays
+            // live for this call. The HDC is a host lease, not a guest address.
+            // A zero BOOL is the only failure result.
+            Ok(ResultValue::Bool(
+                unsafe { GdiPolygon(dc_use.native(), native_points.as_ptr(), count) } != 0,
+            ))
         }
         FillRgn { dc, region, brush } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else {
@@ -300,10 +309,12 @@ pub(super) fn execute(
             else {
                 return Ok(ResultValue::Bool(false));
             };
-            // SAFETY: The HDC lease and both validated object handles remain live through the call.
-            Ok(ResultValue::Bool(unsafe {
-                GdiFillRgn(dc_use.native(), native_region, native_brush.cast()) != 0
-            }))
+            // SAFETY: The HDC lease and both validated object handles stay live
+            // for this call. None of them is a guest address. A zero BOOL is the
+            // only failure result.
+            Ok(ResultValue::Bool(
+                unsafe { GdiFillRgn(dc_use.native(), native_region, native_brush.cast()) } != 0,
+            ))
         }
         FrameRgn {
             dc,
@@ -320,16 +331,20 @@ pub(super) fn execute(
             else {
                 return Ok(ResultValue::Bool(false));
             };
-            // SAFETY: The HDC lease and both validated objects remain live; dimensions are scalars.
-            Ok(ResultValue::Bool(unsafe {
-                GdiFrameRgn(
-                    dc_use.native(),
-                    native_region,
-                    native_brush.cast(),
-                    width,
-                    height,
-                ) != 0
-            }))
+            // SAFETY: The HDC lease and both validated objects stay live for this
+            // call. None of them is a guest address. The dimensions are scalars.
+            // A zero BOOL is the only failure result.
+            Ok(ResultValue::Bool(
+                unsafe {
+                    GdiFrameRgn(
+                        dc_use.native(),
+                        native_region,
+                        native_brush.cast(),
+                        width,
+                        height,
+                    )
+                } != 0,
+            ))
         }
         InvertRgn { dc, region } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else {
@@ -338,10 +353,11 @@ pub(super) fn execute(
             let Some(native_region) = objects.native_region(region) else {
                 return Ok(ResultValue::Bool(false));
             };
-            // SAFETY: The HDC lease and validated HRGN remain live through the call.
-            Ok(ResultValue::Bool(unsafe {
-                GdiInvertRgn(dc_use.native(), native_region) != 0
-            }))
+            // SAFETY: The HDC lease and validated HRGN stay live for this call.
+            // Neither is a guest address. A zero BOOL is the only failure result.
+            Ok(ResultValue::Bool(
+                unsafe { GdiInvertRgn(dc_use.native(), native_region) } != 0,
+            ))
         }
         PaintRgn { dc, region } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else {
@@ -350,10 +366,11 @@ pub(super) fn execute(
             let Some(native_region) = objects.native_region(region) else {
                 return Ok(ResultValue::Bool(false));
             };
-            // SAFETY: The HDC lease and validated HRGN remain live through the call.
-            Ok(ResultValue::Bool(unsafe {
-                GdiPaintRgn(dc_use.native(), native_region) != 0
-            }))
+            // SAFETY: The HDC lease and validated HRGN stay live for this call.
+            // Neither is a guest address. A zero BOOL is the only failure result.
+            Ok(ResultValue::Bool(
+                unsafe { GdiPaintRgn(dc_use.native(), native_region) } != 0,
+            ))
         }
         SelectClipRgn { dc, region } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else {
@@ -407,10 +424,11 @@ pub(super) fn execute(
             ) else {
                 return Ok(ResultValue::Bool(false));
             };
-            // SAFETY: Both region handles are validated and retained.
-            Ok(ResultValue::Bool(unsafe {
-                windows_sys::Win32::Graphics::Gdi::EqualRgn(region1, region2) != 0
-            }))
+            // SAFETY: Both region handles are validated, retained host handles,
+            // not guest addresses. A zero BOOL is the only failure result.
+            Ok(ResultValue::Bool(
+                unsafe { windows_sys::Win32::Graphics::Gdi::EqualRgn(region1, region2) } != 0,
+            ))
         }
         OffsetRgn { region, x, y } => {
             let Some(region) = objects.native_region(region) else {
@@ -422,8 +440,9 @@ pub(super) fn execute(
             }))
         }
         PtVisible { dc, x, y } => Ok(ResultValue::Bool(with_dc(dcs, dc, false, |native| {
-            // SAFETY: The HDC lease and scalar coordinates remain valid through the call.
-            unsafe { GdiPtVisible(native, x, y) != 0 }
+            // SAFETY: `native` is a live HDC lease, not a guest address. The
+            // coordinates are copied scalars. A zero BOOL is the only failure result.
+            (unsafe { GdiPtVisible(native, x, y) }) != 0
         })?)),
         GetRgnBox { region } => {
             let Some(region) = objects.native_region(region) else {
@@ -445,16 +464,19 @@ pub(super) fn execute(
         }
         PtInRegion { region, x, y } => Ok(ResultValue::Bool(
             objects.native_region(region).is_some_and(|native| {
-                // SAFETY: The region is validated and retained; coordinates are scalar values.
-                unsafe { GdiPtInRegion(native, x, y) != 0 }
+                // SAFETY: `native` is a validated retained HRGN, not a guest
+                // address. The coordinates are copied scalars. A zero BOOL is the
+                // only failure result.
+                (unsafe { GdiPtInRegion(native, x, y) }) != 0
             }),
         )),
         SetRectRgn { region, rect } => Ok(ResultValue::Bool(
             objects.native_region(region).is_some_and(|native| {
                 let (left, top, right, bottom) = win16_rect_edges(rect);
-                // SAFETY: The region is validated and retained. Edges are
-                // scalars; an unordered horizontal span is the empty box.
-                unsafe { GdiSetRectRgn(native, left, top, right, bottom) != 0 }
+                // SAFETY: `native` is a validated retained HRGN, not a guest
+                // address. Edges are scalars; an unordered horizontal span is the
+                // empty box. A zero BOOL is the only failure result.
+                (unsafe { GdiSetRectRgn(native, left, top, right, bottom) }) != 0
             }),
         )),
         GetClipRgn { dc } => {
@@ -480,8 +502,10 @@ pub(super) fn execute(
         RectInRegion { region, rect } => Ok(ResultValue::Bool(
             objects.native_region(region).is_some_and(|native| {
                 let native_rect = native_rect(rect);
-                // SAFETY: The region is retained and `native_rect` is valid through the call.
-                unsafe { GdiRectInRegion(native, &native_rect) != 0 }
+                // SAFETY: `native` is a retained HRGN, not a guest address.
+                // `native_rect` is a local RECT that stays live for this call.
+                // A zero BOOL is the only failure result.
+                (unsafe { GdiRectInRegion(native, &native_rect) }) != 0
             }),
         )),
         Chord {
@@ -496,12 +520,13 @@ pub(super) fn execute(
             end_y,
         } => {
             Ok(ResultValue::Bool(with_dc(dcs, dc, false, |native| {
-                // SAFETY: The HDC lease and copied coordinates remain valid through the call.
-                unsafe {
+                // SAFETY: `native` is a live HDC lease, not a guest address. The
+                // coordinates are copied scalars. A zero BOOL is the only failure result.
+                (unsafe {
                     GdiChord(
                         native, left, top, right, bottom, start_x, start_y, end_x, end_y,
-                    ) != 0
-                }
+                    )
+                }) != 0
             })?))
         }
         ExtFloodFill {
@@ -512,8 +537,10 @@ pub(super) fn execute(
             fill_type,
         } => {
             Ok(ResultValue::Bool(with_dc(dcs, dc, false, |native| {
-                // SAFETY: The HDC lease and scalar parameters remain valid through the call.
-                unsafe { GdiExtFloodFill(native, x, y, color, fill_type as u32) != 0 }
+                // SAFETY: `native` is a live HDC lease, not a guest address. The
+                // point, color, and fill type are copied scalars. A zero BOOL is
+                // the only failure result.
+                (unsafe { GdiExtFloodFill(native, x, y, color, fill_type as u32) }) != 0
             })?))
         }
         PolyPolygon {
@@ -544,15 +571,20 @@ pub(super) fn execute(
                 return Ok(ResultValue::Bool(false));
             }
             let native_points = points.iter().map(native_point).collect::<Vec<_>>();
-            // SAFETY: Both slices are owned contiguous arrays and their aggregate lengths were validated.
-            Ok(ResultValue::Bool(unsafe {
-                GdiPolyPolygon(
-                    dc_use.native(),
-                    native_points.as_ptr(),
-                    polygon_counts.as_ptr(),
-                    polygon_count,
-                ) != 0
-            }))
+            // SAFETY: Both slices are owned contiguous host arrays that stay live
+            // for this call, and their aggregate lengths were validated. The HDC
+            // is a host lease, not a guest address. A zero BOOL is the only
+            // failure result.
+            Ok(ResultValue::Bool(
+                unsafe {
+                    GdiPolyPolygon(
+                        dc_use.native(),
+                        native_points.as_ptr(),
+                        polygon_counts.as_ptr(),
+                        polygon_count,
+                    )
+                } != 0,
+            ))
         }
         UserFillRect { dc, rect, brush } => {
             let Some(dc_use) = dcs.lease_dc(dc)? else {
@@ -562,10 +594,12 @@ pub(super) fn execute(
                 return Ok(ResultValue::Bool(false));
             };
             let rect = native_rect(rect);
-            // SAFETY: HDC and HBRUSH are native retained/system handles; RECT is local and valid.
-            Ok(ResultValue::Bool(unsafe {
-                FillRect(dc_use.native(), &rect, native_brush) != 0
-            }))
+            // SAFETY: The HDC and HBRUSH are retained or system host handles,
+            // not guest addresses. `rect` is a local RECT that stays live for
+            // this call. A zero BOOL is the only failure result.
+            Ok(ResultValue::Bool(
+                unsafe { FillRect(dc_use.native(), &rect, native_brush) } != 0,
+            ))
         }
         UserDrawText {
             dc,
@@ -634,8 +668,10 @@ fn path_bool(
     operation: unsafe extern "system" fn(windows_sys::Win32::Graphics::Gdi::HDC) -> BOOL,
 ) -> Result<ResultValue, RuntimeError> {
     Ok(ResultValue::Bool(with_dc(dcs, dc, false, |native| {
-        // SAFETY: The HDC lease remains live through the GDI path routine.
-        unsafe { operation(native) != 0 }
+        // SAFETY: `native` is a live HDC lease, not a guest address. `operation`
+        // is one of the path routines selected above. A zero BOOL is the only
+        // failure result.
+        (unsafe { operation(native) }) != 0
     })?))
 }
 
@@ -656,13 +692,16 @@ fn poly_bezier(
         return Ok(ResultValue::Bool(false));
     };
     let native_points = points.iter().map(native_point).collect::<Vec<_>>();
-    // SAFETY: The point buffer is owned and contiguous for this synchronous GDI call.
-    let success = unsafe {
-        if to {
-            GdiPolyBezierTo(dc_use.native(), native_points.as_ptr(), count)
-        } else {
-            GdiPolyBezier(dc_use.native(), native_points.as_ptr(), count)
-        }
+    let success = if to {
+        // SAFETY: `native_points` is an owned contiguous POINT array that stays
+        // live for this call. The HDC is a host lease, not a guest address. A
+        // zero BOOL is the only failure result.
+        unsafe { GdiPolyBezierTo(dc_use.native(), native_points.as_ptr(), count) }
+    } else {
+        // SAFETY: `native_points` is an owned contiguous POINT array that stays
+        // live for this call. The HDC is a host lease, not a guest address. A
+        // zero BOOL is the only failure result.
+        unsafe { GdiPolyBezier(dc_use.native(), native_points.as_ptr(), count) }
     } != 0;
     Ok(ResultValue::Bool(success))
 }
@@ -839,9 +878,11 @@ unsafe extern "system" fn capture_line_dda_point(x: i32, y: i32, data: isize) {
     if data == 0 {
         return;
     }
-    // SAFETY: `line_dda` passes a live pointer to `LineDdaCapture` for the
-    // duration of the synchronous GDI call and reserves its full bound first.
-    let capture = unsafe { &mut *(data as *mut LineDdaCapture) };
+    let capture_ptr = data as *mut LineDdaCapture;
+    // SAFETY: `line_dda` passes this host pointer to a live `LineDdaCapture`
+    // for the synchronous GDI call and reserves its full bound first. The
+    // pointer is not a guest address.
+    let capture = unsafe { &mut *capture_ptr };
     if capture.points.len() < capture.point_limit {
         capture.points.push(Win16DrawingPoint { x, y });
     } else {
