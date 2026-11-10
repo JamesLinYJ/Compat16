@@ -137,13 +137,27 @@ impl Win16Images {
     }
 
     fn system(&self, id: u16, kind: ImageKind) -> Result<Option<u64>, RuntimeError> {
-        // SAFETY: MAKEINTRESOURCEW is a documented low-word resource ID.
+        // MAKEINTRESOURCEW is a documented low-word resource ID.
         // NULL hInstance selects predefined system icons or cursors.
         let name = usize::from(id) as *const u16;
-        let handle = unsafe {
-            match kind {
-                ImageKind::Icon => LoadIconW(std::ptr::null_mut(), name),
-                ImageKind::Cursor => LoadCursorW(std::ptr::null_mut(), name),
+        let handle = match kind {
+            ImageKind::Icon => {
+                // SAFETY: The instance is null, so LoadIconW selects a
+                // predefined system icon. `name` is MAKEINTRESOURCEW of `id`:
+                // its high word is zero, so the API treats it as a resource
+                // identifier and does not dereference it. LoadIconW returns an
+                // HICON or null and retains no pointer. No pointer is a guest
+                // address.
+                unsafe { LoadIconW(std::ptr::null_mut(), name) }
+            }
+            ImageKind::Cursor => {
+                // SAFETY: The instance is null, so LoadCursorW selects a
+                // predefined system cursor. `name` is MAKEINTRESOURCEW of
+                // `id`: its high word is zero, so the API treats it as a
+                // resource identifier and does not dereference it. LoadCursorW
+                // returns an HCURSOR or null and retains no pointer. No
+                // pointer is a guest address.
+                unsafe { LoadCursorW(std::ptr::null_mut(), name) }
             }
         };
         if handle.is_null() {
@@ -183,11 +197,15 @@ impl Win16Images {
         // entry extent before this size-less USER32 directory selector reads.
         let width = crate::windows::win32_safe::system_metrics(width_index);
         let height = crate::windows::win32_safe::system_metrics(height_index);
-        // SAFETY: `group` is a checked contiguous group directory whose
-        // entries remain live throughout this call.
+        let directory = group.as_ptr();
+        // SAFETY: `directory` points at the checked contiguous group directory
+        // in `group`, which stays live for this call.
+        // LookupIconIdFromDirectoryEx reads that directory and returns a
+        // resource id, or zero. It retains no pointer. The pointer is a host
+        // address, not a guest address.
         let id = unsafe {
             LookupIconIdFromDirectoryEx(
-                group.as_ptr(),
+                directory,
                 i32::from(kind == ImageKind::Icon),
                 width,
                 height,
@@ -236,11 +254,15 @@ impl Win16Images {
         }
         let width = crate::windows::win32_safe::system_metrics(width_index);
         let height = crate::windows::win32_safe::system_metrics(height_index);
-        // SAFETY: The owned resource image stays live during the call;
-        // USER32 validates and copies bitmap data. fIcon selects the format.
+        let resource = image.as_ptr();
+        // SAFETY: `resource` points at `size` bytes of the owned resource
+        // image, which stays live for this call. CreateIconFromResourceEx
+        // validates and copies the bitmap and returns an HICON or null. The
+        // icon flag selects the format. It retains no pointer. The pointer is
+        // a host address, not a guest address.
         let handle = unsafe {
             CreateIconFromResourceEx(
-                image.as_ptr(),
+                resource,
                 size,
                 i32::from(kind == ImageKind::Icon),
                 WINDOWS_3_RESOURCE_VERSION,
@@ -280,8 +302,9 @@ impl Win16Images {
         if icon.is_null() {
             return Ok(None);
         }
-        // SAFETY: CopyIcon receives an HICON returned by ACM and creates an
-        // independently owned icon suitable for the existing image table.
+        // SAFETY: `icon` is a non-null HICON returned by ACM. CopyIcon creates
+        // an independently owned icon and returns it, or null. It retains no
+        // pointer. The handle is not a guest address.
         let copied = unsafe { CopyIcon(icon) };
         if copied.is_null() {
             return Ok(None);
@@ -398,8 +421,6 @@ impl Win16Images {
                         "Win16 host process module instance is unavailable",
                     ));
                 }
-                // SAFETY: `path` is a live NUL-terminated copy for the call;
-                // the instance is from this host process, never a guest handle.
                 // SHELL.34 uses FFFF as its count query; every other WORD
                 // value is a zero-extended icon index. The shared request
                 // keeps the original signed stack decode, so restore its raw
@@ -409,8 +430,13 @@ impl Win16Images {
                 } else {
                     u32::from(index as u16)
                 };
-                // SAFETY: `ExtractIconW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-                let icon = unsafe { ExtractIconW(instance, path.as_ptr(), native_index) };
+                let path_units = path.as_ptr();
+                // SAFETY: `instance` is this host process module, not a guest
+                // handle. `path_units` points at the NUL-terminated UTF-16 path
+                // in `path`, which stays live for this call. ExtractIconW
+                // returns an HICON, 1 for a non-icon file, or the icon count.
+                // It retains no pointer. No pointer is a guest address.
+                let icon = unsafe { ExtractIconW(instance, path_units, native_index) };
                 if index == -1 {
                     return Ok(Win16HostShellIconResult::IconCount {
                         count: icon as usize as u32,
@@ -456,11 +482,15 @@ impl Win16Images {
                 let mut path_buffer = [0u16; MAX_PATH as usize];
                 path_buffer[..wide_path.len()].copy_from_slice(&wide_path);
                 let mut icon_index = index;
-                // SAFETY: Both mutable outputs are this call's owned, bounded
-                // buffers; `instance` belongs to the native host process.
-                let icon = unsafe {
-                    ExtractAssociatedIconW(instance, path_buffer.as_mut_ptr(), &mut icon_index)
-                };
+                let path_units = path_buffer.as_mut_ptr();
+                // SAFETY: `instance` is this host process module. `path_units`
+                // addresses the MAX_PATH initialized UTF-16 units in
+                // `path_buffer`, and that array stays live for this call.
+                // `icon_index` is the local icon index and also stays live.
+                // ExtractAssociatedIconW may rewrite the path and index and
+                // returns an HICON or null. It retains no pointer. No pointer
+                // is a guest address.
+                let icon = unsafe { ExtractAssociatedIconW(instance, path_units, &mut icon_index) };
                 if icon.is_null() {
                     return Ok(Win16HostShellIconResult::AssociatedIcon {
                         icon: None,
@@ -499,22 +529,32 @@ impl Win16Images {
                     large: icon_slots(length, large)?,
                     small: icon_slots(length, small)?,
                 };
-                // SAFETY: Each requested output points to `count` initialized
-                // HICON slots owned by this call. Null suppresses that output.
+                let path_units = path.as_ptr();
+                let large_icons = if large && length != 0 {
+                    slots.large.as_mut_ptr()
+                } else {
+                    std::ptr::null_mut()
+                };
+                let small_icons = if small && length != 0 {
+                    slots.small.as_mut_ptr()
+                } else {
+                    std::ptr::null_mut()
+                };
+                // SAFETY: `path_units` points at the NUL-terminated UTF-16 path
+                // in `path`, which stays live for this call. `large_icons` is
+                // null or addresses `count` initialized HICON slots in
+                // `slots.large`, and that vector stays live. `small_icons` is
+                // null or addresses `count` initialized HICON slots in
+                // `slots.small`, and that vector stays live. A null output
+                // suppresses that array. ExtractIconExW writes the extracted
+                // icons and returns the count, or u32::MAX on failure. It
+                // retains no pointer. No pointer is a guest address.
                 let result = unsafe {
                     ExtractIconExW(
-                        path.as_ptr(),
+                        path_units,
                         i32::from(index),
-                        if large && length != 0 {
-                            slots.large.as_mut_ptr()
-                        } else {
-                            std::ptr::null_mut()
-                        },
-                        if small && length != 0 {
-                            slots.small.as_mut_ptr()
-                        } else {
-                            std::ptr::null_mut()
-                        },
+                        large_icons,
+                        small_icons,
                         u32::from(count),
                     )
                 };
@@ -818,15 +858,19 @@ fn destroy(image: NativeImage) {
     if !image.owned {
         return;
     }
-    // SAFETY: The token table marks icons created or extracted by this host as owned.
-    unsafe {
-        match image.kind {
-            ImageKind::Icon => {
-                DestroyIcon(image.handle());
-            }
-            ImageKind::Cursor => {
-                DestroyCursor(image.handle());
-            }
+    let handle = image.handle();
+    match image.kind {
+        ImageKind::Icon => {
+            // SAFETY: `handle` is an HICON this table created or extracted and
+            // marked owned. DestroyIcon releases that icon. It does not
+            // dereference a guest address.
+            unsafe { DestroyIcon(handle) };
+        }
+        ImageKind::Cursor => {
+            // SAFETY: `handle` is an HCURSOR this table created and marked
+            // owned. DestroyCursor releases that cursor. It does not
+            // dereference a guest address.
+            unsafe { DestroyCursor(handle) };
         }
     }
 }
