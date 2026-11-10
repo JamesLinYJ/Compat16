@@ -390,8 +390,12 @@ fn begin_request(
     request: Win16DdeRequest,
 ) -> Result<(u16, u16, u32), RuntimeError> {
     let return_kind = match &request {
-        Win16DdeRequest::ClientTransaction { .. } => Win16ReturnKind::Dword,
-        Win16DdeRequest::Initialize { .. } | Win16DdeRequest::Uninitialize { .. } => Win16ReturnKind::Word,
+        Win16DdeRequest::ClientTransaction { .. }
+        | Win16DdeRequest::CreateString { .. }
+        | Win16DdeRequest::QueryString { .. } => Win16ReturnKind::Dword,
+        Win16DdeRequest::Initialize { .. } | Win16DdeRequest::Uninitialize { .. } => {
+            Win16ReturnKind::Word
+        }
         _ => panic!("fixture needs the request's actual SDK return kind"),
     };
     let return_to = (runtime.cpu.regs.cs, 0x12, u32::from(runtime.cpu.regs.sp()) + 20);
@@ -985,6 +989,360 @@ fn started_return_failure_case(reinitializing: bool) {
     assert!(state.dde_guest_contexts.is_empty());
     assert!(state.dde_context_restores.is_empty());
     assert_eq!(read_instance(&runtime), original_guest);
+}
+
+const RESULT_OFFSET: u16 = 0x20;
+const TEXT_OFFSET: u16 = 0x30;
+// Windows 3.1 DDEML.H: XCLASS_FLAGS | XTYP_EXECUTE / XTYP_POKE, and DDE_FACK.
+const XTYP_EXECUTE: u16 = 0x4050;
+const XTYP_POKE: u16 = 0x4090;
+const DDE_FACK: u32 = 0x8000;
+
+fn far_at(runtime: &Runtime, offset: u16) -> u32 {
+    (u32::from(runtime.cpu.regs.ds) << 16) | u32::from(offset)
+}
+
+fn write_bytes(runtime: &mut Runtime, offset: u16, bytes: &[u8]) {
+    let far = far_at(runtime, offset);
+    let state = runtime.win16.as_mut().unwrap();
+    let pointer = state.selectors.pointer_from_far(far).unwrap();
+    state
+        .selectors
+        .write(&mut runtime.memory, pointer, bytes)
+        .unwrap();
+}
+
+fn read_bytes(runtime: &Runtime, offset: u16, length: usize) -> Vec<u8> {
+    let far = far_at(runtime, offset);
+    let state = runtime.win16.as_ref().unwrap();
+    let pointer = state.selectors.pointer_from_far(far).unwrap();
+    let mut bytes = vec![0; length];
+    state
+        .selectors
+        .read(&runtime.memory, pointer, &mut bytes)
+        .unwrap();
+    bytes
+}
+
+fn dword_return(runtime: &Runtime) -> u32 {
+    u32::from(runtime.cpu.regs.ax()) | (u32::from(runtime.cpu.regs.dx()) << 16)
+}
+
+fn next_proof(host: &mut InitializationHost) {
+    let next = host.proof.operation.0 + 1;
+    host.proof = Arc::new(Win16DdeSourceRetiredProof {
+        operation: Win16HostDdeOperation(next),
+        owner: OWNER,
+        worker_generation: GENERATION,
+    });
+}
+
+fn initialize_instance(runtime: &mut Runtime, host: &mut InitializationHost) -> u32 {
+    write_instance(runtime, 0);
+    begin(runtime, host, output(runtime)).unwrap();
+    drive(runtime, host).unwrap();
+    let guest = read_instance(runtime);
+    assert_ne!(guest, 0);
+    guest
+}
+
+fn transaction_result(succeeded: bool, error: u16, published: Option<u32>) -> Win16HostDdeResult {
+    Win16HostDdeResult {
+        value: Win16HostDdeValue::ClientTransaction {
+            data: None,
+            succeeded,
+            entered_native: true,
+        },
+        dde_error: error,
+        transaction_result: published,
+        data_transfer: None,
+    }
+}
+
+fn client_transaction(
+    conversation: u32,
+    transaction_type: u16,
+    result_output: u32,
+) -> Win16DdeRequest {
+    Win16DdeRequest::ClientTransaction {
+        data: win16_abi::Win16DdeTransactionData::None,
+        conversation,
+        item: 0,
+        format: 1,
+        transaction_type,
+        timeout: 1_000,
+        result_output,
+    }
+}
+
+/// A synchronous DDE return writes AX:DX directly. Installing the dispatch
+/// owner would stage that return and leave the registers unchanged.
+fn call_sync(runtime: &mut Runtime, host: &mut InitializationHost, request: Win16DdeRequest) {
+    let return_kind = match &request {
+        Win16DdeRequest::QueryString { .. } | Win16DdeRequest::CreateString { .. } => {
+            Win16ReturnKind::Dword
+        }
+        _ => panic!("fixture needs the request's actual SDK return kind"),
+    };
+    let return_to = (
+        runtime.cpu.regs.cs,
+        0x12,
+        u32::from(runtime.cpu.regs.sp()) + 20,
+    );
+    runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .begin_dde_request(
+            request,
+            &mut runtime.cpu.regs,
+            &mut runtime.memory,
+            host,
+            return_to,
+            return_kind,
+        )
+        .unwrap();
+    assert_eq!(
+        (
+            runtime.cpu.regs.cs,
+            runtime.cpu.regs.ip(),
+            u32::from(runtime.cpu.regs.sp())
+        ),
+        return_to
+    );
+}
+
+#[test]
+fn failed_client_transaction_leaves_pdw_result_unchanged() {
+    let mut runtime = fixture();
+    let mut host = InitializationHost::default();
+    let guest = initialize_instance(&mut runtime, &mut host);
+    let conversation = runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .dde
+        .add_conversation(guest, Win16HostDdeConversation(5))
+        .unwrap();
+    let result = far_at(&runtime, RESULT_OFFSET);
+    for error in [dde_error::INVALIDPARAMETER, dde_error::NO_ERROR] {
+        write_bytes(&mut runtime, RESULT_OFFSET, &0xdead_beef_u32.to_le_bytes());
+        host.result = Some(transaction_result(false, error, None));
+        next_proof(&mut host);
+        let return_to = begin_request(
+            &mut runtime,
+            &mut host,
+            client_transaction(conversation, XTYP_EXECUTE, result),
+        )
+        .unwrap();
+        drive(&mut runtime, &mut host).unwrap();
+        assert_caller(&runtime, return_to);
+        assert_eq!(runtime.cpu.regs.dx(), 0);
+        assert_eq!(
+            read_bytes(&runtime, RESULT_OFFSET, 4),
+            0xdead_beef_u32.to_le_bytes()
+        );
+        assert_eq!(runtime.win16.as_ref().unwrap().dde.last_error(guest), error);
+    }
+}
+
+#[test]
+fn successful_client_transaction_publishes_pdw_result() {
+    let mut runtime = fixture();
+    let mut host = InitializationHost::default();
+    let guest = initialize_instance(&mut runtime, &mut host);
+    let conversation = runtime
+        .win16
+        .as_mut()
+        .unwrap()
+        .dde
+        .add_conversation(guest, Win16HostDdeConversation(5))
+        .unwrap();
+    let result = far_at(&runtime, RESULT_OFFSET);
+    for published in [DDE_FACK, 0] {
+        write_bytes(&mut runtime, RESULT_OFFSET, &0xdead_beef_u32.to_le_bytes());
+        host.result = Some(transaction_result(
+            true,
+            dde_error::NO_ERROR,
+            Some(published),
+        ));
+        next_proof(&mut host);
+        let return_to = begin_request(
+            &mut runtime,
+            &mut host,
+            client_transaction(conversation, XTYP_POKE, result),
+        )
+        .unwrap();
+        drive(&mut runtime, &mut host).unwrap();
+        assert_eq!(
+            (
+                runtime.cpu.regs.cs,
+                runtime.cpu.regs.ip(),
+                u32::from(runtime.cpu.regs.sp())
+            ),
+            return_to
+        );
+        assert_eq!(dword_return(&runtime), 1);
+        assert_eq!(
+            read_bytes(&runtime, RESULT_OFFSET, 4),
+            published.to_le_bytes()
+        );
+        assert_eq!(
+            runtime.win16.as_ref().unwrap().dde.last_error(guest),
+            dde_error::NO_ERROR
+        );
+    }
+}
+
+#[test]
+fn query_string_null_handle_is_empty_text() {
+    let mut runtime = fixture();
+    let mut host = InitializationHost::default();
+    write_bytes(&mut runtime, TEXT_OFFSET, &[0xa5; 4]);
+    let text = far_at(&runtime, TEXT_OFFSET);
+    call_sync(
+        &mut runtime,
+        &mut host,
+        Win16DdeRequest::QueryString {
+            instance: 0,
+            string: 0,
+            output: Win16DdeBuffer {
+                far_pointer: text,
+                capacity: 4,
+            },
+            code_page: -1,
+        },
+    );
+    assert_eq!(dword_return(&runtime), 0);
+    assert_eq!(read_bytes(&runtime, TEXT_OFFSET, 4), [0xa5; 4]);
+    assert!(host.calls.is_empty());
+
+    let guest = initialize_instance(&mut runtime, &mut host);
+    let calls_after_initialize = host.calls.len();
+    write_bytes(&mut runtime, TEXT_OFFSET, &[0xa5; 4]);
+    let text = far_at(&runtime, TEXT_OFFSET);
+    call_sync(
+        &mut runtime,
+        &mut host,
+        Win16DdeRequest::QueryString {
+            instance: guest,
+            string: 0,
+            output: Win16DdeBuffer {
+                far_pointer: text,
+                capacity: 4,
+            },
+            code_page: -1,
+        },
+    );
+    assert_eq!(dword_return(&runtime), 1);
+    assert_eq!(read_bytes(&runtime, TEXT_OFFSET, 4), [0, 0xa5, 0xa5, 0xa5]);
+    assert_eq!(
+        runtime.win16.as_ref().unwrap().dde.last_error(guest),
+        dde_error::NO_ERROR
+    );
+    assert_eq!(host.calls.len(), calls_after_initialize);
+
+    write_bytes(&mut runtime, TEXT_OFFSET, &[0xa5; 4]);
+    let text = far_at(&runtime, TEXT_OFFSET);
+    call_sync(
+        &mut runtime,
+        &mut host,
+        Win16DdeRequest::QueryString {
+            instance: guest,
+            string: 0,
+            output: Win16DdeBuffer {
+                far_pointer: text,
+                capacity: 0,
+            },
+            code_page: 0,
+        },
+    );
+    assert_eq!(dword_return(&runtime), 1);
+    assert_eq!(read_bytes(&runtime, TEXT_OFFSET, 4), [0xa5; 4]);
+
+    call_sync(
+        &mut runtime,
+        &mut host,
+        Win16DdeRequest::QueryString {
+            instance: guest,
+            string: 0,
+            output: Win16DdeBuffer {
+                far_pointer: 0,
+                capacity: 0,
+            },
+            code_page: 0,
+        },
+    );
+    assert_eq!(dword_return(&runtime), 1);
+    assert_eq!(host.calls.len(), calls_after_initialize);
+}
+
+#[test]
+fn ansi_string_code_page_zero_selects_cp_winansi() {
+    let mut runtime = fixture();
+    let mut host = InitializationHost::default();
+    let guest = initialize_instance(&mut runtime, &mut host);
+    host.result = Some(Win16HostDdeResult {
+        value: Win16HostDdeValue::String(Some(Win16HostDdeString(4))),
+        dde_error: dde_error::NO_ERROR,
+        transaction_result: None,
+        data_transfer: None,
+    });
+    next_proof(&mut host);
+    begin_request(
+        &mut runtime,
+        &mut host,
+        Win16DdeRequest::CreateString {
+            instance: guest,
+            value: b"Topic".to_vec(),
+            code_page: 0,
+        },
+    )
+    .unwrap();
+    assert!(matches!(
+        host.calls.last(),
+        Some(Win16HostDdeCall::CreateString { value, code_page, .. })
+            if value == b"Topic" && *code_page == compat_services::win16_dde::CP_WINANSI
+    ));
+    drive(&mut runtime, &mut host).unwrap();
+    let string = dword_return(&runtime);
+    assert_ne!(string, 0);
+
+    write_bytes(&mut runtime, TEXT_OFFSET, &[0xa5; 8]);
+    let text = far_at(&runtime, TEXT_OFFSET);
+    host.result = Some(Win16HostDdeResult {
+        value: Win16HostDdeValue::Text {
+            bytes: b"Topic\0".to_vec(),
+            characters: 5,
+        },
+        dde_error: dde_error::NO_ERROR,
+        transaction_result: None,
+        data_transfer: None,
+    });
+    next_proof(&mut host);
+    begin_request(
+        &mut runtime,
+        &mut host,
+        Win16DdeRequest::QueryString {
+            instance: guest,
+            string,
+            output: Win16DdeBuffer {
+                far_pointer: text,
+                capacity: 8,
+            },
+            code_page: 0,
+        },
+    )
+    .unwrap();
+    assert!(matches!(
+        host.calls.last(),
+        Some(Win16HostDdeCall::QueryString { capacity: Some(8), code_page, .. })
+            if *code_page == 1004
+    ));
+    drive(&mut runtime, &mut host).unwrap();
+    assert_eq!(dword_return(&runtime), 5);
+    assert_eq!(&read_bytes(&runtime, TEXT_OFFSET, 8)[..6], b"Topic\0");
+    assert_eq!(read_bytes(&runtime, TEXT_OFFSET, 8)[6..], [0xa5, 0xa5]);
 }
 
 #[path = "win16_runtime_dde_terminal_tests.rs"]

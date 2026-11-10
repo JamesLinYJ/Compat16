@@ -2,7 +2,6 @@
 
 use super::*;
 use crate::Win16HostDdeDataTransferOutcome;
-use crate::win16_runtime::guest_ranges::commit_guest_writes_with_selectors;
 use compat_services::win16_dde::error as dde_error;
 
 // Windows 3.1 DDEML.H: XTYP_REQUEST = 0x00b0 | XCLASS_DATA; the low type
@@ -66,23 +65,32 @@ impl Win16State {
             ));
         }
         if *entered_native {
+            // Failure leaves the caller's pdwResult unchanged. The capture
+            // still has to exist when the caller passed a pointer.
             match (
+                *succeeded,
                 *result_output != 0,
                 result.transaction_result,
                 continuation.outputs.transaction_result.as_ref(),
             ) {
-                (true, Some(_), Some(_)) | (false, None, None) => {}
-                (true, _, _) => {
+                (true, true, Some(_), Some(_)) | (true, false, None, None)
+                | (false, true, None, Some(_)) | (false, false, None, None) => {}
+                (false, _, Some(_), _) => {
+                    return Err(invariant(
+                        "failed DDE transaction published pdwResult",
+                    ));
+                }
+                (true, true, _, _) => {
                     return Err(invariant(
                         "entered DDE transaction omitted its requested pdwResult value",
                     ));
                 }
-                (false, Some(_), _) => {
+                (true, false, Some(_), _) => {
                     return Err(invariant(
                         "entered DDE transaction returned an unrequested pdwResult value",
                     ));
                 }
-                (_, _, _) => {
+                (_, _, _, _) => {
                     return Err(invariant(
                         "DDE transaction result capture does not match its request",
                     ));
@@ -126,7 +134,7 @@ impl super::DdeCompletionAccess<'_> {
         &self,
         continuation: &Win16DdeContinuation,
         result: &Win16HostDdeResult,
-        memory: &mut Memory,
+        _memory: &mut Memory,
     ) -> Result<(), RuntimeError> {
         use Win16DdeRequest as R;
         use Win16HostDdeValue as V;
@@ -143,17 +151,9 @@ impl super::DdeCompletionAccess<'_> {
                     result.transaction_result,
                     continuation.outputs.transaction_result.as_ref(),
                 ) {
-                    (true, Some(value), Some(output)) => commit_guest_writes_with_selectors(
-                        self.selectors(),
-                        memory,
-                        vec![(output.clone(), value.to_le_bytes().to_vec())],
-                    ),
-                    (false, None, None) => Ok(()),
-                    (true, _, _) => Err(invariant(
-                        "native failed DDE transaction omitted its requested pdwResult",
-                    )),
-                    (false, Some(_), _) => Err(invariant(
-                        "native failed DDE transaction returned an unrequested pdwResult",
+                    (true, None, Some(_)) | (false, None, None) => Ok(()),
+                    (_, Some(_), _) => Err(invariant(
+                        "failed DDE transaction published pdwResult",
                     )),
                     (_, _, _) => Err(invariant(
                         "failed DDE transaction result capture does not match its request",
@@ -294,21 +294,37 @@ fn validate_transaction_transfer_result(
         }
         return Ok(());
     }
-    match (
-        *result_output != 0,
-        result.transaction_result,
-        transaction_output,
-    ) {
-        (true, Some(_), true) | (false, None, false) => Ok(()),
-        (true, _, _) => Err(invariant(
-            "entered DDE transaction omitted its requested pdwResult value",
-        )),
-        (false, Some(_), _) => Err(invariant(
-            "entered DDE transaction returned an unrequested pdwResult value",
-        )),
-        (_, _, _) => Err(invariant(
-            "DDE transaction result capture does not match its request",
-        )),
+    if *succeeded {
+        match (
+            *result_output != 0,
+            result.transaction_result,
+            transaction_output,
+        ) {
+            (true, Some(_), true) | (false, None, false) => Ok(()),
+            (true, _, _) => Err(invariant(
+                "entered DDE transaction omitted its requested pdwResult value",
+            )),
+            (false, Some(_), _) => Err(invariant(
+                "entered DDE transaction returned an unrequested pdwResult value",
+            )),
+            (_, _, _) => Err(invariant(
+                "DDE transaction result capture does not match its request",
+            )),
+        }
+    } else {
+        match (
+            *result_output != 0,
+            result.transaction_result,
+            transaction_output,
+        ) {
+            (true, None, true) | (false, None, false) => Ok(()),
+            (_, Some(_), _) => Err(invariant(
+                "failed DDE transaction published pdwResult",
+            )),
+            (_, _, _) => Err(invariant(
+                "DDE transaction result capture does not match its request",
+            )),
+        }
     }
 }
 

@@ -429,7 +429,7 @@ impl Win16State {
             } => Win16HostDdeCall::CreateString {
                 instance: self.require_instance(instance)?,
                 value,
-                code_page,
+                code_page: compat_services::win16_dde::normalize_ansi_code_page(code_page),
             },
             R::FreeString { instance, string } => {
                 let host_instance = self.require_instance(instance)?;
@@ -467,7 +467,7 @@ impl Win16State {
                     instance: host_instance,
                     string: self.require_string(instance, string)?,
                     capacity: (output.far_pointer != 0).then_some(output.capacity),
-                    code_page,
+                    code_page: compat_services::win16_dde::normalize_ansi_code_page(code_page),
                 }
             }
             R::KeepString { instance, string } => Win16HostDdeCall::KeepString {
