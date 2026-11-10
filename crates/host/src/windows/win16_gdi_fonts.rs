@@ -10,10 +10,11 @@ use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostDc, Win16HostFontRecord, Win16HostTextFace,
     Win16HostTextMetrics,
 };
-use windows_sys::Win32::Globalization::{CPINFOEXW, GetCPInfoExW};
+use windows_sys::Win32::Globalization::{CPINFOEXW, GetCPInfoExW, NEWTEXTMETRICEXW};
 use windows_sys::Win32::Graphics::Gdi::{
-    ENUMLOGFONTW, EnumFontFamiliesW, EnumFontsW, GetTextFaceW, GetTextMetricsW, LOGFONTW,
-    NEWTEXTMETRICW, SYMBOL_CHARSET, TEXTMETRICW, TMPF_TRUETYPE, TRUETYPE_FONTTYPE,
+    ENUMLOGFONTEXW, ENUMLOGFONTW, EnumFontFamiliesExW, EnumFontFamiliesW, EnumFontsW, GetTextFaceW,
+    GetTextMetricsW, LOGFONTW, NEWTEXTMETRICW, SYMBOL_CHARSET, TEXTMETRICW, TMPF_TRUETYPE,
+    TRUETYPE_FONTTYPE,
 };
 
 use super::super::guest_text::GuestTextCodec;
@@ -148,6 +149,7 @@ pub(super) fn metric_markers_w_to_guest(
 enum FontEnumerationMode {
     Fonts,
     Families,
+    FamiliesEx,
 }
 
 struct FontEnumeration {
@@ -179,19 +181,52 @@ unsafe extern "system" fn collect_font(
     let font = unsafe { &*logfont };
     // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
     let text = unsafe { &*metric };
-    let newtextmetric_extra = if font_type & TRUETYPE_FONTTYPE != 0 {
+    let (newtextmetric_extra, font_signature) = if font_type & TRUETYPE_FONTTYPE != 0 {
         // EnumFontsW and EnumFontFamiliesW supply NEWTEXTMETRICW only
         // for TrueType records. Never read this tail for raster/vector fonts.
-        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-        let extended = unsafe { &*(metric.cast::<NEWTEXTMETRICW>()) };
-        Some([
-            extended.ntmFlags,
-            extended.ntmSizeEM,
-            extended.ntmCellHeight,
-            extended.ntmAvgWidth,
-        ])
+        // EnumFontFamiliesExW supplies NEWTEXTMETRICEXW, whose signature
+        // follows that tail. SAFETY: the native callback keeps this host
+        // record live for the call. It is not a guest address.
+        if matches!(state.mode, FontEnumerationMode::FamiliesEx) {
+            // SAFETY: EnumFontFamiliesExW passes NEWTEXTMETRICEXW for a
+            // TrueType record. The host pointer stays live for this callback
+            // and is not a guest address.
+            let extended = unsafe { &*metric.cast::<NEWTEXTMETRICEXW>() };
+            let metric = &extended.ntmTm;
+            let signature = &extended.ntmFontSig;
+            (
+                Some([
+                    metric.ntmFlags,
+                    metric.ntmSizeEM,
+                    metric.ntmCellHeight,
+                    metric.ntmAvgWidth,
+                ]),
+                Some([
+                    signature.fsUsb[0],
+                    signature.fsUsb[1],
+                    signature.fsUsb[2],
+                    signature.fsUsb[3],
+                    signature.fsCsb[0],
+                    signature.fsCsb[1],
+                ]),
+            )
+        } else {
+            // SAFETY: EnumFontsW and EnumFontFamiliesW pass NEWTEXTMETRICW for
+            // a TrueType record. The host pointer stays live for this callback
+            // and is not a guest address.
+            let extended = unsafe { &*metric.cast::<NEWTEXTMETRICW>() };
+            (
+                Some([
+                    extended.ntmFlags,
+                    extended.ntmSizeEM,
+                    extended.ntmCellHeight,
+                    extended.ntmAvgWidth,
+                ]),
+                None,
+            )
+        }
     } else {
-        None
+        (None, None)
     };
     let guest_characters = match metric_markers_w_to_guest(state.codec, text) {
         Ok(Some(markers)) => markers,
@@ -208,8 +243,8 @@ unsafe extern "system" fn collect_font(
             return 0;
         }
     };
-    let (full_name, style) = match state.mode {
-        FontEnumerationMode::Fonts => ([0; 64], [0; 32]),
+    let (full_name, style, script_name) = match state.mode {
+        FontEnumerationMode::Fonts => ([0; 64], [0; 32], [0; 32]),
         FontEnumerationMode::Families => {
             // EnumFontFamProc documents ENUMLOGFONT for every font type,
             // unlike the metric tail, which is present only for TrueType.
@@ -219,6 +254,27 @@ unsafe extern "system" fn collect_font(
             match guest_font_name(state.codec, &extended.elfFullName)
                 .and_then(|name| Ok((name, guest_font_name(state.codec, &extended.elfStyle)?)))
             {
+                Ok((name, style)) => (name, style, [0; 32]),
+                Err(error) => {
+                    state.failure = Some(error);
+                    return 0;
+                }
+            }
+        }
+        FontEnumerationMode::FamiliesEx => {
+            // EnumFontFamExProc receives ENUMLOGFONTEX, including elfScript.
+            // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nc-wingdi-fontenumproca
+            // SAFETY: EnumFontFamiliesExW passes ENUMLOGFONTEXW for this
+            // callback. The host record stays live for the call and is not a
+            // guest address.
+            let extended = unsafe { &*logfont.cast::<ENUMLOGFONTEXW>() };
+            match guest_font_name(state.codec, &extended.elfFullName).and_then(|name| {
+                Ok((
+                    name,
+                    guest_font_name(state.codec, &extended.elfStyle)?,
+                    guest_font_name(state.codec, &extended.elfScript)?,
+                ))
+            }) {
                 Ok(names) => names,
                 Err(error) => {
                     state.failure = Some(error);
@@ -256,6 +312,8 @@ unsafe extern "system" fn collect_font(
         face_name,
         full_name,
         style,
+        script_name,
+        font_signature,
         textmetric_dimensions: [
             text.tmHeight,
             text.tmAscent,
@@ -379,7 +437,11 @@ impl Win16Dcs {
             let copied = converted.bytes.len();
             bytes[..copied].copy_from_slice(&converted.bytes);
             bytes[copied] = 0;
-            let result = i32::try_from(copied + 1).map_err(|_| {
+            // GetTextFaceA's copy result counts characters placed before the
+            // NUL. The NULL-buffer query below still includes the terminator.
+            // A one-byte buffer receives only the NUL and returns zero.
+            // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-gettextfacea
+            let result = i32::try_from(copied).map_err(|_| {
                 RuntimeError::new(
                     Kind::ResourceExhausted,
                     "Win16 GetTextFace byte count exceeds the host result range",
@@ -408,7 +470,7 @@ impl Win16Dcs {
         &self,
         token: Win16HostDc,
         face: Option<&[u8]>,
-    ) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+    ) -> Result<Option<Vec<Win16HostFontRecord>>, RuntimeError> {
         self.enumerate_fonts(token, face, FontEnumerationMode::Fonts)
     }
 
@@ -416,8 +478,52 @@ impl Win16Dcs {
         &self,
         token: Win16HostDc,
         face: Option<&[u8]>,
-    ) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+    ) -> Result<Option<Vec<Win16HostFontRecord>>, RuntimeError> {
         self.enumerate_fonts(token, face, FontEnumerationMode::Families)
+    }
+
+    pub(in crate::windows) fn enum_font_families_ex(
+        &self,
+        token: Win16HostDc,
+        face: &[u8],
+        charset: u8,
+        pitch_and_family: u8,
+        flags: u32,
+    ) -> Result<Option<Vec<Win16HostFontRecord>>, RuntimeError> {
+        let Some(dc_use) = self.lease_dc(token)? else {
+            return Ok(None);
+        };
+        // An empty lfFaceName enumerates one font in each typeface. A name
+        // that cannot fit in LOGFONTW's 32 UTF-16 units matches nothing.
+        let Some(wide) = create_face_name_wide(self.text_codec(), face)? else {
+            return Ok(Some(Vec::new()));
+        };
+        let mut description = LOGFONTW::default();
+        description.lfCharSet = charset;
+        description.lfPitchAndFamily = pitch_and_family;
+        description.lfFaceName[..wide.len()].copy_from_slice(&wide);
+        let mut enumeration = FontEnumeration {
+            mode: FontEnumerationMode::FamiliesEx,
+            codec: self.text_codec(),
+            records: Vec::new(),
+            failure: None,
+        };
+        // SAFETY: The HDC is pinned, `description` stays live, and
+        // EnumFontFamiliesExW finishes every callback before returning.
+        // The context pointer is a host address, not a guest address.
+        unsafe {
+            EnumFontFamiliesExW(
+                dc_use.native(),
+                &description,
+                Some(collect_font),
+                (&mut enumeration as *mut FontEnumeration) as isize,
+                flags,
+            );
+        }
+        if let Some(error) = enumeration.failure {
+            return Err(error);
+        }
+        Ok(Some(enumeration.records))
     }
 
     fn enumerate_fonts(
@@ -425,15 +531,16 @@ impl Win16Dcs {
         token: Win16HostDc,
         face: Option<&[u8]>,
         mode: FontEnumerationMode,
-    ) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+    ) -> Result<Option<Vec<Win16HostFontRecord>>, RuntimeError> {
         let Some(dc_use) = self.lease_dc(token)? else {
-            // The runtime maps no native records to EnumFonts' zero result.
-            return Ok(Vec::new());
+            // The native DC is gone. The runtime returns zero, distinct from
+            // a completed enumeration that found no fonts.
+            return Ok(None);
         };
         let face = match face {
             Some(bytes) => match create_face_name_wide(self.text_codec(), bytes)? {
                 Some(face) => Some(face),
-                None => return Ok(Vec::new()),
+                None => return Ok(Some(Vec::new())),
             },
             None => None,
         };
@@ -448,6 +555,12 @@ impl Win16Dcs {
         let enumerate = match mode {
             FontEnumerationMode::Fonts => EnumFontsW,
             FontEnumerationMode::Families => EnumFontFamiliesW,
+            FontEnumerationMode::FamiliesEx => {
+                return Err(RuntimeError::new(
+                    Kind::InternalInvariant,
+                    "EnumFontFamiliesEx is not a face-name enumeration",
+                ));
+            }
         };
         // SAFETY: `Some` receives a host pointer formed in this function. The pointer is non-null when dereferenced, stays live for this synchronous call, and is not a guest address.
         unsafe {
@@ -461,7 +574,7 @@ impl Win16Dcs {
         if let Some(error) = enumeration.failure {
             return Err(error);
         }
-        Ok(enumeration.records)
+        Ok(Some(enumeration.records))
     }
 }
 
@@ -557,7 +670,10 @@ mod tests {
             .create_compatible(None)
             .unwrap()
             .expect("headless display-compatible DC");
-        let records = dcs.enum_font_families(dc, None).unwrap();
+        let records = dcs
+            .enum_font_families(dc, None)
+            .unwrap()
+            .expect("leased display DC");
         assert!(
             !records.is_empty(),
             "Windows must provide at least one display font"
@@ -568,7 +684,10 @@ mod tests {
             .position(|b| *b == 0)
             .expect("terminated guest face");
         assert!(end > 0);
-        let family = dcs.enum_font_families(dc, Some(&face[..end])).unwrap();
+        let family = dcs
+            .enum_font_families(dc, Some(&face[..end]))
+            .unwrap()
+            .expect("leased display DC");
         assert!(
             !family.is_empty(),
             "the discovered family must be queryable"
@@ -582,7 +701,75 @@ mod tests {
         // enumeration lease survives into the owned-record consumer.
         assert!(dcs.delete(dc));
         assert!(!records.is_empty());
-        assert!(dcs.enum_font_families(dc, None).unwrap().is_empty());
+        assert!(dcs.enum_font_families(dc, None).unwrap().is_none());
+    }
+
+    #[test]
+    fn enum_font_families_text_face_copy_excludes_terminator() {
+        let dcs = Win16Dcs::with_text_codec(cp936());
+        let dc = dcs
+            .create_compatible(None)
+            .unwrap()
+            .expect("headless display-compatible DC");
+        let queried = dcs.get_text_face(dc, 0, None).unwrap().expect("face");
+        assert!(queried.result >= 2, "NULL query includes the terminator");
+        let width = queried.result as i16;
+        let copied = dcs
+            .get_text_face(dc, width, Some(vec![0x5A; width as usize]))
+            .unwrap()
+            .unwrap();
+        assert_eq!(copied.result, queried.result - 1);
+        assert_eq!(copied.bytes.len(), width as usize);
+        assert_eq!(copied.bytes[copied.result as usize], 0);
+        assert!(
+            copied.bytes[..copied.result as usize]
+                .iter()
+                .any(|byte| *byte != 0)
+        );
+
+        let two = dcs
+            .get_text_face(dc, 2, Some(vec![0x5A, 0x5A]))
+            .unwrap()
+            .unwrap();
+        assert_eq!(two.bytes[1], 0);
+        if copied.bytes[0] < 0x80 {
+            assert_eq!(two.result, 1);
+            assert_eq!(two.bytes[0], copied.bytes[0]);
+        }
+        let one = dcs.get_text_face(dc, 1, Some(vec![0x5A])).unwrap().unwrap();
+        assert_eq!(one.result, 0);
+        assert_eq!(one.bytes, vec![0]);
+        let zero = dcs.get_text_face(dc, 0, Some(vec![0x5A])).unwrap().unwrap();
+        assert_eq!(zero.result, 0);
+        assert!(zero.bytes.is_empty());
+    }
+
+    #[test]
+    fn enum_font_families_ex_native_snapshot_keeps_script_terminator() {
+        let dcs = Win16Dcs::with_text_codec(cp936());
+        let dc = dcs
+            .create_compatible(None)
+            .unwrap()
+            .expect("headless display-compatible DC");
+        let records = dcs
+            .enum_font_families_ex(dc, b"", 1, 0, 0)
+            .unwrap()
+            .expect("leased display DC");
+        assert!(
+            !records.is_empty(),
+            "DEFAULT_CHARSET enumerates a display font"
+        );
+        for record in &records {
+            assert!(record.face_name.contains(&0));
+            assert!(record.full_name.contains(&0));
+            assert!(record.style.contains(&0));
+            assert!(record.script_name.contains(&0));
+        }
+        let missing = dcs
+            .enum_font_families_ex(dc, b"NoSuchFaceZz", 1, 0, 0)
+            .unwrap()
+            .expect("leased display DC");
+        assert!(missing.is_empty());
     }
 
     #[test]

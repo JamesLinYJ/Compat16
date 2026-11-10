@@ -203,6 +203,10 @@ pub struct Win16HostFontRecord {
     /// TrueType records can carry the Windows 3.1 NEWTEXTMETRIC tail.
     pub newtextmetric_extra: Option<[u32; 4]>,
     pub font_type: u16,
+    /// `ENUMLOGFONTEX` script bytes. Zero-filled for EnumFonts and EnumFontFamilies.
+    pub script_name: [u8; 32],
+    /// `FONTSIGNATURE` as `fsUsb` then `fsCsb`, only for TrueType EnumFontFamiliesEx.
+    pub font_signature: Option<[u32; 6]>,
 }
 
 /// Opaque host GDI object identity, distinct from a guest 16-bit HGDIOBJ.

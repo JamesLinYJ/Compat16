@@ -2,14 +2,21 @@
 use super::*;
 use super::super::{ImportBinding, test_support::tiny_ne_executable};
 use crate::{Runtime, Win16HostDc};
+use guest_core::OwnerId;
 use guest_core::{GuestMemory, Selector, io::NoPorts};
-use win16_abi::{ExportLookupTarget, lookup_export};
+use win16_abi::gdi_abi::LogFont16;
+use win16_abi::{AllocationFlags, ExportLookupTarget, lookup_export};
 use devices::{keyboard::KeyStroke, video::ConsoleSnapshot};
 use dos_kernel::{DosDirectoryEntry, DosFileAccess, DosFileSharing, DosHost, DosHostError,
     DosHostFile, DosHostSearch, DosSeekOrigin};
 
 #[derive(Default)]
-struct FontHost { calls: Vec<(bool, Option<Vec<u8>>)>, records: Vec<Win16HostFontRecord> }
+struct FontHost {
+    calls: Vec<(bool, Option<Vec<u8>>)>,
+    ex: Vec<(Vec<u8>, u8, u8, u32)>,
+    records: Vec<Win16HostFontRecord>,
+    native_unavailable: bool,
+}
 impl DosHost for FontHost {
     fn read_stdin(&mut self, _output: &mut [u8]) -> Result<usize, DosHostError> { panic!("unexpected host call") }
     fn try_read_stdin(&mut self) -> Result<Option<u8>, DosHostError> { panic!("unexpected host call") }
@@ -44,11 +51,21 @@ impl DosHost for FontHost {
 
 
 impl RuntimeHost for FontHost {
-    fn win16_enum_fonts(&mut self, _: Win16HostDc, face: Option<&[u8]>) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
-        self.calls.push((false, face.map(Vec::from))); Ok(self.records.clone())
+    fn win16_enum_fonts(&mut self, _: Win16HostDc, face: Option<&[u8]>)
+        -> Result<Option<Vec<Win16HostFontRecord>>, RuntimeError> {
+        self.calls.push((false, face.map(Vec::from)));
+        Ok((!self.native_unavailable).then(|| self.records.clone()))
     }
-    fn win16_enum_font_families(&mut self, _: Win16HostDc, face: Option<&[u8]>) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
-        self.calls.push((true, face.map(Vec::from))); Ok(self.records.clone())
+    fn win16_enum_font_families(&mut self, _: Win16HostDc, face: Option<&[u8]>)
+        -> Result<Option<Vec<Win16HostFontRecord>>, RuntimeError> {
+        self.calls.push((true, face.map(Vec::from)));
+        Ok((!self.native_unavailable).then(|| self.records.clone()))
+    }
+    fn win16_enum_font_families_ex(
+        &mut self, _: Win16HostDc, face: &[u8], charset: u8, pitch_and_family: u8, flags: u32,
+    ) -> Result<Option<Vec<Win16HostFontRecord>>, RuntimeError> {
+        self.ex.push((face.to_vec(), charset, pitch_and_family, flags));
+        Ok((!self.native_unavailable).then(|| self.records.clone()))
     }
     fn epoch_seconds(&self) -> i64 { panic!("unexpected host call") }
     fn read_bios_key(&mut self) -> Result<KeyStroke, RuntimeError> { panic!("unexpected host call") }
@@ -68,6 +85,7 @@ fn record() -> Win16HostFontRecord {
         textmetric_dimensions: [19, 15, 4, 1, 2, 8, 20, 700],
         textmetric_styles: [1, 0, 0, 32, 255, 63, 32, 4, 0],
         textmetric_extra: [1, 96, 96], newtextmetric_extra: Some([0x12345678, 2048, 19, 8]), font_type: 4,
+        script_name: [0; 32], font_signature: None,
     };
     record.face_name[..5].copy_from_slice(b"Face\0");
     record.full_name[..10].copy_from_slice(b"Full Name\0");
@@ -201,7 +219,12 @@ fn enum_font_families_invalid_dc_empty_result_bad_callback_and_stack() {
         if case == 3 { runtime.cpu.regs.set_sp(16); }
         prepare(&mut runtime, 330, if case == 0 { 0xffff } else { dc }, if case == 2 { 0 } else { callback });
         let result = dispatch(&mut runtime, &mut host);
-        if case < 2 { result.unwrap(); assert_eq!(runtime.cpu.regs.ax(), 0); }
+        if case < 2 {
+            result.unwrap();
+            // A missing DC fails with zero. An empty match returns 1, the
+            // Windows 3.1 DDK EnumDFonts result when the callback is not called.
+            assert_eq!(runtime.cpu.regs.ax(), u16::from(case == 1));
+        }
         else { assert!(result.is_err()); }
         assert_eq!(host.calls.len(), usize::from(case != 0));
         assert!(runtime.win16.as_ref().unwrap().font_callbacks.is_empty());
@@ -512,5 +535,162 @@ fn enum_font_families_entered_fault_terminal_cleanup_retries_without_return_proo
             &mut runtime.cpu, &mut runtime.dos, &mut runtime.memory).is_err());
         assert_eq!(runtime.cpu.regs, terminal_registers);
         assert_eq!(host.calls, vec![(true, None)]);
+    }
+}
+
+fn prepare_ex(
+    runtime: &mut Runtime, dc: u16, callback: u32, logfont: u32, flags: u32,
+) -> (u16, u16, u16) {
+    let descriptor = lookup_export(b"GDI", ExportLookupTarget::Ordinal(613)).unwrap();
+    let return_to = (runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.sp() + 22);
+    let state = runtime.win16.as_mut().unwrap();
+    let mut bytes = Vec::from(return_to.1.to_le_bytes());
+    bytes.extend_from_slice(&return_to.0.to_le_bytes());
+    bytes.extend_from_slice(&flags.to_le_bytes());
+    bytes.extend_from_slice(&0x89abcdef_u32.to_le_bytes());
+    bytes.extend_from_slice(&callback.to_le_bytes());
+    bytes.extend_from_slice(&logfont.to_le_bytes());
+    bytes.extend_from_slice(&dc.to_le_bytes());
+    let pointer = state.selectors.pointer_from_raw(
+        Selector(runtime.cpu.regs.ss), runtime.cpu.regs.sp()).unwrap();
+    state.selectors.write(&mut runtime.memory, pointer, &bytes).unwrap();
+    let slot = state.bindings.len();
+    state.bindings.push(ImportBinding::Supported(descriptor));
+    runtime.cpu.regs.cs = state.gate_selector.0;
+    runtime.cpu.regs.set_ip((slot * 2) as u16);
+    return_to
+}
+
+#[test]
+fn enum_font_families_omits_a_metric_that_does_not_fit() {
+    let (mut runtime, dc, callback) = fixture();
+    let mut bad = record();
+    bad.textmetric_dimensions[0] = 40_000;
+    let mut host = FontHost { records: vec![bad, record()], ..Default::default() };
+    prepare(&mut runtime, 330, dc, callback);
+    dispatch(&mut runtime, &mut host).unwrap();
+    let state = runtime.win16.as_ref().unwrap();
+    let frame = state.font_callbacks.last().unwrap();
+    assert_eq!(frame.records.len(), 1);
+    let mut bytes = vec![0; 146 + 41];
+    state.selectors.read(&runtime.memory, frame.data, &mut bytes).unwrap();
+    assert_eq!(&bytes[146..148], &19_i16.to_le_bytes());
+    assert_ne!(&bytes[146..148], &32_767_i16.to_le_bytes());
+    finish(&mut runtime, 6);
+    assert!(runtime.win16.as_ref().unwrap().font_callbacks.is_empty());
+    assert_eq!(runtime.cpu.regs.ax(), 6);
+}
+
+#[test]
+fn enum_font_families_keeps_signed_16_bit_limits() {
+    let (mut runtime, dc, callback) = fixture();
+    let mut edge = record();
+    edge.logfont_dimensions[0] = -32_768;
+    edge.textmetric_dimensions[0] = 32_767;
+    edge.newtextmetric_extra = Some([0x89ab_cdef, 65_535, 0, 1]);
+    let mut host = FontHost { records: vec![edge], ..Default::default() };
+    prepare(&mut runtime, 330, dc, callback);
+    dispatch(&mut runtime, &mut host).unwrap();
+    let state = runtime.win16.as_ref().unwrap();
+    let data = state.font_callbacks.last().unwrap().data;
+    let mut bytes = vec![0; 146 + 41];
+    state.selectors.read(&runtime.memory, data, &mut bytes).unwrap();
+    assert_eq!(&bytes[..2], &(-32_768_i16).to_le_bytes());
+    assert_eq!(&bytes[146..148], &32_767_i16.to_le_bytes());
+    assert_eq!(&bytes[146 + 35..146 + 37], &65_535_u16.to_le_bytes());
+    finish(&mut runtime, 1);
+}
+
+#[test]
+fn enum_font_families_all_unrepresentable_records_return_one() {
+    let (mut runtime, dc, callback) = fixture();
+    let allocations = runtime.win16.as_ref().unwrap().heap.allocation_count();
+    let mut bad = record();
+    bad.logfont_dimensions[0] = 40_000;
+    bad.newtextmetric_extra = Some([1, 70_000, 1, 1]);
+    let mut host = FontHost { records: vec![bad], ..Default::default() };
+    prepare(&mut runtime, 70, dc, callback);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_eq!(runtime.cpu.regs.ax(), 1);
+    assert!(runtime.win16.as_ref().unwrap().font_callbacks.is_empty());
+    assert_eq!(runtime.win16.as_ref().unwrap().heap.allocation_count(), allocations);
+}
+
+#[test]
+fn enum_font_families_missing_native_dc_returns_zero() {
+    let (mut runtime, dc, callback) = fixture();
+    let allocations = runtime.win16.as_ref().unwrap().heap.allocation_count();
+    let mut host = FontHost {
+        records: vec![record()], native_unavailable: true, ..Default::default()
+    };
+    prepare(&mut runtime, 330, dc, callback);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_eq!(runtime.cpu.regs.ax(), 0);
+    assert_eq!(host.calls.len(), 1);
+    assert!(runtime.win16.as_ref().unwrap().font_callbacks.is_empty());
+    assert_eq!(runtime.win16.as_ref().unwrap().heap.allocation_count(), allocations);
+}
+
+#[test]
+fn enum_font_families_ex_passes_charset_face_and_script() {
+    let (mut runtime, dc, callback) = fixture();
+    let state = runtime.win16.as_mut().unwrap();
+    let allocation = state.heap.alloc(
+        &mut runtime.memory, OwnerId(1), 50, AllocationFlags::fixed().with_zero_init(),
+    ).unwrap();
+    let pointer = state.heap.lock(allocation, &mut state.selectors, &mut runtime.memory).unwrap();
+    let mut font = LogFont16 { dimensions: [0; 5], styles: [0; 8], face_name: [0; 32] };
+    font.styles[3] = 1;
+    font.face_name[..6].copy_from_slice(b"Arial\0");
+    state.selectors.write(&mut runtime.memory, pointer, &font.encode()).unwrap();
+    let logfont = pointer.far_value();
+    let mut sample = record();
+    sample.script_name[..6].copy_from_slice(b"Latin\0");
+    sample.font_signature = Some([1, 2, 3, 4, 5, 6]);
+    let mut host = FontHost { records: vec![sample], ..Default::default() };
+    let return_to = prepare_ex(&mut runtime, dc, callback, logfont, 0);
+    dispatch(&mut runtime, &mut host).unwrap();
+    assert_eq!(host.ex, vec![(b"Arial".to_vec(), 1, 0, 0)]);
+    let state = runtime.win16.as_ref().unwrap();
+    let data = state.font_callbacks.last().unwrap().data;
+    let mut bytes = vec![0; 178 + 65];
+    state.selectors.read(&runtime.memory, data, &mut bytes).unwrap();
+    assert_eq!(&bytes[146..152], b"Latin\0");
+    assert_eq!(&bytes[178 + 41..178 + 45], &1_u32.to_le_bytes());
+    assert_eq!(&bytes[178 + 61..178 + 65], &6_u32.to_le_bytes());
+    finish(&mut runtime, 4);
+    assert_eq!(runtime.cpu.regs.ax(), 4);
+    assert_eq!(
+        (runtime.cpu.regs.cs, runtime.cpu.regs.ip(), runtime.cpu.regs.sp()),
+        return_to,
+    );
+    let state = runtime.win16.as_mut().unwrap();
+    state.heap.unlock(allocation, &mut state.selectors).unwrap();
+    state.heap.free(allocation, &mut state.selectors).unwrap();
+}
+
+#[test]
+fn enum_font_families_ex_null_or_unterminated_logfont_returns_zero() {
+    for terminated in [false, true] {
+        let (mut runtime, dc, callback) = fixture();
+        let logfont = if terminated {
+            let state = runtime.win16.as_mut().unwrap();
+            let allocation = state.heap.alloc(
+                &mut runtime.memory, OwnerId(1), 50, AllocationFlags::fixed().with_zero_init(),
+            ).unwrap();
+            let pointer = state.heap.lock(
+                allocation, &mut state.selectors, &mut runtime.memory).unwrap();
+            let font = LogFont16 { dimensions: [0; 5], styles: [0; 8], face_name: [b'A'; 32] };
+            state.selectors.write(&mut runtime.memory, pointer, &font.encode()).unwrap();
+            pointer.far_value()
+        } else {
+            0
+        };
+        let mut host = FontHost { records: vec![record()], ..Default::default() };
+        prepare_ex(&mut runtime, dc, callback, logfont, 0);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_eq!(runtime.cpu.regs.ax(), 0);
+        assert!(host.ex.is_empty());
+        assert!(runtime.win16.as_ref().unwrap().font_callbacks.is_empty());
     }
 }
