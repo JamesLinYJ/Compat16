@@ -308,8 +308,9 @@ impl Win16State {
                 output,
                 byte_count,
             } => {
+                // Win32 reports failure as GDI_ERROR. Win16 GetFontData returns 0.
                 let Some(dc) = self.guest_gdi.dc(dc) else {
-                    return Ok(GDI_ERROR);
+                    return Ok(0);
                 };
                 let target = if output != 0 && byte_count != 0 {
                     Some(preflight_guest_output(
@@ -329,13 +330,20 @@ impl Win16State {
                     copy_buffer: output != 0,
                 })? {
                     Value::FontData { result, bytes } => {
-                        if result != GDI_ERROR {
-                            if let Some(target) = target {
-                                if bytes.len() > byte_count as usize {
-                                    return Err(wrong_result("GetFontData output length"));
-                                }
-                                write_guest_output(&self.selectors, memory, target, &bytes)?;
+                        let result = if result == GDI_ERROR { 0 } else { result };
+                        if result == 0 {
+                            if !bytes.is_empty() {
+                                return Err(wrong_result("GetFontData output length"));
                             }
+                            return Ok(0);
+                        }
+                        if let Some(target) = target {
+                            if bytes.len() != result as usize || bytes.len() > byte_count as usize {
+                                return Err(wrong_result("GetFontData output length"));
+                            }
+                            write_guest_output(&self.selectors, memory, target, &bytes)?;
+                        } else if !bytes.is_empty() {
+                            return Err(wrong_result("GetFontData output length"));
                         }
                         Ok(result)
                     }
@@ -546,3 +554,7 @@ mod wire_tests;
 #[cfg(test)]
 #[path = "win16_gdi_scalable_font_tests.rs"]
 mod scalable_font_tests;
+
+#[cfg(test)]
+#[path = "win16_gdi_font_data_tests.rs"]
+mod font_data_tests;

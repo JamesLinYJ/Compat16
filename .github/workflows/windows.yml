@@ -248,6 +248,7 @@ jobs:
             '-p runtime --lib win16_runtime::dispatch_user::system_parameters_tests::'
             '-p runtime --lib win16_runtime::dispatch_user::window_management_tests::'
             '-p runtime --lib win16_runtime::gdi_services::scalable_font_tests::'
+            '-p runtime --lib win16_runtime::gdi_services::font_data_tests::'
             '-p runtime --lib win16_runtime::joystick::tests::'
             '-p runtime --lib win16_runtime::kernel_path_info::short_path_profile_struct_tests::'
             '-p runtime --lib win16_runtime::kernel_file_system::drive_volume_tests::'
@@ -316,6 +317,7 @@ jobs:
             '-p runtime --lib win16_runtime::dispatch_user::system_parameters_tests::' = 4
             '-p runtime --lib win16_runtime::dispatch_user::window_management_tests::' = 5
             '-p runtime --lib win16_runtime::gdi_services::scalable_font_tests::' = 5
+            '-p runtime --lib win16_runtime::gdi_services::font_data_tests::' = 3
             '-p runtime --lib win16_runtime::joystick::tests::' = 10
             '-p runtime --lib win16_runtime::kernel_path_info::short_path_profile_struct_tests::' = 9
             '-p runtime --lib win16_runtime::kernel_file_system::drive_volume_tests::' = 8
