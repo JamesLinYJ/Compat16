@@ -21,19 +21,27 @@ pub(super) fn execute(
 ) -> Result<HostResult, RuntimeError> {
     match operation {
         Win16NlsOperation::GetUserDefaultLcid => {
-            // SAFETY: The API has no pointer inputs or initialization preconditions.
+            // SAFETY: GetUserDefaultLCID takes no pointer or handle. It returns
+            // the user-default locale identifier and retains nothing. No guest
+            // address is involved.
             Ok(HostResult::Scalar(unsafe { GetUserDefaultLCID() }))
         }
         Win16NlsOperation::GetSystemDefaultLcid => {
-            // SAFETY: The API has no pointer inputs or initialization preconditions.
+            // SAFETY: GetSystemDefaultLCID takes no pointer or handle. It
+            // returns the system-default locale identifier and retains nothing.
+            // No guest address is involved.
             Ok(HostResult::Scalar(unsafe { GetSystemDefaultLCID() }))
         }
         Win16NlsOperation::GetUserDefaultLangId => {
-            // SAFETY: The API has no pointer inputs or initialization preconditions.
+            // SAFETY: GetUserDefaultLangID takes no pointer or handle. It
+            // returns the user-default language identifier and retains nothing.
+            // No guest address is involved.
             Ok(HostResult::Scalar(u32::from(unsafe { GetUserDefaultLangID() })))
         }
         Win16NlsOperation::GetSystemDefaultLangId => {
-            // SAFETY: The API has no pointer inputs or initialization preconditions.
+            // SAFETY: GetSystemDefaultLangID takes no pointer or handle. It
+            // returns the system-default language identifier and retains
+            // nothing. No guest address is involved.
             Ok(HostResult::Scalar(u32::from(unsafe { GetSystemDefaultLangID() })))
         }
         Win16NlsOperation::GetLocaleInfoA { lcid, info_type, capacity } => {
@@ -50,13 +58,20 @@ pub(super) fn execute(
                 Kind::InternalInvariant, "Win16 CompareStringA flag translation failed"))?;
             let left = NlsWideInput::new(codec, &left)?;
             let right = NlsWideInput::new(codec, &right)?;
-            // SAFETY: Inputs are owned UTF-16 copies or null as specified by
-            // the DTO; counts preserve counted and terminated call forms.
+            let left_units = left.pointer();
+            let left_count = left.count();
+            let right_units = right.pointer();
+            let right_count = right.count();
+            // SAFETY: `left_units` is null or points at the owned UTF-16 copy
+            // in `left`, which stays live for this call. `left_count` is that
+            // copy's declared count, including -1 for a null-terminated
+            // string. `right_units` is null or points at the owned UTF-16 copy
+            // in `right`, which stays live. `right_count` is that copy's
+            // declared count. CompareStringW compares the strings and returns
+            // the order, or zero. It retains no pointer. No pointer is a guest
+            // address.
             let result = unsafe {
-                CompareStringW(
-                    lcid, flags, left.pointer(), left.count(),
-                    right.pointer(), right.count(),
-                )
+                CompareStringW(lcid, flags, left_units, left_count, right_units, right_count)
             };
             Ok(HostResult::Scalar(result as u32))
         }
@@ -74,14 +89,22 @@ fn get_locale_info(
     }
 
     // Query W character capacity first; the guest API reports encoded bytes.
-    // SAFETY: Null output and zero capacity request the documented size.
-    let required = unsafe { GetLocaleInfoW(lcid, info_type, ptr::null_mut(), 0) };
+    let output = ptr::null_mut();
+    // SAFETY: `output` is null and the character count is zero, so
+    // GetLocaleInfoW does not write through it. It returns the required
+    // UTF-16 unit count, including the terminator, or zero. It retains no
+    // pointer. No guest address is passed.
+    let required = unsafe { GetLocaleInfoW(lcid, info_type, output, 0) };
     if required <= 0 {
         return Ok(HostResult::Buffer { result: 0, bytes: Vec::new() });
     }
     let mut wide = zeroed_wide(required as usize, "allocate locale-information output")?;
-    // SAFETY: The vector owns exactly the WCHAR count returned by the query.
-    let written = unsafe { GetLocaleInfoW(lcid, info_type, wide.as_mut_ptr(), required) };
+    let output = wide.as_mut_ptr();
+    // SAFETY: `output` addresses `required` initialized UTF-16 units in
+    // `wide`, and that buffer stays live for this call. GetLocaleInfoW writes
+    // the locale string there and returns the unit count, or zero. It retains
+    // no pointer. No pointer is a guest address.
+    let written = unsafe { GetLocaleInfoW(lcid, info_type, output, required) };
     if written <= 0 {
         return Ok(HostResult::Buffer { result: 0, bytes: Vec::new() });
     }
@@ -107,8 +130,12 @@ fn get_locale_number(
 ) -> Result<HostResult, RuntimeError> {
     if byte_capacity == 0 {
         // W reports two WCHARs for a DWORD result; Win16 returns four bytes.
-        // SAFETY: Null output with zero capacity performs the documented query.
-        let result = unsafe { GetLocaleInfoW(lcid, info_type, ptr::null_mut(), 0) };
+        let output = ptr::null_mut();
+        // SAFETY: `output` is null and the character count is zero, so
+        // GetLocaleInfoW does not write through it. It returns the required
+        // unit count, or zero. It retains no pointer. No guest address is
+        // passed.
+        let result = unsafe { GetLocaleInfoW(lcid, info_type, output, 0) };
         return Ok(HostResult::Buffer {
             result: if result > 0 { 4 } else { 0 },
             bytes: Vec::new(),
@@ -119,10 +146,13 @@ fn get_locale_number(
     }
     let mut value = 0_u32;
     // LOCALE_RETURN_NUMBER writes a DWORD while cchData is measured in WCHARs.
-    // SAFETY: The aligned DWORD is writable for this synchronous call.
-    let result = unsafe {
-        GetLocaleInfoW(lcid, info_type, (&mut value as *mut u32).cast(), 2)
-    };
+    let output: *mut u16 = (&mut value as *mut u32).cast();
+    // SAFETY: `output` addresses the aligned local DWORD `value`, which stays
+    // live for this call. The character count is 2, the WCHAR width of that
+    // DWORD. GetLocaleInfoW writes the numeric locale value there and returns
+    // the unit count, or zero. It retains no pointer. No pointer is a guest
+    // address.
+    let result = unsafe { GetLocaleInfoW(lcid, info_type, output, 2) };
     if result <= 0 {
         return Ok(HostResult::Buffer { result: 0, bytes: Vec::new() });
     }
@@ -148,17 +178,28 @@ fn lc_map_string(
 
     // W uses UTF-16 units for transformed text; encode the completed result
     // before enforcing the guest's byte capacity.
-    // SAFETY: Null output and zero destination count query the required units.
-    let required = unsafe {
-        LCMapStringW(lcid, flags, input.pointer(), input.count(), ptr::null_mut(), 0)
-    };
+    let source = input.pointer();
+    let source_count = input.count();
+    let destination = ptr::null_mut();
+    // SAFETY: `source` points at the owned UTF-16 copy in `input`, which stays
+    // live for this call. `source_count` is that copy's declared count.
+    // `destination` is null and the destination count is zero, so LCMapStringW
+    // does not write. It returns the required UTF-16 unit count, or zero. It
+    // retains no pointer. No pointer is a guest address.
+    let required = unsafe { LCMapStringW(lcid, flags, source, source_count, destination, 0) };
     if required <= 0 {
         return Ok(HostResult::Buffer { result: 0, bytes: Vec::new() });
     }
     let mut wide = zeroed_wide(required as usize, "allocate locale-mapped output")?;
-    // SAFETY: The vector owns the exact UTF-16 output capacity queried above.
+    let destination = wide.as_mut_ptr();
+    // SAFETY: `source` points at the owned UTF-16 copy in `input`, which stays
+    // live for this call. `source_count` is that copy's declared count.
+    // `destination` addresses `required` initialized UTF-16 units in `wide`,
+    // and that buffer stays live. LCMapStringW writes the mapped string there
+    // and returns the unit count, or zero. It retains no pointer. No pointer
+    // is a guest address.
     let written = unsafe {
-        LCMapStringW(lcid, flags, input.pointer(), input.count(), wide.as_mut_ptr(), required)
+        LCMapStringW(lcid, flags, source, source_count, destination, required)
     };
     if written <= 0 {
         return Ok(HostResult::Buffer { result: 0, bytes: Vec::new() });
@@ -186,10 +227,15 @@ fn lc_map_sort_key(
 ) -> Result<HostResult, RuntimeError> {
     // Sort keys are opaque bytes; LCMapStringW returns their byte count even
     // though the W binding types its output pointer as PWSTR.
-    // SAFETY: Null output with zero capacity requests the sort-key byte count.
-    let required = unsafe {
-        LCMapStringW(lcid, flags, input.pointer(), input.count(), ptr::null_mut(), 0)
-    };
+    let source = input.pointer();
+    let source_count = input.count();
+    let destination = ptr::null_mut();
+    // SAFETY: `source` points at the owned UTF-16 copy in `input`, which stays
+    // live for this call. `source_count` is that copy's declared count.
+    // `destination` is null and the destination count is zero, so LCMapStringW
+    // does not write. It returns the sort-key byte count, or zero. It retains
+    // no pointer. No pointer is a guest address.
+    let required = unsafe { LCMapStringW(lcid, flags, source, source_count, destination, 0) };
     if required <= 0 {
         return Ok(HostResult::Buffer { result: 0, bytes: Vec::new() });
     }
@@ -208,12 +254,17 @@ fn lc_map_sort_key(
     let units = capacity.checked_add(1).ok_or_else(|| RuntimeError::new(
         Kind::ResourceExhausted, "locale sort-key buffer size overflow"))? / 2;
     let mut storage = zeroed_wide(units, "allocate locale sort-key bytes")?;
-    // SAFETY: Aligned WCHAR storage has at least capacity writable bytes.
+    let destination = storage.as_mut_ptr();
+    let destination_bytes = i32::from(byte_capacity);
+    // SAFETY: `source` points at the owned UTF-16 copy in `input`, which stays
+    // live for this call. `source_count` is that copy's declared count.
+    // `destination` addresses the aligned UTF-16 storage in `storage`, which
+    // has at least `byte_capacity` writable bytes and stays live.
+    // `destination_bytes` is that byte capacity. LCMapStringW with
+    // LCMAP_SORTKEY writes the opaque sort key there and returns its byte
+    // count, or zero. It retains no pointer. No pointer is a guest address.
     let written = unsafe {
-        LCMapStringW(
-            lcid, flags, input.pointer(), input.count(),
-            storage.as_mut_ptr(), i32::from(byte_capacity),
-        )
+        LCMapStringW(lcid, flags, source, source_count, destination, destination_bytes)
     };
     if written <= 0 {
         return Ok(HostResult::Buffer { result: 0, bytes: Vec::new() });
@@ -248,13 +299,23 @@ fn get_string_type(
             "OLE NLS character-type output exceeds its checked limit"));
     }
     let mut values = zeroed_wide(count, "allocate OLE NLS character-type output")?;
-    // SAFETY: Input is the owned UTF-16 copy with its original count mode.
-    // Output has one WORD for each UTF-16 input unit, including a NUL for -1.
+    let source_units = input.pointer();
+    let source_count = input.count();
+    let output = if values.is_empty() {
+        ptr::null_mut()
+    } else {
+        values.as_mut_ptr()
+    };
+    // SAFETY: `source_units` is null or points at the owned UTF-16 copy in
+    // `input`, which stays live for this call. `source_count` is that copy's
+    // declared count, including -1 for a null-terminated string. `output` is
+    // null when `values` is empty; otherwise it addresses one initialized WORD
+    // in `values` for each UTF-16 input unit, including a NUL when the count
+    // is -1, and that buffer stays live. GetStringTypeExW writes those
+    // character types and returns nonzero on success. It retains no pointer.
+    // No pointer is a guest address.
     let result = unsafe {
-        GetStringTypeExW(
-            lcid, info_type, input.pointer(), input.count(),
-            if values.is_empty() { ptr::null_mut() } else { values.as_mut_ptr() },
-        )
+        GetStringTypeExW(lcid, info_type, source_units, source_count, output)
     };
     if result == 0 {
         values.clear();
