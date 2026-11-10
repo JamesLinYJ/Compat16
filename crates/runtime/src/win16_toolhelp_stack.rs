@@ -86,9 +86,14 @@ impl Win16State {
         Ok(1)
     }
 
-    /// Walk a BP-linked frame only when its documented far-frame mark proves
-    /// how the return address is laid out. Win16 3.1 permits omitting that
-    /// mark, so an unmarked link is ambiguous and stops without being guessed.
+    /// Walk one BP-linked far frame.
+    ///
+    /// An odd saved BP is the far-frame marker: the prolog incremented BP
+    /// before pushing it, and the return address is CS:IP. The Windows 3.1
+    /// Programmer's Reference lets a far prolog omit that increment, so an
+    /// even saved BP proves neither a near return nor an unmarked far return.
+    /// That link stops the walk and leaves the caller's structure unchanged.
+    /// The live frame pointer stays even; an odd live BP is not a frame.
     pub(super) fn toolhelp_stack_trace_next(
         &self,
         output: u32,
@@ -99,72 +104,87 @@ impl Win16State {
             self.toolhelp_stack_trace_read_entry(output, memory)? else {
             return Ok(0);
         };
+        let walked = match self.toolhelp_stack_trace_walk(&entry, memory)? {
+            Some(StackWalk::Far(walked)) => walked,
+            Some(StackWalk::Unmarked) => {
+                let bp = entry.base_pointer;
+                host.report_diagnostic(&Diagnostic::warning(
+                    Kind::CompatibilityGap,
+                    "TOOLHELP StackTraceNext stopped because the guest BP chain does not identify its near/far return layout",
+                ).with_context(format!("SS:BP=0x{:04X}:0x{bp:04X}", entry.stack_segment)));
+                return Ok(0);
+            }
+            None => return Ok(0),
+        };
+        entry.code_segment = walked.code_segment;
+        entry.instruction_pointer = walked.instruction_pointer;
+        entry.base_pointer = walked.base_pointer;
+        entry.flags = walked.flags;
+        (entry.module, entry.segment) =
+            self.toolhelp_stack_trace_module_segment(entry.code_segment);
+        self.selectors.write(memory, pointer, &entry.encode_with_size(dw_size))
+            .map_err(crate::runtime_error)?;
+        Ok(1)
+    }
+
+    fn toolhelp_stack_trace_walk(
+        &self, entry: &StackTraceEntry16, memory: &Memory,
+    ) -> Result<Option<StackWalk>, RuntimeError> {
         let bp = entry.base_pointer;
         if bp == 0 || bp & 1 != 0 || usize::from(bp) + 2 > 0x1_0000 {
-            return Ok(0);
+            return Ok(None);
         }
         let Ok(frame) = self.selectors.pointer_from_raw(Selector(entry.stack_segment), bp) else {
-            return Ok(0);
+            return Ok(None);
         };
         if self.selectors.translate(frame, Access::Read, 2, memory).is_err() {
-            return Ok(0);
+            return Ok(None);
         }
         let mut saved_bp_bytes = [0_u8; 2];
         if self.selectors.read(memory, frame, &mut saved_bp_bytes).is_err() {
-            return Ok(0);
+            return Ok(None);
         }
-
         let saved_bp = u16::from_le_bytes(saved_bp_bytes);
         if saved_bp == 0 {
-            return Ok(0);
+            return Ok(None);
         }
-        // Windows 3.1 makes the old-BP increment optional. It is sound as a
-        // positive far-frame marker when present; its absence proves neither
-        // a near frame nor an unmarked far frame.
+        // A far prolog may omit `inc bp`. An even link is then ambiguous, and
+        // reusing the current CS would invent a return that was never saved.
         if saved_bp & 1 == 0 {
-            host.report_diagnostic(&Diagnostic::warning(
-                Kind::CompatibilityGap,
-                "TOOLHELP StackTraceNext stopped because the guest BP chain does not identify its near/far return layout",
-            ).with_context(format!("SS:BP=0x{:04X}:0x{bp:04X}", entry.stack_segment)));
-            return Ok(0);
+            return Ok(Some(StackWalk::Unmarked));
         }
         let next_bp = saved_bp & !1;
-        if next_bp <= bp || usize::from(next_bp) + 2 > 0x1_0000 {
-            return Ok(0);
+        if next_bp == 0 || next_bp <= bp || usize::from(next_bp) + 2 > 0x1_0000 {
+            return Ok(None);
         }
         let Ok(next_frame) = self.selectors.pointer_from_raw(Selector(entry.stack_segment), next_bp)
-        else { return Ok(0); };
+        else { return Ok(None); };
         if self.selectors.translate(next_frame, Access::Read, 2, memory).is_err() {
-            return Ok(0);
+            return Ok(None);
         }
         if usize::from(bp) + 6 > 0x1_0000
             || self.selectors.translate(frame, Access::Read, 6, memory).is_err()
         {
-            return Ok(0);
+            return Ok(None);
         }
         let mut frame_bytes = [0_u8; 6];
         if self.selectors.read(memory, frame, &mut frame_bytes).is_err() {
-            return Ok(0);
+            return Ok(None);
         }
-
         let return_ip = u16::from_le_bytes([frame_bytes[2], frame_bytes[3]]);
         let return_cs = u16::from_le_bytes([frame_bytes[4], frame_bytes[5]]);
         let Ok(code) = self.selectors.pointer_from_raw(Selector(return_cs), return_ip) else {
-            return Ok(0);
+            return Ok(None);
         };
         if self.selectors.translate(code, Access::Execute, 1, memory).is_err() {
-            return Ok(0);
+            return Ok(None);
         }
-        entry.code_segment = return_cs;
-        entry.instruction_pointer = return_ip;
-        entry.flags = FRAME_FAR;
-        entry.base_pointer = next_bp;
-        (entry.module, entry.segment) =
-            self.toolhelp_stack_trace_module_segment(entry.code_segment);
-
-        self.selectors.write(memory, pointer, &entry.encode_with_size(dw_size))
-            .map_err(crate::runtime_error)?;
-        Ok(1)
+        Ok(Some(StackWalk::Far(WalkedFrame {
+            code_segment: return_cs,
+            instruction_pointer: return_ip,
+            base_pointer: next_bp,
+            flags: FRAME_FAR,
+        })))
     }
 
     fn toolhelp_stack_trace_output(
@@ -179,7 +199,9 @@ impl Win16State {
         let mut size = [0_u8; 4];
         self.selectors.read(memory, pointer, &mut size).map_err(crate::runtime_error)?;
         let dw_size = u32::from_le_bytes(size);
-        if dw_size != StackTraceEntry16::SIZE as u32
+        // dwSize is a version. A larger caller structure is accepted; only the
+        // known prefix is written, and the caller's dwSize is preserved.
+        if dw_size < StackTraceEntry16::SIZE as u32
             || self.selectors.translate(pointer, Access::Write, StackTraceEntry16::SIZE, memory).is_err()
         {
             return Ok(None);
@@ -210,4 +232,16 @@ impl Win16State {
             .map_or(0, |segment| segment.number);
         (module, segment)
     }
+}
+
+enum StackWalk {
+    Far(WalkedFrame),
+    Unmarked,
+}
+
+struct WalkedFrame {
+    code_segment: u16,
+    instruction_pointer: u16,
+    base_pointer: u16,
+    flags: u16,
 }

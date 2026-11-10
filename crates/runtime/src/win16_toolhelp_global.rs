@@ -26,6 +26,18 @@ const GA_MOVEABLE: u16 = 0x0002;
 const NE_SEGMENT_MOVEABLE: u16 = 0x0010;
 const NE_SEGMENT_DATA: u16 = 0x0001;
 
+// Windows locks the running task's automatic data segment before the task
+// runs, and locks the code segment that is executing. The ToolHelp service
+// gate is not that code segment; the checked FAR return selector is. These
+// are system locks, distinct from a guest LockSegment count. Reserved-arena
+// task segments do not retain a guest lock count in this runtime.
+fn task_image_lock_count(
+    selector: u16, segment_number: u16, automatic_data: u16, caller_code: u16,
+) -> u16 {
+    u16::from(automatic_data != 0 && segment_number == automatic_data)
+        .saturating_add(u16::from(caller_code != 0 && selector == caller_code))
+}
+
 #[derive(Clone, Copy)]
 struct SnapshotEntry {
     abi: GlobalEntry16,
@@ -201,12 +213,12 @@ impl Win16State {
     }
 
     pub(super) fn toolhelp_global_first(
-        &self, output: u32, flags: u16, memory: &mut Memory,
+        &self, output: u32, flags: u16, caller_code: u16, memory: &mut Memory,
     ) -> Result<u16, RuntimeError> {
         let Some((pointer, dw_size)) = self.global_entry_output(output, memory)? else {
             return Ok(0);
         };
-        let Some(entries) = self.entries_for_flags(flags, memory)? else {
+        let Some(entries) = self.entries_for_flags(flags, caller_code, memory)? else {
             return Ok(0);
         };
         let Some(first) = entries.first().copied() else { return Ok(0); };
@@ -215,12 +227,12 @@ impl Win16State {
     }
 
     pub(super) fn toolhelp_global_next(
-        &self, output: u32, flags: u16, memory: &mut Memory,
+        &self, output: u32, flags: u16, caller_code: u16, memory: &mut Memory,
     ) -> Result<u16, RuntimeError> {
         let Some((pointer, dw_size, previous)) = self.global_entry_input(output, memory)? else {
             return Ok(0);
         };
-        let Some(entries) = self.entries_for_flags(flags, memory)? else {
+        let Some(entries) = self.entries_for_flags(flags, caller_code, memory)? else {
             return Ok(0);
         };
         // dwNext is an opaque continuation value. Match it in a fresh
@@ -241,7 +253,7 @@ impl Win16State {
         let Some((pointer, dw_size)) = self.global_info_output(output, memory)? else {
             return Ok(0);
         };
-        let entries = self.snapshot_entries(memory)?;
+        let entries = self.snapshot_entries(0, memory)?;
         let items = u16::try_from(entries.len()).map_err(|_| RuntimeError::new(
             Kind::ResourceExhausted, "Win16 ToolHelp GLOBALINFO item count exceeds WORD",
         ))?;
@@ -257,12 +269,12 @@ impl Win16State {
     }
 
     pub(super) fn toolhelp_global_entry_handle(
-        &self, output: u32, handle: u16, memory: &mut Memory,
+        &self, output: u32, handle: u16, caller_code: u16, memory: &mut Memory,
     ) -> Result<u16, RuntimeError> {
         let Some((pointer, dw_size)) = self.global_entry_output(output, memory)? else {
             return Ok(0);
         };
-        let entries = self.snapshot_entries(memory)?;
+        let entries = self.snapshot_entries(caller_code, memory)?;
         let Some(index) = entries.iter().position(|entry| entry.matches_handle(handle)) else {
             return Ok(0);
         };
@@ -272,7 +284,7 @@ impl Win16State {
     }
 
     pub(super) fn toolhelp_global_entry_module(
-        &self, output: u32, module: u16, segment: u16, memory: &mut Memory,
+        &self, output: u32, module: u16, segment: u16, caller_code: u16, memory: &mut Memory,
     ) -> Result<u16, RuntimeError> {
         let Some((pointer, dw_size)) = self.global_entry_output(output, memory)? else {
             return Ok(0);
@@ -283,7 +295,7 @@ impl Win16State {
         {
             return Ok(0);
         }
-        let entries = self.snapshot_entries(memory)?;
+        let entries = self.snapshot_entries(caller_code, memory)?;
         let Some(index) = entries.iter().position(|entry| {
             entry.module == Some(module) && entry.segment == Some(segment)
         }) else {
@@ -354,12 +366,12 @@ impl Win16State {
     }
 
     fn entries_for_flags(
-        &self, flags: u16, memory: &Memory,
+        &self, flags: u16, caller_code: u16, memory: &Memory,
     ) -> Result<Option<Vec<SnapshotEntry>>, RuntimeError> {
         match flags {
             GLOBAL_LRU => {
                 let order = self.heap.lru_handles().map_err(crate::runtime_error)?;
-                let snapshot = self.snapshot_entries(memory)?;
+                let snapshot = self.snapshot_entries(caller_code, memory)?;
                 let mut entries = Vec::new();
                 entries.try_reserve_exact(order.len()).map_err(|error| RuntimeError::with_source(
                     Kind::ResourceExhausted, "allocate Win16 ToolHelp LRU order", error,
@@ -375,7 +387,7 @@ impl Win16State {
                 Ok(Some(entries))
             }
             GLOBAL_ALL | GLOBAL_FREE => {
-                let snapshot = self.snapshot_entries(memory)?;
+                let snapshot = self.snapshot_entries(caller_code, memory)?;
                 let mut filtered = Vec::new();
                 filtered.try_reserve_exact(snapshot.len()).map_err(|error| RuntimeError::with_source(
                     Kind::ResourceExhausted, "allocate Win16 ToolHelp entry filter", error,
@@ -391,7 +403,9 @@ impl Win16State {
         }
     }
 
-    fn snapshot_entries(&self, memory: &Memory) -> Result<Vec<SnapshotEntry>, RuntimeError> {
+    fn snapshot_entries(
+        &self, caller_code: u16, memory: &Memory,
+    ) -> Result<Vec<SnapshotEntry>, RuntimeError> {
         let regions = self.heap.snapshot_regions().map_err(crate::runtime_error)?;
         let mut entries = Vec::new();
         entries.try_reserve_exact(regions.len().saturating_add(self.dos_global_blocks.len())
@@ -407,7 +421,9 @@ impl Win16State {
                     entries.push(SnapshotEntry::free(base.0, size));
                 }
                 GlobalHeapRegion::Allocated { identity, info, selector } => {
-                    if let Some(entry) = self.module_allocation_entry(identity, info, memory)? {
+                    if let Some(entry) = self.module_allocation_entry(
+                        identity, info, caller_code, memory,
+                    )? {
                         entries.push(entry);
                     } else if let Some(entry) = self.global_allocation_entry(identity, info, memory)? {
                         entries.push(entry);
@@ -505,7 +521,7 @@ impl Win16State {
             });
         }
 
-        self.append_main_segments(&mut entries, memory)?;
+        self.append_main_segments(&mut entries, caller_code, memory)?;
         self.append_task_blocks(&mut entries, memory)?;
         entries.sort_by_key(|entry| (entry.cursor, entry.abi.address, entry.abi.block_size,
             entry.abi.block_type, entry.abi.block_handle));
@@ -533,7 +549,7 @@ impl Win16State {
     }
 
     fn module_allocation_entry(
-        &self, identity: GlobalHandle, info: GlobalBlockInfo, memory: &Memory,
+        &self, identity: GlobalHandle, info: GlobalBlockInfo, caller_code: u16, memory: &Memory,
     ) -> Result<Option<SnapshotEntry>, RuntimeError> {
         for (&module, record) in &self.modules.records {
             if record.state == ModuleState::Retired { continue; }
@@ -594,10 +610,13 @@ impl Win16State {
             let flags = if segment_definition.flags & NE_SEGMENT_MOVEABLE != 0 {
                 GA_MOVEABLE
             } else { 0 };
+            let lock_count = info.lock_count.saturating_add(u16::from(
+                caller_code != 0 && selector == caller_code,
+            ));
             return Ok(Some(SnapshotEntry {
                 abi: GlobalEntry16 {
                     address: info.base.0, block_size: info.size,
-                    block_handle: guest_handle, lock_count: info.lock_count,
+                    block_handle: guest_handle, lock_count,
                     page_lock_count: info.page_lock_count,
                     flags, owner: record.handle, block_type,
                     data: if block_type == GT_CODE { segment.number } else { 0 },
@@ -662,7 +681,7 @@ impl Win16State {
     }
 
     fn append_main_segments(
-        &self, entries: &mut Vec<SnapshotEntry>, memory: &Memory,
+        &self, entries: &mut Vec<SnapshotEntry>, caller_code: u16, memory: &Memory,
     ) -> Result<(), RuntimeError> {
         let Some(record) = self.modules.records.get(&self.modules.main)
             .filter(|record| record.state != ModuleState::Retired)
@@ -702,10 +721,13 @@ impl Win16State {
             let flags = if segment_definition.flags & NE_SEGMENT_MOVEABLE != 0 {
                 GA_MOVEABLE
             } else { 0 };
+            let lock_count = task_image_lock_count(
+                selector, segment.number, definition.header.automatic_data_segment, caller_code,
+            );
             entries.push(SnapshotEntry {
                 abi: GlobalEntry16 {
                     address: descriptor.base.0, block_size: segment.memory_size,
-                    block_handle, flags, owner: record.handle, block_type,
+                    block_handle, lock_count, flags, owner: record.handle, block_type,
                     data: if block_type == GT_CODE { segment.number } else { 0 },
                     heap_present: self.toolhelp_local_heap_present(selector, memory)?,
                     ..GlobalEntry16::default()
