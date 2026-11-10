@@ -51,10 +51,9 @@ pub(super) fn string_notification_source_id(
         return Ok(if notify { open_source_id } else { None });
     }
     let Some(device) = device else {
-        return Err(RuntimeError::new(
-            Kind::CompatibilityGap,
-            "MCI string NOTIFY has no exact native device generation and shared source owner",
-        ));
+        // CLOSE ALL and other commands with no single device still run.
+        // There is no one guest route for every device's MM_MCINOTIFY.
+        return Ok(None);
     };
     Ok(Some(context.state.notification_source_id(device)?))
 }

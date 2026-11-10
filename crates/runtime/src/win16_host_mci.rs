@@ -509,7 +509,8 @@ pub enum Win16HostMciParameters {
         to: u32,
     },
     Break {
-        virtual_key: u16,
+        /// SDK 3.1 `MCI_BREAK_PARMS.nVirtKey` is a signed 16-bit `int`.
+        virtual_key: i16,
         window: Option<Win16HostWindow>,
     },
     File {
@@ -576,6 +577,9 @@ pub enum Win16HostMciCall {
         command: Vec<u8>,
         output_capacity: Option<u32>,
         callback_target: Option<Win16HostWindow>,
+        /// Device named by a guest id in the command. The host substitutes the
+        /// native id before WinMM parses the string.
+        resolved_device: Option<Win16HostMciDevice>,
     },
     GetDeviceId {
         name: Vec<u8>,

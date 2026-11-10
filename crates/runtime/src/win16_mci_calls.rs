@@ -4,18 +4,20 @@ use guest_core::memory::Memory;
 use win16_abi::{Access, Win16MciParameters, Win16MciRequest};
 
 use super::{
-    parameters::{callback_window, embedded_window, host_parameters, parameter_callback},
     Win16State,
+    parameters::{callback_window, embedded_window, host_parameters, parameter_callback},
 };
 use crate::{
-    parse_win16_mci_command, Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost,
-    Win16HostMciCall, Win16HostMciOutput, Win16HostMciResult, Win16MciCommandSyntaxError,
-    Win16MciCommandToken, Win16HostMciTarget,
+    Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostMciCall,
+    Win16HostMciDevice, Win16HostMciOutput, Win16HostMciResult, Win16HostMciTarget,
+    Win16MciCommandSyntaxError, Win16MciCommandToken, parse_win16_mci_command,
 };
 
 const MCI_NOTIFY: u32 = 1;
 const MCI_ALL_DEVICE_ID: u16 = 0xffff;
 const MCIERR_INVALID_DEVICE_ID: u32 = 257;
+// SDK 3.1 MMSYSTEM.H: MCIERR_MISSING_COMMAND_STRING is MCIERR_BASE + 11.
+const MCIERR_MISSING_COMMAND_STRING: u32 = 267;
 const MCIERR_NO_CLOSING_QUOTE: u32 = 294;
 const MCIERR_EXTRA_CHARACTERS: u32 = 305;
 const MCIERR_UNSUPPORTED_FUNCTION: u32 = 274;
@@ -37,11 +39,12 @@ pub(super) fn string_open_needs_owner(command: &[u8]) -> Result<bool, RuntimeErr
     if !first_token_is_open(command) {
         return Ok(false);
     }
-    let tokens = match parse_win16_mci_command(command)? {
-        Ok(tokens) => tokens,
-        Err(_) => return Ok(false),
-    };
-    Ok(open_alias(&tokens).is_some())
+    // A simple-device OPEN has no alias and still creates a native device.
+    // Reserve the guest id before that side effect. A broken quote cannot.
+    match parse_win16_mci_command(command)? {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
+    }
 }
 
 fn first_token_is_open(command: &[u8]) -> bool {
@@ -108,10 +111,7 @@ fn string_uses_unprojected_graphic_handle(tokens: &[Win16MciCommandToken]) -> bo
             }
         }
     } else if keyword(verb, b"update") {
-        return tokens
-            .iter()
-            .skip(2)
-            .any(|token| keyword(token, b"hdc"));
+        return tokens.iter().skip(2).any(|token| keyword(token, b"hdc"));
     } else if keyword(verb, b"status") {
         let mut index = 2;
         while index + 1 < tokens.len() {
@@ -119,8 +119,7 @@ fn string_uses_unprojected_graphic_handle(tokens: &[Win16MciCommandToken]) -> bo
                 index += 2;
                 continue;
             }
-            if (keyword(&tokens[index], b"window")
-                || keyword(&tokens[index], b"palette"))
+            if (keyword(&tokens[index], b"window") || keyword(&tokens[index], b"palette"))
                 && keyword(&tokens[index + 1], b"handle")
             {
                 return true;
@@ -129,26 +128,6 @@ fn string_uses_unprojected_graphic_handle(tokens: &[Win16MciCommandToken]) -> bo
         }
     }
     false
-}
-
-fn open_alias(tokens: &[Win16MciCommandToken]) -> Option<&[u8]> {
-    if !tokens.first().is_some_and(|token| keyword(token, b"open")) {
-        return None;
-    }
-    for index in 2..tokens.len() {
-        if keyword(&tokens[index], b"alias") {
-            return tokens.get(index + 1).map(|token| token.bytes.as_slice());
-        }
-    }
-    None
-}
-
-fn close_all_requests_notify(tokens: &[Win16MciCommandToken]) -> bool {
-    tokens.first().is_some_and(|token| keyword(token, b"close"))
-        && tokens.get(1).is_some_and(|token| keyword(token, b"all"))
-        && tokens[2..]
-            .iter()
-            .any(|token| keyword(token, b"notify"))
 }
 
 enum ParsedCommand {
@@ -182,13 +161,6 @@ pub(super) fn prepare(
             parameters,
             ..
         } => {
-            if flags & MCI_NOTIFY != 0 && *device_id == MCI_ALL_DEVICE_ID && *message != 0x0803 {
-                host.report_diagnostic(&Diagnostic::warning(
-                    Kind::CompatibilityGap,
-                    "Win16 MCI NOTIFY on the all-devices target has no single guest device-generation route",
-                ));
-                return Ok(immediate(MCIERR_UNSUPPORTED_FUNCTION));
-            }
             let Some(target) = command_target(state, *device_id, *message) else {
                 return Ok(immediate(MCIERR_INVALID_DEVICE_ID));
             };
@@ -235,7 +207,10 @@ pub(super) fn prepare(
             let Some(callback) = parameter_callback(parameters) else {
                 return unsupported_command(host, *message, *flags);
             };
-            let notify_target = if flags & MCI_NOTIFY != 0 {
+            // MCI_NOTIFY with a null callback still runs the command. Windows
+            // accepts MCI_CLOSE of MCI_ALL_DEVICE_ID with MCI_NOTIFY and a null
+            // parameter block. MCIERR_NO_WINDOW is the display-window error.
+            let notify_target = if flags & MCI_NOTIFY != 0 && callback != 0 {
                 match callback_window(state, callback) {
                     Ok(window) => Some(window),
                     Err(()) => return Ok(immediate(MCIERR_NO_WINDOW)),
@@ -282,23 +257,13 @@ pub(super) fn prepare(
                 ParsedCommand::Valid(tokens) => tokens,
                 ParsedCommand::Invalid(code) => return Ok(immediate(code)),
             };
+            // An empty command is MCIERR_MISSING_COMMAND_STRING. The return
+            // buffer is cleared below even though the command never reaches
+            // a device.
+            if tokens.is_empty() {
+                return Ok(immediate(MCIERR_MISSING_COMMAND_STRING));
+            }
             if string_uses_unprojected_graphic_handle(&tokens) {
-                return Ok(immediate(MCIERR_UNSUPPORTED_FUNCTION));
-            }
-            if close_all_requests_notify(&tokens) {
-                host.report_diagnostic(&Diagnostic::warning(
-                    Kind::CompatibilityGap,
-                    "MCI string CLOSE ALL with NOTIFY has no exact per-device notification route",
-                ));
-                return Ok(immediate(MCIERR_UNSUPPORTED_FUNCTION));
-            }
-            let is_open = tokens.first().is_some_and(|token| keyword(token, b"open"));
-            let alias = open_alias(&tokens);
-            if is_open && alias.is_none_or(|value| value.is_empty()) {
-                host.report_diagnostic(&Diagnostic::warning(
-                    Kind::CompatibilityGap,
-                    "MCI string OPEN without an explicit alias cannot be retained by the host device ledger",
-                ));
                 return Ok(immediate(MCIERR_UNSUPPORTED_FUNCTION));
             }
             let callback_target = if *guest_window == 0 {
@@ -313,9 +278,15 @@ pub(super) fn prepare(
                 command: command.clone(),
                 output_capacity: (output.far != 0).then_some(output.capacity),
                 callback_target,
+                resolved_device: resolved_string_device(state, &tokens),
             }
         }
         Win16MciRequest::GetDeviceId { name, .. } => {
+            // A published guest id is the same number string OPEN wrote. Resolve
+            // it here so a native lookup cannot mint a second alias.
+            if let Some(guest) = decimal_guest_device(state, name) {
+                return Ok(immediate_value(0, u32::from(guest)));
+            }
             Win16HostMciCall::GetDeviceId { name: name.clone() }
         }
         Win16MciRequest::LoadCommandResource { .. } => {
@@ -372,31 +343,22 @@ pub(super) fn prepare(
                 ParsedCommand::Valid(tokens) => tokens,
                 ParsedCommand::Invalid(code) => return Ok(immediate(code)),
             };
+            if tokens.is_empty() {
+                // mciExecute is BOOL. Completion projects this nonzero MCI
+                // error to FALSE and does not display a return string.
+                return Ok(immediate(MCIERR_MISSING_COMMAND_STRING));
+            }
             if string_uses_unprojected_graphic_handle(&tokens) {
                 // SDK 3.1 declares mciExecute as BOOL: FALSE is its documented
                 // failure result. A nonzero internal MCI completion status is
                 // consumed below and projected to guest BOOL FALSE.
                 return Ok(immediate(MCIERR_UNSUPPORTED_FUNCTION));
             }
-            if close_all_requests_notify(&tokens) {
-                host.report_diagnostic(&Diagnostic::warning(
-                    Kind::CompatibilityGap,
-                    "MCI EXECUTE CLOSE ALL with NOTIFY has no exact per-device notification route",
-                ));
-                return Ok(immediate(MCIERR_UNSUPPORTED_FUNCTION));
-            }
-            let is_open = tokens.first().is_some_and(|token| keyword(token, b"open"));
-            if is_open && open_alias(&tokens).is_none_or(|value| value.is_empty()) {
-                host.report_diagnostic(&Diagnostic::warning(
-                    Kind::CompatibilityGap,
-                    "MCI EXECUTE OPEN without an explicit alias cannot be retained by the host device ledger",
-                ));
-                return Ok(immediate(MCIERR_UNSUPPORTED_FUNCTION));
-            }
             Win16HostMciCall::SendString {
                 command: command.clone(),
                 output_capacity: None,
                 callback_target: None,
+                resolved_device: resolved_string_device(state, &tokens),
             }
         }
         Win16MciRequest::FreeCommandResource { .. } => {
@@ -485,6 +447,43 @@ pub(super) fn prepare(
         }
     };
     Ok(PreparedMciCall::Host(call))
+}
+
+/// Guest id written by a successful string OPEN. Leading zeros are not the
+/// published form, and `0` / `0xFFFF` are never device aliases.
+fn decimal_guest_device(state: &Win16State, bytes: &[u8]) -> Option<u16> {
+    if bytes.is_empty() || !bytes.iter().all(u8::is_ascii_digit) {
+        return None;
+    }
+    if bytes.len() > 1 && bytes[0] == b'0' {
+        return None;
+    }
+    let mut value = 0_u32;
+    for byte in bytes {
+        value = value.checked_mul(10)?.checked_add(u32::from(byte - b'0'))?;
+    }
+    let guest = u16::try_from(value).ok()?;
+    if guest == 0 || guest == MCI_ALL_DEVICE_ID {
+        return None;
+    }
+    state.resolve_mci_device(guest).map(|_| guest)
+}
+
+fn resolved_string_device(
+    state: &Win16State,
+    tokens: &[Win16MciCommandToken],
+) -> Option<Win16HostMciDevice> {
+    let verb = tokens.first()?;
+    // OPEN's second token is a device type or element, not an open alias.
+    if keyword(verb, b"open") {
+        return None;
+    }
+    let token = tokens.get(1)?;
+    if token.quoted {
+        return None;
+    }
+    let guest = decimal_guest_device(state, &token.bytes)?;
+    state.resolve_mci_device(guest).map(|entry| entry.host)
 }
 
 fn command_target(state: &Win16State, guest: u16, message: u16) -> Option<Win16HostMciTarget> {

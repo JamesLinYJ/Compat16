@@ -2,8 +2,7 @@
 
 use guest_core::memory::Memory;
 use win16_abi::{
-    Access, Win16MciOpenExtension, Win16MciOpenValue, Win16MciParameters,
-    Win16MciSetExtension,
+    Access, Win16MciOpenExtension, Win16MciOpenValue, Win16MciParameters, Win16MciSetExtension,
 };
 
 use super::Win16State;
@@ -123,13 +122,12 @@ pub(super) fn host_parameters(
                 }
                 _ => 0,
             };
-            let selected_speed = if selected_speed_flag != 0
-                && command_flags & selected_speed_flag != 0
-            {
-                Some(read_guest_dword_at(state, *parameter_pointer, 12, memory)?)
-            } else {
-                None
-            };
+            let selected_speed =
+                if selected_speed_flag != 0 && command_flags & selected_speed_flag != 0 {
+                    Some(read_guest_dword_at(state, *parameter_pointer, 12, memory)?)
+                } else {
+                    None
+                };
             HostParameters::Play {
                 from: *from,
                 to: *to,
@@ -263,7 +261,7 @@ pub(super) fn host_parameters(
             let break_off = command_flags & MCI_BREAK_OFF != 0;
             HostParameters::Break {
                 virtual_key: if !break_off && command_flags & MCI_BREAK_KEY != 0 {
-                    *virtual_key
+                    *virtual_key as i16
                 } else {
                     0
                 },

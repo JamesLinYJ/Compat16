@@ -941,6 +941,10 @@ mod aux_tests;
 mod mixer_tests;
 
 #[cfg(test)]
+#[path = "win16_mci_command_tests.rs"]
+mod mci_command_tests;
+
+#[cfg(test)]
 #[path = "win16_call_proc32w_dispatch_tests.rs"]
 mod call_proc32w_dispatch_tests;
 
