@@ -18,6 +18,8 @@ use crate::{DiagnosticKind as Kind, RuntimeError, RuntimeHost};
 
 #[path = "win16_resources/lifetime.rs"]
 mod lifetime;
+#[path = "win16_resources/lookup.rs"]
+mod lookup;
 const NE_RESOURCE_MOVEABLE: u16 = 0x0010;
 const NE_RESOURCE_DISCARDABLE: u16 = 0x1000;
 // NE resource-table record sizes: alignment-shift WORD, TYPEINFO (type ID,
@@ -129,7 +131,9 @@ impl ResourceState {
 
 impl Win16State {
     /// Find a resource by name and type. A zero module selects the task's main
-    /// module for the resource APIs that document/use that convention.
+    /// module for the resource APIs that document that convention. A string
+    /// name or type is resolved through the module's type-15 name table before
+    /// the directory walk. Integer ids match on their low 15 bits.
     pub(super) fn find_resource(
         &self,
         module: u16,
@@ -146,17 +150,25 @@ impl Win16State {
         let Some(definition) = record.definition.as_ref() else {
             return Ok(0);
         };
+        let mut name_query = lookup::ResourceQuery::from_name(name);
+        let mut type_query = lookup::ResourceQuery::from_name(resource_type);
+        if let Some((type_id, name_id)) = lookup::name_table_ordinals(
+            definition, &record.image, type_query, name_query, host,
+        )? {
+            type_query = lookup::ResourceQuery::Ordinal(type_id);
+            name_query = lookup::ResourceQuery::Ordinal(name_id);
+        }
 
         let mut row_offset = NE_RESOURCE_ALIGNMENT_SHIFT_BYTES;
         for entry in &definition.resource_types {
             row_offset = row_offset.checked_add(NE_RESOURCE_TYPEINFO_BYTES)
                 .ok_or_else(|| resource_table_overflow(module_handle))?;
-            let type_matches = resource_id_matches(&entry.id, resource_type, host)?;
+            let type_matches = lookup::stored_id_matches(&entry.id, type_query, host)?;
             for resource in &entry.resources {
                 let current_row = row_offset;
                 row_offset = row_offset.checked_add(NE_RESOURCE_NAMEINFO_BYTES)
                     .ok_or_else(|| resource_table_overflow(module_handle))?;
-                if !type_matches || !resource_id_matches(&resource.id, name, host)? {
+                if !type_matches || !lookup::stored_id_matches(&resource.id, name_query, host)? {
                     continue;
                 }
                 let Some(info) = ne_resource_info(definition, current_row) else {
@@ -622,18 +634,7 @@ fn resource_id_matches(
     requested: &Win16ResourceName,
     host: &mut impl RuntimeHost,
 ) -> Result<bool, RuntimeError> {
-    match requested {
-        Win16ResourceName::Id(id) => Ok(matches!(stored, NeResourceId::Numeric(value) if value == id)),
-        Win16ResourceName::Name(name) => {
-            if let Some(number) = decimal_resource_id(name) {
-                return Ok(matches!(stored, NeResourceId::Numeric(value) if *value == number));
-            }
-            match stored {
-                NeResourceId::Numeric(_) => Ok(false),
-                NeResourceId::Name(value) => Ok(host.win16_ansi_compare(name, value, true)? == 0),
-            }
-        }
-    }
+    lookup::stored_id_matches(stored, lookup::ResourceQuery::from_name(requested), host)
 }
 
 fn decimal_resource_id(value: &[u8]) -> Option<u16> {
@@ -671,3 +672,7 @@ fn is_resource_capacity_error(error: &win16_abi::Win16Error) -> bool {
 #[cfg(test)]
 #[path = "win16_resource_metadata_tests.rs"]
 mod metadata_tests;
+
+#[cfg(test)]
+#[path = "win16_resource_lookup_tests.rs"]
+mod lookup_tests;

@@ -98,10 +98,35 @@ impl Win16State {
             if !self.is_live_global(existing.data, existing.identity) {
                 self.resources.loaded.remove(&key);
             } else if existing.data != data || existing.identity != identity {
-                // Two live HGLOBALs cannot simultaneously represent the same
-                // resource cache slot. A normal load reaches this method only
-                // after a cache miss; reloads use commit_reloaded_resource.
-                return Ok(0);
+                // LoadResource returns the handler's HGLOBAL. A discarded slot
+                // may be replaced by that new block; the handler already
+                // received the previous one. A second live block is rejected
+                // so the caller's existing handle stays the resource.
+                // LockResource keeps its caller's handle in
+                // commit_reloaded_resource.
+                if !self.discarded_handles.contains(&existing.data) {
+                    return Ok(0);
+                }
+                let references = existing.references.checked_add(1).ok_or_else(|| {
+                    RuntimeError::new(
+                        Kind::ResourceExhausted,
+                        "Win16 resource reference count overflow",
+                    )
+                })?;
+                self.set_resource_discardability(key, identity, references)?;
+                self.resources.loaded.remove(&key);
+                self.remove_stale_allocation(existing.data, existing.identity);
+                self.discarded_handles.remove(&data);
+                self.resources.loaded.insert(
+                    key,
+                    LoadedResource {
+                        data,
+                        identity,
+                        references,
+                        retirement_cause: None,
+                    },
+                );
+                return Ok(data);
             } else {
                 let references = existing.references.checked_add(1).ok_or_else(|| {
                     RuntimeError::new(
