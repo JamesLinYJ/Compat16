@@ -44,9 +44,11 @@ impl Win16State {
         let Ok(pointer) = self.selectors.pointer_from_far(destination) else { return Ok(0); };
         let capacity = capacity as u16;
         let length = usize::from(capacity);
-        if !self.kernel_string_range_valid(pointer, length, Access::Read, memory)
-            || !self.kernel_string_range_valid(pointer, length, Access::Write, memory)
-        {
+        // The limit counts guest bytes already stored in the destination.
+        // When that string occupies the whole buffer, no byte remains for
+        // another character or a terminator, so the pointer is returned
+        // with the buffer left unchanged.
+        if !self.kernel_string_range_valid(pointer, length, Access::Read, memory) {
             return Ok(0);
         }
         let mut cursor = pointer;
@@ -62,7 +64,10 @@ impl Win16State {
                 cursor = self.selectors.add_bytes(cursor, 1).map_err(crate::runtime_error)?;
             }
         }
-        let Some(destination_length) = destination_length else { return Ok(0); };
+        let Some(destination_length) = destination_length else { return Ok(destination); };
+        if !self.kernel_string_range_valid(pointer, length, Access::Write, memory) {
+            return Ok(0);
+        }
         let remaining = length - destination_length;
         let count = source.len().min(remaining.saturating_sub(1));
         let mut bytes = Vec::new();
@@ -112,3 +117,7 @@ impl Win16State {
         true
     }
 }
+
+#[cfg(test)]
+#[path = "win16_kernel_string_tests.rs"]
+mod tests;
