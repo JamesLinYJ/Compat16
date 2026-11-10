@@ -27,16 +27,18 @@ pub(super) fn stretch_dibits(
     usage: u16,
     rop: u32,
 ) -> Result<u32, RuntimeError> {
-    const GDI_ERROR16: u32 = u16::MAX as u32;
-
+    // An unknown DC, a missing DIB, or an unusable color table is an ordinary
+    // failure. GDI_ERROR (-1) is only the native result when a driver cannot
+    // handle a JPEG or PNG image, and guest_stretch_lines keeps that pattern.
+    // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-stretchdibits
     let Some(dc) = state.guest_gdi.dc(guest_dc) else {
-        return Ok(GDI_ERROR16);
+        return Ok(0);
     };
     let Some(info) = state.copy_dib_info(memory, info_far, usage)? else {
-        return Ok(GDI_ERROR16);
+        return Ok(0);
     };
     let Some(bits) = state.copy_dib_bits(memory, bits_far, info.layout.bits_bytes)? else {
-        return Ok(GDI_ERROR16);
+        return Ok(0);
     };
     let dib = Win16HostDib { info: info.bytes, bits };
 
