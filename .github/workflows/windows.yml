@@ -250,6 +250,7 @@ jobs:
             '-p runtime --lib win16_runtime::gdi_services::scalable_font_tests::'
             '-p runtime --lib win16_runtime::joystick::tests::'
             '-p runtime --lib win16_runtime::kernel_path_info::short_path_profile_struct_tests::'
+            '-p runtime --lib win16_runtime::kernel_file_system::drive_volume_tests::'
             '-p runtime --lib win16_runtime::kernel_task::tests::'
             '-p runtime --lib win16_runtime::media_time::timer_tests::'
             '-p runtime --lib win16_runtime::mixer_tests::'
@@ -317,6 +318,7 @@ jobs:
             '-p runtime --lib win16_runtime::gdi_services::scalable_font_tests::' = 5
             '-p runtime --lib win16_runtime::joystick::tests::' = 10
             '-p runtime --lib win16_runtime::kernel_path_info::short_path_profile_struct_tests::' = 9
+            '-p runtime --lib win16_runtime::kernel_file_system::drive_volume_tests::' = 8
             '-p runtime --lib win16_runtime::kernel_task::tests::' = 6
             '-p runtime --lib win16_runtime::media_time::timer_tests::' = 7
             '-p runtime --lib win16_runtime::mixer_tests::' = 4
