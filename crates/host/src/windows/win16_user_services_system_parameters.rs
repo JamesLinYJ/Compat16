@@ -19,10 +19,13 @@ pub(super) fn execute(
     let result = match request {
         Request::GetBool(action) => {
             let mut value = 0_i32;
-            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
-            let succeeded = unsafe {
-                SystemParametersInfoW(u32::from(action), 0, (&mut value as *mut i32).cast(), 0)
-            } != 0;
+            let parameter = (&mut value as *mut i32).cast();
+            // SAFETY: `parameter` points at the owned `value` i32, which stays
+            // live for this call. SystemParametersInfoW writes the BOOL there
+            // and returns zero on failure. It retains no pointer. No pointer
+            // is a guest address.
+            let succeeded =
+                unsafe { SystemParametersInfoW(u32::from(action), 0, parameter, 0) } != 0;
             make_result(succeeded, Value::Bool(value != 0))
         }
         Request::SetBool {
@@ -30,12 +33,15 @@ pub(super) fn execute(
             value,
             flags,
         } => {
-            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
+            let parameter = std::ptr::null_mut();
+            // SAFETY: `parameter` is null. The Win16 value travels in uiParam,
+            // so this call has no buffer. SystemParametersInfoW returns zero
+            // on failure and retains no pointer. No pointer is a guest address.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     u32::from(action),
                     u32::from(value),
-                    std::ptr::null_mut(),
+                    parameter,
                     u32::from(flags),
                 )
             } != 0;
@@ -43,10 +49,13 @@ pub(super) fn execute(
         }
         Request::GetWord(action) => {
             let mut value = 0_i32;
-            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
-            let succeeded = unsafe {
-                SystemParametersInfoW(u32::from(action), 0, (&mut value as *mut i32).cast(), 0)
-            } != 0;
+            let parameter = (&mut value as *mut i32).cast();
+            // SAFETY: `parameter` points at the owned `value` i32, which stays
+            // live for this call. SystemParametersInfoW writes the integer
+            // there and returns zero on failure. It retains no pointer. No
+            // pointer is a guest address.
+            let succeeded =
+                unsafe { SystemParametersInfoW(u32::from(action), 0, parameter, 0) } != 0;
             let Some(value) = guest_i16(value) else {
                 return Ok(make_result(false, Value::None));
             };
@@ -57,12 +66,15 @@ pub(super) fn execute(
             value,
             flags,
         } => {
-            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
+            let parameter = std::ptr::null_mut();
+            // SAFETY: `parameter` is null. The Win16 value travels in uiParam,
+            // so this call has no buffer. SystemParametersInfoW returns zero
+            // on failure and retains no pointer. No pointer is a guest address.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     u32::from(action),
                     u32::from(value),
-                    std::ptr::null_mut(),
+                    parameter,
                     u32::from(flags),
                 )
             } != 0;
@@ -70,10 +82,12 @@ pub(super) fn execute(
         }
         Request::GetMouse => {
             let mut values = [0_i32; 3];
-            let succeeded =
-                // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
-                unsafe { SystemParametersInfoW(SPI_GETMOUSE, 0, values.as_mut_ptr().cast(), 0) }
-                    != 0;
+            let parameter = values.as_mut_ptr().cast();
+            // SAFETY: `parameter` points at the owned three-i32 `values` array,
+            // which stays live for this call. SystemParametersInfoW writes the
+            // three mouse thresholds there and returns zero on failure. It
+            // retains no pointer. No pointer is a guest address.
+            let succeeded = unsafe { SystemParametersInfoW(SPI_GETMOUSE, 0, parameter, 0) } != 0;
             let [Some(first), Some(second), Some(third)] = values.map(guest_i16) else {
                 return Ok(make_result(false, Value::None));
             };
@@ -81,15 +95,13 @@ pub(super) fn execute(
         }
         Request::SetMouse { values, flags } => {
             let mut native = values.map(i32::from);
-            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
-            let succeeded = unsafe {
-                SystemParametersInfoW(
-                    SPI_SETMOUSE,
-                    0,
-                    native.as_mut_ptr().cast(),
-                    u32::from(flags),
-                )
-            } != 0;
+            let parameter = native.as_mut_ptr().cast();
+            // SAFETY: `parameter` points at the owned three-i32 `native` array,
+            // which stays live for this call. SystemParametersInfoW reads those
+            // mouse thresholds and returns zero on failure. It retains no
+            // pointer. No pointer is a guest address.
+            let succeeded =
+                unsafe { SystemParametersInfoW(SPI_SETMOUSE, 0, parameter, u32::from(flags)) } != 0;
             make_result(succeeded, Value::None)
         }
         // `SPI_LANGDRIVER` is a legacy Windows 3.x operation. This adapter
@@ -103,37 +115,39 @@ pub(super) fn execute(
                 return Ok(make_result(false, Value::None));
             }
             let mut path_z = codec.to_wide_z(&path)?;
-            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
+            let parameter = path_z.as_mut_ptr().cast();
+            // SAFETY: `parameter` points at the owned NUL-terminated UTF-16
+            // wallpaper path in `path_z`, which stays live for this call.
+            // SystemParametersInfoW reads that path and returns zero on
+            // failure. It retains no pointer. No pointer is a guest address.
             let succeeded = unsafe {
-                SystemParametersInfoW(
-                    SPI_SETDESKWALLPAPER,
-                    0,
-                    path_z.as_mut_ptr().cast(),
-                    u32::from(flags),
-                )
+                SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, parameter, u32::from(flags))
             } != 0;
             make_result(succeeded, Value::None)
         }
         Request::SetDesktopPattern { flags } => {
-            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
+            let parameter = std::ptr::null_mut();
+            // SAFETY: `parameter` is null. This call passes no caller buffer.
+            // SystemParametersInfoW returns zero on failure and retains no
+            // pointer. No pointer is a guest address.
             let succeeded = unsafe {
-                SystemParametersInfoW(
-                    SPI_SETDESKPATTERN,
-                    0,
-                    std::ptr::null_mut(),
-                    u32::from(flags),
-                )
+                SystemParametersInfoW(SPI_SETDESKPATTERN, 0, parameter, u32::from(flags))
             } != 0;
             make_result(succeeded, Value::None)
         }
         Request::GetIconTitleLogFont => {
             let mut native = LOGFONTW::default();
-            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
+            let parameter = (&mut native as *mut LOGFONTW).cast();
+            // SAFETY: `parameter` points at the owned `native` LOGFONTW, which
+            // stays live for this call. uiParam is the size of that structure.
+            // SystemParametersInfoW writes the icon-title font there and
+            // returns zero on failure. It retains no pointer. No pointer is a
+            // guest address.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     SPI_GETICONTITLELOGFONT,
                     std::mem::size_of::<LOGFONTW>() as u32,
-                    (&mut native as *mut LOGFONTW).cast(),
+                    parameter,
                     0,
                 )
             } != 0;
@@ -146,12 +160,16 @@ pub(super) fn execute(
             let Some(mut native) = logfont_to_native(codec, font)? else {
                 return Ok(make_result(false, Value::None));
             };
-            // SAFETY: SystemParametersInfoW uses a caller-owned buffer when the action requires one, and that buffer stays live for the call.
+            let parameter = (&mut native as *mut LOGFONTW).cast();
+            // SAFETY: `parameter` points at the owned `native` LOGFONTW, which
+            // stays live for this call. uiParam is the size of that structure.
+            // SystemParametersInfoW reads the icon-title font and returns zero
+            // on failure. It retains no pointer. No pointer is a guest address.
             let succeeded = unsafe {
                 SystemParametersInfoW(
                     SPI_SETICONTITLELOGFONT,
                     std::mem::size_of::<LOGFONTW>() as u32,
-                    (&mut native as *mut LOGFONTW).cast(),
+                    parameter,
                     u32::from(flags),
                 )
             } != 0;
