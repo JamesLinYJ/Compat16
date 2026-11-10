@@ -26,14 +26,28 @@ pub(super) fn classify_character(
         return Err(RuntimeError::new(Kind::InvalidInput,
             "one-byte Win16 character did not decode to exactly one UTF-16 unit"));
     }
-    // SAFETY: These W APIs consume a scalar UTF-16 unit, not a pointer.
-    let result = unsafe {
-        match classification {
-            Classification::Alpha => IsCharAlphaW(wide[0]),
-            Classification::AlphaNumeric => IsCharAlphaNumericW(wide[0]),
-            Classification::Upper => IsCharUpperW(wide[0]),
-            Classification::Lower => IsCharLowerW(wide[0]),
-        }
+    let unit = wide[0];
+    let result = match classification {
+        // SAFETY: `unit` is one UTF-16 scalar from the guest codec.
+        // IsCharAlphaW takes that scalar by value and does not dereference a
+        // pointer. A zero BOOL is the false result. The argument is a
+        // character, not a guest address.
+        Classification::Alpha => unsafe { IsCharAlphaW(unit) },
+        // SAFETY: `unit` is one UTF-16 scalar from the guest codec.
+        // IsCharAlphaNumericW takes that scalar by value and does not
+        // dereference a pointer. A zero BOOL is the false result. The
+        // argument is a character, not a guest address.
+        Classification::AlphaNumeric => unsafe { IsCharAlphaNumericW(unit) },
+        // SAFETY: `unit` is one UTF-16 scalar from the guest codec.
+        // IsCharUpperW takes that scalar by value and does not dereference a
+        // pointer. A zero BOOL is the false result. The argument is a
+        // character, not a guest address.
+        Classification::Upper => unsafe { IsCharUpperW(unit) },
+        // SAFETY: `unit` is one UTF-16 scalar from the guest codec.
+        // IsCharLowerW takes that scalar by value and does not dereference a
+        // pointer. A zero BOOL is the false result. The argument is a
+        // character, not a guest address.
+        Classification::Lower => unsafe { IsCharLowerW(unit) },
     };
     Ok(result != 0)
 }
@@ -60,10 +74,18 @@ fn ansi_case_char(codec: GuestTextCodec, value: u16, upper: bool) -> Result<u16,
         ));
     }
     let pointer = usize::from(character) as *mut u16;
-    // SAFETY: The W scalar form treats a low-valued pointer as a UTF-16
-    // character value and does not dereference it.
-    let returned = unsafe {
-        if upper { CharUpperW(pointer) } else { CharLowerW(pointer) }
+    let returned = if upper {
+        // SAFETY: `pointer` holds one UTF-16 scalar in its low 16 bits and
+        // zero above them. CharUpperW's scalar form does not dereference it
+        // and returns the converted character in the low 16 bits. The value
+        // is not a guest address.
+        unsafe { CharUpperW(pointer) }
+    } else {
+        // SAFETY: `pointer` holds one UTF-16 scalar in its low 16 bits and
+        // zero above them. CharLowerW's scalar form does not dereference it
+        // and returns the converted character in the low 16 bits. The value
+        // is not a guest address.
+        unsafe { CharLowerW(pointer) }
     };
     let encoded = codec.from_wide(&[returned as usize as u16])?;
     encoded.bytes.first().copied().map(u16::from).ok_or_else(|| {
@@ -94,9 +116,18 @@ fn ansi_case_string(
     let mut buffer = GuestTextBuffer::acquire();
     codec.to_wide_z_into(source, &mut buffer)?;
     let base = buffer.as_mut_ptr();
-    // SAFETY: The W API receives an owned, writable, terminated UTF-16 string.
-    let returned = unsafe {
-        if upper { CharUpperW(base) } else { CharLowerW(base) }
+    let returned = if upper {
+        // SAFETY: `base` is the owned, writable, NUL-terminated UTF-16 buffer
+        // in `buffer`, and that buffer stays live for this call. CharUpperW
+        // writes the converted units in place and returns the same pointer.
+        // The pointer is a host address, not a guest address.
+        unsafe { CharUpperW(base) }
+    } else {
+        // SAFETY: `base` is the owned, writable, NUL-terminated UTF-16 buffer
+        // in `buffer`, and that buffer stays live for this call. CharLowerW
+        // writes the converted units in place and returns the same pointer.
+        // The pointer is a host address, not a guest address.
+        unsafe { CharLowerW(base) }
     };
     if returned != base {
         return Err(RuntimeError::new(Kind::HostFailure,
@@ -142,14 +173,19 @@ pub(super) fn ansi_case_string_in_place(
         }
         let length = u32::try_from(character.len()).map_err(|error| RuntimeError::with_source(
             Kind::InvalidInput, "Win16 case character exceeds the Windows API length", error))?;
-        // SAFETY: `character` owns exactly the UTF-16 units for this guest
-        // byte span and remains writable for the synchronous W call.
-        let converted = unsafe {
-            if upper {
-                CharUpperBuffW(character.as_mut_ptr(), length)
-            } else {
-                CharLowerBuffW(character.as_mut_ptr(), length)
-            }
+        let units = character.as_mut_ptr();
+        let converted = if upper {
+            // SAFETY: `units` points at `length` writable UTF-16 units owned
+            // by this call, and they stay live. CharUpperBuffW writes those
+            // units in place and returns how many it processed. The pointer
+            // is a host address, not a guest address.
+            unsafe { CharUpperBuffW(units, length) }
+        } else {
+            // SAFETY: `units` points at `length` writable UTF-16 units owned
+            // by this call, and they stay live. CharLowerBuffW writes those
+            // units in place and returns how many it processed. The pointer
+            // is a host address, not a guest address.
+            unsafe { CharLowerBuffW(units, length) }
         };
         if converted > length {
             return Err(RuntimeError::new(Kind::InternalInvariant,
@@ -188,14 +224,19 @@ pub(super) fn ansi_case_buffer(
     codec.to_wide_into(source, &mut buffer)?;
     let length = u32::try_from(buffer.len()).map_err(|error| RuntimeError::with_source(
         Kind::InvalidInput, "Win16 UTF-16 case buffer exceeds the Windows API length", error))?;
-    // SAFETY: The vector owns all requested writable UTF-16 units for this
-    // synchronous bounded native operation.
-    let converted = unsafe {
-        if upper {
-            CharUpperBuffW(buffer.as_mut_ptr(), length)
-        } else {
-            CharLowerBuffW(buffer.as_mut_ptr(), length)
-        }
+    let units = buffer.as_mut_ptr();
+    let converted = if upper {
+        // SAFETY: `units` points at `length` writable UTF-16 units in the
+        // owned `buffer`, and that buffer stays live for this call.
+        // CharUpperBuffW writes those units in place and returns how many it
+        // processed. The pointer is a host address, not a guest address.
+        unsafe { CharUpperBuffW(units, length) }
+    } else {
+        // SAFETY: `units` points at `length` writable UTF-16 units in the
+        // owned `buffer`, and that buffer stays live for this call.
+        // CharLowerBuffW writes those units in place and returns how many it
+        // processed. The pointer is a host address, not a guest address.
+        unsafe { CharLowerBuffW(units, length) }
     };
     if converted > length {
         return Err(RuntimeError::new(Kind::InternalInvariant,
@@ -222,10 +263,20 @@ pub(super) fn ansi_compare(
     codec.to_wide_z_into(left, &mut wide_left)?;
     let mut wide_right = GuestTextBuffer::acquire();
     codec.to_wide_z_into(right, &mut wide_right)?;
-    // SAFETY: Both arguments are separate owned NUL-terminated UTF-16 strings.
-    let result = unsafe {
-        if ignore_case { lstrcmpiW(wide_left.as_ptr(), wide_right.as_ptr()) }
-        else { lstrcmpW(wide_left.as_ptr(), wide_right.as_ptr()) }
+    let left_units = wide_left.as_ptr();
+    let right_units = wide_right.as_ptr();
+    let result = if ignore_case {
+        // SAFETY: `left_units` and `right_units` are separate owned
+        // NUL-terminated UTF-16 strings that stay live for this call.
+        // lstrcmpiW compares them without regard to case and retains no
+        // pointer. Neither pointer is a guest address.
+        unsafe { lstrcmpiW(left_units, right_units) }
+    } else {
+        // SAFETY: `left_units` and `right_units` are separate owned
+        // NUL-terminated UTF-16 strings that stay live for this call.
+        // lstrcmpW compares them and retains no pointer. Neither pointer is
+        // a guest address.
+        unsafe { lstrcmpW(left_units, right_units) }
     };
     Ok(result.signum() as i16)
 }
