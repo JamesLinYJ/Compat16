@@ -51,7 +51,9 @@ impl ComApartment {
     fn initialize_sta() -> Result<Self, i32> {
         // Shell extensions may require STA. Balance both S_OK and S_FALSE;
         // never call CoUninitialize after a failed COM initialization.
-        // SAFETY: CoInitializeEx initializes COM on the calling thread.
+        // SAFETY: The reserved pointer is null. CoInitializeEx initializes COM
+        // as an STA on the calling thread and returns the HRESULT. It retains
+        // no pointer. No pointer is a guest address.
         let result = unsafe { CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32) };
         if result < 0 {
             return Err(result);
@@ -193,10 +195,12 @@ pub(super) fn execute(
                         )
                     })?;
             }
-            // SAFETY: DragAcceptFiles enables or disables drop on a window this thread owns.
-            unsafe {
-                DragAcceptFiles(hwnd, if accept { 1 } else { 0 });
-            }
+            let accept_files = if accept { 1 } else { 0 };
+            // SAFETY: `hwnd` is the non-null HWND of the mapped window this
+            // thread owns, resolved above. DragAcceptFiles enables file drop
+            // when `accept_files` is nonzero and disables it otherwise. It
+            // retains no pointer. No pointer is a guest address.
+            unsafe { DragAcceptFiles(hwnd, accept_files) };
             let mut state = state.borrow_mut();
             if accept {
                 state.drop_accepting_windows.insert(token);
@@ -342,19 +346,35 @@ fn win_exec(
     startup.dwFlags = STARTF_USESHOWWINDOW;
     startup.wShowWindow = show;
     let mut process = PROCESS_INFORMATION::default();
-    // SAFETY: CreateProcessW reads caller-owned strings and writes caller-owned startup and process records.
+    let application_name = application.as_ptr();
+    let command_line = command.as_mut_ptr();
+    let current_directory = cwd.as_ptr();
+    let startup_info = &startup;
+    let process_info = &mut process;
+    // SAFETY: `application_name` points at the NUL-terminated UTF-16
+    // application in `application`, which stays live for this call.
+    // `command_line` addresses the writable NUL-terminated UTF-16 command in
+    // `command`, which stays live. `environment` is null, or it points at the
+    // owned double-NUL-terminated UTF-16 block, which stays live. Both
+    // security descriptors are null and handles are not inherited.
+    // `current_directory` points at the NUL-terminated UTF-16 directory in
+    // `cwd`, which stays live. `startup_info` points at the initialized
+    // STARTUPINFOW in `startup`, and `process_info` addresses the initialized
+    // PROCESS_INFORMATION in `process`; both stay live. CreateProcessW reads
+    // those inputs, writes the process record, and returns nonzero when the
+    // process starts. It retains no pointer. No pointer is a guest address.
     let created = unsafe {
         CreateProcessW(
-            application.as_ptr(),
-            command.as_mut_ptr(),
+            application_name,
+            command_line,
             std::ptr::null(),
             std::ptr::null(),
             0,
             flags,
             environment,
-            cwd.as_ptr(),
-            &startup,
-            &mut process,
+            current_directory,
+            startup_info,
+            process_info,
         )
     };
     if created == 0 {
@@ -375,13 +395,22 @@ fn win_exec(
             native_error: Some(error),
         }));
     }
-    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-    let owned = unsafe { OwnedHandle::from_raw_handle(process.hProcess as RawHandle) };
-    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-    let thread = unsafe { OwnedHandle::from_raw_handle(process.hThread as RawHandle) };
+    let process_handle = process.hProcess as RawHandle;
+    // SAFETY: `process_handle` is the non-null process HANDLE CreateProcessW
+    // just returned. This conversion takes ownership of that handle exactly
+    // once. It is not a guest address.
+    let owned = unsafe { OwnedHandle::from_raw_handle(process_handle) };
+    let thread_handle = process.hThread as RawHandle;
+    // SAFETY: `thread_handle` is the non-null thread HANDLE CreateProcessW
+    // just returned. This conversion takes ownership of that handle exactly
+    // once. It is not a guest address.
+    let thread = unsafe { OwnedHandle::from_raw_handle(thread_handle) };
     drop(thread);
-    // SAFETY: WaitForInputIdle waits on a process handle this owner holds.
-    let _ = unsafe { WaitForInputIdle(process.hProcess, 10_000) };
+    // SAFETY: `process_handle` stays open because `owned` still holds it.
+    // WaitForInputIdle waits up to 10 seconds for that process to become idle
+    // and returns the wait result. It retains no pointer. No pointer is a
+    // guest address.
+    let _ = unsafe { WaitForInputIdle(process_handle, 10_000) };
     let mut worker = state.borrow_mut();
     let lease = worker
         .shell_processes
@@ -419,10 +448,16 @@ fn receive_win_exec_sends(state: &Rc<RefCell<WorkerState>>) -> Result<(), Runtim
         .map(|queue| notifications::guest_retrieval_scope(queue, PM_NOREMOVE | PM_QS_SENDMESSAGE))
         .transpose()?;
     let mut message = MSG::default();
-    // SAFETY: PeekMessageW writes into a caller-owned MSG that outlives the call.
+    let message_slot = &mut message;
+    // SAFETY: `message_slot` addresses the initialized MSG in `message`, which
+    // stays live for this call. The window filter is null, so PeekMessageW
+    // inspects the calling thread's queue. It writes one message into
+    // `message_slot` when a sent message is present and returns whether one
+    // was found. The result is discarded. It retains no pointer. No pointer is
+    // a guest address.
     unsafe {
         PeekMessageW(
-            &mut message,
+            message_slot,
             std::ptr::null_mut(),
             0,
             0,
@@ -494,8 +529,16 @@ fn shell_execute_for_elevation(
     info.lpDirectory = cwd.as_ptr();
     info.lpClass = class.as_ptr();
     info.nShow = i32::from(show);
-    // SAFETY: `ShellExecuteExW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    let called = unsafe { ShellExecuteExW(&mut info) } != 0;
+    let execute_info = &mut info;
+    // SAFETY: `execute_info` addresses the initialized SHELLEXECUTEINFOW in
+    // `info`, which stays live for this call. Its verb, file, class, and
+    // directory pointers address the NUL-terminated UTF-16 buffers in `verb`,
+    // `file`, `class`, and `cwd`, which stay live. Its parameters pointer is
+    // null or addresses the NUL-terminated UTF-16 parameters, which stay live.
+    // SEE_MASK_NOASYNC makes the call synchronous. ShellExecuteExW reads that
+    // record, may write hInstApp and hProcess, and returns nonzero on success.
+    // It retains no pointer. No pointer is a guest address.
+    let called = unsafe { ShellExecuteExW(execute_info) } != 0;
     let native_error = crate::windows::win32_safe::last_error();
     let shell_status = info.hInstApp as usize;
     if called && shell_status > 32 {
@@ -505,8 +548,12 @@ fn shell_execute_for_elevation(
                 program_path,
             }));
         }
-        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-        let handle = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
+        let process_handle = info.hProcess as RawHandle;
+        // SAFETY: `process_handle` is the non-null process HANDLE
+        // ShellExecuteExW returned under SEE_MASK_NOCLOSEPROCESS. This
+        // conversion takes ownership of that handle exactly once. It is not a
+        // guest address.
+        let handle = unsafe { OwnedHandle::from_raw_handle(process_handle) };
         let mut worker = state.borrow_mut();
         let lease = worker
             .shell_processes
@@ -525,8 +572,12 @@ fn shell_execute_for_elevation(
         }));
     }
     if !info.hProcess.is_null() {
-        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-        let _unexpected = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
+        let unexpected = info.hProcess as RawHandle;
+        // SAFETY: `unexpected` is the non-null process HANDLE ShellExecuteExW
+        // returned after a failed activation. This conversion takes ownership
+        // of that handle exactly once so it is closed. It is not a guest
+        // address.
+        let _unexpected = unsafe { OwnedHandle::from_raw_handle(unexpected) };
     }
     let code = if shell_status > 0 && shell_status <= 32 {
         shell_status as u16
@@ -701,13 +752,26 @@ fn execute_file(
     // Shell association and error UI is owned by the native shell target and
     // is not enrolled in the ShellAbout modal scope; no cancellation guarantee
     // is made for any UI ShellExecuteEx may display.
-    // SAFETY: `ShellExecuteExW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    let called = unsafe { ShellExecuteExW(&mut info) } != 0;
+    let execute_info = &mut info;
+    // SAFETY: `execute_info` addresses the initialized SHELLEXECUTEINFOW in
+    // `info`, which stays live for this call. Its verb and file pointers
+    // address the NUL-terminated UTF-16 buffers in `operation` and `file`,
+    // which stay live. Its parameters and directory pointers are null or
+    // address the NUL-terminated UTF-16 buffers that stay live. `hwnd` is the
+    // resolved owner window, or null. SEE_MASK_NOASYNC makes the call
+    // synchronous. ShellExecuteExW reads that record, may write hInstApp and
+    // hProcess, and returns nonzero on success. It retains no pointer. No
+    // pointer is a guest address.
+    let called = unsafe { ShellExecuteExW(execute_info) } != 0;
     let status = info.hInstApp as usize;
     if called && status > 32 {
         if !info.hProcess.is_null() {
-            // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-            let owned = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
+            let process_handle = info.hProcess as RawHandle;
+            // SAFETY: `process_handle` is the non-null process HANDLE
+            // ShellExecuteExW returned under SEE_MASK_NOCLOSEPROCESS. This
+            // conversion takes ownership of that handle exactly once. It is
+            // not a guest address.
+            let owned = unsafe { OwnedHandle::from_raw_handle(process_handle) };
             let mut state = state.borrow_mut();
             let Some(lease) = state
                 .shell_processes
@@ -744,8 +808,12 @@ fn execute_file(
         map_shell_error(native_error)
     };
     if !info.hProcess.is_null() {
-        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-        let _unexpected = unsafe { OwnedHandle::from_raw_handle(info.hProcess as RawHandle) };
+        let unexpected = info.hProcess as RawHandle;
+        // SAFETY: `unexpected` is the non-null process HANDLE ShellExecuteExW
+        // returned after a failed activation. This conversion takes ownership
+        // of that handle exactly once so it is closed. It is not a guest
+        // address.
+        let _unexpected = unsafe { OwnedHandle::from_raw_handle(unexpected) };
     }
     retire_process_reservation(state, token);
     Ok(Win16HostShellExecutionResult::Execute(Err(
@@ -864,16 +932,19 @@ fn find_executable(
     // that exact executable's resolved path. This API call therefore handles
     // document association; Windows documents that association lookup may
     // start a DDE server.
-    // SAFETY: `FindExecutableW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    let instance = unsafe {
-        FindExecutableW(
-            file_wide.as_ptr(),
-            directory_wide
-                .as_deref()
-                .map_or(std::ptr::null(), |value| value.as_ptr()),
-            output.as_mut_ptr(),
-        )
-    };
+    let file_name = file_wide.as_ptr();
+    let directory_name = directory_wide
+        .as_deref()
+        .map_or(std::ptr::null(), |value| value.as_ptr());
+    let output_path = output.as_mut_ptr();
+    // SAFETY: `file_name` points at the NUL-terminated UTF-16 file in
+    // `file_wide`, which stays live for this call. `directory_name` is null or
+    // points at the NUL-terminated UTF-16 directory in `directory_wide`, which
+    // stays live. `output_path` addresses `MAX_PATH` initialized UTF-16 units
+    // in `output`, and that buffer stays live. FindExecutableW writes the
+    // associated executable path there and returns an instance value. It
+    // retains no pointer. No pointer is a guest address.
+    let instance = unsafe { FindExecutableW(file_name, directory_name, output_path) };
     let status = instance as usize;
     if status <= 32 {
         // Preserve the raw small error value, including zero, as permitted by
@@ -954,15 +1025,16 @@ fn about(
     // Its dialog has no private DLGPROC/HWND return, so the scoped modal hook
     // tracks only its real system-dialog activation and waits for API return.
     let call = super::super::win16_modal::with_native_modal(operation_id, || {
-        // SAFETY: `ShellAboutW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-        let shown = unsafe {
-            ShellAboutW(
-                hwnd,
-                app.as_ptr(),
-                other.as_ref().map_or(std::ptr::null(), Vec::as_ptr),
-                native_icon,
-            )
-        } != 0;
+        let app_title = app.as_ptr();
+        let other_text = other.as_ref().map_or(std::ptr::null(), Vec::as_ptr);
+        // SAFETY: `hwnd` is the resolved owner window, or null. `app_title`
+        // points at the NUL-terminated UTF-16 title in `app`, which stays live
+        // for this call. `other_text` is null or points at the NUL-terminated
+        // UTF-16 text in `other`, which stays live. `native_icon` is null or
+        // the HICON kept live by the icon lease. ShellAboutW reads those
+        // arguments, shows its dialog, and returns nonzero when shown. It
+        // retains no pointer. No pointer is a guest address.
+        let shown = unsafe { ShellAboutW(hwnd, app_title, other_text, native_icon) } != 0;
         let last_error = (!shown).then(|| crate::windows::win32_safe::last_error());
         (shown, last_error)
     })?;
@@ -1082,9 +1154,13 @@ fn map_shell_error(error: u32) -> u16 {
 fn process_is_running(process: &impl AsRawHandle) -> Result<bool, RuntimeError> {
     use windows_sys::Win32::Foundation::{WAIT_OBJECT_0, WAIT_TIMEOUT};
     use windows_sys::Win32::System::Threading::WaitForSingleObject;
-    // SAFETY: The exact owned process HANDLE stays borrowed for this zero-time
-    // wait. A process that exits with code 259 is still correctly terminated.
-    match unsafe { WaitForSingleObject(process.as_raw_handle(), 0) } {
+    // A process that exits with code 259 is still correctly terminated.
+    let process_handle = process.as_raw_handle();
+    // SAFETY: `process_handle` is the raw HANDLE of this owned process, and
+    // the owner keeps it open for this call. WaitForSingleObject waits zero
+    // milliseconds and returns the wait result. It retains no pointer. No
+    // pointer is a guest address.
+    match unsafe { WaitForSingleObject(process_handle, 0) } {
         WAIT_OBJECT_0 => Ok(false),
         WAIT_TIMEOUT => Ok(true),
         _ => Err(RuntimeError::with_source(Kind::HostFailure,

@@ -46,13 +46,22 @@ pub(super) fn resolve_executable_input(
         if directory.last() != Some(&0) {
             return Ok(None);
         }
-        // SAFETY: `PathCchCombineEx` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+        let output = combined.as_mut_ptr();
+        let capacity = combined.len();
+        let directory_path = directory.as_ptr();
+        let file_path = file.as_ptr();
+        // SAFETY: `output` addresses `capacity` initialized UTF-16 units in
+        // `combined`, and that buffer stays live for this call.
+        // `directory_path` and `file_path` point at the NUL-terminated UTF-16
+        // directory and file, which stay live. PathCchCombineEx writes the
+        // combined path into `output` and returns an HRESULT. It retains no
+        // pointer. No pointer is a guest address.
         let result = unsafe {
             PathCchCombineEx(
-                combined.as_mut_ptr(),
-                combined.len(),
-                directory.as_ptr(),
-                file.as_ptr(),
+                output,
+                capacity,
+                directory_path,
+                file_path,
                 PATHCCH_ALLOW_LONG_PATHS,
             )
         };
@@ -74,22 +83,29 @@ pub(super) fn resolve_executable_input(
         "reserve absolute SHELL input path",
     )?;
     full_path.fill(u16::MAX);
-    // SAFETY: GetFullPathNameW reads a caller-owned path and writes into a caller-owned buffer.
-    let length = unsafe {
-        GetFullPathNameW(
-            combined.as_ptr(),
-            full_path.len() as u32,
-            full_path.as_mut_ptr(),
-            std::ptr::null_mut(),
-        )
-    } as usize;
+    let path = combined.as_ptr();
+    let capacity = full_path.len() as u32;
+    let output = full_path.as_mut_ptr();
+    // SAFETY: `path` points at the NUL-terminated UTF-16 path in `combined`,
+    // which stays live for this call. `output` addresses `capacity` initialized
+    // UTF-16 units in `full_path`, and that buffer stays live. The file-part
+    // pointer is null. GetFullPathNameW writes the full path into `output` and
+    // returns the unit count, excluding the terminator. It retains no pointer.
+    // No pointer is a guest address.
+    let length = unsafe { GetFullPathNameW(path, capacity, output, std::ptr::null_mut()) } as usize;
     if length == 0 || length >= full_path.len() || full_path[length] != 0 {
         return Ok(None);
     }
     full_path.truncate(length + 1);
-    let mut binary_type = 0;
-    // SAFETY: `GetBinaryTypeW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    if unsafe { GetBinaryTypeW(full_path.as_ptr(), &mut binary_type) } == 0 {
+    let mut binary_type: u32 = 0;
+    let path = full_path.as_ptr();
+    let binary_type_slot = &mut binary_type;
+    // SAFETY: `path` points at the NUL-terminated UTF-16 path in `full_path`,
+    // which stays live for this call. `binary_type_slot` addresses the local
+    // `binary_type`, which stays live. GetBinaryTypeW writes the binary type
+    // there and returns nonzero on success. It retains no pointer. No pointer
+    // is a guest address.
+    if unsafe { GetBinaryTypeW(path, binary_type_slot) } == 0 {
         return Ok(None);
     }
     Ok(Some(full_path))
@@ -262,14 +278,16 @@ fn short_executable_path(full_path: &[u16]) -> Result<ShortPathLookup, RuntimeEr
         "reserve short SHELL executable path",
     )?;
     short_path.fill(u16::MAX);
-    // SAFETY: GetShortPathNameW reads a caller-owned path and writes into a caller-owned buffer.
-    let length = unsafe {
-        GetShortPathNameW(
-            full_path.as_ptr(),
-            short_path.as_mut_ptr(),
-            short_path.len() as u32,
-        )
-    } as usize;
+    let path = full_path.as_ptr();
+    let output = short_path.as_mut_ptr();
+    let capacity = short_path.len() as u32;
+    // SAFETY: `path` points at the NUL-terminated UTF-16 path in `full_path`,
+    // which stays live for this call. `output` addresses `capacity` initialized
+    // UTF-16 units in `short_path`, and that buffer stays live.
+    // GetShortPathNameW writes the short path into `output` and returns the
+    // unit count, excluding the terminator. It retains no pointer. No pointer
+    // is a guest address.
+    let length = unsafe { GetShortPathNameW(path, output, capacity) } as usize;
     if length == 0 {
         return Ok(ShortPathLookup::Unavailable(
             Win16HostShellPathEncodingCause::ShortAliasUnavailable {
@@ -289,9 +307,15 @@ fn short_executable_path(full_path: &[u16]) -> Result<ShortPathLookup, RuntimeEr
         ));
     }
     short_path.truncate(length + 1);
-    let mut binary_type = 0;
-    // SAFETY: `GetBinaryTypeW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    if unsafe { GetBinaryTypeW(short_path.as_ptr(), &mut binary_type) } == 0 {
+    let mut binary_type: u32 = 0;
+    let path = short_path.as_ptr();
+    let binary_type_slot = &mut binary_type;
+    // SAFETY: `path` points at the NUL-terminated UTF-16 path in `short_path`,
+    // which stays live for this call. `binary_type_slot` addresses the local
+    // `binary_type`, which stays live. GetBinaryTypeW writes the binary type
+    // there and returns nonzero on success. It retains no pointer. No pointer
+    // is a guest address.
+    if unsafe { GetBinaryTypeW(path, binary_type_slot) } == 0 {
         return Ok(ShortPathLookup::Unavailable(
             Win16HostShellPathEncodingCause::ShortAliasUnavailable {
                 last_error: (crate::windows::win32_safe::last_error()),
