@@ -85,8 +85,13 @@ impl GuestClipboardState {
         identity: Option<GlobalHandle>,
     ) -> bool {
         let Some(identity) = identity else { return false; };
+        // Caller-retained private formats stay owned by the guest. GlobalFree
+        // from WM_DESTROYCLIPBOARD must succeed; retirement then only forgets
+        // the record. System-owned entries still block that free.
         self.entries.values().chain(self.retired.iter().map(|owner| &owner.entry)).any(|entry|
-            entry.handle == Some(handle) && entry.identity == Some(identity))
+            entry.ownership.system_frees()
+                && entry.handle == Some(handle)
+                && entry.identity == Some(identity))
     }
 
     fn get(&self, format: u16) -> Option<&GuestClipboardEntry> {
@@ -689,6 +694,37 @@ mod clipboard_contract_tests {
         assert!(!clipboard_payload_matches(8, b"abcd", b"abc"));
         assert!(clipboard_payload_matches(1, b"ab\0xx", b"ab\0"));
         assert!(!clipboard_payload_matches(1, b"ab", b"ab\0"));
+    }
+
+    #[test]
+    fn clipboard_close_caller_retained_identity_does_not_block_owner_free() {
+        use guest_core::memory::Memory;
+        use guest_core::{OwnerId, PhysAddr};
+        use win16_abi::{AllocationFlags, GlobalHeap};
+
+        let mut memory = Memory::with_size(0x0010_0000).expect("guest memory");
+        let mut heap = GlobalHeap::new(PhysAddr(0x1000), 0x8000).unwrap();
+        let identity = heap.alloc(
+            &mut memory, OwnerId(1), 16, AllocationFlags::movable(),
+        ).unwrap();
+        let mut state = super::GuestClipboardState::default();
+        state.insert(0x0200, super::GuestClipboardEntry {
+            handle: Some(0x1111),
+            identity: Some(identity),
+            ownership: super::GuestClipboardOwnership::CallerRetained,
+            bytes: Some(vec![1, 2, 3, 4]),
+            native_sequence: None,
+        });
+        assert!(!state.owns_identity(0x1111, Some(identity)));
+        state.insert(1, super::GuestClipboardEntry {
+            handle: Some(0x2222),
+            identity: Some(identity),
+            ownership: super::GuestClipboardOwnership::TransferredToClipboard,
+            bytes: None,
+            native_sequence: None,
+        });
+        assert!(state.owns_identity(0x2222, Some(identity)));
+        assert!(!state.owns_identity(0x1111, Some(identity)));
     }
 }
 

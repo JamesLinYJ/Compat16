@@ -20,16 +20,13 @@ use windows_sys::Win32::System::DataExchange::{
     GetClipboardViewer, GetOpenClipboardWindow, IsClipboardFormatAvailable, OpenClipboard,
     SetClipboardData, SetClipboardViewer,
 };
-use windows_sys::Win32::System::Memory::{
-    GlobalAlloc, GlobalFlags, GlobalLock, GlobalSize, GlobalUnlock,
-};
+use windows_sys::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalSize, GlobalUnlock};
 use windows_sys::Win32::System::Ole::{CF_LOCALE, CF_OEMTEXT, CF_TEXT, CF_UNICODETEXT};
 
 use super::win16_window_worker::{self as worker, WorkerState};
 
 const GMEM_MOVEABLE: u32 = 0x0002;
 const GMEM_ZEROINIT: u32 = 0x0040;
-const GMEM_INVALID_HANDLE: u32 = 0x8000;
 const MAX_CLIPBOARD_BYTES: usize = 16 * 1024 * 1024;
 
 type SharedWorker = Rc<RefCell<WorkerState>>;
@@ -244,7 +241,7 @@ fn set_global_data(
     unsafe {
         GlobalUnlock(memory);
     }
-    if native_owner_may_keep_global(format) {
+    if caller_owns_native_global(format) {
         let reserved = RETAINED_NATIVE_BLOCKS.with(|slot| {
             slot.borrow_mut().handles.try_reserve(1).is_ok()
         });
@@ -266,10 +263,11 @@ fn set_global_data(
             GlobalFree(memory);
         }
         Ok(false)
-    } else if native_owner_may_keep_global(format) {
-        // Private formats are not freed by EmptyClipboard. The Win32
-        // CF_GDIOBJ range is documented both ways, so remember the block and
-        // release it only once the format is gone and the handle is still live.
+    } else if caller_owns_native_global(format) {
+        // Private formats are not freed by EmptyClipboard. This adapter
+        // allocated the block and frees it after the format is unpublished.
+        // System-owned formats, including 0x0300..=0x03FF, are left with
+        // Windows. GlobalFlags cannot prove a freed HGLOBAL was not reused.
         remember_retained_native_block(format, memory as usize);
         Ok(true)
     } else {
@@ -343,10 +341,11 @@ fn is_guest_legacy_text_format(format: u16) -> bool {
     format == CF_TEXT || format == CF_OEMTEXT
 }
 
-/// `CF_PRIVATEFIRST`..=`CF_PRIVATELAST`, and the Win32 `CF_GDIOBJ` range.
-/// EmptyClipboard does not reliably free these HGLOBALs.
-fn native_owner_may_keep_global(format: u16) -> bool {
-    (0x0200..=0x03ff).contains(&format)
+/// `CF_PRIVATEFIRST`..=`CF_PRIVATELAST`. The system does not free these
+/// HGLOBALs, so this adapter keeps the block it allocated. `0x0300`..=`0x03FF`
+/// is system-owned on Win32 and must not be reclaimed here.
+fn caller_owns_native_global(format: u16) -> bool {
+    (0x0200..=0x02ff).contains(&format)
 }
 
 fn select_priority_clipboard_format(
@@ -361,10 +360,6 @@ fn select_priority_clipboard_format(
     } else {
         -1
     }
-}
-
-fn native_global_was_freed(flags: u32) -> bool {
-    flags == GMEM_INVALID_HANDLE
 }
 
 struct RetainedNativeClipboardBlocks {
@@ -427,14 +422,9 @@ fn release_native_block(handle: usize) {
     if memory.is_null() {
         return;
     }
-    // SAFETY: GlobalFlags returns GMEM_INVALID_HANDLE when `memory` is not a
-    // live HGLOBAL. It does not free the object or follow a guest address.
-    let flags = unsafe { GlobalFlags(memory) };
-    if native_global_was_freed(flags) {
-        return;
-    }
-    // SAFETY: This adapter allocated `memory`, GlobalFlags still reports it,
-    // and the clipboard format that referenced it is no longer published.
+    // SAFETY: `memory` is an HGLOBAL this adapter allocated for a private
+    // clipboard format. Windows does not free that range, the format is no
+    // longer published, and the pointer is not a guest address.
     unsafe {
         GlobalFree(memory);
     }
@@ -541,12 +531,12 @@ mod placement_tests {
 
     #[test]
     fn clipboard_close_private_native_blocks_are_released_only_while_live() {
-        assert!(native_owner_may_keep_global(0x0200));
-        assert!(native_owner_may_keep_global(0x03ff));
-        assert!(!native_owner_may_keep_global(CF_TEXT));
-        assert!(!native_owner_may_keep_global(0x01ff));
-        assert!(native_global_was_freed(GMEM_INVALID_HANDLE));
-        assert!(!native_global_was_freed(GMEM_MOVEABLE));
+        assert!(caller_owns_native_global(0x0200));
+        assert!(caller_owns_native_global(0x02ff));
+        assert!(!caller_owns_native_global(0x0300));
+        assert!(!caller_owns_native_global(0x03ff));
+        assert!(!caller_owns_native_global(CF_TEXT));
+        assert!(!caller_owns_native_global(0x01ff));
     }
 }
 
