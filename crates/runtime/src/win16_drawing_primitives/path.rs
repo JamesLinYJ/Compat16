@@ -43,30 +43,42 @@ pub(super) fn execute(
                     point_types,
                 } => {
                     if result < 0 {
-                        return Ok(u32::from(u16::MAX));
+                        return Ok(get_path_failure());
                     }
+                    // Learn: GetPath returns the point count, or -1 when the
+                    // call fails. Win16 `int` is signed and 16 bits wide. A
+                    // host count outside -32768..=32767 fails with -1.
+                    let Ok(guest_count) = i16::try_from(result) else {
+                        return Ok(get_path_failure());
+                    };
                     if count == 0 {
                         // Size queries do not access the guest output pointers;
                         // the host reports a count with no returned arrays.
                         if !points.is_empty() || !point_types.is_empty() {
                             return Err(wrong_result("GetPath query buffers"));
                         }
-                        return Ok(result as u16 as u32);
+                        return Ok(u32::from(guest_count as u16));
                     }
                     let result_count =
-                        usize::try_from(result).map_err(|_| wrong_result("GetPath count"))?;
+                        usize::try_from(guest_count).map_err(|_| wrong_result("GetPath count"))?;
                     if result_count > count as usize
                         || points.len() != result_count
                         || point_types.len() != result_count
                     {
                         return Err(wrong_result("GetPath buffers"));
                     }
+                    // `POINT` stores two signed ints. A coordinate outside that
+                    // int fails the call with -1, and both guest arrays stay
+                    // unchanged. `DPtoLP` uses the same rule.
+                    if !path_points_fit(&points) {
+                        return Ok(get_path_failure());
+                    }
                     if let (Some(points_output), Some(types_output)) = (output_points, output_types)
                     {
                         state.write_drawing_points(memory, points_output, &points)?;
                         state.write_text_bytes(memory, types_output, &point_types)?;
                     }
-                    Ok(result as u16 as u32)
+                    Ok(u32::from(guest_count as u16))
                 }
                 _ => Err(wrong_result("GetPath")),
             }
@@ -184,4 +196,15 @@ pub(super) fn execute(
         }
         request => Err(wrong_result(unhandled_name(&request))),
     }
+}
+
+/// Learn returns -1 when `GetPath` fails. The Win16 result is that signed `int`.
+fn get_path_failure() -> u32 {
+    u32::from(u16::MAX)
+}
+
+fn path_points_fit(points: &[crate::Win16DrawingPoint]) -> bool {
+    points
+        .iter()
+        .all(|point| i16::try_from(point.x).is_ok() && i16::try_from(point.y).is_ok())
 }
