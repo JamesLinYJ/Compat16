@@ -178,9 +178,17 @@ fn disk_space(
     filesystem: &mut Filesystem,
     guest_path: &Win16HostFileSystemPath,
 ) -> Result<Option<Win16HostDiskSpace>, RuntimeError> {
-    let Some(_) = native_path(filesystem, guest_path, true, false)? else {
+    let Some(path) = native_path(filesystem, guest_path, true, false)? else {
         return Ok(None);
     };
+    // MSDN requires FILE_LIST_DIRECTORY on this path, so a file is not a
+    // volume query. Fail before reading another directory's free space.
+    // SAFETY: `path` is an owned, NUL-terminated UTF-16 name confined to the
+    // mounted volume. The call returns attributes or INVALID_FILE_ATTRIBUTES.
+    let attributes = unsafe { GetFileAttributesW(path.as_ptr()) };
+    if attributes == INVALID_FILE_ATTRIBUTES || attributes & FILE_ATTRIBUTE_DIRECTORY == 0 {
+        return Ok(None);
+    }
     let mut root = wide_z(filesystem.canonical_root.as_os_str());
     let mut sectors_per_cluster = 0;
     let mut bytes_per_sector = 0;

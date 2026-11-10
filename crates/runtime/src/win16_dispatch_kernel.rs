@@ -425,7 +425,17 @@ impl Win16State {
             },
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
                 win16_abi::Win16KernelRuntimeRequest::GetDriveType { drive },
-            )) => u32::from(self.drive_type(drive, host)?),
+            )) => {
+                // KERNEL.136 takes the Win3.1 drive index (A: = 0). The SDK
+                // returns 0 when the type cannot be determined. An index
+                // outside A:..Z: is not a drive whose root is missing, so it
+                // must not be reported as DRIVE_NO_ROOT_DIR (1).
+                if drive > 25 {
+                    0
+                } else {
+                    u32::from(self.drive_type(drive, host)?)
+                }
+            }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
                 win16_abi::Win16KernelModulesRequest::GetProcAddress { module, procedure },
             )) => {
