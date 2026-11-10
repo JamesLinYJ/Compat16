@@ -127,11 +127,19 @@ pub(crate) fn set_double_click_time(
     Ok(host.win16_set_double_click_time(u32::from(milliseconds))? as u16 as u32)
 }
 
-/// USER.169 `GetCaretBlinkTime`: preserve the Win16 16-bit result.
+/// USER.169 `GetCaretBlinkTime`. Windows 3.1 `UINT` is an unsigned 16-bit
+/// millisecond count. Learn returns that count on success and zero when the
+/// call fails. `INFINITE` means the caret does not blink, and it does not fit
+/// this word. A host value outside `0..=65535` returns 0 instead of the low
+/// 16 bits. A count that fits is unchanged.
 pub(crate) fn get_caret_blink_time(
     host: &mut impl RuntimeHost,
 ) -> Result<u32, RuntimeError> {
-    Ok(host.win16_get_caret_blink_time()? as u16 as u32)
+    let milliseconds = host.win16_get_caret_blink_time()?;
+    let Ok(milliseconds) = u16::try_from(milliseconds) else {
+        return Ok(0);
+    };
+    Ok(u32::from(milliseconds))
 }
 
 /// USER.168 `SetCaretBlinkTime`: the SDK declares a void result.
