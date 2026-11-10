@@ -117,10 +117,33 @@ impl Win16State {
             }
             return Ok(1);
         }
+        if matches!(mode, BitmapDimensionMode::LegacyGet) {
+            // Windows 3.1 Programmer's Reference, Volume 2: GDI.162 returns
+            // the width in the low word and the height in the high word.
+            // Both are signed ints, in 0.1 mm units. Zero is the published
+            // result when those dimensions are unavailable. Learn stores the
+            // same fields as 32-bit SIZE members and returns zero on failure.
+            // A LONG outside the signed int is not that word, so the call
+            // returns zero instead of the truncated bits.
+            return Ok(legacy_bitmap_dimension(success, x, y));
+        }
         Ok(if success {
             pack_words(x as i16, y as i16)
         } else {
             0
         })
     }
+}
+
+fn legacy_bitmap_dimension(success: bool, width: i32, height: i32) -> u32 {
+    if !success {
+        return 0;
+    }
+    let Ok(width) = i16::try_from(width) else {
+        return 0;
+    };
+    let Ok(height) = i16::try_from(height) else {
+        return 0;
+    };
+    pack_words(width, height)
 }
