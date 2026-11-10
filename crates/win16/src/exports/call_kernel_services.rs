@@ -47,16 +47,8 @@ pub(super) fn decode(
         if ordinal == 142 {
             return Ok(Some(Win16ApiRequest::Kernel(
                 super::Win16KernelRequest::Profiles(
-                    super::Win16KernelProfilesRequest::GetProfileString {
-                        section: None,
-                        key: None,
-                        default_value: None,
-                        output_buffer: Some(checked_output_buffer(
-                            dword_argument(arguments, 0)?,
-                            word_argument(arguments, 1)?,
-                            selectors,
-                            memory,
-                        )?),
+                    super::Win16KernelProfilesRequest::GetProfileSectionNames {
+                        output_buffer: section_names_buffer(0, 1, arguments, selectors, memory)?,
                     },
                 ),
             )));
@@ -64,16 +56,8 @@ pub(super) fn decode(
         if ordinal == 143 {
             return Ok(Some(Win16ApiRequest::Kernel(
                 super::Win16KernelRequest::Profiles(
-                    super::Win16KernelProfilesRequest::GetPrivateProfileString {
-                        section: None,
-                        key: None,
-                        default_value: None,
-                        output_buffer: Some(checked_output_buffer(
-                            dword_argument(arguments, 0)?,
-                            word_argument(arguments, 1)?,
-                            selectors,
-                            memory,
-                        )?),
+                    super::Win16KernelProfilesRequest::GetPrivateProfileSectionNames {
+                        output_buffer: section_names_buffer(0, 1, arguments, selectors, memory)?,
                         filename: read_nullable_far_string(
                             dword_argument(arguments, 2)?,
                             selectors,
@@ -153,4 +137,26 @@ pub(super) fn decode(
         }
     }
     Ok(None)
+}
+
+/// Section-name queries use an unsigned length. Zero copies nothing and does
+/// not read the guest pointer.
+fn section_names_buffer(
+    pointer_index: usize,
+    capacity_index: usize,
+    arguments: &[Win16Argument],
+    selectors: &SelectorTable,
+    memory: &impl GuestMemory,
+) -> Result<Option<crate::Win16OutputBuffer>, Win16Error> {
+    let capacity = word_argument(arguments, capacity_index)?;
+    if capacity == 0 {
+        return Ok(None);
+    }
+    checked_output_buffer(
+        dword_argument(arguments, pointer_index)?,
+        capacity,
+        selectors,
+        memory,
+    )
+    .map(Some)
 }

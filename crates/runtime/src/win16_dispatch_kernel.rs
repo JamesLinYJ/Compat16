@@ -645,23 +645,35 @@ impl Win16State {
                     default_value,
                     filename,
                 },
-            )) => host.win16_profile_int(
-                section.as_deref(),
-                key.as_deref(),
-                i32::from(default_value),
-                &self.private_profile_path(filename.as_deref(), host)?,
-            )?,
+            )) => {
+                if section.is_none() || key.is_none() {
+                    u32::from(default_value as u16)
+                } else {
+                    host.win16_profile_int(
+                        section.as_deref(),
+                        key.as_deref(),
+                        i32::from(default_value),
+                        &self.private_profile_path(filename.as_deref(), host)?,
+                    )?
+                }
+            }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
                 win16_abi::Win16KernelProfilesRequest::GetProfileInt {
                     section,
                     key,
                     default_value,
                 },
-            )) => host.win16_system_profile_int(
-                section.as_deref(),
-                key.as_deref(),
-                i32::from(default_value),
-            )?,
+            )) => {
+                if section.is_none() || key.is_none() {
+                    u32::from(default_value as u16)
+                } else {
+                    host.win16_system_profile_int(
+                        section.as_deref(),
+                        key.as_deref(),
+                        i32::from(default_value),
+                    )?
+                }
+            }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
                 win16_abi::Win16KernelProfilesRequest::GetPrivateProfileString {
                     section,
@@ -693,6 +705,21 @@ impl Win16State {
                 output_buffer,
                 memory,
                 host,
+            )?,
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
+                win16_abi::Win16KernelProfilesRequest::GetProfileSectionNames { output_buffer },
+            )) => self.profile_section_names(None, output_buffer, memory, host, true)?,
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
+                win16_abi::Win16KernelProfilesRequest::GetPrivateProfileSectionNames {
+                    output_buffer,
+                    filename,
+                },
+            )) => self.profile_section_names(
+                filename.as_deref(),
+                output_buffer,
+                memory,
+                host,
+                false,
             )?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
                 win16_abi::Win16KernelProfilesRequest::WritePrivateProfileString {
