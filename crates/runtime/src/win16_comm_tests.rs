@@ -997,6 +997,26 @@ fn read_eof_event_flag_and_write_line_timeout_match_the_sdk() {
     assert_eq!((ax, dx), (1, DX));
     assert_eq!(read_guest(&runtime, status, 5)[0], CSTF_EOF);
 
+    host.pending = b"C".to_vec();
+    let later = guest(&mut runtime, 0x8_0580, &[0xa5; 2]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        204,
+        &[Slot::Word(0), Slot::Dword(later), Slot::Word(2)],
+    );
+    assert_eq!((ax, dx), (0, DX));
+    assert_eq!(read_guest(&runtime, later, 2), b"\xa5\xa5");
+    let status = guest(&mut runtime, 0x8_05a0, &[0xa5; 5]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        203,
+        &[Slot::Word(0), Slot::Dword(status)],
+    );
+    assert_eq!((ax, dx), (1, DX));
+    assert_eq!(read_guest(&runtime, status, 5)[0], CSTF_EOF);
+
     let mut timed = packed_dcb(0, 1, 0x13, 0);
     timed[8..10].copy_from_slice(&1_u16.to_le_bytes());
     let timed_far = guest(&mut runtime, 0x8_0600, &timed);

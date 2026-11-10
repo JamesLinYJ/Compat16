@@ -265,6 +265,7 @@ impl Win16State {
         };
         let token = port.host;
         let dcb = port.dcb;
+        let already_eof = port.eof;
         let pushed = if count == 0 {
             None
         } else {
@@ -308,7 +309,7 @@ impl Win16State {
             }
         }
         let host_len = data.len() - usize::from(pushed.is_some());
-        let viewed = interpret_comm_read(&dcb, &data, host_len);
+        let viewed = interpret_comm_read(&dcb, &data, host_len, already_eof);
         if !viewed.bytes.is_empty() {
             if let Err(error) = self.write_guest(memory, buffer, viewed.bytes) {
                 self.restore_unget(id, pushed);
@@ -779,12 +780,16 @@ struct CommReadView<'a> {
 }
 
 /// Non-binary reads stop at `EofChar` and do not return it or anything after it.
-/// Bytes after it are `CE_RXOVER`. `EvtChar` in the host bytes is `EV_RXFLAG`
-/// whether or not `fChEvt` is set; Q101419 says that flag is unused.
+/// Bytes after it are `CE_RXOVER`. Q101419 keeps that rule across later host
+/// reads: once EOF is latched, characters received afterward are overflow even
+/// when they arrive in a new buffer. The unget byte was placed by the caller.
+/// `EvtChar` in the host bytes is `EV_RXFLAG` whether or not `fChEvt` is set;
+/// Q101419 says that flag is unused.
 fn interpret_comm_read<'a>(
     dcb: &[u8; DCB16_LEN],
     data: &'a [u8],
     host_len: usize,
+    already_eof: bool,
 ) -> CommReadView<'a> {
     let host_start = data.len().saturating_sub(host_len);
     let rxflag = data[host_start..].contains(&dcb[22]);
@@ -794,6 +799,19 @@ fn interpret_comm_read<'a>(
             bytes: data,
             eof: false,
             overflow: false,
+            rxflag,
+        };
+    }
+    if already_eof {
+        let prefix = &data[..host_start];
+        let returned = prefix
+            .iter()
+            .position(|byte| *byte == dcb[21])
+            .map_or(prefix.len(), |index| index);
+        return CommReadView {
+            bytes: &prefix[..returned],
+            eof: true,
+            overflow: host_len > 0,
             rxflag,
         };
     }
