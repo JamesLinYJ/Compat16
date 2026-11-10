@@ -104,11 +104,17 @@ fn free_system_resources(selector: u16) -> u16 {
     }
 }
 
-/// USER.21 `GetDoubleClickTime`: Win16 `UINT` is returned as a 16-bit word.
+/// USER.21 `GetDoubleClickTime`. Windows 3.1 `UINT` is an unsigned 16-bit
+/// millisecond count. A host value outside that range returns 0 instead of
+/// the low 16 bits. A value that fits is unchanged.
 pub(crate) fn get_double_click_time(
     host: &mut impl RuntimeHost,
 ) -> Result<u32, RuntimeError> {
-    Ok(host.win16_get_double_click_time()? as u16 as u32)
+    let milliseconds = host.win16_get_double_click_time()?;
+    let Ok(milliseconds) = u16::try_from(milliseconds) else {
+        return Ok(0);
+    };
+    Ok(u32::from(milliseconds))
 }
 
 /// USER.20 `SetDoubleClickTime`: the SDK declares a void result.
@@ -166,6 +172,10 @@ pub(crate) fn get_dialog_base_units(
 #[cfg(test)]
 #[path = "win16_dispatch_any_popup_tests.rs"]
 mod any_popup_tests;
+
+#[cfg(test)]
+#[path = "win16_double_click_time_tests.rs"]
+mod double_click_time_tests;
 
 #[cfg(test)]
 mod tests {
