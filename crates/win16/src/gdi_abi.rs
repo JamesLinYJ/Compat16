@@ -1,4 +1,5 @@
-//! Fixed-width Win16 GDI structures and checked byte codecs.
+//! Fixed-width Win16 GDI structures, checked byte codecs, and the
+//! `GetFontData` copy decision.
 //!
 //! Layout references: Microsoft Windows 3.1 Programmer's Reference, Volume 3,
 //! entries `TEXTMETRIC`, `DEVMODE`, `LOGPEN`, `LOGFONT`, `LOGBRUSH`, and
@@ -382,4 +383,43 @@ fn gdi_wire_bytes<const N: usize>(bytes: &[u8]) -> Result<[u8; N], GdiAbiError> 
 
 fn narrow_i16(value: i32) -> i16 {
     value.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16
+}
+
+/// How Win16 `GetFontData` uses a table whose size is already known.
+///
+/// Win32 `GetFontData` returns `GDI_ERROR` (`0xFFFFFFFF`) when the call fails.
+/// The Win16 result of a failed call is zero. Programmer's Reference Volume 2
+/// and the Win3.1 `CDC::GetFontData` text return zero when `dwOffset` is at
+/// or beyond the table. A NULL buffer or a zero `cbData` returns the table
+/// size. A copy longer than the bytes that remain fails with zero and does
+/// not publish a partial buffer. A request that fits copies that many bytes.
+///
+/// https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-getfontdata
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Win16FontDataPlan {
+    /// Guest result is zero and no bytes are copied.
+    Failure,
+    /// `cbData` is zero or the buffer is NULL. Return the table size.
+    TableSize,
+    /// Copy exactly `len` bytes starting at the requested offset.
+    Copy { len: u32 },
+}
+
+pub fn plan_win16_font_data(
+    table_size: u32,
+    offset: u32,
+    byte_count: u32,
+    copy_buffer: bool,
+) -> Win16FontDataPlan {
+    if offset >= table_size {
+        return Win16FontDataPlan::Failure;
+    }
+    if !copy_buffer || byte_count == 0 {
+        return Win16FontDataPlan::TableSize;
+    }
+    let available = table_size - offset;
+    if byte_count > available {
+        return Win16FontDataPlan::Failure;
+    }
+    Win16FontDataPlan::Copy { len: byte_count }
 }

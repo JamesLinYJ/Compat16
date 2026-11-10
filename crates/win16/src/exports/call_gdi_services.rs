@@ -131,5 +131,9 @@ fn font_resource_input(
 mod char_width_tests;
 
 #[cfg(test)]
+#[path = "call_get_font_data_tests.rs"]
+mod font_data_tests;
+
+#[cfg(test)]
 #[path = "call_scalable_font_tests.rs"]
 mod scalable_font_tests;
