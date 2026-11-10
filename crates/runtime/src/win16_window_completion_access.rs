@@ -203,6 +203,10 @@ impl WindowProjectionAccess<'_> {
                 let parent = guest_window(self, parent)?;
                 (parent, u32::from(hit_test) | (u32::from(mouse_message) << 16))
             }
+            Win16WindowInputMessage::NextDialogControl { direction, control, control_form } => {
+                let control = if control_form { guest_window(self, control)? } else { 0 };
+                Win16WindowInputMessage::next_dialog_guest_params(direction, control, control_form)
+            }
         };
         Ok((input.message_id(), w_param, l_param))
     }
