@@ -101,10 +101,16 @@ fn target(
         }
         Win16ProfilePath::WindowsDirectory(name) => {
             let mut directory = vec![0u16; 32768];
-            // SAFETY: `GetWindowsDirectoryW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+            let directory_buffer = directory.as_mut_ptr();
+            let directory_capacity = directory.len() as u32;
+            // SAFETY: `directory_buffer` addresses `directory_capacity` writable
+            // UTF-16 units in `directory`, which stays live for this call.
+            // GetWindowsDirectoryW writes the Windows directory and returns the
+            // character count excluding the terminating null, the required size
+            // when the buffer is too small, or zero on failure. It retains no
+            // pointer. No pointer is a guest address.
             let length =
-                unsafe { GetWindowsDirectoryW(directory.as_mut_ptr(), directory.len() as u32) }
-                    as usize;
+                unsafe { GetWindowsDirectoryW(directory_buffer, directory_capacity) } as usize;
             if length == 0 || length >= directory.len() {
                 return Err(invalid(DosErrorCode::PathNotFound));
             }
@@ -256,8 +262,11 @@ struct Snapshot {
 impl Snapshot {
     fn new(wide: &[u16]) -> Result<Self, RuntimeError> {
         let mut guid = windows_sys::core::GUID::default();
-        // SAFETY: `CoCreateGuid` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-        if unsafe { CoCreateGuid(&mut guid) } < 0 {
+        let guid_slot = &mut guid;
+        // SAFETY: `guid_slot` addresses the initialized GUID in `guid`, which
+        // stays live for this call. CoCreateGuid writes a new GUID and returns
+        // an HRESULT. It retains no pointer. No pointer is a guest address.
+        if unsafe { CoCreateGuid(guid_slot) } < 0 {
             return Err(io_error(io::Error::last_os_error()));
         }
         let name = std::env::temp_dir().join(format!(
@@ -269,12 +278,19 @@ impl Snapshot {
         // directory ACL. CREATE_NEW atomically reserves the unique host name.
         let sddl: Vec<u16> = "D:P(A;;FA;;;OW)".encode_utf16().chain(Some(0)).collect();
         let mut descriptor: PSECURITY_DESCRIPTOR = std::ptr::null_mut();
-        // SAFETY: `ConvertStringSecurityDescriptorToSecurityDescriptorW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+        let sddl_text = sddl.as_ptr();
+        let descriptor_slot = &mut descriptor;
+        // SAFETY: `sddl_text` points at the owned NUL-terminated UTF-16 SDDL in
+        // `sddl`, which stays live for this call. `descriptor_slot` addresses
+        // the null `descriptor` slot, which stays live. The size pointer is
+        // null and the revision is 1. The call allocates a security descriptor,
+        // writes it through `descriptor_slot`, and returns nonzero on success.
+        // It retains no caller pointer. No pointer is a guest address.
         if unsafe {
             ConvertStringSecurityDescriptorToSecurityDescriptorW(
-                sddl.as_ptr(),
+                sddl_text,
                 1,
-                &mut descriptor,
+                descriptor_slot,
                 std::ptr::null_mut(),
             )
         } == 0
@@ -286,27 +302,41 @@ impl Snapshot {
             lpSecurityDescriptor: descriptor,
             bInheritHandle: 0,
         };
-        // SAFETY: CreateFileW reads a caller-owned path that stays live for the call.
+        let path_name = path.as_ptr();
+        let security_attributes = &security;
+        // SAFETY: `path_name` points at the owned NUL-terminated UTF-16 path in
+        // `path`, which stays live for this call. `security_attributes` points
+        // at the initialized SECURITY_ATTRIBUTES in `security`, whose
+        // descriptor is the allocation just stored in `descriptor`, and that
+        // record stays live. The template handle is null. CreateFileW returns
+        // the new file handle, or INVALID_HANDLE_VALUE on failure. It retains
+        // no pointer. No pointer is a guest address.
         let handle = unsafe {
             CreateFileW(
-                path.as_ptr(),
+                path_name,
                 GENERIC_READ | GENERIC_WRITE,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
-                &security,
+                security_attributes,
                 CREATE_NEW,
                 FILE_ATTRIBUTE_TEMPORARY,
                 std::ptr::null_mut(),
             )
         };
         let error = io::Error::last_os_error();
-        // SAFETY: LocalFree releases a pointer this owner obtained from the API that produced it.
+        // SAFETY: `descriptor` is the security descriptor
+        // ConvertStringSecurityDescriptorToSecurityDescriptorW just allocated.
+        // LocalFree releases that allocation exactly once and returns the
+        // result, which is discarded. It retains no pointer. It is not a guest
+        // address.
         unsafe {
             LocalFree(descriptor);
         }
         if handle == INVALID_HANDLE_VALUE {
             return Err(io_error(error));
         }
-        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+        // SAFETY: `handle` is the file HANDLE CreateFileW just returned, and it
+        // is not INVALID_HANDLE_VALUE. This conversion takes ownership of that
+        // handle exactly once. It is not a guest address.
         let file = unsafe { File::from_raw_handle(handle) };
         let mut snapshot = Self {
             path,
@@ -323,15 +353,21 @@ impl Snapshot {
     }
 
     fn flush_cache(&self) -> bool {
-        // SAFETY: `WritePrivateProfileStringW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-        unsafe {
+        let profile_path = self.path.as_ptr();
+        // SAFETY: The section, key, and value pointers are null, which flushes
+        // the profile cache. `profile_path` points at the owned NUL-terminated
+        // UTF-16 temporary path in `self.path`, which stays live for this call.
+        // WritePrivateProfileStringW returns nonzero when the flush succeeds
+        // and retains no pointer. No pointer is a guest address.
+        let flushed = unsafe {
             WritePrivateProfileStringW(
                 std::ptr::null(),
                 std::ptr::null(),
                 std::ptr::null(),
-                self.path.as_ptr(),
-            ) != 0
-        }
+                profile_path,
+            )
+        };
+        flushed != 0
     }
 
     fn close(&mut self) -> Result<(), RuntimeError> {
