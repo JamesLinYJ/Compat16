@@ -92,10 +92,12 @@ impl LiveFindReplaceDialog {
     }
 
     fn flags(&self) -> u32 {
-        // SAFETY: Native callbacks run synchronously on this UI thread. The
-        // FINDREPLACEW lives in UnsafeCell, so this raw read does not create a
-        // Rust reference that aliases USER's native writes.
-        unsafe { ptr::addr_of!((*self.native_ptr()).Flags).read() }
+        let native = self.native_ptr();
+        // SAFETY: `native` points at this record's FINDREPLACEW in UnsafeCell.
+        // The read copies `Flags` on this UI thread and does not create a Rust
+        // reference that aliases USER's native writes. The record stays live
+        // for this read and is not a guest address.
+        unsafe { ptr::addr_of!((*native).Flags).read() }
     }
 
     fn snapshot(
@@ -103,16 +105,26 @@ impl LiveFindReplaceDialog {
         state: &Rc<RefCell<WorkerState>>,
     ) -> Result<Win16HostFindReplaceNotification, RuntimeError> {
         let native = self.native_ptr();
-        // SAFETY: These fields are read through raw pointers while the native
-        // API is suspended in its same-thread owner-window callback.
-        let (find_pointer, replace_pointer, find_len, replace_len) = unsafe {
-            (
-                ptr::addr_of!((*native).lpstrFindWhat).read(),
-                ptr::addr_of!((*native).lpstrReplaceWith).read(),
-                usize::from(ptr::addr_of!((*native).wFindWhatLen).read()),
-                usize::from(ptr::addr_of!((*native).wReplaceWithLen).read()),
-            )
-        };
+        // SAFETY: `native` points at this record's FINDREPLACEW in UnsafeCell.
+        // The read copies `lpstrFindWhat` while COMMDLG is suspended in its
+        // same-thread owner-window callback. The record stays live for this
+        // read and is not a guest address.
+        let find_pointer = unsafe { ptr::addr_of!((*native).lpstrFindWhat).read() };
+        // SAFETY: `native` points at this record's FINDREPLACEW in UnsafeCell.
+        // The read copies `lpstrReplaceWith` while COMMDLG is suspended in its
+        // same-thread owner-window callback. The record stays live for this
+        // read and is not a guest address.
+        let replace_pointer = unsafe { ptr::addr_of!((*native).lpstrReplaceWith).read() };
+        // SAFETY: `native` points at this record's FINDREPLACEW in UnsafeCell.
+        // The read copies `wFindWhatLen` while COMMDLG is suspended in its
+        // same-thread owner-window callback. The record stays live for this
+        // read and is not a guest address.
+        let find_len = usize::from(unsafe { ptr::addr_of!((*native).wFindWhatLen).read() });
+        // SAFETY: `native` points at this record's FINDREPLACEW in UnsafeCell.
+        // The read copies `wReplaceWithLen` while COMMDLG is suspended in its
+        // same-thread owner-window callback. The record stays live for this
+        // read and is not a guest address.
+        let replace_len = usize::from(unsafe { ptr::addr_of!((*native).wReplaceWithLen).read() });
         let expected_find_len = native_field_capacity(self.find_guest_capacity)?;
         let expected_replace_len = self
             .replace_guest_capacity
@@ -200,14 +212,16 @@ impl LiveFindReplaceDialog {
             }
         }
         let native = self.native_ptr();
-        // SAFETY: No native message is being dispatched while the synchronous
-        // host-to-guest callback completion applies this owned update.
-        let (find_pointer, replace_pointer) = unsafe {
-            (
-                ptr::addr_of!((*native).lpstrFindWhat).read(),
-                ptr::addr_of!((*native).lpstrReplaceWith).read(),
-            )
-        };
+        // SAFETY: `native` points at this record's FINDREPLACEW in UnsafeCell.
+        // The read copies `lpstrFindWhat` while no native message is being
+        // dispatched for this synchronous update. The record stays live for
+        // this read and is not a guest address.
+        let find_pointer = unsafe { ptr::addr_of!((*native).lpstrFindWhat).read() };
+        // SAFETY: `native` points at this record's FINDREPLACEW in UnsafeCell.
+        // The read copies `lpstrReplaceWith` while no native message is being
+        // dispatched for this synchronous update. The record stays live for
+        // this read and is not a guest address.
+        let replace_pointer = unsafe { ptr::addr_of!((*native).lpstrReplaceWith).read() };
         if find_pointer != self.find_text_ptr() || replace_pointer != self.replace_text_ptr() {
             return Err(RuntimeError::new(
                 Kind::InternalInvariant,
@@ -258,31 +272,59 @@ impl LiveFindReplaceDialog {
             },
             None => None,
         };
-        // SAFETY: The destination pointers refer to stable UnsafeCell UTF-16
-        // arrays owned by this live record; guest byte capacities and W-unit
-        // lengths were checked above.
-        unsafe {
-            ptr::copy_nonoverlapping(find_wide.as_ptr(), self.find_text_ptr(), find_wide.len());
-            ptr::write_bytes(
-                self.find_text_ptr().add(find_wide.len()),
-                0,
-                self.backing.find_text.len() - find_wide.len(),
-            );
-            if let Some(wide) = replace_wide.as_ref() {
-                ptr::copy_nonoverlapping(wide.as_ptr(), self.replace_text_ptr(), wide.len());
-                let capacity = self
-                    .backing
-                    .replace_text
-                    .as_ref()
-                    .map_or(0, |value| value.len());
-                ptr::write_bytes(
-                    self.replace_text_ptr().add(wide.len()),
-                    0,
-                    capacity - wide.len(),
-                );
-            }
-            ptr::addr_of_mut!((*native).Flags).write(update.flags);
+        let find_source = find_wide.as_ptr();
+        let find_destination = self.find_text_ptr();
+        let find_units = find_wide.len();
+        // SAFETY: `find_source` addresses `find_units` UTF-16 units in the owned
+        // `find_wide` buffer. `find_destination` addresses this record's
+        // find-text UnsafeCell array, which the checks above proved can hold
+        // those units. The copy writes that many units. Both regions stay live,
+        // do not overlap, and neither pointer is a guest address.
+        unsafe { ptr::copy_nonoverlapping(find_source, find_destination, find_units) };
+        let find_padding = self.backing.find_text.len() - find_units;
+        // SAFETY: `find_destination` addresses this record's find-text
+        // UnsafeCell array. `find_units` is the copied prefix, which the checks
+        // above proved fits in that array, so this offset stays in range. The
+        // pointer is not a guest address.
+        let find_tail = unsafe { find_destination.add(find_units) };
+        // SAFETY: `find_tail` addresses the unused tail of this record's
+        // find-text UnsafeCell array. `find_padding` is the remaining unit
+        // count. The write zeros that tail. The array stays live for this
+        // write and is not a guest address.
+        unsafe { ptr::write_bytes(find_tail, 0, find_padding) };
+        if let Some(wide) = replace_wide.as_ref() {
+            let replace_source = wide.as_ptr();
+            let replace_destination = self.replace_text_ptr();
+            let replace_units = wide.len();
+            // SAFETY: `replace_source` addresses `replace_units` UTF-16 units in
+            // the owned replacement buffer. `replace_destination` addresses this
+            // record's replacement UnsafeCell array, which the checks above
+            // proved can hold those units. The copy writes that many units.
+            // Both regions stay live, do not overlap, and neither pointer is a
+            // guest address.
+            unsafe { ptr::copy_nonoverlapping(replace_source, replace_destination, replace_units) };
+            let capacity = self
+                .backing
+                .replace_text
+                .as_ref()
+                .map_or(0, |value| value.len());
+            let replace_padding = capacity - replace_units;
+            // SAFETY: `replace_destination` addresses this record's replacement
+            // UnsafeCell array. `replace_units` is the copied prefix, which the
+            // checks above proved fits in that array, so this offset stays in
+            // range. The pointer is not a guest address.
+            let replace_tail = unsafe { replace_destination.add(replace_units) };
+            // SAFETY: `replace_tail` addresses the unused tail of this record's
+            // replacement UnsafeCell array. `replace_padding` is the remaining
+            // unit count. The write zeros that tail. The array stays live for
+            // this write and is not a guest address.
+            unsafe { ptr::write_bytes(replace_tail, 0, replace_padding) };
         }
+        let flags = update.flags;
+        // SAFETY: `native` points at this record's FINDREPLACEW in UnsafeCell.
+        // The write stores `Flags` only. The record stays live for this
+        // synchronous update and is not a guest address.
+        unsafe { ptr::addr_of_mut!((*native).Flags).write(flags) };
         Ok(())
     }
 }
@@ -399,13 +441,17 @@ pub(super) fn create(
     // The request record is visible to registered-message callbacks before
     // entering COMMDLG. The native API and any nested WndProc use raw pointers
     // into this Rc-owned UnsafeCell record; no Rust borrow crosses that call.
-    // SAFETY: ReplaceTextW reads a caller-owned FINDREPLACE that stays live for the dialog. FindTextW reads a caller-owned FINDREPLACE that stays live for the dialog.
-    let dialog = unsafe {
-        if record.replace {
-            ReplaceTextW(record.native_ptr())
-        } else {
-            FindTextW(record.native_ptr())
-        }
+    let native_record = record.native_ptr();
+    let dialog = if record.replace {
+        // SAFETY: `native_record` points at the caller-owned FINDREPLACEW.
+        // ReplaceTextW retains that pointer for the modeless dialog. The
+        // record stays live until the dialog ends and is not a guest address.
+        unsafe { ReplaceTextW(native_record) }
+    } else {
+        // SAFETY: `native_record` points at the caller-owned FINDREPLACEW.
+        // FindTextW retains that pointer for the modeless dialog. The record
+        // stays live until the dialog ends and is not a guest address.
+        unsafe { FindTextW(native_record) }
     };
     // Read immediately on the same worker thread as the native dialog call.
     let extended_error = super::commdlg_extended_error();
