@@ -141,16 +141,23 @@ pub(super) fn error_text(
     } else {
         wide.as_mut_ptr()
     };
-    // SAFETY: the null pointer is used only for zero capacity; otherwise the
-    // owned buffer remains writable for the exact size passed to WinMM.
-    let result = unsafe {
-        match direction {
-            Win16HostWaveDirection::Input => {
-                waveInGetErrorTextW(u32::from(error), pointer, capacity as u32)
-            }
-            Win16HostWaveDirection::Output => {
-                waveOutGetErrorTextW(u32::from(error), pointer, capacity as u32)
-            }
+    let text_capacity = capacity as u32;
+    let result = match direction {
+        Win16HostWaveDirection::Input => {
+            // SAFETY: `pointer` is null only when `capacity` is zero. Otherwise
+            // it addresses `capacity` writable UTF-16 units in the owned `wide`
+            // buffer, and that buffer stays live for this call.
+            // waveInGetErrorTextW writes those units and returns an MMRESULT.
+            // The pointer is a host address, not a guest address.
+            unsafe { waveInGetErrorTextW(u32::from(error), pointer, text_capacity) }
+        }
+        Win16HostWaveDirection::Output => {
+            // SAFETY: `pointer` is null only when `capacity` is zero. Otherwise
+            // it addresses `capacity` writable UTF-16 units in the owned `wide`
+            // buffer, and that buffer stays live for this call.
+            // waveOutGetErrorTextW writes those units and returns an MMRESULT.
+            // The pointer is a host address, not a guest address.
+            unsafe { waveOutGetErrorTextW(u32::from(error), pointer, text_capacity) }
         }
     };
     if result != MMSYSERR_NOERROR {
@@ -177,53 +184,74 @@ pub(super) fn error_text(
     Ok((result, bytes))
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `device` must be a live WinMM handle owned by the caller for this
+// synchronous call. A direction that does not match the handle variant returns
+// `MMSYSERR_INVALHANDLE` and performs no native call. The handle is a host
+// value, not a guest address.
 pub(super) unsafe fn get_device_id(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
 ) -> (u32, Option<u32>) {
     let mut device_id = 0_u32;
-    // SAFETY: the caller validates that the native handle variant matches
-    // `direction`; the native API writes one DWORD to this local variable.
-    let result = unsafe {
-        match (direction, device) {
-            (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
-                // The windows-sys signature is const although WinMM's
-                // waveInGetID contract writes the output identifier.
-                waveInGetID(*handle, ptr::addr_of_mut!(device_id).cast_const())
-            }
-            (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
-                waveOutGetID(*handle, ptr::addr_of_mut!(device_id))
-            }
-            _ => return (MMSYSERR_INVALHANDLE, None),
+    let result = match (direction, device) {
+        (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
+            let id = ptr::addr_of_mut!(device_id);
+            // SAFETY: `*handle` is the caller's live HWAVEIN, and `id` points
+            // at the local `device_id` DWORD, which stays live. windows-sys
+            // marks that output const, but waveInGetID writes one identifier
+            // there and retains no pointer. The handle and `id` are host
+            // values, not guest addresses.
+            unsafe { waveInGetID(*handle, id.cast_const()) }
         }
+        (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
+            let id = ptr::addr_of_mut!(device_id);
+            // SAFETY: `*handle` is the caller's live HWAVEOUT, and `id` points
+            // at the local `device_id` DWORD, which stays live. waveOutGetID
+            // writes one identifier there and retains no pointer. The handle
+            // and `id` are host values, not guest addresses.
+            unsafe { waveOutGetID(*handle, id) }
+        }
+        _ => return (MMSYSERR_INVALHANDLE, None),
     };
     (result, (result == MMSYSERR_NOERROR).then_some(device_id))
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `device` must be a live output WinMM handle owned by the caller for
+// this synchronous call. Any other direction, handle variant, or parameter
+// returns `MMSYSERR_INVALHANDLE` and performs no native call. The handle is a
+// host value, not a guest address.
 pub(super) unsafe fn get_parameter(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
     parameter: Win16HostWaveParameter,
 ) -> (u32, Option<u32>) {
     let mut value = 0_u32;
-    // SAFETY: the caller holds the exact live output handle and a local
-    // writable DWORD for the selected WinMM getter.
-    let result = unsafe {
-        match (direction, device, parameter) {
-            (
-                Win16HostWaveDirection::Output,
-                NativeWaveHandle::Output(handle),
-                Win16HostWaveParameter::Pitch,
-            ) => waveOutGetPitch(*handle, ptr::addr_of_mut!(value)),
-            (
-                Win16HostWaveDirection::Output,
-                NativeWaveHandle::Output(handle),
-                Win16HostWaveParameter::PlaybackRate,
-            ) => waveOutGetPlaybackRate(*handle, ptr::addr_of_mut!(value)),
-            _ => return (MMSYSERR_INVALHANDLE, None),
+    let result = match (direction, device, parameter) {
+        (
+            Win16HostWaveDirection::Output,
+            NativeWaveHandle::Output(handle),
+            Win16HostWaveParameter::Pitch,
+        ) => {
+            let output = ptr::addr_of_mut!(value);
+            // SAFETY: `*handle` is the caller's live HWAVEOUT, and `output`
+            // points at the local `value` DWORD, which stays live.
+            // waveOutGetPitch writes that DWORD and retains no pointer. The
+            // handle and `output` are host values, not guest addresses.
+            unsafe { waveOutGetPitch(*handle, output) }
         }
+        (
+            Win16HostWaveDirection::Output,
+            NativeWaveHandle::Output(handle),
+            Win16HostWaveParameter::PlaybackRate,
+        ) => {
+            let output = ptr::addr_of_mut!(value);
+            // SAFETY: `*handle` is the caller's live HWAVEOUT, and `output`
+            // points at the local `value` DWORD, which stays live.
+            // waveOutGetPlaybackRate writes that DWORD and retains no pointer.
+            // The handle and `output` are host values, not guest addresses.
+            unsafe { waveOutGetPlaybackRate(*handle, output) }
+        }
+        _ => return (MMSYSERR_INVALHANDLE, None),
     };
     (result, (result == MMSYSERR_NOERROR).then_some(value))
 }
@@ -257,28 +285,39 @@ pub(super) fn set_volume_by_id(device_id: u16, value: u32) -> u32 {
     unsafe { waveOutSetVolume(native_id, value) }
 }
 
+// SAFETY: `device` must be a live output WinMM handle owned by the caller for
+// this synchronous call. Any other direction, handle variant, or parameter
+// returns `MMSYSERR_INVALHANDLE` and performs no native call. `value` is a
+// scalar. The handle is a host value, not a guest address.
 pub(super) unsafe fn set_parameter(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
     parameter: Win16HostWaveParameter,
     value: u32,
 ) -> u32 {
-    // SAFETY: the caller holds the exact live output handle; all parameters
-    // are scalar WinMM values and no guest address crosses this boundary.
-    unsafe {
-        match (direction, device, parameter) {
-            (
-                Win16HostWaveDirection::Output,
-                NativeWaveHandle::Output(handle),
-                Win16HostWaveParameter::Pitch,
-            ) => waveOutSetPitch(*handle, value),
-            (
-                Win16HostWaveDirection::Output,
-                NativeWaveHandle::Output(handle),
-                Win16HostWaveParameter::PlaybackRate,
-            ) => waveOutSetPlaybackRate(*handle, value),
-            _ => MMSYSERR_INVALHANDLE,
+    match (direction, device, parameter) {
+        (
+            Win16HostWaveDirection::Output,
+            NativeWaveHandle::Output(handle),
+            Win16HostWaveParameter::Pitch,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT. waveOutSetPitch
+            // takes that handle and `value` by value and retains no pointer.
+            // The handle is a host value, not a guest address.
+            unsafe { waveOutSetPitch(*handle, value) }
         }
+        (
+            Win16HostWaveDirection::Output,
+            NativeWaveHandle::Output(handle),
+            Win16HostWaveParameter::PlaybackRate,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT.
+            // waveOutSetPlaybackRate takes that handle and `value` by value
+            // and retains no pointer. The handle is a host value, not a guest
+            // address.
+            unsafe { waveOutSetPlaybackRate(*handle, value) }
+        }
+        _ => MMSYSERR_INVALHANDLE,
     }
 }
 
@@ -291,20 +330,30 @@ pub(super) fn query_mappable(direction: Win16HostWaveDirection, device_id: u16) 
     // `DRV_QUERYMAPPABLE` is a system-intercepted scalar query: both message
     // parameters are specified as zero. WinMM's documented interface casts a
     // device ID to the corresponding wave handle type for this message.
-    // SAFETY: waveInMessage sends a scalar driver message. Both parameters are zero for this query. waveOutMessage sends a scalar driver message. Both parameters are zero for this query.
-    unsafe {
-        match direction {
-            Win16HostWaveDirection::Input => {
-                waveInMessage(device_id as HWAVEIN, DRV_QUERYMAPPABLE, 0, 0)
-            }
-            Win16HostWaveDirection::Output => {
-                waveOutMessage(device_id as HWAVEOUT, DRV_QUERYMAPPABLE, 0, 0)
-            }
+    match direction {
+        Win16HostWaveDirection::Input => {
+            let device = device_id as HWAVEIN;
+            // SAFETY: `device` is this function's device identifier cast into
+            // the handle slot. waveInMessage sends DRV_QUERYMAPPABLE with both
+            // parameters zero and does not dereference that slot. The value is
+            // not a guest address.
+            unsafe { waveInMessage(device, DRV_QUERYMAPPABLE, 0, 0) }
+        }
+        Win16HostWaveDirection::Output => {
+            let device = device_id as HWAVEOUT;
+            // SAFETY: `device` is this function's device identifier cast into
+            // the handle slot. waveOutMessage sends DRV_QUERYMAPPABLE with both
+            // parameters zero and does not dereference that slot. The value is
+            // not a guest address.
+            unsafe { waveOutMessage(device, DRV_QUERYMAPPABLE, 0, 0) }
         }
     }
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `format` must be null or point at a caller-owned WAVEFORMATEX that
+// stays live for this synchronous open. `callback` and `instance` are host
+// callback scalars supplied by the caller, not guest addresses. The returned
+// handle, when non-null, is owned by the caller.
 pub(super) unsafe fn open_native(
     direction: Win16HostWaveDirection,
     device_id: u32,
@@ -314,30 +363,40 @@ pub(super) unsafe fn open_native(
     instance: usize,
     flags: u32,
 ) -> (u32, NativeWaveHandle) {
-    // SAFETY: the caller owns the format storage and callback context for the
-    // complete synchronous open call. The output handle is local until return.
-    unsafe {
-        match direction {
-            Win16HostWaveDirection::Input => {
-                let mut handle: HWAVEIN = ptr::null_mut();
-                let output = if output_handle_present {
-                    &mut handle
-                } else {
-                    ptr::null_mut()
-                };
-                let result = waveInOpen(output, device_id, format, callback, instance, flags);
-                (result, NativeWaveHandle::Input(handle))
-            }
-            Win16HostWaveDirection::Output => {
-                let mut handle: HWAVEOUT = ptr::null_mut();
-                let output = if output_handle_present {
-                    &mut handle
-                } else {
-                    ptr::null_mut()
-                };
-                let result = waveOutOpen(output, device_id, format, callback, instance, flags);
-                (result, NativeWaveHandle::Output(handle))
-            }
+    match direction {
+        Win16HostWaveDirection::Input => {
+            let mut handle: HWAVEIN = ptr::null_mut();
+            let output = if output_handle_present {
+                &mut handle
+            } else {
+                ptr::null_mut()
+            };
+            // SAFETY: `format` is null or the caller's WAVEFORMATEX and stays
+            // live for this call. `output` is null or the local `handle`.
+            // `callback` and `instance` are host callback scalars that the
+            // caller keeps valid for the device lifetime. waveInOpen writes
+            // `handle` only when `output` is non-null. None of these values is
+            // a guest address.
+            let result =
+                unsafe { waveInOpen(output, device_id, format, callback, instance, flags) };
+            (result, NativeWaveHandle::Input(handle))
+        }
+        Win16HostWaveDirection::Output => {
+            let mut handle: HWAVEOUT = ptr::null_mut();
+            let output = if output_handle_present {
+                &mut handle
+            } else {
+                ptr::null_mut()
+            };
+            // SAFETY: `format` is null or the caller's WAVEFORMATEX and stays
+            // live for this call. `output` is null or the local `handle`.
+            // `callback` and `instance` are host callback scalars that the
+            // caller keeps valid for the device lifetime. waveOutOpen writes
+            // `handle` only when `output` is non-null. None of these values is
+            // a guest address.
+            let result =
+                unsafe { waveOutOpen(output, device_id, format, callback, instance, flags) };
+            (result, NativeWaveHandle::Output(handle))
         }
     }
 }
@@ -450,15 +509,27 @@ pub(super) fn write_header(
     loops: u32,
     flags: u32,
 ) {
-    // SAFETY: the caller passes a uniquely borrowed, live WAVEHDR stored in
-    // its stable Box. windows-sys packs this SDK structure to byte alignment.
-    unsafe {
-        ptr::addr_of_mut!((*header).lpData).write_unaligned(samples);
-        ptr::addr_of_mut!((*header).dwBufferLength).write_unaligned(length);
-        ptr::addr_of_mut!((*header).dwBytesRecorded).write_unaligned(bytes_recorded);
-        ptr::addr_of_mut!((*header).dwFlags).write_unaligned(flags);
-        ptr::addr_of_mut!((*header).dwLoops).write_unaligned(loops);
-    }
+    // SAFETY: `header` is the caller's uniquely borrowed live WAVEHDR.
+    // `lpData` is packed, so this stores `samples` with write_unaligned and
+    // does not create a misaligned reference. `samples` is a host pointer, not
+    // a guest address.
+    unsafe { ptr::addr_of_mut!((*header).lpData).write_unaligned(samples) };
+    // SAFETY: `header` is the caller's uniquely borrowed live WAVEHDR.
+    // `dwBufferLength` is packed, so this stores `length` with write_unaligned
+    // and does not create a misaligned reference.
+    unsafe { ptr::addr_of_mut!((*header).dwBufferLength).write_unaligned(length) };
+    // SAFETY: `header` is the caller's uniquely borrowed live WAVEHDR.
+    // `dwBytesRecorded` is packed, so this stores `bytes_recorded` with
+    // write_unaligned and does not create a misaligned reference.
+    unsafe { ptr::addr_of_mut!((*header).dwBytesRecorded).write_unaligned(bytes_recorded) };
+    // SAFETY: `header` is the caller's uniquely borrowed live WAVEHDR.
+    // `dwFlags` is packed, so this stores `flags` with write_unaligned and
+    // does not create a misaligned reference.
+    unsafe { ptr::addr_of_mut!((*header).dwFlags).write_unaligned(flags) };
+    // SAFETY: `header` is the caller's uniquely borrowed live WAVEHDR.
+    // `dwLoops` is packed, so this stores `loops` with write_unaligned and
+    // does not create a misaligned reference.
+    unsafe { ptr::addr_of_mut!((*header).dwLoops).write_unaligned(loops) };
 }
 
 impl NativeWaveBuffer {
@@ -472,65 +543,90 @@ impl NativeWaveBuffer {
     }
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `device` must be a live WinMM handle owned by the caller, and
+// `header` must be the caller's stable WAVEHDR, for this synchronous call. A
+// direction that does not match the handle variant returns
+// `MMSYSERR_INVALHANDLE` and performs no native call. Neither value is a guest
+// address.
 pub(super) unsafe fn prepare_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
     header: *mut WAVEHDR,
 ) -> u32 {
-    // SAFETY: the owner supplies the matching live handle and stable header.
-    unsafe {
-        match (direction, device) {
-            (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
-                waveInPrepareHeader(*handle, header, size_of::<WAVEHDR>() as u32)
-            }
-            (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
-                waveOutPrepareHeader(*handle, header, size_of::<WAVEHDR>() as u32)
-            }
-            _ => MMSYSERR_INVALHANDLE,
+    let header_size = size_of::<WAVEHDR>() as u32;
+    match (direction, device) {
+        (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
+            // SAFETY: `*handle` is the caller's live HWAVEIN and `header` is
+            // the caller's stable WAVEHDR. Both stay live. waveInPrepareHeader
+            // prepares that header and returns an MMRESULT. Neither value is a
+            // guest address.
+            unsafe { waveInPrepareHeader(*handle, header, header_size) }
         }
+        (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT and `header` is
+            // the caller's stable WAVEHDR. Both stay live. waveOutPrepareHeader
+            // prepares that header and returns an MMRESULT. Neither value is a
+            // guest address.
+            unsafe { waveOutPrepareHeader(*handle, header, header_size) }
+        }
+        _ => MMSYSERR_INVALHANDLE,
     }
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `device` must be a live WinMM handle owned by the caller for this
+// synchronous call. A direction that does not match the handle variant returns
+// `MMSYSERR_INVALHANDLE` and performs no native call. The handle is a host
+// value, not a guest address.
 pub(super) unsafe fn position_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
     requested_time: u32,
 ) -> (u32, Option<Win16HostWavePosition>) {
     let mut native = MMTIME::default();
-    // SAFETY: native is a writable, correctly sized MMTIME; the requested
-    // Win16 type is a scalar and WinMM writes only to this owned value.
+    // SAFETY: `native` is a writable, correctly sized MMTIME owned by this
+    // call. `wType` is packed, so this stores the scalar `requested_time`
+    // without a misaligned reference. WinMM has not been given this value yet.
     unsafe { ptr::addr_of_mut!(native.wType).write_unaligned(requested_time) };
-    let result = unsafe {
-        match (direction, device) {
-            (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
-                windows_sys::Win32::Media::Audio::waveInGetPosition(
-                    *handle,
-                    &mut native,
-                    size_of::<MMTIME>() as u32,
-                )
+    let time_size = size_of::<MMTIME>() as u32;
+    let result = match (direction, device) {
+        (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
+            // SAFETY: `*handle` is the caller's live HWAVEIN, and `native` is
+            // the local MMTIME that stays live. waveInGetPosition writes that
+            // record and retains no pointer. The handle is a host value, not
+            // a guest address.
+            unsafe {
+                windows_sys::Win32::Media::Audio::waveInGetPosition(*handle, &mut native, time_size)
             }
-            (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
+        }
+        (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT, and `native` is
+            // the local MMTIME that stays live. waveOutGetPosition writes that
+            // record and retains no pointer. The handle is a host value, not
+            // a guest address.
+            unsafe {
                 windows_sys::Win32::Media::Audio::waveOutGetPosition(
                     *handle,
                     &mut native,
-                    size_of::<MMTIME>() as u32,
+                    time_size,
                 )
             }
-            _ => return (MMSYSERR_INVALHANDLE, None),
         }
+        _ => return (MMSYSERR_INVALHANDLE, None),
     };
     if result != MMSYSERR_NOERROR {
         return (result, None);
     }
-    // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
+    // SAFETY: `native.wType` is a packed field of this local MMTIME. addr_of
+    // plus read_unaligned reads that field without a misaligned reference.
     let time_type = unsafe { ptr::addr_of!(native.wType).read_unaligned() };
     let mut value = [0_u8; 8];
     // MMTIME's union is eight bytes on both supported host architectures. Its
     // active discriminant is returned separately; the runtime projects the
     // Win16-sized union only after checking the guest output range.
-    // SAFETY: The source and destination are non-overlapping, and both spans were checked to cover the copied length.
+    // SAFETY: `native.u` is the packed union of this local MMTIME, and `value`
+    // is a separate eight-byte array. This copies exactly `value.len()` bytes
+    // from the union into that array. The spans do not overlap, and neither
+    // address is a guest address.
     unsafe {
         ptr::copy_nonoverlapping(
             ptr::addr_of!(native.u).cast::<u8>(),
@@ -541,131 +637,214 @@ pub(super) unsafe fn position_native(
     (result, Some(Win16HostWavePosition { time_type, value }))
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `device` must be a live WinMM handle owned by the caller, and
+// `header` must be the caller's prepared WAVEHDR, for this synchronous call.
+// A direction that does not match the handle variant returns
+// `MMSYSERR_INVALHANDLE` and performs no native call. Neither value is a guest
+// address.
 pub(super) unsafe fn submit_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
     header: *mut WAVEHDR,
 ) -> u32 {
-    // SAFETY: the owner supplies the matching live handle and prepared header.
-    unsafe {
-        match (direction, device) {
-            (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
-                waveInAddBuffer(*handle, header, size_of::<WAVEHDR>() as u32)
-            }
-            (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
-                waveOutWrite(*handle, header, size_of::<WAVEHDR>() as u32)
-            }
-            _ => MMSYSERR_INVALHANDLE,
+    let header_size = size_of::<WAVEHDR>() as u32;
+    match (direction, device) {
+        (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
+            // SAFETY: `*handle` is the caller's live HWAVEIN and `header` is
+            // the caller's prepared WAVEHDR. Both stay live. waveInAddBuffer
+            // queues that header and returns an MMRESULT. Neither value is a
+            // guest address.
+            unsafe { waveInAddBuffer(*handle, header, header_size) }
         }
+        (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT and `header` is
+            // the caller's prepared WAVEHDR. Both stay live. waveOutWrite
+            // queues that header and returns an MMRESULT. Neither value is a
+            // guest address.
+            unsafe { waveOutWrite(*handle, header, header_size) }
+        }
+        _ => MMSYSERR_INVALHANDLE,
     }
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `device` must be a live WinMM handle owned by the caller, and
+// `header` must be the caller's prepared WAVEHDR, for this synchronous call.
+// A direction that does not match the handle variant returns
+// `MMSYSERR_INVALHANDLE` and performs no native call. Neither value is a guest
+// address.
 pub(super) unsafe fn unprepare_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
     header: *mut WAVEHDR,
 ) -> u32 {
-    // SAFETY: the owner supplies the matching live handle and prepared header.
-    unsafe {
-        match (direction, device) {
-            (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
-                waveInUnprepareHeader(*handle, header, size_of::<WAVEHDR>() as u32)
-            }
-            (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
-                waveOutUnprepareHeader(*handle, header, size_of::<WAVEHDR>() as u32)
-            }
-            _ => MMSYSERR_INVALHANDLE,
+    let header_size = size_of::<WAVEHDR>() as u32;
+    match (direction, device) {
+        (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
+            // SAFETY: `*handle` is the caller's live HWAVEIN and `header` is
+            // the caller's prepared WAVEHDR. Both stay live.
+            // waveInUnprepareHeader releases that header and returns an
+            // MMRESULT. Neither value is a guest address.
+            unsafe { waveInUnprepareHeader(*handle, header, header_size) }
         }
+        (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT and `header` is
+            // the caller's prepared WAVEHDR. Both stay live.
+            // waveOutUnprepareHeader releases that header and returns an
+            // MMRESULT. Neither value is a guest address.
+            unsafe { waveOutUnprepareHeader(*handle, header, header_size) }
+        }
+        _ => MMSYSERR_INVALHANDLE,
     }
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `device` must be a live WinMM handle owned by the caller for this
+// synchronous call, and `direction` must name that handle's kind. A mismatch
+// returns `MMSYSERR_INVALHANDLE` and performs no native call. The handle is a
+// host value, not a guest address.
 pub(super) unsafe fn control_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
     command: Win16HostWaveControl,
 ) -> u32 {
-    // SAFETY: native handle type and direction are checked together.
-    unsafe {
-        match (direction, device, command) {
-            (
-                Win16HostWaveDirection::Input,
-                NativeWaveHandle::Input(handle),
-                Win16HostWaveControl::Close,
-            ) => waveInClose(*handle),
-            (
-                Win16HostWaveDirection::Input,
-                NativeWaveHandle::Input(handle),
-                Win16HostWaveControl::Start,
-            ) => waveInStart(*handle),
-            (
-                Win16HostWaveDirection::Input,
-                NativeWaveHandle::Input(handle),
-                Win16HostWaveControl::Stop,
-            ) => waveInStop(*handle),
-            (
-                Win16HostWaveDirection::Input,
-                NativeWaveHandle::Input(handle),
-                Win16HostWaveControl::Reset,
-            ) => waveInReset(*handle),
-            (
-                Win16HostWaveDirection::Output,
-                NativeWaveHandle::Output(handle),
-                Win16HostWaveControl::Close,
-            ) => waveOutClose(*handle),
-            (
-                Win16HostWaveDirection::Output,
-                NativeWaveHandle::Output(handle),
-                Win16HostWaveControl::Pause,
-            ) => waveOutPause(*handle),
-            (
-                Win16HostWaveDirection::Output,
-                NativeWaveHandle::Output(handle),
-                Win16HostWaveControl::Restart,
-            ) => waveOutRestart(*handle),
-            (
-                Win16HostWaveDirection::Output,
-                NativeWaveHandle::Output(handle),
-                Win16HostWaveControl::Reset,
-            ) => waveOutReset(*handle),
-            (
-                Win16HostWaveDirection::Output,
-                NativeWaveHandle::Output(handle),
-                Win16HostWaveControl::BreakLoop,
-            ) => waveOutBreakLoop(*handle),
-            _ => MMSYSERR_INVALHANDLE,
+    match (direction, device, command) {
+        (
+            Win16HostWaveDirection::Input,
+            NativeWaveHandle::Input(handle),
+            Win16HostWaveControl::Close,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEIN and stays owned
+            // until this call returns. waveInClose closes that device and
+            // returns an MMRESULT. The handle is a host value, not a guest
+            // address.
+            unsafe { waveInClose(*handle) }
         }
+        (
+            Win16HostWaveDirection::Input,
+            NativeWaveHandle::Input(handle),
+            Win16HostWaveControl::Start,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEIN. waveInStart
+            // takes that handle by value and returns an MMRESULT. The handle
+            // is a host value, not a guest address.
+            unsafe { waveInStart(*handle) }
+        }
+        (
+            Win16HostWaveDirection::Input,
+            NativeWaveHandle::Input(handle),
+            Win16HostWaveControl::Stop,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEIN. waveInStop takes
+            // that handle by value and returns an MMRESULT. The handle is a
+            // host value, not a guest address.
+            unsafe { waveInStop(*handle) }
+        }
+        (
+            Win16HostWaveDirection::Input,
+            NativeWaveHandle::Input(handle),
+            Win16HostWaveControl::Reset,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEIN. waveInReset
+            // takes that handle by value and returns an MMRESULT. The handle
+            // is a host value, not a guest address.
+            unsafe { waveInReset(*handle) }
+        }
+        (
+            Win16HostWaveDirection::Output,
+            NativeWaveHandle::Output(handle),
+            Win16HostWaveControl::Close,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT and stays owned
+            // until this call returns. waveOutClose closes that device and
+            // returns an MMRESULT. The handle is a host value, not a guest
+            // address.
+            unsafe { waveOutClose(*handle) }
+        }
+        (
+            Win16HostWaveDirection::Output,
+            NativeWaveHandle::Output(handle),
+            Win16HostWaveControl::Pause,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT. waveOutPause
+            // takes that handle by value and returns an MMRESULT. The handle
+            // is a host value, not a guest address.
+            unsafe { waveOutPause(*handle) }
+        }
+        (
+            Win16HostWaveDirection::Output,
+            NativeWaveHandle::Output(handle),
+            Win16HostWaveControl::Restart,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT. waveOutRestart
+            // takes that handle by value and returns an MMRESULT. The handle
+            // is a host value, not a guest address.
+            unsafe { waveOutRestart(*handle) }
+        }
+        (
+            Win16HostWaveDirection::Output,
+            NativeWaveHandle::Output(handle),
+            Win16HostWaveControl::Reset,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT. waveOutReset
+            // takes that handle by value and returns an MMRESULT. The handle
+            // is a host value, not a guest address.
+            unsafe { waveOutReset(*handle) }
+        }
+        (
+            Win16HostWaveDirection::Output,
+            NativeWaveHandle::Output(handle),
+            Win16HostWaveControl::BreakLoop,
+        ) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT. waveOutBreakLoop
+            // takes that handle by value and returns an MMRESULT. The handle
+            // is a host value, not a guest address.
+            unsafe { waveOutBreakLoop(*handle) }
+        }
+        _ => MMSYSERR_INVALHANDLE,
     }
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `device` must be a live WinMM handle owned by the caller for this
+// synchronous call, and `direction` must name that handle's kind. A mismatch
+// returns `MMSYSERR_INVALHANDLE` and performs no native call. The handle is a
+// host value, not a guest address.
 pub(super) unsafe fn reset_native(
     direction: Win16HostWaveDirection,
     device: &NativeWaveHandle,
 ) -> u32 {
-    // SAFETY: native handle type and direction are checked together.
-    unsafe {
-        match (direction, device) {
-            (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
-                waveInReset(*handle)
-            }
-            (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
-                waveOutReset(*handle)
-            }
-            _ => MMSYSERR_INVALHANDLE,
+    match (direction, device) {
+        (Win16HostWaveDirection::Input, NativeWaveHandle::Input(handle)) => {
+            // SAFETY: `*handle` is the caller's live HWAVEIN. waveInReset
+            // takes that handle by value and returns an MMRESULT. The handle
+            // is a host value, not a guest address.
+            unsafe { waveInReset(*handle) }
         }
+        (Win16HostWaveDirection::Output, NativeWaveHandle::Output(handle)) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT. waveOutReset
+            // takes that handle by value and returns an MMRESULT. The handle
+            // is a host value, not a guest address.
+            unsafe { waveOutReset(*handle) }
+        }
+        _ => MMSYSERR_INVALHANDLE,
     }
 }
 
-// SAFETY: Callers uphold the pointer and lifetime invariant required by this function. Pointers are host addresses, not guest addresses.
+// SAFETY: `device` must be a live WinMM handle owned by the caller until this
+// close returns. The handle is a host value, not a guest address.
 pub(super) unsafe fn close_native(device: &NativeWaveHandle) -> u32 {
-    // SAFETY: caller retains this handle until native Close returns success.
-    unsafe {
-        match device {
-            NativeWaveHandle::Input(handle) => waveInClose(*handle),
-            NativeWaveHandle::Output(handle) => waveOutClose(*handle),
+    match device {
+        NativeWaveHandle::Input(handle) => {
+            // SAFETY: `*handle` is the caller's live HWAVEIN and stays owned
+            // until this call returns. waveInClose closes that device and
+            // returns an MMRESULT. The handle is a host value, not a guest
+            // address.
+            unsafe { waveInClose(*handle) }
+        }
+        NativeWaveHandle::Output(handle) => {
+            // SAFETY: `*handle` is the caller's live HWAVEOUT and stays owned
+            // until this call returns. waveOutClose closes that device and
+            // returns an MMRESULT. The handle is a host value, not a guest
+            // address.
+            unsafe { waveOutClose(*handle) }
         }
     }
 }
