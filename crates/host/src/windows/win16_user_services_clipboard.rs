@@ -243,6 +243,8 @@ fn set_global_data(
     }
     if caller_owns_native_global(format) {
         let reserved = RETAINED_NATIVE_BLOCKS.with(|slot| {
+            // BTreeMap has no try_reserve on the pinned toolchain. HashMap does,
+            // and the format key does not depend on map order.
             slot.borrow_mut().handles.try_reserve(1).is_ok()
         });
         if !reserved {
@@ -353,7 +355,7 @@ fn select_priority_clipboard_format(
     mut available: impl FnMut(u16) -> bool,
     clipboard_is_empty: bool,
 ) -> i16 {
-    if let Some(format) = formats.iter().copied().find(|format| available(format)) {
+    if let Some(format) = formats.iter().copied().find(|format| available(*format)) {
         format as i16
     } else if clipboard_is_empty {
         0
@@ -363,7 +365,7 @@ fn select_priority_clipboard_format(
 }
 
 struct RetainedNativeClipboardBlocks {
-    handles: std::collections::BTreeMap<u16, usize>,
+    handles: std::collections::HashMap<u16, usize>,
 }
 
 impl Drop for RetainedNativeClipboardBlocks {
@@ -379,7 +381,7 @@ impl Drop for RetainedNativeClipboardBlocks {
 thread_local! {
     static RETAINED_NATIVE_BLOCKS: RefCell<RetainedNativeClipboardBlocks> =
         RefCell::new(RetainedNativeClipboardBlocks {
-            handles: std::collections::BTreeMap::new(),
+            handles: std::collections::HashMap::new(),
         });
 }
 
