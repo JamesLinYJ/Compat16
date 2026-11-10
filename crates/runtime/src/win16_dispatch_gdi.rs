@@ -76,7 +76,17 @@ impl Win16State {
                 self.execute_gdi_spool(request, memory, host)?
             }
             Win16ApiRequest::GdiServices(request) => self.execute_gdi_services(request, memory, host)?,
-            Win16ApiRequest::GdiInternal(request) => self.execute_gdi_internal(request, memory, host)?,
+            Win16ApiRequest::GdiInternal(request) => {
+                // GDI.613 is EnumFontFamiliesEx. The internal table still owns
+                // the gap result; this arm is the guest-visible call.
+                if request.ordinal == 613 {
+                    return self.begin_enum_font_families_ex(
+                        cpu, dos, memory, host, request,
+                        (return_selector, return_offset, return_sp),
+                    );
+                }
+                self.execute_gdi_internal(request, memory, host)?
+            }
             request @ (Win16ApiRequest::GdiDrawing(
                 win16_abi::Win16GdiDrawingRequest::AbortPath { .. },
             )
