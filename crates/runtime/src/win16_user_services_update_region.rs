@@ -4,10 +4,10 @@
 //! the host boundary. The continuation retains only checked guest output
 //! pointers and the guest ABI result shape; native identities remain opaque.
 //!
-//! ScrollDC preserves the native DC mapping and uses the existing update RECT
-//! coordinate saturation on return. Original Win16 behavior for coordinates
-//! outside the signed 16-bit range is unverified; saturation is a bounded
-//! bridge policy, not a claim of matching Win16 overflow behavior.
+//! ScrollDC preserves the native DC mapping. An update `RECT` edge outside
+//! the signed 16-bit range is not stored, and the API's own result word is
+//! returned unchanged. `GetUpdateRect` and `ScrollDC` report a nonempty
+//! region or a successful scroll, not whether every edge fit in a guest int.
 
 use guest_core::memory::Memory;
 use win16_abi::{Access, Rect16, Win16ReturnKind, exports::Win16UserUpdateRequest};

@@ -125,6 +125,21 @@ impl Win16State {
         self.window_handles.get(&guest).copied()
     }
 
+    /// GetDlgItemInt stores FALSE when the dialog is not a window.
+    /// A null `lpTranslated` writes nothing.
+    pub(super) fn store_untranslated_dialog_item(
+        &mut self,
+        translated_output: u32,
+        memory: &mut Memory,
+    ) -> Result<(), RuntimeError> {
+        if translated_output == 0 {
+            return Ok(());
+        }
+        let pointer = self.checked_pointer(translated_output, Access::Write, 2, memory)?;
+        let range = super::super::guest_ranges::GuestOutputRange::capture(self, memory, pointer, 2)?;
+        super::super::guest_ranges::commit_guest_output(self, memory, &range, &0u16.to_le_bytes())
+    }
+
     pub(super) fn checked_pointer(
         &self,
         far: u32,

@@ -693,15 +693,11 @@ pub(super) fn finish_update_region(
                 crate::Win16HostUpdateResult::Word(value)) => u32::from(*value),
             (super::super::user_services_update_region::UpdateResultKind::Rect,
                 crate::Win16HostUpdateResult::Rect { value, rect }) => {
-                if let (Some(output), Some(rect)) = (continuation.rect_output.as_ref(), rect) {
-                    let wire = win16_abi::Rect16 {
-                        left: super::super::user_services_paint::guest_coordinate(rect.left),
-                        top: super::super::user_services_paint::guest_coordinate(rect.top),
-                        right: super::super::user_services_paint::guest_coordinate(rect.right),
-                        bottom: super::super::user_services_paint::guest_coordinate(rect.bottom),
-                    }.encode();
+                if let (Some(output), Some(rect)) = (continuation.rect_output.as_ref(), rect)
+                    && let Some(wire) = super::super::user_services_paint::guest_rect(rect)
+                {
                     super::super::guest_ranges::commit_guest_output_with_selectors(
-                        access.selectors, memory, output, &wire,
+                        access.selectors, memory, output, &wire.encode(),
                     )?;
                     *phase = GuestOutputProjectionPhase::OutputCommitted;
                 }

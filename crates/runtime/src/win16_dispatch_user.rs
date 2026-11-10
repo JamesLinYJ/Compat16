@@ -810,6 +810,10 @@ mod map_window_points_tests;
 mod caret_tests;
 
 #[cfg(test)]
+#[path = "win16_dispatch_dialog_item_tests.rs"]
+mod dialog_item_tests;
+
+#[cfg(test)]
 #[path = "win16_dispatch_child_lookup_tests.rs"]
 mod child_lookup_tests;
 

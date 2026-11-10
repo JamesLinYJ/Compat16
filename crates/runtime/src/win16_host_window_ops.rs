@@ -90,12 +90,14 @@ pub enum Win16WindowTarget {
     Mapped(Win16HostWindow),
 }
 
-/// Native USER's two built-in caret shapes. No guest bitmap or address may
-/// cross this boundary; bitmap carets need a separate retained GDI owner.
+/// Native caret shape. `Solid` and `Gray` are USER's built-in shapes.
+/// `Bitmap` is an opaque GDI object token the host already retains. It is
+/// not a guest address and it is not a raw `HBITMAP`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Win16CaretShape {
     Solid,
     Gray,
+    Bitmap(crate::Win16HostGdiObject),
 }
 
 /// One synchronous native USER window operation. The host worker executes the

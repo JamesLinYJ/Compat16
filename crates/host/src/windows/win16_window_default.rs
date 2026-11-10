@@ -29,6 +29,32 @@ pub(super) mod mdi;
 #[path = "win16_window_dialog_default_init.rs"]
 mod dialog_init;
 
+/// A child window's `hMenu` is its control id. `IDC_STATIC` is -1 and is
+/// stored in a dialog template as the word `0xFFFF`. Other ids stay
+/// zero-extended.
+pub(super) fn native_child_menu(id: u16) -> *mut c_void {
+    let native = if id == 0xFFFF {
+        usize::MAX
+    } else {
+        usize::from(id)
+    };
+    native as *mut c_void
+}
+
+#[cfg(test)]
+mod child_menu_tests {
+    use super::native_child_menu;
+
+    #[test]
+    fn static_child_id_is_idc_static() {
+        assert_eq!(native_child_menu(0xFFFF) as usize, usize::MAX);
+        assert_eq!(native_child_menu(0) as usize, 0);
+        assert_eq!(native_child_menu(1) as usize, 1);
+        assert_eq!(native_child_menu(0x8000) as usize, 0x8000);
+        assert_eq!(native_child_menu(0xFFFE) as usize, 0xFFFE);
+    }
+}
+
 /// Apply DefWindowProcW using either a validated live native callback frame or
 /// entirely host-owned buffers reconstructed from the typed operation.
 pub(super) fn default_message(
@@ -1184,7 +1210,7 @@ fn default_creation(
         .text_codec
         .to_wide_z(&class.name[..class.name.len().saturating_sub(1)])?;
     let menu = if let Some(child_id) = data.child_id {
-        usize::from(child_id) as *mut c_void
+        native_child_menu(child_id)
     } else {
         match data.menu {
             Some(menu) => match state.borrow().menus.get(&menu).copied() {

@@ -126,6 +126,10 @@ pub(super) fn native_bitmap_tokens(
             } => unchecked.iter().chain(checked.iter()).copied().collect(),
             _ => std::collections::BTreeSet::new(),
         },
+        Win16WindowOperation::WindowCall(runtime::Win16WindowCall::CreateCaret {
+            shape: runtime::Win16CaretShape::Bitmap(bitmap),
+            ..
+        }) => [*bitmap].into_iter().collect(),
         _ => std::collections::BTreeSet::new(),
     }
 }

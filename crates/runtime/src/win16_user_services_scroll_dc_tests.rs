@@ -389,7 +389,7 @@ fn scroll_dc_source_consumption_retry_never_replays_committed_output() {
 }
 
 #[test]
-fn scroll_dc_output_uses_existing_coordinate_clamping_policy() {
+fn scroll_dc_out_of_range_update_rect_is_not_stored() {
     let (mut runtime, dc, region) = fixture();
     let pointer = far(&runtime);
     let return_to = prepare(&mut runtime, dc, region, 0, 0, pointer);
@@ -400,10 +400,6 @@ fn scroll_dc_output_uses_existing_coordinate_clamping_policy() {
         ..Default::default()
     };
     dispatch(&mut runtime, &mut host).unwrap();
-    // This protects the runtime's established policy, not a historical Win16
-    // overflow assertion. The native integration test uses in-range coordinates.
-    assert_eq!(read_rect(&runtime), Rect16 {
-        left: i16::MIN, top: i16::MAX, right: i16::MIN, bottom: i16::MAX,
-    });
+    assert_eq!(read_rect(&runtime), ORIGINAL);
     assert_return(&runtime, return_to, 1);
 }

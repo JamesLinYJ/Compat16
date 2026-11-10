@@ -182,6 +182,16 @@ fn read_scalar(native: HWND, field: Win16WindowDataField) -> Option<u32> {
 }
 
 fn write_scalar(native: HWND, field: Win16WindowDataField, value: u32, mask: u32) -> Option<u32> {
+    // GWW_ID replaces GWLP_ID. IDC_STATIC is the word 0xFFFF, which creation
+    // and GetDlgItem already pass as -1. Splicing that word into the previous
+    // long would store 65535, and renaming the control would keep the high
+    // bits of the old -1. WINDOWS.H defines IDC_STATIC as (-1).
+    // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setwindowlongptrw
+    if field == Win16WindowDataField::ControlId {
+        // `current` is not read. A word merge would keep the high bits of a
+        // previous IDC_STATIC id (-1) and would store 0xFFFF as 65535.
+        return store_long_ptr(native, field_index(field), control_id_bits(value, mask));
+    }
     if !matches!(mask, 0x0000_ffff | 0xffff_0000 | u32::MAX) {
         return None;
     }
@@ -194,14 +204,25 @@ fn write_scalar(native: HWND, field: Win16WindowDataField, value: u32, mask: u32
         (current & !mask) | (value & mask)
     };
 
-    // SAFETY: `native` is resolved on the USER worker; only a fixed scalar
-    // field is selected. `replacement` contains the 32-bit field bits, not a
-    // guest pointer or a Win16 handle.
+    store_long_ptr(native, index, replacement as isize)
+}
+
+/// `0xFFFF` is `IDC_STATIC` (`-1` in the pointer-sized id slot). Every other
+/// guest word replaces the whole id and is zero-extended. `mask` is the
+/// caller's word or long width; it is not combined with the previous
+/// `GWLP_ID`.
+fn control_id_bits(value: u32, _mask: u32) -> isize {
+    let id = value as u16;
+    if id == 0xFFFF { -1 } else { id as isize }
+}
+
+fn store_long_ptr(native: HWND, index: i32, replacement: isize) -> Option<u32> {
     (crate::windows::win32_safe::set_last_error(0));
     // On x86 windows-sys selects SetWindowLongW's i32 parameter; on 64-bit
-    // hosts the same binding uses isize. Preserve the scalar's native bits.
+    // hosts the same binding uses isize. A control id of -1 must stay
+    // sign-extended in that slot. Other scalars pass their existing bits.
     // SAFETY: SetWindowLongPtrW writes one window-long slot owned by this window.
-    let previous = unsafe { SetWindowLongPtrW(native, index, replacement as _) };
+    let previous = unsafe { SetWindowLongPtrW(native, index, replacement) };
     let error = crate::windows::win32_safe::last_error();
     if previous == 0 && error != 0 {
         None
@@ -300,6 +321,29 @@ fn token_for_native(
         return Ok(None);
     }
     worker::token_for_native(state, native).map(Some)
+}
+
+#[cfg(test)]
+mod control_id_tests {
+    use super::control_id_bits;
+
+    #[test]
+    fn set_window_word_gww_id_stores_idc_static_and_rename_clears_high_bits() {
+        let word = 0xFFFFu32;
+        assert_eq!(control_id_bits(0xFFFF, word), -1);
+        assert_eq!(control_id_bits(u32::MAX, u32::MAX), -1);
+        // A control created as 0xFFFF has native id -1. Merging the new word
+        // into that long keeps 0xFFFF in the high half, so GetDlgItem misses it.
+        let previous = u32::MAX;
+        let renamed = 0x0010u32;
+        let merged = (previous & !word) | (renamed & word);
+        assert_eq!(merged, 0xFFFF_0010);
+        assert_eq!(control_id_bits(renamed, word), 0x10);
+        assert_ne!(control_id_bits(renamed, word) as u32, merged);
+        assert_eq!(control_id_bits(0, word), 0);
+        assert_eq!(control_id_bits(0x8000, word), 0x8000);
+        assert_eq!(control_id_bits(0xFFFE, word), 0xFFFE);
+    }
 }
 
 #[cfg(test)]

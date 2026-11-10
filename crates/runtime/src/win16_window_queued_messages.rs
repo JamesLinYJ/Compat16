@@ -1,6 +1,6 @@
 //! Checked conversion of native queued MSG records into Win16 guest memory.
 
-use guest_core::memory::Memory;
+use guest_core::{GuestMemory, memory::Memory};
 use win16_abi::{Msg16, SegmentedPointer};
 
 use super::Win16State;
@@ -242,10 +242,7 @@ impl Win16State {
             w_param,
             l_param,
             time: message.time,
-            pt: win16_abi::Point16 {
-                x: message.point.x as i16,
-                y: message.point.y as i16,
-            },
+            pt: guest_msg_point(&self.selectors, memory, output, message.point)?,
         };
         output_message.write_to(&self.selectors, memory, output)
             .map_err(crate::runtime_error)?;
@@ -253,6 +250,128 @@ impl Win16State {
             Ok(u32::from(message.message != 0x0012))
         } else {
             Ok(1)
+        }
+    }
+}
+
+/// Win16 `MSG.pt` is a `POINT` of signed 16-bit coordinates. A host point
+/// inside `-32768..=32767` is stored exactly. A coordinate outside that range
+/// is not truncated: the previous guest point bytes are copied back, and the
+/// rest of the message is still delivered.
+pub(in crate::win16_runtime) fn guest_msg_point(
+    selectors: &win16_abi::SelectorTable,
+    memory: &Memory,
+    output: SegmentedPointer,
+    point: crate::Win16HostPoint,
+) -> Result<win16_abi::Point16, RuntimeError> {
+    if let (Ok(x), Ok(y)) = (i16::try_from(point.x), i16::try_from(point.y)) {
+        return Ok(win16_abi::Point16 { x, y });
+    }
+    let point_pointer = selectors
+        .add_bytes(output, win16_abi::msg16_offsets::PT_X as u32)
+        .map_err(crate::runtime_error)?;
+    let address = selectors
+        .translate(point_pointer, win16_abi::Access::Write, win16_abi::Point16::SIZE, memory)
+        .map_err(crate::runtime_error)?;
+    let mut bytes = [0u8; win16_abi::Point16::SIZE];
+    memory.read(address, &mut bytes).map_err(crate::runtime_error)?;
+    Ok(win16_abi::Point16::decode(&bytes))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::super::test_support::tiny_ne_executable;
+    use crate::{
+        Runtime, Win16HostPoint, Win16HostQueuedMessage, Win16MessageParam, Win16MessageSource,
+    };
+
+    fn loaded() -> Runtime {
+        Runtime::load(&tiny_ne_executable(), &[], br"C:\MSG.NE").unwrap()
+    }
+
+    fn output_pointer(runtime: &Runtime) -> win16_abi::SegmentedPointer {
+        let far = (u32::from(runtime.cpu.regs.ds) << 16) | 0x20;
+        runtime.win16.as_ref().unwrap().selectors.pointer_from_far(far).unwrap()
+    }
+
+    fn poison(runtime: &mut Runtime) {
+        let pointer = output_pointer(runtime);
+        let state = runtime.win16.as_ref().unwrap();
+        state.selectors.write(&mut runtime.memory, pointer, &[0xA5; 18]).unwrap();
+    }
+
+    fn read_msg(runtime: &Runtime) -> [u8; 18] {
+        let pointer = output_pointer(runtime);
+        let state = runtime.win16.as_ref().unwrap();
+        let mut bytes = [0u8; 18];
+        state.selectors.read(&runtime.memory, pointer, &mut bytes).unwrap();
+        bytes
+    }
+
+    fn queued(point: Win16HostPoint, message: u16) -> Win16HostQueuedMessage {
+        Win16HostQueuedMessage {
+            source: Win16MessageSource::NativeQueue,
+            window: None,
+            message,
+            w_param: 0x1111,
+            l_param: Win16MessageParam::Scalar(0x2222_3333),
+            time: 0x4444_5555,
+            point,
+        }
+    }
+
+    fn write(runtime: &mut Runtime, message: Win16HostQueuedMessage) -> u32 {
+        let pointer = output_pointer(runtime);
+        let mut state = runtime.win16.take().unwrap();
+        let value = state
+            .write_queued_message(pointer, Some(message), true, &mut runtime.memory)
+            .unwrap();
+        runtime.win16 = Some(state);
+        value
+    }
+
+    #[test]
+    fn fitting_msg_point_is_stored_exactly_and_the_message_is_kept() {
+        for (x, y) in [
+            (0, 0),
+            (-1, -1),
+            (i32::from(i16::MIN), i32::from(i16::MAX)),
+            (1, -32768),
+            (32767, -2),
+        ] {
+            let mut runtime = loaded();
+            poison(&mut runtime);
+            let value = write(&mut runtime, queued(Win16HostPoint { x, y }, 1));
+            assert_eq!(value, 1);
+            let decoded = win16_abi::Msg16::decode(&read_msg(&runtime));
+            assert_eq!(decoded.hwnd, 0);
+            assert_eq!(decoded.message, 1);
+            assert_eq!(decoded.w_param, 0x1111);
+            assert_eq!(decoded.l_param, 0x2222_3333);
+            assert_eq!(decoded.time, 0x4444_5555);
+            assert_eq!(decoded.pt.x, i16::try_from(x).unwrap());
+            assert_eq!(decoded.pt.y, i16::try_from(y).unwrap());
+        }
+    }
+
+    #[test]
+    fn out_of_range_msg_point_is_not_truncated_and_the_message_is_kept() {
+        for point in [
+            Win16HostPoint { x: 32768, y: 1 },
+            Win16HostPoint { x: -32769, y: -1 },
+            Win16HostPoint { x: 1, y: 32768 },
+            Win16HostPoint { x: i32::MIN, y: i32::MAX },
+        ] {
+            let mut runtime = loaded();
+            poison(&mut runtime);
+            let value = write(&mut runtime, queued(point, 0x0012));
+            assert_eq!(value, 0);
+            let bytes = read_msg(&runtime);
+            assert_eq!(&bytes[14..18], &[0xA5; 4]);
+            assert_eq!(u16::from_le_bytes([bytes[2], bytes[3]]), 0x0012);
+            assert_eq!(u16::from_le_bytes([bytes[4], bytes[5]]), 0x1111);
+            assert_eq!(u32::from_le_bytes(bytes[6..10].try_into().unwrap()), 0x2222_3333);
+            assert_eq!(u32::from_le_bytes(bytes[10..14].try_into().unwrap()), 0x4444_5555);
         }
     }
 }

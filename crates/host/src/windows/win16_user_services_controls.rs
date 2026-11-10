@@ -39,7 +39,7 @@ pub(super) fn execute(
                 return Ok(Result::Item(None));
             };
             // SAFETY: GetDlgItem looks up a child control id in a dialog this thread owns.
-            let native = unsafe { GetDlgItem(dialog, i32::from(id)) };
+            let native = unsafe { GetDlgItem(dialog, dialog_item_id(id)) };
             Result::Item(token_for_native(state, native)?)
         }
         Call::GetControlId { control } => {
@@ -108,7 +108,7 @@ pub(super) fn execute(
                 Ok(text) => unsafe {
                     SetDlgItemTextW(
                         dialog,
-                        i32::from(id),
+                        dialog_item_id(id),
                         text.as_ref().map_or(std::ptr::null(), |text| text.as_ptr()),
                     ) != 0
                 },
@@ -129,7 +129,7 @@ pub(super) fn execute(
                 });
             };
             // SAFETY: GetDlgItem looks up a child control id in a dialog this thread owns.
-            let control = unsafe { GetDlgItem(dialog, i32::from(id)) };
+            let control = unsafe { GetDlgItem(dialog, dialog_item_id(id)) };
             if control.is_null() {
                 return Ok(Result::Text {
                     value: 0,
@@ -174,7 +174,7 @@ pub(super) fn execute(
             )?;
             let copied_units =
                 // SAFETY: `GetDlgItemTextW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-                unsafe { GetDlgItemTextW(dialog, i32::from(id), output, native_capacity as i32) };
+                unsafe { GetDlgItemTextW(dialog, dialog_item_id(id), output, native_capacity as i32) };
             let mut bytes = Vec::new();
             let mut guest_count = copied_units;
             if capacity == 0 || copied_units == u32::MAX {
@@ -230,7 +230,7 @@ pub(super) fn execute(
             };
             // SAFETY: `SetDlgItemInt` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let success = hwnd(state, dialog).is_some_and(|dialog| unsafe {
-                SetDlgItemInt(dialog, i32::from(id), native_value, i32::from(signed)) != 0
+                SetDlgItemInt(dialog, dialog_item_id(id), native_value, i32::from(signed)) != 0
             });
             Result::Succeeded(success)
         }
@@ -238,7 +238,7 @@ pub(super) fn execute(
             let mut translated = 0_i32;
             // SAFETY: `GetDlgItemInt` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let value = hwnd(state, dialog).map_or(0, |dialog| unsafe {
-                GetDlgItemInt(dialog, i32::from(id), &mut translated, i32::from(signed))
+                GetDlgItemInt(dialog, dialog_item_id(id), &mut translated, i32::from(signed))
             });
             let in_win16_range = translated != 0
                 && if signed {
@@ -259,7 +259,7 @@ pub(super) fn execute(
         } => {
             // SAFETY: `CheckDlgButton` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
             let success = hwnd(state, dialog).is_some_and(|dialog| unsafe {
-                CheckDlgButton(dialog, i32::from(id), u32::from(check_state)) != 0
+                CheckDlgButton(dialog, dialog_item_id(id), u32::from(check_state)) != 0
             });
             Result::Succeeded(success)
         }
@@ -269,7 +269,7 @@ pub(super) fn execute(
                 return Ok(Result::ButtonState(u16::MAX));
             };
             // SAFETY: `IsDlgButtonChecked` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-            let state = unsafe { IsDlgButtonChecked(dialog, i32::from(id)) };
+            let state = unsafe { IsDlgButtonChecked(dialog, dialog_item_id(id)) };
             Result::ButtonState(state as u16)
         }
         Call::CheckRadioButton {
@@ -282,9 +282,9 @@ pub(super) fn execute(
             let success = hwnd(state, dialog).is_some_and(|dialog| unsafe {
                 CheckRadioButton(
                     dialog,
-                    i32::from(first),
-                    i32::from(last),
-                    i32::from(checked),
+                    dialog_item_id(first),
+                    dialog_item_id(last),
+                    dialog_item_id(checked),
                 ) != 0
             });
             Result::Succeeded(success)
@@ -315,16 +315,16 @@ pub(super) fn execute(
                         DlgDirListComboBoxW(
                             dialog,
                             std::ptr::null_mut(),
-                            i32::from(list_id),
-                            i32::from(path_id),
+                            dialog_item_id(list_id),
+                            dialog_item_id(path_id),
                             u32::from(file_type),
                         )
                     } else {
                         DlgDirListW(
                             dialog,
                             std::ptr::null_mut(),
-                            i32::from(list_id),
-                            i32::from(path_id),
+                            dialog_item_id(list_id),
+                            dialog_item_id(path_id),
                             u32::from(file_type),
                         )
                     }
@@ -340,16 +340,16 @@ pub(super) fn execute(
                     DlgDirListComboBoxW(
                         dialog,
                         buffer.as_mut_ptr(),
-                        i32::from(list_id),
-                        i32::from(path_id),
+                        dialog_item_id(list_id),
+                        dialog_item_id(path_id),
                         u32::from(file_type),
                     )
                 } else {
                     DlgDirListW(
                         dialog,
                         buffer.as_mut_ptr(),
-                        i32::from(list_id),
-                        i32::from(path_id),
+                        dialog_item_id(list_id),
+                        dialog_item_id(path_id),
                         u32::from(file_type),
                     )
                 }
@@ -397,14 +397,14 @@ pub(super) fn execute(
                         dialog,
                         wide.as_mut_ptr(),
                         native_capacity as i32,
-                        i32::from(control_id),
+                        dialog_item_id(control_id),
                     ) != 0
                 } else {
                     DlgDirSelectExW(
                         dialog,
                         wide.as_mut_ptr(),
                         native_capacity as i32,
-                        i32::from(control_id),
+                        dialog_item_id(control_id),
                     ) != 0
                 }
             });
@@ -544,5 +544,27 @@ fn host_rect(rect: RECT) -> Win16HostRect {
         top: rect.top,
         right: rect.right,
         bottom: rect.bottom,
+    }
+}
+
+/// Windows 3.1 `WINDOWS.H` defines `IDC_STATIC` as -1. A dialog template
+/// stores that control id as the unsigned word `0xFFFF`. Win32 `nIDDlgItem`
+/// is a signed int, so that word is passed as -1. Ids `0x8000..=0xFFFE`
+/// stay zero-extended.
+fn dialog_item_id(id: u16) -> i32 {
+    if id == 0xFFFF { -1 } else { i32::from(id) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::dialog_item_id;
+
+    #[test]
+    fn static_control_id_is_idc_static_and_other_ids_stay_zero_extended() {
+        assert_eq!(dialog_item_id(0xFFFF), -1);
+        assert_eq!(dialog_item_id(0), 0);
+        assert_eq!(dialog_item_id(1), 1);
+        assert_eq!(dialog_item_id(0x8000), 0x8000);
+        assert_eq!(dialog_item_id(0xFFFE), 0xFFFE);
     }
 }
