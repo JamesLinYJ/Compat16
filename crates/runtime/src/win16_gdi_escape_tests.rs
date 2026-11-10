@@ -1274,6 +1274,7 @@ fn escape_next_band_follows_a_new_document_after_abort_doc_or_end_doc() {
                     y: 3000,
                 },
                 HostResult::Count(1),
+                HostResult::Bool(true),
                 HostResult::Count(3),
                 HostResult::Count(1),
                 HostResult::Point {
@@ -1293,6 +1294,21 @@ fn escape_next_band_follows_a_new_document_after_abort_doc_or_end_doc() {
         let return_to = call_gdi(&mut runtime, close, &dc.to_le_bytes());
         dispatch(&mut runtime, &mut host).unwrap();
         assert_return(&runtime, return_to, 1);
+
+        // The exported close must drop the band before the next StartDoc.
+        // A stale next_band_open flag would eject an empty rectangle here.
+        let published = read_output(&runtime, rect);
+        let return_to = prepare(&mut runtime, dc, 3, 0, 0, rect);
+        dispatch(&mut runtime, &mut host).unwrap();
+        assert_return(&runtime, return_to, 0xffff);
+        assert_eq!(read_output(&runtime, rect), published);
+        assert!(matches!(
+            host.calls.last(),
+            Some(Operation::QueryEscapeSupport {
+                dc: NATIVE_DC,
+                query: Query::PrintablePage,
+            })
+        ));
 
         let mut start = Vec::new();
         start.extend_from_slice(&info.to_le_bytes());
