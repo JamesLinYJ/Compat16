@@ -96,9 +96,12 @@ impl Win16AcceleratorTables {
                 cmd: entry.command,
             });
         }
-        // SAFETY: the vector contains `count` initialized native ACCEL values
-        // and remains alive for this synchronous USER call.
-        let native = unsafe { CreateAcceleratorTableW(native_entries.as_ptr(), count) };
+        let entries = native_entries.as_ptr();
+        // SAFETY: `entries` addresses `count` initialized ACCEL values in
+        // `native_entries`. That vector stays live for this synchronous
+        // CreateAcceleratorTableW call. The API copies the table and retains
+        // no pointer. The pointer is not a guest address.
+        let native = unsafe { CreateAcceleratorTableW(entries, count) };
         if native.is_null() {
             return Ok(None);
         }
@@ -157,9 +160,12 @@ impl Drop for Win16AcceleratorTables {
         for (_, native) in std::mem::take(&mut self.tables) {
             // WorkerState owns this table and is created/dropped on the USER
             // worker, after its synchronous operations and callback frames end.
-            // SAFETY: `DestroyAcceleratorTable` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+            let table = native as _;
+            // SAFETY: `table` is an HACCEL this worker created and still owns.
+            // DestroyAcceleratorTable releases that table on this USER worker.
+            // The handle is not a guest address.
             unsafe {
-                DestroyAcceleratorTable(native as _);
+                DestroyAcceleratorTable(table);
             }
         }
     }
@@ -201,11 +207,11 @@ pub(super) fn execute(
             Ok(ResultValue::SetCursor(previous))
         }
         Operation::ShowCursor { show } => {
-            // SAFETY: ShowCursor accepts a BOOL and returns the updated native
-            // display count; the runtime later writes the Win16 low-word bits.
-            Ok(ResultValue::ShowCursor(unsafe {
-                ShowCursor(i32::from(show))
-            }))
+            let visible = i32::from(show);
+            // SAFETY: ShowCursor reads the BOOL `visible` and returns the
+            // updated display count. It takes no pointer or handle. The
+            // runtime later writes the Win16 low-word bits.
+            Ok(ResultValue::ShowCursor(unsafe { ShowCursor(visible) }))
         }
         Operation::WinHelp {
             window,
@@ -268,12 +274,14 @@ pub(super) fn execute(
                     y: message.point.y,
                 },
             };
-            // SAFETY: the HWND/HACCEL were resolved from worker-owned opaque
-            // tokens, and every MSG field was copied from the fixed Win16 ABI.
-            // TranslateAccelerator may synchronously enter the Win16 WndProc;
-            // run_operation keeps this host call on the callback-capable worker.
-            let result =
-                unsafe { TranslateAcceleratorW(native_window, native_table, &native_message) };
+            let message = &native_message;
+            // SAFETY: `native_window` is an HWND and `native_table` is an
+            // HACCEL resolved from worker-owned tokens. `message` points at
+            // `native_message`, a MSG copied from the fixed Win16 ABI, and
+            // that record stays live for this call. TranslateAcceleratorW may
+            // enter the Win16 WndProc on this worker and retains no pointer.
+            // No pointer is a guest address.
+            let result = unsafe { TranslateAcceleratorW(native_window, native_table, message) };
             Ok(ResultValue::TranslateAccelerator(result))
         }
     }
@@ -310,20 +318,17 @@ fn execute_win_help(
         .as_ref()
         .map_or(std::ptr::null(), |bytes| bytes.as_ptr());
     let native_data = NativeHelpData::new(data, text_codec)?;
-    // SAFETY: all strings and native structures referenced by dwData are
-    // locally owned UTF-16 values that remain alive for this synchronous call.
-    // WinHelpW receives no guest FAR address or guest structure layout.
-    let result = unsafe {
-        // WinHelp does not guarantee extended error information. Clear the
-        // thread-local value so diagnostics cannot report an older API error.
-        crate::windows::win32_safe::set_last_error(0);
-        WinHelpW(
-            native_window,
-            help_file_pointer,
-            u32::from(command),
-            native_data.argument(),
-        )
-    };
+    // WinHelp does not guarantee extended error information. Clear the
+    // thread-local value so diagnostics cannot report an older API error.
+    crate::windows::win32_safe::set_last_error(0);
+    let native_command = u32::from(command);
+    let data = native_data.argument();
+    // SAFETY: `native_window` is an HWND resolved for this worker, or null.
+    // `help_file_pointer` addresses the owned UTF-16 help path, or is null.
+    // `data` is a scalar or a pointer into `native_data`, which stays live
+    // for this synchronous WinHelpW call. WinHelpW retains no pointer. No
+    // pointer is a guest address.
+    let result = unsafe { WinHelpW(native_window, help_file_pointer, native_command, data) };
     if result == 0 {
         let error = crate::windows::win32_safe::last_error();
         let file = help_file.as_ref().map_or_else(
@@ -504,11 +509,13 @@ fn native_help_multi_key(
             "WinHelp MULTIKEYHELPW backing size overflow",
         )
     })?;
-    // SAFETY: Vec length/capacity are complete and checked; MULTIKEYHELPW is
-    // made only of integer fields, so an all-zero representation is valid.
-    // No typed borrow is live while the initialized buffer bytes are cleared.
+    let bytes = storage.as_mut_ptr().cast::<u8>();
+    // SAFETY: `bytes` addresses `storage_bytes` initialized bytes of
+    // `storage`. MULTIKEYHELPW contains only integer fields, so an all-zero
+    // representation is valid. No typed borrow of `storage` is live during
+    // the write. The allocation stays live and is not a guest address.
     unsafe {
-        std::ptr::write_bytes(storage.as_mut_ptr().cast::<u8>(), 0, storage_bytes);
+        std::ptr::write_bytes(bytes, 0, storage_bytes);
     }
     {
         let header = storage.first_mut().ok_or_else(|| {
@@ -525,19 +532,34 @@ fn native_help_multi_key(
     // phrase, so each additional UTF-16 code unit adds two bytes. The binding's
     // szKeyphrase[1] is only the fixed C header declaration. Vec<MULTIKEYHELPW>
     // preserves native alignment and structure layout for the variable tail.
-    // SAFETY: storage has enough zeroed contiguous MULTIKEYHELPW objects for
-    // declared_size; the destination starts at szKeyphrase and stays in that
-    // allocation. No typed reference is live while the variable tail is copied.
-    unsafe {
-        let tail = storage
-            .as_mut_ptr()
-            .cast::<u8>()
-            .add(header_bytes)
-            .cast::<u16>();
-        if !key_phrase.is_empty() {
-            std::ptr::copy_nonoverlapping(key_phrase.as_ptr(), tail, key_phrase.len());
+    let storage_bytes_ptr = storage.as_mut_ptr().cast::<u8>();
+    // SAFETY: `storage_bytes_ptr` addresses the `storage` allocation.
+    // `header_bytes` is the byte offset of szKeyphrase, which lies inside
+    // that allocation. The offset stays in bounds. The allocation is not a
+    // guest address.
+    let tail = unsafe { storage_bytes_ptr.add(header_bytes) }.cast::<u16>();
+    if !key_phrase.is_empty() {
+        let source = key_phrase.as_ptr();
+        let phrase_len = key_phrase.len();
+        // SAFETY: `source` addresses `phrase_len` UTF-16 units of
+        // `key_phrase`. `tail` is the szKeyphrase slot of the zeroed
+        // MULTIKEYHELPW storage, and `phrase_len` units fit before the
+        // reserved terminator. Both regions stay live, do not alias a typed
+        // reference, and neither pointer is a guest address.
+        unsafe {
+            std::ptr::copy_nonoverlapping(source, tail, phrase_len);
         }
-        *tail.add(key_phrase.len()) = 0;
+    }
+    let terminator_index = key_phrase.len();
+    // SAFETY: `tail` addresses szKeyphrase in the zeroed `storage`
+    // allocation. Adding `terminator_index` lands on the reserved NUL slot,
+    // which stays inside that allocation. The pointer is not a guest address.
+    let terminator = unsafe { tail.add(terminator_index) };
+    // SAFETY: `terminator` is the UTF-16 slot reserved for the phrase NUL
+    // inside the zeroed `storage` allocation. The write stores zero. The
+    // allocation stays live and is not a guest address.
+    unsafe {
+        *terminator = 0;
     }
     Ok(storage)
 }
@@ -631,11 +653,13 @@ fn native_help_window_position(
             "WinHelp HELPWININFOW backing size overflow",
         )
     })?;
-    // SAFETY: Vec length/capacity are complete and checked; HELPWININFOW is
-    // made only of integer fields, so an all-zero representation is valid.
-    // No typed borrow is live while the initialized buffer bytes are cleared.
+    let bytes = storage.as_mut_ptr().cast::<u8>();
+    // SAFETY: `bytes` addresses `storage_bytes` initialized bytes of
+    // `storage`. HELPWININFOW contains only integer fields, so an all-zero
+    // representation is valid. No typed borrow of `storage` is live during
+    // the write. The allocation stays live and is not a guest address.
     unsafe {
-        std::ptr::write_bytes(storage.as_mut_ptr().cast::<u8>(), 0, storage_bytes);
+        std::ptr::write_bytes(bytes, 0, storage_bytes);
     }
     {
         let header = storage.first_mut().ok_or_else(|| {
@@ -655,19 +679,34 @@ fn native_help_window_position(
     // HELPWININFOW declares two fixed WCHARs, while WinHelp's byte-size
     // contract permits a longer UTF-16 member string. A typed vector supplies
     // native alignment; only the variable tail is copied into its allocation.
-    // SAFETY: `storage` contains enough zeroed, contiguous HELPWININFOW
-    // objects for `declared_size`, and the target range begins at rgchMember
-    // and ends within that allocation. No typed reference is live during copy.
-    unsafe {
-        let tail = storage
-            .as_mut_ptr()
-            .cast::<u8>()
-            .add(header_bytes)
-            .cast::<u16>();
-        if !member.is_empty() {
-            std::ptr::copy_nonoverlapping(member.as_ptr(), tail, member.len());
+    let storage_bytes_ptr = storage.as_mut_ptr().cast::<u8>();
+    // SAFETY: `storage_bytes_ptr` addresses the `storage` allocation.
+    // `header_bytes` is the byte offset of rgchMember, which lies inside
+    // that allocation. The offset stays in bounds. The allocation is not a
+    // guest address.
+    let tail = unsafe { storage_bytes_ptr.add(header_bytes) }.cast::<u16>();
+    if !member.is_empty() {
+        let source = member.as_ptr();
+        let member_len = member.len();
+        // SAFETY: `source` addresses `member_len` UTF-16 units of `member`.
+        // `tail` is the rgchMember slot of the zeroed HELPWININFOW storage,
+        // and `member_len` units fit before the reserved terminator. Both
+        // regions stay live, do not alias a typed reference, and neither
+        // pointer is a guest address.
+        unsafe {
+            std::ptr::copy_nonoverlapping(source, tail, member_len);
         }
-        *tail.add(member.len()) = 0;
+    }
+    let terminator_index = member.len();
+    // SAFETY: `tail` addresses rgchMember in the zeroed `storage` allocation.
+    // Adding `terminator_index` lands on the reserved NUL slot, which stays
+    // inside that allocation. The pointer is not a guest address.
+    let terminator = unsafe { tail.add(terminator_index) };
+    // SAFETY: `terminator` is the UTF-16 slot reserved for the member NUL
+    // inside the zeroed `storage` allocation. The write stores zero. The
+    // allocation stays live and is not a guest address.
+    unsafe {
+        *terminator = 0;
     }
     Ok(storage)
 }
