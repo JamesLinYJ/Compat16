@@ -178,6 +178,7 @@ fn escape_printable_page_uses_horzres_vertres_and_the_signed_extent() {
     }
 }
 
+#[test]
 fn escape_job_support_follows_printer_or_plotter_technology() {
     assert!(printer_technology(DT_RASPRINTER as i32));
     assert!(printer_technology(DT_PLOTTER as i32));
