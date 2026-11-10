@@ -20,12 +20,23 @@ const MAX_DRAG_SAMPLES: usize = 256;
 
 /// Pack system icon width in the low word and height in the high word.
 ///
-/// Each metric is narrowed the same way as `GetSystemMetrics`: the low 16
-/// bits of the host value. The Windows 3.1 header does not declare `IconSize`.
+/// USER.86 is absent from the Windows 3.1 header. Each half is the
+/// `GetSystemMetrics` `int` for `SM_CXICON` or `SM_CYICON`. A Windows 3.1
+/// `int` is signed and 16 bits wide. Learn returns 0 when `GetSystemMetrics`
+/// fails, so a host metric outside -32768..=32767 is 0 in its word instead
+/// of the low 16 bits. A metric that fits is unchanged, including a negative
+/// value. 32768 through 65535 do not fit that signed `int`.
 pub(super) fn icon_size(host: &mut impl RuntimeHost) -> Result<u32, RuntimeError> {
-    let width = host.win16_get_system_metrics(SM_CXICON)? as u16;
-    let height = host.win16_get_system_metrics(SM_CYICON)? as u16;
+    let width = signed_metric_word(host.win16_get_system_metrics(SM_CXICON)?);
+    let height = signed_metric_word(host.win16_get_system_metrics(SM_CYICON)?);
     Ok(u32::from(width) | (u32::from(height) << 16))
+}
+
+fn signed_metric_word(metric: i32) -> u16 {
+    let Ok(metric) = i16::try_from(metric) else {
+        return 0;
+    };
+    metric as u16
 }
 
 /// USER.464 returns zero. No sink is offered `WM_QUERYDROPOBJECT` (0x022B),
