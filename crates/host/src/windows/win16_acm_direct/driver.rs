@@ -29,7 +29,9 @@ struct DriverRows {
     callback_panicked: bool,
 }
 
-// SAFETY: Windows calls this function with the system ABI in its signature. Pointer arguments are valid only for this invocation and are not guest addresses.
+// SAFETY: Windows calls this function with the system ABI. `driver_id` is an
+// HACMDRIVERID valid only for this invocation. `instance` is the host context
+// address passed to acmDriverEnum and is not a guest address.
 unsafe extern "system" fn driver_enum_callback(
     driver_id: HACMDRIVERID,
     instance: usize,
@@ -38,9 +40,11 @@ unsafe extern "system" fn driver_enum_callback(
     if instance == 0 || driver_id.is_null() {
         return 1;
     }
-    // SAFETY: `instance` was set to the stack-owned DriverRows for this
-    // synchronous acmDriverEnum call and is never retained by MSACM.
-    let context = unsafe { &mut *(instance as *mut DriverRows) };
+    let context_pointer = instance as *mut DriverRows;
+    // SAFETY: `context_pointer` addresses the stack-owned `DriverRows` passed
+    // as `instance` for this synchronous acmDriverEnum call. MSACM does not
+    // retain that pointer. It is a host address, not a guest address.
+    let context = unsafe { &mut *context_pointer };
     match catch_unwind(AssertUnwindSafe(|| {
         context.rows.try_reserve(1)?;
         context.rows.push((driver_id as usize, support));
@@ -60,15 +64,13 @@ unsafe extern "system" fn driver_enum_callback(
 
 pub(super) fn enumerate(host: &mut Win16AcmHost, flags: u32) -> Result<ResultValue, RuntimeError> {
     let mut rows = DriverRows::default();
-    // SAFETY: callback context remains live for the complete synchronous API
-    // call; callback copies only native scalar identities and support flags.
-    let result = unsafe {
-        acmDriverEnum(
-            Some(driver_enum_callback),
-            (&mut rows as *mut DriverRows) as usize,
-            flags,
-        )
-    };
+    let rows_pointer = &mut rows as *mut DriverRows;
+    let context = rows_pointer as usize;
+    // SAFETY: `context` is the address of the stack-owned `rows` for this
+    // synchronous acmDriverEnum call. The callback copies only native scalar
+    // identities and support flags. MSACM retains no pointer after the call
+    // returns. The pointer is a host address, not a guest address.
+    let result = unsafe { acmDriverEnum(Some(driver_enum_callback), context, flags) };
     if let Some(error) = rows.allocation_error {
         return Err(native_allocation_error(
             NativeOperation::DriverEnum,
@@ -127,13 +129,18 @@ pub(super) fn add(
     let wide_name = codec.to_wide_z(name)?;
     let reserved_handle = host.reserve_identity()?;
     let mut native_id: HACMDRIVERID = ptr::null_mut();
-    // SAFETY: `wide_name` is an owned NUL-terminated UTF-16 name; no guest
-    // instance, callback, or pointer value is passed through the host boundary.
+    let name_units = wide_name.as_ptr();
+    let name_parameter = name_units as isize;
+    // SAFETY: `native_id` is a local HACMDRIVERID that stays live for this
+    // call. `name_parameter` is the address of the NUL-terminated UTF-16 name
+    // in `wide_name`, which stays live for this call. The module instance is
+    // null. acmDriverAddW writes the driver id and returns an MMRESULT. It
+    // retains no pointer. No pointer is a guest address.
     let mut result = unsafe {
         acmDriverAddW(
             &mut native_id,
             ptr::null_mut(),
-            wide_name.as_ptr() as isize,
+            name_parameter,
             priority,
             flags,
         )
@@ -171,7 +178,10 @@ pub(super) fn open(
     };
     let reserved_handle = host.reserve_identity()?;
     let mut native: HACMDRIVER = ptr::null_mut();
-    // SAFETY: native_id is from a live host table entry and output is local.
+    // SAFETY: `native_id` is an HACMDRIVERID from a live host table entry.
+    // `native` is a local HACMDRIVER that stays live for this call.
+    // acmDriverOpen writes that handle and returns an MMRESULT. It retains no
+    // pointer. Neither handle is a guest address.
     let mut result = unsafe { acmDriverOpen(&mut native, native_id, flags) };
     let handle = if result == MMSYSERR_NOERROR {
         if native.is_null() {
@@ -195,7 +205,9 @@ pub(super) fn close(
     let Some(native) = host.driver(driver) else {
         return Ok(ResultValue::Scalar(MMSYSERR_INVALHANDLE));
     };
-    // SAFETY: native is a live ACM driver handle retained by this host.
+    // SAFETY: `native` is an HACMDRIVER retained by this host table for
+    // `driver`. acmDriverClose releases that driver and returns an MMRESULT.
+    // It retains no pointer. The handle is not a guest address.
     let result = unsafe { acmDriverClose(native, flags) };
     if result == MMSYSERR_NOERROR {
         host.remove(driver);
@@ -216,8 +228,12 @@ pub(super) fn driver_id(
         });
     };
     let mut native_id: HACMDRIVERID = ptr::null_mut();
-    // SAFETY: raw was selected from the typed native handle table.
-    let result = unsafe { acmDriverID(raw as *mut core::ffi::c_void, &mut native_id, flags) };
+    let native_object = raw as *mut core::ffi::c_void;
+    // SAFETY: `native_object` is the host ACM handle selected from the typed
+    // native handle table. `native_id` is a local HACMDRIVERID that stays live
+    // for this call. acmDriverID writes that id and returns an MMRESULT. It
+    // retains no pointer. Neither value is a guest address.
+    let result = unsafe { acmDriverID(native_object, &mut native_id, flags) };
     let handle = if result == MMSYSERR_NOERROR {
         host.handle_for_driver_id(native_id)?
     } else {
@@ -241,51 +257,134 @@ pub(super) fn details(
     };
     let mut native = ACMDRIVERDETAILSW::default();
     // ACM requires cbStruct to be initialized to the native structure size.
-    // SAFETY: The field belongs to a packed record. addr_of plus write_unaligned writes it without creating a misaligned reference.
-    unsafe {
-        ptr::addr_of_mut!(native.cbStruct)
-            .write_unaligned(std::mem::size_of::<ACMDRIVERDETAILSW>() as u32);
-    }
-    // SAFETY: native is a complete local Unicode details structure.
+    let struct_size = std::mem::size_of::<ACMDRIVERDETAILSW>() as u32;
+    let cb_struct = ptr::addr_of_mut!(native.cbStruct);
+    // SAFETY: `cb_struct` addresses the packed `cbStruct` field of this
+    // caller-owned `ACMDRIVERDETAILSW`. The record stays live for the write
+    // and is a host address, not a guest address. `write_unaligned` stores
+    // the structure size without a misaligned reference.
+    unsafe { cb_struct.write_unaligned(struct_size) };
+    // SAFETY: `native_id` is an HACMDRIVERID from a live host table entry.
+    // `native` is a caller-owned `ACMDRIVERDETAILSW` that stays live for this
+    // synchronous call. acmDriverDetailsW fills that record and returns an
+    // MMRESULT. It retains no pointer. Neither value is a guest address.
     let result = unsafe { acmDriverDetailsW(native_id, &mut native, flags) };
-    let icon = unsafe { ptr::addr_of!(native.hicon).read_unaligned() };
-    let details = unsafe {
-        Win16HostAcmDriverDetails {
-            type_fourcc: ptr::addr_of!(native.fccType).read_unaligned(),
-            compression_fourcc: ptr::addr_of!(native.fccComp).read_unaligned(),
-            manufacturer_id: ptr::addr_of!(native.wMid).read_unaligned(),
-            product_id: ptr::addr_of!(native.wPid).read_unaligned(),
-            acm_version: ptr::addr_of!(native.vdwACM).read_unaligned(),
-            driver_version: ptr::addr_of!(native.vdwDriver).read_unaligned(),
-            support: ptr::addr_of!(native.fdwSupport).read_unaligned(),
-            format_tag_count: ptr::addr_of!(native.cFormatTags).read_unaligned(),
-            filter_tag_count: ptr::addr_of!(native.cFilterTags).read_unaligned(),
-            icon: if result == MMSYSERR_NOERROR {
-                images.retain_acm_icon(icon)?
-            } else {
-                None
-            },
-            short_name: wide_fixed_to_guest(
-                codec,
-                &ptr::addr_of!(native.szShortName).read_unaligned(),
-            )?,
-            long_name: wide_fixed_to_guest(
-                codec,
-                &ptr::addr_of!(native.szLongName).read_unaligned(),
-            )?,
-            copyright: wide_fixed_to_guest(
-                codec,
-                &ptr::addr_of!(native.szCopyright).read_unaligned(),
-            )?,
-            licensing: wide_fixed_to_guest(
-                codec,
-                &ptr::addr_of!(native.szLicensing).read_unaligned(),
-            )?,
-            features: wide_fixed_to_guest(
-                codec,
-                &ptr::addr_of!(native.szFeatures).read_unaligned(),
-            )?,
-        }
+    let icon_field = ptr::addr_of!(native.hicon);
+    // SAFETY: `icon_field` addresses the packed `hicon` field of this
+    // caller-owned `ACMDRIVERDETAILSW`. The record stays live for the read
+    // and is a host address, not a guest address. `read_unaligned` copies the
+    // HICON and does not retain the pointer.
+    let icon_handle = unsafe { icon_field.read_unaligned() };
+    let type_field = ptr::addr_of!(native.fccType);
+    // SAFETY: `type_field` addresses the packed `fccType` field of this
+    // caller-owned `ACMDRIVERDETAILSW`. The record stays live for the read
+    // and is a host address, not a guest address. `read_unaligned` copies the
+    // `u32` and does not retain the pointer.
+    let type_fourcc = unsafe { type_field.read_unaligned() };
+    let compression_field = ptr::addr_of!(native.fccComp);
+    // SAFETY: `compression_field` addresses the packed `fccComp` field of this
+    // caller-owned `ACMDRIVERDETAILSW`. The record stays live for the read
+    // and is a host address, not a guest address. `read_unaligned` copies the
+    // `u32` and does not retain the pointer.
+    let compression_fourcc = unsafe { compression_field.read_unaligned() };
+    let manufacturer_field = ptr::addr_of!(native.wMid);
+    // SAFETY: `manufacturer_field` addresses the packed `wMid` field of this
+    // caller-owned `ACMDRIVERDETAILSW`. The record stays live for the read
+    // and is a host address, not a guest address. `read_unaligned` copies the
+    // `u16` and does not retain the pointer.
+    let manufacturer_id = unsafe { manufacturer_field.read_unaligned() };
+    let product_field = ptr::addr_of!(native.wPid);
+    // SAFETY: `product_field` addresses the packed `wPid` field of this
+    // caller-owned `ACMDRIVERDETAILSW`. The record stays live for the read
+    // and is a host address, not a guest address. `read_unaligned` copies the
+    // `u16` and does not retain the pointer.
+    let product_id = unsafe { product_field.read_unaligned() };
+    let acm_version_field = ptr::addr_of!(native.vdwACM);
+    // SAFETY: `acm_version_field` addresses the packed `vdwACM` field of this
+    // caller-owned `ACMDRIVERDETAILSW`. The record stays live for the read
+    // and is a host address, not a guest address. `read_unaligned` copies the
+    // `u32` and does not retain the pointer.
+    let acm_version = unsafe { acm_version_field.read_unaligned() };
+    let driver_version_field = ptr::addr_of!(native.vdwDriver);
+    // SAFETY: `driver_version_field` addresses the packed `vdwDriver` field of
+    // this caller-owned `ACMDRIVERDETAILSW`. The record stays live for the
+    // read and is a host address, not a guest address. `read_unaligned` copies
+    // the `u32` and does not retain the pointer.
+    let driver_version = unsafe { driver_version_field.read_unaligned() };
+    let support_field = ptr::addr_of!(native.fdwSupport);
+    // SAFETY: `support_field` addresses the packed `fdwSupport` field of this
+    // caller-owned `ACMDRIVERDETAILSW`. The record stays live for the read
+    // and is a host address, not a guest address. `read_unaligned` copies the
+    // `u32` and does not retain the pointer.
+    let support = unsafe { support_field.read_unaligned() };
+    let format_tag_count_field = ptr::addr_of!(native.cFormatTags);
+    // SAFETY: `format_tag_count_field` addresses the packed `cFormatTags` field
+    // of this caller-owned `ACMDRIVERDETAILSW`. The record stays live for the
+    // read and is a host address, not a guest address. `read_unaligned` copies
+    // the `u32` and does not retain the pointer.
+    let format_tag_count = unsafe { format_tag_count_field.read_unaligned() };
+    let filter_tag_count_field = ptr::addr_of!(native.cFilterTags);
+    // SAFETY: `filter_tag_count_field` addresses the packed `cFilterTags` field
+    // of this caller-owned `ACMDRIVERDETAILSW`. The record stays live for the
+    // read and is a host address, not a guest address. `read_unaligned` copies
+    // the `u32` and does not retain the pointer.
+    let filter_tag_count = unsafe { filter_tag_count_field.read_unaligned() };
+    let short_name_field = ptr::addr_of!(native.szShortName);
+    // SAFETY: `short_name_field` addresses the packed `szShortName` array of
+    // this caller-owned `ACMDRIVERDETAILSW`. The record stays live for the
+    // read and is a host address, not a guest address. `read_unaligned` copies
+    // the array and does not retain the pointer.
+    let short_name_units = unsafe { short_name_field.read_unaligned() };
+    let long_name_field = ptr::addr_of!(native.szLongName);
+    // SAFETY: `long_name_field` addresses the packed `szLongName` array of
+    // this caller-owned `ACMDRIVERDETAILSW`. The record stays live for the
+    // read and is a host address, not a guest address. `read_unaligned` copies
+    // the array and does not retain the pointer.
+    let long_name_units = unsafe { long_name_field.read_unaligned() };
+    let copyright_field = ptr::addr_of!(native.szCopyright);
+    // SAFETY: `copyright_field` addresses the packed `szCopyright` array of
+    // this caller-owned `ACMDRIVERDETAILSW`. The record stays live for the
+    // read and is a host address, not a guest address. `read_unaligned` copies
+    // the array and does not retain the pointer.
+    let copyright_units = unsafe { copyright_field.read_unaligned() };
+    let licensing_field = ptr::addr_of!(native.szLicensing);
+    // SAFETY: `licensing_field` addresses the packed `szLicensing` array of
+    // this caller-owned `ACMDRIVERDETAILSW`. The record stays live for the
+    // read and is a host address, not a guest address. `read_unaligned` copies
+    // the array and does not retain the pointer.
+    let licensing_units = unsafe { licensing_field.read_unaligned() };
+    let features_field = ptr::addr_of!(native.szFeatures);
+    // SAFETY: `features_field` addresses the packed `szFeatures` array of this
+    // caller-owned `ACMDRIVERDETAILSW`. The record stays live for the read
+    // and is a host address, not a guest address. `read_unaligned` copies the
+    // array and does not retain the pointer.
+    let features_units = unsafe { features_field.read_unaligned() };
+    let icon = if result == MMSYSERR_NOERROR {
+        images.retain_acm_icon(icon_handle)?
+    } else {
+        None
+    };
+    let short_name = wide_fixed_to_guest(codec, &short_name_units)?;
+    let long_name = wide_fixed_to_guest(codec, &long_name_units)?;
+    let copyright = wide_fixed_to_guest(codec, &copyright_units)?;
+    let licensing = wide_fixed_to_guest(codec, &licensing_units)?;
+    let features = wide_fixed_to_guest(codec, &features_units)?;
+    let details = Win16HostAcmDriverDetails {
+        type_fourcc,
+        compression_fourcc,
+        manufacturer_id,
+        product_id,
+        acm_version,
+        driver_version,
+        support,
+        format_tag_count,
+        filter_tag_count,
+        icon,
+        short_name,
+        long_name,
+        copyright,
+        licensing,
+        features,
     };
     Ok(ResultValue::DriverDetails { result, details })
 }
