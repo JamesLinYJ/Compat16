@@ -55,3 +55,87 @@ pub fn insert_menu_native_position(position: u16, flags: u16) -> u32 {
         u32::from(position)
     }
 }
+
+/// Previous state returned by `EnableMenuItem`.
+///
+/// The previous state is `MF_DISABLED`, `MF_ENABLED`, or `MF_GRAYED`, or -1
+/// when the item does not exist. A grayed item is often reported with both
+/// grayed and disabled bits set; the guest word is the documented grayed value.
+///
+/// Source: <https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-enablemenuitem>
+pub fn enable_menu_item_state(previous: i32) -> u16 {
+    if previous == -1 {
+        return u16::MAX;
+    }
+    let bits = previous as u16;
+    if bits & MF_GRAYED != 0 {
+        MF_GRAYED
+    } else if bits & MF_DISABLED != 0 {
+        MF_DISABLED
+    } else {
+        MF_ENABLED
+    }
+}
+
+/// Previous state returned by `CheckMenuItem`.
+///
+/// The previous state is `MF_CHECKED` or `MF_UNCHECKED`. A missing item is
+/// `UINT_MAX`, which is the 16-bit failure word. Other flag bits are not part
+/// of that result.
+///
+/// Source: <https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-checkmenuitem>
+pub fn check_menu_item_state(previous: u32) -> u16 {
+    if previous == u32::MAX {
+        u16::MAX
+    } else if previous & u32::from(MF_CHECKED) != 0 {
+        MF_CHECKED
+    } else {
+        MF_UNCHECKED
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        MF_BYPOSITION, MF_CHECKED, MF_DISABLED, MF_ENABLED, MF_GRAYED, MF_UNCHECKED,
+        check_menu_item_state, enable_menu_item_state, insert_menu_native_position,
+    };
+
+    #[test]
+    fn enable_menu_item_state_is_one_documented_flag_or_missing() {
+        assert_eq!(enable_menu_item_state(-1), u16::MAX);
+        assert_eq!(enable_menu_item_state(0), MF_ENABLED);
+        assert_eq!(enable_menu_item_state(i32::from(MF_GRAYED)), MF_GRAYED);
+        assert_eq!(enable_menu_item_state(i32::from(MF_DISABLED)), MF_DISABLED);
+        assert_eq!(
+            enable_menu_item_state(i32::from(MF_GRAYED | MF_DISABLED)),
+            MF_GRAYED
+        );
+        assert_eq!(enable_menu_item_state(0x1_0002), MF_DISABLED);
+        assert_eq!(enable_menu_item_state(i32::MIN), MF_ENABLED);
+    }
+
+    #[test]
+    fn check_menu_item_state_keeps_the_checked_bit_or_missing() {
+        assert_eq!(check_menu_item_state(u32::MAX), u16::MAX);
+        assert_eq!(check_menu_item_state(0), MF_UNCHECKED);
+        assert_eq!(
+            check_menu_item_state(u32::from(MF_CHECKED | MF_GRAYED)),
+            MF_CHECKED
+        );
+        assert_eq!(check_menu_item_state(0xFFFF), MF_CHECKED);
+    }
+
+    #[test]
+    fn insert_menu_appends_only_for_the_byposition_sentinel() {
+        assert_eq!(
+            insert_menu_native_position(u16::MAX, MF_BYPOSITION),
+            u32::MAX
+        );
+        assert_eq!(
+            insert_menu_native_position(u16::MAX, 0),
+            u32::from(u16::MAX)
+        );
+        assert_eq!(insert_menu_native_position(0, MF_BYPOSITION), 0);
+    }
+}
