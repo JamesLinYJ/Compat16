@@ -296,7 +296,7 @@ jobs:
             '-p runtime --lib get_window_task_' = 6
             '-p runtime --lib flash_window_' = 6
             '-p runtime --lib win16_runtime::catch_throw::tests::' = 15
-            '-p runtime --lib escape_' = 16
+            '-p runtime --lib escape_' = 17
             '-p host-services --lib escape_' = 5
             '-p runtime --lib win16_runtime::print_abort::tests::' = 8
             '-p host-services --lib dde_completion_' = 5
