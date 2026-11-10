@@ -3,8 +3,8 @@
 use super::super::{ImportBinding, test_support::tiny_ne_executable};
 use crate::{
     DiagnosticKind as Kind, Runtime, RuntimeError, RuntimeHost, Win16HostCommConfig,
-    Win16HostCommControl, Win16HostCommDevice, Win16HostCommLine, Win16HostCommPort,
-    Win16HostCommQueue, win16_comm_device_is_serial,
+    Win16HostCommControl, Win16HostCommDevice, Win16HostCommLine, Win16HostCommLines,
+    Win16HostCommPort, Win16HostCommQueue, win16_comm_device_is_serial,
 };
 use devices::{keyboard::KeyStroke, video::ConsoleSnapshot};
 use dos_kernel::{
@@ -12,7 +12,7 @@ use dos_kernel::{
     DosHostSearch, DosSeekOrigin,
 };
 use guest_core::{PhysAddr, Selector};
-use win16_abi::comm_abi::{CBR_2400, CBR_9600, EV_RXCHAR, EV_TXEMPTY};
+use win16_abi::comm_abi::{CBR_2400, CBR_9600, CSTF_EOF, EV_RXCHAR, EV_RXFLAG, EV_TXEMPTY};
 use win16_abi::{AccessRights, ExportLookupTarget, SegmentedPointer, lookup_export};
 
 const DX: u16 = 0x5aa5;
@@ -32,6 +32,7 @@ struct CommHost {
     flushes: Vec<(Win16HostCommPort, Win16HostCommQueue)>,
     fail_serial: bool,
     fail_close: bool,
+    lines: Win16HostCommLines,
 }
 
 impl CommHost {
@@ -50,6 +51,11 @@ impl CommHost {
             flushes: Vec::new(),
             fail_serial: false,
             fail_close: false,
+            lines: Win16HostCommLines {
+                cts: true,
+                dsr: true,
+                rlsd: true,
+            },
         }
     }
 
@@ -251,6 +257,13 @@ impl RuntimeHost for CommHost {
     ) -> Result<(), RuntimeError> {
         self.flushes.push((port, queue));
         self.reject_serial()
+    }
+
+    fn win16_comm_lines(
+        &mut self,
+        _port: Win16HostCommPort,
+    ) -> Result<Win16HostCommLines, RuntimeError> {
+        Ok(self.lines)
     }
 
     fn epoch_seconds(&self) -> i64 {
@@ -575,24 +588,31 @@ fn set_state_break_and_flush_reach_the_host_or_keep_the_previous_record() {
     assert_eq!(ax, 0);
     let initial = read_guest(&runtime, state, 25);
     assert_eq!(u16::from_le_bytes([initial[1], initial[2]]), CBR_9600);
+    assert_eq!((initial[3], initial[4], initial[5]), (7, 2, 0));
+    assert_eq!(u16::from_le_bytes([initial[12], initial[13]]), 1);
+    assert_eq!(u16::from_le_bytes([initial[16], initial[17]]), 10);
+    assert_eq!(u16::from_le_bytes([initial[18], initial[19]]), 10);
+    assert_eq!(host.configs.len(), 1);
 
-    let unsupported = guest(&mut runtime, 0x8_1100, &packed_dcb(0, 1, 0x13, 1));
+    let mut bad_parity = packed_dcb(0, 1, 0x13, 0);
+    bad_parity[4] = 9;
+    let unsupported = guest(&mut runtime, 0x8_1100, &bad_parity);
     let (ax, dx) = call(&mut runtime, &mut host, 201, &[Slot::Dword(unsupported)]);
     assert_eq!((ax, dx), (0xfffb, DX));
-    assert!(host.configs.is_empty());
+    assert_eq!(host.configs.len(), 1);
 
     let same_xon = guest(&mut runtime, 0x8_1200, &packed_dcb(0, 1, 0x11, 0));
     let (ax, _) = call(&mut runtime, &mut host, 201, &[Slot::Dword(same_xon)]);
     assert_eq!(ax, 0xfffb);
-    assert!(host.configs.is_empty());
+    assert_eq!(host.configs.len(), 1);
 
     let flags = 1 | (1 << 1) | (1 << 8) | (1 << 13);
     let requested = guest(&mut runtime, 0x8_1300, &packed_dcb(0, flags, 0x13, 0));
     host.fail_serial = true;
     let (ax, dx) = call(&mut runtime, &mut host, 201, &[Slot::Dword(requested)]);
     assert_eq!((ax, dx), (0xfffa, DX));
-    assert_eq!(host.configs.len(), 1);
-    assert_eq!(host.configs[0].0, host.token);
+    assert_eq!(host.configs.len(), 2);
+    assert_eq!(host.configs[1].0, host.token);
     let (ax, _) = call(
         &mut runtime,
         &mut host,
@@ -605,7 +625,7 @@ fn set_state_break_and_flush_reach_the_host_or_keep_the_previous_record() {
     host.fail_serial = false;
     let (ax, dx) = call(&mut runtime, &mut host, 201, &[Slot::Dword(requested)]);
     assert_eq!((ax, dx), (0, DX));
-    let applied = &host.configs[1].1;
+    let applied = &host.configs[2].1;
     assert_eq!(
         (
             applied.baud_rate,
@@ -828,4 +848,206 @@ fn task_exit_retries_comm_port_and_event_word_retirement() {
     );
     assert_eq!(ax, 0);
     assert_eq!(host.opens.len(), 2);
+}
+
+#[test]
+fn build_and_set_state_follow_the_windows_31_dcb_contract() {
+    let mut runtime = fixture();
+    let mut host = CommHost::new();
+    let device = guest(&mut runtime, 0x8_0000, b"COM1\0");
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        200,
+        &[Slot::Dword(device), Slot::Word(64), Slot::Word(32)],
+    );
+    assert_eq!((ax, dx), (0, DX));
+
+    let definition = guest(&mut runtime, 0x8_0100, b"COM1:15,n,8,1\0");
+    let dcb = guest(&mut runtime, 0x8_0200, &[0xa5; 25]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        213,
+        &[Slot::Dword(definition), Slot::Dword(dcb)],
+    );
+    assert_eq!((ax, dx), (0, DX));
+    let bytes = read_guest(&runtime, dcb, 25);
+    assert_eq!(u16::from_le_bytes([bytes[1], bytes[2]]), 150);
+    assert_eq!((bytes[3], bytes[4], bytes[5]), (8, 0, 0));
+
+    let bad = guest(&mut runtime, 0x8_0300, b"COM1:9600,n,8,1.5\0");
+    let unchanged = guest(&mut runtime, 0x8_0400, &[0xa5; 25]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        213,
+        &[Slot::Dword(bad), Slot::Dword(unchanged)],
+    );
+    assert_eq!((ax, dx), (0xfffb, DX));
+    assert_eq!(read_guest(&runtime, unchanged, 25), vec![0xa5; 25]);
+
+    let paced = guest(&mut runtime, 0x8_0500, b"COM1:96,n,8,1,P\0");
+    let paced_dcb = guest(&mut runtime, 0x8_0600, &[0xa5; 25]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        213,
+        &[Slot::Dword(paced), Slot::Dword(paced_dcb)],
+    );
+    assert_eq!((ax, dx), (0, DX));
+    let paced_bytes = read_guest(&runtime, paced_dcb, 25);
+    assert_eq!(u16::from_le_bytes([paced_bytes[6], paced_bytes[7]]), 0xffff);
+    assert_eq!(u16::from_le_bytes([paced_bytes[8], paced_bytes[9]]), 0xffff);
+    assert_eq!(
+        u16::from_le_bytes([paced_bytes[10], paced_bytes[11]]),
+        0xffff
+    );
+
+    let mut literal = packed_dcb(0, 1 | (1 << 1) | (1 << 12) | (1 << 14), 0x13, 1);
+    literal[1..3].copy_from_slice(&9600_u16.to_le_bytes());
+    let requested = guest(&mut runtime, 0x8_0700, &literal);
+    let (ax, dx) = call(&mut runtime, &mut host, 201, &[Slot::Dword(requested)]);
+    assert_eq!((ax, dx), (0, DX));
+    let applied = &host.configs.last().expect("literal baud was applied").1;
+    assert_eq!(applied.baud_rate, 9600);
+    assert_eq!(applied.rts, Win16HostCommLine::Disable);
+
+    let mut rejected = packed_dcb(0, 1, 0x13, 0);
+    rejected[1..3].copy_from_slice(&1_u16.to_le_bytes());
+    let rejected_far = guest(&mut runtime, 0x8_0800, &rejected);
+    let (ax, dx) = call(&mut runtime, &mut host, 201, &[Slot::Dword(rejected_far)]);
+    assert_eq!((ax, dx), (0xfff8, DX));
+    let state = guest(&mut runtime, 0x8_0900, &[0xa5; 25]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        202,
+        &[Slot::Word(0), Slot::Dword(state)],
+    );
+    assert_eq!((ax, dx), (0, DX));
+    let stored = read_guest(&runtime, state, 25);
+    assert_eq!(u16::from_le_bytes([stored[1], stored[2]]), 9600);
+    assert_ne!(stored[12] & (1 << 1), 0);
+}
+
+#[test]
+fn read_eof_event_flag_and_write_line_timeout_match_the_sdk() {
+    let mut runtime = fixture();
+    let mut host = CommHost::new();
+    let device = guest(&mut runtime, 0x8_0000, b"COM1\0");
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        200,
+        &[Slot::Dword(device), Slot::Word(64), Slot::Word(32)],
+    );
+    assert_eq!((ax, dx), (0, DX));
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        208,
+        &[Slot::Word(0), Slot::Word(EV_RXCHAR | EV_RXFLAG)],
+    );
+    assert_eq!(ax, 0);
+    let event = (u32::from(dx) << 16) | u32::from(ax);
+
+    let mut marked = packed_dcb(0, 1, 0x13, 0);
+    marked[22] = b'B';
+    let marked_far = guest(&mut runtime, 0x8_0100, &marked);
+    let (ax, dx) = call(&mut runtime, &mut host, 201, &[Slot::Dword(marked_far)]);
+    assert_eq!((ax, dx), (0, DX));
+    host.pending = b"B".to_vec();
+    let output = guest(&mut runtime, 0x8_0200, &[0xa5; 2]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        204,
+        &[Slot::Word(0), Slot::Dword(output), Slot::Word(2)],
+    );
+    assert_eq!((ax, dx), (1, DX));
+    assert_eq!(read_guest(&runtime, output, 2), b"B\xa5");
+    assert_eq!(
+        read_guest(&runtime, event, 2),
+        (EV_RXCHAR | EV_RXFLAG).to_le_bytes()
+    );
+
+    let mut text = packed_dcb(0, 0, 0x13, 0);
+    text[21] = 0x1a;
+    let text_far = guest(&mut runtime, 0x8_0300, &text);
+    let (ax, dx) = call(&mut runtime, &mut host, 201, &[Slot::Dword(text_far)]);
+    assert_eq!((ax, dx), (0, DX));
+    host.pending = b"A\x1aB".to_vec();
+    let received = guest(&mut runtime, 0x8_0400, &[0xa5; 4]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        204,
+        &[Slot::Word(0), Slot::Dword(received), Slot::Word(4)],
+    );
+    assert_eq!((ax, dx), (0xffff, DX));
+    assert_eq!(read_guest(&runtime, received, 4), b"A\xa5\xa5\xa5");
+    let status = guest(&mut runtime, 0x8_0500, &[0xa5; 5]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        203,
+        &[Slot::Word(0), Slot::Dword(status)],
+    );
+    assert_eq!((ax, dx), (1, DX));
+    assert_eq!(read_guest(&runtime, status, 5)[0], CSTF_EOF);
+
+    host.pending = b"C".to_vec();
+    let later = guest(&mut runtime, 0x8_0580, &[0xa5; 2]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        204,
+        &[Slot::Word(0), Slot::Dword(later), Slot::Word(2)],
+    );
+    assert_eq!((ax, dx), (0, DX));
+    assert_eq!(read_guest(&runtime, later, 2), b"\xa5\xa5");
+    let status = guest(&mut runtime, 0x8_05a0, &[0xa5; 5]);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        203,
+        &[Slot::Word(0), Slot::Dword(status)],
+    );
+    assert_eq!((ax, dx), (1, DX));
+    assert_eq!(read_guest(&runtime, status, 5)[0], CSTF_EOF);
+
+    let mut timed = packed_dcb(0, 1, 0x13, 0);
+    timed[8..10].copy_from_slice(&1_u16.to_le_bytes());
+    let timed_far = guest(&mut runtime, 0x8_0600, &timed);
+    let (ax, dx) = call(&mut runtime, &mut host, 201, &[Slot::Dword(timed_far)]);
+    assert_eq!((ax, dx), (0, DX));
+    host.lines.cts = false;
+    let source = guest(&mut runtime, 0x8_0700, b"Z");
+    let writes = host.writes.len();
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        205,
+        &[Slot::Word(0), Slot::Dword(source), Slot::Word(1)],
+    );
+    assert_eq!((ax, dx), (0, DX));
+    assert_eq!(host.writes.len(), writes);
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        203,
+        &[Slot::Word(0), Slot::Dword(0)],
+    );
+    assert_eq!((ax, dx), (0x20, DX));
+
+    host.lines.cts = true;
+    let (ax, dx) = call(
+        &mut runtime,
+        &mut host,
+        205,
+        &[Slot::Word(0), Slot::Dword(source), Slot::Word(1)],
+    );
+    assert_eq!((ax, dx), (1, DX));
+    assert_eq!(host.writes.len(), writes + 1);
 }

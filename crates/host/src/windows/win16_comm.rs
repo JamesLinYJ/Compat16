@@ -12,13 +12,13 @@ use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
 
 use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostCommConfig, Win16HostCommControl,
-    Win16HostCommDevice, Win16HostCommLine, Win16HostCommPort, Win16HostCommQueue,
-    win16_comm_device_is_serial,
+    Win16HostCommDevice, Win16HostCommLine, Win16HostCommLines, Win16HostCommPort,
+    Win16HostCommQueue, win16_comm_device_is_serial,
 };
 use windows_sys::Win32::Devices::Communication::{
-    CLRDTR, CLRRTS, COMMTIMEOUTS, ClearCommBreak, DCB, EscapeCommFunction, GetCommState,
-    PURGE_RXCLEAR, PURGE_TXCLEAR, PurgeComm, SETDTR, SETRTS, SETXOFF, SETXON, SetCommBreak,
-    SetCommState, SetCommTimeouts,
+    CLRDTR, CLRRTS, COMMTIMEOUTS, ClearCommBreak, DCB, EscapeCommFunction, GetCommModemStatus,
+    GetCommState, MS_CTS_ON, MS_DSR_ON, MS_RLSD_ON, PURGE_RXCLEAR, PURGE_TXCLEAR, PurgeComm,
+    SETDTR, SETRTS, SETXOFF, SETXON, SetCommBreak, SetCommState, SetCommTimeouts,
 };
 use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE, HANDLE, INVALID_HANDLE_VALUE};
 use windows_sys::Win32::Storage::FileSystem::{
@@ -180,6 +180,25 @@ impl Win16CommPorts {
             return Err(device_error("flush"));
         }
         Ok(())
+    }
+
+    pub(super) fn lines(
+        &self,
+        port: Win16HostCommPort,
+    ) -> Result<Win16HostCommLines, RuntimeError> {
+        let handle = self.serial_handle(port)?;
+        let mut status = 0_u32;
+        // SAFETY: `handle` is an owned COM CreateFileW HANDLE. `status` is a
+        // local value that stays live for this call. No guest address is passed.
+        let applied = unsafe { GetCommModemStatus(handle, &mut status) };
+        if applied == 0 {
+            return Err(device_error("modem status"));
+        }
+        Ok(Win16HostCommLines {
+            cts: status & MS_CTS_ON != 0,
+            dsr: status & MS_DSR_ON != 0,
+            rlsd: status & MS_RLSD_ON != 0,
+        })
     }
 
     pub(super) fn read(
