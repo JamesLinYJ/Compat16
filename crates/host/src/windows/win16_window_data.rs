@@ -188,7 +188,9 @@ fn write_scalar(native: HWND, field: Win16WindowDataField, value: u32, mask: u32
     // bits of the old -1. WINDOWS.H defines IDC_STATIC as (-1).
     // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setwindowlongptrw
     if field == Win16WindowDataField::ControlId {
-        return store_long_ptr(native, field_index(field), control_id_bits(value));
+        // `current` is not read. A word merge would keep the high bits of a
+        // previous IDC_STATIC id (-1) and would store 0xFFFF as 65535.
+        return store_long_ptr(native, field_index(field), control_id_bits(value, mask));
     }
     if !matches!(mask, 0x0000_ffff | 0xffff_0000 | u32::MAX) {
         return None;
@@ -206,8 +208,10 @@ fn write_scalar(native: HWND, field: Win16WindowDataField, value: u32, mask: u32
 }
 
 /// `0xFFFF` is `IDC_STATIC` (`-1` in the pointer-sized id slot). Every other
-/// guest word replaces the whole id and is zero-extended.
-fn control_id_bits(value: u32) -> isize {
+/// guest word replaces the whole id and is zero-extended. `mask` is the
+/// caller's word or long width; it is not combined with the previous
+/// `GWLP_ID`.
+fn control_id_bits(value: u32, _mask: u32) -> isize {
     let id = value as u16;
     if id == 0xFFFF { -1 } else { id as isize }
 }
@@ -325,19 +329,20 @@ mod control_id_tests {
 
     #[test]
     fn set_window_word_gww_id_stores_idc_static_and_rename_clears_high_bits() {
-        assert_eq!(control_id_bits(0xFFFF), -1);
-        assert_eq!(control_id_bits(u32::MAX), -1);
-        // A control created as 0xFFFF has native id -1. The old word merge
-        // kept those high bits, so the renamed id could not be found.
+        let word = 0xFFFFu32;
+        assert_eq!(control_id_bits(0xFFFF, word), -1);
+        assert_eq!(control_id_bits(u32::MAX, u32::MAX), -1);
+        // A control created as 0xFFFF has native id -1. Merging the new word
+        // into that long keeps 0xFFFF in the high half, so GetDlgItem misses it.
         let previous = u32::MAX;
         let renamed = 0x0010u32;
-        let merged = (previous & !0xFFFF) | renamed;
+        let merged = (previous & !word) | (renamed & word);
         assert_eq!(merged, 0xFFFF_0010);
-        assert_eq!(control_id_bits(renamed), 0x10);
-        assert_ne!(control_id_bits(renamed) as u32, merged);
-        assert_eq!(control_id_bits(0), 0);
-        assert_eq!(control_id_bits(0x8000), 0x8000);
-        assert_eq!(control_id_bits(0xFFFE), 0xFFFE);
+        assert_eq!(control_id_bits(renamed, word), 0x10);
+        assert_ne!(control_id_bits(renamed, word) as u32, merged);
+        assert_eq!(control_id_bits(0, word), 0);
+        assert_eq!(control_id_bits(0x8000, word), 0x8000);
+        assert_eq!(control_id_bits(0xFFFE, word), 0xFFFE);
     }
 }
 
