@@ -216,9 +216,22 @@ impl Win16State {
                 })?;
                 match result {
                     HostResult::DrawText { height, rect } => {
+                        // USER.85 returns a signed int. Learn returns the text
+                        // height in logical units, or the offset from the top
+                        // when DT_VCENTER or DT_BOTTOM is set, and zero on
+                        // failure. DT_CALCRECT stores the calculated rectangle.
+                        // A height or edge outside that int is the failure
+                        // result, and the guest rectangle stays as it was.
+                        let Ok(height) = i16::try_from(height) else {
+                            return Ok(0);
+                        };
                         if let Some(pointer) = output {
                             match rect {
-                                Some(rect) => self.write_user_rect(memory, pointer, rect)?,
+                                Some(rect) => {
+                                    if !self.write_user_rect(memory, pointer, rect)? {
+                                        return Ok(0);
+                                    }
+                                }
                                 None if height == 0 => {}
                                 None => {
                                     return Err(RuntimeError::new(
@@ -228,7 +241,7 @@ impl Win16State {
                                 }
                             }
                         }
-                        Ok(u32::from(height.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16 as u16))
+                        Ok(u32::from(height as u16))
                     }
                     _ => Err(wrong_result("DrawText")),
                 }
@@ -240,19 +253,19 @@ impl Win16State {
         }
     }
 
+    // Returns false when an edge does not fit a signed int. Guest memory
+    // stays unchanged in that case.
     fn write_user_rect(
         &self,
         memory: &mut Memory,
         pointer: win16_abi::SegmentedPointer,
         rect: Win16DrawingRect,
-    ) -> Result<(), RuntimeError> {
-        let rect = Rect16 {
-            left: guest_coordinate(rect.left),
-            top: guest_coordinate(rect.top),
-            right: guest_coordinate(rect.right),
-            bottom: guest_coordinate(rect.bottom),
+    ) -> Result<bool, RuntimeError> {
+        let Some(rect) = guest_rect(rect) else {
+            return Ok(false);
         };
-        self.write_text_bytes(memory, pointer, &rect.encode())
+        self.write_text_bytes(memory, pointer, &rect.encode())?;
+        Ok(true)
     }
 }
 
@@ -300,8 +313,13 @@ fn rect_to_host(rect: Rect16) -> Win16DrawingRect {
     }
 }
 
-fn guest_coordinate(value: i32) -> i16 {
-    value.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16
+fn guest_rect(rect: Win16DrawingRect) -> Option<Rect16> {
+    Some(Rect16 {
+        left: i16::try_from(rect.left).ok()?,
+        top: i16::try_from(rect.top).ok()?,
+        right: i16::try_from(rect.right).ok()?,
+        bottom: i16::try_from(rect.bottom).ok()?,
+    })
 }
 
 fn wrong_result(operation: &'static str) -> RuntimeError {
