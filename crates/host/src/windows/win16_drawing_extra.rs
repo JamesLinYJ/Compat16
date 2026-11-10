@@ -924,14 +924,18 @@ fn stretch_dibits(
     rop: u32,
 ) -> Result<ResultValue, RuntimeError> {
     let Some(dc_use) = dcs.lease_dc(dc)? else {
-        return Ok(ResultValue::Dibits(-1));
+        // Ordinary failure is zero. GDI_ERROR (-1) is reserved for a driver
+        // that cannot handle JPEG or PNG, and that value comes from the
+        // native call below.
+        // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-stretchdibits
+        return Ok(ResultValue::Dibits(0));
     };
     // A DIB color table begins with either BITMAPCOREHEADER (12 bytes) or a
     // larger INFO header. The runtime has already validated the full format;
     // this guard also protects this native boundary from an empty/malformed
-    // typed operation.
+    // typed operation. A short buffer is the same ordinary failure.
     if dib.info.len() < 12 {
-        return Ok(ResultValue::Dibits(-1));
+        return Ok(ResultValue::Dibits(0));
     }
 
     let aligned_info = aligned_dwords(&dib.info, "StretchDIBits info")?;
