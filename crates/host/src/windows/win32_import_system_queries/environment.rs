@@ -45,19 +45,15 @@ fn get(
     if !ansi {
         let mut buffer = wide(capacity, output_present)?;
         crate::windows::win32_safe::set_last_error(0);
-        // SAFETY: the owned name is terminated and the optional output buffer
-        // has the exact UTF-16 capacity supplied by the guest W entrypoint.
-        let returned = unsafe {
-            GetEnvironmentVariableW(
-                name.as_ptr(),
-                if output_present {
-                    buffer.as_mut_ptr()
-                } else {
-                    ptr::null_mut()
-                },
-                capacity,
-            )
+        let output = if output_present {
+            buffer.as_mut_ptr()
+        } else {
+            ptr::null_mut()
         };
+        // SAFETY: `name` is an owned NUL-terminated UTF-16 string that stays
+        // live for this call. `output` is null or that caller-owned buffer of
+        // `capacity` UTF-16 units. Zero is the API failure code.
+        let returned = unsafe { GetEnvironmentVariableW(name.as_ptr(), output, capacity) };
         let native_error = (returned == 0).then(api_error);
         let empty_value = returned == 0 && native_error == Some(0);
         let valid = output_present
@@ -86,8 +82,9 @@ fn get(
         u32::try_from(MAX_ENVIRONMENT_VALUE).map_err(|_| exhausted("environment value buffer"))?;
     let mut buffer = wide(native_capacity, true)?;
     crate::windows::win32_safe::set_last_error(0);
-    // SAFETY: Windows documents user-defined environment values at up to
-    // 32,767 characters, so this owned buffer includes the terminating unit.
+    // SAFETY: `name` is an owned NUL-terminated UTF-16 string that stays live
+    // for this call. `buffer` holds the documented maximum of 32,767 characters
+    // plus its terminating unit. Zero is the API failure code.
     let returned =
         unsafe { GetEnvironmentVariableW(name.as_ptr(), buffer.as_mut_ptr(), native_capacity) };
     if returned == 0 {
@@ -153,14 +150,12 @@ fn set(
             )
         })
         .transpose()?;
-    // SAFETY: both UTF-16 inputs are owned and terminated; NULL retains the
-    // API's delete-variable operation.
-    let success = unsafe {
-        SetEnvironmentVariableW(
-            name.as_ptr(),
-            value.as_ref().map_or(ptr::null(), Vec::as_ptr),
-        ) != 0
-    };
+    let value_ptr = value.as_ref().map_or(ptr::null(), Vec::as_ptr);
+    // SAFETY: `name` is an owned NUL-terminated UTF-16 string that stays live
+    // for this call. `value_ptr` is null, which deletes the variable, or an
+    // owned NUL-terminated UTF-16 string that also stays live. A zero BOOL is
+    // the only failure result.
+    let success = unsafe { SetEnvironmentVariableW(name.as_ptr(), value_ptr) } != 0;
     Ok(result(V::Bool(success), (!success).then(api_error)))
 }
 
@@ -179,18 +174,15 @@ fn expand(
     if !ansi {
         let mut buffer = wide(capacity, output_present)?;
         crate::windows::win32_safe::set_last_error(0);
-        // SAFETY: the source is owned/terminated and output uses guest W units.
-        let returned = unsafe {
-            ExpandEnvironmentStringsW(
-                source.as_ptr(),
-                if output_present {
-                    buffer.as_mut_ptr()
-                } else {
-                    ptr::null_mut()
-                },
-                capacity,
-            )
+        let output = if output_present {
+            buffer.as_mut_ptr()
+        } else {
+            ptr::null_mut()
         };
+        // SAFETY: `source` is an owned NUL-terminated UTF-16 string that stays
+        // live for this call. `output` is null or that caller-owned buffer of
+        // `capacity` UTF-16 units. Zero is the API failure code.
+        let returned = unsafe { ExpandEnvironmentStringsW(source.as_ptr(), output, capacity) };
         let error = (returned == 0).then(api_error);
         let valid = returned != 0 && returned <= capacity && output_present;
         let value = if valid {
@@ -239,8 +231,9 @@ fn expand(
 
 fn complete_expansion_w(source: &[u16]) -> Result<(Option<Vec<u16>>, Option<u32>), RuntimeError> {
     crate::windows::win32_safe::set_last_error(0);
-    // SAFETY: NULL/zero requests the W API's required character count; source
-    // is an owned, terminated UTF-16 string and remains live for the call.
+    // SAFETY: `source` is an owned NUL-terminated UTF-16 string that stays live
+    // for this call. A null destination with a zero count asks for the required
+    // length. Zero is the API failure code.
     let required = unsafe { ExpandEnvironmentStringsW(source.as_ptr(), ptr::null_mut(), 0) };
     if required == 0 {
         return Ok((None, Some(api_error())));
@@ -249,8 +242,9 @@ fn complete_expansion_w(source: &[u16]) -> Result<(Option<Vec<u16>>, Option<u32>
     loop {
         let mut buffer = wide(capacity, true)?;
         crate::windows::win32_safe::set_last_error(0);
-        // SAFETY: the destination has the supplied number of UTF-16 units and
-        // is separate from the owned source string.
+        // SAFETY: `source` is an owned NUL-terminated UTF-16 string that stays
+        // live for this call. `buffer` is a separate caller-owned buffer of
+        // `capacity` UTF-16 units. Zero is the API failure code.
         let returned =
             unsafe { ExpandEnvironmentStringsW(source.as_ptr(), buffer.as_mut_ptr(), capacity) };
         if returned == 0 {
@@ -346,7 +340,9 @@ mod tests {
 
     impl Drop for DeleteVariable {
         fn drop(&mut self) {
-            // SAFETY: this test owns a terminated variable name; NULL deletes it.
+            // SAFETY: `self.0` is an owned NUL-terminated UTF-16 name that stays
+            // live for this call. NULL deletes the variable. A zero BOOL is the
+            // only failure result.
             unsafe {
                 windows_sys::Win32::System::Environment::SetEnvironmentVariableW(
                     self.0.as_ptr(),

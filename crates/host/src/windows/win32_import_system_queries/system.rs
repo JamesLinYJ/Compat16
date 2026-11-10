@@ -24,11 +24,9 @@ pub(super) fn execute(
     codec: GuestTextCodec,
 ) -> Result<Win32HostImportResult, RuntimeError> {
     match call {
-        // SAFETY: `GetVersion` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-        C::Version => Ok(result(V::Dword(unsafe { GetVersion() }), None)),
+        C::Version => Ok(result(V::Dword(windows_version()), None)),
         C::VersionInfo { encoding, extended } => version_info(encoding, extended, codec),
-        // SAFETY: `GetTickCount` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-        C::TickCount => Ok(result(V::Dword(unsafe { GetTickCount() }), None)),
+        C::TickCount => Ok(result(V::Dword(tick_count()), None)),
         C::ProcessId => Ok(result(
             V::Dword(crate::windows::win32_safe::current_process_id()),
             None,
@@ -39,14 +37,15 @@ pub(super) fn execute(
         )),
         C::SystemTime { local } => {
             let mut time = SYSTEMTIME::default();
-            // SAFETY: GetLocalTime writes into a caller-owned SYSTEMTIME. GetSystemTime writes into a caller-owned SYSTEMTIME.
-            unsafe {
-                if local {
-                    GetLocalTime(&mut time)
-                } else {
-                    GetSystemTime(&mut time)
-                }
-            };
+            if local {
+                // SAFETY: `time` is a caller-owned SYSTEMTIME that stays live for
+                // this call. GetLocalTime retains no pointer and has no failure code.
+                unsafe { GetLocalTime(&mut time) }
+            } else {
+                // SAFETY: `time` is a caller-owned SYSTEMTIME that stays live for
+                // this call. GetSystemTime retains no pointer and has no failure code.
+                unsafe { GetSystemTime(&mut time) }
+            }
             Ok(result(
                 V::SystemTime([
                     time.wYear,
@@ -63,7 +62,8 @@ pub(super) fn execute(
         }
         C::SystemTimeAsFileTime => {
             let mut time = FILETIME::default();
-            // SAFETY: `GetSystemTimeAsFileTime` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+            // SAFETY: `time` is a caller-owned FILETIME that stays live for this
+            // call. GetSystemTimeAsFileTime retains no pointer and has no failure code.
             unsafe { GetSystemTimeAsFileTime(&mut time) };
             Ok(result(
                 V::FileTime((u64::from(time.dwHighDateTime) << 32) | u64::from(time.dwLowDateTime)),
@@ -84,8 +84,11 @@ fn version_info(
         let mut info = OSVERSIONINFOEXW::default();
         info.dwOSVersionInfoSize = u32::try_from(size_of::<OSVERSIONINFOEXW>())
             .map_err(|_| invariant("OSVERSIONINFOEXW host size overflowed"))?;
-        // SAFETY: `GetVersionExW` receives a host pointer formed in this function. The pointer is non-null when dereferenced, stays live for this synchronous call, and is not a guest address.
-        let success = unsafe { GetVersionExW((&mut info as *mut OSVERSIONINFOEXW).cast()) } != 0;
+        let info_ptr = (&mut info as *mut OSVERSIONINFOEXW).cast();
+        // SAFETY: `info_ptr` addresses the caller-owned OSVERSIONINFOEXW whose
+        // size field is set, and that record stays live for this call. A zero
+        // BOOL is the only failure result.
+        let success = unsafe { GetVersionExW(info_ptr) } != 0;
         let error = (!success).then(api_error);
         let service_pack = version_text(encoding, codec, &info.szCSDVersion)?;
         Ok(result(
@@ -107,7 +110,9 @@ fn version_info(
         let mut info = OSVERSIONINFOW::default();
         info.dwOSVersionInfoSize = u32::try_from(size_of::<OSVERSIONINFOW>())
             .map_err(|_| invariant("OSVERSIONINFOW host size overflowed"))?;
-        // SAFETY: `GetVersionExW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+        // SAFETY: `info` is a caller-owned OSVERSIONINFOW whose size field is
+        // set. The record stays live for this call. A zero BOOL is the only
+        // failure result.
         let success = unsafe { GetVersionExW(&mut info) } != 0;
         let error = (!success).then(api_error);
         let service_pack = version_text(encoding, codec, &info.szCSDVersion)?;
@@ -131,18 +136,19 @@ fn version_info(
 
 fn system_info(native: bool) -> Result<Win32HostImportResult, RuntimeError> {
     let mut info = SYSTEM_INFO::default();
-    // SAFETY: `GetNativeSystemInfo`, `GetSystemInfo` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    unsafe {
-        if native {
-            GetNativeSystemInfo(&mut info)
-        } else {
-            GetSystemInfo(&mut info)
-        }
-    };
+    if native {
+        // SAFETY: `info` is a caller-owned SYSTEM_INFO that stays live for this
+        // call. GetNativeSystemInfo retains no pointer and has no failure code.
+        unsafe { GetNativeSystemInfo(&mut info) }
+    } else {
+        // SAFETY: `info` is a caller-owned SYSTEM_INFO that stays live for this
+        // call. GetSystemInfo retains no pointer and has no failure code.
+        unsafe { GetSystemInfo(&mut info) }
+    }
     // SYSTEM_INFO contains host-width pointers and processor masks. Preserve
     // them as data; the PE32 guest adapter applies its own address-space and
     // CPU contract and never treats this host result as decoder capability.
-    // SAFETY: GetSystemInfo and GetNativeSystemInfo write the processor-architecture arm of this union.
+    // SAFETY: the call above initialized the processor-architecture arm of this union.
     let architecture = unsafe { info.Anonymous.Anonymous.wProcessorArchitecture };
     Ok(result(
         V::SystemInfo {
@@ -163,14 +169,16 @@ fn system_info(native: bool) -> Result<Win32HostImportResult, RuntimeError> {
 
 fn query_performance(frequency: bool) -> Result<Win32HostImportResult, RuntimeError> {
     let mut value = 0i64;
-    // SAFETY: QueryPerformanceFrequency writes into a caller-owned integer. QueryPerformanceCounter writes into a caller-owned integer.
-    let success = unsafe {
-        if frequency {
-            QueryPerformanceFrequency(&mut value)
-        } else {
-            QueryPerformanceCounter(&mut value)
-        }
-    } != 0;
+    let raw = if frequency {
+        // SAFETY: `value` is a caller-owned i64 that stays live for this call.
+        // A zero BOOL is the only failure result, and the API retains no pointer.
+        unsafe { QueryPerformanceFrequency(&mut value) }
+    } else {
+        // SAFETY: `value` is a caller-owned i64 that stays live for this call.
+        // A zero BOOL is the only failure result, and the API retains no pointer.
+        unsafe { QueryPerformanceCounter(&mut value) }
+    };
+    let success = raw != 0;
     let error = (!success).then(api_error);
     let value = if success {
         u64::try_from(value).map_err(|_| {
@@ -216,4 +224,14 @@ fn version_text(encoding: E, codec: GuestTextCodec, buffer: &[u16]) -> Result<S,
 
 fn invariant(message: &'static str) -> RuntimeError {
     RuntimeError::new(Kind::InternalInvariant, message)
+}
+
+fn windows_version() -> u32 {
+    // SAFETY: GetVersion takes no pointers and returns the encoded Windows version.
+    unsafe { GetVersion() }
+}
+
+fn tick_count() -> u32 {
+    // SAFETY: GetTickCount takes no pointers and returns the millisecond tick count.
+    unsafe { GetTickCount() }
 }
