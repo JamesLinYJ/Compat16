@@ -38,7 +38,9 @@ mod win16_builtin_data_exports;
 mod win16_dde;
 mod win16_io_trace;
 mod win16_loader;
+mod win16_profile_integer;
 mod win16_runtime;
+pub use win16_profile_integer::win16_profile_integer;
 pub use win16_abi::{Win16CharacterClassification, network_print_abi};
 pub use win16_io_trace::{
     Win16IoEvent, Win16ServiceBoundaryStage, Win16WindowCallbackPhase,

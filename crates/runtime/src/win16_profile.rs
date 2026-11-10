@@ -43,6 +43,9 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
+        if section.is_none() {
+            return self.absent_section_string(output, memory);
+        }
         let Some(output) = output else { return Ok(0); };
         let filename = self.private_profile_path(filename, host)?;
         let (bytes, copied) = host.win16_profile_string(
@@ -60,11 +63,50 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
+        if section.is_none() {
+            return self.absent_section_string(output, memory);
+        }
         let Some(output) = output else { return Ok(0); };
         let (bytes, copied) = host.win16_system_profile_string(
             section, key, default_value, output.capacity,
         )?;
         self.write_profile_result(section, key, output, &bytes, copied, memory)
+    }
+
+    /// KERNEL.142 and KERNEL.143. A null section on the string APIs is not
+    /// this query, so enumeration stays on its own path.
+    pub(super) fn profile_section_names(
+        &self,
+        filename: Option<&[u8]>,
+        output: Option<Win16OutputBuffer>,
+        memory: &mut Memory,
+        host: &mut impl RuntimeHost,
+        system: bool,
+    ) -> Result<u32, RuntimeError> {
+        let Some(output) = output else {
+            return Ok(0);
+        };
+        let (bytes, copied) = if system {
+            host.win16_system_profile_string(None, None, None, output.capacity)?
+        } else {
+            let filename = self.private_profile_path(filename, host)?;
+            host.win16_profile_string(None, None, None, &filename, output.capacity)?
+        };
+        self.write_profile_result(None, None, output, &bytes, copied, memory)
+    }
+
+    /// A null section on `GetProfileString` or `GetPrivateProfileString`
+    /// returns zero. A positive buffer receives one NUL and nothing else.
+    fn absent_section_string(
+        &self,
+        output: Option<Win16OutputBuffer>,
+        memory: &mut Memory,
+    ) -> Result<u32, RuntimeError> {
+        let Some(output) = output else {
+            return Ok(0);
+        };
+        self.write_output(memory, output, &[0])?;
+        Ok(0)
     }
 
     fn write_profile_result(
@@ -106,3 +148,7 @@ fn profile_path_is_outside_windows_directory(text: &str) -> bool {
         _ => false,
     }
 }
+
+#[cfg(test)]
+#[path = "win16_profile_contract_tests.rs"]
+mod contract_tests;

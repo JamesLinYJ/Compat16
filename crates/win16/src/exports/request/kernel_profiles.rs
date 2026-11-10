@@ -21,15 +21,25 @@ pub enum Win16KernelProfilesRequest {
         filename: Option<Vec<u8>>,
     },
 
-    /// Read from the host's Win.ini profile mapping through the Windows
-    /// GetProfileString API. Nullable input strings preserve section/key
-    /// enumeration semantics and the default-string contract.
+    /// Read from the host's Win.ini profile mapping. A null key enumerates
+    /// key names. A null section is not an enumeration; KERNEL.142 is.
     /// `output_buffer` is absent when `cbReturnBuffer` is not a positive int.
     GetProfileString {
         section: Option<Vec<u8>>,
         key: Option<Vec<u8>>,
         default_value: Option<Vec<u8>>,
         output_buffer: Option<Win16OutputBuffer>,
+    },
+
+    /// KERNEL.142. A null section on `GetProfileString` is not this query.
+    GetProfileSectionNames {
+        output_buffer: Option<Win16OutputBuffer>,
+    },
+
+    /// KERNEL.143. A null section on `GetPrivateProfileString` is not this query.
+    GetPrivateProfileSectionNames {
+        output_buffer: Option<Win16OutputBuffer>,
+        filename: Option<Vec<u8>>,
     },
 
     WritePrivateProfileString {
