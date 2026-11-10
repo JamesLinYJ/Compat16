@@ -124,15 +124,18 @@ pub(super) fn private_write_wide(
     let key = copy_optional_wide_z(codec, key)?;
     let value = copy_optional_wide_z(codec, value)?;
     // The path belongs to a private host temporary file, never guest text.
-    // SAFETY: `WritePrivateProfileStringW` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    Ok(unsafe {
-        WritePrivateProfileStringW(
-            wide_ptr(section.as_ref()),
-            wide_ptr(key.as_ref()),
-            wide_ptr(value.as_ref()),
-            filename.as_ptr(),
-        )
-    } != 0)
+    let section_units = wide_ptr(section.as_ref());
+    let key_units = wide_ptr(key.as_ref());
+    let value_units = wide_ptr(value.as_ref());
+    let path = filename.as_ptr();
+    // SAFETY: `section_units`, `key_units`, and `value_units` are null or point
+    // at owned NUL-terminated UTF-16 in `section`, `key`, and `value`, which
+    // stay live for this call. `path` points at the owned temporary-file path
+    // in `filename`, which also stays live. WritePrivateProfileStringW returns
+    // zero on failure and retains no pointer. No pointer is a guest address.
+    let written =
+        unsafe { WritePrivateProfileStringW(section_units, key_units, value_units, path) };
+    Ok(written != 0)
 }
 
 /// Read the system profile using Windows' WIN.INI compatibility mapping.
@@ -219,29 +222,28 @@ fn read_profile_key_text(
     let mut capacity = 16_u32;
     loop {
         let mut buffer = zeroed_wide(capacity as usize, "read Win16 profile integer text")?;
-        // SAFETY: `app_name`, `key_name`, and `default` are NUL-terminated
-        // UTF-16 that stay live for this synchronous call. `buffer` holds
-        // `capacity` units. A null file pointer selects WIN.INI; otherwise it
-        // is the owned profile path. No guest address is passed.
-        let copied = unsafe {
-            if system {
-                GetProfileStringW(
-                    app_name.as_ptr(),
-                    key_name.as_ptr(),
-                    default.as_ptr(),
-                    buffer.as_mut_ptr(),
-                    capacity,
-                )
-            } else {
-                GetPrivateProfileStringW(
-                    app_name.as_ptr(),
-                    key_name.as_ptr(),
-                    default.as_ptr(),
-                    buffer.as_mut_ptr(),
-                    capacity,
-                    wide_ptr(file_name.as_ref()),
-                )
-            }
+        let app = app_name.as_ptr();
+        let key = key_name.as_ptr();
+        let default_units = default.as_ptr();
+        let output = buffer.as_mut_ptr();
+        let copied = if system {
+            // SAFETY: `app`, `key`, and `default_units` are NUL-terminated
+            // UTF-16 in `app_name`, `key_name`, and `default`, which stay live
+            // for this call. `output` addresses `capacity` initialized UTF-16
+            // units in `buffer`, and that buffer stays live.
+            // GetProfileStringW writes the value there and returns the copied
+            // unit count. No pointer is a guest address.
+            unsafe { GetProfileStringW(app, key, default_units, output, capacity) }
+        } else {
+            let file = wide_ptr(file_name.as_ref());
+            // SAFETY: `app`, `key`, and `default_units` are NUL-terminated
+            // UTF-16 in `app_name`, `key_name`, and `default`, which stay live
+            // for this call. `output` addresses `capacity` initialized UTF-16
+            // units in `buffer`, and that buffer stays live. `file` is null or
+            // the owned profile path in `file_name`. A null file pointer
+            // selects WIN.INI. GetPrivateProfileStringW writes the value and
+            // returns the copied unit count. No pointer is a guest address.
+            unsafe { GetPrivateProfileStringW(app, key, default_units, output, capacity, file) }
         };
         if copied >= capacity {
             return Err(RuntimeError::new(
@@ -363,27 +365,41 @@ fn profile_string(
     let wide_capacity_u32 = u32::try_from(wide_capacity)
         .map_err(|_| resource_error("size Win16 profile UTF-16 output"))?;
 
-    // SAFETY: Input pointers refer to owned, NUL-terminated UTF-16 copies (or
-    // null when requested). The output pointer addresses an initialized UTF-16
-    // buffer of `wide_capacity` units. The native call is synchronous.
-    let read_profile = |output: &mut [u16], default: *const u16| unsafe {
+    let read_profile = |output: &mut [u16], default: *const u16| {
+        let app = wide_ptr(app_name.as_ref());
+        let key = wide_ptr(key_name.as_ref());
+        let output_units = output.as_mut_ptr();
         match source {
-            ProfileStringSource::System => GetProfileStringW(
-                wide_ptr(app_name.as_ref()),
-                wide_ptr(key_name.as_ref()),
-                default,
-                output.as_mut_ptr(),
-                wide_capacity_u32,
-            ),
+            ProfileStringSource::System => {
+                // SAFETY: `app` and `key` are null or point at owned
+                // NUL-terminated UTF-16 in `app_name` and `key_name`, which
+                // stay live for this call. `default` is null or the same kind
+                // of string. `output_units` addresses `wide_capacity_u32`
+                // initialized UTF-16 units in `output`, and that slice stays
+                // live. GetProfileStringW writes the value and returns the
+                // copied unit count. No pointer is a guest address.
+                unsafe { GetProfileStringW(app, key, default, output_units, wide_capacity_u32) }
+            }
             ProfileStringSource::File(_) | ProfileStringSource::WideFile(_) => {
-                GetPrivateProfileStringW(
-                    wide_ptr(app_name.as_ref()),
-                    wide_ptr(key_name.as_ref()),
-                    default,
-                    output.as_mut_ptr(),
-                    wide_capacity_u32,
-                    wide_ptr(file_name.as_ref()),
-                )
+                let file = wide_ptr(file_name.as_ref());
+                // SAFETY: `app` and `key` are null or point at owned
+                // NUL-terminated UTF-16 in `app_name` and `key_name`, which
+                // stay live for this call. `default` is null or the same kind
+                // of string. `output_units` addresses `wide_capacity_u32`
+                // initialized UTF-16 units in `output`, and that slice stays
+                // live. `file` is null or the owned profile path in
+                // `file_name`. GetPrivateProfileStringW writes the value and
+                // returns the copied unit count. No pointer is a guest address.
+                unsafe {
+                    GetPrivateProfileStringW(
+                        app,
+                        key,
+                        default,
+                        output_units,
+                        wide_capacity_u32,
+                        file,
+                    )
+                }
             }
         }
     };
@@ -446,18 +462,17 @@ pub(super) fn write_private_profile_string(
     let key_name = copy_optional_wide_z(codec, key_name)?;
     let value = copy_optional_wide_z(codec, value)?;
     let file_name = copy_optional_wide_z(codec, file_name)?;
-
-    // SAFETY: Every non-null pointer references an owned, NUL-terminated UTF-16
-    // copy which remains alive for the synchronous call; null options preserve
-    // the native API's deletion and flush semantics.
-    Ok(unsafe {
-        WritePrivateProfileStringW(
-            wide_ptr(app_name.as_ref()),
-            wide_ptr(key_name.as_ref()),
-            wide_ptr(value.as_ref()),
-            wide_ptr(file_name.as_ref()),
-        )
-    })
+    let app = wide_ptr(app_name.as_ref());
+    let key = wide_ptr(key_name.as_ref());
+    let text = wide_ptr(value.as_ref());
+    let path = wide_ptr(file_name.as_ref());
+    // SAFETY: `app`, `key`, `text`, and `path` are null or point at owned
+    // NUL-terminated UTF-16 in `app_name`, `key_name`, `value`, and
+    // `file_name`, which stay live for this call. A null pointer preserves
+    // WritePrivateProfileStringW's deletion and flush behavior. The call
+    // returns the native BOOL and retains no pointer. No pointer is a guest
+    // address.
+    Ok(unsafe { WritePrivateProfileStringW(app, key, text, path) })
 }
 
 fn inputs_are_valid(values: &[Option<&[u8]>]) -> bool {
